@@ -10,6 +10,7 @@ import {
   useGetProcessedSystemInstructions,
   useSettingsNavigationTarget,
   useNavigateToSettings,
+  useCurrentTurnDetectionMode,
 } from '../../../stores/settingsStore';
 import { useAudioContext } from '../../../stores/audioStore';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -68,6 +69,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
 
   // Audio context
   const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
+
+  // Current Speech Mode for active provider — used to disable VoicePassthroughSection
+  // when Push-to-Translate is in effect (mutual exclusion).
+  const currentTurnDetectionMode = useCurrentTurnDetectionMode();
 
   // Get current provider configuration
   const currentProviderConfig = React.useMemo(() => {
@@ -189,7 +194,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
               onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
             />
 
-            <VoicePassthroughSection />
+            <VoicePassthroughSection
+              disabled={currentTurnDetectionMode === 'Push-to-Translate'}
+              disabledReason={t('audioPanel.passthroughManagedByPushToTranslate')}
+            />
           </div>
         )}
 

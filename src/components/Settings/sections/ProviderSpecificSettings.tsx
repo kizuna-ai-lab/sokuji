@@ -64,6 +64,15 @@ interface ProviderSpecificSettingsProps {
   fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
 }
 
+/**
+ * OpenAI's internal `'Disabled'` mode is surfaced in the UI as "Push-to-Talk"
+ * (matches the equivalent button on other providers). For analytics we want
+ * the same normalization so cross-provider mode stats are consistent.
+ */
+function normalizeSpeechModeForAnalytics(mode: string): string {
+  return mode === 'Disabled' ? 'Push-to-Talk' : mode;
+}
+
 const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   config,
   isSessionActive,
@@ -353,7 +362,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <div className="settings-section turn-detection-section" id="turn-detection-section">
         <h2>
-          {t('settings.automaticTurnDetection')}
+          {t('settings.speechMode')}
           <Tooltip
             content={t('settings.turnDetectionTooltip')}
             position="top"
@@ -372,14 +381,51 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <button
                   key={mode}
                   className={`option-button ${compatibleSettings?.turnDetectionMode === mode ? 'active' : ''}`}
-                  onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
+                  onClick={() => {
+                    const fromMode = compatibleSettings?.turnDetectionMode ?? 'Normal';
+                    const toMode = mode as 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
+                    if (fromMode !== toMode) {
+                      trackEvent('speech_mode_changed', {
+                        provider: provider,
+                        from_mode: normalizeSpeechModeForAnalytics(fromMode),
+                        to_mode: normalizeSpeechModeForAnalytics(toMode),
+                      });
+                      updateOpenAICompatibleSettingsHelper({ turnDetectionMode: toMode });
+                    }
+                  }}
                   disabled={isDisabled}
                   title={isWebRTCMode && isVADMode ? t('settings.webrtcVadDisabledTitle', 'Server VAD is not available in WebRTC mode') : undefined}
                 >
-                  {t(`settings.${mode.toLowerCase()}`)}
+                  {/* OpenAI's internal 'Disabled' value semantically IS push-to-talk
+                      (no server VAD, manual hold-to-send). Surface it as Push-to-Talk
+                      under the new "Speech Mode" label, matching the other providers'
+                      equivalent button. The internal enum value stays 'Disabled' for
+                      backward compat with persisted settings. */}
+                  {mode === 'Disabled'
+                    ? t('settings.pushToTalk')
+                    : t(`settings.${mode.toLowerCase()}`)}
                 </button>
               );
             })}
+            <button
+              key="push-to-translate"
+              className={`option-button ${compatibleSettings?.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+              onClick={() => {
+                const fromMode = compatibleSettings?.turnDetectionMode ?? 'Normal';
+                if (fromMode !== 'Push-to-Translate') {
+                  trackEvent('speech_mode_changed', {
+                    provider: provider,
+                    from_mode: normalizeSpeechModeForAnalytics(fromMode),
+                    to_mode: 'Push-to-Translate',
+                  });
+                  updateOpenAICompatibleSettingsHelper({ turnDetectionMode: 'Push-to-Translate' });
+                }
+              }}
+              disabled={isSessionActive || isWebRTCMode}
+              title={isWebRTCMode ? t('settings.pushToTranslateNotAvailableInWebrtc') : undefined}
+            >
+              {t('settings.pushToTranslate')}
+            </button>
           </div>
           {isWebRTCMode && (
             <div className="webrtc-vad-notice" style={{
@@ -795,7 +841,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <div className="settings-section" id="gemini-vad-section">
         <h2>
-          {t('settings.geminiVad')}
+          {t('settings.speechMode')}
           <Tooltip
             content={t('settings.geminiVadTooltip')}
             position="top"
@@ -807,17 +853,54 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="turn-detection-options">
             <button
               className={`option-button ${geminiSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Auto' })}
+              onClick={() => {
+                const fromMode = geminiSettings.turnDetectionMode;
+                if (fromMode !== 'Auto') {
+                  trackEvent('speech_mode_changed', {
+                    provider: provider,
+                    from_mode: fromMode,
+                    to_mode: 'Auto',
+                  });
+                  updateGeminiSettings({ turnDetectionMode: 'Auto' });
+                }
+              }}
               disabled={isSessionActive}
             >
               {t('settings.auto')}
             </button>
             <button
               className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' })}
+              onClick={() => {
+                const fromMode = geminiSettings.turnDetectionMode;
+                if (fromMode !== 'Push-to-Talk') {
+                  trackEvent('speech_mode_changed', {
+                    provider: provider,
+                    from_mode: fromMode,
+                    to_mode: 'Push-to-Talk',
+                  });
+                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' });
+                }
+              }}
               disabled={isSessionActive}
             >
               {t('settings.pushToTalk')}
+            </button>
+            <button
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+              onClick={() => {
+                const fromMode = geminiSettings.turnDetectionMode;
+                if (fromMode !== 'Push-to-Translate') {
+                  trackEvent('speech_mode_changed', {
+                    provider: provider,
+                    from_mode: fromMode,
+                    to_mode: 'Push-to-Translate',
+                  });
+                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Translate' });
+                }
+              }}
+              disabled={isSessionActive}
+            >
+              {t('settings.pushToTranslate')}
             </button>
           </div>
         </div>
@@ -1295,9 +1378,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
         <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
-            {t('settings.automaticTurnDetection')}
+            {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1307,17 +1390,54 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <div className="turn-detection-options">
               <button
                 className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => updateVolcengineAST2Settings({ turnDetectionMode: 'Auto' })}
+                onClick={() => {
+                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  if (fromMode !== 'Auto') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Auto',
+                    });
+                    updateVolcengineAST2Settings({ turnDetectionMode: 'Auto' });
+                  }
+                }}
                 disabled={isSessionActive}
               >
                 {t('settings.auto')}
               </button>
               <button
                 className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Talk' })}
+                onClick={() => {
+                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  if (fromMode !== 'Push-to-Talk') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Push-to-Talk',
+                    });
+                    updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Talk' });
+                  }
+                }}
                 disabled={isSessionActive}
               >
                 {t('settings.pushToTalk')}
+              </button>
+              <button
+                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+                onClick={() => {
+                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  if (fromMode !== 'Push-to-Translate') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Push-to-Translate',
+                    });
+                    updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Translate' });
+                  }
+                }}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTranslate')}
               </button>
             </div>
           </div>
@@ -1619,9 +1739,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
         <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
-            {t('settings.automaticTurnDetection')}
+            {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1631,17 +1751,54 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <div className="turn-detection-options">
               <button
                 className={`option-button ${localInferenceSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Auto' })}
+                onClick={() => {
+                  const fromMode = localInferenceSettings.turnDetectionMode;
+                  if (fromMode !== 'Auto') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Auto',
+                    });
+                    updateLocalInferenceSettings({ turnDetectionMode: 'Auto' });
+                  }
+                }}
                 disabled={isSessionActive}
               >
                 {t('settings.auto')}
               </button>
               <button
                 className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' })}
+                onClick={() => {
+                  const fromMode = localInferenceSettings.turnDetectionMode;
+                  if (fromMode !== 'Push-to-Talk') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Push-to-Talk',
+                    });
+                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' });
+                  }
+                }}
                 disabled={isSessionActive}
               >
                 {t('settings.pushToTalk')}
+              </button>
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+                onClick={() => {
+                  const fromMode = localInferenceSettings.turnDetectionMode;
+                  if (fromMode !== 'Push-to-Translate') {
+                    trackEvent('speech_mode_changed', {
+                      provider: provider,
+                      from_mode: fromMode,
+                      to_mode: 'Push-to-Translate',
+                    });
+                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Translate' });
+                  }
+                }}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTranslate')}
               </button>
             </div>
           </div>

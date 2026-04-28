@@ -12,8 +12,32 @@ export interface AudioOperationResult {
   error?: string;
 }
 
+/**
+ * Callback invoked for each audio chunk captured by a recorder.
+ *
+ * `mono` and `raw` are guaranteed by all recorder implementations.
+ *
+ * `isPassthrough`, `isRecording`, and `passthroughVolume` are populated only by
+ * `ModernAudioRecorder` (the user-facing mic recorder reachable through
+ * `IAudioService.startRecording`). Other recorders (`TabAudioRecorder`,
+ * `ParticipantRecorder`) leave them undefined because passthrough is not a
+ * meaningful concept for tab/system/participant audio sources.
+ *
+ * Callback consumers that branch on `data.isPassthrough` must therefore only
+ * be wired to `IAudioService.startRecording` — not to the participant /
+ * tab-audio recording paths.
+ */
 export interface AudioRecordingCallback {
-  (data: { mono: Int16Array; raw: Int16Array }): void;
+  (data: {
+    mono: Int16Array;
+    raw: Int16Array;
+    /** Set by ModernAudioRecorder only. Reflects current setupPassthrough state. */
+    isPassthrough?: boolean;
+    /** Set by ModernAudioRecorder only. True while the recorder is actively capturing. */
+    isRecording?: boolean;
+    /** Set by ModernAudioRecorder only. Mirrors the passthrough volume from setupPassthrough. */
+    passthroughVolume?: number;
+  }): void;
 }
 
 export interface IAudioService {
