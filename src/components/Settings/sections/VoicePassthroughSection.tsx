@@ -8,10 +8,16 @@ import { useAnalytics } from '../../../lib/analytics';
 interface VoicePassthroughSectionProps {
   /** Additional class name */
   className?: string;
+  /** When true, the toggle and slider render disabled with a tooltip. */
+  disabled?: boolean;
+  /** Tooltip text shown when disabled (i18n string). */
+  disabledReason?: string;
 }
 
 const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
-  className = ''
+  className = '',
+  disabled = false,
+  disabledReason
 }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -24,6 +30,7 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
   } = useAudioContext();
 
   const handleToggle = (enable: boolean) => {
+    if (disabled) return;
     if (enable !== isRealVoicePassthroughEnabled) {
       toggleRealVoicePassthrough();
       trackEvent('audio_passthrough_toggled', {
@@ -34,11 +41,15 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
   };
 
   return (
-    <div className={`config-section voice-passthrough-section ${className}`}>
+    <div
+      className={`config-section voice-passthrough-section ${className} ${disabled ? 'disabled' : ''}`}
+      aria-disabled={disabled}
+      title={disabled ? disabledReason : undefined}
+    >
       <h3>
         {t('audioPanel.realVoicePassthrough')}
         <Tooltip
-          content={t('audioPanel.realVoicePassthroughDescription')}
+          content={disabled && disabledReason ? disabledReason : t('audioPanel.realVoicePassthroughDescription')}
           position="top"
           icon="help"
           maxWidth={300}
@@ -48,6 +59,7 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
         checked={isRealVoicePassthroughEnabled}
         onChange={() => handleToggle(!isRealVoicePassthroughEnabled)}
         label={isRealVoicePassthroughEnabled ? t('common.on', 'On') : t('common.off', 'Off')}
+        disabled={disabled}
       />
       {/* Volume slider - shown when enabled */}
       {isRealVoicePassthroughEnabled && (
@@ -62,7 +74,9 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
             max="0.6"
             step="0.01"
             value={realVoicePassthroughVolume}
+            disabled={disabled}
             onChange={(e) => {
+              if (disabled) return;
               const newVolume = parseFloat(e.target.value);
               setRealVoicePassthroughVolume(newVolume);
             }}

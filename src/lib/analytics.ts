@@ -133,6 +133,12 @@ export interface AnalyticsEvents {
   'push_to_talk_used': {
     session_id: string;
     hold_duration_ms: number;
+    mode: 'push-to-talk' | 'push-to-translate';
+  };
+  'speech_mode_changed': {
+    provider: string;
+    from_mode: string;
+    to_mode: string;
   };
   'session_control_clicked': {
     action: 'start' | 'stop';

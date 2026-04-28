@@ -52,7 +52,7 @@ export interface OpenAICompatibleSettingsBase {
   voice: string;
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled';
+  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
   threshold: number;
   prefixPadding: number;
   silenceDuration: number;
@@ -81,7 +81,7 @@ export interface GeminiSettings {
   targetLanguage: string;
   temperature: number;
   maxTokens: number | 'inf';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadStartSensitivity: 'high' | 'low';
   vadEndSensitivity: 'high' | 'low';
   vadSilenceDurationMs: number;
@@ -119,7 +119,7 @@ export interface VolcengineAST2Settings {
   accessToken: string;
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
   hotWordTableId: string;
   /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
@@ -138,7 +138,7 @@ export interface LocalInferenceSettings {
   edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
@@ -426,20 +426,26 @@ function createOpenAISessionConfig(
     instructions: systemInstructions,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
-    turnDetection: settings.turnDetectionMode === 'Disabled' ? {type: 'none'} :
-      settings.turnDetectionMode === 'Normal' ? {
-        type: 'server_vad',
-        createResponse: true,
-        interruptResponse: false,
-        prefixPadding: settings.prefixPadding,
-        silenceDuration: settings.silenceDuration,
-        threshold: settings.threshold
-      } : {
-        type: 'semantic_vad',
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: settings.semanticEagerness?.toLowerCase() as any,
-      },
+    // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns
+    // manually via createResponse() on hold release. Falling through to semantic_vad here
+    // would let the OpenAI server auto-translate any utterance, defeating manual control.
+    turnDetection: (settings.turnDetectionMode === 'Disabled' || settings.turnDetectionMode === 'Push-to-Translate')
+      ? {type: 'none'}
+      : settings.turnDetectionMode === 'Normal'
+        ? {
+            type: 'server_vad',
+            createResponse: true,
+            interruptResponse: false,
+            prefixPadding: settings.prefixPadding,
+            silenceDuration: settings.silenceDuration,
+            threshold: settings.threshold
+          }
+        : {
+            type: 'semantic_vad',
+            createResponse: true,
+            interruptResponse: false,
+            eagerness: settings.semanticEagerness?.toLowerCase() as any,
+          },
     inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
       type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
@@ -1557,5 +1563,18 @@ export const useNavigateToSettings = () => useSettingsStore((state) => state.nav
 export const useLocalSystemPrompt = () => useSettingsStore((state) => state.localInference.systemPrompt);
 export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
 export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
+
+// Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
+export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
+  switch (state.provider) {
+    case Provider.OPENAI: return state.openai.turnDetectionMode;
+    case Provider.OPENAI_COMPATIBLE: return state.openaiCompatible.turnDetectionMode;
+    case Provider.KIZUNA_AI: return state.kizunaai.turnDetectionMode;
+    case Provider.GEMINI: return state.gemini.turnDetectionMode;
+    case Provider.VOLCENGINE_AST2: return state.volcengineAST2.turnDetectionMode;
+    case Provider.LOCAL_INFERENCE: return state.localInference.turnDetectionMode;
+    default: return 'Auto';
+  }
+});
 
 export default useSettingsStore;
