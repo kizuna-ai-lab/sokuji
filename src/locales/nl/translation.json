@@ -248,7 +248,7 @@
     "voiceTooltip": "AI-stem selecteren",
     "sourceLanguageTooltip": "Taal van invoeraudio selecteren",
     "targetLanguageTooltip": "Doeltaal selecteren",
-    "turnDetectionTooltip": "Hoe AI weet wanneer u klaar bent met spreken. \nNormaal: Wacht op stilte. \nSemantisch: AI begrijpt context. \nUitgeschakeld: Handmatige bediening. \nPush-to-Translate: Handmatige bediening met onbewerkte microfoon-doorvoer naar de virtuele microfoon wanneer inactief.",
+    "turnDetectionTooltip": "Hoe AI weet wanneer u klaar bent met spreken. \nNormaal: Wacht op stilte. \nSemantisch: AI begrijpt context. \nPush-to-talk: Handmatige bediening. \nPush-to-Translate: Handmatige bediening met onbewerkte microfoon-doorvoer naar de virtuele microfoon wanneer inactief.",
     "thresholdTooltip": "Drempel voor spraakdetectie aanpassen",
     "prefixPaddingTooltip": "Opvulling vóór spraak toevoegen",
     "silenceDurationTooltip": "Duur van stilte voordat spraak als beëindigd wordt beschouwd",

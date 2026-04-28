@@ -89,7 +89,7 @@
     "modelTooltip": "Kullanılacak AI modelini seçin. Daha büyük modeller daha iyi çeviri kalitesi sağlar ancak daha yavaş olabilir. Daha küçük modeller daha hızlıdır ancak daha az doğru olabilir.",
     "voiceTooltip": "Çevrilmiş konuşma için bir ses seçin. Her sesin farklı özellikleri vardır. Farklı sesleri deneyerek beğendiğinizi bulun.",
     "automaticTurnDetectionTooltip": "Sistemin konuşmayı bitirdiğinizi otomatik olarak algılamasına izin verir. Kapatıldığında, bas ve konuş için boşluk çubuğunu kullanın.",
-    "turnDetectionTooltip": "Yapay zeka konuşmayı bitirdiğinizi nasıl anlar. \nNormal: Sessizliği bekler. \nSemantik: Yapay zeka bağlamı anlar. \nDevre dışı: Manuel kontrol. \nBas-Çevir: Boştayken ham mikrofon geçişiyle sanal mikrofona manuel kontrol.",
+    "turnDetectionTooltip": "Yapay zeka konuşmayı bitirdiğinizi nasıl anlar. \nNormal: Sessizliği bekler. \nSemantik: Yapay zeka bağlamı anlar. \nBas-Konuş: Manuel kontrol. \nBas-Çevir: Boştayken ham mikrofon geçişiyle sanal mikrofona manuel kontrol.",
     "eagernessTooltip": "AI'nın çeviriye ne kadar hızlı başlayacağını belirler:\nDüşük: Çeviriden önce daha uzun duraklamalar bekler.\nOrta: Dengeli yaklaşım.\nYüksek: Çeviriye daha hızlı başlar ancak kesintiye uğrayabilir.",
     "semanticEagernessTooltip": "Çeviri hızı ve kalitesi arasındaki dengeyi yönetir:\nDüşük: Daha yavaş ama bağlamı daha iyi anlar.\nOrta: Hız ve doğruluk dengeli.\nYüksek: Hızlı yanıtlar ama bağlamı kaçırabilir.",
     "transcriptModelTooltip": "Konuşmanızı anlamak için konuşma tanıma modelini seçer:\nWhisper-1: Çoğu dil için iyi doğruluğa sahip standart model.\nWhisper-large-v3-turbo: Karmaşık aksanlar veya gürültülü ortamlar için daha iyi doğruluğa sahip gelişmiş model.",

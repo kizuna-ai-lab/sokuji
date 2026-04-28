@@ -243,7 +243,7 @@
     "voiceTooltip": "Selecionar voz de IA",
     "sourceLanguageTooltip": "Selecionar idioma do áudio de entrada",
     "targetLanguageTooltip": "Selecionar idioma de destino",
-    "turnDetectionTooltip": "Como a IA sabe quando terminou de falar. \nNormal: Aguarda silêncio. \nSemântico: A IA compreende o contexto. \nDesativado: Controlo manual. \nPush-to-Translate: Controlo manual com encaminhamento do microfone em bruto para o microfone virtual quando inativo.",
+    "turnDetectionTooltip": "Como a IA sabe quando terminou de falar. \nNormal: Aguarda silêncio. \nSemântico: A IA compreende o contexto. \nPremir para falar: Controlo manual. \nPush-to-Translate: Controlo manual com encaminhamento do microfone em bruto para o microfone virtual quando inativo.",
     "thresholdTooltip": "Ajustar limiar de deteção de voz",
     "prefixPaddingTooltip": "Adicionar preenchimento antes da fala",
     "silenceDurationTooltip": "Duração do silêncio antes de considerar a fala terminada",

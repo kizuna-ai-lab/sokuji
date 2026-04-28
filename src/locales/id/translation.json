@@ -144,7 +144,7 @@
     "voiceTooltip": "Pilih suara bicara AI. Setiap suara memiliki nada dan gaya berbeda. Coba suara yang berbeda untuk menemukan favorit Anda.",
     "sourceLanguageTooltip": "Bahasa yang Anda ucapkan. AI akan mendengarkan bahasa ini dan menerjemahkannya.",
     "targetLanguageTooltip": "Bahasa untuk diterjemahkan. AI akan mengucapkan kata-kata Anda dalam bahasa ini.",
-    "turnDetectionTooltip": "Cara AI mengetahui kapan Anda selesai berbicara. \nNormal: Menunggu keheningan. \nSemantik: AI memahami konteks. \nDinonaktifkan: Kontrol manual. \nTekan untuk Terjemahkan: Kontrol manual dengan passthrough mikrofon mentah ke mikrofon virtual saat tidak aktif.",
+    "turnDetectionTooltip": "Cara AI mengetahui kapan Anda selesai berbicara. \nNormal: Menunggu keheningan. \nSemantik: AI memahami konteks. \nTekan untuk Bicara: Kontrol manual. \nTekan untuk Terjemahkan: Kontrol manual dengan passthrough mikrofon mentah ke mikrofon virtual saat tidak aktif.",
     "thresholdTooltip": "Sensitivitas deteksi suara (0.0-1.0). Nilai rendah mendeteksi suara lebih pelan tapi mungkin terpicu secara tidak sengaja. Nilai tinggi butuh bicara lebih keras. Default 0.5 cocok untuk kebanyakan orang.",
     "prefixPaddingTooltip": "Waktu hening untuk dipertahankan sebelum ucapan Anda dimulai (detik). Membantu menangkap awal kalimat. Terlalu tinggi menunda respons. Coba 0.3-0.5.",
     "silenceDurationTooltip": "Berapa lama menunggu setelah Anda berhenti bicara (detik). Pendek = respons cepat tapi mungkin memotong Anda. Panjang = sabar menunggu tapi lebih lambat. Coba 0.5.",

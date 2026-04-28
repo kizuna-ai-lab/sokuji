@@ -94,7 +94,7 @@
     "voiceTooltip": "Chọn giọng nói của AI. Mỗi giọng có âm sắc và phong cách khác nhau. Thử các giọng khác nhau để tìm giọng yêu thích của bạn.",
     "sourceLanguageTooltip": "Ngôn ngữ bạn nói. AI sẽ lắng nghe ngôn ngữ này và dịch nó.",
     "targetLanguageTooltip": "Ngôn ngữ để dịch sang. AI sẽ nói lời của bạn bằng ngôn ngữ này.",
-    "turnDetectionTooltip": "Cách AI biết khi nào bạn nói xong. \nBình thường: Đợi im lặng. \nNgữ nghĩa: AI hiểu ngữ cảnh. \nTắt: Điều khiển thủ công. \nNhấn để dịch: Điều khiển thủ công với passthrough micrô gốc đến micrô ảo khi không hoạt động.",
+    "turnDetectionTooltip": "Cách AI biết khi nào bạn nói xong. \nBình thường: Đợi im lặng. \nNgữ nghĩa: AI hiểu ngữ cảnh. \nNhấn để nói: Điều khiển thủ công. \nNhấn để dịch: Điều khiển thủ công với passthrough micrô gốc đến micrô ảo khi không hoạt động.",
     "thresholdTooltip": "Độ nhạy phát hiện giọng nói (0.0-1.0). Giá trị thấp phát hiện âm thanh nhỏ hơn nhưng có thể kích hoạt ngẫu nhiên. Giá trị cao cần nói to hơn. Mặc định 0.5 phù hợp với hầu hết.",
     "prefixPaddingTooltip": "Thời gian im lặng giữ trước khi giọng nói bắt đầu (giây). Giúp ghi lại phần đầu câu. Quá cao sẽ làm chậm phản hồi. Thử 0.3-0.5.",
     "silenceDurationTooltip": "Thời gian chờ sau khi bạn ngừng nói (giây). Ngắn = phản hồi nhanh nhưng có thể cắt ngang bạn. Dài = đợi kiên nhẫn nhưng chậm hơn. Thử 0.5.",

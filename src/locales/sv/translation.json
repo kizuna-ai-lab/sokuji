@@ -240,7 +240,7 @@
     "voiceTooltip": "Välj AI-röst",
     "sourceLanguageTooltip": "Välj källspråk",
     "targetLanguageTooltip": "Välj målspråk",
-    "turnDetectionTooltip": "Hur AI vet när du har slutat tala. \nNormal: Väntar på tystnad. \nSemantisk: AI förstår sammanhang. \nInaktiverad: Manuell styrning. \nPush-to-Translate: Manuell styrning med rå mikrofon-genomströmning till den virtuella mikrofonen när inaktiv.",
+    "turnDetectionTooltip": "Hur AI vet när du har slutat tala. \nNormal: Väntar på tystnad. \nSemantisk: AI förstår sammanhang. \nPush-to-talk: Manuell styrning. \nPush-to-Translate: Manuell styrning med rå mikrofon-genomströmning till den virtuella mikrofonen när inaktiv.",
     "thresholdTooltip": "Justera tröskelvärde för röstdetektering",
     "prefixPaddingTooltip": "Lägg till utfyllnad före tal",
     "silenceDurationTooltip": "Tystnadsvaraktighet innan talet anses avslutat",

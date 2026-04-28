@@ -149,7 +149,7 @@
     "voiceTooltip": "Choisissez la voix parlante de l'IA. Chaque voix a un ton et style différents. Essayez-en différentes pour trouver votre préférée.",
     "sourceLanguageTooltip": "La langue que vous parlez. L'IA écoutera cette langue et la traduira.",
     "targetLanguageTooltip": "La langue vers laquelle traduire. L'IA parlera vos mots dans cette langue.",
-    "turnDetectionTooltip": "Comment l'IA sait quand vous avez fini de parler. \nNormal: Attend le silence. \nSémantique: L'IA comprend le contexte. \nDésactivé: Contrôle manuel. \nAppuyer pour traduire: Contrôle manuel avec passthrough du micro brut vers le micro virtuel en veille.",
+    "turnDetectionTooltip": "Comment l'IA sait quand vous avez fini de parler. \nNormal: Attend le silence. \nSémantique: L'IA comprend le contexte. \nAppuyer pour parler: Contrôle manuel. \nAppuyer pour traduire: Contrôle manuel avec passthrough du micro brut vers le micro virtuel en veille.",
     "thresholdTooltip": "Sensibilité de détection vocale (0.0-1.0). Les valeurs basses détectent des sons plus doux mais peuvent se déclencher accidentellement. Les valeurs hautes nécessitent de parler plus fort. 0.5 par défaut convient à la plupart.",
     "prefixPaddingTooltip": "Temps de silence à garder avant le début de votre parole (secondes). Aide à capturer le début des phrases. Trop élevé retarde la réponse. Essayez 0.3-0.5.",
     "silenceDurationTooltip": "Combien de temps attendre après que vous arrêtez de parler (secondes). Court = réponse rapide mais peut vous couper. Long = attend patiemment mais plus lent. Essayez 0.5.",

@@ -387,7 +387,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                   disabled={isDisabled}
                   title={isWebRTCMode && isVADMode ? t('settings.webrtcVadDisabledTitle', 'Server VAD is not available in WebRTC mode') : undefined}
                 >
-                  {t(`settings.${mode.toLowerCase()}`)}
+                  {/* OpenAI's internal 'Disabled' value semantically IS push-to-talk
+                      (no server VAD, manual hold-to-send). Surface it as Push-to-Talk
+                      under the new "Speech Mode" label, matching the other providers'
+                      equivalent button. The internal enum value stays 'Disabled' for
+                      backward compat with persisted settings. */}
+                  {mode === 'Disabled'
+                    ? t('settings.pushToTalk')
+                    : t(`settings.${mode.toLowerCase()}`)}
                 </button>
               );
             })}

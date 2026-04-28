@@ -149,7 +149,7 @@
     "voiceTooltip": "Wählen Sie die Sprechstimme der KI. Jede Stimme hat unterschiedlichen Ton und Stil. Probieren Sie verschiedene aus, um Ihre Lieblingsstimme zu finden.",
     "sourceLanguageTooltip": "Die Sprache, die Sie sprechen. Die KI wird diese Sprache hören und übersetzen.",
     "targetLanguageTooltip": "Die Sprache, in die übersetzt werden soll. Die KI wird Ihre Worte in dieser Sprache sprechen.",
-    "turnDetectionTooltip": "Wie die KI weiß, wann Sie fertig gesprochen haben. \nNormal: Wartet auf Stille. \nSemantisch: KI versteht den Kontext. \nDeaktiviert: Manuelle Steuerung. \nPush-to-Translate: Manuelle Steuerung mit Roh-Mikrofon-Passthrough zum virtuellen Mikrofon im Leerlauf.",
+    "turnDetectionTooltip": "Wie die KI weiß, wann Sie fertig gesprochen haben. \nNormal: Wartet auf Stille. \nSemantisch: KI versteht den Kontext. \nPush-to-Talk: Manuelle Steuerung. \nPush-to-Translate: Manuelle Steuerung mit Roh-Mikrofon-Passthrough zum virtuellen Mikrofon im Leerlauf.",
     "thresholdTooltip": "Spracherkennungsempfindlichkeit (0.0-1.0). Niedrige Werte erkennen leisere Geräusche, können aber versehentlich ausgelöst werden. Hohe Werte erfordern lauteres Sprechen. Standard 0.5 funktioniert für die meisten.",
     "prefixPaddingTooltip": "Stille Zeit vor Beginn Ihrer Sprache (Sekunden). Hilft, den Anfang von Sätzen zu erfassen. Zu hoch verzögert die Antwort. Versuchen Sie 0.3-0.5.",
     "silenceDurationTooltip": "Wie lange nach dem Sprechen gewartet wird (Sekunden). Kurz = schnelle Antwort, kann Sie aber unterbrechen. Lang = geduldiges Warten, aber langsamer. Versuchen Sie 0.5.",

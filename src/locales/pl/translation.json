@@ -247,7 +247,7 @@
     "voiceTooltip": "Wybierz głos AI",
     "sourceLanguageTooltip": "Wybierz język mowy wejściowej",
     "targetLanguageTooltip": "Wybierz język docelowy",
-    "turnDetectionTooltip": "Jak SI rozpoznaje, że skończyłeś mówić. \nNormalny: Czeka na ciszę. \nSemantyczny: SI rozumie kontekst. \nWyłączony: Sterowanie ręczne. \nPush-to-Translate: Sterowanie ręczne z przekazaniem surowego mikrofonu do wirtualnego mikrofonu w stanie bezczynności.",
+    "turnDetectionTooltip": "Jak SI rozpoznaje, że skończyłeś mówić. \nNormalny: Czeka na ciszę. \nSemantyczny: SI rozumie kontekst. \nNaciśnij i mów: Sterowanie ręczne. \nPush-to-Translate: Sterowanie ręczne z przekazaniem surowego mikrofonu do wirtualnego mikrofonu w stanie bezczynności.",
     "thresholdTooltip": "Dostosuj próg wykrywania mowy",
     "prefixPaddingTooltip": "Dodaj wypełnienie przed mową",
     "silenceDurationTooltip": "Czas ciszy przed uznaniem mowy za zakończoną",

@@ -247,7 +247,7 @@
     "voiceTooltip": "Pilih suara AI",
     "sourceLanguageTooltip": "Pilih bahasa audio input",
     "targetLanguageTooltip": "Pilih bahasa sasaran",
-    "turnDetectionTooltip": "Bagaimana AI mengetahui bila anda telah selesai bercakap. \nNormal: Menunggu kesenyapan. \nSemantic: AI memahami konteks. \nDisabled: Kawalan manual. \nTekan untuk Terjemah: Kawalan manual dengan passthrough mikrofon mentah ke mikrofon maya apabila tidak aktif.",
+    "turnDetectionTooltip": "Bagaimana AI mengetahui bila anda telah selesai bercakap. \nNormal: Menunggu kesenyapan. \nSemantic: AI memahami konteks. \nTekan untuk Bercakap: Kawalan manual. \nTekan untuk Terjemah: Kawalan manual dengan passthrough mikrofon mentah ke mikrofon maya apabila tidak aktif.",
     "thresholdTooltip": "Laraskan ambang pengesanan suara",
     "prefixPaddingTooltip": "Tambah padding sebelum pertuturan",
     "silenceDurationTooltip": "Tempoh senyap sebelum pertuturan dianggap tamat",
