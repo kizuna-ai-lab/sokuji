@@ -274,6 +274,43 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().openai.turnDetectionMode).toBe(openAIBefore);
     });
   });
+
+  describe('WebRTC auto-correction for Push-to-Translate', () => {
+    it('OpenAI: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
+      const store = useSettingsStore.getState();
+
+      // Start on websocket with Push-to-Translate
+      await store.updateOpenAI({
+        transportType: 'websocket',
+        turnDetectionMode: 'Push-to-Translate',
+      });
+      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
+
+      // Switch transport to webrtc
+      await store.updateOpenAI({ transportType: 'webrtc' });
+      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Disabled');
+    });
+
+    it('OpenAI Compatible: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateOpenAICompatible({
+        transportType: 'websocket',
+        turnDetectionMode: 'Push-to-Translate',
+      });
+      await store.updateOpenAICompatible({ transportType: 'webrtc' });
+      expect(useSettingsStore.getState().openaiCompatible.turnDetectionMode).toBe('Disabled');
+    });
+
+    it('Kizuna AI: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateKizunaAI({
+        transportType: 'websocket',
+        turnDetectionMode: 'Push-to-Translate',
+      });
+      await store.updateKizunaAI({ transportType: 'webrtc' });
+      expect(useSettingsStore.getState().kizunaai.turnDetectionMode).toBe('Disabled');
+    });
+  });
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
