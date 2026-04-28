@@ -1642,7 +1642,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
         <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
-            {t('settings.automaticTurnDetection')}
+            {t('settings.speechMode')}
             <Tooltip
               content={t('settings.localInferenceTurnDetectionTooltip', 'Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
               position="top"
@@ -1665,6 +1665,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 disabled={isSessionActive}
               >
                 {t('settings.pushToTalk')}
+              </button>
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Translate' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTranslate')}
               </button>
             </div>
           </div>
