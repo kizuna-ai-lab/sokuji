@@ -220,6 +220,60 @@ describe('settingsStore', () => {
       expect((config as any).glossaryTableId).toBe('gloss-3');
     });
   });
+
+  describe('Push-to-Translate persistence', () => {
+    it('persists Push-to-Translate for Gemini', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
+
+      expect(useSettingsStore.getState().gemini.turnDetectionMode).toBe('Push-to-Translate');
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.gemini.turnDetectionMode',
+        'Push-to-Translate'
+      );
+    });
+
+    it('persists Push-to-Translate for Volcengine AST2', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateVolcengineAST2({ turnDetectionMode: 'Push-to-Translate' } as any);
+
+      expect(useSettingsStore.getState().volcengineAST2.turnDetectionMode).toBe('Push-to-Translate');
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.volcengineAST2.turnDetectionMode',
+        'Push-to-Translate'
+      );
+    });
+
+    it('persists Push-to-Translate for Local Inference', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
+
+      expect(useSettingsStore.getState().localInference.turnDetectionMode).toBe('Push-to-Translate');
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.localInference.turnDetectionMode',
+        'Push-to-Translate'
+      );
+    });
+
+    it('persists Push-to-Translate for OpenAI on WebSocket', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateOpenAI({
+        transportType: 'websocket',
+        turnDetectionMode: 'Push-to-Translate',
+      });
+
+      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe('Push-to-Translate');
+    });
+
+    it('per-provider isolation: setting Push-to-Translate on Gemini does not change OpenAI', async () => {
+      const store = useSettingsStore.getState();
+      const openAIBefore = useSettingsStore.getState().openai.turnDetectionMode;
+
+      await store.updateGemini({ turnDetectionMode: 'Push-to-Translate' });
+
+      expect(useSettingsStore.getState().openai.turnDetectionMode).toBe(openAIBefore);
+    });
+  });
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
