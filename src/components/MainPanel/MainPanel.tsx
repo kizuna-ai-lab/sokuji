@@ -501,10 +501,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [noiseSuppressionMode, isSessionActive]);
 
   /**
-   * Check for potential audio feedback and show warning
+   * Check for potential audio feedback and show warning.
+   * Considers Push-to-translate's effective passthrough (always on @ 100% during idle)
+   * in addition to the user-controlled isRealVoicePassthroughEnabled.
    */
   useEffect(() => {
-    if (feedbackWarningDismissed || !isRealVoicePassthroughEnabled || !isMonitorDeviceOn) {
+    const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
+    const effectivePassthroughEnabled = isPushToTranslate || isRealVoicePassthroughEnabled;
+
+    if (feedbackWarningDismissed || !effectivePassthroughEnabled || !isMonitorDeviceOn) {
       setShowFeedbackWarning(false);
       return;
     }
@@ -512,7 +517,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const safeConfig = getSafeAudioConfiguration(
       selectedInputDevice,
       selectedMonitorDevice,
-      isRealVoicePassthroughEnabled
+      effectivePassthroughEnabled
     );
 
     if (!safeConfig.safePassthroughEnabled && safeConfig.recommendedAction) {
@@ -521,11 +526,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setShowFeedbackWarning(false);
     }
   }, [
+    currentTurnDetectionMode,
     isRealVoicePassthroughEnabled,
     selectedInputDevice,
     selectedMonitorDevice,
     feedbackWarningDismissed,
-    isMonitorDeviceOn
+    isMonitorDeviceOn,
   ]);
 
   /**
