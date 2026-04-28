@@ -1545,6 +1545,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     try {
+      const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
+
+      if (isPushToTranslate) {
+        // Push-to-translate: recorder is already running continuously.
+        // Just reset chunk counter; the unified passthrough useEffect will mute passthrough
+        // (because isRecording is now true), and the gated recording callback (set up at
+        // session start) will start forwarding audio to the AI client.
+        pttVoiceChunkCountRef.current = 0;
+        return;
+      }
+
+      // Pure PTT modes (Push-to-Talk / Disabled): start the recorder fresh on each hold.
       // Note: We no longer interrupt playing audio when recording starts
       // This allows for simultaneous recording and playback
 
@@ -1579,7 +1591,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('[Sokuji] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
     }
-  }, [isInputDeviceOn, isRecording, selectedInputDevice]);
+  }, [isInputDeviceOn, isRecording, selectedInputDevice, currentTurnDetectionMode]);
 
   /**
    * In push-to-talk mode, stop recording
@@ -1610,8 +1622,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     try {
-      // Only try to pause if we're actually recording
       const recorder = audioService.getRecorder();
+      const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
+
+      // For Push-to-translate, recorder.isRecording() is always true (continuous capture).
+      // For pure PTT, only proceed if the recorder was actually started by startRecording.
       if (recorder.isRecording()) {
         // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
         // This helps the VAD detect end of speech
@@ -1625,8 +1640,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.debug(`[Sokuji] [MainPanel] PTT: Sent ${silenceFrames * 100}ms silence frames for VAD end detection`);
         }
 
-        // Stop recording
-        await audioService.pauseRecording();
+        // Stop recording — but only for pure PTT. Push-to-translate keeps the recorder
+        // running; the unified passthrough useEffect will re-enable passthrough now that
+        // isRecording is false (because of setIsRecording(false) earlier in stopRecording).
+        if (!isPushToTranslate) {
+          await audioService.pauseRecording();
+        }
 
         // Only create response if we detected enough voice audio (prevents empty requests)
         // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
@@ -1658,7 +1677,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Reset the recording state to ensure UI is consistent
       setIsRecording(false);
     }
-  }, [isRecording, provider]);
+  }, [isRecording, provider, currentTurnDetectionMode]);
 
   /**
    * Send text input for translation
