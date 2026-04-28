@@ -61,6 +61,16 @@ import ExportButton from './ExportButton';
 
 
 /**
+ * True for Speech Modes that send audio to the AI provider only while the user
+ * holds Space: OpenAI's `'Disabled'`, other providers' `'Push-to-Talk'`, and
+ * the new `'Push-to-Translate'` (which adds raw mic passthrough during idle).
+ */
+function isPttLikeMode(mode: string): boolean {
+  return mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
+}
+
+
+/**
  * Given per-sentence audio segments and the current playback time,
  * return the number of characters that should be highlighted.
  * Falls back to linear interpolation when segments are not available.
@@ -173,11 +183,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Noise suppression
   const noiseSuppressionMode = useNoiseSuppressionMode();
 
-  // canHoldToSpeak is true when the active mode uses space-hold to send audio:
-  // OpenAI-compatible 'Disabled', other providers' 'Push-to-Talk', and the new
-  // 'Push-to-Translate' mode all gate on this.
-  const [canHoldToSpeak, setCanHoldToSpeak] = useState(false);
-
   // Track if current session is using WebRTC transport
   const [isUsingWebRTC, setIsUsingWebRTC] = useState(false);
 
@@ -192,6 +197,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
   const currentTurnDetectionMode = useCurrentTurnDetectionMode();
+
+  // True when the active mode uses space-hold to send audio (PTT, OpenAI's 'Disabled',
+  // or Push-to-Translate). Derives directly from currentTurnDetectionMode so the
+  // keyboard handler stays in sync with mode changes without imperative setters.
+  const canHoldToSpeak = useMemo(
+    () => isPttLikeMode(currentTurnDetectionMode),
+    [currentTurnDetectionMode]
+  );
 
   // Advanced mode text input state
   const [advancedTextInput, setAdvancedTextInput] = useState('');
@@ -1122,26 +1135,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       const client = clientRef.current;
 
-      // Set canHoldToSpeak based on current turnDetectionMode (PTT and Push-to-Translate share the same key handler)
-      const isPttLikeMode = (mode: string): boolean =>
-        mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
-
-      if (isOpenAICompatible(provider)) {
-        const settings =
-          provider === Provider.OPENAI ? openAISettings :
-          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
-          provider === Provider.KIZUNA_AI ? kizunaAISettings :
-          null;
-        setCanHoldToSpeak(settings ? isPttLikeMode(settings.turnDetectionMode) : false);
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        setCanHoldToSpeak(isPttLikeMode(volcengineAST2Settings.turnDetectionMode));
-      } else if (provider === Provider.LOCAL_INFERENCE) {
-        setCanHoldToSpeak(isPttLikeMode(localInferenceSettings.turnDetectionMode));
-      } else if (provider === Provider.GEMINI) {
-        setCanHoldToSpeak(isPttLikeMode(geminiSettings.turnDetectionMode));
-      } else {
-        setCanHoldToSpeak(false); // Not supported by PalabraAI and Volcengine ST
-      }
+      // Note: canHoldToSpeak is now derived via useMemo from currentTurnDetectionMode
+      // at component scope — no imperative setter needed here.
 
       // Connect to microphone only if input device is turned on
       if (isInputDeviceOn) {
@@ -1251,40 +1246,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
-      // Start recording if using server VAD and input device is turned on
-      // Note: Skip manual recording for WebRTC mode - audio flows via MediaStreamTrack
-      let turnDetectionDisabled = false;
-      if (isOpenAICompatible(provider)) {
-        const settings =
-          provider === Provider.OPENAI ? openAISettings :
-          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
-          provider === Provider.KIZUNA_AI ? kizunaAISettings :
-          null;
-        turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
-      } else if (provider === Provider.LOCAL_INFERENCE) {
-        turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
-      } else if (provider === Provider.GEMINI) {
-        turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
-      }
-
-      // Push-to-translate uses a continuous recorder (like VAD modes) but gates AI forwarding
-      let isPushToTranslateMode = false;
-      if (isOpenAICompatible(provider)) {
-        const settings =
-          provider === Provider.OPENAI ? openAISettings :
-          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
-          provider === Provider.KIZUNA_AI ? kizunaAISettings :
-          null;
-        isPushToTranslateMode = settings ? settings.turnDetectionMode === 'Push-to-Translate' : false;
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        isPushToTranslateMode = volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate';
-      } else if (provider === Provider.LOCAL_INFERENCE) {
-        isPushToTranslateMode = localInferenceSettings.turnDetectionMode === 'Push-to-Translate';
-      } else if (provider === Provider.GEMINI) {
-        isPushToTranslateMode = geminiSettings.turnDetectionMode === 'Push-to-Translate';
-      }
+      // Mode-derived flags for recorder lifecycle.
+      // Both 'Disabled' (OpenAI) and 'Push-to-Talk' (others) mean "key-hold-only mode";
+      // 'Push-to-Translate' is its own gated-callback mode (handled separately below).
+      const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
+      const isPureManualMode =
+        currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
       // In native capture mode, audio is automatically captured via MediaStreamTrack
@@ -1297,18 +1264,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await audioServiceRef.current.getRecorder().setNoiseSuppressionMode(noiseSuppressionMode);
       }
 
-      // Recorder lifecycle:
-      //  - VAD modes (turnDetectionDisabled === false): start now, always-forward callback
-      //  - Push-to-Translate (isPushToTranslateMode === true): start now, gated callback (skip AI forwarding when isPassthrough)
-      //  - Other PTT-style (turnDetectionDisabled === true && !isPushToTranslateMode): defer to space keydown
-      // Skip entirely if the provider uses native MediaStreamTrack capture (WebRTC, PalabraAI/LiveKit).
+      // Recorder lifecycle (skip entirely for native MediaStreamTrack capture):
+      //  - Push-to-Translate: start now, gated callback (skip AI forwarding when isPassthrough)
+      //  - Pure PTT (Disabled/Push-to-Talk): defer recorder start to space keydown
+      //  - Otherwise (VAD modes — Auto/Normal/Semantic): start now, always-forward callback
       if (!usesNativeCapture && isInputDeviceOn && audioServiceRef.current) {
         if (isPushToTranslateMode) {
-          // Push-to-Translate: gated callback. Mode is captured by closure;
-          // the option button is disabled while isSessionActive so the captured value stays correct.
-          // NOTE: This branch must be checked BEFORE !turnDetectionDisabled, because
-          // turnDetectionDisabled is only true for 'Disabled' (OpenAI) or 'Push-to-Talk' (others) —
-          // Push-to-Translate would otherwise fall into the always-forward VAD branch.
           let p2tCallbackCount = 0;
           await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
             if (!clientRef.current) return;
@@ -1327,7 +1288,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             clientRef.current.appendInputAudio(data.mono);
           });
-        } else if (!turnDetectionDisabled) {
+        } else if (!isPureManualMode) {
           // VAD: always-forward callback
           let audioCallbackCount = 0;
           await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
@@ -1341,7 +1302,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
           });
         }
-        // else: pure PTT (Push-to-Talk / Disabled). Recorder stays idle until space keydown.
+        // else: pure PTT — recorder stays idle until space keydown.
       } else if (usesNativeCapture) {
         console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
@@ -2254,44 +2215,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         // If input device is turned on
         else {
-          // If we're in automatic mode, start/resume recording
-          let turnDetectionDisabled = false;
-          if (isOpenAICompatible(provider)) {
-            const settings =
-              provider === Provider.OPENAI ? openAISettings :
-              provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
-              provider === Provider.KIZUNA_AI ? kizunaAISettings :
-              null;
-            turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
-          } else if (provider === Provider.VOLCENGINE_AST2) {
-            turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
-          } else if (provider === Provider.LOCAL_INFERENCE) {
-            turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
-          } else if (provider === Provider.GEMINI) {
-            turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
-          }
-
-          // Push-to-translate uses a continuous recorder (like VAD modes) but gates AI forwarding
-          let isPushToTranslateMode = false;
-          if (isOpenAICompatible(provider)) {
-            const settings =
-              provider === Provider.OPENAI ? openAISettings :
-              provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
-              provider === Provider.KIZUNA_AI ? kizunaAISettings :
-              null;
-            isPushToTranslateMode = settings ? settings.turnDetectionMode === 'Push-to-Translate' : false;
-          } else if (provider === Provider.VOLCENGINE_AST2) {
-            isPushToTranslateMode = volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate';
-          } else if (provider === Provider.LOCAL_INFERENCE) {
-            isPushToTranslateMode = localInferenceSettings.turnDetectionMode === 'Push-to-Translate';
-          } else if (provider === Provider.GEMINI) {
-            isPushToTranslateMode = geminiSettings.turnDetectionMode === 'Push-to-Translate';
-          }
+          // Mode-derived flags (same classification as session-start branch).
+          const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
+          const isPureManualMode =
+            currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
 
           if (isPushToTranslateMode) {
-            // NOTE: This branch must be checked BEFORE !turnDetectionDisabled, because
-            // turnDetectionDisabled is only true for 'Disabled' (OpenAI) or 'Push-to-Talk' (others) —
-            // Push-to-Translate would otherwise fall into the always-forward auto branch.
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in Push-to-translate mode');
             if (!recorder.isRecording()) {
               let p2tCallbackCount = 0;
@@ -2311,7 +2240,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 client.appendInputAudio(data.mono);
               });
             }
-          } else if (!turnDetectionDisabled) {
+          } else if (!isPureManualMode) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
             if (!recorder.isRecording()) {
               let autoAudioCallbackCount = 0;
@@ -2327,8 +2256,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               });
             }
           }
-          // For pure push-to-talk (turnDetectionDisabled && !isPushToTranslateMode), don't resume.
-          // User needs to press the button or Space key.
+          // For pure push-to-talk (Disabled/Push-to-Talk), don't resume — user
+          // needs to press the button or Space key.
         }
       } catch (error) {
         console.error('[Sokuji] [MainPanel] Error updating recording state:', error);
@@ -2336,7 +2265,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, localInferenceSettings.turnDetectionMode, geminiSettings.turnDetectionMode, selectedInputDevice?.deviceId]);
+  }, [isInputDeviceOn, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
