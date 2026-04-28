@@ -188,6 +188,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
            provider === Provider.LOCAL_INFERENCE;
   }, [provider]);
 
+  // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
+  const currentTurnDetectionMode = useMemo<string>(() => {
+    if (provider === Provider.OPENAI) return openAISettings.turnDetectionMode;
+    if (provider === Provider.OPENAI_COMPATIBLE) return openAICompatibleSettings.turnDetectionMode;
+    if (provider === Provider.KIZUNA_AI) return kizunaAISettings.turnDetectionMode;
+    if (provider === Provider.GEMINI) return geminiSettings.turnDetectionMode;
+    if (provider === Provider.VOLCENGINE_AST2) return volcengineAST2Settings.turnDetectionMode;
+    if (provider === Provider.LOCAL_INFERENCE) return localInferenceSettings.turnDetectionMode;
+    return 'Auto'; // PalabraAI, Volcengine ST: no PTT support
+  }, [
+    provider,
+    openAISettings.turnDetectionMode,
+    openAICompatibleSettings.turnDetectionMode,
+    kizunaAISettings.turnDetectionMode,
+    geminiSettings.turnDetectionMode,
+    volcengineAST2Settings.turnDetectionMode,
+    localInferenceSettings.turnDetectionMode,
+  ]);
+
   // Advanced mode text input state
   const [advancedTextInput, setAdvancedTextInput] = useState('');
   const [isAdvancedSending, setIsAdvancedSending] = useState(false);
@@ -435,21 +454,38 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, []);
 
   /**
-   * Update passthrough settings when they change
+   * Update passthrough settings when they change.
+   * Push-to-translate mode hijacks passthrough: on @ 100% during idle,
+   * off while user holds Space. Other modes use the legacy user setting.
    */
   useEffect(() => {
     const audioService = audioServiceRef.current;
-    if (audioService) {
-      audioService.setupPassthrough(
-        isRealVoicePassthroughEnabled,
-        realVoicePassthroughVolume
-      );
-      
-      if (isRealVoicePassthroughEnabled) {
-        console.debug('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
-      }
+    if (!audioService) return;
+
+    const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
+
+    const enabled = isPushToTranslate
+      ? !isRecording                    // mute only while user is holding the key
+      : isRealVoicePassthroughEnabled;  // legacy: user-controlled toggle
+
+    const volume = isPushToTranslate
+      ? 1.0                             // self-contained, ignore 0-60% cap
+      : realVoicePassthroughVolume;
+
+    audioService.setupPassthrough(enabled, volume);
+
+    if (enabled) {
+      console.debug('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', enabled, 'volume=', volume, 'mode=', currentTurnDetectionMode);
     }
-  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
+  }, [
+    currentTurnDetectionMode,
+    isRecording,
+    isRealVoicePassthroughEnabled,
+    realVoicePassthroughVolume,
+    selectedInputDevice,
+    selectedMonitorDevice,
+    isMonitorDeviceOn,
+  ]);
 
   /**
    * Handle noise suppression toggle during active session
