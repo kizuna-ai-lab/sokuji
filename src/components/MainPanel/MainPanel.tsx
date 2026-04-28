@@ -1594,7 +1594,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const holdDuration = Date.now() - pushToTalkStartTimeRef.current;
       trackEvent('push_to_talk_used', {
         session_id: sessionId,
-        hold_duration_ms: holdDuration
+        hold_duration_ms: holdDuration,
+        mode: currentTurnDetectionMode === 'Push-to-Translate' ? 'push-to-translate' : 'push-to-talk',
       });
       pushToTalkStartTimeRef.current = null;
     }
