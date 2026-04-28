@@ -1311,7 +1311,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
         <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
-            {t('settings.automaticTurnDetection')}
+            {t('settings.speechMode')}
             <Tooltip
               content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
               position="top"
@@ -1334,6 +1334,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 disabled={isSessionActive}
               >
                 {t('settings.pushToTalk')}
+              </button>
+              <button
+                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+                onClick={() => updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Translate' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTranslate')}
               </button>
             </div>
           </div>
