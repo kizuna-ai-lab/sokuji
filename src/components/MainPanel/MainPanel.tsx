@@ -1284,6 +1284,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
       }
 
+      // Push-to-translate uses a continuous recorder (like VAD modes) but gates AI forwarding
+      let isPushToTranslateMode = false;
+      if (isOpenAICompatible(provider)) {
+        const settings =
+          provider === Provider.OPENAI ? openAISettings :
+          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
+          provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          null;
+        isPushToTranslateMode = settings ? settings.turnDetectionMode === 'Push-to-Translate' : false;
+      } else if (provider === Provider.VOLCENGINE_AST2) {
+        isPushToTranslateMode = volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate';
+      } else if (provider === Provider.LOCAL_INFERENCE) {
+        isPushToTranslateMode = localInferenceSettings.turnDetectionMode === 'Push-to-Translate';
+      } else if (provider === Provider.GEMINI) {
+        isPushToTranslateMode = geminiSettings.turnDetectionMode === 'Push-to-Translate';
+      }
+
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
       // In native capture mode, audio is automatically captured via MediaStreamTrack
       // No need to manually record and send audio chunks
@@ -1295,19 +1312,42 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await audioServiceRef.current.getRecorder().setNoiseSuppressionMode(noiseSuppressionMode);
       }
 
-      // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
-      if (!usesNativeCapture && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
-        let audioCallbackCount = 0;
-        await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-          if (clientRef.current) {
-            // Debug logging every 100 calls to verify AI client receives data
-            if (audioCallbackCount % 100 === 0) {
-              console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
+      // Recorder lifecycle:
+      //  - VAD modes (turnDetectionDisabled === false): start now, always-forward callback
+      //  - Push-to-Translate (isPushToTranslateMode === true): start now, gated callback (skip AI forwarding when isPassthrough)
+      //  - Other PTT-style (turnDetectionDisabled === true && !isPushToTranslateMode): defer to space keydown
+      // Skip entirely if the provider uses native MediaStreamTrack capture (WebRTC, PalabraAI/LiveKit).
+      if (!usesNativeCapture && isInputDeviceOn && audioServiceRef.current) {
+        if (!turnDetectionDisabled) {
+          // VAD: always-forward callback
+          let audioCallbackCount = 0;
+          await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
+            if (clientRef.current) {
+              // Debug logging every 100 calls to verify AI client receives data
+              if (audioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              audioCallbackCount++;
+              clientRef.current.appendInputAudio(data.mono);
             }
-            audioCallbackCount++;
+          });
+        } else if (isPushToTranslateMode) {
+          // Push-to-Translate: gated callback. Mode is captured by closure;
+          // the option button is disabled while isSessionActive so the captured value stays correct.
+          let p2tCallbackCount = 0;
+          await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
+            if (!clientRef.current) return;
+            if (data.isPassthrough) {
+              return;  // IDLE: route to passthrough only, don't send to AI
+            }
+            if (p2tCallbackCount % 100 === 0) {
+              console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
+            }
+            p2tCallbackCount++;
             clientRef.current.appendInputAudio(data.mono);
-          }
-        });
+          });
+        }
+        // else: pure PTT (Push-to-Talk / Disabled). Recorder stays idle until space keydown.
       } else if (usesNativeCapture) {
         console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
@@ -2216,6 +2256,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           } else if (provider === Provider.GEMINI) {
             turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
           }
+
+          // Push-to-translate uses a continuous recorder (like VAD modes) but gates AI forwarding
+          let isPushToTranslateMode = false;
+          if (isOpenAICompatible(provider)) {
+            const settings =
+              provider === Provider.OPENAI ? openAISettings :
+              provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
+              provider === Provider.KIZUNA_AI ? kizunaAISettings :
+              null;
+            isPushToTranslateMode = settings ? settings.turnDetectionMode === 'Push-to-Translate' : false;
+          } else if (provider === Provider.VOLCENGINE_AST2) {
+            isPushToTranslateMode = volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate';
+          } else if (provider === Provider.LOCAL_INFERENCE) {
+            isPushToTranslateMode = localInferenceSettings.turnDetectionMode === 'Push-to-Translate';
+          } else if (provider === Provider.GEMINI) {
+            isPushToTranslateMode = geminiSettings.turnDetectionMode === 'Push-to-Translate';
+          }
+
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
             if (!recorder.isRecording()) {
@@ -2231,9 +2289,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 }
               });
             }
+          } else if (isPushToTranslateMode) {
+            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in Push-to-translate mode');
+            if (!recorder.isRecording()) {
+              let p2tCallbackCount = 0;
+              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
+                if (!client) return;
+                if (data.isPassthrough) return;
+                if (p2tCallbackCount % 100 === 0) {
+                  console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
+                }
+                p2tCallbackCount++;
+                client.appendInputAudio(data.mono);
+              });
+            }
           }
-          // For push-to-talk mode, we don't automatically resume recording
-          // The user needs to press the button or Space key
+          // For pure push-to-talk (turnDetectionDisabled && !isPushToTranslateMode), don't resume.
+          // User needs to press the button or Space key.
         }
       } catch (error) {
         console.error('[Sokuji] [MainPanel] Error updating recording state:', error);

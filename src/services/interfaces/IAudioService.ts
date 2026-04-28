@@ -13,7 +13,7 @@ export interface AudioOperationResult {
 }
 
 export interface AudioRecordingCallback {
-  (data: { mono: Int16Array; raw: Int16Array }): void;
+  (data: { mono: Int16Array; raw: Int16Array; isPassthrough?: boolean; isRecording?: boolean; passthroughVolume?: number }): void;
 }
 
 export interface IAudioService {
