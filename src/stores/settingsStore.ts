@@ -52,7 +52,7 @@ export interface OpenAICompatibleSettingsBase {
   voice: string;
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled';
+  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
   threshold: number;
   prefixPadding: number;
   silenceDuration: number;
@@ -81,7 +81,7 @@ export interface GeminiSettings {
   targetLanguage: string;
   temperature: number;
   maxTokens: number | 'inf';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadStartSensitivity: 'high' | 'low';
   vadEndSensitivity: 'high' | 'low';
   vadSilenceDurationMs: number;
@@ -119,7 +119,7 @@ export interface VolcengineAST2Settings {
   accessToken: string;
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
   hotWordTableId: string;
   /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
@@ -138,7 +138,7 @@ export interface LocalInferenceSettings {
   edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
