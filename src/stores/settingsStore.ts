@@ -1558,4 +1558,17 @@ export const useLocalSystemPrompt = () => useSettingsStore((state) => state.loca
 export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
 export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
 
+// Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
+export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
+  switch (state.provider) {
+    case Provider.OPENAI: return state.openai.turnDetectionMode;
+    case Provider.OPENAI_COMPATIBLE: return state.openaiCompatible.turnDetectionMode;
+    case Provider.KIZUNA_AI: return state.kizunaai.turnDetectionMode;
+    case Provider.GEMINI: return state.gemini.turnDetectionMode;
+    case Provider.VOLCENGINE_AST2: return state.volcengineAST2.turnDetectionMode;
+    case Provider.LOCAL_INFERENCE: return state.localInference.turnDetectionMode;
+    default: return 'Auto';
+  }
+});
+
 export default useSettingsStore;

@@ -28,7 +28,8 @@ import {
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
   useSetSpeakerDisplayMode,
-  useSetParticipantDisplayMode
+  useSetParticipantDisplayMode,
+  useCurrentTurnDetectionMode
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
@@ -190,23 +191,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [provider]);
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
-  const currentTurnDetectionMode = useMemo<string>(() => {
-    if (provider === Provider.OPENAI) return openAISettings.turnDetectionMode;
-    if (provider === Provider.OPENAI_COMPATIBLE) return openAICompatibleSettings.turnDetectionMode;
-    if (provider === Provider.KIZUNA_AI) return kizunaAISettings.turnDetectionMode;
-    if (provider === Provider.GEMINI) return geminiSettings.turnDetectionMode;
-    if (provider === Provider.VOLCENGINE_AST2) return volcengineAST2Settings.turnDetectionMode;
-    if (provider === Provider.LOCAL_INFERENCE) return localInferenceSettings.turnDetectionMode;
-    return 'Auto'; // PalabraAI, Volcengine ST: no PTT support
-  }, [
-    provider,
-    openAISettings.turnDetectionMode,
-    openAICompatibleSettings.turnDetectionMode,
-    kizunaAISettings.turnDetectionMode,
-    geminiSettings.turnDetectionMode,
-    volcengineAST2Settings.turnDetectionMode,
-    localInferenceSettings.turnDetectionMode,
-  ]);
+  const currentTurnDetectionMode = useCurrentTurnDetectionMode();
 
   // Advanced mode text input state
   const [advancedTextInput, setAdvancedTextInput] = useState('');
