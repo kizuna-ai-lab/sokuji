@@ -235,7 +235,7 @@ describe('settingsStore', () => {
 
     it('persists Push-to-Translate for Volcengine AST2', async () => {
       const store = useSettingsStore.getState();
-      await store.updateVolcengineAST2({ turnDetectionMode: 'Push-to-Translate' } as any);
+      await store.updateVolcengineAST2({ turnDetectionMode: 'Push-to-Translate' });
 
       expect(useSettingsStore.getState().volcengineAST2.turnDetectionMode).toBe('Push-to-Translate');
       expect(mockSetSetting).toHaveBeenCalledWith(
