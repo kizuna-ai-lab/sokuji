@@ -48,7 +48,16 @@ All four provider-specific section headers rename to **"Speech Mode"**:
 | Volcengine AST2 | `settings.volcengineAST2TurnDetection` | `settings.speechMode` |
 | Local Inference | `settings.localInferenceTurnDetection` | `settings.speechMode` |
 
-Tooltips per provider stay (they describe provider-specific VAD nuances). Old keys remain in locale files but become unused — removable in a future cleanup pass.
+Section-level tooltips (the `?` icon next to each header) are **updated** to describe Push-to-translate alongside existing modes. Per-button tooltips are not introduced — keeping the current "one tooltip explains all buttons" pattern for consistency. Existing tooltip text is preserved verbatim with one extra sentence appended:
+
+| Provider | Tooltip key | Existing text | Appended sentence |
+|---|---|---|---|
+| OpenAI / Compat / Kizuna | `settings.turnDetectionTooltip` | "How AI knows when you've finished speaking. Normal: Waits for silence. Semantic: AI understands context. Disabled: Manual control." | " Push-to-translate: Manual control with raw mic passthrough to the virtual mic when idle." |
+| Volcengine AST2 | `settings.volcengineAST2TurnDetectionTooltip` | "Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button." | " Push-to-translate works like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation." |
+| Local Inference | `settings.localInferenceTurnDetectionTooltip` | "Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button." | " Push-to-translate works like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation." |
+| Gemini | `settings.geminiVadTooltip` | "Controls how Gemini detects speech pauses to split turns. Adjusting these settings can improve translation responsiveness for continuous speech." | " Push-to-Talk: hold a key to send audio. Push-to-translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation." |
+
+Section-level tooltip keys are kept (not renamed alongside `settings.speechMode`) to avoid churning four locale files just for a header rename — a future pass can consolidate. The header label key is `settings.speechMode`, the tooltip keys remain as above. Old header label keys (`settings.automaticTurnDetection`, `settings.geminiVad`, `settings.volcengineAST2TurnDetection`, `settings.localInferenceTurnDetection`) become unused — removable in a future cleanup pass.
 
 ### New option button
 
@@ -181,7 +190,7 @@ The keyboard handler at `MainPanel.tsx:2243` gates on `canHoldToSpeak` instead o
 - `src/services/providers/{OpenAI,OpenAICompatible,KizunaAI,Gemini,VolcengineAST2,LocalInference}ProviderConfig.ts` — extend `turnDetectionMode` union type
 - `src/stores/settingsStore.ts` — extend `turnDetectionMode` union types. (Existing WebRTC auto-correction guards at lines 837/869/901 stay as-is — they correctly demote `'Push-to-Translate'` → `'Disabled'` if the user switches transport to WebRTC, which is the intended behavior since WebRTC + Push-to-translate is not supported.)
 - `src/stores/settingsStore.test.ts` — coverage for new value persistence and for the WebRTC auto-correction demoting `'Push-to-Translate'` to `'Disabled'`
-- `public/locales/{en,...}/translation.json` — new keys `settings.speechMode`, `settings.pushToTranslate`, `audioPanel.passthroughManagedByPushToTranslate`. English added immediately; other 35+ locales fall back to English until translated.
+- `src/locales/{en,...}/translation.json` — new keys `settings.speechMode`, `settings.pushToTranslate`, `audioPanel.passthroughManagedByPushToTranslate`, plus tooltip text additions to the four existing keys: `settings.turnDetectionTooltip`, `settings.volcengineAST2TurnDetectionTooltip`, `settings.localInferenceTurnDetectionTooltip`, `settings.geminiVadTooltip` (per the table in "Section header rename" above). English updated immediately; other 35+ locales keep their existing tooltip text until translated (graceful — they just won't mention Push-to-translate yet).
 
 ### Analytics
 
