@@ -1364,7 +1364,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>
             {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1725,7 +1725,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>
             {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
