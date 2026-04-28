@@ -172,9 +172,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Noise suppression
   const noiseSuppressionMode = useNoiseSuppressionMode();
 
-  // canPushToTalk is true when manual turn detection is used
-  // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
-  const [canPushToTalk, setCanPushToTalk] = useState(false);
+  // canHoldToSpeak is true when the active mode uses space-hold to send audio:
+  // OpenAI-compatible 'Disabled', other providers' 'Push-to-Talk', and the new
+  // 'Push-to-Translate' mode all gate on this.
+  const [canHoldToSpeak, setCanHoldToSpeak] = useState(false);
 
   // Track if current session is using WebRTC transport
   const [isUsingWebRTC, setIsUsingWebRTC] = useState(false);
@@ -1136,22 +1137,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       const client = clientRef.current;
 
-      // Set canPushToTalk based on current turnDetectionMode
+      // Set canHoldToSpeak based on current turnDetectionMode (PTT and Push-to-Translate share the same key handler)
+      const isPttLikeMode = (mode: string): boolean =>
+        mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
+
       if (isOpenAICompatible(provider)) {
         const settings =
           provider === Provider.OPENAI ? openAISettings :
           provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
-        setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
+        setCanHoldToSpeak(settings ? isPttLikeMode(settings.turnDetectionMode) : false);
       } else if (provider === Provider.VOLCENGINE_AST2) {
-        setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
+        setCanHoldToSpeak(isPttLikeMode(volcengineAST2Settings.turnDetectionMode));
       } else if (provider === Provider.LOCAL_INFERENCE) {
-        setCanPushToTalk(localInferenceSettings.turnDetectionMode === 'Push-to-Talk');
+        setCanHoldToSpeak(isPttLikeMode(localInferenceSettings.turnDetectionMode));
       } else if (provider === Provider.GEMINI) {
-        setCanPushToTalk(geminiSettings.turnDetectionMode === 'Push-to-Talk');
+        setCanHoldToSpeak(isPttLikeMode(geminiSettings.turnDetectionMode));
       } else {
-        setCanPushToTalk(false); // Not supported by PalabraAI and Volcengine ST
+        setCanHoldToSpeak(false); // Not supported by PalabraAI and Volcengine ST
       }
 
       // Connect to microphone only if input device is turned on
@@ -2283,8 +2287,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Set up push-to-talk keyboard shortcut
    */
   useEffect(() => {
-    // Only enable push-to-talk when session is active and turnDetectionMode is 'Disabled'
-    const isPushToTalkEnabled = isSessionActive && canPushToTalk;
+    // Enable space hold-to-speak when session is active and we're in a PTT-like mode
+    // (Push-to-Talk, Push-to-Translate, or OpenAI's Disabled mode)
+    const isHoldToSpeakEnabled = isSessionActive && canHoldToSpeak;
 
     // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2295,7 +2300,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                              activeElement?.getAttribute('contenteditable') === 'true';
       if (isInputFocused) return;
 
-      if (!isPushToTalkEnabled || e.repeat || e.code !== 'Space') return;
+      if (!isHoldToSpeakEnabled || e.repeat || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
       startRecording();
     };
@@ -2309,19 +2314,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                              activeElement?.getAttribute('contenteditable') === 'true';
       if (isInputFocused) return;
 
-      if (!isPushToTalkEnabled || e.code !== 'Space') return;
+      if (!isHoldToSpeakEnabled || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
       stopRecording();
     };
-    
+
     // Handle window blur event to stop recording if the window loses focus
     // while recording is active
     const handleBlur = () => {
-      if (isPushToTalkEnabled && isRecording) {
+      if (isHoldToSpeakEnabled && isRecording) {
         stopRecording();
       }
     };
-    
+
     // Add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -2333,7 +2338,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
+  }, [isSessionActive, canHoldToSpeak, startRecording, stopRecording, isRecording]);
 
   // Session tracking for analytics
   useEffect(() => {
@@ -2900,7 +2905,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
 
             <div className="main-controls">
-              {isSessionActive && canPushToTalk && (
+              {isSessionActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
@@ -2961,12 +2966,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
 
             <div className="center-controls">
-              {isSessionActive && canPushToTalk && (
+              {isSessionActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
                   onMouseUp={stopRecording}
-                  disabled={!isSessionActive || !canPushToTalk || !isInputDeviceOn}
+                  disabled={!isSessionActive || !canHoldToSpeak || !isInputDeviceOn}
                 >
                   <Mic size={14} />
                   <span>
