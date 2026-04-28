@@ -353,7 +353,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <div className="settings-section turn-detection-section" id="turn-detection-section">
         <h2>
-          {t('settings.automaticTurnDetection')}
+          {t('settings.speechMode')}
           <Tooltip
             content={t('settings.turnDetectionTooltip')}
             position="top"
@@ -372,7 +372,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <button
                   key={mode}
                   className={`option-button ${compatibleSettings?.turnDetectionMode === mode ? 'active' : ''}`}
-                  onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
+                  onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate' })}
                   disabled={isDisabled}
                   title={isWebRTCMode && isVADMode ? t('settings.webrtcVadDisabledTitle', 'Server VAD is not available in WebRTC mode') : undefined}
                 >
@@ -380,6 +380,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </button>
               );
             })}
+            <button
+              key="push-to-translate"
+              className={`option-button ${compatibleSettings?.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+              onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: 'Push-to-Translate' })}
+              disabled={isSessionActive || isWebRTCMode}
+              title={isWebRTCMode ? t('settings.pushToTranslateNotAvailableInWebrtc') : undefined}
+            >
+              {t('settings.pushToTranslate')}
+            </button>
           </div>
           {isWebRTCMode && (
             <div className="webrtc-vad-notice" style={{
