@@ -314,7 +314,11 @@ export class GeminiClient implements IClient {
     this.lastConfig = config;
     this.currentModel = config.model;
     this.textOnlyMode = config.textOnly || false;
-    this.pttMode = isGeminiSessionConfig(config) && config.turnDetectionMode === 'Push-to-Talk';
+    // Both Push-to-Talk and Push-to-Translate use manual turn control on the client side
+    // (activityStart/activityEnd plumbing). Without this, automaticActivityDetection stays
+    // enabled and the server auto-detects turns regardless of the user's hold state.
+    this.pttMode = isGeminiSessionConfig(config)
+      && (config.turnDetectionMode === 'Push-to-Talk' || config.turnDetectionMode === 'Push-to-Translate');
     this.isUserSpeaking = false;
 
     // Gemini native-audio models require AUDIO modality even for text-only output

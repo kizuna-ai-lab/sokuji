@@ -426,20 +426,26 @@ function createOpenAISessionConfig(
     instructions: systemInstructions,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
-    turnDetection: settings.turnDetectionMode === 'Disabled' ? {type: 'none'} :
-      settings.turnDetectionMode === 'Normal' ? {
-        type: 'server_vad',
-        createResponse: true,
-        interruptResponse: false,
-        prefixPadding: settings.prefixPadding,
-        silenceDuration: settings.silenceDuration,
-        threshold: settings.threshold
-      } : {
-        type: 'semantic_vad',
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: settings.semanticEagerness?.toLowerCase() as any,
-      },
+    // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns
+    // manually via createResponse() on hold release. Falling through to semantic_vad here
+    // would let the OpenAI server auto-translate any utterance, defeating manual control.
+    turnDetection: (settings.turnDetectionMode === 'Disabled' || settings.turnDetectionMode === 'Push-to-Translate')
+      ? {type: 'none'}
+      : settings.turnDetectionMode === 'Normal'
+        ? {
+            type: 'server_vad',
+            createResponse: true,
+            interruptResponse: false,
+            prefixPadding: settings.prefixPadding,
+            silenceDuration: settings.silenceDuration,
+            threshold: settings.threshold
+          }
+        : {
+            type: 'semantic_vad',
+            createResponse: true,
+            interruptResponse: false,
+            eagerness: settings.semanticEagerness?.toLowerCase() as any,
+          },
     inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
       type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
