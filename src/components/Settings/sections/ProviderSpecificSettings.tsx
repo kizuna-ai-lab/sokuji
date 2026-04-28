@@ -804,7 +804,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <div className="settings-section" id="gemini-vad-section">
         <h2>
-          {t('settings.geminiVad')}
+          {t('settings.speechMode')}
           <Tooltip
             content={t('settings.geminiVadTooltip')}
             position="top"
@@ -827,6 +827,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               disabled={isSessionActive}
             >
               {t('settings.pushToTalk')}
+            </button>
+            <button
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Push-to-Translate' })}
+              disabled={isSessionActive}
+            >
+              {t('settings.pushToTranslate')}
             </button>
           </div>
         </div>
