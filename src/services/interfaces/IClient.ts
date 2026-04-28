@@ -73,7 +73,7 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
  */
 export interface GeminiSessionConfig extends BaseSessionConfig {
   provider: 'gemini';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadStartSensitivity: 'high' | 'low';
   vadEndSensitivity: 'high' | 'low';
   vadSilenceDurationMs: number;
@@ -113,7 +113,7 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
   provider: 'volcengine_ast2';
   sourceLanguage: string;
   targetLanguage: string;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /** Boost recognition of specific terms (Volcengine self-learning platform: Hot Words). Library ID only; empty string or undefined = not set. */
   hotWordTableId?: string;
   /** Post-transcription text substitution (Volcengine self-learning platform: Replacement). Library ID only; empty string or undefined = not set. */
@@ -138,7 +138,7 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk';
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /**
    * Whether the active system prompt expects `<transcript>` wrapping around
    * the user message. Tracks the actual prompt, not the mode flag: true when
