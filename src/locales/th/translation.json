@@ -376,7 +376,16 @@
     "downloadModelType": "ดาวน์โหลด {{type}}",
     "modelTypeAsr": "การรู้จำเสียงพูด (ASR)",
     "modelTypeTranslation": "การแปล",
-    "modelTypeTts": "การสังเคราะห์เสียงพูด (TTS)"
+    "modelTypeTts": "การสังเคราะห์เสียงพูด (TTS)",
+    "reasoningEffort": "ระดับการให้เหตุผล",
+    "reasoningEffortTooltip": "ควบคุมว่าโมเดลคิดมากแค่ไหนก่อนตอบกลับ ระดับที่สูงขึ้นให้ผลลัพธ์ที่ดีกว่าในงานที่ซับซ้อนแต่เพิ่มความหน่วงและค่าใช้จ่าย แนะนำ: low สำหรับการแปลแบบเรียลไทม์ ใช้ได้กับ gpt-realtime-2 เท่านั้น",
+    "reasoningEffortOptions": {
+      "minimal": "ต่ำสุด",
+      "low": "ต่ำ (แนะนำ)",
+      "medium": "ปานกลาง",
+      "high": "สูง",
+      "xhigh": "สูงมาก"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

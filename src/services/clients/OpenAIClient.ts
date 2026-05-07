@@ -496,6 +496,13 @@ export class OpenAIClient implements IClient {
     if (config.temperature !== undefined) updateParams.temperature = config.temperature;
     if (config.maxTokens !== undefined) updateParams.max_response_output_tokens = config.maxTokens;
 
+    // Reasoning effort: only `gpt-realtime-2` accepts this; older models reject the field.
+    if (config.model?.startsWith('gpt-realtime-2') &&
+        'reasoningEffort' in config && config.reasoningEffort) {
+      updateParams.reasoning = { effort: config.reasoningEffort };
+      console.info('[Sokuji] [OpenAIClient] reasoning.effort applied:', config.reasoningEffort);
+    }
+
     // Explicitly disable tools to prevent model drift from translator role
     // This ensures the model stays focused on translation and doesn't attempt tool calls
     updateParams.tool_choice = 'none';

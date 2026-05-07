@@ -270,7 +270,16 @@
     "downloadModelType": "הורד {{type}}",
     "modelTypeAsr": "זיהוי דיבור (ASR)",
     "modelTypeTranslation": "תרגום",
-    "modelTypeTts": "סינתזת דיבור (TTS)"
+    "modelTypeTts": "סינתזת דיבור (TTS)",
+    "reasoningEffort": "רמת חשיבה",
+    "reasoningEffortTooltip": "שולט בכמות ההתלבטות של המודל לפני מתן תגובה. רמות גבוהות יותר נותנות תוצאות טובות יותר במשימות מורכבות אך מגדילות את ההשהיה והעלות. מומלץ: low לתרגום חי. זמין רק עבור gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "מינימלי",
+      "low": "נמוך (מומלץ)",
+      "medium": "בינוני",
+      "high": "גבוה",
+      "xhigh": "גבוה מאוד"
+    }
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

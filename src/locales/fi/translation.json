@@ -263,7 +263,16 @@
     "downloadModelType": "Lataa {{type}}",
     "modelTypeAsr": "Puheentunnistus (ASR)",
     "modelTypeTranslation": "Käännös",
-    "modelTypeTts": "Puhesynteesi (TTS)"
+    "modelTypeTts": "Puhesynteesi (TTS)",
+    "reasoningEffort": "Päättelytaso",
+    "reasoningEffortTooltip": "Säätelee, kuinka paljon malli harkitsee ennen vastaamista. Korkeammat tasot tuottavat parempia tuloksia monimutkaisissa tehtävissä mutta lisäävät viivettä ja kustannuksia. Suositus: low live-käännöksiin. Vain gpt-realtime-2:lle.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimi",
+      "low": "Matala (suositus)",
+      "medium": "Keskitaso",
+      "high": "Korkea",
+      "xhigh": "Erittäin korkea"
+    }
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

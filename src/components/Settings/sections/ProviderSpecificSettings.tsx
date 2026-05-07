@@ -833,6 +833,48 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderReasoningEffortSettings = () => {
+    if (!config.capabilities.hasReasoningEffort) return null;
+    if (!isCurrentProviderOpenAICompatible()) return null;
+
+    const compatibleSettings = getOpenAICompatibleSettings();
+    if (!compatibleSettings) return null;
+
+    // Only `gpt-realtime-2` accepts reasoning.effort; gate UI accordingly.
+    if (!compatibleSettings.model?.startsWith('gpt-realtime-2')) return null;
+
+    const efforts = config.reasoningEfforts ?? ['minimal', 'low', 'medium', 'high', 'xhigh'];
+    const current = compatibleSettings.reasoningEffort ?? 'low';
+
+    return (
+      <div className="settings-section">
+        <h2>
+          {t('settings.reasoningEffort')}
+          <Tooltip
+            content={t('settings.reasoningEffortTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <select
+            className="select-dropdown"
+            value={current}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ reasoningEffort: e.target.value as 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' })}
+            disabled={isSessionActive}
+          >
+            {efforts.map((effort) => (
+              <option key={effort} value={effort}>
+                {t(`settings.reasoningEffortOptions.${effort}`, effort)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    );
+  };
+
   const renderGeminiVadSettings = () => {
     if (provider !== Provider.GEMINI) {
       return null;
@@ -2098,6 +2140,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderNoiseReductionSettings()}
       {renderTransportTypeSettings()}
       {renderModelConfigurationSettings()}
+      {renderReasoningEffortSettings()}
       {renderGeminiVadSettings()}
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}

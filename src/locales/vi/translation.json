@@ -256,7 +256,16 @@
     "downloadModelType": "Tải {{type}}",
     "modelTypeAsr": "Nhận dạng giọng nói (ASR)",
     "modelTypeTranslation": "Dịch thuật",
-    "modelTypeTts": "Tổng hợp giọng nói (TTS)"
+    "modelTypeTts": "Tổng hợp giọng nói (TTS)",
+    "reasoningEffort": "Mức độ suy luận",
+    "reasoningEffortTooltip": "Kiểm soát mức độ cân nhắc của mô hình trước khi phản hồi. Mức cao hơn cho kết quả tốt hơn ở các tác vụ phức tạp nhưng tăng độ trễ và chi phí. Khuyến nghị: low cho dịch trực tiếp. Chỉ khả dụng cho gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Tối thiểu",
+      "low": "Thấp (khuyến nghị)",
+      "medium": "Trung bình",
+      "high": "Cao",
+      "xhigh": "Rất cao"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

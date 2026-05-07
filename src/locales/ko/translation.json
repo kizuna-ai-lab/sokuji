@@ -264,7 +264,16 @@
     "downloadModelType": "{{type}} 다운로드",
     "modelTypeAsr": "음성 인식(ASR)",
     "modelTypeTranslation": "번역",
-    "modelTypeTts": "음성 합성(TTS)"
+    "modelTypeTts": "음성 합성(TTS)",
+    "reasoningEffort": "추론 강도",
+    "reasoningEffortTooltip": "응답 전 모델의 숙고 정도를 제어합니다. 높은 레벨은 복잡한 작업에서 더 나은 결과를 제공하지만 지연 시간과 비용이 증가합니다. 실시간 번역에는 low 권장. gpt-realtime-2 만 지원.",
+    "reasoningEffortOptions": {
+      "minimal": "최소",
+      "low": "낮음 (권장)",
+      "medium": "중간",
+      "high": "높음",
+      "xhigh": "매우 높음"
+    }
   },
   "audioPanel": {
     "title": "오디오 설정",

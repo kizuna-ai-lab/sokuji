@@ -256,7 +256,16 @@
     "downloadModelType": "Ladda ner {{type}}",
     "modelTypeAsr": "Taligenkänning (ASR)",
     "modelTypeTranslation": "Översättning",
-    "modelTypeTts": "Talsyntes (TTS)"
+    "modelTypeTts": "Talsyntes (TTS)",
+    "reasoningEffort": "Resoneringsnivå",
+    "reasoningEffortTooltip": "Styr hur mycket modellen överväger innan den svarar. Högre nivåer ger bättre resultat på komplexa uppgifter men ökar latens och kostnad. Rekommenderas: low för direktöversättning. Endast tillgänglig för gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimal",
+      "low": "Låg (rekommenderas)",
+      "medium": "Medel",
+      "high": "Hög",
+      "xhigh": "Mycket hög"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

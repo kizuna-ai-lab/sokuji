@@ -263,7 +263,16 @@
     "downloadModelType": "Muat turun {{type}}",
     "modelTypeAsr": "Pengecaman pertuturan (ASR)",
     "modelTypeTranslation": "Terjemahan",
-    "modelTypeTts": "Sintesis pertuturan (TTS)"
+    "modelTypeTts": "Sintesis pertuturan (TTS)",
+    "reasoningEffort": "Tahap penaakulan",
+    "reasoningEffortTooltip": "Mengawal sejauh mana model menimbang sebelum bertindak balas. Tahap yang lebih tinggi menghasilkan keputusan yang lebih baik untuk tugas kompleks tetapi meningkatkan kependaman dan kos. Disyorkan: low untuk terjemahan langsung. Hanya tersedia untuk gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimum",
+      "low": "Rendah (disyorkan)",
+      "medium": "Sederhana",
+      "high": "Tinggi",
+      "xhigh": "Sangat tinggi"
+    }
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

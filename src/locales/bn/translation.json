@@ -270,7 +270,16 @@
     "downloadModelType": "{{type}} ডাউনলোড করুন",
     "modelTypeAsr": "বাক স্বীকৃতি (ASR)",
     "modelTypeTranslation": "অনুবাদ",
-    "modelTypeTts": "বাক সংশ্লেষণ (TTS)"
+    "modelTypeTts": "বাক সংশ্লেষণ (TTS)",
+    "reasoningEffort": "যুক্তি স্তর",
+    "reasoningEffortTooltip": "মডেল উত্তর দেওয়ার আগে কতটা চিন্তা করবে তা নিয়ন্ত্রণ করে। উচ্চতর স্তর জটিল কাজে ভালো ফলাফল দেয় কিন্তু বিলম্ব ও খরচ বাড়ায়। লাইভ অনুবাদের জন্য low প্রস্তাবিত। শুধুমাত্র gpt-realtime-2-এর জন্য উপলব্ধ।",
+    "reasoningEffortOptions": {
+      "minimal": "ন্যূনতম",
+      "low": "নিম্ন (প্রস্তাবিত)",
+      "medium": "মধ্যম",
+      "high": "উচ্চ",
+      "xhigh": "অতি উচ্চ"
+    }
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",

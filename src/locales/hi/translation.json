@@ -257,7 +257,16 @@
     "downloadModelType": "{{type}} डाउनलोड करें",
     "modelTypeAsr": "वाक् पहचान (ASR)",
     "modelTypeTranslation": "अनुवाद",
-    "modelTypeTts": "वाक् संश्लेषण (TTS)"
+    "modelTypeTts": "वाक् संश्लेषण (TTS)",
+    "reasoningEffort": "तर्क स्तर",
+    "reasoningEffortTooltip": "नियंत्रित करता है कि मॉडल जवाब देने से पहले कितना विचार करता है। उच्च स्तर जटिल कार्यों पर बेहतर परिणाम देते हैं लेकिन विलंब और लागत बढ़ाते हैं। लाइव अनुवाद के लिए low की सिफारिश की जाती है। केवल gpt-realtime-2 के लिए उपलब्ध।",
+    "reasoningEffortOptions": {
+      "minimal": "न्यूनतम",
+      "low": "कम (अनुशंसित)",
+      "medium": "मध्यम",
+      "high": "उच्च",
+      "xhigh": "बहुत उच्च"
+    }
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",

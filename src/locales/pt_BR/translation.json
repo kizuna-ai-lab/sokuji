@@ -264,7 +264,16 @@
     "downloadModelType": "Baixar {{type}}",
     "modelTypeAsr": "Reconhecimento de fala (ASR)",
     "modelTypeTranslation": "Tradução",
-    "modelTypeTts": "Síntese de fala (TTS)"
+    "modelTypeTts": "Síntese de fala (TTS)",
+    "reasoningEffort": "Esforço de raciocínio",
+    "reasoningEffortTooltip": "Controla quanto o modelo delibera antes de responder. Níveis mais altos produzem melhores resultados em tarefas complexas, mas aumentam a latência e o custo. Recomendado: low para tradução ao vivo. Disponível apenas para gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Mínimo",
+      "low": "Baixo (recomendado)",
+      "medium": "Médio",
+      "high": "Alto",
+      "xhigh": "Muito alto"
+    }
   },
   "audioPanel": {
     "title": "Configurações de áudio",

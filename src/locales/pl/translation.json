@@ -263,7 +263,16 @@
     "downloadModelType": "Pobierz {{type}}",
     "modelTypeAsr": "Rozpoznawanie mowy (ASR)",
     "modelTypeTranslation": "Tłumaczenie",
-    "modelTypeTts": "Synteza mowy (TTS)"
+    "modelTypeTts": "Synteza mowy (TTS)",
+    "reasoningEffort": "Poziom rozumowania",
+    "reasoningEffortTooltip": "Kontroluje, jak bardzo model rozważa przed odpowiedzią. Wyższe poziomy dają lepsze wyniki w złożonych zadaniach, ale zwiększają opóźnienie i koszt. Zalecane: low dla tłumaczenia na żywo. Dostępne tylko dla gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimalny",
+      "low": "Niski (zalecany)",
+      "medium": "Średni",
+      "high": "Wysoki",
+      "xhigh": "Bardzo wysoki"
+    }
   },
   "audioPanel": {
     "title": "Ustawienia audio",

@@ -263,7 +263,16 @@
     "downloadModelType": "I-download ang {{type}}",
     "modelTypeAsr": "Pagkilala sa pagsasalita (ASR)",
     "modelTypeTranslation": "Pagsasalin",
-    "modelTypeTts": "Sintesis ng pagsasalita (TTS)"
+    "modelTypeTts": "Sintesis ng pagsasalita (TTS)",
+    "reasoningEffort": "Antas ng pangangatuwiran",
+    "reasoningEffortTooltip": "Kinokontrol kung gaano katagal nag-iisip ang modelo bago tumugon. Mas mataas na antas ay nagbibigay ng mas magagandang resulta sa kumplikadong gawain ngunit nagpapataas ng latency at gastos. Inirerekomenda: low para sa live na pagsasalin. Magagamit lamang para sa gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Pinakamababa",
+      "low": "Mababa (inirerekomenda)",
+      "medium": "Katamtaman",
+      "high": "Mataas",
+      "xhigh": "Napakataas"
+    }
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

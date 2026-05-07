@@ -382,7 +382,16 @@
     "downloadModelType": "下載 {{type}}",
     "modelTypeAsr": "語音辨識（ASR）",
     "modelTypeTranslation": "翻譯",
-    "modelTypeTts": "語音合成（TTS）"
+    "modelTypeTts": "語音合成（TTS）",
+    "reasoningEffort": "推理強度",
+    "reasoningEffortTooltip": "控制模型在回應前的思考程度。更高級別在複雜任務上效果更好，但會增加延遲和費用。同傳翻譯推薦 low。僅 gpt-realtime-2 支援。",
+    "reasoningEffortOptions": {
+      "minimal": "最小",
+      "low": "低（推薦）",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "極高"
+    }
   },
   "audioPanel": {
     "title": "音訊設定",

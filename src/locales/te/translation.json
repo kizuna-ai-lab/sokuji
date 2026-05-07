@@ -369,7 +369,16 @@
     "downloadModelType": "{{type}} డౌన్‌లోడ్ చేయండి",
     "modelTypeAsr": "వాక్ గుర్తింపు (ASR)",
     "modelTypeTranslation": "అనువాదం",
-    "modelTypeTts": "వాక్ సంశ్లేషణ (TTS)"
+    "modelTypeTts": "వాక్ సంశ్లేషణ (TTS)",
+    "reasoningEffort": "తార్కిక స్థాయి",
+    "reasoningEffortTooltip": "మోడల్ సమాధానం ఇవ్వడానికి ముందు ఎంత ఆలోచిస్తుందో నియంత్రిస్తుంది. ఎక్కువ స్థాయిలు సంక్లిష్ట పనులలో మెరుగైన ఫలితాలను ఇస్తాయి కానీ ఆలస్యం మరియు ఖర్చును పెంచుతాయి. ప్రత్యక్ష అనువాదానికి low సిఫార్సు చేయబడింది. gpt-realtime-2 కోసం మాత్రమే అందుబాటులో ఉంది.",
+    "reasoningEffortOptions": {
+      "minimal": "కనిష్ట",
+      "low": "తక్కువ (సిఫార్సు)",
+      "medium": "మధ్యమ",
+      "high": "ఎక్కువ",
+      "xhigh": "చాలా ఎక్కువ"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

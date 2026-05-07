@@ -264,7 +264,16 @@
     "downloadModelType": "تنزيل {{type}}",
     "modelTypeAsr": "التعرف على الكلام (ASR)",
     "modelTypeTranslation": "الترجمة",
-    "modelTypeTts": "تحويل النص إلى كلام (TTS)"
+    "modelTypeTts": "تحويل النص إلى كلام (TTS)",
+    "reasoningEffort": "مستوى التفكير",
+    "reasoningEffortTooltip": "يتحكم في مقدار تفكير النموذج قبل الرد. المستويات الأعلى تنتج نتائج أفضل في المهام المعقدة ولكنها تزيد من زمن الاستجابة والتكلفة. الموصى به: low للترجمة الفورية. متاح فقط لـ gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "أدنى",
+      "low": "منخفض (موصى به)",
+      "medium": "متوسط",
+      "high": "عالي",
+      "xhigh": "عالي جداً"
+    }
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

@@ -264,7 +264,16 @@
     "downloadModelType": "{{type}} をダウンロード",
     "modelTypeAsr": "音声認識（ASR）",
     "modelTypeTranslation": "翻訳",
-    "modelTypeTts": "音声合成（TTS）"
+    "modelTypeTts": "音声合成（TTS）",
+    "reasoningEffort": "推論レベル",
+    "reasoningEffortTooltip": "応答前にモデルがどれだけ熟考するかを制御します。高いレベルは複雑なタスクで良い結果を生みますが、遅延とコストが増加します。リアルタイム翻訳には low を推奨。gpt-realtime-2 のみ対応。",
+    "reasoningEffortOptions": {
+      "minimal": "最小",
+      "low": "低（推奨）",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "最高"
+    }
   },
   "audioPanel": {
     "title": "オーディオ設定",

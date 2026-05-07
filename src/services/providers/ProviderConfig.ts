@@ -22,6 +22,8 @@ export interface TurnDetectionConfig {
   hasSemanticEagerness: boolean;
 }
 
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+
 export interface ProviderCapabilities {
   // Core features
   hasTemplateMode: boolean;
@@ -33,10 +35,16 @@ export interface ProviderCapabilities {
 
   // Turn detection specific
   turnDetection: TurnDetectionConfig;
-  
+
   // Supported ranges
   temperatureRange: { min: number; max: number; step: number };
   maxTokensRange: { min: number; max: number; step: number };
+
+  // Reasoning effort (only applies to specific models, e.g. gpt-realtime-2).
+  // When true, the provider config must also list `reasoningEfforts` and
+  // `defaults.reasoningEffort`. UI gates rendering on this flag plus the
+  // currently-selected model.
+  hasReasoningEffort?: boolean;
 }
 
 export interface ProviderConfig {
@@ -58,10 +66,11 @@ export interface ProviderConfig {
   models: ModelOption[];
   noiseReductionModes: string[];
   transcriptModels: string[];
-  
+  reasoningEfforts?: ReasoningEffort[];
+
   // Capabilities
   capabilities: ProviderCapabilities;
-  
+
   // Default values
   defaults: {
     model: string;
@@ -77,6 +86,7 @@ export interface ProviderConfig {
     semanticEagerness: string;
     noiseReduction: string;
     transcriptModel: string;
+    reasoningEffort?: ReasoningEffort;
   };
 }
 

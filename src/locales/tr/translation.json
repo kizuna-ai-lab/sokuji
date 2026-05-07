@@ -263,7 +263,16 @@
     "downloadModelType": "{{type}} indir",
     "modelTypeAsr": "Konuşma tanıma (ASR)",
     "modelTypeTranslation": "Çeviri",
-    "modelTypeTts": "Konuşma sentezi (TTS)"
+    "modelTypeTts": "Konuşma sentezi (TTS)",
+    "reasoningEffort": "Akıl yürütme düzeyi",
+    "reasoningEffortTooltip": "Modelin yanıt vermeden önce ne kadar düşündüğünü kontrol eder. Daha yüksek düzeyler karmaşık görevlerde daha iyi sonuçlar üretir ancak gecikme ve maliyeti artırır. Canlı çeviri için low önerilir. Yalnızca gpt-realtime-2 için.",
+    "reasoningEffortOptions": {
+      "minimal": "En düşük",
+      "low": "Düşük (önerilen)",
+      "medium": "Orta",
+      "high": "Yüksek",
+      "xhigh": "Çok yüksek"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

@@ -18,7 +18,15 @@ export class KizunaAIProviderConfig extends OpenAIProviderConfig {
       apiKeyLabel: 'Kizuna AI Access',
       apiKeyPlaceholder: 'Authentication managed automatically',
       requiresAuth: true, // Special flag indicating this requires backend authentication
-      
+
+      // KizunaAI's backend manages model availability separately; do not
+      // expose `gpt-realtime-2` here unless the backend proxy supports it.
+      models: baseConfig.models.filter(m => m.id !== 'gpt-realtime-2'),
+      capabilities: {
+        ...baseConfig.capabilities,
+        hasReasoningEffort: false,
+      },
+
       // Override specific defaults that differ from OpenAI
       defaults: {
         ...baseConfig.defaults,

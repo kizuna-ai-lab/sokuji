@@ -271,7 +271,16 @@
     "downloadModelType": "Скачать {{type}}",
     "modelTypeAsr": "Распознавание речи (ASR)",
     "modelTypeTranslation": "Перевод",
-    "modelTypeTts": "Синтез речи (TTS)"
+    "modelTypeTts": "Синтез речи (TTS)",
+    "reasoningEffort": "Уровень рассуждений",
+    "reasoningEffortTooltip": "Управляет тем, насколько модель обдумывает ответ. Более высокие уровни дают лучшие результаты в сложных задачах, но увеличивают задержку и стоимость. Рекомендуется: low для синхронного перевода. Только для gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Минимальный",
+      "low": "Низкий (рекомендуется)",
+      "medium": "Средний",
+      "high": "Высокий",
+      "xhigh": "Очень высокий"
+    }
   },
   "audioPanel": {
     "title": "Настройки аудио",

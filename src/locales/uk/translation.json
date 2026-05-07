@@ -369,7 +369,16 @@
     "downloadModelType": "Завантажити {{type}}",
     "modelTypeAsr": "Розпізнавання мовлення (ASR)",
     "modelTypeTranslation": "Переклад",
-    "modelTypeTts": "Синтез мовлення (TTS)"
+    "modelTypeTts": "Синтез мовлення (TTS)",
+    "reasoningEffort": "Рівень міркувань",
+    "reasoningEffortTooltip": "Контролює, наскільки модель обмірковує відповідь. Вищі рівні дають кращі результати у складних завданнях, але збільшують затримку та вартість. Рекомендується: low для синхронного перекладу. Доступно лише для gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Мінімальний",
+      "low": "Низький (рекомендовано)",
+      "medium": "Середній",
+      "high": "Високий",
+      "xhigh": "Дуже високий"
+    }
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

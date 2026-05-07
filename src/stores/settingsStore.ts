@@ -62,6 +62,10 @@ export interface OpenAICompatibleSettingsBase {
   transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
+  // Persisted across model switches so the user's preference is preserved
+  // when toggling between gpt-realtime-2 and other models. Only forwarded
+  // to the API when the active model supports it.
+  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 }
 
 // OpenAI Compatible Settings (with custom endpoint support)
@@ -235,6 +239,7 @@ const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
   transportType: 'websocket',
+  reasoningEffort: 'low',
 };
 
 const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
@@ -452,6 +457,9 @@ function createOpenAISessionConfig(
     inputAudioTranscription: settings.transcriptModel ? {
       model: settings.transcriptModel
     } : undefined,
+    // Forward reasoning effort unconditionally; the client gates by model name
+    // before sending it to the API (older realtime models reject the field).
+    reasoningEffort: settings.reasoningEffort,
   };
 }
 

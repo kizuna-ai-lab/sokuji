@@ -66,6 +66,10 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
   inputAudioNoiseReduction?: {
     type: 'near_field' | 'far_field';
   };
+  // Reasoning effort. Only consumed by clients when `model` supports it
+  // (currently `gpt-realtime-2`). Clients must gate by model name before
+  // forwarding to the OpenAI API — older models reject the field.
+  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 }
 
 /**

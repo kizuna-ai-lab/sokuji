@@ -270,7 +270,16 @@
     "modelTypeTranslation": "Translation",
     "modelTypeTts": "Speech Synthesis (TTS)",
     "edgeTtsVoice": "Voice",
-    "loadingVoices": "Loading voices..."
+    "loadingVoices": "Loading voices...",
+    "reasoningEffort": "Reasoning effort",
+    "reasoningEffortTooltip": "Controls how much the model deliberates before responding. Higher levels produce better results on complex tasks but increase latency and cost. Recommended: low for live translation. Only available for gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimal",
+      "low": "Low (recommended)",
+      "medium": "Medium",
+      "high": "High",
+      "xhigh": "XHigh"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

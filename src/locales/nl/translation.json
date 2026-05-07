@@ -264,7 +264,16 @@
     "downloadModelType": "{{type}} downloaden",
     "modelTypeAsr": "Spraakherkenning (ASR)",
     "modelTypeTranslation": "Vertaling",
-    "modelTypeTts": "Spraaksynthese (TTS)"
+    "modelTypeTts": "Spraaksynthese (TTS)",
+    "reasoningEffort": "Redeneerinspanning",
+    "reasoningEffortTooltip": "Bepaalt hoeveel het model overweegt voordat het reageert. Hogere niveaus leveren betere resultaten bij complexe taken maar verhogen latentie en kosten. Aanbevolen: low voor live vertaling. Alleen beschikbaar voor gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimaal",
+      "low": "Laag (aanbevolen)",
+      "medium": "Gemiddeld",
+      "high": "Hoog",
+      "xhigh": "Zeer hoog"
+    }
   },
   "audioPanel": {
     "title": "Audio instellingen",

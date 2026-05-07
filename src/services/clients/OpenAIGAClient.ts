@@ -624,6 +624,12 @@ export class OpenAIGAClient implements IClient {
       tools: []
     };
 
+    // Reasoning effort: only `gpt-realtime-2` accepts this; older models reject the field.
+    if (config.model?.startsWith('gpt-realtime-2') && config.reasoningEffort) {
+      session.reasoning = { effort: config.reasoningEffort };
+      console.info('[Sokuji] [OpenAIGAClient] reasoning.effort applied:', config.reasoningEffort);
+    }
+
     // GA API nests turn_detection, transcription, noise_reduction under audio.input
     const audioInput: any = {};
     let hasAudioInput = false;

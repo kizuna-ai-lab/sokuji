@@ -566,6 +566,12 @@ export class OpenAIWebRTCClient implements IClient {
       };
     }
 
+    // Reasoning effort: only `gpt-realtime-2` accepts this; older models reject the field.
+    if (config.model?.startsWith('gpt-realtime-2') && config.reasoningEffort) {
+      sessionUpdate.session.reasoning = { effort: config.reasoningEffort };
+      console.info('[Sokuji] [OpenAIWebRTCClient] reasoning.effort applied:', config.reasoningEffort);
+    }
+
     this.sendEvent(sessionUpdate);
   }
 

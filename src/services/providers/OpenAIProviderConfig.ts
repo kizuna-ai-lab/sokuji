@@ -1,4 +1,4 @@
-import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffort } from './ProviderConfig';
 
 export class OpenAIProviderConfig {
   private static readonly LANGUAGES: LanguageOption[] = [
@@ -75,6 +75,13 @@ export class OpenAIProviderConfig {
   private static readonly MODELS: ModelOption[] = [
     { id: 'gpt-realtime-mini', type: 'realtime' },
     { id: 'gpt-realtime-1.5', type: 'realtime' },
+    { id: 'gpt-realtime-2', type: 'realtime' },
+  ];
+
+  // Only models matching this prefix accept the `reasoning.effort` parameter.
+  // Older realtime models (mini, 1.5) reject it.
+  private static readonly REASONING_EFFORTS: ReasoningEffort[] = [
+    'minimal', 'low', 'medium', 'high', 'xhigh',
   ];
 
   getConfig(): ProviderConfig {
@@ -90,13 +97,15 @@ export class OpenAIProviderConfig {
       models: OpenAIProviderConfig.MODELS,
       noiseReductionModes: ['None', 'Near field', 'Far field'],
       transcriptModels: ['gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1'],
-      
+      reasoningEfforts: OpenAIProviderConfig.REASONING_EFFORTS,
+
       capabilities: {
         hasTemplateMode: true,
         hasTurnDetection: true,
         hasVoiceSettings: true,
         hasNoiseReduction: true,
         hasModelConfiguration: true,
+        hasReasoningEffort: true,
         textOnlyCapability: 'optional',
 
         turnDetection: {
@@ -125,6 +134,7 @@ export class OpenAIProviderConfig {
         semanticEagerness: 'Auto',
         noiseReduction: 'None',
         transcriptModel: 'whisper-1',
+        reasoningEffort: 'low',
       },
     };
   }

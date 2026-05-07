@@ -270,7 +270,16 @@
     "downloadModelType": "دانلود {{type}}",
     "modelTypeAsr": "تشخیص گفتار (ASR)",
     "modelTypeTranslation": "ترجمه",
-    "modelTypeTts": "تبدیل متن به گفتار (TTS)"
+    "modelTypeTts": "تبدیل متن به گفتار (TTS)",
+    "reasoningEffort": "سطح استدلال",
+    "reasoningEffortTooltip": "میزان تأمل مدل قبل از پاسخ را کنترل می‌کند. سطوح بالاتر در وظایف پیچیده نتایج بهتری ارائه می‌دهند اما تأخیر و هزینه را افزایش می‌دهند. توصیه می‌شود: low برای ترجمه زنده. فقط برای gpt-realtime-2 موجود است.",
+    "reasoningEffortOptions": {
+      "minimal": "حداقل",
+      "low": "کم (توصیه شده)",
+      "medium": "متوسط",
+      "high": "زیاد",
+      "xhigh": "خیلی زیاد"
+    }
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",

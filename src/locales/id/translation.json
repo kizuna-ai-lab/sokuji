@@ -264,7 +264,16 @@
     "downloadModelType": "Unduh {{type}}",
     "modelTypeAsr": "Pengenalan ucapan (ASR)",
     "modelTypeTranslation": "Terjemahan",
-    "modelTypeTts": "Sintesis ucapan (TTS)"
+    "modelTypeTts": "Sintesis ucapan (TTS)",
+    "reasoningEffort": "Tingkat penalaran",
+    "reasoningEffortTooltip": "Mengontrol seberapa banyak model berpikir sebelum merespons. Tingkat lebih tinggi memberikan hasil lebih baik pada tugas kompleks tetapi meningkatkan latensi dan biaya. Direkomendasikan: low untuk terjemahan langsung. Hanya tersedia untuk gpt-realtime-2.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimal",
+      "low": "Rendah (disarankan)",
+      "medium": "Sedang",
+      "high": "Tinggi",
+      "xhigh": "Sangat tinggi"
+    }
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

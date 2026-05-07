@@ -264,7 +264,16 @@
     "downloadModelType": "{{type}} herunterladen",
     "modelTypeAsr": "Spracherkennung (ASR)",
     "modelTypeTranslation": "Übersetzung",
-    "modelTypeTts": "Sprachsynthese (TTS)"
+    "modelTypeTts": "Sprachsynthese (TTS)",
+    "reasoningEffort": "Argumentationsaufwand",
+    "reasoningEffortTooltip": "Steuert, wie viel das Modell vor der Antwort überlegt. Höhere Stufen liefern bei komplexen Aufgaben bessere Ergebnisse, erhöhen jedoch Latenz und Kosten. Empfohlen: low für Live-Übersetzung. Nur für gpt-realtime-2 verfügbar.",
+    "reasoningEffortOptions": {
+      "minimal": "Minimal",
+      "low": "Niedrig (empfohlen)",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "xhigh": "Sehr hoch"
+    }
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
