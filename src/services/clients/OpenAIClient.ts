@@ -158,12 +158,24 @@ export class OpenAIClient implements IClient {
   }
 
   /**
+   * True for end-to-end voice-agent realtime models (gpt-realtime, -mini, -1.5, -2).
+   * Excludes specialized realtime models that aren't speech-to-speech, e.g.
+   * `gpt-realtime-whisper` (transcription-only).
+   */
+  private static isVoiceAgentRealtimeModel(modelId: string): boolean {
+    const name = modelId.toLowerCase();
+    if (!name.startsWith('gpt-realtime')) return false;
+    if (name.startsWith('gpt-realtime-whisper')) return false;
+    return true;
+  }
+
+  /**
    * Check if realtime models are available in the models list
    */
   private static checkRealtimeModelAvailability(models: any[]): boolean {
     return models.some((model: any) => {
-      const modelName = model.id?.toLowerCase() || '';
-      return modelName.startsWith('gpt-realtime');
+      const modelName = model.id || '';
+      return this.isVoiceAgentRealtimeModel(modelName);
     });
   }
   
@@ -198,9 +210,9 @@ export class OpenAIClient implements IClient {
 
     models.forEach(model => {
       const modelName = model.id.toLowerCase();
-      
-      // Check for realtime models (GA format: gpt-realtime-*)
-      if (modelName.startsWith('gpt-realtime')) {
+
+      // Check for end-to-end voice-agent realtime models (excludes whisper variant)
+      if (this.isVoiceAgentRealtimeModel(model.id)) {
         relevantModels.push({
           id: model.id,
           type: 'realtime',
