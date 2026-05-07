@@ -13,6 +13,7 @@ export enum Provider {
   PALABRA_AI = 'palabraai',
   KIZUNA_AI = 'kizunaai',
   OPENAI_COMPATIBLE = 'openai_compatible',
+  OPENAI_TRANSLATE = 'openai_translate',
   VOLCENGINE_ST = 'volcengine_st',
   VOLCENGINE_AST2 = 'volcengine_ast2',
   LOCAL_INFERENCE = 'local_inference'
@@ -21,7 +22,7 @@ export enum Provider {
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
 
 /**
  * Array of all supported providers

@@ -62,6 +62,10 @@ export interface ProviderConfig {
   
   // Supported options
   languages: LanguageOption[];
+  // When defined, target language dropdown uses this restricted list instead of `languages`.
+  // Used by providers that support a different (typically smaller) set of target languages
+  // than source languages — e.g. gpt-realtime-translate has 13 target languages.
+  targetLanguages?: LanguageOption[];
   voices: VoiceOption[];
   models: ModelOption[];
   noiseReductionModes: string[];

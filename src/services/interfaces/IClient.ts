@@ -73,6 +73,26 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Target languages supported by OpenAI's gpt-realtime-translate model.
+ * The model only supports translating into this fixed set of 13 languages.
+ */
+export type TranslateTargetLanguage =
+  | 'en' | 'es' | 'pt' | 'fr' | 'ja' | 'ru' | 'zh'
+  | 'de' | 'ko' | 'hi' | 'id' | 'vi' | 'it';
+
+/**
+ * OpenAI Translate (gpt-realtime-translate) session configuration
+ */
+export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
+  provider: 'openai_translate';
+  targetLanguage: TranslateTargetLanguage;
+  // UI hint only — not forwarded to the API
+  sourceLanguage?: string;
+  inputAudioTranscription?: { model: string };
+  inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
+}
+
+/**
  * Gemini-specific session configuration
  */
 export interface GeminiSessionConfig extends BaseSessionConfig {
@@ -156,13 +176,17 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig;
 
 /**
  * Type guards for session configurations
  */
 export function isOpenAISessionConfig(config: SessionConfig): config is OpenAISessionConfig {
   return config.provider === 'openai' || config.provider === 'cometapi';
+}
+
+export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
+  return config.provider === 'openai_translate';
 }
 
 export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSessionConfig {
