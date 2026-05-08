@@ -1449,22 +1449,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } catch (error: any) {
       console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
 
-      // Show error in conversation panel so it's visible to user
       const errorMessage = error.message || 'Network connection error';
       addRealtimeEvent(
         { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
         'client', 'session.init_error'
       );
-      setItems(prevItems => [...prevItems, {
-        id: `error-${Date.now()}`,
-        role: 'system',
-        type: 'error',
-        status: 'completed',
-        createdAt: Date.now(),
-        formatted: { text: errorMessage },
-      }]);
 
-      // Track session initialization failure
       trackEvent('error_occurred', {
         error_type: 'session_initialization',
         error_message: error.message || 'Failed to initialize session',
@@ -1474,8 +1464,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         recoverable: true
       });
 
-      // Reset state in case of error
       await disconnectConversation();
+
+      // Append after disconnect: disconnectConversation calls
+      // setItems(client.getConversationItems()) which would otherwise
+      // overwrite this entry (client has no items on init failure).
+      setItems(prevItems => [...prevItems, {
+        id: `error-${Date.now()}`,
+        role: 'system',
+        type: 'error',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: { text: errorMessage },
+      }]);
     } finally {
       setIsInitializing(false);
     }
