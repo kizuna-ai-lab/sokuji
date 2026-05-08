@@ -13,6 +13,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useLocalInferenceSettings,
@@ -25,6 +26,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
+  useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateLocalInference,
@@ -37,6 +39,7 @@ import {
   resolveTranslationWorkerType,
   resolveTranslationWorkerTypeForModelId,
 } from '../../../stores/settingsStore';
+import type { OpenAICompatibleSettingsBase } from '../../../stores/settingsStore';
 import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } from 'lucide-react';
@@ -95,6 +98,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -110,6 +114,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
+  const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -287,7 +292,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return isOpenAICompatible(provider);
   };
 
-  // Helper function to get OpenAI-compatible settings
+  // Helper function to get settings for any provider that exposes the
+  // shared transport/transcript/noise-reduction fields. OPENAI_TRANSLATE is
+  // included here because — although its settings shape diverges in other
+  // places (no voice/turn-detection/temperature) — it carries the same
+  // `transportType`, `transcriptModel`, and `noiseReduction` fields that the
+  // sections below need. Render-level capability flags handle the rest.
   const getOpenAICompatibleSettings = () => {
     if (provider === Provider.OPENAI) {
       return openAISettings;
@@ -295,11 +305,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return openAICompatibleSettings;
     } else if (provider === Provider.KIZUNA_AI) {
       return kizunaAISettings;
+    } else if (provider === Provider.OPENAI_TRANSLATE) {
+      return openAITranslateSettings;
     }
     return null;
   };
 
-  // Helper function to update OpenAI-compatible settings
   const updateOpenAICompatibleSettingsHelper = (updates: any) => {
     if (provider === Provider.OPENAI) {
       updateOpenAISettings(updates);
@@ -307,7 +318,24 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAICompatibleSettings(updates);
     } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings(updates);
+    } else if (provider === Provider.OPENAI_TRANSLATE) {
+      updateOpenAITranslateSettings(updates);
     }
+  };
+
+  // Narrow accessor for renderers that need fields only present on the
+  // full OpenAI-compatible settings shape (turn detection, temperature,
+  // max tokens, reasoning effort) — these don't exist on OpenAITranslate.
+  // The explicit return type narrows out `OpenAITranslateSettings` so
+  // callers can read turnDetectionMode/threshold/etc. directly.
+  const getOpenAICompatibleOnlySettings = (): OpenAICompatibleSettingsBase | null => {
+    if (provider === Provider.OPENAI_TRANSLATE) return null;
+    const settings = getOpenAICompatibleSettings();
+    if (!settings || 'targetLanguage' in settings && !('voice' in settings)) {
+      // Defensive: shouldn't happen given the gate above
+      return null;
+    }
+    return settings as OpenAICompatibleSettingsBase;
   };
 
   const renderVoiceSettings = () => {
@@ -349,12 +377,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     const { turnDetection } = config.capabilities;
 
-    // Turn detection is OpenAI-compatible (OpenAI and CometAPI)
+    // Turn detection is OpenAI-compatible (OpenAI and CometAPI) only — not Translate
     if (!isCurrentProviderOpenAICompatible()) {
       return null;
     }
 
-    const compatibleSettings = getOpenAICompatibleSettings();
+    const compatibleSettings = getOpenAICompatibleOnlySettings();
 
     // Check if WebRTC mode is active - server VAD causes audio truncation in WebRTC
     const isWebRTCMode = compatibleSettings?.transportType === 'webrtc';
@@ -633,12 +661,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
 
-    // Noise reduction is OpenAI-compatible (OpenAI and CometAPI)
-    if (!isCurrentProviderOpenAICompatible()) {
-      return null;
-    }
-
     const compatibleSettings = getOpenAICompatibleSettings();
+    if (!compatibleSettings) return null;
 
     return (
       <div className="settings-section">
@@ -716,12 +740,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
 
-    // Transcript model is OpenAI-compatible (OpenAI and CometAPI)
-    if (!isCurrentProviderOpenAICompatible()) {
-      return null;
-    }
-
     const compatibleSettings = getOpenAICompatibleSettings();
+    if (!compatibleSettings) return null;
 
     return (
       <div className="settings-section">
@@ -837,7 +857,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     if (!config.capabilities.hasReasoningEffort) return null;
     if (!isCurrentProviderOpenAICompatible()) return null;
 
-    const compatibleSettings = getOpenAICompatibleSettings();
+    const compatibleSettings = getOpenAICompatibleOnlySettings();
     if (!compatibleSettings) return null;
 
     // Only `gpt-realtime-2` accepts reasoning.effort; gate UI accordingly.
