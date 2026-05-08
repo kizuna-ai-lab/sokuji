@@ -10,6 +10,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useIsApiKeyValid,
@@ -18,6 +19,7 @@ import {
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
+  useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useValidateApiKey,
@@ -75,6 +77,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const isApiKeyValid = useIsApiKeyValid();
@@ -84,6 +87,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
+  const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const validateApiKey = useValidateApiKey();
@@ -178,6 +182,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         return palabraAISettings.clientId;
       case Provider.KIZUNA_AI:
         return kizunaAISettings.apiKey || '';
+      case Provider.OPENAI_TRANSLATE:
+        return openAITranslateSettings.apiKey;
       case Provider.VOLCENGINE_ST:
         return volcengineSTSettings.accessKeyId;
       case Provider.VOLCENGINE_AST2:
@@ -204,6 +210,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.KIZUNA_AI:
         console.warn('KizunaAI API key is managed automatically');
+        break;
+      case Provider.OPENAI_TRANSLATE:
+        updateOpenAITranslateSettings({ apiKey: value });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ accessKeyId: value });

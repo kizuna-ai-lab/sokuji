@@ -9,6 +9,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useLocalInferenceSettings,
@@ -133,6 +134,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -1101,6 +1103,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
           apiKey = palabraAISettings.clientId;
           break;
+        case Provider.OPENAI_TRANSLATE:
+          apiKey = openAITranslateSettings.apiKey;
+          break;
         case Provider.VOLCENGINE_ST:
           // Volcengine ST uses accessKeyId as the "apiKey" parameter for ClientFactory
           apiKey = volcengineSTSettings.accessKeyId;
@@ -1122,6 +1127,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ? 'realtime-translation'
         : provider === Provider.LOCAL_INFERENCE
         ? 'local-asr-translate'
+        : provider === Provider.OPENAI_TRANSLATE
+        ? 'gpt-realtime-translate'
         : (currentProviderSettings as any).model;
 
       // Determine if WebRTC transport should be used
@@ -1443,6 +1450,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAICompatibleSettings,
     palabraAISettings,
     kizunaAISettings,
+    openAITranslateSettings,
     volcengineSTSettings,
     volcengineAST2Settings,
     localInferenceSettings,
