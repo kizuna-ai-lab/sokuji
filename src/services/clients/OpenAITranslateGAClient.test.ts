@@ -351,7 +351,7 @@ describe('OpenAITranslateGAClient state machine', () => {
     const { SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS } =
       await import('./OpenAITranslateGAClient');
     expect(SILENCE_TIMEOUT_MS).toBe(1000);
-    expect(SILENCE_TIMEOUT_MIN_MS).toBe(500);
+    expect(SILENCE_TIMEOUT_MIN_MS).toBe(100);
     expect(SILENCE_TIMEOUT_MAX_MS).toBe(3000);
   });
 });

@@ -94,7 +94,7 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
   // (output) sides run independent state machines because translation
   // often crosses input sentence boundaries — coupling them caused
   // assistant items to be cut mid-clause when input paused. Both range
-  // 500–3000ms. The translate API has no server-side turn detection, so
+  // 100–3000ms. The translate API has no server-side turn detection, so
   // these only control UI message splitting.
   userSilenceDurationMs?: number;
   assistantSilenceDurationMs?: number;

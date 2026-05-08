@@ -91,7 +91,7 @@ export interface OpenAITranslateSettings {
   transportType: TransportType;
   // Client-side utterance segmentation thresholds in seconds. User (input)
   // and assistant (output) run independent state machines, so each has its
-  // own threshold. Range 0.5–3.0s. Translate API has no server-side turn
+  // own threshold. Range 0.1–3.0s. Translate API has no server-side turn
   // detection, so these only control UI message splitting. Stored as
   // seconds; converted to ms when building the session config.
   userSilenceDuration: number;
@@ -284,7 +284,7 @@ const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
   noiseReduction: 'None',
   transportType: 'websocket',
   userSilenceDuration: 1.0,
-  assistantSilenceDuration: 1.0,
+  assistantSilenceDuration: 0.5,
 };
 
 const defaultGeminiSettings: GeminiSettings = {

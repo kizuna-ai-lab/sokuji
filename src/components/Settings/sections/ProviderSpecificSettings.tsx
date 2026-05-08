@@ -659,7 +659,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // Standalone silence-duration sliders for providers (currently only
   // OPENAI_TRANSLATE) that segment user (input) and assistant (output)
   // independently. Translate's API has no server-side turn detection, so
-  // these only control UI message splitting. Range 0.5–3.0s.
+  // these only control UI message splitting. Range 0.1–3.0s.
   const renderSilenceDurationOnlySetting = () => {
     if (!config.capabilities.turnDetection.hasSilenceDuration) return null;
     if (config.capabilities.hasTurnDetection) return null;
@@ -693,7 +693,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <input
             type="range"
-            min="0.5"
+            min="0.1"
             max="3"
             step="0.1"
             value={userValue}
@@ -709,7 +709,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <input
             type="range"
-            min="0.5"
+            min="0.1"
             max="3"
             step="0.1"
             value={assistantValue}

@@ -17,7 +17,7 @@ import i18n from '../../locales';
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 /** Default silence threshold for both user (input) and assistant (output) timers. */
 const SILENCE_TIMEOUT_MS = 1000;
-const SILENCE_TIMEOUT_MIN_MS = 500;
+const SILENCE_TIMEOUT_MIN_MS = 100;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
 /** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. */
 const HEARTBEAT_SAMPLES = 4800;
