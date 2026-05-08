@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { OpenAITranslateGAClient } from './OpenAITranslateGAClient';
-import type { OpenAITranslateSessionConfig } from '../interfaces/IClient';
+import type { OpenAITranslateSessionConfig, ClientEventHandlers } from '../interfaces/IClient';
 
 const baseConfig: OpenAITranslateSessionConfig = {
   provider: 'openai_translate',
@@ -61,5 +61,111 @@ describe('OpenAITranslateGAClient.buildSessionUpdate', () => {
   it('omits audio.input when neither transcription nor noise reduction set', () => {
     const payload = OpenAITranslateGAClient.buildSessionUpdate(baseConfig);
     expect(payload.session.audio).not.toHaveProperty('input');
+  });
+});
+
+describe('OpenAITranslateGAClient state machine', () => {
+  let client: OpenAITranslateGAClient;
+  let updates: any[] = [];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    client = new OpenAITranslateGAClient('test-key');
+    updates = [];
+    const handlers: ClientEventHandlers = {
+      onConversationUpdated: (e) => updates.push(e),
+    };
+    client.setEventHandlers(handlers);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('creates a paired user+assistant item on first input_transcript.delta', () => {
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hello',
+    });
+
+    expect(updates.length).toBeGreaterThanOrEqual(2);
+    const roles = updates.slice(0, 2).map((u) => u.item.role);
+    expect(roles).toContain('user');
+    expect(roles).toContain('assistant');
+
+    const userUpdate = updates.find((u) => u.item.role === 'user');
+    expect(userUpdate.item.formatted.transcript).toBe('Hello');
+  });
+
+  it('appends output_transcript.delta to the assistant item', () => {
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hola',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Hello',
+    });
+
+    const items = client.getConversationItems();
+    const assistant = items.find((i) => i.role === 'assistant');
+    expect(assistant?.formatted?.transcript).toBe('Hello');
+  });
+
+  it('accumulates output_audio.delta into assistant item audioChunks', () => {
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Test',
+    });
+
+    // base64 of [1, 0, 2, 0] (Int16Array(2) [1, 2]) = "AQACAA=="
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: 'AQACAA==',
+    });
+
+    const audioUpdate = updates.find(
+      (u) => u.delta?.audio instanceof Int16Array && u.delta.audio.length > 0
+    );
+    expect(audioUpdate).toBeDefined();
+    expect(Array.from(audioUpdate.delta.audio)).toEqual([1, 2]);
+  });
+
+  it('marks both items completed after 1.5s of silence', () => {
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hello',
+    });
+
+    let items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1600);
+
+    items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Bye',
+    });
+    items = client.getConversationItems();
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(userItems.length).toBe(2);
+  });
+
+  it('marks items completed on session.input_transcript.done event', () => {
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hi',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.done',
+    });
+
+    const items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 });
