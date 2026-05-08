@@ -4,6 +4,7 @@ import {
   SessionConfig,
   ClientEventHandlers,
   OpenAITranslateSessionConfig,
+  TranslateTargetLanguage,
   ApiKeyValidationResult,
   FilteredModel,
   ResponseConfig,
@@ -19,6 +20,17 @@ import { Provider, ProviderType } from '../../types/Provider';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 const SILENCE_TIMEOUT_MS = 1500;
+
+/** Shape of the `session` field inside `session.update` for translate. */
+export interface TranslateSessionPayload {
+  audio: {
+    output: { language: TranslateTargetLanguage };
+    input?: {
+      transcription?: { model: string };
+      noise_reduction?: { type: 'near_field' | 'far_field' };
+    };
+  };
+}
 
 export class OpenAITranslateGAClient implements IClient {
   private apiKey: string;
@@ -43,8 +55,8 @@ export class OpenAITranslateGAClient implements IClient {
    * Pure function — exposed as static so OpenAITranslateWebRTCClient can
    * also use it for its data-channel session.update.
    */
-  static buildSessionUpdate(config: OpenAITranslateSessionConfig): { type: 'session.update'; session: any } {
-    const audioInput: any = {};
+  static buildSessionUpdate(config: OpenAITranslateSessionConfig): { type: 'session.update'; session: TranslateSessionPayload } {
+    const audioInput: NonNullable<TranslateSessionPayload['audio']['input']> = {};
     if (config.inputAudioTranscription?.model) {
       audioInput.transcription = { model: config.inputAudioTranscription.model };
     }
@@ -52,7 +64,7 @@ export class OpenAITranslateGAClient implements IClient {
       audioInput.noise_reduction = { type: config.inputAudioNoiseReduction.type };
     }
 
-    const audio: any = {
+    const audio: TranslateSessionPayload['audio'] = {
       output: { language: config.targetLanguage },
     };
     if (Object.keys(audioInput).length > 0) {
