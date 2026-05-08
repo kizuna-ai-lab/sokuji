@@ -281,7 +281,8 @@
     "translateModelAvailable": "API key 验证成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
     "transcriptModelTooltipTranslate": "源语言字幕。目前仅支持 gpt-realtime-whisper。",
-    "modelTooltipTranslate": "OpenAI 专用的语音转语音翻译模型。译音会自动匹配源说话人音色。"
+    "modelTooltipTranslate": "OpenAI 专用的语音转语音翻译模型。译音会自动匹配源说话人音色。",
+    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",

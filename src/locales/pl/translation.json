@@ -280,7 +280,8 @@
     "translateModelAvailable": "Klucz API zweryfikowany. gpt-realtime-translate jest dostępny.",
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
     "transcriptModelTooltipTranslate": "Napisy w języku źródłowym. Obecnie obsługiwany jest tylko gpt-realtime-whisper.",
-    "modelTooltipTranslate": "Dedykowany model tłumaczenia głosowego OpenAI. Głos automatycznie dopasowuje się do mówcy źródłowego."
+    "modelTooltipTranslate": "Dedykowany model tłumaczenia głosowego OpenAI. Głos automatycznie dopasowuje się do mówcy źródłowego.",
+    "translateSourceParticipantWarning": "Tłumaczenie Participant może nie działać — wybrany język źródłowy nie znajduje się wśród 13 obsługiwanych języków docelowych."
   },
   "audioPanel": {
     "title": "Ustawienia audio",

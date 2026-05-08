@@ -287,7 +287,8 @@
     "translateModelAvailable": "کلید API تأیید شد. gpt-realtime-translate در دسترس است.",
     "translateModelNotAvailable": "کلید API کار می‌کند، اما با این کلید gpt-realtime-translate در دسترس نیست.",
     "transcriptModelTooltipTranslate": "زیرنویس زبان مبدأ. در حال حاضر فقط gpt-realtime-whisper پشتیبانی می‌شود.",
-    "modelTooltipTranslate": "مدل ترجمه صوتی اختصاصی OpenAI. صدا به طور خودکار با گوینده مبدأ تطبیق می‌یابد."
+    "modelTooltipTranslate": "مدل ترجمه صوتی اختصاصی OpenAI. صدا به طور خودکار با گوینده مبدأ تطبیق می‌یابد.",
+    "translateSourceParticipantWarning": "ترجمه Participant ممکن است کار نکند — زبان مبدأ انتخابی شما در 13 زبان مقصد پشتیبانی‌شده نیست."
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",

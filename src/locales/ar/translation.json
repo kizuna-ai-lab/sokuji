@@ -281,7 +281,8 @@
     "translateModelAvailable": "تم التحقق من مفتاح API. gpt-realtime-translate متاح.",
     "translateModelNotAvailable": "مفتاح API يعمل، ولكن gpt-realtime-translate غير متاح مع هذا المفتاح.",
     "transcriptModelTooltipTranslate": "ترجمات اللغة المصدر. حالياً يتم دعم gpt-realtime-whisper فقط.",
-    "modelTooltipTranslate": "نموذج OpenAI المخصص للترجمة الصوتية. يتكيف الصوت تلقائياً مع المتحدث المصدر."
+    "modelTooltipTranslate": "نموذج OpenAI المخصص للترجمة الصوتية. يتكيف الصوت تلقائياً مع المتحدث المصدر.",
+    "translateSourceParticipantWarning": "قد لا تعمل ترجمة Participant — اللغة المصدر التي اخترتها ليست ضمن 13 لغة هدف مدعومة."
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

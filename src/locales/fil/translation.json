@@ -280,7 +280,8 @@
     "translateModelAvailable": "Na-validate ang API key. Available ang gpt-realtime-translate.",
     "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
     "transcriptModelTooltipTranslate": "Mga subtitle sa source language. Sa kasalukuyan ay gpt-realtime-whisper lang ang suportado.",
-    "modelTooltipTranslate": "Dedicated voice translation model ng OpenAI. Awtomatikong nag-a-adjust ang boses sa source speaker."
+    "modelTooltipTranslate": "Dedicated voice translation model ng OpenAI. Awtomatikong nag-a-adjust ang boses sa source speaker.",
+    "translateSourceParticipantWarning": "Maaaring hindi gumana ang Participant translation — ang piniling source language mo ay wala sa 13 sinusuportahang target language."
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

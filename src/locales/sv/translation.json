@@ -273,7 +273,8 @@
     "translateModelAvailable": "API-nyckel validerad. gpt-realtime-translate är tillgänglig.",
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
     "transcriptModelTooltipTranslate": "Källspråksundertexter. För närvarande stöds endast gpt-realtime-whisper.",
-    "modelTooltipTranslate": "OpenAIs särskilda röstöversättningsmodell. Rösten anpassas automatiskt till källtalaren."
+    "modelTooltipTranslate": "OpenAIs särskilda röstöversättningsmodell. Rösten anpassas automatiskt till källtalaren.",
+    "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

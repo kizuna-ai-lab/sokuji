@@ -281,7 +281,8 @@
     "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
     "transcriptModelTooltipTranslate": "Bron-taal ondertitels. Momenteel wordt alleen gpt-realtime-whisper ondersteund.",
-    "modelTooltipTranslate": "OpenAI's speciale spraakvertalingsmodel. De stem past zich automatisch aan de bronspreker aan."
+    "modelTooltipTranslate": "OpenAI's speciale spraakvertalingsmodel. De stem past zich automatisch aan de bronspreker aan.",
+    "translateSourceParticipantWarning": "Participant-vertaling werkt mogelijk niet — uw geselecteerde brontaal staat niet in de 13 ondersteunde doeltalen."
   },
   "audioPanel": {
     "title": "Audio instellingen",

@@ -397,7 +397,8 @@
     "translateModelAvailable": "ตรวจสอบ API key สำเร็จ gpt-realtime-translate พร้อมใช้งาน",
     "translateModelNotAvailable": "API key ใช้งานได้ แต่ไม่สามารถเข้าถึง gpt-realtime-translate ด้วย key นี้",
     "transcriptModelTooltipTranslate": "คำบรรยายภาษาต้นทาง ปัจจุบันรองรับเฉพาะ gpt-realtime-whisper",
-    "modelTooltipTranslate": "โมเดลการแปลเสียงเฉพาะของ OpenAI เสียงจะปรับให้เข้ากับผู้พูดต้นทางโดยอัตโนมัติ"
+    "modelTooltipTranslate": "โมเดลการแปลเสียงเฉพาะของ OpenAI เสียงจะปรับให้เข้ากับผู้พูดต้นทางโดยอัตโนมัติ",
+    "translateSourceParticipantWarning": "การแปล Participant อาจใช้งานไม่ได้ — ภาษาต้นทางที่คุณเลือกไม่อยู่ใน 13 ภาษาปลายทางที่รองรับ"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

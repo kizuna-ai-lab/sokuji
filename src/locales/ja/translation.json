@@ -281,7 +281,8 @@
     "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
     "transcriptModelTooltipTranslate": "原語字幕。現在は gpt-realtime-whisper のみ対応しています。",
-    "modelTooltipTranslate": "OpenAI 専用の音声翻訳モデル。出力音声は話者の声質に自動適応します。"
+    "modelTooltipTranslate": "OpenAI 専用の音声翻訳モデル。出力音声は話者の声質に自動適応します。",
+    "translateSourceParticipantWarning": "Participant 翻訳が機能しない可能性があります — 選択した入力言語が 13 のサポート対象出力言語に含まれていません。"
   },
   "audioPanel": {
     "title": "オーディオ設定",

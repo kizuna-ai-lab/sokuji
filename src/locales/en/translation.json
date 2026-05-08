@@ -287,7 +287,8 @@
     "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
     "transcriptModelTooltipTranslate": "Source-language captions. Currently only gpt-realtime-whisper is supported.",
-    "modelTooltipTranslate": "OpenAI's dedicated speech-to-speech translation model. Voice automatically adapts to the source speaker."
+    "modelTooltipTranslate": "OpenAI's dedicated speech-to-speech translation model. Voice automatically adapts to the source speaker.",
+    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

@@ -281,7 +281,8 @@
     "translateModelAvailable": "Chave de API validada. gpt-realtime-translate está disponível.",
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com essa chave.",
     "transcriptModelTooltipTranslate": "Legendas no idioma de origem. Atualmente apenas gpt-realtime-whisper é suportado.",
-    "modelTooltipTranslate": "Modelo dedicado de tradução de voz da OpenAI. A voz se adapta automaticamente ao falante de origem."
+    "modelTooltipTranslate": "Modelo dedicado de tradução de voz da OpenAI. A voz se adapta automaticamente ao falante de origem.",
+    "translateSourceParticipantWarning": "A tradução Participant pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados."
   },
   "audioPanel": {
     "title": "Configurações de áudio",

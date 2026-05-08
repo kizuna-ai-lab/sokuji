@@ -403,7 +403,8 @@
     "translateModelAvailable": "API key 驗證成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
     "transcriptModelTooltipTranslate": "來源語言字幕。目前僅支援 gpt-realtime-whisper。",
-    "modelTooltipTranslate": "OpenAI 專用的語音轉語音翻譯模型。譯音會自動匹配來源說話人音色。"
+    "modelTooltipTranslate": "OpenAI 專用的語音轉語音翻譯模型。譯音會自動匹配來源說話人音色。",
+    "translateSourceParticipantWarning": "Participant 翻譯可能無法工作——你選的來源語言不在 13 個支援的目標語言裡。"
   },
   "audioPanel": {
     "title": "音訊設定",

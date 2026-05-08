@@ -408,7 +408,8 @@
     "translateModelAvailable": "API விசை சரிபார்க்கப்பட்டது. gpt-realtime-translate கிடைக்கிறது.",
     "translateModelNotAvailable": "API விசை செயல்படுகிறது, ஆனால் இந்த விசையால் gpt-realtime-translate ஐ அணுக முடியாது.",
     "transcriptModelTooltipTranslate": "மூல மொழி வசனங்கள். தற்போது gpt-realtime-whisper மட்டுமே ஆதரிக்கப்படுகிறது.",
-    "modelTooltipTranslate": "OpenAI இன் சிறப்பு பேச்சு மொழிபெயர்ப்பு மாதிரி. குரல் தானாக மூல பேச்சாளரின் தொனியுடன் பொருந்துகிறது."
+    "modelTooltipTranslate": "OpenAI இன் சிறப்பு பேச்சு மொழிபெயர்ப்பு மாதிரி. குரல் தானாக மூல பேச்சாளரின் தொனியுடன் பொருந்துகிறது.",
+    "translateSourceParticipantWarning": "Participant மொழிபெயர்ப்பு வேலை செய்யாமல் இருக்கலாம் — நீங்கள் தேர்ந்தெடுத்த மூல மொழி 13 ஆதரிக்கப்படும் இலக்கு மொழிகளில் இல்லை."
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

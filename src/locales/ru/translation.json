@@ -288,7 +288,8 @@
     "translateModelAvailable": "API-ключ проверен. gpt-realtime-translate доступен.",
     "translateModelNotAvailable": "API-ключ работает, но gpt-realtime-translate недоступен с этим ключом.",
     "transcriptModelTooltipTranslate": "Субтитры на исходном языке. Сейчас поддерживается только gpt-realtime-whisper.",
-    "modelTooltipTranslate": "Специализированная модель речевого перевода OpenAI. Голос автоматически адаптируется к исходному говорящему."
+    "modelTooltipTranslate": "Специализированная модель речевого перевода OpenAI. Голос автоматически адаптируется к исходному говорящему.",
+    "translateSourceParticipantWarning": "Перевод Participant может не работать — выбранный исходный язык не входит в 13 поддерживаемых целевых языков."
   },
   "audioPanel": {
     "title": "Настройки аудио",

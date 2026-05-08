@@ -280,7 +280,8 @@
     "translateModelAvailable": "API anahtarı doğrulandı. gpt-realtime-translate kullanılabilir.",
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
     "transcriptModelTooltipTranslate": "Kaynak dil altyazıları. Şu anda yalnızca gpt-realtime-whisper destekleniyor.",
-    "modelTooltipTranslate": "OpenAI'nin özel sesli çeviri modeli. Ses otomatik olarak kaynak konuşmacıya uyum sağlar."
+    "modelTooltipTranslate": "OpenAI'nin özel sesli çeviri modeli. Ses otomatik olarak kaynak konuşmacıya uyum sağlar.",
+    "translateSourceParticipantWarning": "Participant çevirisi çalışmayabilir — seçtiğiniz kaynak dil, desteklenen 13 hedef dil arasında değil."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

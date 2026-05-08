@@ -390,7 +390,8 @@
     "translateModelAvailable": "API-ключ перевірено. gpt-realtime-translate доступний.",
     "translateModelNotAvailable": "API-ключ працює, але gpt-realtime-translate недоступний з цим ключем.",
     "transcriptModelTooltipTranslate": "Субтитри вихідною мовою. Зараз підтримується лише gpt-realtime-whisper.",
-    "modelTooltipTranslate": "Спеціалізована модель мовного перекладу OpenAI. Голос автоматично адаптується до вихідного мовця."
+    "modelTooltipTranslate": "Спеціалізована модель мовного перекладу OpenAI. Голос автоматично адаптується до вихідного мовця.",
+    "translateSourceParticipantWarning": "Переклад Participant може не працювати — вибрана вихідна мова не входить у 13 підтримуваних цільових мов."
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

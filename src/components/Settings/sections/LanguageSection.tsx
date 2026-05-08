@@ -32,6 +32,8 @@ import {
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
+import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
+import { useIsSystemAudioCaptureEnabled } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
@@ -71,6 +73,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
 
+  const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
@@ -219,9 +222,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
     } else {
       updateSourceLanguage(tgt);
-      updateTargetLanguage(src);
+      // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
+      // the swapped source may not be a valid target — fall back to the first valid
+      // target so we never produce settings the API will reject. For providers
+      // without a restricted list, the source value always exists in `languages`,
+      // so the fallback never fires and behavior is preserved.
+      const targetList = providerConfig.targetLanguages ?? providerConfig.languages;
+      const newTarget = targetList.some(l => l.value === src)
+        ? src
+        : (targetList[0]?.value ?? src);
+      updateTargetLanguage(newTarget);
     }
-  }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
+  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -232,6 +244,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
     return providerConfig.targetLanguages ?? providerConfig.languages;
   }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
+
+  // Show a warning beneath the source dropdown when OpenAI Translate is
+  // selected, participant capture is enabled, and the chosen source language
+  // isn't in the 13 supported target languages — because the participant
+  // client's translate target = our source language, and an unsupported
+  // target would fail the API call. Informational only (no auto-toggle).
+  const showTranslateParticipantWarning = useMemo(() => {
+    if (provider !== Provider.OPENAI_TRANSLATE) return false;
+    if (!isSystemAudioCaptureEnabled) return false;
+    const supportedTargets = OpenAITranslateProviderConfig.getTargetLanguages();
+    return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
+  }, [provider, isSystemAudioCaptureEnabled, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [
@@ -380,7 +404,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && (
+                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (
@@ -389,6 +413,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                   </option>
                 ))}
               </select>
+              {showTranslateParticipantWarning && (
+                <div className="language-warning">
+                  <AlertTriangle size={12} />
+                  <span>{t('settings.translateSourceParticipantWarning')}</span>
+                </div>
+              )}
             </div>
 
             <div className="language-arrow">

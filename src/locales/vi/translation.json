@@ -273,7 +273,8 @@
     "translateModelAvailable": "Khóa API đã được xác thực. gpt-realtime-translate có sẵn.",
     "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
     "transcriptModelTooltipTranslate": "Phụ đề ngôn ngữ nguồn. Hiện chỉ hỗ trợ gpt-realtime-whisper.",
-    "modelTooltipTranslate": "Mô hình dịch giọng nói chuyên dụng của OpenAI. Giọng nói tự động thích ứng với người nói nguồn."
+    "modelTooltipTranslate": "Mô hình dịch giọng nói chuyên dụng của OpenAI. Giọng nói tự động thích ứng với người nói nguồn.",
+    "translateSourceParticipantWarning": "Bản dịch Participant có thể không hoạt động — ngôn ngữ nguồn bạn chọn không thuộc 13 ngôn ngữ đích được hỗ trợ."
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

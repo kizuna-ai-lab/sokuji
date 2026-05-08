@@ -287,7 +287,8 @@
     "translateModelAvailable": "מפתח API אומת. gpt-realtime-translate זמין.",
     "translateModelNotAvailable": "מפתח API עובד, אך gpt-realtime-translate אינו נגיש עם מפתח זה.",
     "transcriptModelTooltipTranslate": "כתוביות בשפת המקור. כרגע נתמך רק gpt-realtime-whisper.",
-    "modelTooltipTranslate": "מודל תרגום קולי ייעודי של OpenAI. הקול מסתגל אוטומטית לדובר המקור."
+    "modelTooltipTranslate": "מודל תרגום קולי ייעודי של OpenAI. הקול מסתגל אוטומטית לדובר המקור.",
+    "translateSourceParticipantWarning": "ייתכן שתרגום Participant לא יעבוד — שפת המקור שבחרת אינה נמצאת ב-13 שפות היעד הנתמכות."
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

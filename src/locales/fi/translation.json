@@ -280,7 +280,8 @@
     "translateModelAvailable": "API-avain vahvistettu. gpt-realtime-translate on käytettävissä.",
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
     "transcriptModelTooltipTranslate": "Lähdekielen tekstitykset. Tällä hetkellä tuetaan vain gpt-realtime-whisper.",
-    "modelTooltipTranslate": "OpenAI:n erikoispuheenkääntömalli. Ääni mukautuu automaattisesti lähdepuhujaan."
+    "modelTooltipTranslate": "OpenAI:n erikoispuheenkääntömalli. Ääni mukautuu automaattisesti lähdepuhujaan.",
+    "translateSourceParticipantWarning": "Participant-käännös ei välttämättä toimi — valitsemasi lähdekieli ei ole 13 tuetun kohdekielen joukossa."
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

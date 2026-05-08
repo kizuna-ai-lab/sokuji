@@ -280,7 +280,8 @@
     "translateModelAvailable": "Kunci API disahkan. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
     "transcriptModelTooltipTranslate": "Sari kata bahasa sumber. Pada masa ini hanya gpt-realtime-whisper disokong.",
-    "modelTooltipTranslate": "Model terjemahan suara khusus daripada OpenAI. Suara secara automatik menyesuaikan diri dengan penutur sumber."
+    "modelTooltipTranslate": "Model terjemahan suara khusus daripada OpenAI. Suara secara automatik menyesuaikan diri dengan penutur sumber.",
+    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang anda pilih tidak ada dalam 13 bahasa sasaran yang disokong."
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

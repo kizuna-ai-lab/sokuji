@@ -390,7 +390,8 @@
     "translateModelAvailable": "API కీ ధృవీకరించబడింది. gpt-realtime-translate అందుబాటులో ఉంది.",
     "translateModelNotAvailable": "API కీ పని చేస్తుంది, కానీ ఈ కీతో gpt-realtime-translate యాక్సెస్ చేయబడదు.",
     "transcriptModelTooltipTranslate": "మూల భాష ఉపశీర్షికలు. ప్రస్తుతం gpt-realtime-whisper మాత్రమే మద్దతు ఉంది.",
-    "modelTooltipTranslate": "OpenAI యొక్క ప్రత్యేక వాయిస్ అనువాద మోడల్. వాయిస్ స్వయంచాలకంగా మూల వక్తకు అనుగుణంగా ఉంటుంది."
+    "modelTooltipTranslate": "OpenAI యొక్క ప్రత్యేక వాయిస్ అనువాద మోడల్. వాయిస్ స్వయంచాలకంగా మూల వక్తకు అనుగుణంగా ఉంటుంది.",
+    "translateSourceParticipantWarning": "Participant అనువాదం పని చేయకపోవచ్చు — మీరు ఎంచుకున్న మూల భాష 13 మద్దతు ఉన్న లక్ష్య భాషలలో లేదు."
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

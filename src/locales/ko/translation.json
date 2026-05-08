@@ -281,7 +281,8 @@
     "translateModelAvailable": "API 키 검증 완료. gpt-realtime-translate 사용 가능.",
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
     "transcriptModelTooltipTranslate": "원본 언어 자막. 현재 gpt-realtime-whisper만 지원됩니다.",
-    "modelTooltipTranslate": "OpenAI 전용 음성 번역 모델. 출력 음성이 화자 음색에 자동으로 적응합니다."
+    "modelTooltipTranslate": "OpenAI 전용 음성 번역 모델. 출력 음성이 화자 음색에 자동으로 적응합니다.",
+    "translateSourceParticipantWarning": "Participant 번역이 작동하지 않을 수 있습니다 — 선택한 소스 언어가 13개 지원 대상 언어에 없습니다."
   },
   "audioPanel": {
     "title": "오디오 설정",

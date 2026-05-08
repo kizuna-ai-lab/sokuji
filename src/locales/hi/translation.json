@@ -274,7 +274,8 @@
     "translateModelAvailable": "API कुंजी मान्य की गई। gpt-realtime-translate उपलब्ध है।",
     "translateModelNotAvailable": "API कुंजी काम करती है, लेकिन इस कुंजी से gpt-realtime-translate तक पहुँच नहीं है।",
     "transcriptModelTooltipTranslate": "स्रोत भाषा कैप्शन। वर्तमान में केवल gpt-realtime-whisper समर्थित है।",
-    "modelTooltipTranslate": "OpenAI का समर्पित वॉयस अनुवाद मॉडल। आवाज़ स्वचालित रूप से स्रोत वक्ता के अनुकूल हो जाती है।"
+    "modelTooltipTranslate": "OpenAI का समर्पित वॉयस अनुवाद मॉडल। आवाज़ स्वचालित रूप से स्रोत वक्ता के अनुकूल हो जाती है।",
+    "translateSourceParticipantWarning": "Participant अनुवाद काम नहीं कर सकता — आपकी चुनी हुई स्रोत भाषा 13 समर्थित लक्ष्य भाषाओं में नहीं है।"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",

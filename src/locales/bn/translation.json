@@ -287,7 +287,8 @@
     "translateModelAvailable": "API কী যাচাই করা হয়েছে। gpt-realtime-translate উপলব্ধ।",
     "translateModelNotAvailable": "API কী কাজ করে, কিন্তু এই কী দিয়ে gpt-realtime-translate অ্যাক্সেস করা যায় না।",
     "transcriptModelTooltipTranslate": "উৎস ভাষার সাবটাইটেল। বর্তমানে শুধু gpt-realtime-whisper সমর্থিত।",
-    "modelTooltipTranslate": "OpenAI এর ডেডিকেটেড ভয়েস অনুবাদ মডেল। কণ্ঠস্বর স্বয়ংক্রিয়ভাবে উৎস বক্তার সাথে মানিয়ে নেয়।"
+    "modelTooltipTranslate": "OpenAI এর ডেডিকেটেড ভয়েস অনুবাদ মডেল। কণ্ঠস্বর স্বয়ংক্রিয়ভাবে উৎস বক্তার সাথে মানিয়ে নেয়।",
+    "translateSourceParticipantWarning": "Participant অনুবাদ কাজ নাও করতে পারে — আপনার নির্বাচিত উৎস ভাষা 13টি সমর্থিত লক্ষ্য ভাষার মধ্যে নেই।"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",
