@@ -11,11 +11,8 @@ import {
   isOpenAITranslateSessionConfig,
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
-
-// Later tasks will re-add these imports as they're needed:
-//   - `OpenAIClient` (Task 10 — reusing the OpenAI model list fetch)
-//   - default `i18n` instance from `../../locales` (Task 10 — error translation)
-// They were intentionally omitted to satisfy `noUnusedLocals`.
+import { OpenAIClient } from './OpenAIClient';
+import i18n from '../../locales';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 const SILENCE_TIMEOUT_MS = 1500;
@@ -73,6 +70,46 @@ export class OpenAITranslateGAClient implements IClient {
     return {
       type: 'session.update',
       session: { audio },
+    };
+  }
+
+  /**
+   * Validate the API key and discover available translate models.
+   * Reuses OpenAIClient's shared model fetch helper, then filters to
+   * gpt-realtime-translate family.
+   */
+  static async validateApiKeyAndFetchModels(apiKey: string, apiHost?: string): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
+    const result = await OpenAIClient.fetchOpenAIModelsList(apiKey, apiHost);
+    if (result.error) return { validation: result.error, models: [] };
+
+    const filtered = result.models
+      .filter((m) => OpenAIClient.isTranslateRealtimeModel(m.id))
+      .map((m) => ({ id: m.id, type: 'realtime' as const, created: m.created }))
+      .sort((a, b) => b.created - a.created);
+
+    if (filtered.length === 0) {
+      return {
+        validation: {
+          valid: false,
+          message: i18n.t('settings.translateModelNotAvailable'),
+          validating: false,
+          hasRealtimeModel: false,
+        },
+        models: [],
+      };
+    }
+
+    return {
+      validation: {
+        valid: true,
+        message: i18n.t('settings.translateModelAvailable'),
+        validating: false,
+        hasRealtimeModel: true,
+      },
+      models: filtered,
     };
   }
 

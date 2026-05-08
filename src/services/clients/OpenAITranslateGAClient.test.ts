@@ -278,3 +278,36 @@ describe('OpenAITranslateGAClient WebSocket lifecycle', () => {
 
 // Sanity-import the type guard so its emit isn't pruned (used internally)
 void isOpenAITranslateSessionConfig;
+
+describe('OpenAITranslateGAClient.validateApiKeyAndFetchModels', () => {
+  it('returns valid when /v1/models includes gpt-realtime-translate', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        data: [
+          { id: 'gpt-realtime-translate', object: 'model', created: 1, owned_by: 'openai' },
+          { id: 'gpt-realtime-mini', object: 'model', created: 2, owned_by: 'openai' },
+        ],
+      }), { status: 200 })
+    );
+
+    const { validation, models } = await OpenAITranslateGAClient.validateApiKeyAndFetchModels('test-key');
+
+    expect(validation.valid).toBe(true);
+    expect(models.length).toBe(1);
+    expect(models[0].id).toBe('gpt-realtime-translate');
+    fetchSpy.mockRestore();
+  });
+
+  it('returns invalid when /v1/models does not include translate model', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        data: [{ id: 'gpt-realtime-mini', object: 'model', created: 1, owned_by: 'openai' }],
+      }), { status: 200 })
+    );
+
+    const { validation } = await OpenAITranslateGAClient.validateApiKeyAndFetchModels('test-key');
+
+    expect(validation.valid).toBe(false);
+    fetchSpy.mockRestore();
+  });
+});
