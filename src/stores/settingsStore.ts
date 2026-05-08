@@ -89,6 +89,12 @@ export interface OpenAITranslateSettings {
   transcriptModel: 'gpt-realtime-whisper';
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
+  // Client-side utterance segmentation threshold in seconds. Translate API
+  // has no server-side turn detection, so this only controls how the UI
+  // splits messages. Range 0.5–3.0s. Stored as seconds for UI consistency
+  // with OpenAICompatibleSettings.silenceDuration; converted to ms when
+  // building the session config for the client.
+  silenceDuration: number;
 }
 
 // Gemini Settings
@@ -276,6 +282,7 @@ const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
   transcriptModel: 'gpt-realtime-whisper',
   noiseReduction: 'None',
   transportType: 'websocket',
+  silenceDuration: 1.5,
 };
 
 const defaultGeminiSettings: GeminiSettings = {
@@ -505,6 +512,7 @@ function createOpenAITranslateSessionConfig(
     inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
       type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
+    silenceDurationMs: Math.round(settings.silenceDuration * 1000),
   };
 }
 

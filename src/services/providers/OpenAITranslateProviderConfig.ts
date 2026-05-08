@@ -144,11 +144,15 @@ export class OpenAITranslateProviderConfig {
         hasReasoningEffort: false,
         textOnlyCapability: 'never',
 
+        // Translate has no server-side turn detection; we expose only the
+        // client-side silence-duration knob, which controls UI segmentation.
+        // hasTurnDetection stays false to keep mode/threshold/prefix/eagerness
+        // hidden — only hasSilenceDuration drives the slider rendering.
         turnDetection: {
           modes: [],
           hasThreshold: false,
           hasPrefixPadding: false,
-          hasSilenceDuration: false,
+          hasSilenceDuration: true,
           hasSemanticEagerness: false,
         },
 
@@ -168,7 +172,7 @@ export class OpenAITranslateProviderConfig {
         turnDetectionMode: '',
         threshold: 0,
         prefixPadding: 0,
-        silenceDuration: 0,
+        silenceDuration: 1500,
         semanticEagerness: '',
         noiseReduction: 'None',
         transcriptModel: 'gpt-realtime-whisper',

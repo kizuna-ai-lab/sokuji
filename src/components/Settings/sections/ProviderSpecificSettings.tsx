@@ -656,6 +656,51 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  // Standalone silence-duration slider for providers (currently only
+  // OPENAI_TRANSLATE) that expose hasSilenceDuration without a full
+  // turn-detection block. The slider here drives client-side utterance
+  // segmentation, not server-side VAD. For providers that DO have
+  // hasTurnDetection, the slider lives inside renderTurnDetectionSettings
+  // and this function returns null to avoid double-rendering.
+  const renderSilenceDurationOnlySetting = () => {
+    if (!config.capabilities.turnDetection.hasSilenceDuration) return null;
+    if (config.capabilities.hasTurnDetection) return null;
+
+    const compatibleSettings = getOpenAICompatibleSettings();
+    if (!compatibleSettings || !('silenceDuration' in compatibleSettings)) return null;
+    const current = (compatibleSettings as { silenceDuration: number }).silenceDuration;
+
+    return (
+      <div className="settings-section">
+        <h2>
+          {t('settings.silenceDuration')}
+          <Tooltip
+            content={t('settings.silenceDurationTranslateTooltip', t('settings.silenceDurationTooltip'))}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>{t('settings.silenceDuration')}</span>
+            <span className="setting-value">{current.toFixed(2)}s</span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.1"
+            value={current}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ silenceDuration: parseFloat(e.target.value) })}
+            className="slider"
+            disabled={isSessionActive}
+          />
+        </div>
+      </div>
+    );
+  };
+
   const renderNoiseReductionSettings = () => {
     if (!config.capabilities.hasNoiseReduction || config.noiseReductionModes.length === 0) {
       return null;
@@ -2168,6 +2213,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {/* Provider-specific settings */}
       {renderVoiceSettings()}
       {renderTurnDetectionSettings()}
+      {renderSilenceDurationOnlySetting()}
       {renderModelSettings()}
       {renderTranscriptSettings()}
       {renderNoiseReductionSettings()}

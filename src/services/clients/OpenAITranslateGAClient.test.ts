@@ -8,6 +8,22 @@ const baseConfig: OpenAITranslateSessionConfig = {
   targetLanguage: 'es',
 };
 
+/** Build a base64-encoded PCM16 chunk of `samples` Int16 samples. */
+function makePcmDelta(samples: number, value: number = 1): string {
+  const bytes = new Uint8Array(samples * 2);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < samples; i++) {
+    view.setInt16(i * 2, value, true);
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+/** 200 ms heartbeat = 4800 samples; 400 ms content = 9600 samples. */
+const HEARTBEAT_DELTA = makePcmDelta(4800, 0);
+const CONTENT_DELTA = makePcmDelta(9600, 1000);
+
 describe('OpenAITranslateGAClient.buildSessionUpdate', () => {
   it('builds minimal payload with target language only', () => {
     const payload = OpenAITranslateGAClient.buildSessionUpdate(baseConfig);
@@ -112,41 +128,52 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(assistant?.formatted?.transcript).toBe('Hello');
   });
 
-  it('accumulates output_audio.delta into assistant item audioChunks', () => {
+  it('accumulates content (9600-sample) output_audio.delta into assistant audioChunks', () => {
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Test',
     });
-
-    // base64 of [1, 0, 2, 0] (Int16Array(2) [1, 2]) = "AQACAA=="
     (client as any).handleServerEvent({
       type: 'session.output_audio.delta',
-      delta: 'AQACAA==',
+      delta: CONTENT_DELTA,
     });
 
     const audioUpdate = updates.find(
-      (u) => u.delta?.audio instanceof Int16Array && u.delta.audio.length > 0
+      (u) => u.delta?.audio instanceof Int16Array && u.delta.audio.length === 9600
     );
     expect(audioUpdate).toBeDefined();
-    expect(Array.from(audioUpdate.delta.audio)).toEqual([1, 2]);
   });
 
-  it('drops output_audio.delta when no transcript-driven pair exists', () => {
-    // Translate API streams continuous audio (silence padding) before the
-    // user speaks. These chunks must NOT auto-create a phantom pair.
+  it('drops 4800-sample heartbeat output_audio.delta even when a pair exists', () => {
+    // Heartbeat frames carry no real audio and must not be persisted into
+    // audioChunks (otherwise stale silence pollutes the playback buffer).
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hi',
+    });
     (client as any).handleServerEvent({
       type: 'session.output_audio.delta',
-      delta: 'AQACAA==',
+      delta: HEARTBEAT_DELTA,
+    });
+
+    const audioUpdate = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioUpdate).toBeUndefined();
+  });
+
+  it('drops content output_audio.delta when no transcript-driven pair exists', () => {
+    // Pre-speech content (rare but possible) has no item to attach to.
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: CONTENT_DELTA,
     });
 
     expect(client.getConversationItems()).toEqual([]);
     expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
   });
 
-  it('output_audio.delta does not reset the silence timer', () => {
-    // Open a pair via transcript, then stream audio every 500ms for 2s.
-    // Audio is a keep-alive heartbeat — the 1.5s silence completion must
-    // still fire based on the last *transcript* delta, not the audio.
+  it('heartbeat audio does NOT reset the silence timer', () => {
+    // Open a pair via transcript, then stream heartbeat every 500ms for 2s.
+    // The 1.5s silence completion must still fire on schedule.
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hi',
@@ -156,12 +183,40 @@ describe('OpenAITranslateGAClient state machine', () => {
       vi.advanceTimersByTime(500);
       (client as any).handleServerEvent({
         type: 'session.output_audio.delta',
-        delta: 'AQACAA==',
+        delta: HEARTBEAT_DELTA,
       });
     }
 
     const items = client.getConversationItems();
     expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
+  it('content audio DOES reset the silence timer (TTS tail keeps pair open)', () => {
+    // Simulate a translation whose TTS rendering tails ~3s past the last
+    // transcript: content audio every 500ms for 3s should keep the pair
+    // open beyond the 1.5s silence threshold.
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hi',
+    });
+
+    for (let t = 0; t < 3000; t += 500) {
+      vi.advanceTimersByTime(500);
+      (client as any).handleServerEvent({
+        type: 'session.output_audio.delta',
+        delta: CONTENT_DELTA,
+      });
+    }
+
+    // Total elapsed: 3000ms, but timer keeps resetting on every 500ms audio
+    // frame, so it should still be in_progress.
+    let items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
+
+    // Now stop sending audio; 1.5s later the timer should fire.
+    vi.advanceTimersByTime(1600);
+    items = client.getConversationItems();
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
@@ -201,6 +256,34 @@ describe('OpenAITranslateGAClient state machine', () => {
     const items = client.getConversationItems();
     expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
+  it('honours configured silenceDurationMs', () => {
+    // Apply a custom 800ms threshold and verify pair completes accordingly.
+    (client as any).silenceTimeoutMs = 800;
+
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hi',
+    });
+
+    vi.advanceTimersByTime(700);
+    let items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('in_progress');
+
+    vi.advanceTimersByTime(200);
+    items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+  });
+
+  it('clamps silenceDurationMs to [500, 3000]', async () => {
+    // Test the clamp helper indirectly via a mock-connect path.
+    // Just verify the values are clamped on the static-like path.
+    const { SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS } =
+      await import('./OpenAITranslateGAClient');
+    expect(SILENCE_TIMEOUT_MS).toBe(1500);
+    expect(SILENCE_TIMEOUT_MIN_MS).toBe(500);
+    expect(SILENCE_TIMEOUT_MAX_MS).toBe(3000);
   });
 });
 

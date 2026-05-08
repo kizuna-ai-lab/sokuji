@@ -15,7 +15,17 @@ import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
+/** Default silence threshold; overridden per-session via OpenAITranslateSessionConfig.silenceDurationMs. */
 const SILENCE_TIMEOUT_MS = 1500;
+const SILENCE_TIMEOUT_MIN_MS = 500;
+const SILENCE_TIMEOUT_MAX_MS = 3000;
+/** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. */
+const HEARTBEAT_SAMPLES = 4800;
+
+function clampSilenceTimeout(value: number | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
+  return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
+}
 
 /** Shape of the `session` field inside `session.update` for translate. */
 export interface TranslateSessionPayload {
@@ -41,6 +51,7 @@ export class OpenAITranslateGAClient implements IClient {
   private itemLookup: Map<string, ConversationItem> = new Map();
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
+  private silenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -123,7 +134,7 @@ export class OpenAITranslateGAClient implements IClient {
     if (this.deltaTimer) clearTimeout(this.deltaTimer);
     this.deltaTimer = setTimeout(() => {
       this.completeCurrentPair();
-    }, SILENCE_TIMEOUT_MS);
+    }, this.silenceTimeoutMs);
   }
 
   private ensurePair(): { userItemId: string; assistantItemId: string } {
@@ -239,19 +250,24 @@ export class OpenAITranslateGAClient implements IClient {
       }
 
       case 'session.output_audio.delta': {
-        // The translate API streams continuous 200ms PCM chunks as a
-        // keep-alive heartbeat — including silence padding before the
-        // user starts speaking and tail padding after transcripts stop.
-        // Treating audio as activity would prevent silence-based pair
-        // completion forever, and auto-creating pairs on padding would
-        // spawn empty items. Only attach audio when a transcript-driven
-        // pair already exists, and never reset the silence timer here.
+        if (!event.delta) break;
+        const audioData = base64ToInt16Array(event.delta);
+
+        // The translate API multiplexes two streams over the same socket:
+        //   - 200 ms (4800 samples) zero-amplitude heartbeat frames that
+        //     keep the WebSocket alive between/around utterances.
+        //   - 400 ms (9600 samples) content frames carrying the actual
+        //     translated audio (with natural intra-utterance pauses).
+        // The duration is the API's intent marker — far more reliable than
+        // amplitude thresholding, which would corrupt natural pauses inside
+        // the content stream.
+        if (audioData.length === HEARTBEAT_SAMPLES) break;
+
         if (!this.currentPair) break;
         const pair = this.currentPair;
         const assistantItem = this.itemLookup.get(pair.assistantItemId);
-        if (!assistantItem || !event.delta) break;
+        if (!assistantItem) break;
 
-        const audioData = base64ToInt16Array(event.delta);
         const sequenceNumber = ++this.deltaSequenceNumber;
 
         if (!this.audioChunks.has(pair.assistantItemId)) {
@@ -267,6 +283,10 @@ export class OpenAITranslateGAClient implements IClient {
             timestamp: Date.now(),
           },
         });
+        // Content audio is real activity — reset the silence timer so the
+        // pair stays open until TTS rendering also winds down, not just
+        // until transcripts stop.
+        this.resetDeltaTimer();
         break;
       }
 
@@ -315,6 +335,7 @@ export class OpenAITranslateGAClient implements IClient {
     this.conversationItems = [];
     this.audioChunks.clear();
     this.currentPair = null;
+    this.silenceTimeoutMs = clampSilenceTimeout(config.silenceDurationMs);
 
     const url = `${TRANSLATE_WS_URL}?model=${encodeURIComponent(config.model)}`;
     // The browser WebSocket constructor cannot set Authorization headers.
@@ -459,7 +480,11 @@ export class OpenAITranslateGAClient implements IClient {
 
   updateSession(config: Partial<SessionConfig>): void {
     if (!this.ws || !isOpenAITranslateSessionConfig(config as SessionConfig)) return;
-    const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(config as OpenAITranslateSessionConfig);
+    const tConfig = config as OpenAITranslateSessionConfig;
+    if (tConfig.silenceDurationMs !== undefined) {
+      this.silenceTimeoutMs = clampSilenceTimeout(tConfig.silenceDurationMs);
+    }
+    const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(tConfig);
     this.ws.send(JSON.stringify(updatePayload));
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
@@ -524,4 +549,10 @@ function int16ArrayToBase64(data: Int16Array): string {
 // Re-exports kept for symmetry with sibling clients; see imports comment above.
 export type { ApiKeyValidationResult, FilteredModel };
 // Internal constants exported for use by later-task helpers / WebRTC client.
-export { TRANSLATE_WS_URL, SILENCE_TIMEOUT_MS };
+export {
+  TRANSLATE_WS_URL,
+  SILENCE_TIMEOUT_MS,
+  SILENCE_TIMEOUT_MIN_MS,
+  SILENCE_TIMEOUT_MAX_MS,
+  HEARTBEAT_SAMPLES,
+};
