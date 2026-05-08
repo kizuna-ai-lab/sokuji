@@ -18,7 +18,9 @@ import {
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import {
   buildSessionMetadata,
+  collectLanguagePairs,
   copyToClipboard,
+  deriveSessionLanguagePair,
   downloadFile,
   formatAsJson,
   formatAsTxt,
@@ -32,16 +34,20 @@ import './ExportButton.scss';
 
 interface ExportButtonProps {
   /** Already-merged-and-sorted items from MainPanel's combinedItems memo. */
-  combinedItems: Array<ConversationItem & { source?: string }>;
+  combinedItems: Array<ConversationItem & {
+    source?: string;
+    sourceLanguage?: string;
+    targetLanguage?: string;
+  }>;
   /** Current provider id from useProvider(). */
   provider: string;
   /** Snapshot of the current provider's settings (from getCurrentProviderSettings()). */
   currentProviderSettings: any;
   /** Local-inference settings sub-object (from useLocalInferenceSettings()), used only when provider === LOCAL_INFERENCE. */
   localInferenceSettings: any;
-  /** Source language code (read from current provider settings). */
+  /** Source language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
   sourceLanguage: string;
-  /** Target language code (read from current provider settings). */
+  /** Target language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
   targetLanguage: string;
 }
 
@@ -114,11 +120,20 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   /** Compute a fresh export payload at click time. */
   const buildPayload = useCallback(() => {
     const models = getActiveModelInfo(provider, currentProviderSettings, localInferenceSettings);
+    // Prefer the language pair captured on the messages over the live config
+    // — the conversation may have ended and the user may have since switched
+    // languages, in which case the live config no longer matches the data.
+    const sessionPair = deriveSessionLanguagePair(normalizedMessages, {
+      sourceLanguage,
+      targetLanguage,
+    });
+    const languagePairs = collectLanguagePairs(normalizedMessages);
     const metadata = buildSessionMetadata({
       provider,
       models,
-      sourceLanguage,
-      targetLanguage,
+      sourceLanguage: sessionPair.sourceLanguage,
+      targetLanguage: sessionPair.targetLanguage,
+      languagePairs,
     });
     return { messages: normalizedMessages, metadata };
   }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage]);

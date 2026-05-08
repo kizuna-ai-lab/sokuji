@@ -594,23 +594,43 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setSystemAudioItems([]);
   }, []);
 
+  // Snapshots the source/target language pair at the moment each conversation
+  // item is first seen, keyed by item id. Without this, badges in the history
+  // would re-render against current settings — so ending a session and
+  // switching languages would retroactively relabel previous rows.
+  const itemLanguagesRef = useRef<Map<string, { sourceLanguage: string; targetLanguage: string }>>(new Map());
+
   // Combine speaker and participant items for display with source tagging
   const combinedItems = useMemo(() => {
-    // Tag speaker items
-    const speakerItems = items.map(item => {
-      if (!item.source) {
-        return { ...item, source: 'speaker' } as ConversationItem & { source: string };
-      }
-      return item as ConversationItem & { source: string };
-    });
+    const liveSettings = getCurrentProviderSettings();
+    const liveSourceLanguage = liveSettings.sourceLanguage ?? 'EN';
+    const liveTargetLanguage = liveSettings.targetLanguage ?? 'EN';
 
-    // Tag participant items (they should already be tagged, but ensure it)
-    const participantItems = systemAudioItems.map(item => {
-      if (!item.source) {
-        return { ...item, source: 'participant' } as ConversationItem & { source: string };
+    const tag = (item: ConversationItem, fallbackSource: 'speaker' | 'participant') => {
+      let langs = itemLanguagesRef.current.get(item.id);
+      if (!langs) {
+        langs = { sourceLanguage: liveSourceLanguage, targetLanguage: liveTargetLanguage };
+        itemLanguagesRef.current.set(item.id, langs);
       }
-      return item as ConversationItem & { source: string };
-    });
+      return {
+        ...item,
+        source: item.source ?? fallbackSource,
+        sourceLanguage: langs.sourceLanguage,
+        targetLanguage: langs.targetLanguage,
+      } as ConversationItem & { source: string; sourceLanguage: string; targetLanguage: string };
+    };
+
+    const speakerItems = items.map(item => tag(item, 'speaker'));
+    const participantItems = systemAudioItems.map(item => tag(item, 'participant'));
+
+    // Prune snapshots for items that no longer exist (handles clearConversation
+    // and session restart, which empty both arrays).
+    const liveIds = new Set<string>();
+    for (const it of speakerItems) liveIds.add(it.id);
+    for (const it of participantItems) liveIds.add(it.id);
+    for (const id of Array.from(itemLanguagesRef.current.keys())) {
+      if (!liveIds.has(id)) itemLanguagesRef.current.delete(id);
+    }
 
     // Merge and sort by createdAt timestamp for accurate ordering
     return [...speakerItems, ...participantItems].sort((a, b) => {
@@ -618,7 +638,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const bTime = b.createdAt || 0;
       return aTime - bTime;
     });
-  }, [items, systemAudioItems]);
+  }, [items, systemAudioItems, getCurrentProviderSettings]);
 
   // Filter items based on UI mode and display mode
   const filteredItems = useMemo(() => {

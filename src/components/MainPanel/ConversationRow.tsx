@@ -5,7 +5,11 @@ import type { ConversationItem } from '../../services/interfaces/IClient';
 import './ConversationRow.scss';
 
 interface ConversationRowProps {
-  item: ConversationItem & { source?: 'speaker' | 'participant' };
+  item: ConversationItem & {
+    source?: 'speaker' | 'participant';
+    sourceLanguage?: string;
+    targetLanguage?: string;
+  };
   prevItem?: (ConversationItem & { source?: 'speaker' | 'participant' }) | null;
   sourceLanguage: string;
   targetLanguage: string;
@@ -60,9 +64,14 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
 
   const showHeader = !prevItem || (prevItem.source ?? 'speaker') !== source;
   const isTranslation = role === 'assistant';
+  // Prefer the language pair snapshotted onto the item when it was first
+  // produced; fall back to current props for items that predate the snapshot
+  // or for transient cases where the snapshot hasn't been attached yet.
+  const itemSourceLanguage = item.sourceLanguage ?? sourceLanguage;
+  const itemTargetLanguage = item.targetLanguage ?? targetLanguage;
   const lang = useMemo(
-    () => languageForItem(source, role, sourceLanguage, targetLanguage),
-    [source, role, sourceLanguage, targetLanguage],
+    () => languageForItem(source, role, itemSourceLanguage, itemTargetLanguage),
+    [source, role, itemSourceLanguage, itemTargetLanguage],
   );
 
   const scopeName = t(

@@ -9,7 +9,11 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-type RowItem = ConversationItem & { source?: 'speaker' | 'participant' };
+type RowItem = ConversationItem & {
+  source?: 'speaker' | 'participant';
+  sourceLanguage?: string;
+  targetLanguage?: string;
+};
 
 function makeItem(over: Partial<RowItem>): RowItem {
   return {
@@ -157,6 +161,37 @@ describe('ConversationRow — expanded (default) mode', () => {
     );
     const badge = container.querySelector('.lang-badge.src');
     expect(badge?.classList.contains('source-participant')).toBe(true);
+  });
+
+  it('uses the language pair stored on the item over the live props', () => {
+    // Props reflect *current* settings; the item carries the language pair
+    // that was active when it was produced. The badge must follow the item.
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({
+          source: 'speaker',
+          role: 'user',
+          sourceLanguage: 'ja',
+          targetLanguage: 'ko',
+        })}
+        prevItem={null}
+      />,
+    );
+    const badge = container.querySelector('.lang-badge.src');
+    expect(badge?.textContent).toBe('JA');
+  });
+
+  it('falls back to props when the item has no language snapshot', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'user' })}
+        prevItem={null}
+      />,
+    );
+    const badge = container.querySelector('.lang-badge.src');
+    expect(badge?.textContent).toBe('ZH');
   });
 });
 
