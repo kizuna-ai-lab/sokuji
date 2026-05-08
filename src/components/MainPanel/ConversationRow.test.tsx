@@ -54,17 +54,60 @@ describe('ConversationRow — expanded (default) mode', () => {
     expect(container.querySelector('.lang-badge')).not.toBeNull();
   });
 
-  it('renders the row play button when canPlay is true', () => {
+  it('renders the row play button on assistant rows when canPlay is true', () => {
     const { container } = render(
       <ConversationRow
         {...baseProps}
-        item={makeItem({ source: 'speaker' })}
+        item={makeItem({ source: 'speaker', role: 'assistant' })}
         prevItem={null}
         canPlay
         onPlay={() => {}}
       />,
     );
-    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+    const btn = container.querySelector('.row-play-btn') as HTMLButtonElement | null;
+    expect(btn).not.toBeNull();
+    expect(btn?.disabled).toBe(false);
+  });
+
+  it('renders the play button as disabled on streaming assistant rows (layout stability)', () => {
+    // The button slot must be reserved while the assistant item is still
+    // streaming, otherwise text re-flows when it appears on completion.
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'assistant', status: 'in_progress' })}
+        prevItem={null}
+        canPlay={false}
+        onPlay={() => {}}
+      />,
+    );
+    const btn = container.querySelector('.row-play-btn') as HTMLButtonElement | null;
+    expect(btn).not.toBeNull();
+    expect(btn?.disabled).toBe(true);
+  });
+
+  it('does not render a play button on user rows (no audio to play)', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'user' })}
+        prevItem={null}
+        canPlay
+        onPlay={() => {}}
+      />,
+    );
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+  });
+
+  it('does not render the play button when onPlay is not provided', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'assistant' })}
+        prevItem={null}
+      />,
+    );
+    expect(container.querySelector('.row-play-btn')).toBeNull();
   });
 
   it('does not render a role dot in expanded mode', () => {
@@ -146,7 +189,7 @@ describe('ConversationRow — compact mode', () => {
     const { container } = render(
       <ConversationRow
         {...baseProps}
-        item={makeItem({ source: 'speaker' })}
+        item={makeItem({ source: 'speaker', role: 'assistant' })}
         prevItem={null}
         canPlay
         onPlay={() => {}}

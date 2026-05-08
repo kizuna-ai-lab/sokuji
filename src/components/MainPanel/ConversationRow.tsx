@@ -111,12 +111,20 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
           </span>
         )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>{renderText()}</span>
-        {!compact && canPlay && onPlay && (
+        {!compact && onPlay && isTranslation && (
+          // Render the play button slot in expanded mode for translation
+          // rows regardless of canPlay. canPlay only flips true once the
+          // assistant item completes and audio is aggregated, so gating
+          // the button on it would cause the row to re-flow on completion
+          // (text wraps onto a second line because the button suddenly
+          // takes ~22 px). The button stays disabled until the item is
+          // actually playable. User rows (source transcripts) don't get a
+          // button slot since they have no audio to play.
           <button
             type="button"
             className={`row-play-btn ${isPlaying ? 'playing' : ''}`}
-            onClick={onPlay}
-            disabled={playDisabled}
+            onClick={canPlay ? onPlay : undefined}
+            disabled={!canPlay || playDisabled}
             aria-label={t('mainPanel.playItemAudio', 'Play this item\'s audio')}
             title={t('mainPanel.playItemAudio', 'Play this item\'s audio')}
           >
