@@ -239,7 +239,15 @@ export class OpenAITranslateGAClient implements IClient {
       }
 
       case 'session.output_audio.delta': {
-        const pair = this.ensurePair();
+        // The translate API streams continuous 200ms PCM chunks as a
+        // keep-alive heartbeat — including silence padding before the
+        // user starts speaking and tail padding after transcripts stop.
+        // Treating audio as activity would prevent silence-based pair
+        // completion forever, and auto-creating pairs on padding would
+        // spawn empty items. Only attach audio when a transcript-driven
+        // pair already exists, and never reset the silence timer here.
+        if (!this.currentPair) break;
+        const pair = this.currentPair;
         const assistantItem = this.itemLookup.get(pair.assistantItemId);
         if (!assistantItem || !event.delta) break;
 
@@ -259,7 +267,6 @@ export class OpenAITranslateGAClient implements IClient {
             timestamp: Date.now(),
           },
         });
-        this.resetDeltaTimer();
         break;
       }
 

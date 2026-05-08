@@ -131,6 +131,40 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(Array.from(audioUpdate.delta.audio)).toEqual([1, 2]);
   });
 
+  it('drops output_audio.delta when no transcript-driven pair exists', () => {
+    // Translate API streams continuous audio (silence padding) before the
+    // user speaks. These chunks must NOT auto-create a phantom pair.
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: 'AQACAA==',
+    });
+
+    expect(client.getConversationItems()).toEqual([]);
+    expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
+  });
+
+  it('output_audio.delta does not reset the silence timer', () => {
+    // Open a pair via transcript, then stream audio every 500ms for 2s.
+    // Audio is a keep-alive heartbeat — the 1.5s silence completion must
+    // still fire based on the last *transcript* delta, not the audio.
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'Hi',
+    });
+
+    for (let t = 0; t < 2000; t += 500) {
+      vi.advanceTimersByTime(500);
+      (client as any).handleServerEvent({
+        type: 'session.output_audio.delta',
+        delta: 'AQACAA==',
+      });
+    }
+
+    const items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
   it('marks both items completed after 1.5s of silence', () => {
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
