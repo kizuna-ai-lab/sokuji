@@ -65,6 +65,8 @@ export interface EventData {
     // OpenAI client events
     | 'session.update'
     | 'input_audio_buffer.append' | 'input_audio_buffer.commit' | 'input_audio_buffer.clear'
+    // OpenAI translate client events (the wire prefix is `session.`)
+    | 'session.input_audio_buffer.append'
     | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
     | 'response.create' | 'response.cancel'
     // openai-realtime-api custom events (for beta clients)
@@ -218,10 +220,11 @@ const useLogStore = create<LogStore>(
       // For specific event types, use different grouping strategies
       let groupingKey: string | undefined;
       
-      // OpenAI-specific grouping
-      if (eventType === 'input_audio_buffer.append') {
+      // OpenAI-specific grouping. The translate API prefixes the same wire
+      // event with `session.`, so collapse both variants under the same key.
+      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append') {
         groupingKey = 'input_audio_buffer';
-      } 
+      }
       // For other delta events, group by event type only
       else if (eventType.includes('delta')) {
         groupingKey = eventType;

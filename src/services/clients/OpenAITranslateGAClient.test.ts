@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { OpenAITranslateGAClient } from './OpenAITranslateGAClient';
+import { OpenAITranslateGAClient, isSilenceFrame } from './OpenAITranslateGAClient';
 import type { OpenAITranslateSessionConfig, ClientEventHandlers } from '../interfaces/IClient';
 
 const baseConfig: OpenAITranslateSessionConfig = {
@@ -78,6 +78,44 @@ describe('OpenAITranslateGAClient.buildSessionUpdate', () => {
     const payload = OpenAITranslateGAClient.buildSessionUpdate(baseConfig);
     expect(payload.session.audio).not.toHaveProperty('input');
   });
+
+  it('emits only language under audio.output (no transcription field — API rejects it)', () => {
+    // OpenAI's translate API rejects session.audio.output.transcription with
+    // an "unknown_parameter" error. session.output_transcript.delta events
+    // emit by default per the cookbook; no opt-in field exists.
+    const payload = OpenAITranslateGAClient.buildSessionUpdate(baseConfig);
+    expect(payload.session.audio.output).toEqual({ language: 'es' });
+  });
+});
+
+describe('isSilenceFrame', () => {
+  it('returns true for an all-zero frame (heartbeat shape)', () => {
+    expect(isSilenceFrame(new Int16Array(4800))).toBe(true);
+  });
+
+  it('returns true for any zero-amplitude frame regardless of length', () => {
+    // Defensive: API could change heartbeat duration without notice. We
+    // detect by content (rms === 0) instead of length.
+    expect(isSilenceFrame(new Int16Array(0))).toBe(true);
+    expect(isSilenceFrame(new Int16Array(100))).toBe(true);
+    expect(isSilenceFrame(new Int16Array(9600))).toBe(true);
+  });
+
+  it('returns false on the first non-zero sample (early exit)', () => {
+    const frame = new Int16Array(9600);
+    frame[0] = 1; // first sample non-zero
+    expect(isSilenceFrame(frame)).toBe(false);
+
+    const frame2 = new Int16Array(9600);
+    frame2[9599] = -1; // last sample non-zero
+    expect(isSilenceFrame(frame2)).toBe(false);
+  });
+
+  it('returns false for typical content amplitudes', () => {
+    const frame = new Int16Array(9600);
+    for (let i = 0; i < frame.length; i++) frame[i] = 1000;
+    expect(isSilenceFrame(frame)).toBe(false);
+  });
 });
 
 describe('OpenAITranslateGAClient state machine', () => {
@@ -153,7 +191,9 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(audioUpdate).toBeDefined();
   });
 
-  it('drops 4800-sample heartbeat output_audio.delta even when an assistant exists', () => {
+  it('drops zero-amplitude heartbeat output_audio.delta even when an assistant exists', () => {
+    // Filter is rms === 0, not a fixed sample length. Heartbeat shape stays
+    // covered, and any future API frame size with zero amplitude stays out.
     (client as any).handleServerEvent({
       type: 'session.output_transcript.delta',
       delta: 'Hi',
@@ -167,27 +207,42 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(audioUpdate).toBeUndefined();
   });
 
-  it('drops content output_audio.delta when no assistant item exists', () => {
-    // Translate emits a silent prelude content frame at session start (before
-    // any output_transcript). With independent state machines, audio must NOT
-    // create an assistant item — only output_transcript does.
+  it('auto-creates assistant item from first non-silent content frame (no transcript yet)', () => {
+    // Recent gpt-realtime-translate sessions can stream content audio before
+    // (or even without) session.output_transcript.delta — observed when the
+    // session was opened without explicit output transcription configured.
+    // Audio must still play in that case, so the first non-silent frame
+    // creates the assistant item. Heartbeat / prelude frames stay filtered
+    // by isSilenceFrame and never reach this branch.
     (client as any).handleServerEvent({
       type: 'session.output_audio.delta',
       delta: CONTENT_DELTA,
     });
 
+    const items = client.getConversationItems();
+    expect(items.length).toBe(1);
+    expect(items[0].role).toBe('assistant');
+
+    const audioUpdate = updates.find(
+      (u) => u.delta?.audio instanceof Int16Array && u.delta.audio.length === 9600
+    );
+    expect(audioUpdate).toBeDefined();
+  });
+
+  it('silent prelude frames do not spawn a phantom assistant item', () => {
+    // Heartbeat / silent-prelude frames arrive before any real content.
+    // isSilenceFrame must drop them before the auto-create path runs.
+    const SILENT_HEARTBEAT = makePcmDelta(4800, 0);
+    const SILENT_LARGE = makePcmDelta(9600, 0); // hypothetical larger silent frame
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: SILENT_HEARTBEAT,
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: SILENT_LARGE,
+    });
     expect(client.getConversationItems()).toEqual([]);
-    expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
-
-    // Even with a USER item open, audio still drops — assistant is independent.
-    (client as any).handleServerEvent({
-      type: 'session.input_transcript.delta',
-      delta: 'Hello',
-    });
-    (client as any).handleServerEvent({
-      type: 'session.output_audio.delta',
-      delta: CONTENT_DELTA,
-    });
     expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
   });
 
@@ -432,6 +487,7 @@ describe('OpenAITranslateGAClient WebSocket lifecycle', () => {
       .find((p: any) => p.type === 'session.update');
     expect(sessionUpdate).toBeDefined();
     expect(sessionUpdate.session.audio.output.language).toBe('ja');
+    expect(sessionUpdate.session.audio.output).not.toHaveProperty('transcription');
     expect(sessionUpdate.session.audio.input.transcription.model).toBe('gpt-realtime-whisper');
   });
 

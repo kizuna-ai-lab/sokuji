@@ -35,7 +35,7 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { EphemeralTokenService } from '../EphemeralTokenService';
 import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
-import { OpenAITranslateGAClient } from './OpenAITranslateGAClient';
+import { OpenAITranslateGAClient, isSilenceFrame } from './OpenAITranslateGAClient';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
 const SILENCE_TIMEOUT_MS = 1500;
@@ -278,11 +278,16 @@ export class OpenAITranslateWebRTCClient implements IClient {
         // Defensive: WebRTC carries audio through the MediaStreamTrack, so
         // this event is not expected here. Handle it anyway in case the
         // server emits it (matches GA client behavior).
+        if (!event.delta) break;
+        const audioData = base64ToInt16Array(event.delta);
+        // Drop heartbeat / silent frames (rms === 0) so they don't pollute
+        // playback or open phantom pairs. See GA client for rationale.
+        if (isSilenceFrame(audioData)) break;
+
         const pair = this.ensurePair();
         const assistantItem = this.itemLookup.get(pair.assistantItemId);
-        if (!assistantItem || !event.delta) break;
+        if (!assistantItem) break;
 
-        const audioData = base64ToInt16Array(event.delta);
         const sequenceNumber = ++this.deltaSequenceNumber;
 
         if (!this.audioChunks.has(pair.assistantItemId)) {

@@ -143,57 +143,83 @@ switch (event.type) {
 
 `response.*` は来ないので、通常 Realtime 用のイベントハンドラを流用しようとすると一切 fire しません。最初これに気づかず、**接続も session.update も成功しているのに何も起きない**という現象を 1 時間ほど追いかけました。
 
-## 罠 ②：ハートビートフレームを振幅で判定すると壊れる
+## 罠 ②：ハートビートフレームを長さだけで判定すると壊れる
 
 `session.output_audio.delta` で受け取る音声フレームは、実は 2 種類混在しています：
 
 | フレーム種別 | サンプル数 (@24 kHz) | 時間 | 中身 |
 |------|--------|------|------|
-| **ハートビート** | 4800 | 200 ms | ゼロ振幅（utterance 間の keep-alive） |
-| **コンテンツ** | 9600 | 400 ms | 実際の翻訳音声 |
+| **ハートビート** | 4800（観測値） | 200 ms（観測値） | ゼロ振幅（utterance 間の keep-alive） |
+| **コンテンツ** | 9600（観測値） | 400 ms（観測値） | 実際の翻訳音声（rms 0.04–0.08） |
 
 ハートビートは無音を流して WebSocket を生かしておくためのフレームです。これをそのまま再生キューに突っ込むと、翻訳の頭に無音が乗ってしまうので、**フィルタしないといけない**。
 
-最初に書いてしまったのが「振幅ゼロのフレームを捨てる」でした：
+最初に書いてしまったのが「振幅閾値を切ってフレームを捨てる」でした：
 
 ```ts
-// ❌ NG: 振幅判定はコンテンツ内の自然な無音を巻き込む
+// ❌ NG: しきい値の振幅判定はコンテンツ内の自然な無音を巻き込みやすい
 case 'session.output_audio.delta': {
   const audio = base64ToInt16Array(event.delta);
-  if (audio.every(sample => sample === 0)) break;   // 落とし穴
+  const rms = Math.sqrt(audio.reduce((s, v) => s + v*v, 0) / audio.length);
+  if (rms < THRESHOLD) break;   // しきい値の選び方で content も削れる
   enqueue(audio);
 }
 ```
 
-これだと、コンテンツフレーム（9600）に含まれる **発話の自然な無音区間** までフィルタされ、音声がブツ切れになります。日本語のように区切りで小さな無音が入る言語では特に顕著。
+しきい値方式は、コンテンツフレームに含まれる **発話の自然な無音区間** までフィルタしかねず、音声がブツ切れになります。
 
-正解は **長さでハートビートを識別する**：
+次に試したのが **長さでハートビートを識別する** ですが、これも罠でした：
 
 ```ts
-// ✅ OK: 長さで判定
+// ⚠️ 部分的に正解。API がフレーム長を変えた瞬間に壊れる
 const HEARTBEAT_SAMPLES = 4800;  // 200ms @ 24kHz
+if (audio.length === HEARTBEAT_SAMPLES) break;
+```
+
+長さプロトコルは API 側の実装詳細であって、保証された契約ではありません。あとで紹介する「`output_transcript` が来ない問題」と組み合わさると、コンテンツ音声を取りこぼします。
+
+最終的に落ち着いたのは **「ハートビートは純粋にゼロ振幅である」という観測事実を、フレーム単位で確認する** やり方でした：
+
+```ts
+// ✅ OK: rms === 0 を early-exit で判定（実装上は「最初の非ゼロサンプル」検出）
+function isSilenceFrame(audio: Int16Array): boolean {
+  for (let i = 0; i < audio.length; i++) {
+    if (audio[i] !== 0) return false;  // コンテンツは即座に false で抜ける
+  }
+  return true;
+}
 
 case 'session.output_audio.delta': {
   if (!event.delta) break;
   const audio = base64ToInt16Array(event.delta);
+  if (isSilenceFrame(audio)) break;  // 長さに依存しない
 
-  // 4800 サンプル ぴったりはハートビート
-  // 9600 サンプル前後はコンテンツ（自然な無音を含む）
-  if (audio.length === HEARTBEAT_SAMPLES) break;
-
-  enqueue(audio);
+  // ↓ 詳細は次節
+  const itemId = currentAssistantItemId ?? ensureAssistantItem();
+  enqueue(itemId, audio);
 }
 ```
 
-サーバー側が **「200ms = keep-alive、それ以外 = コンテンツ」**という長さプロトコルを使っているので、それに合わせるのが一番安全です。
+ポイントは **しきい値ではなく完全ゼロ判定** であること。コンテンツ内の自然な無音区間は、フレーム全体で見ると必ず非ゼロサンプルが混ざるので、early-exit で content フレームは O(1) で抜けます。フレーム長プロトコルが将来変わっても、ゼロ振幅という観測事実が変わらない限り壊れません。
 
-ちなみに、コンテンツ音声を **`current_assistant_item` がある時しか attach しない** という制約も同じ場所で必要になります。なぜなら：
+### コンテンツ音声に assistant item を auto-create する
+
+最初の実装では「`output_transcript.delta` が assistant item を開く → そこに音声を attach する」という前提を置いて、
 
 ```ts
+// ❌ 危険：transcript が来ない場合に音声がまるごと破棄される
 if (!this.currentAssistantItemId) break;
 ```
 
-この行を入れないと、セッション開始直後の prelude（フェードイン用の静かな立ち上がり）まで会話履歴に紛れ込み、UI 上で「謎の空メッセージ」が増えていきます。経験的に **`output_transcript.delta` が必ず音声より先に来る** ので、transcript を起点に assistant item を作る側で運用すると整合します。
+と書いていました。理屈の上では「prelude（セッション開始直後の静かな立ち上がり）まで会話履歴に紛れ込むのを防ぐ」目的でしたが、実運用で **API が `output_transcript.delta` を送ってこないセッション** に当たって音声が完全に再生されなくなる事故が起きました。
+
+正しい姿勢は **「ハートビートが除去された後に到達するフレームはコンテンツ」と信じて auto-create する** ことです：
+
+```ts
+const itemId = this.currentAssistantItemId ?? this.ensureAssistantItem();
+```
+
+`isSilenceFrame` で prelude / heartbeat は先に落ちるので、auto-create が空の assistant item を量産することはありません。「transcript が必ず音声より先に来る」というのは観測上のヒューリスティックであって、API の保証ではないことを、ここで痛感しました。
 
 ## 罠 ③：user / assistant で独立した silence timer が必要
 

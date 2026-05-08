@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -2674,7 +2674,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Helper: render a single conversation item as a bubble
   const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
     const isItemPlaying = playingItemId === item.id;
-    const isParticipant = item.source === 'participant';
     const text = item.formatted?.transcript || item.formatted?.text || '';
 
     // Karaoke highlight calculation
@@ -2740,32 +2739,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Advanced-only content types
     if (uiMode === 'advanced') {
-      // Audio-only indicator
-      const audio = item.formatted?.audio as any;
-      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
-      if (audioSize > 0) {
-        return (
-          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
-            <div className="message-content">
-              <div className="content-item audio">
-                <div className="audio-indicator">
-                  <span className="audio-icon"><Volume2 size={16} /></span>
-                  <span className="audio-text">{t('mainPanel.audioContent')}</span>
-                </div>
-              </div>
-              {isDevelopment() && (
-                <button
-                  className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
-                  onClick={() => handlePlayAudio(item)}
-                  disabled={playingItemId !== null}
-                >
-                  <Play size={10} />
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      }
+      // Audio without transcript: audio still plays through the audio
+      // service; we deliberately render no bubble. This used to render an
+      // "Audio content" placeholder, but that fallback had no production
+      // utility (no info beyond an icon, play button only in dev) and
+      // produced ghost bubbles for translate sessions when the auto-create
+      // recovery path kicked in (e.g. when output_transcript wasn't sent).
 
       // Tool calls
       if (item.formatted?.tool) {

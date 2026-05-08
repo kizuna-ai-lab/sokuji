@@ -243,63 +243,11 @@
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
-// ─── Inline Play Button (dev-only) ────────────────
-
-.message-content:has(.inline-play-button) {
-  padding-right: 24px;
-}
-
-.inline-play-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 3px;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  color: white;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover { background: rgba(255, 255, 255, 0.2); }
-  &:active { background: rgba(255, 255, 255, 0.3); }
-  &.playing { background: rgba(16, 163, 127, 0.5); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-
-
 // ─── Advanced-only Content Items ───────────────────
 
 .content-item {
   margin-bottom: 4px;
   &:last-child { margin-bottom: 0; }
-
-  &.audio .audio-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-
-    .audio-icon {
-      display: flex;
-      align-items: center;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .audio-text {
-      font-size: var(--conversation-font-size, 14px);
-      color: rgba(255, 255, 255, 0.8);
-      flex: 1;
-    }
-  }
 
   &.tool-call,
   &.tool-output {

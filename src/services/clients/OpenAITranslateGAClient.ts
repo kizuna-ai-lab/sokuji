@@ -19,15 +19,38 @@ const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 const SILENCE_TIMEOUT_MS = 1000;
 const SILENCE_TIMEOUT_MIN_MS = 100;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
-/** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. */
+/** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. Kept for
+ *  reference / tests; runtime detection now uses {@link isSilenceFrame} so we
+ *  don't break if the API ever changes the heartbeat duration. */
 const HEARTBEAT_SAMPLES = 4800;
+
+/** Detect a heartbeat / silent frame by RMS === 0.
+ *
+ *  The translate API's heartbeat frames are documented as pure zero amplitude
+ *  (commit 98149d35: "heartbeat frames are pure zeros, content frames carry
+ *  typical speech amplitudes peak 0.2–0.3, rms 0.04–0.08"). We loop over Int16
+ *  samples and accumulate the squared sum: any non-zero sample short-circuits
+ *  to false on the first iteration, so content frames cost ~O(1) in practice.
+ *  Equivalent to `rms === 0` but expressed as squared-sum to avoid the sqrt
+ *  and to keep arithmetic in integer space. */
+export function isSilenceFrame(audio: Int16Array): boolean {
+  let sumSq = 0;
+  for (let i = 0; i < audio.length; i++) {
+    const s = audio[i];
+    sumSq += s * s;
+    if (sumSq !== 0) return false;
+  }
+  return true;
+}
 
 function clampSilenceTimeout(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
   return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
 }
 
-/** Shape of the `session` field inside `session.update` for translate. */
+/** Shape of the `session` field inside `session.update` for translate.
+ *  Per OpenAI cookbook, `output` only accepts `language`; `output_transcript`
+ *  events emit by default with no opt-in. */
 export interface TranslateSessionPayload {
   audio: {
     output: { language: TranslateTargetLanguage };
@@ -275,22 +298,23 @@ export class OpenAITranslateGAClient implements IClient {
         const audioData = base64ToInt16Array(event.delta);
 
         // The translate API multiplexes two streams over the same socket:
-        //   - 200 ms (4800 samples) zero-amplitude heartbeat frames that
-        //     keep the WebSocket alive between/around utterances.
-        //   - 400 ms (9600 samples) content frames carrying the actual
-        //     translated audio (with natural intra-utterance pauses).
-        // The duration is the API's intent marker — far more reliable than
-        // amplitude thresholding, which would corrupt natural pauses inside
-        // the content stream.
-        if (audioData.length === HEARTBEAT_SAMPLES) break;
+        //   - Zero-amplitude heartbeat frames (historically 200 ms / 4800
+        //     samples) that keep the WebSocket alive between/around
+        //     utterances.
+        //   - Content frames carrying the translated audio.
+        // We detect heartbeats by RMS === 0 instead of frame length so we
+        // survive any future change to the heartbeat duration. Real speech
+        // is rms 0.04–0.08 (commit 98149d35), so the zero check has no
+        // false positives on content — even quiet intra-utterance pauses
+        // are bundled inside content frames that contain non-zero samples.
+        if (isSilenceFrame(audioData)) break;
 
-        // Audio attaches only to an assistant item created by an output
-        // transcript. We deliberately don't auto-create on audio: empirically
-        // output_transcript always leads content audio in real utterances,
-        // and the only frames that arrive without a transcript are
-        // session-start prelude (silent fade-in) which we don't want to keep.
-        if (!this.currentAssistantItemId) break;
-        const assistantItemId = this.currentAssistantItemId;
+        // Auto-create the assistant item on the first content frame if
+        // session.output_transcript.delta hasn't opened one (e.g. when the
+        // API is configured without output transcription, or temporarily
+        // stops emitting it). Heartbeat-only streams won't reach here, so
+        // this can't spawn phantom items from session-start prelude.
+        const assistantItemId = this.currentAssistantItemId ?? this.ensureAssistantItem();
         const assistantItem = this.itemLookup.get(assistantItemId);
         if (!assistantItem) break;
 
@@ -549,10 +573,18 @@ export class OpenAITranslateGAClient implements IClient {
   appendInputAudio(audioData: Int16Array): void {
     if (!this.ws || this.ws.readyState !== 1) return;
     const base64 = int16ArrayToBase64(audioData);
-    this.ws.send(JSON.stringify({
-      type: 'session.input_audio_buffer.append',
+    const payload = {
+      type: 'session.input_audio_buffer.append' as const,
       audio: base64,
-    }));
+    };
+    this.ws.send(JSON.stringify(payload));
+    // Forward to log infrastructure so the event timeline shows outgoing
+    // audio buffer appends. Base64 payload is redacted by sanitizeEvent
+    // (the `audio` key is in AUDIO_FIELD_NAMES).
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: { type: payload.type, data: payload },
+    });
   }
 
   appendInputText(_text: string): void { /* no-op: text input not supported by translate */ }
