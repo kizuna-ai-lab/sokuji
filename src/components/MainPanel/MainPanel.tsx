@@ -978,7 +978,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       const client = clientRef.current;
       if (client) {
+        // disconnect() emits final completion deltas via the throttle path,
+        // which schedules a trailing setItems(client.getConversationItems())
+        // via setTimeout. If we then call client.reset() (which empties the
+        // client's internal items), the trailing timer fires *after* reset
+        // and pushes [] to React, blanking the conversation. This is most
+        // visible with high-delta-rate providers like OpenAI Translate where
+        // a throttle timer is almost always pending when the user hits stop
+        // mid-utterance.
+        //
+        // Fix: after disconnect() finalizes any in-flight pair, cancel the
+        // pending throttle timer and synchronously capture the final state
+        // into React, then reset.
         await client.disconnect();
+        if (throttleTimerRef.current) {
+          clearTimeout(throttleTimerRef.current);
+          throttleTimerRef.current = null;
+        }
+        setItems(client.getConversationItems());
         client.reset();
       }
 
