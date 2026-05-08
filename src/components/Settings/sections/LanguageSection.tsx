@@ -413,12 +413,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                   </option>
                 ))}
               </select>
-              {showTranslateParticipantWarning && (
-                <div className="language-warning">
-                  <AlertTriangle size={12} />
-                  <span>{t('settings.translateSourceParticipantWarning')}</span>
-                </div>
-              )}
             </div>
 
             <div className="language-arrow">
@@ -449,6 +443,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          {showTranslateParticipantWarning && (
+            <div className="language-warning">
+              <AlertTriangle size={12} />
+              <span>{t('settings.translateSourceParticipantWarning')}</span>
+            </div>
+          )}
 
           {providerConfig.capabilities.textOnlyCapability === 'optional' && (
             <ToggleSwitch
