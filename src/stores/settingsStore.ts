@@ -11,7 +11,8 @@ import {
   PalabraAISessionConfig,
   VolcengineSTSessionConfig,
   VolcengineAST2SessionConfig,
-  LocalInferenceSessionConfig
+  LocalInferenceSessionConfig,
+  TranslateTargetLanguage
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
@@ -75,6 +76,19 @@ export interface OpenAICompatibleSettings extends OpenAICompatibleSettingsBase {
 
 export type OpenAISettings = OpenAICompatibleSettingsBase;
 export type KizunaAISettings = OpenAICompatibleSettingsBase;
+
+// OpenAI Translate Settings (gpt-realtime-translate model family)
+export interface OpenAITranslateSettings {
+  apiKey: string;
+  // UI display only — not sent to API (auto-detected by model)
+  sourceLanguage: string;
+  // Sent to API as audio.output.language
+  targetLanguage: TranslateTargetLanguage;
+  // Currently the only valid value; UI dropdown shows it as a single option
+  transcriptModel: 'gpt-realtime-whisper';
+  noiseReduction: 'None' | 'Near field' | 'Far field';
+  transportType: TransportType;
+}
 
 // Gemini Settings
 export interface GeminiSettings {
@@ -254,6 +268,15 @@ const defaultKizunaAISettings: KizunaAISettings = {
   transcriptModel: 'whisper-1',
 };
 
+const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
+  apiKey: '',
+  sourceLanguage: 'en',
+  targetLanguage: 'zh',
+  transcriptModel: 'gpt-realtime-whisper',
+  noiseReduction: 'None',
+  transportType: 'websocket',
+};
+
 const defaultGeminiSettings: GeminiSettings = {
   apiKey: '',
   model: '',
@@ -340,6 +363,7 @@ interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   kizunaai: KizunaAISettings;
+  openaiTranslate: OpenAITranslateSettings;
   volcengineST: VolcengineSTSettings;
   volcengineAST2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
@@ -398,6 +422,7 @@ interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateKizunaAI: (settings: Partial<KizunaAISettings>) => void;
+  updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
@@ -410,7 +435,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
@@ -713,6 +738,7 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     kizunaai: defaultKizunaAISettings,
+    openaiTranslate: defaultOpenAITranslateSettings,
     volcengineST: defaultVolcengineSTSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     localInference: defaultLocalInferenceSettings,
@@ -928,6 +954,18 @@ const useSettingsStore = create<SettingsStore>()(
       for (const [key, value] of Object.entries(settingsToSave)) {
         if (key === 'apiKey') continue; // Don't persist Kizuna AI API key
         await service.setSetting(`settings.kizunaai.${key}`, value);
+      }
+    },
+
+    updateOpenAITranslate: async (settings) => {
+      set((state) => {
+        const updatedSettings = { ...state.openaiTranslate, ...settings };
+        return { openaiTranslate: updatedSettings };
+      });
+
+      const service = ServiceFactory.getSettingsService();
+      for (const [key, value] of Object.entries(settings)) {
+        await service.setSetting(`settings.openaiTranslate.${key}`, value);
       }
     },
 
@@ -1310,7 +1348,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2, localInference] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2, localInference, openaiTranslate] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -1319,6 +1357,7 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
+          loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
         ]);
 
         set({
@@ -1342,6 +1381,7 @@ const useSettingsStore = create<SettingsStore>()(
           volcengineST,
           volcengineAST2,
           localInference,
+          openaiTranslate,
           settingsLoaded: true,
         });
 
@@ -1373,6 +1413,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.palabraai;
         case Provider.KIZUNA_AI:
           return state.kizunaai;
+        case Provider.OPENAI_TRANSLATE:
+          return state.openaiTranslate;
         case Provider.VOLCENGINE_ST:
           return state.volcengineST;
         case Provider.VOLCENGINE_AST2:
@@ -1503,6 +1545,7 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
+export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
@@ -1550,6 +1593,7 @@ export const useUpdateGemini = () => useSettingsStore((state) => state.updateGem
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateKizunaAI);
+export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
