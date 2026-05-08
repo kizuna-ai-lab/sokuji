@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { OpenAITranslateGAClient, isSilenceFrame } from './OpenAITranslateGAClient';
+import { OpenAITranslateGAClient, isSilenceFrame, computeRms } from './OpenAITranslateGAClient';
 import type { OpenAITranslateSessionConfig, ClientEventHandlers } from '../interfaces/IClient';
 
 const baseConfig: OpenAITranslateSessionConfig = {
@@ -88,6 +88,31 @@ describe('OpenAITranslateGAClient.buildSessionUpdate', () => {
   });
 });
 
+describe('computeRms', () => {
+  it('returns 0 for an empty frame', () => {
+    expect(computeRms(new Int16Array(0))).toBe(0);
+  });
+
+  it('returns 0 for an all-zero frame (heartbeat)', () => {
+    expect(computeRms(new Int16Array(4800))).toBe(0);
+  });
+
+  it('returns a positive normalized value for content amplitudes', () => {
+    const frame = new Int16Array(9600);
+    for (let i = 0; i < frame.length; i++) frame[i] = 1000;
+    const rms = computeRms(frame);
+    // RMS of constant 1000 = 1000; normalized = 1000/32768 ≈ 0.0305
+    expect(rms).toBeGreaterThan(0.03);
+    expect(rms).toBeLessThan(0.04);
+  });
+
+  it('saturates near 1.0 for a full-scale frame', () => {
+    const frame = new Int16Array(100);
+    for (let i = 0; i < frame.length; i++) frame[i] = 32767;
+    expect(computeRms(frame)).toBeGreaterThan(0.99);
+  });
+});
+
 describe('isSilenceFrame', () => {
   it('returns true for an all-zero frame (heartbeat shape)', () => {
     expect(isSilenceFrame(new Int16Array(4800))).toBe(true);
@@ -121,13 +146,16 @@ describe('isSilenceFrame', () => {
 describe('OpenAITranslateGAClient state machine', () => {
   let client: OpenAITranslateGAClient;
   let updates: any[] = [];
+  let realtimeEvents: any[] = [];
 
   beforeEach(() => {
     vi.useFakeTimers();
     client = new OpenAITranslateGAClient('test-key');
     updates = [];
+    realtimeEvents = [];
     const handlers: ClientEventHandlers = {
       onConversationUpdated: (e) => updates.push(e),
+      onRealtimeEvent: (e) => realtimeEvents.push(e),
     };
     client.setEventHandlers(handlers);
   });
@@ -244,6 +272,90 @@ describe('OpenAITranslateGAClient state machine', () => {
     });
     expect(client.getConversationItems()).toEqual([]);
     expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
+  });
+
+  it('annotates session.output_audio.delta with rms for the log', () => {
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: CONTENT_DELTA,
+    });
+
+    const logged = realtimeEvents.find(
+      (e) => e.source === 'server' && e.event.type === 'session.output_audio.delta',
+    );
+    expect(logged).toBeDefined();
+    expect(typeof logged.event.data.rms).toBe('number');
+    // CONTENT_DELTA = 9600 samples of value 1000 → rms ≈ 1000/32768
+    expect(logged.event.data.rms).toBeGreaterThan(0.03);
+    expect(logged.event.data.rms).toBeLessThan(0.04);
+  });
+
+  it('does NOT forward heartbeat output_audio.delta to the log (rms === 0 is noise)', () => {
+    // Heartbeats dominated the timeline before. They're now suppressed
+    // from log forwarding, but the playback / silence-filter logic still
+    // runs (covered by other tests).
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: HEARTBEAT_DELTA,
+    });
+
+    const logged = realtimeEvents.find(
+      (e) => e.source === 'server' && e.event.type === 'session.output_audio.delta',
+    );
+    expect(logged).toBeUndefined();
+  });
+
+  it('annotates session.input_audio_buffer.append with rms in the log only (non-silent)', () => {
+    // The wire payload must NOT include rms (the API rejects unknown
+    // params); only the log copy carries the annotation.
+    const ws: any = {
+      readyState: 1,
+      send: vi.fn(),
+    };
+    (client as any).ws = ws;
+
+    const audio = new Int16Array(1536);
+    for (let i = 0; i < audio.length; i++) audio[i] = 500;
+    client.appendInputAudio(audio);
+
+    // Wire payload — no rms.
+    const wirePayload = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(wirePayload).toEqual({
+      type: 'session.input_audio_buffer.append',
+      audio: expect.any(String),
+    });
+    expect(wirePayload).not.toHaveProperty('rms');
+
+    // Log payload — has rms.
+    const logged = realtimeEvents.find(
+      (e) => e.source === 'client' && e.event.type === 'session.input_audio_buffer.append',
+    );
+    expect(logged).toBeDefined();
+    expect(typeof logged.event.data.rms).toBe('number');
+    expect(logged.event.data.rms).toBeGreaterThan(0);
+  });
+
+  it('does NOT forward fully-silent session.input_audio_buffer.append to the log', () => {
+    // Pre-VAD silence padding from the mic floods the log without
+    // information — suppress it. The wire send still happens so server
+    // VAD continues to receive silence as expected.
+    const ws: any = {
+      readyState: 1,
+      send: vi.fn(),
+    };
+    (client as any).ws = ws;
+
+    const silentAudio = new Int16Array(1536); // all zeros
+    client.appendInputAudio(silentAudio);
+
+    // Wire send still happens.
+    expect(ws.send).toHaveBeenCalledTimes(1);
+
+    // But no log entry was forwarded.
+    const logged = realtimeEvents.find(
+      (e) => e.source === 'client' && e.event.type === 'session.input_audio_buffer.append',
+    );
+    expect(logged).toBeUndefined();
   });
 
   it('heartbeat audio does NOT reset assistant silence timer', () => {

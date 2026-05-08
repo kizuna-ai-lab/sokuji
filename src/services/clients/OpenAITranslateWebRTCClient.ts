@@ -35,7 +35,7 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { EphemeralTokenService } from '../EphemeralTokenService';
 import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
-import { OpenAITranslateGAClient, isSilenceFrame } from './OpenAITranslateGAClient';
+import { OpenAITranslateGAClient, computeRms } from './OpenAITranslateGAClient';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
 const SILENCE_TIMEOUT_MS = 1500;
@@ -237,13 +237,29 @@ export class OpenAITranslateWebRTCClient implements IClient {
    * include them defensively in case the server emits them.
    */
   private handleServerEvent(event: ServerEvent): void {
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      // event.type is the loose `string` union from the server payload; the
-      // log store's stricter literal union covers the same surface but TS
-      // can't prove it. Cast to mirror the GA client / OpenAIWebRTCClient.
-      event: { type: event.type as any, data: event },
-    });
+    // Pre-decode + measure RMS for output audio so the log shows amplitude
+    // and the case branch can reuse the decoded buffer.
+    let decodedAudio: Int16Array | null = null;
+    let audioRms: number | null = null;
+    if (event.type === 'session.output_audio.delta' && (event as any).delta) {
+      decodedAudio = base64ToInt16Array((event as any).delta);
+      audioRms = computeRms(decodedAudio);
+      (event as any).rms = audioRms;
+    }
+
+    // Skip log forwarding for pure-silence audio frames so heartbeats
+    // don't dominate the timeline. Audio-handling switch below still runs.
+    const isSilentAudioFrame =
+      event.type === 'session.output_audio.delta' && audioRms === 0;
+    if (!isSilentAudioFrame) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        // event.type is the loose `string` union from the server payload; the
+        // log store's stricter literal union covers the same surface but TS
+        // can't prove it. Cast to mirror the GA client / OpenAIWebRTCClient.
+        event: { type: event.type as any, data: event },
+      });
+    }
 
     switch (event.type) {
       case 'session.input_transcript.delta': {
@@ -278,11 +294,11 @@ export class OpenAITranslateWebRTCClient implements IClient {
         // Defensive: WebRTC carries audio through the MediaStreamTrack, so
         // this event is not expected here. Handle it anyway in case the
         // server emits it (matches GA client behavior).
-        if (!event.delta) break;
-        const audioData = base64ToInt16Array(event.delta);
+        if (!event.delta || !decodedAudio) break;
+        const audioData = decodedAudio;
         // Drop heartbeat / silent frames (rms === 0) so they don't pollute
         // playback or open phantom pairs. See GA client for rationale.
-        if (isSilenceFrame(audioData)) break;
+        if (audioRms === 0) break;
 
         const pair = this.ensurePair();
         const assistantItem = this.itemLookup.get(pair.assistantItemId);

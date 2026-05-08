@@ -24,15 +24,24 @@ const SILENCE_TIMEOUT_MAX_MS = 3000;
  *  don't break if the API ever changes the heartbeat duration. */
 const HEARTBEAT_SAMPLES = 4800;
 
-/** Detect a heartbeat / silent frame by RMS === 0.
+/** Compute RMS amplitude of a PCM16 frame, normalized to the [0, 1] range
+ *  by dividing by the Int16 max (32768). Returns 0 for an empty frame.
  *
- *  The translate API's heartbeat frames are documented as pure zero amplitude
- *  (commit 98149d35: "heartbeat frames are pure zeros, content frames carry
- *  typical speech amplitudes peak 0.2–0.3, rms 0.04–0.08"). We loop over Int16
- *  samples and accumulate the squared sum: any non-zero sample short-circuits
- *  to false on the first iteration, so content frames cost ~O(1) in practice.
- *  Equivalent to `rms === 0` but expressed as squared-sum to avoid the sqrt
- *  and to keep arithmetic in integer space. */
+ *  Empirically (commit 98149d35): heartbeat frames have rms === 0, content
+ *  frames have rms ≈ 0.04–0.08. */
+export function computeRms(audio: Int16Array): number {
+  if (audio.length === 0) return 0;
+  let sumSq = 0;
+  for (let i = 0; i < audio.length; i++) {
+    sumSq += audio[i] * audio[i];
+  }
+  return Math.sqrt(sumSq / audio.length) / 32768;
+}
+
+/** Heartbeat / silence detection. True iff every sample is exactly zero.
+ *  Implemented with an early-exit loop (returns on the first non-zero
+ *  sample), so content frames typically cost O(1). Equivalent to
+ *  `computeRms(audio) === 0` but cheaper on the hot path. */
 export function isSilenceFrame(audio: Int16Array): boolean {
   let sumSq = 0;
   for (let i = 0; i < audio.length; i++) {
@@ -258,11 +267,30 @@ export class OpenAITranslateGAClient implements IClient {
   }
 
   private handleServerEvent(event: any): void {
-    // Forward to logging handlers
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      event: { type: event.type, data: event },
-    });
+    // Pre-decode + measure RMS for output audio so the log shows the
+    // amplitude of every frame (heartbeat → 0, content → ~0.04–0.08), and
+    // so the case branch below can reuse the decoded buffer without
+    // base64-decoding twice.
+    let decodedAudio: Int16Array | null = null;
+    let audioRms: number | null = null;
+    if (event.type === 'session.output_audio.delta' && event.delta) {
+      decodedAudio = base64ToInt16Array(event.delta);
+      audioRms = computeRms(decodedAudio);
+      event.rms = audioRms;
+    }
+
+    // Forward to logging handlers, except for pure-silence audio frames
+    // (rms === 0) which used to dominate the log with no information.
+    // The audio handling switch below still runs for those frames so the
+    // silence filter / silence-timer logic is unaffected.
+    const isSilentAudioFrame =
+      event.type === 'session.output_audio.delta' && audioRms === 0;
+    if (!isSilentAudioFrame) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: event.type, data: event },
+      });
+    }
 
     switch (event.type) {
       case 'session.input_transcript.delta': {
@@ -294,8 +322,8 @@ export class OpenAITranslateGAClient implements IClient {
       }
 
       case 'session.output_audio.delta': {
-        if (!event.delta) break;
-        const audioData = base64ToInt16Array(event.delta);
+        if (!event.delta || !decodedAudio) break;
+        const audioData = decodedAudio;
 
         // The translate API multiplexes two streams over the same socket:
         //   - Zero-amplitude heartbeat frames (historically 200 ms / 4800
@@ -307,7 +335,7 @@ export class OpenAITranslateGAClient implements IClient {
         // is rms 0.04–0.08 (commit 98149d35), so the zero check has no
         // false positives on content — even quiet intra-utterance pauses
         // are bundled inside content frames that contain non-zero samples.
-        if (isSilenceFrame(audioData)) break;
+        if (audioRms === 0) break;
 
         // Auto-create the assistant item on the first content frame if
         // session.output_transcript.delta hasn't opened one (e.g. when the
@@ -580,10 +608,22 @@ export class OpenAITranslateGAClient implements IClient {
     this.ws.send(JSON.stringify(payload));
     // Forward to log infrastructure so the event timeline shows outgoing
     // audio buffer appends. Base64 payload is redacted by sanitizeEvent
-    // (the `audio` key is in AUDIO_FIELD_NAMES).
+    // (the `audio` key is in AUDIO_FIELD_NAMES). The `rms` annotation is
+    // log-only — we send the raw payload above without it, so the wire
+    // format stays exactly what the API expects. We skip the log forward
+    // for fully-silent frames (rms === 0) because they overwhelmingly
+    // dominate the timeline during pre-VAD silence and tell us nothing
+    // that the next non-silent frame doesn't already imply. The wire
+    // send still happens above — server-side VAD continues to receive
+    // silence as expected.
+    const rms = computeRms(audioData);
+    if (rms === 0) return;
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
-      event: { type: payload.type, data: payload },
+      event: {
+        type: payload.type,
+        data: { ...payload, rms },
+      },
     });
   }
 
