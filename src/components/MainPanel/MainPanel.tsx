@@ -38,7 +38,7 @@ import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStor
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -373,6 +373,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Force Auto mode for Gemini participant (no PTT for participant)
       ...(baseConfig.provider === 'gemini' ? { turnDetectionMode: 'Auto' as const } : {}),
     };
+
+    // OpenAI Translate carries language direction only in `audio.output.language`
+    // (not system instructions — translate doesn't accept instructions). Swap
+    // targetLanguage to settings.sourceLanguage so the participant client
+    // translates "their speech → user's language" instead of mirroring the
+    // speaker's direction. If the user picked a sourceLanguage outside the
+    // 13 supported targets, the swap may produce an invalid target — the UI
+    // already warns about this combination, and the API will surface a clear
+    // error if the user proceeds anyway.
+    if (config.provider === 'openai_translate') {
+      const tConfig = config as OpenAITranslateSessionConfig;
+      const oldTarget: TranslateTargetLanguage = tConfig.targetLanguage;
+      const oldSource: string | undefined = tConfig.sourceLanguage;
+      // Cast: type-system can't validate at this layer; runtime gating is
+      // the UI warning + API error message.
+      tConfig.targetLanguage = (oldSource ?? oldTarget) as TranslateTargetLanguage;
+      tConfig.sourceLanguage = oldTarget;
+    }
 
     // Volcengine providers carry language direction in explicit config fields
     // (not system instructions), so we must swap sourceLanguage/targetLanguage
