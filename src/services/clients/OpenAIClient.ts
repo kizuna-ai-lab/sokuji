@@ -54,14 +54,16 @@ export class OpenAIClient implements IClient {
    * validation (validateApiKeyAndFetchModels below) and translate validation
    * (OpenAITranslateGAClient.validateApiKeyAndFetchModels).
    *
-   * Returns either { models } on success or { error } with a populated
-   * ApiKeyValidationResult. Caller decides how to filter and what
+   * Contract: callers MUST check `error` first. When `error` is present,
+   * `models` is always `[]` and must not be inspected. When `error` is
+   * undefined, `models` is the parsed `/v1/models` payload (possibly empty
+   * if the user has no models). Caller decides how to filter and what
    * "valid" means (different model families satisfy different providers).
    */
-  static async fetchOpenAIModelsList(apiKey: string, apiHost?: string): Promise<{
-    models: OpenAIModel[];
-    error?: ApiKeyValidationResult;
-  }> {
+  static async fetchOpenAIModelsList(apiKey: string, apiHost?: string): Promise<
+    | { models: OpenAIModel[]; error?: undefined }
+    | { models: []; error: ApiKeyValidationResult }
+  > {
     if (!apiKey || apiKey.trim() === '') {
       return {
         models: [],
