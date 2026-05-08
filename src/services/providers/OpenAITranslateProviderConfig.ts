@@ -31,18 +31,16 @@ export class OpenAITranslateProviderConfig {
   ];
 
   getConfig(): ProviderConfig {
-    // Reuse OpenAI's full source language list (75-language API support is
-    // covered by the existing list; remaining codes are unusual and degrade
-    // gracefully — source language is UI-only anyway).
-    const sourceLanguages = new OpenAIProviderConfig().getConfig().languages;
-
     return {
       id: 'openai_translate',
       displayName: 'OpenAI Translate',
       apiKeyLabel: 'OpenAI API Key',
       apiKeyPlaceholder: 'sk-...',
 
-      languages: sourceLanguages,
+      // Source language is UI-only (auto-detected by the model server-side).
+      // Reuse OpenAI's list via the shared static accessor — codes outside
+      // this list still work since the field never reaches the API.
+      languages: [...OpenAIProviderConfig.getSourceLanguages()],
       targetLanguages: OpenAITranslateProviderConfig.TARGET_LANGUAGES,
       voices: [],
       models: OpenAITranslateProviderConfig.MODELS,

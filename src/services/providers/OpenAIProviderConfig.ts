@@ -72,6 +72,11 @@ export class OpenAIProviderConfig {
     { name: 'Verse', value: 'verse' },
   ];
 
+  /** Public accessor for the OpenAI source-language list, reused by sibling providers (e.g. OpenAITranslate). */
+  static getSourceLanguages(): readonly LanguageOption[] {
+    return OpenAIProviderConfig.LANGUAGES;
+  }
+
   private static readonly MODELS: ModelOption[] = [
     { id: 'gpt-realtime-mini', type: 'realtime' },
     { id: 'gpt-realtime-1.5', type: 'realtime' },
