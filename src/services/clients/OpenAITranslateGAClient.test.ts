@@ -169,3 +169,112 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 });
+
+import { isOpenAITranslateSessionConfig } from '../interfaces/IClient';
+
+describe('OpenAITranslateGAClient WebSocket lifecycle', () => {
+  let mockWs: any;
+  let originalWebSocket: any;
+
+  beforeEach(() => {
+    originalWebSocket = (globalThis as any).WebSocket;
+    mockWs = {
+      readyState: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+    };
+    // Use a function expression (not arrow) so the mock is constructable
+    // when the implementation calls `new WebSocket(...)`.
+    (globalThis as any).WebSocket = vi.fn(function () { return mockWs; });
+  });
+
+  afterEach(() => {
+    (globalThis as any).WebSocket = originalWebSocket;
+  });
+
+  it('connects to the translate WSS URL with model query param', async () => {
+    const client = new OpenAITranslateGAClient('test-key');
+    const config: OpenAITranslateSessionConfig = {
+      provider: 'openai_translate',
+      model: 'gpt-realtime-translate',
+      targetLanguage: 'es',
+    };
+
+    const connectPromise = client.connect(config);
+
+    // Simulate the WebSocket opening
+    mockWs.readyState = 1;
+    mockWs.onopen?.({});
+
+    // Simulate session.created
+    mockWs.onmessage?.({
+      data: JSON.stringify({ type: 'session.created' }),
+    });
+
+    await connectPromise;
+
+    expect((globalThis as any).WebSocket).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/realtime/translations?model=gpt-realtime-translate'),
+      expect.anything()
+    );
+  });
+
+  it('sends session.update immediately after open', async () => {
+    const client = new OpenAITranslateGAClient('test-key');
+    const config: OpenAITranslateSessionConfig = {
+      provider: 'openai_translate',
+      model: 'gpt-realtime-translate',
+      targetLanguage: 'ja',
+      inputAudioTranscription: { model: 'gpt-realtime-whisper' },
+    };
+
+    const connectPromise = client.connect(config);
+    mockWs.readyState = 1;
+    mockWs.onopen?.({});
+    mockWs.onmessage?.({ data: JSON.stringify({ type: 'session.created' }) });
+    await connectPromise;
+
+    const sendCalls = mockWs.send.mock.calls;
+    const sessionUpdate = sendCalls
+      .map((c: any) => JSON.parse(c[0]))
+      .find((p: any) => p.type === 'session.update');
+    expect(sessionUpdate).toBeDefined();
+    expect(sessionUpdate.session.audio.output.language).toBe('ja');
+    expect(sessionUpdate.session.audio.input.transcription.model).toBe('gpt-realtime-whisper');
+  });
+
+  it('appendInputAudio sends base64-encoded session.input_audio_buffer.append', async () => {
+    const client = new OpenAITranslateGAClient('test-key');
+    const config: OpenAITranslateSessionConfig = {
+      provider: 'openai_translate',
+      model: 'gpt-realtime-translate',
+      targetLanguage: 'en',
+    };
+
+    const connectPromise = client.connect(config);
+    mockWs.readyState = 1;
+    mockWs.onopen?.({});
+    mockWs.onmessage?.({ data: JSON.stringify({ type: 'session.created' }) });
+    await connectPromise;
+
+    mockWs.send.mockClear();
+
+    const audio = new Int16Array([1, 2, 3]);
+    client.appendInputAudio(audio);
+
+    expect(mockWs.send).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(mockWs.send.mock.calls[0][0]);
+    expect(payload.type).toBe('session.input_audio_buffer.append');
+    expect(typeof payload.audio).toBe('string');
+    expect(payload.audio.length).toBeGreaterThan(0);
+  });
+});
+
+// Sanity-import the type guard so its emit isn't pruned (used internally)
+void isOpenAITranslateSessionConfig;

@@ -8,12 +8,11 @@ import {
   ApiKeyValidationResult,
   FilteredModel,
   ResponseConfig,
+  isOpenAITranslateSessionConfig,
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 
 // Later tasks will re-add these imports as they're needed:
-//   - `isOpenAITranslateSessionConfig` (Task 8 — discriminating session
-//     configs in updateSession)
 //   - `OpenAIClient` (Task 10 — reusing the OpenAI model list fetch)
 //   - default `i18n` instance from `../../locales` (Task 10 — error translation)
 // They were intentionally omitted to satisfy `noUnusedLocals`.
@@ -260,18 +259,169 @@ export class OpenAITranslateGAClient implements IClient {
     }
   }
 
-  // IClient methods — implemented in later tasks
-  async connect(_config: SessionConfig): Promise<void> {
-    // Touch fields/methods so noUnusedLocals stays happy until Task 9 wires
-    // the WebSocket up to handleServerEvent.
-    void this.apiKey;
-    void this.ws;
-    void this.handleServerEvent;
-    throw new Error('not implemented');
+  // IClient methods
+  async connect(config: SessionConfig): Promise<void> {
+    if (!isOpenAITranslateSessionConfig(config)) {
+      throw new Error('OpenAITranslateGAClient requires translate session config');
+    }
+
+    // Reset state
+    this.deltaSequenceNumber = 0;
+    this.itemLookup.clear();
+    this.conversationItems = [];
+    this.audioChunks.clear();
+    this.currentPair = null;
+
+    const url = `${TRANSLATE_WS_URL}?model=${encodeURIComponent(config.model)}`;
+    // The browser WebSocket constructor cannot set Authorization headers.
+    // OpenAI accepts auth via the Sec-WebSocket-Protocol subprotocol with the
+    // `openai-insecure-api-key.${apiKey}` token (same pattern used by the
+    // openai-realtime-api community library and existing OpenAIClient).
+    this.ws = new WebSocket(url, [
+      'realtime',
+      `openai-insecure-api-key.${this.apiKey}`,
+      'openai-beta.realtime-v1',
+    ]);
+
+    this.setupWebSocketListeners();
+    await this.waitForSessionCreated();
+
+    // Send session.update
+    const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(config);
+    this.ws!.send(JSON.stringify(updatePayload));
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: { type: 'session.update', data: updatePayload },
+    });
+
+    this.connected = true;
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: {
+        type: 'session.opened',
+        data: {
+          status: 'connected',
+          provider: 'openai_translate',
+          model: config.model,
+          timestamp: Date.now(),
+        },
+      },
+    });
+    this.eventHandlers.onOpen?.();
   }
-  async disconnect(): Promise<void> {}
-  isConnected(): boolean { return this.connected; }
-  updateSession(_config: Partial<SessionConfig>): void {}
+
+  private setupWebSocketListeners(): void {
+    if (!this.ws) return;
+    this.ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        this.handleServerEvent(data);
+      } catch (err) {
+        console.error('[OpenAITranslateGAClient] Failed to parse server message:', err);
+      }
+    };
+    this.ws.onerror = (event) => {
+      this.eventHandlers.onError?.(event);
+    };
+    this.ws.onclose = () => {
+      if (this.connected) {
+        this.connected = false;
+        this.eventHandlers.onRealtimeEvent?.({
+          source: 'client',
+          event: {
+            type: 'session.closed',
+            data: { status: 'disconnected', provider: 'openai_translate', timestamp: Date.now(), reason: 'websocket_closed' },
+          },
+        });
+        this.eventHandlers.onClose?.({});
+      }
+    };
+  }
+
+  private waitForSessionCreated(): Promise<void> {
+    const SESSION_TIMEOUT = 30000;
+    return new Promise((resolve, reject) => {
+      if (!this.ws) {
+        reject(new Error('WebSocket not initialized'));
+        return;
+      }
+
+      let settled = false;
+      const ws = this.ws;
+
+      const timeout = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          reject(new Error('Session creation timeout'));
+        }
+      }, SESSION_TIMEOUT);
+
+      // Override onmessage temporarily to look for session.created /
+      // forward errors through reject. Once resolved, hand control back
+      // to the regular handler installed by setupWebSocketListeners.
+      const regularHandler = ws.onmessage;
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'session.created' && !settled) {
+            settled = true;
+            clearTimeout(timeout);
+            ws.onmessage = regularHandler;
+            // Replay this event through the regular handler so it gets logged
+            if (regularHandler && typeof regularHandler === 'function') {
+              regularHandler.call(ws, event);
+            }
+            resolve();
+            return;
+          }
+          if (data.type === 'error' && !settled) {
+            settled = true;
+            clearTimeout(timeout);
+            reject(new Error(data.error?.message || 'Session creation failed'));
+            return;
+          }
+        } catch {
+          // ignore parse errors during handshake
+        }
+        // Forward other messages to the regular handler so logs aren't lost
+        if (regularHandler && typeof regularHandler === 'function') {
+          regularHandler.call(ws, event);
+        }
+      };
+
+      ws.onerror = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          reject(new Error('WebSocket error during session creation'));
+        }
+      };
+    });
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.connected = false;
+    this.completeCurrentPair();
+  }
+
+  isConnected(): boolean {
+    return this.connected && this.ws?.readyState === 1;
+  }
+
+  updateSession(config: Partial<SessionConfig>): void {
+    if (!this.ws || !isOpenAITranslateSessionConfig(config as SessionConfig)) return;
+    const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(config as OpenAITranslateSessionConfig);
+    this.ws.send(JSON.stringify(updatePayload));
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: { type: 'session.update', data: updatePayload },
+    });
+  }
+
   reset(): void {
     // Cancel the silence timer and finalize any in-flight pair, then drop
     // accumulated state so the client is fresh for the next session.
@@ -285,7 +435,16 @@ export class OpenAITranslateGAClient implements IClient {
     this.audioChunks.clear();
     this.deltaSequenceNumber = 0;
   }
-  appendInputAudio(_audioData: Int16Array): void {}
+
+  appendInputAudio(audioData: Int16Array): void {
+    if (!this.ws || this.ws.readyState !== 1) return;
+    const base64 = int16ArrayToBase64(audioData);
+    this.ws.send(JSON.stringify({
+      type: 'session.input_audio_buffer.append',
+      audio: base64,
+    }));
+  }
+
   appendInputText(_text: string): void { /* no-op: text input not supported by translate */ }
   createResponse(_config?: ResponseConfig): void { /* no-op: continuous streaming, no response lifecycle */ }
   cancelResponse(_trackId?: string, _offset?: number): void { /* no-op for Phase 1 */ }
@@ -316,10 +475,6 @@ function int16ArrayToBase64(data: Int16Array): string {
   }
   return btoa(binary);
 }
-
-// int16ArrayToBase64 is consumed in Task 9 (appendInputAudio). Touch the symbol
-// so noUnusedLocals does not flag it before then.
-void int16ArrayToBase64;
 
 // Re-exports kept for symmetry with sibling clients; see imports comment above.
 export type { ApiKeyValidationResult, FilteredModel };
