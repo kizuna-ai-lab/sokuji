@@ -2045,8 +2045,21 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderTranslateInfoBanner = () => {
+    if (provider !== Provider.OPENAI_TRANSLATE) return null;
+    return (
+      <div className="settings-section translate-info-banner">
+        <div className="info-banner">
+          <Info size={14} />
+          <span>{t('settings.translateInfoBanner')}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Fragment>
+      {renderTranslateInfoBanner()}
       {/* System Instructions */}
       {config.capabilities.hasTemplateMode && (
         <div className="settings-section system-instructions-section" id="system-instructions-section">

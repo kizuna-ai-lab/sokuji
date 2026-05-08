@@ -121,6 +121,26 @@
     padding-bottom: 0;
   }
 
+  &.translate-info-banner {
+    .info-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(16, 163, 127, 0.1);
+      border: 1px solid rgba(16, 163, 127, 0.3);
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.4;
+
+      svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: #10a37f;
+      }
+    }
+  }
+
   &.highlight {
     animation: pulse-highlight 2s ease-out;
     border-radius: vars.$radius-lg;
