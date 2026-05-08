@@ -391,7 +391,15 @@
       "medium": "中",
       "high": "高",
       "xhigh": "極高"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI 的即時語音轉語音翻譯模型。支援 70+ 種源語言、13 種目標語言。",
+    "translateInfoBanner": "當說話人使用與目標相同的語言時，該模型會保持沉默。混合語言場景可能會有片段缺失。",
+    "targetLanguageLimited": "該模型僅支援 13 種目標語言。",
+    "translateModelAvailable": "API key 驗證成功。gpt-realtime-translate 可用。",
+    "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
+    "transcriptModelTooltipTranslate": "來源語言字幕。目前僅支援 gpt-realtime-whisper。",
+    "modelTooltipTranslate": "OpenAI 專用的語音轉語音翻譯模型。譯音會自動匹配來源說話人音色。"
   },
   "audioPanel": {
     "title": "音訊設定",

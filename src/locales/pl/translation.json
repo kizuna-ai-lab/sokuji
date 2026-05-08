@@ -272,7 +272,15 @@
       "medium": "Średni",
       "high": "Wysoki",
       "xhigh": "Bardzo wysoki"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Model tłumaczenia głosowego w czasie rzeczywistym od OpenAI. 70+ języków źródłowych, 13 języków docelowych.",
+    "translateInfoBanner": "Model milczy, gdy mówca używa tego samego języka co docelowy. Mowa wielojęzyczna może mieć luki.",
+    "targetLanguageLimited": "Model obsługuje 13 języków docelowych.",
+    "translateModelAvailable": "Klucz API zweryfikowany. gpt-realtime-translate jest dostępny.",
+    "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
+    "transcriptModelTooltipTranslate": "Napisy w języku źródłowym. Obecnie obsługiwany jest tylko gpt-realtime-whisper.",
+    "modelTooltipTranslate": "Dedykowany model tłumaczenia głosowego OpenAI. Głos automatycznie dopasowuje się do mówcy źródłowego."
   },
   "audioPanel": {
     "title": "Ustawienia audio",

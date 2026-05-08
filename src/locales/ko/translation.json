@@ -273,7 +273,15 @@
       "medium": "중간",
       "high": "높음",
       "xhigh": "매우 높음"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI의 실시간 음성 번역 모델. 70개 이상의 입력 언어, 13개의 출력 언어 지원.",
+    "translateInfoBanner": "화자가 대상 언어와 같은 언어를 사용할 때, 이 모델은 침묵을 유지합니다. 혼합 언어 발화에서는 공백이 생길 수 있습니다.",
+    "targetLanguageLimited": "이 모델은 13개의 대상 언어만 지원합니다.",
+    "translateModelAvailable": "API 키 검증 완료. gpt-realtime-translate 사용 가능.",
+    "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
+    "transcriptModelTooltipTranslate": "원본 언어 자막. 현재 gpt-realtime-whisper만 지원됩니다.",
+    "modelTooltipTranslate": "OpenAI 전용 음성 번역 모델. 출력 음성이 화자 음색에 자동으로 적응합니다."
   },
   "audioPanel": {
     "title": "오디오 설정",

@@ -378,7 +378,15 @@
       "medium": "Середній",
       "high": "Високий",
       "xhigh": "Дуже високий"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Модель синхронного мовного перекладу від OpenAI. 70+ вихідних мов, 13 цільових мов.",
+    "translateInfoBanner": "Модель мовчить, коли мовець використовує цільову мову. У багатомовній мові можливі пропуски.",
+    "targetLanguageLimited": "Модель підтримує 13 цільових мов.",
+    "translateModelAvailable": "API-ключ перевірено. gpt-realtime-translate доступний.",
+    "translateModelNotAvailable": "API-ключ працює, але gpt-realtime-translate недоступний з цим ключем.",
+    "transcriptModelTooltipTranslate": "Субтитри вихідною мовою. Зараз підтримується лише gpt-realtime-whisper.",
+    "modelTooltipTranslate": "Спеціалізована модель мовного перекладу OpenAI. Голос автоматично адаптується до вихідного мовця."
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

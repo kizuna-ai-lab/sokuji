@@ -266,7 +266,15 @@
       "medium": "मध्यम",
       "high": "उच्च",
       "xhigh": "बहुत उच्च"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI का रियल-टाइम वॉयस-टू-वॉयस अनुवाद मॉडल। 70+ स्रोत भाषाएँ, 13 लक्ष्य भाषाएँ।",
+    "translateInfoBanner": "जब वक्ता लक्ष्य के समान भाषा का उपयोग करता है, तो यह मॉडल चुप रहता है। मिश्रित भाषा वाले भाषण में अंतराल हो सकते हैं।",
+    "targetLanguageLimited": "यह मॉडल 13 लक्ष्य भाषाओं का समर्थन करता है।",
+    "translateModelAvailable": "API कुंजी मान्य की गई। gpt-realtime-translate उपलब्ध है।",
+    "translateModelNotAvailable": "API कुंजी काम करती है, लेकिन इस कुंजी से gpt-realtime-translate तक पहुँच नहीं है।",
+    "transcriptModelTooltipTranslate": "स्रोत भाषा कैप्शन। वर्तमान में केवल gpt-realtime-whisper समर्थित है।",
+    "modelTooltipTranslate": "OpenAI का समर्पित वॉयस अनुवाद मॉडल। आवाज़ स्वचालित रूप से स्रोत वक्ता के अनुकूल हो जाती है।"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",

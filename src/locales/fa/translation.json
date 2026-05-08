@@ -279,7 +279,15 @@
       "medium": "متوسط",
       "high": "زیاد",
       "xhigh": "خیلی زیاد"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "مدل ترجمه صوتی بلادرنگ OpenAI. بیش از ۷۰ زبان مبدأ، ۱۳ زبان مقصد.",
+    "translateInfoBanner": "این مدل وقتی گوینده از همان زبان مقصد استفاده می‌کند ساکت می‌ماند. گفتار چندزبانه ممکن است شکاف داشته باشد.",
+    "targetLanguageLimited": "این مدل از ۱۳ زبان مقصد پشتیبانی می‌کند.",
+    "translateModelAvailable": "کلید API تأیید شد. gpt-realtime-translate در دسترس است.",
+    "translateModelNotAvailable": "کلید API کار می‌کند، اما با این کلید gpt-realtime-translate در دسترس نیست.",
+    "transcriptModelTooltipTranslate": "زیرنویس زبان مبدأ. در حال حاضر فقط gpt-realtime-whisper پشتیبانی می‌شود.",
+    "modelTooltipTranslate": "مدل ترجمه صوتی اختصاصی OpenAI. صدا به طور خودکار با گوینده مبدأ تطبیق می‌یابد."
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",

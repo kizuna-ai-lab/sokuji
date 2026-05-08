@@ -378,7 +378,15 @@
       "medium": "మధ్యమ",
       "high": "ఎక్కువ",
       "xhigh": "చాలా ఎక్కువ"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI యొక్క రియల్ టైమ్ స్పీచ్ టు స్పీచ్ అనువాద మోడల్. 70+ మూల భాషలు, 13 లక్ష్య భాషలు.",
+    "translateInfoBanner": "మాట్లాడేవారు లక్ష్యంతో ఒకే భాషను ఉపయోగించినప్పుడు ఈ మోడల్ నిశ్శబ్దంగా ఉంటుంది. మిశ్రమ భాష ప్రసంగంలో అంతరాలు ఉండవచ్చు.",
+    "targetLanguageLimited": "ఈ మోడల్ 13 లక్ష్య భాషలను సపోర్ట్ చేస్తుంది.",
+    "translateModelAvailable": "API కీ ధృవీకరించబడింది. gpt-realtime-translate అందుబాటులో ఉంది.",
+    "translateModelNotAvailable": "API కీ పని చేస్తుంది, కానీ ఈ కీతో gpt-realtime-translate యాక్సెస్ చేయబడదు.",
+    "transcriptModelTooltipTranslate": "మూల భాష ఉపశీర్షికలు. ప్రస్తుతం gpt-realtime-whisper మాత్రమే మద్దతు ఉంది.",
+    "modelTooltipTranslate": "OpenAI యొక్క ప్రత్యేక వాయిస్ అనువాద మోడల్. వాయిస్ స్వయంచాలకంగా మూల వక్తకు అనుగుణంగా ఉంటుంది."
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

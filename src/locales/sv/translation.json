@@ -265,7 +265,15 @@
       "medium": "Medel",
       "high": "Hög",
       "xhigh": "Mycket hög"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Realtidsmodell för röstöversättning från OpenAI. 70+ källspråk, 13 målspråk.",
+    "translateInfoBanner": "Modellen är tyst när talaren använder samma språk som målspråket. Blandspråklig tal kan ha luckor.",
+    "targetLanguageLimited": "Modellen stöder 13 målspråk.",
+    "translateModelAvailable": "API-nyckel validerad. gpt-realtime-translate är tillgänglig.",
+    "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
+    "transcriptModelTooltipTranslate": "Källspråksundertexter. För närvarande stöds endast gpt-realtime-whisper.",
+    "modelTooltipTranslate": "OpenAIs särskilda röstöversättningsmodell. Rösten anpassas automatiskt till källtalaren."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

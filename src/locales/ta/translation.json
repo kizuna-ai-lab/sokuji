@@ -396,7 +396,15 @@
       "medium": "நடுத்தர",
       "high": "உயர்",
       "xhigh": "மிக உயர்"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI இன் நேரடி பேச்சு-முதல்-பேச்சு மொழிபெயர்ப்பு மாதிரி. 70+ மூல மொழிகள், 13 இலக்கு மொழிகள்.",
+    "translateInfoBanner": "பேச்சாளர் இலக்கு மொழியையே பயன்படுத்தும்போது இந்த மாதிரி அமைதியாக இருக்கும். கலப்பு மொழி பேச்சில் இடைவெளிகள் இருக்கலாம்.",
+    "targetLanguageLimited": "இந்த மாதிரி 13 இலக்கு மொழிகளை ஆதரிக்கிறது.",
+    "translateModelAvailable": "API விசை சரிபார்க்கப்பட்டது. gpt-realtime-translate கிடைக்கிறது.",
+    "translateModelNotAvailable": "API விசை செயல்படுகிறது, ஆனால் இந்த விசையால் gpt-realtime-translate ஐ அணுக முடியாது.",
+    "transcriptModelTooltipTranslate": "மூல மொழி வசனங்கள். தற்போது gpt-realtime-whisper மட்டுமே ஆதரிக்கப்படுகிறது.",
+    "modelTooltipTranslate": "OpenAI இன் சிறப்பு பேச்சு மொழிபெயர்ப்பு மாதிரி. குரல் தானாக மூல பேச்சாளரின் தொனியுடன் பொருந்துகிறது."
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

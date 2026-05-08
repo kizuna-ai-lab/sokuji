@@ -279,7 +279,15 @@
       "medium": "בינוני",
       "high": "גבוה",
       "xhigh": "גבוה מאוד"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "מודל תרגום קולי בזמן אמת של OpenAI. 70+ שפות מקור, 13 שפות יעד.",
+    "translateInfoBanner": "המודל שותק כשהדובר משתמש באותה שפה כמו היעד. דיבור מעורב שפות עלול להכיל פערים.",
+    "targetLanguageLimited": "המודל תומך ב-13 שפות יעד.",
+    "translateModelAvailable": "מפתח API אומת. gpt-realtime-translate זמין.",
+    "translateModelNotAvailable": "מפתח API עובד, אך gpt-realtime-translate אינו נגיש עם מפתח זה.",
+    "transcriptModelTooltipTranslate": "כתוביות בשפת המקור. כרגע נתמך רק gpt-realtime-whisper.",
+    "modelTooltipTranslate": "מודל תרגום קולי ייעודי של OpenAI. הקול מסתגל אוטומטית לדובר המקור."
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

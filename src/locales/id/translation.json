@@ -273,7 +273,15 @@
       "medium": "Sedang",
       "high": "Tinggi",
       "xhigh": "Sangat tinggi"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Model terjemahan suara real-time dari OpenAI. 70+ bahasa sumber, 13 bahasa target.",
+    "translateInfoBanner": "Model ini diam ketika pembicara menggunakan bahasa yang sama dengan target. Ucapan multi-bahasa mungkin memiliki celah.",
+    "targetLanguageLimited": "Model ini mendukung 13 bahasa target.",
+    "translateModelAvailable": "Kunci API divalidasi. gpt-realtime-translate tersedia.",
+    "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
+    "transcriptModelTooltipTranslate": "Subtitle bahasa sumber. Saat ini hanya gpt-realtime-whisper yang didukung.",
+    "modelTooltipTranslate": "Model terjemahan suara khusus dari OpenAI. Suara secara otomatis menyesuaikan dengan pembicara sumber."
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

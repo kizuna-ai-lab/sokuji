@@ -272,7 +272,15 @@
       "medium": "Katamtaman",
       "high": "Mataas",
       "xhigh": "Napakataas"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Real-time speech-to-speech translation model ng OpenAI. 70+ source languages, 13 target languages.",
+    "translateInfoBanner": "Tahimik ang modelo kapag ginagamit ng nagsasalita ang parehong wika sa target. Maaaring may mga puwang sa magkahalong wika.",
+    "targetLanguageLimited": "Sumusuporta ang modelong ito sa 13 target na wika.",
+    "translateModelAvailable": "Na-validate ang API key. Available ang gpt-realtime-translate.",
+    "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
+    "transcriptModelTooltipTranslate": "Mga subtitle sa source language. Sa kasalukuyan ay gpt-realtime-whisper lang ang suportado.",
+    "modelTooltipTranslate": "Dedicated voice translation model ng OpenAI. Awtomatikong nag-a-adjust ang boses sa source speaker."
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

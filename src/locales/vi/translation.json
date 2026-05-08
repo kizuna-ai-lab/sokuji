@@ -265,7 +265,15 @@
       "medium": "Trung bình",
       "high": "Cao",
       "xhigh": "Rất cao"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Mô hình dịch giọng nói thời gian thực của OpenAI. 70+ ngôn ngữ nguồn, 13 ngôn ngữ đích.",
+    "translateInfoBanner": "Mô hình này im lặng khi người nói sử dụng cùng ngôn ngữ với ngôn ngữ đích. Lời nói đa ngôn ngữ có thể có khoảng trống.",
+    "targetLanguageLimited": "Mô hình này hỗ trợ 13 ngôn ngữ đích.",
+    "translateModelAvailable": "Khóa API đã được xác thực. gpt-realtime-translate có sẵn.",
+    "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
+    "transcriptModelTooltipTranslate": "Phụ đề ngôn ngữ nguồn. Hiện chỉ hỗ trợ gpt-realtime-whisper.",
+    "modelTooltipTranslate": "Mô hình dịch giọng nói chuyên dụng của OpenAI. Giọng nói tự động thích ứng với người nói nguồn."
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

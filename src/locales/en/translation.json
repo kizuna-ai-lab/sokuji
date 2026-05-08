@@ -279,7 +279,15 @@
       "medium": "Medium",
       "high": "High",
       "xhigh": "XHigh"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Real-time speech-to-speech translation by OpenAI. 70+ source languages, 13 target languages.",
+    "translateInfoBanner": "This model stays silent when the speaker uses the same language as the target. Mixed-language speech may have gaps.",
+    "targetLanguageLimited": "This model supports 13 target languages.",
+    "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
+    "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
+    "transcriptModelTooltipTranslate": "Source-language captions. Currently only gpt-realtime-whisper is supported.",
+    "modelTooltipTranslate": "OpenAI's dedicated speech-to-speech translation model. Voice automatically adapts to the source speaker."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

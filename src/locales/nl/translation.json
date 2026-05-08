@@ -273,7 +273,15 @@
       "medium": "Gemiddeld",
       "high": "Hoog",
       "xhigh": "Zeer hoog"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Realtime spraakvertalingsmodel van OpenAI. 70+ brontalen, 13 doeltalen.",
+    "translateInfoBanner": "Dit model blijft stil wanneer de spreker dezelfde taal gebruikt als de doeltaal. Gemengde talen kunnen hiaten veroorzaken.",
+    "targetLanguageLimited": "Dit model ondersteunt 13 doeltalen.",
+    "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
+    "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
+    "transcriptModelTooltipTranslate": "Bron-taal ondertitels. Momenteel wordt alleen gpt-realtime-whisper ondersteund.",
+    "modelTooltipTranslate": "OpenAI's speciale spraakvertalingsmodel. De stem past zich automatisch aan de bronspreker aan."
   },
   "audioPanel": {
     "title": "Audio instellingen",

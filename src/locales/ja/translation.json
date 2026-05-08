@@ -273,7 +273,15 @@
       "medium": "中",
       "high": "高",
       "xhigh": "最高"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI のリアルタイム音声翻訳モデル。70以上の入力言語、13の出力言語に対応。",
+    "translateInfoBanner": "話者が出力言語と同じ言語を話す場合、このモデルは無音になります。混合言語の発話では空白が生じる可能性があります。",
+    "targetLanguageLimited": "このモデルは13の出力言語のみサポートしています。",
+    "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
+    "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
+    "transcriptModelTooltipTranslate": "原語字幕。現在は gpt-realtime-whisper のみ対応しています。",
+    "modelTooltipTranslate": "OpenAI 専用の音声翻訳モデル。出力音声は話者の声質に自動適応します。"
   },
   "audioPanel": {
     "title": "オーディオ設定",

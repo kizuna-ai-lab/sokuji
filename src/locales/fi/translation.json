@@ -272,7 +272,15 @@
       "medium": "Keskitaso",
       "high": "Korkea",
       "xhigh": "Erittäin korkea"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "OpenAI:n reaaliaikainen puheenkääntömalli. 70+ lähdekieltä, 13 kohdekieltä.",
+    "translateInfoBanner": "Malli on hiljaa, kun puhuja käyttää samaa kieltä kuin kohde. Monikielisessä puheessa voi olla aukkoja.",
+    "targetLanguageLimited": "Malli tukee 13 kohdekieltä.",
+    "translateModelAvailable": "API-avain vahvistettu. gpt-realtime-translate on käytettävissä.",
+    "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
+    "transcriptModelTooltipTranslate": "Lähdekielen tekstitykset. Tällä hetkellä tuetaan vain gpt-realtime-whisper.",
+    "modelTooltipTranslate": "OpenAI:n erikoispuheenkääntömalli. Ääni mukautuu automaattisesti lähdepuhujaan."
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

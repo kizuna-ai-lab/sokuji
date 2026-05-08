@@ -280,7 +280,15 @@
       "medium": "Средний",
       "high": "Высокий",
       "xhigh": "Очень высокий"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "Модель синхронного речевого перевода от OpenAI. 70+ исходных языков, 13 целевых языков.",
+    "translateInfoBanner": "Модель молчит, когда говорящий использует целевой язык. В многоязычной речи возможны пропуски.",
+    "targetLanguageLimited": "Модель поддерживает 13 целевых языков.",
+    "translateModelAvailable": "API-ключ проверен. gpt-realtime-translate доступен.",
+    "translateModelNotAvailable": "API-ключ работает, но gpt-realtime-translate недоступен с этим ключом.",
+    "transcriptModelTooltipTranslate": "Субтитры на исходном языке. Сейчас поддерживается только gpt-realtime-whisper.",
+    "modelTooltipTranslate": "Специализированная модель речевого перевода OpenAI. Голос автоматически адаптируется к исходному говорящему."
   },
   "audioPanel": {
     "title": "Настройки аудио",

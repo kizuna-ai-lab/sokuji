@@ -273,7 +273,15 @@
       "medium": "متوسط",
       "high": "عالي",
       "xhigh": "عالي جداً"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "نموذج ترجمة صوتية فورية من OpenAI. أكثر من 70 لغة مصدر و13 لغة هدف.",
+    "translateInfoBanner": "يبقى هذا النموذج صامتاً عندما يستخدم المتحدث نفس لغة الهدف. قد تحتوي الكلام متعدد اللغات على فجوات.",
+    "targetLanguageLimited": "يدعم هذا النموذج 13 لغة هدف.",
+    "translateModelAvailable": "تم التحقق من مفتاح API. gpt-realtime-translate متاح.",
+    "translateModelNotAvailable": "مفتاح API يعمل، ولكن gpt-realtime-translate غير متاح مع هذا المفتاح.",
+    "transcriptModelTooltipTranslate": "ترجمات اللغة المصدر. حالياً يتم دعم gpt-realtime-whisper فقط.",
+    "modelTooltipTranslate": "نموذج OpenAI المخصص للترجمة الصوتية. يتكيف الصوت تلقائياً مع المتحدث المصدر."
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

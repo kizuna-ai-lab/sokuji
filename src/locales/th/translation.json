@@ -385,7 +385,15 @@
       "medium": "ปานกลาง",
       "high": "สูง",
       "xhigh": "สูงมาก"
-    }
+    },
+    "openaiTranslate": "OpenAI Translate",
+    "openaiTranslateDescription": "โมเดลการแปลเสียงแบบเรียลไทม์จาก OpenAI รองรับ 70+ ภาษาต้นทาง 13 ภาษาปลายทาง",
+    "translateInfoBanner": "โมเดลนี้จะเงียบเมื่อผู้พูดใช้ภาษาเดียวกับภาษาปลายทาง คำพูดที่ผสมหลายภาษาอาจมีช่องว่าง",
+    "targetLanguageLimited": "โมเดลนี้รองรับ 13 ภาษาปลายทาง",
+    "translateModelAvailable": "ตรวจสอบ API key สำเร็จ gpt-realtime-translate พร้อมใช้งาน",
+    "translateModelNotAvailable": "API key ใช้งานได้ แต่ไม่สามารถเข้าถึง gpt-realtime-translate ด้วย key นี้",
+    "transcriptModelTooltipTranslate": "คำบรรยายภาษาต้นทาง ปัจจุบันรองรับเฉพาะ gpt-realtime-whisper",
+    "modelTooltipTranslate": "โมเดลการแปลเสียงเฉพาะของ OpenAI เสียงจะปรับให้เข้ากับผู้พูดต้นทางโดยอัตโนมัติ"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",
