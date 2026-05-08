@@ -7,6 +7,7 @@ import {
   FilteredModel,
   SessionConfig,
   OpenAISessionConfig,
+  OpenAITranslateSessionConfig,
   GeminiSessionConfig,
   PalabraAISessionConfig,
   VolcengineSTSessionConfig,
@@ -488,6 +489,25 @@ function createOpenAISessionConfig(
   };
 }
 
+function createOpenAITranslateSessionConfig(
+  settings: OpenAITranslateSettings,
+  systemInstructions: string  // ignored — translate doesn't accept instructions
+): OpenAITranslateSessionConfig {
+  void systemInstructions;
+  return {
+    provider: 'openai_translate',
+    model: 'gpt-realtime-translate',
+    targetLanguage: settings.targetLanguage,
+    sourceLanguage: settings.sourceLanguage,
+    inputAudioTranscription: settings.transcriptModel
+      ? { model: settings.transcriptModel }
+      : undefined,
+    inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+    } : undefined,
+  };
+}
+
 function createGeminiSessionConfig(
   settings: GeminiSettings,
   systemInstructions: string
@@ -760,6 +780,28 @@ const useSettingsStore = create<SettingsStore>()(
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
+      const state = get();
+
+      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
+      // is empty while the OpenAI provider already has one, copy it across so
+      // the user doesn't have to re-paste. After the copy, the two keys are
+      // independent — later edits to either won't propagate to the other.
+      if (
+        provider === Provider.OPENAI_TRANSLATE
+        && !state.openaiTranslate.apiKey
+        && state.openai.apiKey
+      ) {
+        const openaiKey = state.openai.apiKey;
+        set((s) => ({
+          openaiTranslate: { ...s.openaiTranslate, apiKey: openaiKey }
+        }));
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.openaiTranslate.apiKey', openaiKey);
+        // Fire-and-forget validation so the freshly-prefilled key is verified
+        // in the background without blocking the provider switch.
+        void get().validateApiKey();
+      }
+
       set({provider});
 
       // Clear cache synchronously before persisting, so SettingsInitializer
@@ -1501,6 +1543,9 @@ const useSettingsStore = create<SettingsStore>()(
           break;
         case Provider.KIZUNA_AI:
           config = createOpenAISessionConfig(state.kizunaai, systemInstructions);
+          break;
+        case Provider.OPENAI_TRANSLATE:
+          config = createOpenAITranslateSessionConfig(state.openaiTranslate, systemInstructions);
           break;
         case Provider.VOLCENGINE_ST:
           config = createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
