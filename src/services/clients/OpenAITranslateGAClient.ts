@@ -242,7 +242,7 @@ export class OpenAITranslateGAClient implements IClient {
       case 'error': {
         const errorMessage = event.error?.message || event.error?.code || 'Unknown error';
         const errorItem: ConversationItem = {
-          id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+          id: this.genItemId(),
           role: 'system',
           type: 'error',
           status: 'completed',
@@ -272,7 +272,19 @@ export class OpenAITranslateGAClient implements IClient {
   async disconnect(): Promise<void> {}
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
-  reset(): void {}
+  reset(): void {
+    // Cancel the silence timer and finalize any in-flight pair, then drop
+    // accumulated state so the client is fresh for the next session.
+    if (this.deltaTimer) {
+      clearTimeout(this.deltaTimer);
+      this.deltaTimer = null;
+    }
+    this.currentPair = null;
+    this.conversationItems = [];
+    this.itemLookup.clear();
+    this.audioChunks.clear();
+    this.deltaSequenceNumber = 0;
+  }
   appendInputAudio(_audioData: Int16Array): void {}
   appendInputText(_text: string): void { /* no-op: text input not supported by translate */ }
   createResponse(_config?: ResponseConfig): void { /* no-op: continuous streaming, no response lifecycle */ }
