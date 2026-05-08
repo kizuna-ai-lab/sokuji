@@ -780,28 +780,13 @@ const useSettingsStore = create<SettingsStore>()(
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
-      const state = get();
+      // Snapshot the prior state BEFORE committing the provider switch so the
+      // prefill check sees the previous provider's apiKey value.
+      const prior = get();
 
-      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
-      // is empty while the OpenAI provider already has one, copy it across so
-      // the user doesn't have to re-paste. After the copy, the two keys are
-      // independent — later edits to either won't propagate to the other.
-      if (
-        provider === Provider.OPENAI_TRANSLATE
-        && !state.openaiTranslate.apiKey
-        && state.openai.apiKey
-      ) {
-        const openaiKey = state.openai.apiKey;
-        set((s) => ({
-          openaiTranslate: { ...s.openaiTranslate, apiKey: openaiKey }
-        }));
-        const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.openaiTranslate.apiKey', openaiKey);
-        // Fire-and-forget validation so the freshly-prefilled key is verified
-        // in the background without blocking the provider switch.
-        void get().validateApiKey();
-      }
-
+      // Commit the provider change first so any subscriber (SettingsInitializer
+      // etc.) sees the new value synchronously. Persistence and the optional
+      // prefill happen afterwards.
       set({provider});
 
       // Clear cache synchronously before persisting, so SettingsInitializer
@@ -811,6 +796,32 @@ const useSettingsStore = create<SettingsStore>()(
 
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
+
+      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
+      // is empty while the OpenAI provider already has one, copy it across so
+      // the user doesn't have to re-paste. After the copy, the two keys are
+      // independent — later edits to either won't propagate to the other.
+      if (
+        provider === Provider.OPENAI_TRANSLATE
+        && !prior.openaiTranslate.apiKey
+        && prior.openai.apiKey
+      ) {
+        const openaiKey = prior.openai.apiKey;
+        set((s) => ({
+          openaiTranslate: { ...s.openaiTranslate, apiKey: openaiKey }
+        }));
+        try {
+          await service.setSetting('settings.openaiTranslate.apiKey', openaiKey);
+        } catch (e) {
+          // Best-effort prefill: if persistence fails the in-memory copy is
+          // still usable for this session; user can re-trigger by setting
+          // the key manually.
+          console.warn('[SettingsStore] Failed to persist openaiTranslate prefilled key:', e);
+        }
+        // Fire-and-forget validation so the freshly-prefilled key is verified
+        // in the background without blocking the provider switch.
+        void get().validateApiKey();
+      }
     },
 
     setUILanguage: async (uiLanguage) => {
