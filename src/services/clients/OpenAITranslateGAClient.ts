@@ -312,12 +312,13 @@ export class OpenAITranslateGAClient implements IClient {
     const url = `${TRANSLATE_WS_URL}?model=${encodeURIComponent(config.model)}`;
     // The browser WebSocket constructor cannot set Authorization headers.
     // OpenAI accepts auth via the Sec-WebSocket-Protocol subprotocol with the
-    // `openai-insecure-api-key.${apiKey}` token (same pattern used by the
-    // openai-realtime-api community library and existing OpenAIClient).
+    // `openai-insecure-api-key.${apiKey}` token. We deliberately omit the
+    // `openai-beta.realtime-v1` subprotocol — translate is GA-only, and
+    // including the beta tag triggers a server-side rejection
+    // ("Translation sessions are only available on the GA API.").
     this.ws = new WebSocket(url, [
       'realtime',
       `openai-insecure-api-key.${this.apiKey}`,
-      'openai-beta.realtime-v1',
     ]);
 
     this.setupWebSocketListeners();

@@ -215,19 +215,21 @@ export class EphemeralTokenService {
       }
 
       const data = await response.json();
-      // Cookbook example shows the response includes a `client_secret`
-      // alongside other session metadata. Defensive: handle both possible
-      // response shapes (plain string or { value, expires_at }) since the
-      // exact contract isn't documented. NB: caching is intentionally
-      // omitted here — caller mints once per session start; getToken's
-      // expiry-aware cache pattern can be ported if hot-path data shows up.
-      if (!data.client_secret) {
+      // Real response shape from /v1/realtime/translations/client_secrets is
+      // FLAT — `{ value: 'ek_...', expires_at: ..., session: {...} }` —
+      // unlike the regular /v1/realtime/sessions endpoint which nests
+      // under `client_secret`. Try the flat shape first (current API),
+      // then fall back to the nested shape (legacy / hypothetical change).
+      const flatValue = typeof data.value === 'string' ? data.value : undefined;
+      const nestedValue = typeof data.client_secret === 'string'
+        ? data.client_secret
+        : data.client_secret?.value;
+      const secret = flatValue ?? nestedValue;
+      if (!secret) {
         console.error('[Sokuji] [EphemeralTokenService] Unexpected client_secret response shape:', data);
         throw new Error('Translation client_secret missing from response');
       }
-      return typeof data.client_secret === 'string'
-        ? data.client_secret
-        : data.client_secret.value;
+      return secret;
     } catch (error) {
       console.error('[Sokuji] [EphemeralTokenService] Error minting translation client secret:', error);
       throw error;
