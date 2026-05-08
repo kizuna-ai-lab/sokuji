@@ -15,8 +15,8 @@ import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
-/** Default silence threshold; overridden per-session via OpenAITranslateSessionConfig.silenceDurationMs. */
-const SILENCE_TIMEOUT_MS = 1500;
+/** Default silence threshold for both user (input) and assistant (output) timers. */
+const SILENCE_TIMEOUT_MS = 1000;
 const SILENCE_TIMEOUT_MIN_MS = 500;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
 /** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. */
@@ -44,14 +44,21 @@ export class OpenAITranslateGAClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
   private connected: boolean = false;
 
-  // Pairing state machine — see design spec §3 for rationale
-  private currentPair: { userItemId: string; assistantItemId: string } | null = null;
-  private deltaTimer: ReturnType<typeof setTimeout> | null = null;
+  // Independent state machines for user (input) and assistant (output) sides.
+  // Source-language pauses and translation rendering have different natural
+  // boundaries (translation often spans multiple input sentences and lags
+  // behind), so we segment each side on its own timer rather than coupling
+  // them into a pair. See design notes 2026-05-08.
+  private currentUserItemId: string | null = null;
+  private currentAssistantItemId: string | null = null;
+  private userSilenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
+  private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   private itemLookup: Map<string, ConversationItem> = new Map();
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
-  private silenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -130,68 +137,83 @@ export class OpenAITranslateGAClient implements IClient {
     return `translate_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
-  private resetDeltaTimer(): void {
-    if (this.deltaTimer) clearTimeout(this.deltaTimer);
-    this.deltaTimer = setTimeout(() => {
-      this.completeCurrentPair();
-    }, this.silenceTimeoutMs);
+  private resetUserSilenceTimer(): void {
+    if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
+    this.userSilenceTimer = setTimeout(() => {
+      this.completeUserItem();
+    }, this.userSilenceTimeoutMs);
   }
 
-  private ensurePair(): { userItemId: string; assistantItemId: string } {
-    if (this.currentPair) return this.currentPair;
+  private resetAssistantSilenceTimer(): void {
+    if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
+    this.assistantSilenceTimer = setTimeout(() => {
+      this.completeAssistantItem();
+    }, this.assistantSilenceTimeoutMs);
+  }
 
-    const userItemId = this.genItemId();
-    const assistantItemId = this.genItemId();
-    this.currentPair = { userItemId, assistantItemId };
+  private ensureUserItem(): string {
+    if (this.currentUserItemId) return this.currentUserItemId;
 
-    const createdAt = Date.now();
-
-    const userItem: ConversationItem = {
-      id: userItemId,
+    const id = this.genItemId();
+    this.currentUserItemId = id;
+    const item: ConversationItem = {
+      id,
       role: 'user',
       type: 'message',
       status: 'in_progress',
-      createdAt,
+      createdAt: Date.now(),
       formatted: { text: '', transcript: '' },
       content: [],
     };
-    const assistantItem: ConversationItem = {
-      id: assistantItemId,
+    this.conversationItems.push(item);
+    this.itemLookup.set(id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    return id;
+  }
+
+  private ensureAssistantItem(): string {
+    if (this.currentAssistantItemId) return this.currentAssistantItemId;
+
+    const id = this.genItemId();
+    this.currentAssistantItemId = id;
+    const item: ConversationItem = {
+      id,
       role: 'assistant',
       type: 'message',
       status: 'in_progress',
-      createdAt,
+      createdAt: Date.now(),
       formatted: { text: '', transcript: '' },
       content: [],
     };
-
-    this.conversationItems.push(userItem, assistantItem);
-    this.itemLookup.set(userItemId, userItem);
-    this.itemLookup.set(assistantItemId, assistantItem);
-
-    this.eventHandlers.onConversationUpdated?.({ item: userItem });
-    this.eventHandlers.onConversationUpdated?.({ item: assistantItem });
-
-    return this.currentPair;
+    this.conversationItems.push(item);
+    this.itemLookup.set(id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    return id;
   }
 
-  private completeCurrentPair(): void {
-    if (!this.currentPair) return;
-
-    const { userItemId, assistantItemId } = this.currentPair;
-    const userItem = this.itemLookup.get(userItemId);
-    const assistantItem = this.itemLookup.get(assistantItemId);
-
-    if (userItem) {
-      userItem.status = 'completed';
-      if (userItem.formatted) userItem.formatted.text = userItem.formatted.transcript || '';
-      this.eventHandlers.onConversationUpdated?.({ item: userItem });
+  private completeUserItem(): void {
+    if (!this.currentUserItemId) return;
+    const item = this.itemLookup.get(this.currentUserItemId);
+    if (item) {
+      item.status = 'completed';
+      if (item.formatted) item.formatted.text = item.formatted.transcript || '';
+      this.eventHandlers.onConversationUpdated?.({ item });
     }
+    this.currentUserItemId = null;
+    if (this.userSilenceTimer) {
+      clearTimeout(this.userSilenceTimer);
+      this.userSilenceTimer = null;
+    }
+  }
 
-    if (assistantItem) {
-      assistantItem.status = 'completed';
-      const chunks = this.audioChunks.get(assistantItemId);
-      if (chunks && chunks.length > 0 && assistantItem.formatted) {
+  private completeAssistantItem(): void {
+    if (!this.currentAssistantItemId) return;
+    const itemId = this.currentAssistantItemId;
+    const item = this.itemLookup.get(itemId);
+    if (item) {
+      item.status = 'completed';
+      const chunks = this.audioChunks.get(itemId);
+      if (chunks && chunks.length > 0 && item.formatted) {
         const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
         const merged = new Int16Array(totalLength);
         let offset = 0;
@@ -199,17 +221,16 @@ export class OpenAITranslateGAClient implements IClient {
           merged.set(chunk, offset);
           offset += chunk.length;
         }
-        assistantItem.formatted.audio = merged;
-        this.audioChunks.delete(assistantItemId);
+        item.formatted.audio = merged;
+        this.audioChunks.delete(itemId);
       }
-      if (assistantItem.formatted) assistantItem.formatted.text = assistantItem.formatted.transcript || '';
-      this.eventHandlers.onConversationUpdated?.({ item: assistantItem });
+      if (item.formatted) item.formatted.text = item.formatted.transcript || '';
+      this.eventHandlers.onConversationUpdated?.({ item });
     }
-
-    this.currentPair = null;
-    if (this.deltaTimer) {
-      clearTimeout(this.deltaTimer);
-      this.deltaTimer = null;
+    this.currentAssistantItemId = null;
+    if (this.assistantSilenceTimer) {
+      clearTimeout(this.assistantSilenceTimer);
+      this.assistantSilenceTimer = null;
     }
   }
 
@@ -222,8 +243,8 @@ export class OpenAITranslateGAClient implements IClient {
 
     switch (event.type) {
       case 'session.input_transcript.delta': {
-        const pair = this.ensurePair();
-        const userItem = this.itemLookup.get(pair.userItemId);
+        const userItemId = this.ensureUserItem();
+        const userItem = this.itemLookup.get(userItemId);
         if (userItem?.formatted) {
           userItem.formatted.transcript = (userItem.formatted.transcript || '') + (event.delta || '');
         }
@@ -231,13 +252,13 @@ export class OpenAITranslateGAClient implements IClient {
           item: userItem!,
           delta: { transcript: event.delta },
         });
-        this.resetDeltaTimer();
+        this.resetUserSilenceTimer();
         break;
       }
 
       case 'session.output_transcript.delta': {
-        const pair = this.ensurePair();
-        const assistantItem = this.itemLookup.get(pair.assistantItemId);
+        const assistantItemId = this.ensureAssistantItem();
+        const assistantItem = this.itemLookup.get(assistantItemId);
         if (assistantItem?.formatted) {
           assistantItem.formatted.transcript = (assistantItem.formatted.transcript || '') + (event.delta || '');
         }
@@ -245,7 +266,7 @@ export class OpenAITranslateGAClient implements IClient {
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
-        this.resetDeltaTimer();
+        this.resetAssistantSilenceTimer();
         break;
       }
 
@@ -263,17 +284,22 @@ export class OpenAITranslateGAClient implements IClient {
         // the content stream.
         if (audioData.length === HEARTBEAT_SAMPLES) break;
 
-        if (!this.currentPair) break;
-        const pair = this.currentPair;
-        const assistantItem = this.itemLookup.get(pair.assistantItemId);
+        // Audio attaches only to an assistant item created by an output
+        // transcript. We deliberately don't auto-create on audio: empirically
+        // output_transcript always leads content audio in real utterances,
+        // and the only frames that arrive without a transcript are
+        // session-start prelude (silent fade-in) which we don't want to keep.
+        if (!this.currentAssistantItemId) break;
+        const assistantItemId = this.currentAssistantItemId;
+        const assistantItem = this.itemLookup.get(assistantItemId);
         if (!assistantItem) break;
 
         const sequenceNumber = ++this.deltaSequenceNumber;
 
-        if (!this.audioChunks.has(pair.assistantItemId)) {
-          this.audioChunks.set(pair.assistantItemId, []);
+        if (!this.audioChunks.has(assistantItemId)) {
+          this.audioChunks.set(assistantItemId, []);
         }
-        this.audioChunks.get(pair.assistantItemId)!.push(audioData);
+        this.audioChunks.get(assistantItemId)!.push(audioData);
 
         this.eventHandlers.onConversationUpdated?.({
           item: assistantItem,
@@ -283,18 +309,19 @@ export class OpenAITranslateGAClient implements IClient {
             timestamp: Date.now(),
           },
         });
-        // Content audio is real activity — reset the silence timer so the
-        // pair stays open until TTS rendering also winds down, not just
-        // until transcripts stop.
-        this.resetDeltaTimer();
+        // Content audio is real assistant activity — keep the assistant
+        // item open until TTS rendering also winds down, independent of
+        // whether more transcripts are still arriving.
+        this.resetAssistantSilenceTimer();
         break;
       }
 
       case 'session.input_transcript.done':
+        this.completeUserItem();
+        break;
       case 'session.output_transcript.done':
       case 'session.output_audio.done':
-        // Any of these indicate end of utterance.
-        this.completeCurrentPair();
+        this.completeAssistantItem();
         break;
 
       case 'session.created':
@@ -334,8 +361,10 @@ export class OpenAITranslateGAClient implements IClient {
     this.itemLookup.clear();
     this.conversationItems = [];
     this.audioChunks.clear();
-    this.currentPair = null;
-    this.silenceTimeoutMs = clampSilenceTimeout(config.silenceDurationMs);
+    this.currentUserItemId = null;
+    this.currentAssistantItemId = null;
+    this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
+    this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
 
     const url = `${TRANSLATE_WS_URL}?model=${encodeURIComponent(config.model)}`;
     // The browser WebSocket constructor cannot set Authorization headers.
@@ -471,7 +500,10 @@ export class OpenAITranslateGAClient implements IClient {
       this.ws = null;
     }
     this.connected = false;
-    this.completeCurrentPair();
+    // Finalise any in-flight items so partial transcripts/audio aren't lost
+    // when the user ends the session mid-utterance.
+    this.completeUserItem();
+    this.completeAssistantItem();
   }
 
   isConnected(): boolean {
@@ -481,8 +513,11 @@ export class OpenAITranslateGAClient implements IClient {
   updateSession(config: Partial<SessionConfig>): void {
     if (!this.ws || !isOpenAITranslateSessionConfig(config as SessionConfig)) return;
     const tConfig = config as OpenAITranslateSessionConfig;
-    if (tConfig.silenceDurationMs !== undefined) {
-      this.silenceTimeoutMs = clampSilenceTimeout(tConfig.silenceDurationMs);
+    if (tConfig.userSilenceDurationMs !== undefined) {
+      this.userSilenceTimeoutMs = clampSilenceTimeout(tConfig.userSilenceDurationMs);
+    }
+    if (tConfig.assistantSilenceDurationMs !== undefined) {
+      this.assistantSilenceTimeoutMs = clampSilenceTimeout(tConfig.assistantSilenceDurationMs);
     }
     const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(tConfig);
     this.ws.send(JSON.stringify(updatePayload));
@@ -493,13 +528,18 @@ export class OpenAITranslateGAClient implements IClient {
   }
 
   reset(): void {
-    // Cancel the silence timer and finalize any in-flight pair, then drop
-    // accumulated state so the client is fresh for the next session.
-    if (this.deltaTimer) {
-      clearTimeout(this.deltaTimer);
-      this.deltaTimer = null;
+    // Cancel both silence timers and drop accumulated state so the client
+    // is fresh for the next session.
+    if (this.userSilenceTimer) {
+      clearTimeout(this.userSilenceTimer);
+      this.userSilenceTimer = null;
     }
-    this.currentPair = null;
+    if (this.assistantSilenceTimer) {
+      clearTimeout(this.assistantSilenceTimer);
+      this.assistantSilenceTimer = null;
+    }
+    this.currentUserItemId = null;
+    this.currentAssistantItemId = null;
     this.conversationItems = [];
     this.itemLookup.clear();
     this.audioChunks.clear();

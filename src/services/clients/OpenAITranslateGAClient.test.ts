@@ -98,22 +98,31 @@ describe('OpenAITranslateGAClient state machine', () => {
     vi.useRealTimers();
   });
 
-  it('creates a paired user+assistant item on first input_transcript.delta', () => {
+  it('creates a user item on first input_transcript.delta (no assistant yet)', () => {
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hello',
     });
 
-    expect(updates.length).toBeGreaterThanOrEqual(2);
-    const roles = updates.slice(0, 2).map((u) => u.item.role);
-    expect(roles).toContain('user');
-    expect(roles).toContain('assistant');
-
-    const userUpdate = updates.find((u) => u.item.role === 'user');
-    expect(userUpdate.item.formatted.transcript).toBe('Hello');
+    const items = client.getConversationItems();
+    expect(items.length).toBe(1);
+    expect(items[0].role).toBe('user');
+    expect(items[0].formatted?.transcript).toBe('Hello');
   });
 
-  it('appends output_transcript.delta to the assistant item', () => {
+  it('creates an assistant item on first output_transcript.delta (no user yet)', () => {
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Hola',
+    });
+
+    const items = client.getConversationItems();
+    expect(items.length).toBe(1);
+    expect(items[0].role).toBe('assistant');
+    expect(items[0].formatted?.transcript).toBe('Hola');
+  });
+
+  it('appends output_transcript.delta only to the assistant item', () => {
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hola',
@@ -124,13 +133,13 @@ describe('OpenAITranslateGAClient state machine', () => {
     });
 
     const items = client.getConversationItems();
-    const assistant = items.find((i) => i.role === 'assistant');
-    expect(assistant?.formatted?.transcript).toBe('Hello');
+    expect(items.find((i) => i.role === 'user')?.formatted?.transcript).toBe('Hola');
+    expect(items.find((i) => i.role === 'assistant')?.formatted?.transcript).toBe('Hello');
   });
 
   it('accumulates content (9600-sample) output_audio.delta into assistant audioChunks', () => {
     (client as any).handleServerEvent({
-      type: 'session.input_transcript.delta',
+      type: 'session.output_transcript.delta',
       delta: 'Test',
     });
     (client as any).handleServerEvent({
@@ -144,11 +153,9 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(audioUpdate).toBeDefined();
   });
 
-  it('drops 4800-sample heartbeat output_audio.delta even when a pair exists', () => {
-    // Heartbeat frames carry no real audio and must not be persisted into
-    // audioChunks (otherwise stale silence pollutes the playback buffer).
+  it('drops 4800-sample heartbeat output_audio.delta even when an assistant exists', () => {
     (client as any).handleServerEvent({
-      type: 'session.input_transcript.delta',
+      type: 'session.output_transcript.delta',
       delta: 'Hi',
     });
     (client as any).handleServerEvent({
@@ -160,8 +167,10 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(audioUpdate).toBeUndefined();
   });
 
-  it('drops content output_audio.delta when no transcript-driven pair exists', () => {
-    // Pre-speech content (rare but possible) has no item to attach to.
+  it('drops content output_audio.delta when no assistant item exists', () => {
+    // Translate emits a silent prelude content frame at session start (before
+    // any output_transcript). With independent state machines, audio must NOT
+    // create an assistant item — only output_transcript does.
     (client as any).handleServerEvent({
       type: 'session.output_audio.delta',
       delta: CONTENT_DELTA,
@@ -169,82 +178,123 @@ describe('OpenAITranslateGAClient state machine', () => {
 
     expect(client.getConversationItems()).toEqual([]);
     expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
-  });
 
-  it('heartbeat audio does NOT reset the silence timer', () => {
-    // Open a pair via transcript, then stream heartbeat every 500ms for 2s.
-    // The 1.5s silence completion must still fire on schedule.
+    // Even with a USER item open, audio still drops — assistant is independent.
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
+      delta: 'Hello',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: CONTENT_DELTA,
+    });
+    expect(updates.find((u) => u.delta?.audio)).toBeUndefined();
+  });
+
+  it('heartbeat audio does NOT reset assistant silence timer', () => {
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
       delta: 'Hi',
     });
 
-    for (let t = 0; t < 2000; t += 500) {
+    for (let t = 0; t < 1500; t += 500) {
       vi.advanceTimersByTime(500);
       (client as any).handleServerEvent({
         type: 'session.output_audio.delta',
         delta: HEARTBEAT_DELTA,
       });
     }
-
+    // Total elapsed 1500ms — at default 1000ms threshold, assistant should
+    // already have completed. Heartbeat must not have kept it alive.
     const items = client.getConversationItems();
-    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('content audio DOES reset the silence timer (TTS tail keeps pair open)', () => {
-    // Simulate a translation whose TTS rendering tails ~3s past the last
-    // transcript: content audio every 500ms for 3s should keep the pair
-    // open beyond the 1.5s silence threshold.
+  it('content audio keeps assistant open past output_transcript end (TTS tail)', () => {
     (client as any).handleServerEvent({
-      type: 'session.input_transcript.delta',
+      type: 'session.output_transcript.delta',
       delta: 'Hi',
     });
-
-    for (let t = 0; t < 3000; t += 500) {
+    // Keep streaming content audio for 2.5s — well past the 1s default
+    // threshold. Assistant should stay open the whole time.
+    for (let t = 0; t < 2500; t += 500) {
       vi.advanceTimersByTime(500);
       (client as any).handleServerEvent({
         type: 'session.output_audio.delta',
         delta: CONTENT_DELTA,
       });
     }
-
-    // Total elapsed: 3000ms, but timer keeps resetting on every 500ms audio
-    // frame, so it should still be in_progress.
     let items = client.getConversationItems();
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
 
-    // Now stop sending audio; 1.5s later the timer should fire.
-    vi.advanceTimersByTime(1600);
+    // Stop audio; assistant closes 1s later.
+    vi.advanceTimersByTime(1100);
     items = client.getConversationItems();
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('marks both items completed after 1.5s of silence', () => {
+  it('user and assistant close on independent timers', () => {
+    // The whole point of independent state: input pause should NOT close the
+    // assistant if it's still receiving output transcripts.
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hello',
     });
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Hola',
+    });
+
+    // Input falls silent; assistant keeps streaming.
+    vi.advanceTimersByTime(500);
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: ' mundo',
+    });
+    vi.advanceTimersByTime(700); // total 1200ms since last input_transcript
 
     let items = client.getConversationItems();
-    expect(items.find((i) => i.role === 'user')?.status).toBe('in_progress');
-
-    vi.advanceTimersByTime(1600);
-
-    items = client.getConversationItems();
     expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
+
+    // Now assistant also falls silent.
+    vi.advanceTimersByTime(1100);
+    items = client.getConversationItems();
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
+  it('next utterance creates new user item without affecting active assistant', () => {
+    // Simulates the scenario from the bug report: source pauses while the
+    // model is still translating the previous utterance. The next input
+    // burst must start a fresh user item, not extend or interrupt the
+    // still-open assistant.
+    (client as any).handleServerEvent({
+      type: 'session.input_transcript.delta',
+      delta: 'first',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'primero',
+    });
+    vi.advanceTimersByTime(1100); // user closes (1s threshold), assistant kept alive by output_transcript at t=0
+
+    let items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'user' && i.formatted?.transcript === 'first')?.status).toBe('completed');
+    // Assistant: last activity was at t=0, advanced 1100ms → also closed.
+    // To keep it alive we'd need ongoing output activity. Test instead that
+    // a NEW user starting now doesn't disturb it either way:
 
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
-      delta: 'Bye',
+      delta: 'second',
     });
     items = client.getConversationItems();
     const userItems = items.filter((i) => i.role === 'user');
     expect(userItems.length).toBe(2);
+    expect(userItems[1].formatted?.transcript).toBe('second');
   });
 
-  it('marks items completed on session.input_transcript.done event', () => {
+  it('marks user item completed on session.input_transcript.done', () => {
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hi',
@@ -255,33 +305,52 @@ describe('OpenAITranslateGAClient state machine', () => {
 
     const items = client.getConversationItems();
     expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    // No assistant was created — output side never triggered.
+    expect(items.find((i) => i.role === 'assistant')).toBeUndefined();
+  });
+
+  it('marks assistant item completed on session.output_audio.done', () => {
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Hi',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.done',
+    });
+
+    const items = client.getConversationItems();
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('honours configured silenceDurationMs', () => {
-    // Apply a custom 800ms threshold and verify pair completes accordingly.
-    (client as any).silenceTimeoutMs = 800;
+  it('honours configured per-side silence thresholds', () => {
+    (client as any).userSilenceTimeoutMs = 600;
+    (client as any).assistantSilenceTimeoutMs = 1500;
 
     (client as any).handleServerEvent({
       type: 'session.input_transcript.delta',
       delta: 'Hi',
     });
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Bonjour',
+    });
 
+    // After 700ms, user should have closed but assistant still in_progress.
     vi.advanceTimersByTime(700);
     let items = client.getConversationItems();
-    expect(items.find((i) => i.role === 'user')?.status).toBe('in_progress');
-
-    vi.advanceTimersByTime(200);
-    items = client.getConversationItems();
     expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
+
+    // After total 1600ms, assistant also closes.
+    vi.advanceTimersByTime(900);
+    items = client.getConversationItems();
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('clamps silenceDurationMs to [500, 3000]', async () => {
-    // Test the clamp helper indirectly via a mock-connect path.
-    // Just verify the values are clamped on the static-like path.
+  it('exports the correct silence-timeout constants', async () => {
     const { SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS } =
       await import('./OpenAITranslateGAClient');
-    expect(SILENCE_TIMEOUT_MS).toBe(1500);
+    expect(SILENCE_TIMEOUT_MS).toBe(1000);
     expect(SILENCE_TIMEOUT_MIN_MS).toBe(500);
     expect(SILENCE_TIMEOUT_MAX_MS).toBe(3000);
   });

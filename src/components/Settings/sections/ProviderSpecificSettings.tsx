@@ -656,19 +656,24 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
-  // Standalone silence-duration slider for providers (currently only
-  // OPENAI_TRANSLATE) that expose hasSilenceDuration without a full
-  // turn-detection block. The slider here drives client-side utterance
-  // segmentation, not server-side VAD. For providers that DO have
-  // hasTurnDetection, the slider lives inside renderTurnDetectionSettings
-  // and this function returns null to avoid double-rendering.
+  // Standalone silence-duration sliders for providers (currently only
+  // OPENAI_TRANSLATE) that segment user (input) and assistant (output)
+  // independently. Translate's API has no server-side turn detection, so
+  // these only control UI message splitting. Range 0.5–3.0s.
   const renderSilenceDurationOnlySetting = () => {
     if (!config.capabilities.turnDetection.hasSilenceDuration) return null;
     if (config.capabilities.hasTurnDetection) return null;
 
     const compatibleSettings = getOpenAICompatibleSettings();
-    if (!compatibleSettings || !('silenceDuration' in compatibleSettings)) return null;
-    const current = (compatibleSettings as { silenceDuration: number }).silenceDuration;
+    if (
+      !compatibleSettings ||
+      !('userSilenceDuration' in compatibleSettings) ||
+      !('assistantSilenceDuration' in compatibleSettings)
+    ) {
+      return null;
+    }
+    const userValue = (compatibleSettings as { userSilenceDuration: number }).userSilenceDuration;
+    const assistantValue = (compatibleSettings as { assistantSilenceDuration: number }).assistantSilenceDuration;
 
     return (
       <div className="settings-section">
@@ -683,16 +688,32 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </h2>
         <div className="setting-item">
           <div className="setting-label">
-            <span>{t('settings.silenceDuration')}</span>
-            <span className="setting-value">{current.toFixed(2)}s</span>
+            <span>{t('settings.userSilenceDuration', 'Source pause')}</span>
+            <span className="setting-value">{userValue.toFixed(2)}s</span>
           </div>
           <input
             type="range"
             min="0.5"
             max="3"
             step="0.1"
-            value={current}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ silenceDuration: parseFloat(e.target.value) })}
+            value={userValue}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ userSilenceDuration: parseFloat(e.target.value) })}
+            className="slider"
+            disabled={isSessionActive}
+          />
+        </div>
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>{t('settings.assistantSilenceDuration', 'Translation pause')}</span>
+            <span className="setting-value">{assistantValue.toFixed(2)}s</span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.1"
+            value={assistantValue}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ assistantSilenceDuration: parseFloat(e.target.value) })}
             className="slider"
             disabled={isSessionActive}
           />

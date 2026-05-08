@@ -90,11 +90,14 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
   sourceLanguage?: string;
   inputAudioTranscription?: { model: string };
   inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
-  // Client-side utterance segmentation: a pair is considered finished
-  // after this many ms with no transcript or content-audio activity.
-  // Range 500–3000ms. The translate API has no server-side turn detection,
-  // so this purely controls how messages are split in the UI.
-  silenceDurationMs?: number;
+  // Client-side utterance segmentation. The user (input) and assistant
+  // (output) sides run independent state machines because translation
+  // often crosses input sentence boundaries — coupling them caused
+  // assistant items to be cut mid-clause when input paused. Both range
+  // 500–3000ms. The translate API has no server-side turn detection, so
+  // these only control UI message splitting.
+  userSilenceDurationMs?: number;
+  assistantSilenceDurationMs?: number;
 }
 
 /**

@@ -89,12 +89,13 @@ export interface OpenAITranslateSettings {
   transcriptModel: 'gpt-realtime-whisper';
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
-  // Client-side utterance segmentation threshold in seconds. Translate API
-  // has no server-side turn detection, so this only controls how the UI
-  // splits messages. Range 0.5–3.0s. Stored as seconds for UI consistency
-  // with OpenAICompatibleSettings.silenceDuration; converted to ms when
-  // building the session config for the client.
-  silenceDuration: number;
+  // Client-side utterance segmentation thresholds in seconds. User (input)
+  // and assistant (output) run independent state machines, so each has its
+  // own threshold. Range 0.5–3.0s. Translate API has no server-side turn
+  // detection, so these only control UI message splitting. Stored as
+  // seconds; converted to ms when building the session config.
+  userSilenceDuration: number;
+  assistantSilenceDuration: number;
 }
 
 // Gemini Settings
@@ -282,7 +283,8 @@ const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
   transcriptModel: 'gpt-realtime-whisper',
   noiseReduction: 'None',
   transportType: 'websocket',
-  silenceDuration: 1.5,
+  userSilenceDuration: 1.0,
+  assistantSilenceDuration: 1.0,
 };
 
 const defaultGeminiSettings: GeminiSettings = {
@@ -512,7 +514,8 @@ function createOpenAITranslateSessionConfig(
     inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
       type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
-    silenceDurationMs: Math.round(settings.silenceDuration * 1000),
+    userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
+    assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
   };
 }
 
