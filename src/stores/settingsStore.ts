@@ -1299,6 +1299,11 @@ const useSettingsStore = create<SettingsStore>()(
                 case Provider.KIZUNA_AI:
                   get().updateKizunaAI({ model: latestModel });
                   break;
+                case Provider.OPENAI_TRANSLATE:
+                  // Translate locks model server-side; settings shape has
+                  // no `model` field, so the auto-select is intentionally
+                  // a no-op here.
+                  break;
               }
               console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
             }

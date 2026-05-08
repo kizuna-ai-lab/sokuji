@@ -2,6 +2,8 @@ import { IClient } from '../interfaces/IClient';
 import { OpenAIClient } from './OpenAIClient';
 import { OpenAIGAClient } from './OpenAIGAClient';
 import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
+import { OpenAITranslateGAClient } from './OpenAITranslateGAClient';
+import { OpenAITranslateWebRTCClient } from './OpenAITranslateWebRTCClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { VolcengineSTClient } from './VolcengineSTClient';
@@ -66,6 +68,19 @@ export class ClientFactory {
         // Use GA client for direct OpenAI WebSocket connections
         // (official SDK, no beta header)
         return new OpenAIGAClient(apiKey);
+
+      case Provider.OPENAI_TRANSLATE:
+        // Translate uses its own dedicated endpoint (/v1/realtime/translations)
+        // and a different session lifecycle (continuous, no turn detection),
+        // so it has its own pair of transport-specific client classes.
+        if (transportType === 'webrtc') {
+          return new OpenAITranslateWebRTCClient({
+            apiKey,
+            inputDeviceId: webrtcOptions?.inputDeviceId,
+            outputDeviceId: webrtcOptions?.outputDeviceId,
+          });
+        }
+        return new OpenAITranslateGAClient(apiKey);
 
       case Provider.OPENAI_COMPATIBLE:
         // OpenAI Compatible uses OpenAIClient with custom endpoint
@@ -138,7 +153,9 @@ export class ClientFactory {
    * Check if a provider supports WebRTC transport
    */
   static supportsWebRTC(provider: ProviderType): boolean {
-    return provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE;
+    return provider === Provider.OPENAI
+      || provider === Provider.OPENAI_COMPATIBLE
+      || provider === Provider.OPENAI_TRANSLATE;
   }
 
   /**

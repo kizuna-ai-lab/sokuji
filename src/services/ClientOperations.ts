@@ -1,4 +1,5 @@
 import { OpenAIClient } from './clients/OpenAIClient';
+import { OpenAITranslateGAClient } from './clients/OpenAITranslateGAClient';
 import { GeminiClient } from './clients/GeminiClient';
 import { PalabraAIClient } from './clients/PalabraAIClient';
 import { VolcengineSTClient } from './clients/VolcengineSTClient';
@@ -28,6 +29,8 @@ export class ClientOperations {
     switch (provider) {
       case Provider.OPENAI:
         return await OpenAIClient.validateApiKeyAndFetchModels(apiKey);
+      case Provider.OPENAI_TRANSLATE:
+        return await OpenAITranslateGAClient.validateApiKeyAndFetchModels(apiKey);
       case Provider.OPENAI_COMPATIBLE:
         // OpenAI Compatible provider requires a custom endpoint
         if (!customEndpoint) {
@@ -111,6 +114,9 @@ export class ClientOperations {
       case Provider.OPENAI_COMPATIBLE:
         // OpenAI and OpenAI Compatible use the same model detection logic
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
+      case Provider.OPENAI_TRANSLATE:
+        // Translate has a single fixed model family; pick newest if multiple variants exist.
+        return filteredModels[0]?.id ?? 'gpt-realtime-translate';
       case Provider.GEMINI:
         return GeminiClient.getLatestRealtimeModel(filteredModels);
       case Provider.PALABRA_AI:
