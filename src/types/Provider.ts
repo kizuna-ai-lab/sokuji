@@ -31,6 +31,7 @@ export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_
  */
 export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
+  Provider.OPENAI_TRANSLATE,
   Provider.GEMINI,
   Provider.LOCAL_INFERENCE,
   ...(isPalabraAIEnabled() ? [Provider.PALABRA_AI] : []),
@@ -70,6 +71,8 @@ export function getProviderDisplayName(provider: ProviderType): string {
   switch (provider) {
     case Provider.OPENAI:
       return 'OpenAI';
+    case Provider.OPENAI_TRANSLATE:
+      return 'OpenAI Translate';
     case Provider.GEMINI:
       return 'Gemini';
     case Provider.PALABRA_AI:

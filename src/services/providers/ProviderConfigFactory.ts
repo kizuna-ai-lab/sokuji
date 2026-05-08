@@ -2,6 +2,7 @@ import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
+import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
@@ -20,6 +21,7 @@ export class ProviderConfigFactory {
   static {
     // Initialize configurations
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
     // Local inference is always available (no API key or feature flag required)
