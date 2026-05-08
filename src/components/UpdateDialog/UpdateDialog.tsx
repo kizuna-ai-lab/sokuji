@@ -101,11 +101,10 @@ const UpdateDialog: React.FC = () => {
             </div>
           )}
 
-          {/* autoUpdateNote text mentions AppImage explicitly, so only show
-              it for the Linux non-AppImage path (where appImageUrl/debUrl
-              are populated). On macOS supportsAutoUpdate is also false, but
-              the message wouldn't apply. */}
-          {status === 'available' && (appImageUrl || debUrl) && (
+          {/* Only shown to Linux non-AppImage users (e.g. .deb installs):
+              AppImage users already have auto-updates, and Windows/macOS
+              don't populate appImageUrl/debUrl. */}
+          {status === 'available' && !supportsAutoUpdate && (appImageUrl || debUrl) && (
             <div className="auto-update-note">
               {t('update.autoUpdateNote')}
             </div>
