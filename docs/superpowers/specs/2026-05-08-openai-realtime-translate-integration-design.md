@@ -3,7 +3,6 @@
 **Date**: 2026-05-08
 **Status**: Approved, ready for implementation
 
-
 ## Overview
 
 OpenAI shipped `gpt-realtime-translate` as a dedicated speech-to-speech translation model with its own endpoint, session lifecycle, and configuration surface. The model is optimized for live interpretation: trained on professional interpreter audio, processes input while simultaneously streaming translated output, and is constrained to translation-only behavior (won't follow instructions or answer questions).

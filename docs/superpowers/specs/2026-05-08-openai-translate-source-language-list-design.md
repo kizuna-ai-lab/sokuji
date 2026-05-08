@@ -3,7 +3,6 @@
 **Date**: 2026-05-08
 **Status**: Approved, ready for implementation
 
-
 ## Overview
 
 Tighten the OpenAI Translate provider's source-language UX:
