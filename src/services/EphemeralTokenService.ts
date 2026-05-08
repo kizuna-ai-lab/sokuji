@@ -139,4 +139,77 @@ export class EphemeralTokenService {
     const cached = tokenCache.get(cacheKey);
     return cached !== undefined && Date.now() < cached.expiresAt - CACHE_BUFFER_MS;
   }
+
+  /**
+   * Mint a short-lived client secret for a translate WebRTC session.
+   * The secret is used as the bearer for the SDP exchange at
+   * /v1/realtime/translations/calls. Mirrors the existing getToken flow
+   * but targets translate's dedicated client_secrets endpoint.
+   *
+   * @param apiKey User's OpenAI API key
+   * @param config Session config to embed in the mint request
+   * @param apiHost Optional override (defaults to api.openai.com)
+   * @returns The client_secret string
+   * @throws Error with the API's error message on non-2xx response
+   */
+  static async mintTranslationClientSecret(
+    apiKey: string,
+    config: {
+      targetLanguage: string;
+      transcriptModel?: string;
+      noiseReductionType?: 'near_field' | 'far_field';
+    },
+    apiHost?: string
+  ): Promise<string> {
+    const host = (apiHost || this.OPENAI_API_HOST).replace(/\/$/, '');
+    const url = `${host}/v1/realtime/translations/client_secrets`;
+
+    const audioInput: any = {};
+    if (config.transcriptModel) {
+      audioInput.transcription = { model: config.transcriptModel };
+    }
+    if (config.noiseReductionType) {
+      audioInput.noise_reduction = { type: config.noiseReductionType };
+    }
+
+    const body: any = {
+      session: {
+        model: 'gpt-realtime-translate',
+        audio: {
+          output: { language: config.targetLanguage },
+        },
+      },
+    };
+    if (Object.keys(audioInput).length > 0) {
+      body.session.audio.input = audioInput;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message = errorData.error?.message || `Failed to mint translation client secret: ${response.status}`;
+      throw new Error(message);
+    }
+
+    const data = await response.json();
+    // Cookbook example shows the response includes a `client_secret`
+    // alongside other session metadata. Defensive: handle both possible
+    // response shapes (plain string or { value, expires_at }) since the
+    // exact contract isn't documented.
+    if (!data.client_secret) {
+      console.error('[Sokuji] [EphemeralTokenService] Unexpected client_secret response shape:', data);
+      throw new Error('Translation client_secret missing from response');
+    }
+    return typeof data.client_secret === 'string'
+      ? data.client_secret
+      : data.client_secret.value;
+  }
 }
