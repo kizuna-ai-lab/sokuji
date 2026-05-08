@@ -10,6 +10,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useOpenAITranslateSettings,
   useLocalInferenceSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -19,6 +20,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
+  useUpdateOpenAITranslate,
   useUpdateLocalInference,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
@@ -64,6 +66,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const openAITranslateSettings = useOpenAITranslateSettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -82,6 +85,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
+  const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -108,6 +112,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return palabraAISettings;
       case Provider.KIZUNA_AI:
         return kizunaAISettings;
+      case Provider.OPENAI_TRANSLATE:
+        return openAITranslateSettings;
       case Provider.VOLCENGINE_ST:
         return volcengineSTSettings;
       case Provider.VOLCENGINE_AST2:
@@ -117,7 +123,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, volcengineSTSettings, volcengineAST2Settings, localInferenceSettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, localInferenceSettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -136,6 +142,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ sourceLanguage: value });
+        break;
+      case Provider.OPENAI_TRANSLATE:
+        // Source language is UI-only for translate (auto-detected by API).
+        updateOpenAITranslateSettings({ sourceLanguage: value });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ sourceLanguage: value });
@@ -178,6 +188,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ targetLanguage: value });
         break;
+      case Provider.OPENAI_TRANSLATE:
+        updateOpenAITranslateSettings({ targetLanguage: value as any });
+        break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ targetLanguage: value });
         break;
@@ -210,13 +223,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
   }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
 
-  // Dynamic target languages for LOCAL_INFERENCE, static for others
+  // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
+  // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
+  // shared `languages` list otherwise.
   const targetLanguages = useMemo(() => {
     if (provider === Provider.LOCAL_INFERENCE) {
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
     }
-    return providerConfig.languages;
-  }, [provider, providerConfig.languages, currentProviderSettings.sourceLanguage]);
+    return providerConfig.targetLanguages ?? providerConfig.languages;
+  }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [
