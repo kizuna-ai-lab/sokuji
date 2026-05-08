@@ -50,96 +50,102 @@ export class OpenAIClient implements IClient {
   }
 
   /**
+   * Fetch the raw model list from /v1/models. Shared between voice-agent
+   * validation (validateApiKeyAndFetchModels below) and translate validation
+   * (OpenAITranslateGAClient.validateApiKeyAndFetchModels).
+   *
+   * Returns either { models } on success or { error } with a populated
+   * ApiKeyValidationResult. Caller decides how to filter and what
+   * "valid" means (different model families satisfy different providers).
+   */
+  static async fetchOpenAIModelsList(apiKey: string, apiHost?: string): Promise<{
+    models: OpenAIModel[];
+    error?: ApiKeyValidationResult;
+  }> {
+    if (!apiKey || apiKey.trim() === '') {
+      return {
+        models: [],
+        error: {
+          valid: false,
+          message: i18n.t('settings.errorValidatingApiKey'),
+          validating: false,
+        },
+      };
+    }
+
+    const host = (apiHost || OpenAIClient.DEFAULT_API_HOST).replace(/\/$/, '');
+    const modelsEndpoint = `${host}/v1/models`;
+
+    try {
+      const response = await fetch(modelsEndpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        if (errorData.error?.code === 'unsupported_country_region_territory') {
+          return {
+            models: [],
+            error: {
+              valid: false,
+              message: i18n.t('settings.regionNotSupported'),
+              validating: false,
+            },
+          };
+        }
+
+        return {
+          models: [],
+          error: {
+            valid: false,
+            message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
+            validating: false,
+          },
+        };
+      }
+
+      const data = await response.json();
+      return { models: data.data || [] };
+    } catch (error: any) {
+      return {
+        models: [],
+        error: {
+          valid: false,
+          message: error.message || i18n.t('settings.errorValidatingApiKey'),
+          validating: false,
+        },
+      };
+    }
+  }
+
+  /**
    * Validate API key and fetch available models in a single request
    */
   static async validateApiKeyAndFetchModels(apiKey: string, apiHost?: string): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {
-    try {
-      // Check if API key is empty or invalid
-      if (!apiKey || apiKey.trim() === '') {
-        return {
-          validation: {
-            valid: false,
-            message: i18n.t('settings.errorValidatingApiKey'),
-            validating: false
-          },
-          models: []
-        };
-      }
-      
-      // Use provided API host or default
-      const host = apiHost || this.DEFAULT_API_HOST;
-      const modelsEndpoint = `${host.replace(/\/$/, '')}/v1/models`;
-      
-      // Make request to OpenAI API models endpoint
-      const response = await fetch(modelsEndpoint, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-        console.info("[Sokuji] [OpenAIClient] Validation response:", response);
-      
-      // Handle non-200 responses
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Check for region restriction error
-        if (errorData.error?.code === 'unsupported_country_region_territory') {
-          return {
-            validation: {
-              valid: false,
-              message: i18n.t('settings.regionNotSupported'),
-              validating: false
-            },
-            models: []
-          };
-        }
-        
-        return {
-          validation: {
-            valid: false,
-            message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
-            validating: false
-          },
-          models: []
-        };
-      }
-      
-      // Parse successful response
-      const data = await response.json();
-      const availableModels = data.data || [];
-      
-      // Check for realtime models availability
-      const hasRealtimeModel = this.checkRealtimeModelAvailability(availableModels);
-
-        console.info("[Sokuji] [OpenAIClient] Available models:", availableModels);
-        console.info("[Sokuji] [OpenAIClient] Has realtime model:", hasRealtimeModel);
-      
-      // Filter relevant models
-      const filteredModels = this.filterRelevantModels(availableModels);
-      
-      // Return validation result and models
-      return {
-        validation: this.buildValidationResult(hasRealtimeModel),
-        models: filteredModels
-      };
-      
-    } catch (error: any) {
-        console.error("[Sokuji] [OpenAIClient] API key validation error:", error);
-      return {
-        validation: {
-          valid: false,
-          message: error.message || i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        },
-        models: []
-      };
+    const { models, error } = await this.fetchOpenAIModelsList(apiKey, apiHost);
+    if (error) {
+      return { validation: error, models: [] };
     }
+
+    console.info("[Sokuji] [OpenAIClient] Available models:", models);
+
+    const hasRealtimeModel = this.checkRealtimeModelAvailability(models);
+    console.info("[Sokuji] [OpenAIClient] Has realtime model:", hasRealtimeModel);
+
+    const filteredModels = this.filterRelevantModels(models);
+
+    return {
+      validation: this.buildValidationResult(hasRealtimeModel),
+      models: filteredModels,
+    };
   }
 
   /**
@@ -167,6 +173,14 @@ export class OpenAIClient implements IClient {
     if (!name.startsWith('gpt-realtime')) return false;
     if (name.startsWith('gpt-realtime-whisper')) return false;
     return true;
+  }
+
+  /**
+   * True for the dedicated translation model family. Used by
+   * OpenAITranslateGAClient to filter /v1/models output.
+   */
+  static isTranslateRealtimeModel(modelId: string): boolean {
+    return modelId.toLowerCase().startsWith('gpt-realtime-translate');
   }
 
   /**
