@@ -383,6 +383,10 @@
       "name": "Ilmainen",
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
       "noKeyRequired": "API-avainta ei tarvita"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI:n erityinen reaaliaikainen käännösmalli"
     }
   },
   "simplePanel": {

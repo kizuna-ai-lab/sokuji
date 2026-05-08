@@ -383,6 +383,10 @@
       "name": "Libre",
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
       "noKeyRequired": "Hindi kailangan ng API key"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "Dedicated real-time translation model ng OpenAI"
     }
   },
   "simplePanel": {

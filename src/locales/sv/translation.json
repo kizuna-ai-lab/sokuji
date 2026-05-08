@@ -578,6 +578,10 @@
       "name": "Gratis",
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
       "noKeyRequired": "Ingen API-nyckel krävs"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAIs särskilda realtidsöversättningsmodell"
     }
   },
   "simplePanel": {

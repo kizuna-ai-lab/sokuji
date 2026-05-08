@@ -629,6 +629,10 @@
       "name": "Бесплатный",
       "description": "Бесплатное распознавание речи (ASR) + Перевод + синтез речи (TTS)",
       "noKeyRequired": "API-ключ не требуется"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "Специализированная модель синхронного перевода OpenAI"
     }
   },
   "simplePanel": {

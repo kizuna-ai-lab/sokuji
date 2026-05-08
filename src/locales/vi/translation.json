@@ -573,6 +573,10 @@
       "name": "Miễn phí",
       "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)",
       "noKeyRequired": "Không cần API key"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "Mô hình dịch thuật thời gian thực chuyên dụng của OpenAI"
     }
   },
   "simplePanel": {

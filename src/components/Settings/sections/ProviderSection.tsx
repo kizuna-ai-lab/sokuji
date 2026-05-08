@@ -280,6 +280,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: Zap,
           description: t('providers.openaiCompatible.description', 'Custom OpenAI-compatible endpoint')
         };
+      case Provider.OPENAI_TRANSLATE:
+        return {
+          name: t('providers.openai_translate.name', 'OpenAI Translate'),
+          icon: OpenAIIcon,
+          description: t('providers.openai_translate.description', "OpenAI's dedicated real-time translation model")
+        };
       case Provider.PALABRA_AI:
         return {
           name: t('providers.palabraai.name'),

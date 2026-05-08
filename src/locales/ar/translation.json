@@ -384,6 +384,10 @@
       "name": "مجاني",
       "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",
       "noKeyRequired": "لا حاجة لمفتاح API"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "نموذج الترجمة الفورية المخصص من OpenAI"
     }
   },
   "audioPanel": {

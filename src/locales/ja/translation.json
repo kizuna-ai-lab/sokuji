@@ -633,6 +633,10 @@
       "name": "無料",
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
       "noKeyRequired": "APIキー不要"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI 専用のリアルタイム翻訳モデル"
     }
   },
   "simplePanel": {

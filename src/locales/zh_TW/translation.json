@@ -117,6 +117,10 @@
       "name": "免費",
       "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
       "noKeyRequired": "無需 API 金鑰"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI 專用的即時翻譯模型"
     }
   },
   "simplePanel": {

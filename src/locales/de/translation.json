@@ -623,6 +623,10 @@
       "name": "Kostenlos",
       "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
       "noKeyRequired": "Kein API-Schlüssel erforderlich"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAIs spezielles Echtzeit-Übersetzungsmodell"
     }
   },
   "simplePanel": {

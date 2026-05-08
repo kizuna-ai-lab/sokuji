@@ -121,6 +121,10 @@
       "name": "இலவசம்",
       "description": "இலவச பேச்சு அங்கீகாரம் (ASR) + மொழிபெயர்ப்பு + பேச்சு தொகுப்பு (TTS)",
       "noKeyRequired": "API விசை தேவையில்லை"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI இன் சிறப்பு நேரடி மொழிபெயர்ப்பு மாதிரி"
     }
   },
   "simplePanel": {

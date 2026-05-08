@@ -384,6 +384,10 @@
       "name": "Gratis",
       "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)",
       "noKeyRequired": "Tidak memerlukan kunci API"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "Model terjemahan real-time khusus dari OpenAI"
     }
   },
   "simplePanel": {

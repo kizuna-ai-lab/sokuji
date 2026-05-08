@@ -467,6 +467,10 @@
       "customEndpointHelp": "Enter your custom OpenAI-compatible API endpoint URL",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI's dedicated real-time translation model"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Alternative AI provider"

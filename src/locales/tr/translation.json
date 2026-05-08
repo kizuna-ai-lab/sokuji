@@ -580,6 +580,10 @@
       "name": "Ücretsiz",
       "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
       "noKeyRequired": "API anahtarı gerekmez"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI'nin özel gerçek zamanlı çeviri modeli"
     }
   },
   "simplePanel": {

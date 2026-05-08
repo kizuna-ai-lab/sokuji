@@ -390,6 +390,10 @@
       "name": "বিনামূল্যে",
       "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",
       "noKeyRequired": "API কী প্রয়োজন নেই"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI এর ডেডিকেটেড রিয়েল-টাইম অনুবাদ মডেল"
     }
   },
   "audioPanel": {

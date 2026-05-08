@@ -622,6 +622,10 @@
       "name": "Gratis",
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
       "noKeyRequired": "Geen API-sleutel vereist"
+    },
+    "openai_translate": {
+      "name": "OpenAI Translate",
+      "description": "OpenAI's speciale realtime vertalingsmodel"
     }
   },
   "simplePanel": {
