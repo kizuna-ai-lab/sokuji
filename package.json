@@ -168,7 +168,6 @@
     "vite-plugin-electron": "0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^4.0.18",
-    "wait-on": "^7.2.0",
     "ws": "^8.19.0"
   },
   "scripts": {
