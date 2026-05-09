@@ -23,6 +23,8 @@ const SILENCE_TIMEOUT_MAX_MS = 3000;
  *  reference / tests; runtime detection now uses {@link isSilenceFrame} so we
  *  don't break if the API ever changes the heartbeat duration. */
 const HEARTBEAT_SAMPLES = 4800;
+/** PCM16 sample rate of the translate API audio stream. */
+const SAMPLE_RATE = 24000;
 
 /** Compute RMS amplitude of a PCM16 frame, normalized to the [0, 1] range
  *  by dividing by the Int16 max (32768). Returns 0 for an empty frame.
@@ -351,7 +353,31 @@ export class OpenAITranslateGAClient implements IClient {
         if (!this.audioChunks.has(assistantItemId)) {
           this.audioChunks.set(assistantItemId, []);
         }
-        this.audioChunks.get(assistantItemId)!.push(audioData);
+        const chunks = this.audioChunks.get(assistantItemId)!;
+        chunks.push(audioData);
+
+        // Karaoke segment: anchor current transcript end to cumulative audio
+        // time. The translate API delivers transcript and audio as two
+        // independent streams (transcript usually leads audio); without an
+        // explicit alignment we previously fell back to
+        // floor(textLength * progressRatio), which causes the highlight to
+        // creep char-by-char and visibly stall at the tail while ratio
+        // climbs to 1.0. Recording (textEnd, audioEnd) per chunk lets the
+        // segment-based path of getHighlightedChars step the highlight in
+        // chunk-aligned units that match the played audio. (issue #216)
+        if (assistantItem.formatted) {
+          let cumSamples = 0;
+          for (const c of chunks) cumSamples += c.length;
+          const textLen = assistantItem.formatted.transcript?.length ?? 0;
+          if (!assistantItem.formatted.audioSegments) {
+            assistantItem.formatted.audioSegments = [];
+          }
+          assistantItem.formatted.audioSegments.push({
+            textEnd: textLen,
+            audioEnd: cumSamples / SAMPLE_RATE,
+          });
+          assistantItem.formatted.audioTextEnd = textLen;
+        }
 
         this.eventHandlers.onConversationUpdated?.({
           item: assistantItem,

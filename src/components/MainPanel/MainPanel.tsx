@@ -711,14 +711,38 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Reference to track the maximum progress ratio to prevent backwards movement
   const lastMaxProgressRef = useRef<number>(0);
-  
-  // References for intelligent progress tracking
-  const lastProgressUpdateTime = useRef<number>(0);
-  const lastPlayingState = useRef<boolean>(false);
-  
+
+  // Cumulative played-time tracking across player-entry boundaries within the
+  // same item (issue #216). The ModernAudioPlayer evicts an itemQueue entry as
+  // soon as its samples are consumed; if the next chunk for the same itemId
+  // arrives after eviction, a fresh entry is created with its own startSample,
+  // so getCurrentPlaybackStatus()'s currentTime/bufferedTime restart from
+  // ~zero. This wrecks the karaoke math, which needs item-level cumulative
+  // time. We reconstruct it on the consumer side by detecting currentTime
+  // regressions and adding the previous entry's last-seen bufferedTime to an
+  // offset.
+  const cumulativeAudioRef = useRef<{
+    itemId: string;
+    offset: number;       // seconds accumulated from prior evicted entries
+    lastBt: number;       // last bufferedTime seen for current entry
+    lastCt: number;       // last currentTime seen for current entry
+  } | null>(null);
+
+  // Debounce timer for clearing playingItemId on the player's 'ended' callback.
+  // The player fires 'ended' on every itemQueue entry eviction (chunk
+  // boundary), not just on true item end. Without debouncing, playingItemId
+  // flaps null↔itemX between translate chunks, which (a) flickers the karaoke
+  // highlight off/on and (b) wipes the cumulative-time tracker via the
+  // playingItemId-change reset effect. (issue #216)
+  const itemEndDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Constants for karaoke progress tracking
   const PROGRESS_UPDATE_INTERVAL = 100; // ms
-  const BACKWARD_TIMEOUT = 2000; // Prevent going back within 2 seconds; reset allowed after timeout.
+  const ENTRY_RESET_THRESHOLD = 0.05; // ct drop > 50ms = entry was evicted and re-created
+  // Longest observed intra-item content gap on translate is ~2s; debounce
+  // longer than that to avoid prematurely clearing playingItemId during a
+  // natural pause between sentences within a single response.
+  const ITEM_END_DEBOUNCE_MS = 2500;
 
   /**
    * References for rendering audio visualization (canvas)
@@ -2006,53 +2030,79 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
 
-  // Memoize progress calculation to reduce re-renders
-  const progressRatio = useMemo(() => {
-    if (!playbackProgress) {
-      return 0;
-    }
-    
-    let calculatedRatio = 0;
-    
-    // For streaming audio, bufferedTime is more accurate than duration
-    // Prioritize bufferedTime when available as it represents the total accumulated audio
-    const divisor = playbackProgress.bufferedTime || playbackProgress.duration || 1;
-    calculatedRatio = Math.min(playbackProgress.currentTime / divisor, 1);
-    
-    // Intelligent progress protection: prevent short-term backwards movement
-    // but allow reset after timeout or when audio ends
-    if (calculatedRatio < lastMaxProgressRef.current) {
-      const timeSinceUpdate = Date.now() - lastProgressUpdateTime.current;
-      const diff = lastMaxProgressRef.current - calculatedRatio;
-      
-      // Allow reset if:
-      // 1. Long time since last update (audio likely ended)
-      // 2. Very large difference (likely new audio or major change)
-      if (timeSinceUpdate > BACKWARD_TIMEOUT || diff > 0.5) {
-        lastMaxProgressRef.current = calculatedRatio;
-        lastProgressUpdateTime.current = Date.now();
-        return calculatedRatio;
+  // Item-level cumulative playback time. Reconstructs continuous progress
+  // across ModernAudioPlayer entry boundaries (see cumulativeAudioRef comment).
+  // Returns null when nothing is playing. Mutates cumulativeAudioRef as a side
+  // effect — same pattern as the lastMaxProgressRef updates below.
+  const cumulativeProgress = useMemo(() => {
+    if (!playbackProgress || !playingItemId) return null;
+
+    const tracker = cumulativeAudioRef.current;
+    let offset = 0;
+    if (tracker && tracker.itemId === playingItemId) {
+      offset = tracker.offset;
+      // Detect entry eviction + re-creation: currentTime regressed substantially
+      // (within an entry, ct is monotonic). The previous entry was played to
+      // completion (eviction only happens after read head passes its end), so
+      // its full last-seen bufferedTime contributes to the offset.
+      if (
+        playbackProgress.currentTime < tracker.lastCt - ENTRY_RESET_THRESHOLD &&
+        tracker.lastBt > 0
+      ) {
+        offset += tracker.lastBt;
       }
-      
-      // Short-term protection: prevent backwards movement
+    }
+
+    cumulativeAudioRef.current = {
+      itemId: playingItemId,
+      offset,
+      lastBt: playbackProgress.bufferedTime,
+      lastCt: playbackProgress.currentTime,
+    };
+
+    return {
+      currentTime: offset + playbackProgress.currentTime,
+      bufferedTime: offset + playbackProgress.bufferedTime,
+      duration: offset + playbackProgress.duration,
+      offset,
+    };
+  }, [playbackProgress, playingItemId]);
+
+  // Memoize progress calculation to reduce re-renders.
+  // Monotonic-within-item via max clamp; reset only on playingItemId change
+  // (effect below). The raw cumulative ratio can still dip mid-item — when a
+  // new chunk extends cumBt faster than cumCt advances — so the clamp is
+  // load-bearing. The previous BACKWARD_TIMEOUT and diff>0.5 escape paths
+  // existed to recover from per-chunk player resets that we now handle via
+  // cumulative tracking, and they were causing spurious mid-item snap-backs
+  // on natural pauses (issue #216).
+  const progressRatio = useMemo(() => {
+    // Hold the last max during transient gaps where the player has no audible
+    // entry (e.g., one chunk drained, next not arrived). Otherwise the
+    // highlight would briefly snap to 0 between chunks.
+    if (!cumulativeProgress) return lastMaxProgressRef.current;
+
+    const divisor = cumulativeProgress.bufferedTime || cumulativeProgress.duration || 1;
+    const calculatedRatio = Math.min(cumulativeProgress.currentTime / divisor, 1);
+
+    if (calculatedRatio < lastMaxProgressRef.current) {
       return lastMaxProgressRef.current;
     }
-    
-    // Update timestamp when progress moves forward
-    lastProgressUpdateTime.current = Date.now();
-    
     return calculatedRatio;
-  }, [playbackProgress?.currentTime, playbackProgress?.duration, playbackProgress?.bufferedTime]);
+  }, [cumulativeProgress]);
 
   /**
-   * Reset max progress when playing a new item
+   * Reset max progress and cumulative tracker when playing a new item.
+   * Note: there is intentionally no playback-stopped reset effect — between
+   * translate audio chunks `playbackProgress` momentarily becomes null while
+   * the player is buffering, and resetting max on those transitions caused
+   * the karaoke highlight to repeatedly snap back to zero (issue #216).
    */
   useEffect(() => {
-    // Reset the maximum progress when we start playing a new item
     lastMaxProgressRef.current = 0;
-    lastProgressUpdateTime.current = Date.now();
+    cumulativeAudioRef.current = null;
   }, [playingItemId]);
-  
+
   /**
    * Update max progress ref after calculation
    */
@@ -2062,21 +2112,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       lastMaxProgressRef.current = progressRatio;
     }
   }, [progressRatio]);
-  
-  /**
-   * Reset progress when playback state changes from playing to stopped
-   */
-  useEffect(() => {
-    const currentlyPlaying = playbackProgress !== null;
-    
-    // When playback stops, reset max progress to allow accurate display next time
-    if (lastPlayingState.current && !currentlyPlaying) {
-      lastMaxProgressRef.current = 0;
-      lastProgressUpdateTime.current = 0;
-    }
-    
-    lastPlayingState.current = currentlyPlaying;
-  }, [playbackProgress]);
 
   /**
    * Set up playback status tracking
@@ -2089,18 +2124,46 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     
     // Set up status callback
     player.setPlaybackStatusCallback((status: any) => {
-      if (status) {
-        if (status.status === 'playing' && status.itemId) {
-          setPlayingItemId(status.itemId);
-        } else if (status.status === 'ended') {
-          // Check if this is really the end or just one chunk ending
-          const currentStatus = player.getCurrentPlaybackStatus();
-          if (!currentStatus || currentStatus.itemId !== status.itemId) {
-            setPlayingItemId(null);
-            setPlaybackProgress(null);
-          }
+      if (!status) return;
+
+      if (status.status === 'playing' && status.itemId) {
+        // A new entry is now audible — cancel any pending end-of-item clear.
+        if (itemEndDebounceRef.current) {
+          clearTimeout(itemEndDebounceRef.current);
+          itemEndDebounceRef.current = null;
         }
+        setPlayingItemId(status.itemId);
+        return;
       }
+
+      if (status.status !== 'ended') return;
+
+      const currentStatus = player.getCurrentPlaybackStatus();
+      if (currentStatus && currentStatus.itemId !== status.itemId) {
+        // A different item is now audible — clear immediately.
+        if (itemEndDebounceRef.current) {
+          clearTimeout(itemEndDebounceRef.current);
+          itemEndDebounceRef.current = null;
+        }
+        setPlayingItemId(null);
+        setPlaybackProgress(null);
+        return;
+      }
+
+      if (!currentStatus) {
+        // Could be true end OR a chunk gap. The translate API streams audio
+        // in 200-400ms chunks separated by gaps up to ~2s; the player evicts
+        // the itemQueue entry on each gap and fires 'ended' indistinguishably
+        // from a real end. Debounce: only clear if no new chunk arrives.
+        if (itemEndDebounceRef.current) clearTimeout(itemEndDebounceRef.current);
+        itemEndDebounceRef.current = setTimeout(() => {
+          setPlayingItemId(null);
+          setPlaybackProgress(null);
+          itemEndDebounceRef.current = null;
+        }, ITEM_END_DEBOUNCE_MS);
+      }
+      // currentStatus.itemId === status.itemId means another entry for the
+      // same item is already audible (rare); leave state alone.
     });
     
     // Set up progress tracking
@@ -2121,6 +2184,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     
     return () => {
       clearInterval(progressInterval);
+      if (itemEndDebounceRef.current) {
+        clearTimeout(itemEndDebounceRef.current);
+        itemEndDebounceRef.current = null;
+      }
     };
   }, []);
 
@@ -2696,10 +2763,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const isItemPlaying = playingItemId === item.id;
     const text = item.formatted?.transcript || item.formatted?.text || '';
 
-    // Karaoke highlight calculation
+    // Karaoke highlight calculation. Uses cumulativeProgress.currentTime so
+    // segment-based providers see continuous time across player-entry resets
+    // (issue #216). Falls back to raw playbackProgress when cumulative is not
+    // tracked yet (e.g., very first frame).
     const highlightedChars = isItemPlaying
       ? getHighlightedChars(
-          playbackProgress?.currentTime ?? 0,
+          cumulativeProgress?.currentTime ?? playbackProgress?.currentTime ?? 0,
           item.formatted?.audioSegments,
           text.length,
           progressRatio,
