@@ -369,12 +369,19 @@ export class OpenAITranslateGAClient implements IClient {
           let cumSamples = 0;
           for (const c of chunks) cumSamples += c.length;
           const textLen = assistantItem.formatted.transcript?.length ?? 0;
+          // Prefer the per-event sample_rate if the API reports one; fall
+          // back to the spec default (24 kHz for `pcm16`). event.elapsed_ms
+          // is also provided but is not cumulative audio duration — its
+          // step pattern (mostly 200 ms with multi-second jumps) suggests a
+          // server-side wall-clock, not a play-time counter — so we stick
+          // with sample-derived time.
+          const sr = typeof event.sample_rate === 'number' ? event.sample_rate : SAMPLE_RATE;
           if (!assistantItem.formatted.audioSegments) {
             assistantItem.formatted.audioSegments = [];
           }
           assistantItem.formatted.audioSegments.push({
             textEnd: textLen,
-            audioEnd: cumSamples / SAMPLE_RATE,
+            audioEnd: cumSamples / sr,
           });
           assistantItem.formatted.audioTextEnd = textLen;
         }
