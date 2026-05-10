@@ -1,0 +1,81 @@
+// src/components/Subtitle/SubtitleBar.scss
+.subtitle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  background: rgba(20, 20, 20, 0.95);
+  color: #e8e8e8;
+  -webkit-app-region: drag;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: var(--bar-opacity, 1);
+  transition: opacity 200ms ease-in-out;
+
+  &.locked {
+    -webkit-app-region: no-drag;
+  }
+
+  .subtitle-bar__left,
+  .subtitle-bar__center,
+  .subtitle-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    -webkit-app-region: no-drag;
+  }
+
+  .subtitle-bar__logo {
+    font-weight: 600;
+    color: #10a37f;
+  }
+
+  .subtitle-bar__quota {
+    color: #9aa0a6;
+    font-size: 11px;
+  }
+
+  .subtitle-bar__timer {
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  .subtitle-bar__lang {
+    color: #c8c8c8;
+    font-weight: 500;
+  }
+
+  .subtitle-bar__btn {
+    background: transparent;
+    border: none;
+    color: #c8c8c8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.active {
+      color: #10a37f;
+      background: rgba(16, 163, 127, 0.15);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .subtitle-bar__divider {
+    width: 1px;
+    height: 18px;
+    background: #3a3a3a;
+    margin: 0 4px;
+  }
+}
