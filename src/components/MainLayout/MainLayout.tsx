@@ -6,7 +6,6 @@ import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
 import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
 import TitleBar from '../TitleBar/TitleBar';
-import { Terminal, Settings } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
@@ -16,10 +15,9 @@ import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 import { isElectron } from '../../utils/environment';
 
-type PanelName = 'settings' | 'audio' | 'logs' | 'main';
+type PanelName = 'settings' | 'logs' | 'main';
 
 const MainLayout: React.FC = () => {
-  const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const provider = useProvider();
   const uiMode = useUIMode();
@@ -35,18 +33,15 @@ const MainLayout: React.FC = () => {
   const [showSettings, setShowSettings] = useState(() => {
     return sessionStorage.getItem('panelState.showSettings') === 'true';
   });
-  const [showAudio, setShowAudio] = useState(() => {
-    return sessionStorage.getItem('panelState.showAudio') === 'true';
-  });
 
-  
+
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
   const currentPanelRef = useRef<PanelName | null>(null);
-  
+
   // Track previous auth state to detect login
   const prevIsSignedInRef = useRef(isSignedIn);
-  
+
   // Helper function to track panel view events
   const trackPanelView = (panelName: PanelName | null) => {
     // Track closing of previous panel
@@ -57,7 +52,7 @@ const MainLayout: React.FC = () => {
         view_duration_ms: viewDuration
       });
     }
-    
+
     // Track opening of new panel
     if (panelName) {
       trackEvent('panel_viewed', {
@@ -76,23 +71,6 @@ const MainLayout: React.FC = () => {
   };
 
   // Modify toggle functions to ensure only one panel is displayed at a time
-  const toggleAudio = () => {
-    // If already shown, close it; otherwise open it and close other panels
-    if (showAudio) {
-      setShowAudio(false);
-      sessionStorage.setItem('panelState.showAudio', 'false');
-      trackPanelView(null);
-    } else {
-      setShowAudio(true);
-      setShowLogs(false);
-      setShowSettings(false);
-      sessionStorage.setItem('panelState.showAudio', 'true');
-      sessionStorage.setItem('panelState.showLogs', 'false');
-      sessionStorage.setItem('panelState.showSettings', 'false');
-      trackPanelView('audio');
-    }
-  };
-  
   const toggleLogs = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showLogs) {
@@ -101,15 +79,13 @@ const MainLayout: React.FC = () => {
       trackPanelView(null);
     } else {
       setShowLogs(true);
-      setShowAudio(false);
       setShowSettings(false);
       sessionStorage.setItem('panelState.showLogs', 'true');
-      sessionStorage.setItem('panelState.showAudio', 'false');
       sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView('logs');
     }
   };
-  
+
   const toggleSettings = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showSettings) {
@@ -118,10 +94,8 @@ const MainLayout: React.FC = () => {
       trackPanelView(null);
     } else {
       setShowSettings(true);
-      setShowAudio(false);
       setShowLogs(false);
       sessionStorage.setItem('panelState.showSettings', 'true');
-      sessionStorage.setItem('panelState.showAudio', 'false');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
@@ -133,11 +107,9 @@ const MainLayout: React.FC = () => {
     if (settingsNavigationTarget) {
       // Open settings panel when navigation is requested
       setShowSettings(true);
-      setShowAudio(false);
       setShowLogs(false);
       // Save to sessionStorage when programmatically opening settings
       sessionStorage.setItem('panelState.showSettings', 'true');
-      sessionStorage.setItem('panelState.showAudio', 'false');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
@@ -148,10 +120,10 @@ const MainLayout: React.FC = () => {
     // Set UI mode based on user type
     const newMode = type === 'regular' ? 'basic' : 'advanced';
     setUIMode(newMode);
-    
+
     // Call the onboarding context to handle the selection
     setUserType(type);
-    
+
     trackEvent('user_type_applied', {
       user_type: type,
       ui_mode: newMode
@@ -166,7 +138,7 @@ const MainLayout: React.FC = () => {
       if (uiMode === 'basic' && provider !== Provider.KIZUNA_AI) {
         // User is in Basic Mode and not using KizunaAI, switch to KizunaAI
         setProvider(Provider.KIZUNA_AI);
-        
+
         // Track the auto-switch
         trackEvent('settings_modified', {
           setting_name: 'provider',
@@ -174,11 +146,11 @@ const MainLayout: React.FC = () => {
           old_value: provider,
           category: 'api'
         });
-        
+
         console.log('[MainLayout] Auto-switched to KizunaAI provider for Basic Mode user on login');
       }
     }
-    
+
     // Update the ref for next render
     prevIsSignedInRef.current = isSignedIn;
   }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
@@ -190,27 +162,19 @@ const MainLayout: React.FC = () => {
 
   return (
     <>
-    {!subtitleActive && isElectron() && <TitleBar />}
+    {!subtitleActive && isElectron() && (
+      <TitleBar
+        showSettings={showSettings}
+        showLogs={showLogs}
+        onToggleSettings={toggleSettings}
+        onToggleLogs={toggleLogs}
+      />
+    )}
     <div
       className="main-layout"
       style={subtitleActive ? { display: 'none' } : undefined}
     >
-      <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
-        <header className="main-panel-header">
-          <h1>{t('app.title')}</h1>
-          <div className="header-controls">
-<button className={`settings-button ${showSettings || showAudio ? 'active' : ''}`} onClick={toggleSettings}>
-              <Settings size={16} />
-              <span>{t('settings.title')}</span>
-            </button>
-            {uiMode === 'advanced' && (
-              <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
-                <Terminal size={16} />
-                <span>{t('common.logs')}</span>
-              </button>
-            )}
-          </div>
-        </header>
+      <div className={`main-content ${(showLogs || showSettings) ? 'with-panel' : 'full-width'}`}>
         <div className="main-panel-container">
           <MainPanel />
         </div>
