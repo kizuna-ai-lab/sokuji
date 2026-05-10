@@ -250,6 +250,11 @@ function createWindow() {
     height: 800,
     title: 'Sokuji',
     icon: iconPath,
+    frame: false,
+    transparent: true,
+    hasShadow: true,
+    backgroundColor: '#00000000',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
