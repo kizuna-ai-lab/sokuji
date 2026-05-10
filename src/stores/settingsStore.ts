@@ -458,6 +458,15 @@ interface SettingsStore {
   setConversationCompactMode: (compact: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
+  setSubtitleFontSize: (n: number) => Promise<void>;
+  setSubtitleCompactMode: (b: boolean) => Promise<void>;
+  setSubtitleBgOpacity: (n: number) => Promise<void>;
+  setSubtitleBgColor: (s: string) => Promise<void>;
+  setSubtitleSourceTextColor: (s: string) => Promise<void>;
+  setSubtitleTranslationTextColor: (s: string) => Promise<void>;
+  toggleSubtitleAlwaysOnTop: () => Promise<void>;
+  toggleSubtitlePositionLocked: () => Promise<void>;
+  saveSubtitleWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -966,6 +975,116 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting participantDisplayMode setting:', error);
         set({participantDisplayMode: previous});
+      }
+    },
+
+    setSubtitleFontSize: async (fontSize) => {
+      const clamped = Math.max(16, Math.min(48, Math.round(fontSize)));
+      const previous = get().subtitle.fontSize;
+      set((state) => ({ subtitle: { ...state.subtitle, fontSize: clamped } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.fontSize', clamped);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.fontSize:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, fontSize: previous } }));
+      }
+    },
+
+    setSubtitleCompactMode: async (compactMode) => {
+      const previous = get().subtitle.compactMode;
+      set((state) => ({ subtitle: { ...state.subtitle, compactMode } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.compactMode', compactMode);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.compactMode:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, compactMode: previous } }));
+      }
+    },
+
+    setSubtitleBgOpacity: async (n) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(n)));
+      const previous = get().subtitle.bgOpacity;
+      set((state) => ({ subtitle: { ...state.subtitle, bgOpacity: clamped } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.bgOpacity', clamped);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.bgOpacity:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, bgOpacity: previous } }));
+      }
+    },
+
+    setSubtitleBgColor: async (s) => {
+      const previous = get().subtitle.bgColor;
+      set((state) => ({ subtitle: { ...state.subtitle, bgColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.bgColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.bgColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, bgColor: previous } }));
+      }
+    },
+
+    setSubtitleSourceTextColor: async (s) => {
+      const previous = get().subtitle.sourceTextColor;
+      set((state) => ({ subtitle: { ...state.subtitle, sourceTextColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.sourceTextColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.sourceTextColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, sourceTextColor: previous } }));
+      }
+    },
+
+    setSubtitleTranslationTextColor: async (s) => {
+      const previous = get().subtitle.translationTextColor;
+      set((state) => ({ subtitle: { ...state.subtitle, translationTextColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.translationTextColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.translationTextColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, translationTextColor: previous } }));
+      }
+    },
+
+    toggleSubtitleAlwaysOnTop: async () => {
+      const next = !get().subtitle.alwaysOnTop;
+      set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: next } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.alwaysOnTop', next);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.alwaysOnTop:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: !next } }));
+      }
+    },
+
+    toggleSubtitlePositionLocked: async () => {
+      const next = !get().subtitle.positionLocked;
+      set((state) => ({ subtitle: { ...state.subtitle, positionLocked: next } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.positionLocked', next);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.positionLocked:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, positionLocked: !next } }));
+      }
+    },
+
+    saveSubtitleWindowBounds: async (b) => {
+      const previous = get().subtitle.windowBounds;
+      set((state) => ({ subtitle: { ...state.subtitle, windowBounds: b } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.windowBounds', b);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.windowBounds:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, windowBounds: previous } }));
       }
     },
 
@@ -1691,6 +1810,17 @@ export const useConversationFontSize = () => useSettingsStore((state) => state.c
 export const useConversationCompactMode = () => useSettingsStore((state) => state.conversationCompactMode);
 export const useSpeakerDisplayMode = () => useSettingsStore((state) => state.speakerDisplayMode);
 export const useParticipantDisplayMode = () => useSettingsStore((state) => state.participantDisplayMode);
+export const useSubtitleSettings = () => useSettingsStore((state) => state.subtitle);
+export const useSubtitleModeActive = () => useSettingsStore((state) => state.subtitleModeActive);
+export const useSetSubtitleFontSize = () => useSettingsStore((state) => state.setSubtitleFontSize);
+export const useSetSubtitleCompactMode = () => useSettingsStore((state) => state.setSubtitleCompactMode);
+export const useSetSubtitleBgOpacity = () => useSettingsStore((state) => state.setSubtitleBgOpacity);
+export const useSetSubtitleBgColor = () => useSettingsStore((state) => state.setSubtitleBgColor);
+export const useSetSubtitleSourceTextColor = () => useSettingsStore((state) => state.setSubtitleSourceTextColor);
+export const useSetSubtitleTranslationTextColor = () => useSettingsStore((state) => state.setSubtitleTranslationTextColor);
+export const useToggleSubtitleAlwaysOnTop = () => useSettingsStore((state) => state.toggleSubtitleAlwaysOnTop);
+export const useToggleSubtitlePositionLocked = () => useSettingsStore((state) => state.toggleSubtitlePositionLocked);
+export const useSaveSubtitleWindowBounds = () => useSettingsStore((state) => state.saveSubtitleWindowBounds);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
