@@ -111,12 +111,12 @@
   overflow-wrap: anywhere;
 
   &.src {
-    color: #9aa0a6;
+    color: var(--subtitle-source-color, #9aa0a6);
     font-style: italic;
   }
 
   &.tr {
-    color: #e8e8e8;
+    color: var(--subtitle-translation-color, #e8e8e8);
   }
 }
 
