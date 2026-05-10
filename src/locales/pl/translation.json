@@ -827,5 +827,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sesja zakończona",
+    "backToMain": "Powrót do okna głównego",
+    "enterButton": {
+      "title": "Włącz tryb napisów",
+      "disabled": "Najpierw uruchom sesję",
+      "label": "Napisy"
+    },
+    "bar": {
+      "fontDecrease": "Zmniejsz czcionkę",
+      "fontIncrease": "Powiększ czcionkę",
+      "expand": "Widok rozszerzony",
+      "compact": "Widok kompaktowy",
+      "clear": "Wyczyść rozmowę",
+      "settings": "Ustawienia napisów",
+      "alwaysOnTop": "Zawsze na wierzchu",
+      "lock": "Zablokuj pozycję i rozmiar",
+      "exit": "Wyjdź z trybu napisów"
+    },
+    "settings": {
+      "bgOpacity": "Przezroczystość tła",
+      "bgColor": "Kolor tła",
+      "sourceColor": "Kolor tekstu źródłowego",
+      "translationColor": "Kolor tłumaczenia"
+    },
+    "pttHint": "Naciśnij spację, aby mówić"
+  },
+  "titleBar": {
+    "minimize": "Minimalizuj",
+    "maximize": "Maksymalizuj",
+    "close": "Zamknij"
   }
 }

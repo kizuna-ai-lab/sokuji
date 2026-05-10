@@ -743,5 +743,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "సెషన్ ముగిసింది",
+    "backToMain": "ప్రధాన విండోకి తిరిగి వెళ్ళు",
+    "enterButton": {
+      "title": "సబ్‌టైటిల్ మోడ్‌లోకి ప్రవేశించు",
+      "disabled": "ముందుగా సెషన్ ప్రారంభించండి",
+      "label": "సబ్‌టైటిల్"
+    },
+    "bar": {
+      "fontDecrease": "ఫాంట్ తగ్గించు",
+      "fontIncrease": "ఫాంట్ పెంచు",
+      "expand": "విస్తరించిన వీక్షణ",
+      "compact": "కాంపాక్ట్ వీక్షణ",
+      "clear": "సంభాషణను తొలగించు",
+      "settings": "సబ్‌టైటిల్ సెట్టింగ్‌లు",
+      "alwaysOnTop": "ఎల్లప్పుడూ పైన",
+      "lock": "స్థానం మరియు పరిమాణం లాక్ చేయి",
+      "exit": "సబ్‌టైటిల్ మోడ్‌ నుండి బయటకు"
+    },
+    "settings": {
+      "bgOpacity": "నేపథ్యం పారదర్శకత",
+      "bgColor": "నేపథ్యం రంగు",
+      "sourceColor": "మూల వచనం రంగు",
+      "translationColor": "అనువాదం రంగు"
+    },
+    "pttHint": "మాట్లాడడానికి Space నొక్కండి"
+  },
+  "titleBar": {
+    "minimize": "చిన్నదిచేయి",
+    "maximize": "పెద్దదిచేయి",
+    "close": "మూసివేయి"
   }
 }

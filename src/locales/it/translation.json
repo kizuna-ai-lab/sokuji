@@ -828,5 +828,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sessione terminata",
+    "backToMain": "Torna alla finestra principale",
+    "enterButton": {
+      "title": "Attiva modalità sottotitoli",
+      "disabled": "Avvia prima una sessione",
+      "label": "Sottotitoli"
+    },
+    "bar": {
+      "fontDecrease": "Riduci dimensione carattere",
+      "fontIncrease": "Aumenta dimensione carattere",
+      "expand": "Vista espansa",
+      "compact": "Vista compatta",
+      "clear": "Cancella conversazione",
+      "settings": "Impostazioni sottotitoli",
+      "alwaysOnTop": "Sempre in primo piano",
+      "lock": "Blocca posizione e dimensioni",
+      "exit": "Esci dalla modalità sottotitoli"
+    },
+    "settings": {
+      "bgOpacity": "Opacità dello sfondo",
+      "bgColor": "Colore dello sfondo",
+      "sourceColor": "Colore testo originale",
+      "translationColor": "Colore traduzione"
+    },
+    "pttHint": "Premi Spazio per parlare"
+  },
+  "titleBar": {
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "close": "Chiudi"
   }
 }

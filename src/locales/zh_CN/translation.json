@@ -840,5 +840,37 @@
   },
   "connectionStatus": {
     "reconnecting": "重新连接中..."
+  },
+  "subtitle": {
+    "sessionEnded": "会话已结束",
+    "backToMain": "返回主窗口",
+    "enterButton": {
+      "title": "进入字幕模式",
+      "disabled": "请先启动会话",
+      "label": "字幕"
+    },
+    "bar": {
+      "fontDecrease": "减小字号",
+      "fontIncrease": "增大字号",
+      "expand": "展开视图",
+      "compact": "紧凑视图",
+      "clear": "清空对话",
+      "settings": "字幕设置",
+      "alwaysOnTop": "置顶",
+      "lock": "锁定位置和尺寸",
+      "exit": "退出字幕模式"
+    },
+    "settings": {
+      "bgOpacity": "背景透明度",
+      "bgColor": "背景颜色",
+      "sourceColor": "源文颜色",
+      "translationColor": "译文颜色"
+    },
+    "pttHint": "按住空格说话"
+  },
+  "titleBar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "关闭"
   }
 }

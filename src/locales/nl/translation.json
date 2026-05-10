@@ -828,5 +828,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sessie beëindigd",
+    "backToMain": "Terug naar hoofdvenster",
+    "enterButton": {
+      "title": "Ondertitelmodus inschakelen",
+      "disabled": "Start eerst een sessie",
+      "label": "Ondertiteling"
+    },
+    "bar": {
+      "fontDecrease": "Lettergrootte verkleinen",
+      "fontIncrease": "Lettergrootte vergroten",
+      "expand": "Uitgebreide weergave",
+      "compact": "Compacte weergave",
+      "clear": "Conversatie wissen",
+      "settings": "Ondertitelinstellingen",
+      "alwaysOnTop": "Altijd op voorgrond",
+      "lock": "Positie en grootte vergrendelen",
+      "exit": "Ondertitelmodus afsluiten"
+    },
+    "settings": {
+      "bgOpacity": "Achtergrondtransparantie",
+      "bgColor": "Achtergrondkleur",
+      "sourceColor": "Kleur brontekst",
+      "translationColor": "Vertaalkleur"
+    },
+    "pttHint": "Druk op Spatie om te spreken"
+  },
+  "titleBar": {
+    "minimize": "Minimaliseren",
+    "maximize": "Maximaliseren",
+    "close": "Sluiten"
   }
 }

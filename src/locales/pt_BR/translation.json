@@ -828,5 +828,37 @@
     "downloadDeb": "Baixar .deb",
     "linuxMigrateTitle": "Nova versão v{{version}} disponível",
     "linuxMigrateBody": "Atualizações automáticas estão disponíveis no AppImage. Escolha um formato para baixar v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sessão encerrada",
+    "backToMain": "Voltar à janela principal",
+    "enterButton": {
+      "title": "Ativar modo de legendas",
+      "disabled": "Inicie uma sessão primeiro",
+      "label": "Legendas"
+    },
+    "bar": {
+      "fontDecrease": "Diminuir tamanho da fonte",
+      "fontIncrease": "Aumentar tamanho da fonte",
+      "expand": "Visualização expandida",
+      "compact": "Visualização compacta",
+      "clear": "Limpar conversa",
+      "settings": "Configurações de legendas",
+      "alwaysOnTop": "Sempre no topo",
+      "lock": "Bloquear posição e tamanho",
+      "exit": "Sair do modo de legendas"
+    },
+    "settings": {
+      "bgOpacity": "Opacidade do fundo",
+      "bgColor": "Cor do fundo",
+      "sourceColor": "Cor do texto original",
+      "translationColor": "Cor da tradução"
+    },
+    "pttHint": "Pressione Espaço para falar"
+  },
+  "titleBar": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Fechar"
   }
 }

@@ -786,5 +786,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Istunto päättyi",
+    "backToMain": "Palaa pääikkunaan",
+    "enterButton": {
+      "title": "Ota tekstitystila käyttöön",
+      "disabled": "Aloita istunto ensin",
+      "label": "Tekstitys"
+    },
+    "bar": {
+      "fontDecrease": "Pienennä fonttia",
+      "fontIncrease": "Suurenna fonttia",
+      "expand": "Laaja näkymä",
+      "compact": "Kompakti näkymä",
+      "clear": "Tyhjennä keskustelu",
+      "settings": "Tekstitysasetukset",
+      "alwaysOnTop": "Aina päällä",
+      "lock": "Lukitse sijainti ja koko",
+      "exit": "Poistu tekstitystilasta"
+    },
+    "settings": {
+      "bgOpacity": "Taustan läpinäkyvyys",
+      "bgColor": "Taustaväri",
+      "sourceColor": "Lähdetekstin väri",
+      "translationColor": "Käännöksen väri"
+    },
+    "pttHint": "Paina välilyöntiä puhuaksesi"
+  },
+  "titleBar": {
+    "minimize": "Pienennä",
+    "maximize": "Suurenna",
+    "close": "Sulje"
   }
 }
