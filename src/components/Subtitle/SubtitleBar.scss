@@ -85,6 +85,25 @@
     }
   }
 
+  // Unify reused MainPanel buttons (DisplayModeButton, ExportButton) with
+  // our own .subtitle-bar__btn. Their own SCSS (color: #555) is tuned for
+  // MainPanel's lighter toolbar; on the subtitle bar's near-black bg it's
+  // nearly invisible. Scoping the override here keeps MainPanel untouched.
+  .display-mode-btn,
+  .export-btn {
+    color: #c8c8c8;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      color: #c8c8c8;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
   .subtitle-bar__divider {
     width: 1px;
     height: 18px;
