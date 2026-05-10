@@ -128,6 +128,10 @@ contextBridge.exposeInMainWorld(
         'update-download',
         'update-install',
         'get-app-version',
+        // Window control IPC for custom title bar
+        'window:minimize',
+        'window:maximize-toggle',
+        'window:close',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
