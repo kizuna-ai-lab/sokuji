@@ -1,9 +1,8 @@
 // src/components/TitleBar/TitleBar.tsx
 import React, { useCallback } from 'react';
 import { Minus, Square, X } from 'lucide-react';
+import { isMacOS } from '../../utils/environment';
 import './TitleBar.scss';
-
-const isMac = typeof process !== 'undefined' && process.platform === 'darwin';
 
 const TitleBar: React.FC = () => {
   const minimize = useCallback(() => {
@@ -16,7 +15,7 @@ const TitleBar: React.FC = () => {
     void window.electron?.invoke('window:close');
   }, []);
 
-  if (isMac) {
+  if (isMacOS()) {
     // macOS: traffic-light buttons drawn by the OS via titleBarStyle: 'hiddenInset'.
     // We just render a thin draggable area with the title.
     return (

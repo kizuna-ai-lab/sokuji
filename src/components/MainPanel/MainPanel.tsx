@@ -2900,8 +2900,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
-        {combinedItems.length > 0 && (
+        {(isSessionActive || combinedItems.length > 0) && (
           <div className="conversation-toolbar">
+            <SubtitleEnterButton />
+            {combinedItems.length > 0 && (
+              <>
             <DisplayModeButton
               scope="speaker"
               value={speakerDisplayMode}
@@ -2914,7 +2917,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 onChange={setParticipantDisplayMode}
               />
             )}
-            <SubtitleEnterButton />
             <button
               className="font-size-btn"
               onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
@@ -2971,6 +2973,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               <Trash2 size={14} />
             </button>
+              </>
+            )}
           </div>
         )}
         {/* Conversation Display */}
