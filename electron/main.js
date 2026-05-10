@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
+const { setupSubtitleHandlers } = require('./subtitle-window.js');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -263,6 +264,8 @@ function createWindow() {
       webSecurity: !isDev
     }
   });
+
+  setupSubtitleHandlers(mainWindow);
 
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);

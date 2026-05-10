@@ -1061,8 +1061,12 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         const service = ServiceFactory.getSettingsService();
         await service.setSetting('settings.common.subtitle.alwaysOnTop', next);
+        if (get().subtitleModeActive) {
+          const electronApi = (window as any).electron;
+          await electronApi?.invoke('subtitle:set-always-on-top', next);
+        }
       } catch (error) {
-        console.error('[SettingsStore] Error persisting subtitle.alwaysOnTop:', error);
+        console.error('[SettingsStore] toggleSubtitleAlwaysOnTop failed:', error);
         set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: !next } }));
       }
     },
@@ -1073,8 +1077,12 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         const service = ServiceFactory.getSettingsService();
         await service.setSetting('settings.common.subtitle.positionLocked', next);
+        if (get().subtitleModeActive) {
+          const electronApi = (window as any).electron;
+          await electronApi?.invoke('subtitle:set-locked', next);
+        }
       } catch (error) {
-        console.error('[SettingsStore] Error persisting subtitle.positionLocked:', error);
+        console.error('[SettingsStore] toggleSubtitlePositionLocked failed:', error);
         set((state) => ({ subtitle: { ...state.subtitle, positionLocked: !next } }));
       }
     },
@@ -1092,22 +1100,46 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     enterSubtitleMode: async () => {
-      // Idempotent: bail if already active
       if (get().subtitleModeActive) return;
-      // Require an active session
       const sessionActive = useSessionStore.getState().isSessionActive;
       if (!sessionActive) {
         console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
         return;
       }
-      set({ subtitleModeActive: true });
-      // IPC call to Electron main is added in Task 11; until then this is a no-op.
+      const subtitle = get().subtitle;
+      try {
+        const electronApi = (window as any).electron;
+        if (electronApi?.invoke) {
+          const result = await electronApi.invoke('subtitle:enter', {
+            bounds: subtitle.windowBounds ?? undefined,
+            alwaysOnTop: subtitle.alwaysOnTop,
+            locked: subtitle.positionLocked,
+          });
+          if (result?.bounds) {
+            // Persist clamped bounds so next launch uses corrected values
+            set((state) => ({ subtitle: { ...state.subtitle, windowBounds: result.bounds } }));
+            const service = ServiceFactory.getSettingsService();
+            await service.setSetting('settings.common.subtitle.windowBounds', result.bounds);
+          }
+        }
+        set({ subtitleModeActive: true });
+      } catch (error) {
+        console.error('[SettingsStore] enterSubtitleMode IPC failed:', error);
+      }
     },
 
     exitSubtitleMode: async () => {
       if (!get().subtitleModeActive) return;
-      set({ subtitleModeActive: false });
-      // IPC call to Electron main is added in Task 11; until then this is a no-op.
+      try {
+        const electronApi = (window as any).electron;
+        if (electronApi?.invoke) {
+          await electronApi.invoke('subtitle:exit', {});
+        }
+      } catch (error) {
+        console.error('[SettingsStore] exitSubtitleMode IPC failed:', error);
+      } finally {
+        set({ subtitleModeActive: false });
+      }
     },
 
     // === Provider Settings Actions ===
