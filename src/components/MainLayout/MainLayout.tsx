@@ -13,7 +13,6 @@ import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
-import { isElectron } from '../../utils/environment';
 
 type PanelName = 'settings' | 'logs' | 'main';
 
@@ -162,7 +161,7 @@ const MainLayout: React.FC = () => {
 
   return (
     <>
-    {!subtitleActive && isElectron() && (
+    {!subtitleActive && (
       <TitleBar
         showSettings={showSettings}
         showLogs={showLogs}

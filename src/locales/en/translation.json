@@ -898,5 +898,10 @@
       "translationColor": "Translation color"
     },
     "pttHint": "Press Space to speak"
+  },
+  "titleBar": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
   }
 }
