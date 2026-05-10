@@ -1107,11 +1107,20 @@ const useSettingsStore = create<SettingsStore>()(
         return;
       }
       const subtitle = get().subtitle;
+      // Auto-recover: ignore persisted bounds that don't look like a subtitle
+      // bar (height >> what we'd ever set). Earlier builds had a Linux WM
+      // race that could persist main-window-sized bounds; this lets affected
+      // users transition without manual cleanup.
+      const SUBTITLE_PLAUSIBLE_MAX_HEIGHT = 400;
+      const persisted = subtitle.windowBounds;
+      const requestedBounds = persisted && persisted.height <= SUBTITLE_PLAUSIBLE_MAX_HEIGHT
+        ? persisted
+        : undefined;
       try {
         const electronApi = (window as any).electron;
         if (electronApi?.invoke) {
           const result = await electronApi.invoke('subtitle:enter', {
-            bounds: subtitle.windowBounds ?? undefined,
+            bounds: requestedBounds,
             alwaysOnTop: subtitle.alwaysOnTop,
             locked: subtitle.positionLocked,
           });

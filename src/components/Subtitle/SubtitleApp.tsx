@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
 import SubtitleSessionEnded from './SubtitleSessionEnded';
-import {
+import useSettingsStore, {
   useSubtitleSettings,
   useExitSubtitleMode,
   useSaveSubtitleWindowBounds,
@@ -103,14 +103,21 @@ const SubtitleApp: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [exitSubtitleMode]);
 
-  // Bounds-changed listener (debounced 500 ms before persistence)
+  // Bounds-changed listener (debounced 500 ms before persistence).
+  // The main process emits this for any resize/move regardless of mode, so
+  // we double-guard: only persist while subtitle mode is still active. This
+  // prevents the resize event triggered by exiting (setBounds(restore))
+  // from being saved as subtitle bounds.
   useEffect(() => {
     const electronApi = (window as any).electron;
     if (!electronApi?.receive) return;
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const handler = (bounds: { x: number; y: number; width: number; height: number }) => {
       if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => void saveBounds(bounds), 500);
+      debounce = setTimeout(() => {
+        if (!useSettingsStore.getState().subtitleModeActive) return;
+        void saveBounds(bounds);
+      }, 500);
     };
     electronApi.receive('subtitle:window-bounds-changed', handler);
     return () => {
