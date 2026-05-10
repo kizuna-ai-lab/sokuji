@@ -144,6 +144,7 @@ const SubtitleApp: React.FC = () => {
   const rootStyle: React.CSSProperties = {
     background: hexToRgba(subtitle.bgColor, bgAlpha),
     ['--bar-opacity' as any]: barVisible ? 1 : 0,
+    ['--bar-pointer-events' as any]: barVisible ? 'auto' : 'none',
   };
 
   return (

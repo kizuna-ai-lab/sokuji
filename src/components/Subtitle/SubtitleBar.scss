@@ -1,5 +1,14 @@
 // src/components/Subtitle/SubtitleBar.scss
 .subtitle-bar {
+  // Float above the subtitle area instead of pinning to the top of the
+  // flex column. This frees up the 36 px the bar used to reserve so the
+  // subtitle text fills the whole window when the bar is auto-hidden.
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -12,6 +21,10 @@
   flex-shrink: 0;
   opacity: var(--bar-opacity, 1);
   transition: opacity 200ms ease-in-out;
+  // When the bar is fading out / hidden, let clicks pass through to the
+  // subtitle area underneath. SubtitleApp toggles --bar-pointer-events
+  // alongside --bar-opacity.
+  pointer-events: var(--bar-pointer-events, auto);
 
   &.locked {
     -webkit-app-region: no-drag;

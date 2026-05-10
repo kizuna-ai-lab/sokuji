@@ -7,14 +7,20 @@
   border-radius: 8px;
   overflow: hidden;
   color: var(--subtitle-source-color, #FFFFFF);
+  // Positioning context for the SubtitleBar, which floats above the
+  // subtitle area so the bar's footprint isn't permanently reserved.
+  position: relative;
 }
 
-.subtitle-ptt-hint {
+.subtitle-ptt-hint,
+.subtitle-session-ended {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px 24px;
+  gap: 12px;
+  flex-direction: column;
 
   p {
     margin: 0;
