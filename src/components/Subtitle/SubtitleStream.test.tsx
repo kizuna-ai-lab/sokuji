@@ -15,8 +15,8 @@ const items: any[] = [
   { id: '4', source: 'participant', role: 'assistant', type: 'message', status: 'completed', formatted: { text: 'goodbye' },  sourceLanguage: 'en', targetLanguage: 'zh' },
 ];
 
-describe('SubtitleStream', () => {
-  it('renders all 4 rows when both display modes are "both"', () => {
+describe('SubtitleStream — compact mode (flat two-line)', () => {
+  it('concatenates user items into the source line and assistant items into the translation line', () => {
     const { container } = render(
       <SubtitleStream
         items={items}
@@ -28,10 +28,13 @@ describe('SubtitleStream', () => {
         targetLanguage="zh"
       />,
     );
-    expect(container.querySelectorAll('.conversation-row').length).toBe(4);
+    const source = container.querySelector('.subtitle-stream__source')!;
+    const translation = container.querySelector('.subtitle-stream__translation')!;
+    expect(source.textContent).toBe('hello 再见');
+    expect(translation.textContent).toBe('你好 goodbye');
   });
 
-  it('hides participant assistant when participantMode is "source"', () => {
+  it('respects participantMode="source": drops participant assistant from translation line', () => {
     const { container } = render(
       <SubtitleStream
         items={items}
@@ -43,8 +46,9 @@ describe('SubtitleStream', () => {
         targetLanguage="zh"
       />,
     );
-    // 4 rows - 1 (participant assistant) = 3
-    expect(container.querySelectorAll('.conversation-row').length).toBe(3);
+    const translation = container.querySelector('.subtitle-stream__translation')!;
+    // participant assistant ('goodbye') hidden; only speaker assistant remains
+    expect(translation.textContent).toBe('你好');
   });
 
   it('applies fontSize and color CSS variables', () => {
@@ -65,5 +69,26 @@ describe('SubtitleStream', () => {
     expect(root.style.fontSize).toBe('36px');
     expect(root.style.getPropertyValue('--subtitle-source-color')).toBe('#FF0000');
     expect(root.style.getPropertyValue('--subtitle-translation-color')).toBe('#00FF00');
+    // Also propagates to the var ConversationRow reads in expanded mode
+    expect(root.style.getPropertyValue('--conversation-font-size')).toBe('36px');
+  });
+});
+
+describe('SubtitleStream — expanded mode (per-item rows)', () => {
+  it('renders one ConversationRow per visible item, no flat lines', () => {
+    const { container } = render(
+      <SubtitleStream
+        items={items}
+        compact={false}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelectorAll('.conversation-row').length).toBe(4);
+    expect(container.querySelector('.subtitle-stream__source')).toBeNull();
+    expect(container.querySelector('.subtitle-stream__translation')).toBeNull();
   });
 });

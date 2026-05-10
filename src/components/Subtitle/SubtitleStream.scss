@@ -12,4 +12,23 @@
     width: 0;
     background: transparent;
   }
+
+  // Compact mode: two flowing concatenated paragraphs.
+  .subtitle-stream__source,
+  .subtitle-stream__translation {
+    margin: 0;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .subtitle-stream__source {
+    color: var(--subtitle-source-color, #9aa0a6);
+    font-style: italic;
+    margin-bottom: 0.4em;
+  }
+
+  .subtitle-stream__translation {
+    color: var(--subtitle-translation-color, #e8e8e8);
+  }
 }
