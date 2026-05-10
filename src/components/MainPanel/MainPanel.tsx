@@ -33,7 +33,7 @@ import {
   useCurrentTurnDetectionMode
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -162,6 +162,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   const isReconnecting = useIsReconnecting();
   const setIsReconnecting = useSetIsReconnecting();
+
+  // Store setters for mirroring local items state into sessionStore
+  const setStoreItems = useSetStoreItems();
+  const setStoreSystemAudioItems = useSetStoreSystemAudioItems();
 
   // Get log functions from store
   const { addRealtimeEvent } = useLogActions();
@@ -579,6 +583,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const disconnectInProgressRef = useRef<boolean>(false);
 
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+
+  // Mirror items into sessionStore so SubtitleApp can read them
+  // after MainPanel unmounts (e.g. when entering subtitle mode).
+  useEffect(() => {
+    setStoreItems(items);
+  }, [items, setStoreItems]);
+
+  useEffect(() => {
+    setStoreSystemAudioItems(systemAudioItems);
+  }, [systemAudioItems, setStoreSystemAudioItems]);
 
   const clearConversation = useCallback(() => {
     // Cancel pending throttled update that would re-populate items

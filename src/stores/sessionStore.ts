@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
+import type { ConversationItem } from '../services/interfaces/IClient';
 
 interface SessionStore {
   // State
@@ -9,6 +10,8 @@ interface SessionStore {
   sessionStartTime: number | null;
   translationCount: number;
   isReconnecting: boolean;
+  items: ConversationItem[];
+  systemAudioItems: ConversationItem[];
 
   // Actions
   setIsSessionActive: (active: boolean) => void;
@@ -17,6 +20,8 @@ interface SessionStore {
   setTranslationCount: (count: number) => void;
   incrementTranslationCount: () => void;
   setIsReconnecting: (reconnecting: boolean) => void;
+  setItems: (items: ConversationItem[]) => void;
+  setSystemAudioItems: (items: ConversationItem[]) => void;
   
   // Compound actions
   startSession: (sessionId: string) => void;
@@ -32,6 +37,8 @@ const useSessionStore = create<SessionStore>()(
     sessionStartTime: null,
     translationCount: 0,
     isReconnecting: false,
+    items: [],
+    systemAudioItems: [],
 
     // Basic setters
     setIsSessionActive: (active) => set({ isSessionActive: active }),
@@ -39,7 +46,9 @@ const useSessionStore = create<SessionStore>()(
     setSessionStartTime: (time) => set({ sessionStartTime: time }),
     setTranslationCount: (count) => set({ translationCount: count }),
     setIsReconnecting: (reconnecting) => set({ isReconnecting: reconnecting }),
-    
+    setItems: (items) => set({ items }),
+    setSystemAudioItems: (systemAudioItems) => set({ systemAudioItems }),
+
     // Increment translation count
     incrementTranslationCount: () => set((state) => ({ 
       translationCount: state.translationCount + 1 
@@ -59,6 +68,8 @@ const useSessionStore = create<SessionStore>()(
       sessionId: null,
       sessionStartTime: null,
       isReconnecting: false,
+      items: [],
+      systemAudioItems: [],
       // Keep translation count for reference
     }),
 
@@ -69,6 +80,8 @@ const useSessionStore = create<SessionStore>()(
       sessionStartTime: null,
       translationCount: 0,
       isReconnecting: false,
+      items: [],
+      systemAudioItems: [],
     }),
   }))
 );
@@ -90,6 +103,10 @@ export const useSetIsReconnecting = () => useSessionStore((state) => state.setIs
 export const useStartSession = () => useSessionStore((state) => state.startSession);
 export const useEndSession = () => useSessionStore((state) => state.endSession);
 export const useResetSession = () => useSessionStore((state) => state.resetSession);
+export const useItems = () => useSessionStore((state) => state.items);
+export const useSystemAudioItems = () => useSessionStore((state) => state.systemAudioItems);
+export const useSetItems = () => useSessionStore((state) => state.setItems);
+export const useSetSystemAudioItems = () => useSessionStore((state) => state.setSystemAudioItems);
 
 // Export actions - use individual hooks and memoize to prevent recreating objects
 export const useSessionActions = () => {
