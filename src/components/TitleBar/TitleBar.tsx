@@ -36,6 +36,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
 
   const actions = (
     <div className="title-bar__actions">
+      <SubtitleEnterButton />
       <button
         type="button"
         className={`title-bar__action ${showSettings ? 'is-active' : ''}`}
@@ -56,7 +57,6 @@ const TitleBar: React.FC<TitleBarProps> = ({
         <Terminal size={14} />
         <span className="title-bar__action-label">{logsLabel}</span>
       </button>
-      <SubtitleEnterButton />
     </div>
   );
 
