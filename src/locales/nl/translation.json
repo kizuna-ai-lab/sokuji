@@ -315,7 +315,7 @@
     "realVoicePassthrough": "Originele Audio Doorvoer",
     "enableRealVoicePassthrough": "Originele Audio Doorvoer Inschakelen",
     "realVoicePassthroughDescription": "Geef uw originele audio (stem van de spreker) rechtstreeks door aan de virtuele microfoon zodat luisteraars zowel de originele als de vertaalde audio kunnen horen",
-    "passthroughManagedByPushToTranslate": "Beheerd door Push-to-Translate terwijl deze modus actief is. Uw vorige instelling blijft behouden.",
+    "passthroughManagedByPushToTranslate": "Kan niet worden ingeschakeld terwijl Push-to-Translate actief is",
     "realVoiceVolume": "Originele Audio Volume",
     "mutualExclusivityNotice": "Audioconflict",
     "mutualExclusivitySpeakerTitle": "Kan Luidspreker niet Inschakelen",

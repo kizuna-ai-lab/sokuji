@@ -343,7 +343,7 @@
     "realVoicePassthrough": "Orijinal Ses Geçişi",
     "enableRealVoicePassthrough": "Orijinal Ses Geçişini Etkinleştir",
     "realVoicePassthroughDescription": "Orijinal sesinizi (konuşmacının sesi) doğrudan sanal mikrofona iletin, böylece dinleyiciler hem orijinal hem de çevrilmiş sesi duyabilir",
-    "passthroughManagedByPushToTranslate": "Bu mod etkinken Bas-Çevir tarafından yönetilir. Önceki ayarınız korunur.",
+    "passthroughManagedByPushToTranslate": "Bas-Çevir etkinken etkinleştirilemez",
     "realVoiceVolume": "Orijinal Ses Seviyesi",
     "mutualExclusivityNotice": "Ses Çakışması",
     "mutualExclusivitySpeakerTitle": "Hoparlör Etkinleştirilemiyor",

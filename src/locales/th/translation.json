@@ -460,7 +460,7 @@
     "realVoicePassthrough": "การส่งผ่านเสียงต้นฉบับ",
     "enableRealVoicePassthrough": "เปิดใช้การส่งผ่านเสียงต้นฉบับ",
     "realVoicePassthroughDescription": "ส่งเสียงต้นฉบับของคุณ (เสียงของผู้พูด) ไปยังไมโครโฟนเสมือนโดยตรง เพื่อให้ผู้ฟังสามารถได้ยินทั้งเสียงต้นฉบับและเสียงแปล",
-    "passthroughManagedByPushToTranslate": "จัดการโดยกดเพื่อแปลขณะที่โหมดนี้กำลังทำงาน การตั้งค่าก่อนหน้าของคุณจะถูกเก็บไว้",
+    "passthroughManagedByPushToTranslate": "ไม่สามารถเปิดใช้งานได้ขณะที่กดเพื่อแปลกำลังทำงาน",
     "realVoiceVolume": "ระดับเสียงต้นฉบับ",
     "mutualExclusivityNotice": "ข้อขัดแย้งเสียง",
     "mutualExclusivitySpeakerTitle": "ไม่สามารถเปิดใช้งานลำโพง",

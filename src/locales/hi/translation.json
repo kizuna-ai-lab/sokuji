@@ -490,7 +490,7 @@
     "realVoicePassthrough": "मूल ऑडियो पासथ्रू",
     "enableRealVoicePassthrough": "मूल ऑडियो पासथ्रू सक्षम करें",
     "realVoicePassthroughDescription": "अपने मूल ऑडियो (वक्ता की आवाज) को सीधे वर्चुअल माइक्रोफोन में भेजें ताकि श्रोता मूल और अनुवादित दोनों ऑडियो सुन सकें",
-    "passthroughManagedByPushToTranslate": "जब यह मोड सक्रिय है तो पुश-टू-ट्रांसलेट द्वारा प्रबंधित। आपकी पिछली सेटिंग सुरक्षित है।",
+    "passthroughManagedByPushToTranslate": "जब पुश-टू-ट्रांसलेट सक्रिय है तो सक्षम नहीं किया जा सकता",
     "realVoiceVolume": "मूल ऑडियो वॉल्यूम",
     "mutualExclusivityNotice": "ऑडियो विरोध",
     "mutualExclusivitySpeakerTitle": "स्पीकर सक्षम नहीं कर सकते",

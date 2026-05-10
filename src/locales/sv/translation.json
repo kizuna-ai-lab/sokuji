@@ -336,7 +336,7 @@
     "realVoicePassthrough": "Original Audio Genomströmning",
     "enableRealVoicePassthrough": "Aktivera Original Audio Genomströmning",
     "realVoicePassthroughDescription": "Skicka ditt ursprungliga ljud (talarens röst) direkt till den virtuella mikrofonen så att lyssnarna kan höra både det ursprungliga och översatta ljudet",
-    "passthroughManagedByPushToTranslate": "Hanteras av Push-to-Translate medan detta läge är aktivt. Din tidigare inställning bevaras.",
+    "passthroughManagedByPushToTranslate": "Kan inte aktiveras medan Push-to-Translate är aktivt",
     "realVoiceVolume": "Original Audio Volym",
     "mutualExclusivityNotice": "Ljudkonflikt",
     "mutualExclusivitySpeakerTitle": "Kan inte aktivera Högtalare",

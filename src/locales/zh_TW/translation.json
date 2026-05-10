@@ -437,7 +437,7 @@
     "realVoicePassthrough": "原聲直通",
     "enableRealVoicePassthrough": "啟用原聲直通",
     "realVoicePassthroughDescription": "將您的原聲（說話者聲音）直接傳遞到虛擬麥克風，讓聽眾同時聽到原聲和譯聲",
-    "passthroughManagedByPushToTranslate": "在此模式啟用時由按住翻譯管理。您先前的設定將被保留。",
+    "passthroughManagedByPushToTranslate": "按住翻譯啟用時無法啟用",
     "realVoiceVolume": "原聲音量",
     "mutualExclusivityNotice": "音訊衝突",
     "mutualExclusivitySpeakerTitle": "無法啟用揚聲器",

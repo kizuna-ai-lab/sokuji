@@ -356,7 +356,7 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "Enable Original Audio Passthrough",
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
-    "passthroughManagedByPushToTranslate": "Managed by Push-to-Translate while this mode is active. Your previous setting is preserved.",
+    "passthroughManagedByPushToTranslate": "Cannot be enabled while Push-to-Translate is active",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Audio Conflict",
     "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",

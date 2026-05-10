@@ -453,7 +453,7 @@
     "realVoicePassthrough": "Пряма передача оригінального аудіо",
     "enableRealVoicePassthrough": "Увімкнути пряму передачу оригінального аудіо",
     "realVoicePassthroughDescription": "Передавайте ваше оригінальне аудіо (голос мовця) безпосередньо в віртуальний мікрофон, щоб слухачі могли чути як оригінальне, так і перекладене аудіо",
-    "passthroughManagedByPushToTranslate": "Керується Натисни і переклади, поки цей режим активний. Ваше попереднє налаштування зберігається.",
+    "passthroughManagedByPushToTranslate": "Не можна ввімкнути, поки активний Натисни і переклади",
     "realVoiceVolume": "Гучність оригінального аудіо",
     "mutualExclusivityNotice": "Конфлікт аудіо",
     "mutualExclusivitySpeakerTitle": "Неможливо увімкнути Динамік",

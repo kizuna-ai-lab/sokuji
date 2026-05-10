@@ -496,7 +496,7 @@
     "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
     "enableRealVoicePassthrough": "Ota alkuperäisen äänen läpiviennti käyttöön",
     "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
-    "passthroughManagedByPushToTranslate": "Paina ja käännä hallinnoi tätä, kun tila on aktiivinen. Aiempi asetuksesi säilytetään.",
+    "passthroughManagedByPushToTranslate": "Ei voi ottaa käyttöön, kun Paina ja käännä on aktiivinen",
     "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus",
     "mutualExclusivityNotice": "Äänikonfliktit",
     "mutualExclusivitySpeakerTitle": "Kaiutinta ei voi ottaa käyttöön",

@@ -149,6 +149,10 @@
   &.disabled {
     opacity: 0.5;
     pointer-events: none;
+
+    .tooltip-trigger {
+      pointer-events: auto;
+    }
   }
 
   .setting-description {

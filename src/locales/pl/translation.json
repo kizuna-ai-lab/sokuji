@@ -314,7 +314,7 @@
     "realVoicePassthrough": "Przepuszczanie Oryginalnego Dźwięku",
     "enableRealVoicePassthrough": "Włącz Przepuszczanie Oryginalnego Dźwięku",
     "realVoicePassthroughDescription": "Przekazuj swój oryginalny dźwięk (głos mówcy) bezpośrednio do wirtualnego mikrofonu, aby słuchacze mogli słyszeć zarówno oryginalny, jak i przetłumaczony dźwięk",
-    "passthroughManagedByPushToTranslate": "Zarządzane przez Naciśnij i tłumacz, gdy ten tryb jest aktywny. Twoje poprzednie ustawienie jest zachowane.",
+    "passthroughManagedByPushToTranslate": "Nie można włączyć, gdy aktywny jest tryb Naciśnij i tłumacz",
     "realVoiceVolume": "Głośność Oryginalnego Dźwięku",
     "mutualExclusivityNotice": "Konflikt dźwięku",
     "mutualExclusivitySpeakerTitle": "Nie można włączyć Głośnika",

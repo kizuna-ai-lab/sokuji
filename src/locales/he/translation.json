@@ -476,7 +476,7 @@
     "realVoicePassthrough": "העברת שמע מקורי",
     "enableRealVoicePassthrough": "הפעל העברת שמע מקורי",
     "realVoicePassthroughDescription": "העבר את השמע המקורי שלך (קול הדובר) ישירות למיקרופון הוירטואלי כדי שהמאזינים יוכלו לשמוע גם את השמע המקורי וגם את המתורגם",
-    "passthroughManagedByPushToTranslate": "מנוהל על ידי לחץ כדי לתרגם בזמן שמצב זה פעיל. ההגדרה הקודמת שלך נשמרת.",
+    "passthroughManagedByPushToTranslate": "לא ניתן להפעיל כאשר לחץ כדי לתרגם פעיל",
     "realVoiceVolume": "עוצמת השמע המקורי",
     "mutualExclusivityNotice": "התנגשות שמע",
     "mutualExclusivitySpeakerTitle": "לא ניתן להפעיל רמקול",

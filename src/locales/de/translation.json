@@ -315,7 +315,7 @@
     "realVoicePassthrough": "Original-Audio-Durchleitung",
     "enableRealVoicePassthrough": "Original-Audio-Durchleitung aktivieren",
     "realVoicePassthroughDescription": "Ihr Original-Audio (Sprecherstimme) direkt an das virtuelle Mikrofon weiterleiten, damit Zuhörer sowohl das Original- als auch das übersetzte Audio hören können",
-    "passthroughManagedByPushToTranslate": "Wird von Push-to-Translate verwaltet, solange dieser Modus aktiv ist. Ihre vorherige Einstellung bleibt erhalten.",
+    "passthroughManagedByPushToTranslate": "Kann nicht aktiviert werden, solange Push-to-Translate aktiv ist",
     "realVoiceVolume": "Original-Audio-Lautstärke",
     "mutualExclusivityNotice": "Audio-Konflikt",
     "mutualExclusivitySpeakerTitle": "Lautsprecher kann nicht aktiviert werden",

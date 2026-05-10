@@ -496,7 +496,7 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
     "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",
-    "passthroughManagedByPushToTranslate": "Pinapamahalaan ng Push-to-Translate habang aktibo ang mode na ito. Pinapanatili ang iyong nakaraang setting.",
+    "passthroughManagedByPushToTranslate": "Hindi maaaring i-enable habang aktibo ang Push-to-Translate",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Conflict sa Audio",
     "mutualExclusivitySpeakerTitle": "Hindi Makapag-enable ng Speaker",

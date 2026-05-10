@@ -336,7 +336,7 @@
     "realVoicePassthrough": "Truyền Âm Thanh Gốc",
     "enableRealVoicePassthrough": "Bật Truyền Âm Thanh Gốc",
     "realVoicePassthroughDescription": "Truyền âm thanh gốc của bạn (giọng nói của người nói) trực tiếp đến microphone ảo để người nghe có thể nghe cả âm thanh gốc và âm thanh đã dịch",
-    "passthroughManagedByPushToTranslate": "Được quản lý bởi Nhấn để dịch khi chế độ này đang hoạt động. Cài đặt trước đó của bạn được giữ nguyên.",
+    "passthroughManagedByPushToTranslate": "Không thể bật khi Nhấn để dịch đang hoạt động",
     "realVoiceVolume": "Âm Lượng Âm Thanh Gốc",
     "mutualExclusivityNotice": "Xung Đột Âm Thanh",
     "mutualExclusivitySpeakerTitle": "Không Thể Bật Loa",

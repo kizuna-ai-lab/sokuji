@@ -471,7 +471,7 @@
     "realVoicePassthrough": "அசல் ஆடியோ பாஸ்த்ரூ",
     "enableRealVoicePassthrough": "அசல் ஆடியோ பாஸ்த்ரூவை இயக்கு",
     "realVoicePassthroughDescription": "உங்கள் அசல் ஆடியோவை (பேசுபவரின் குரல்) நேரடியாக மெய்நிகர் மைக்ரோஃபோனுக்கு அனுப்பி, கேட்பவர்கள் அசல் மற்றும் மொழிபெயர்க்கப்பட்ட இரு ஆடியோவையும் கேட்க முடியும்",
-    "passthroughManagedByPushToTranslate": "இந்த பயன்முறை செயலில் இருக்கும் போது புஷ்-டு-ட்ரான்ஸ்லேட் மூலம் நிர்வகிக்கப்படுகிறது. உங்கள் முந்தைய அமைப்பு பாதுகாக்கப்படுகிறது.",
+    "passthroughManagedByPushToTranslate": "புஷ்-டு-ட்ரான்ஸ்லேட் செயலில் இருக்கும்போது இயக்க முடியாது",
     "realVoiceVolume": "அசல் ஆடியோ ஒலியளவு",
     "mutualExclusivityNotice": "ஆடியோ முரண்பாடு",
     "mutualExclusivitySpeakerTitle": "ஸ்பீக்கரை இயக்க முடியாது",

@@ -315,7 +315,7 @@
     "realVoicePassthrough": "原音パススルー",
     "enableRealVoicePassthrough": "原音パススルーを有効にする",
     "realVoicePassthroughDescription": "あなたの原音（話者の声）を仮想マイクに直接送信し、聞き手が原音と通訳音声の両方を聞けるようにします",
-    "passthroughManagedByPushToTranslate": "このモードが有効な間はプッシュトゥトランスレートが管理します。以前の設定は保持されます。",
+    "passthroughManagedByPushToTranslate": "プッシュトゥトランスレートが有効な間は有効にできません",
     "realVoiceVolume": "原音ボリューム",
     "mutualExclusivityNotice": "音声の競合",
     "mutualExclusivitySpeakerTitle": "話者モードを有効にできません",

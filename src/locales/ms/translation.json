@@ -467,7 +467,7 @@
     "realVoicePassthrough": "Laluan Audio Asal",
     "enableRealVoicePassthrough": "Dayakan Laluan Audio Asal",
     "realVoicePassthroughDescription": "Hantar audio asal anda (suara penutur) terus ke mikrofon maya supaya pendengar boleh mendengar kedua-dua audio asal dan terjemahan",
-    "passthroughManagedByPushToTranslate": "Diuruskan oleh Tekan untuk Terjemah semasa mod ini aktif. Tetapan sebelumnya anda dikekalkan.",
+    "passthroughManagedByPushToTranslate": "Tidak boleh diaktifkan semasa Tekan untuk Terjemah aktif",
     "realVoiceVolume": "Volum Audio Asal",
     "mutualExclusivityNotice": "Konflik Audio",
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Dayakan Pembesar Suara",
