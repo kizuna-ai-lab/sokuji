@@ -20,6 +20,7 @@ import {
   useSessionStartTime,
   useItems,
   useSystemAudioItems,
+  useRequestClearConversation,
 } from '../../stores/sessionStore';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './SubtitleApp.scss';
@@ -56,6 +57,7 @@ const SubtitleApp: React.FC = () => {
   const isSessionActive = useIsSessionActive();
   const sessionStartTime = useSessionStartTime();
   const turnDetectionMode = useCurrentTurnDetectionMode();
+  const requestClearConversation = useRequestClearConversation();
   // Mirrors isPttLikeMode in MainPanel — modes that send audio only while
   // the user holds Space.
   const canHoldToSpeak =
@@ -158,10 +160,7 @@ const SubtitleApp: React.FC = () => {
         sessionElapsedMs={elapsedMs}
         sourceLanguageCode={languageCodeShort(sourceLanguage)}
         targetLanguageCode={languageCodeShort(targetLanguage)}
-        onClearConversation={() => {
-          // TODO(subtitle v2): wire to a store-level clearConversation action;
-          // currently a no-op because MainPanel owns the clear logic.
-        }}
+        onClearConversation={requestClearConversation}
         participantHasAudio={participantHasAudio}
         exportProps={{
           combinedItems,

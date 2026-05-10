@@ -12,6 +12,11 @@ interface SessionStore {
   isReconnecting: boolean;
   items: ConversationItem[];
   systemAudioItems: ConversationItem[];
+  // Monotonic counter — every call to requestClearConversation bumps it.
+  // MainPanel watches this version and runs its local clearConversation
+  // routine when it changes, so any consumer (subtitle bar, main toolbar)
+  // can trigger a clear without holding a direct reference to MainPanel.
+  clearConversationVersion: number;
 
   // Actions
   setIsSessionActive: (active: boolean) => void;
@@ -22,7 +27,8 @@ interface SessionStore {
   setIsReconnecting: (reconnecting: boolean) => void;
   setItems: (items: ConversationItem[]) => void;
   setSystemAudioItems: (items: ConversationItem[]) => void;
-  
+  requestClearConversation: () => void;
+
   // Compound actions
   startSession: (sessionId: string) => void;
   endSession: () => void;
@@ -39,6 +45,7 @@ const useSessionStore = create<SessionStore>()(
     isReconnecting: false,
     items: [],
     systemAudioItems: [],
+    clearConversationVersion: 0,
 
     // Basic setters
     setIsSessionActive: (active) => set({ isSessionActive: active }),
@@ -48,6 +55,9 @@ const useSessionStore = create<SessionStore>()(
     setIsReconnecting: (reconnecting) => set({ isReconnecting: reconnecting }),
     setItems: (items) => set({ items }),
     setSystemAudioItems: (systemAudioItems) => set({ systemAudioItems }),
+    requestClearConversation: () => set((state) => ({
+      clearConversationVersion: state.clearConversationVersion + 1,
+    })),
 
     // Increment translation count
     incrementTranslationCount: () => set((state) => ({ 
@@ -107,6 +117,8 @@ export const useItems = () => useSessionStore((state) => state.items);
 export const useSystemAudioItems = () => useSessionStore((state) => state.systemAudioItems);
 export const useSetItems = () => useSessionStore((state) => state.setItems);
 export const useSetSystemAudioItems = () => useSessionStore((state) => state.setSystemAudioItems);
+export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
+export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
 
 // Export actions - use individual hooks and memoize to prevent recreating objects
 export const useSessionActions = () => {
