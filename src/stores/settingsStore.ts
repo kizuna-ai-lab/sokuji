@@ -18,6 +18,7 @@ import {
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
+import useSessionStore from './sessionStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -467,6 +468,8 @@ interface SettingsStore {
   toggleSubtitleAlwaysOnTop: () => Promise<void>;
   toggleSubtitlePositionLocked: () => Promise<void>;
   saveSubtitleWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
+  enterSubtitleMode: () => Promise<void>;
+  exitSubtitleMode: () => Promise<void>;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -1086,6 +1089,25 @@ const useSettingsStore = create<SettingsStore>()(
         console.error('[SettingsStore] Error persisting subtitle.windowBounds:', error);
         set((state) => ({ subtitle: { ...state.subtitle, windowBounds: previous } }));
       }
+    },
+
+    enterSubtitleMode: async () => {
+      // Idempotent: bail if already active
+      if (get().subtitleModeActive) return;
+      // Require an active session
+      const sessionActive = useSessionStore.getState().isSessionActive;
+      if (!sessionActive) {
+        console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
+        return;
+      }
+      set({ subtitleModeActive: true });
+      // IPC call to Electron main is added in Task 11; until then this is a no-op.
+    },
+
+    exitSubtitleMode: async () => {
+      if (!get().subtitleModeActive) return;
+      set({ subtitleModeActive: false });
+      // IPC call to Electron main is added in Task 11; until then this is a no-op.
     },
 
     // === Provider Settings Actions ===
@@ -1821,6 +1843,8 @@ export const useSetSubtitleTranslationTextColor = () => useSettingsStore((state)
 export const useToggleSubtitleAlwaysOnTop = () => useSettingsStore((state) => state.toggleSubtitleAlwaysOnTop);
 export const useToggleSubtitlePositionLocked = () => useSettingsStore((state) => state.toggleSubtitlePositionLocked);
 export const useSaveSubtitleWindowBounds = () => useSettingsStore((state) => state.saveSubtitleWindowBounds);
+export const useEnterSubtitleMode = () => useSettingsStore((state) => state.enterSubtitleMode);
+export const useExitSubtitleMode = () => useSettingsStore((state) => state.exitSubtitleMode);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
