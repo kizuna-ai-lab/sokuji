@@ -10,6 +10,34 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
+// Pretend we're running inside Electron so the IPC-guarded actions
+// (enterSubtitleMode, exit*, toggle*) follow their real-environment paths.
+vi.mock('../utils/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/environment')>();
+  return {
+    ...actual,
+    isElectron: () => true,
+  };
+});
+
+// Provide a window.electron stub so the IPC-guarded actions can run.
+// The renderer code only calls invoke() — return resolved promises with
+// the shape each handler is expected to deliver.
+beforeEach(() => {
+  (window as any).electron = {
+    invoke: vi.fn(async (channel: string) => {
+      if (channel === 'subtitle:enter') {
+        return { ok: true, bounds: { x: 0, y: 0, width: 800, height: 200 } };
+      }
+      return { ok: true };
+    }),
+    receive: () => {},
+    removeListener: () => {},
+    removeAllListeners: () => {},
+    send: () => {},
+  };
+});
+
 // Import after mocking
 const { default: useSettingsStore } = await import('./settingsStore');
 const { default: useSessionStore } = await import('./sessionStore');

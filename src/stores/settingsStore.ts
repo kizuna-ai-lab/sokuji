@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
+import {isElectron} from '../utils/environment';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
 import {
@@ -1059,12 +1060,16 @@ const useSettingsStore = create<SettingsStore>()(
       const next = !get().subtitle.alwaysOnTop;
       set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: next } }));
       try {
+        // Apply the live window change FIRST. If the IPC throws (e.g. main
+        // process is unreachable), we want to bail before writing the new
+        // value to disk — otherwise the next launch hydrates an
+        // un-applied state. Inside the try so any throw routes through
+        // the rollback in catch.
+        if (get().subtitleModeActive) {
+          await window.electron?.invoke('subtitle:set-always-on-top', next);
+        }
         const service = ServiceFactory.getSettingsService();
         await service.setSetting('settings.common.subtitle.alwaysOnTop', next);
-        if (get().subtitleModeActive) {
-          const electronApi = (window as any).electron;
-          await electronApi?.invoke('subtitle:set-always-on-top', next);
-        }
       } catch (error) {
         console.error('[SettingsStore] toggleSubtitleAlwaysOnTop failed:', error);
         set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: !next } }));
@@ -1075,12 +1080,12 @@ const useSettingsStore = create<SettingsStore>()(
       const next = !get().subtitle.positionLocked;
       set((state) => ({ subtitle: { ...state.subtitle, positionLocked: next } }));
       try {
+        // IPC first, then persist (see toggleSubtitleAlwaysOnTop above).
+        if (get().subtitleModeActive) {
+          await window.electron?.invoke('subtitle:set-locked', next);
+        }
         const service = ServiceFactory.getSettingsService();
         await service.setSetting('settings.common.subtitle.positionLocked', next);
-        if (get().subtitleModeActive) {
-          const electronApi = (window as any).electron;
-          await electronApi?.invoke('subtitle:set-locked', next);
-        }
       } catch (error) {
         console.error('[SettingsStore] toggleSubtitlePositionLocked failed:', error);
         set((state) => ({ subtitle: { ...state.subtitle, positionLocked: !next } }));
@@ -1101,6 +1106,15 @@ const useSettingsStore = create<SettingsStore>()(
 
     enterSubtitleMode: async () => {
       if (get().subtitleModeActive) return;
+      // Subtitle mode is Electron-only — entering it without the IPC
+      // bridge would hide the main UI and mount SubtitleApp over a
+      // BrowserWindow that was never resized into the floating bar.
+      // Guard at the action level so a stray call (test, web/extension
+      // build, missing preload) can't put the app into a broken state.
+      if (!isElectron() || !window.electron?.invoke) {
+        console.warn('[SettingsStore] enterSubtitleMode ignored — not running in Electron');
+        return;
+      }
       const sessionActive = useSessionStore.getState().isSessionActive;
       if (!sessionActive) {
         console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
@@ -1117,19 +1131,16 @@ const useSettingsStore = create<SettingsStore>()(
         ? persisted
         : undefined;
       try {
-        const electronApi = (window as any).electron;
-        if (electronApi?.invoke) {
-          const result = await electronApi.invoke('subtitle:enter', {
-            bounds: requestedBounds,
-            alwaysOnTop: subtitle.alwaysOnTop,
-            locked: subtitle.positionLocked,
-          });
-          if (result?.bounds) {
-            // Persist clamped bounds so next launch uses corrected values
-            set((state) => ({ subtitle: { ...state.subtitle, windowBounds: result.bounds } }));
-            const service = ServiceFactory.getSettingsService();
-            await service.setSetting('settings.common.subtitle.windowBounds', result.bounds);
-          }
+        const result = await window.electron.invoke('subtitle:enter', {
+          bounds: requestedBounds,
+          alwaysOnTop: subtitle.alwaysOnTop,
+          locked: subtitle.positionLocked,
+        });
+        if (result?.bounds) {
+          // Persist clamped bounds so next launch uses corrected values
+          set((state) => ({ subtitle: { ...state.subtitle, windowBounds: result.bounds } }));
+          const service = ServiceFactory.getSettingsService();
+          await service.setSetting('settings.common.subtitle.windowBounds', result.bounds);
         }
         set({ subtitleModeActive: true });
       } catch (error) {
@@ -1140,9 +1151,8 @@ const useSettingsStore = create<SettingsStore>()(
     exitSubtitleMode: async () => {
       if (!get().subtitleModeActive) return;
       try {
-        const electronApi = (window as any).electron;
-        if (electronApi?.invoke) {
-          await electronApi.invoke('subtitle:exit', {});
+        if (isElectron() && window.electron?.invoke) {
+          await window.electron.invoke('subtitle:exit', {});
         }
       } catch (error) {
         console.error('[SettingsStore] exitSubtitleMode IPC failed:', error);

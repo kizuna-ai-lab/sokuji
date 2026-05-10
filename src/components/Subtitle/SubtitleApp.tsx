@@ -121,8 +121,7 @@ const SubtitleApp: React.FC = () => {
   // prevents the resize event triggered by exiting (setBounds(restore))
   // from being saved as subtitle bounds.
   useEffect(() => {
-    const electronApi = (window as any).electron;
-    if (!electronApi?.receive) return;
+    if (!window.electron?.receive) return;
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const handler = (bounds: { x: number; y: number; width: number; height: number }) => {
       if (debounce) clearTimeout(debounce);
@@ -131,10 +130,10 @@ const SubtitleApp: React.FC = () => {
         void saveBounds(bounds);
       }, 500);
     };
-    electronApi.receive('subtitle:window-bounds-changed', handler);
+    window.electron.receive('subtitle:window-bounds-changed', handler);
     return () => {
       if (debounce) clearTimeout(debounce);
-      electronApi.removeListener?.('subtitle:window-bounds-changed', handler);
+      window.electron?.removeListener?.('subtitle:window-bounds-changed', handler);
     };
   }, [saveBounds]);
 
