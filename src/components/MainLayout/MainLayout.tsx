@@ -9,7 +9,8 @@ import TitleBar from '../TitleBar/TitleBar';
 import { Terminal, Settings } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
+import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
@@ -27,6 +28,7 @@ const MainLayout: React.FC = () => {
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const { userTypeSelected, setUserType } = useOnboarding();
   const { isSignedIn } = useAuth();
+  const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
   });
@@ -188,8 +190,11 @@ const MainLayout: React.FC = () => {
 
   return (
     <>
-    {isElectron() && <TitleBar />}
-    <div className="main-layout">
+    {!subtitleActive && isElectron() && <TitleBar />}
+    <div
+      className="main-layout"
+      style={subtitleActive ? { display: 'none' } : undefined}
+    >
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
         <header className="main-panel-header">
           <h1>{t('app.title')}</h1>
@@ -223,6 +228,7 @@ const MainLayout: React.FC = () => {
       )}
       <Onboarding />
     </div>
+    {subtitleActive && <SubtitleApp />}
     </>
   );
 };
