@@ -28,6 +28,12 @@
       flex-direction: column;
       justify-content: flex-end;
 
+      // Fade the top of the band so any partially-clipped character row
+      // melts into the background instead of getting cut in half. The
+      // fade height matches one line of text (line-height: 1.4em).
+      mask-image: linear-gradient(to bottom, transparent 0, black 1.4em, black 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 1.4em, black 100%);
+
       p {
         margin: 0;
         line-height: 1.4;
