@@ -28,6 +28,27 @@ import i18n from '../locales';
 // Conversation display mode — which half of a bilingual utterance to show
 export type DisplayMode = 'source' | 'translation' | 'both';
 
+// Subtitle (floating-bar) mode settings — Electron-only feature.
+// Persisted under settings.common.subtitle.*
+export interface SubtitleWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SubtitleSettings {
+  fontSize: number;            // 16-48, clamped on set
+  compactMode: boolean;
+  bgOpacity: number;           // 0-100
+  bgColor: string;             // hex
+  sourceTextColor: string;     // hex
+  translationTextColor: string;// hex
+  alwaysOnTop: boolean;
+  positionLocked: boolean;
+  windowBounds: SubtitleWindowBounds | null;
+}
+
 // Common Settings
 export interface CommonSettings {
   provider: ProviderType;
@@ -42,6 +63,7 @@ export interface CommonSettings {
   conversationCompactMode: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
+  subtitle: SubtitleSettings;
 }
 
 // Transport type for OpenAI Realtime API
@@ -243,6 +265,17 @@ const defaultCommonSettings: CommonSettings = {
   participantSystemInstructions: '',
   speakerDisplayMode: 'both',
   participantDisplayMode: 'both',
+  subtitle: {
+    fontSize: 24,
+    compactMode: true,
+    bgOpacity: 70,
+    bgColor: '#000000',
+    sourceTextColor: '#FFFFFF',
+    translationTextColor: '#6CC5FF',
+    alwaysOnTop: true,
+    positionLocked: false,
+    windowBounds: null,
+  },
 };
 
 const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
@@ -410,6 +443,10 @@ interface SettingsStore {
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
+
+  // Subtitle mode settings and runtime flag
+  subtitle: SubtitleSettings;
+  subtitleModeActive: boolean;
 
   // === Actions ===
   // Common settings actions
@@ -788,6 +825,7 @@ const useSettingsStore = create<SettingsStore>()(
     settingsNavigationTarget: null,
 
     settingsLoaded: false,
+    subtitleModeActive: false,
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
