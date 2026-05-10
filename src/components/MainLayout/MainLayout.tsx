@@ -5,6 +5,7 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
 import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
+import TitleBar from '../TitleBar/TitleBar';
 import { Terminal, Settings } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
@@ -12,6 +13,7 @@ import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNaviga
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
+import { isElectron } from '../../utils/environment';
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 
@@ -185,6 +187,8 @@ const MainLayout: React.FC = () => {
   }
 
   return (
+    <>
+    {isElectron() && <TitleBar />}
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
         <header className="main-panel-header">
@@ -219,6 +223,7 @@ const MainLayout: React.FC = () => {
       )}
       <Onboarding />
     </div>
+    </>
   );
 };
 
