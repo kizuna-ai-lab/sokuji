@@ -1,0 +1,10 @@
+// src/components/Subtitle/SubtitleApp.scss
+.subtitle-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  border-radius: 8px;
+  overflow: hidden;
+  color: var(--subtitle-source-color, #FFFFFF);
+}
