@@ -29,6 +29,7 @@ function setupSubtitleHandlers(mainWindow) {
   });
 
   ipcMain.handle('subtitle:enter', (_event, payload) => {
+    if (mainWindow.isDestroyed()) return { ok: false };
     const work = screen.getPrimaryDisplay().workArea;
     const requested = payload?.bounds ?? defaultSubtitleBounds(work);
     const clamped = clampToScreen(requested, work);
@@ -41,6 +42,7 @@ function setupSubtitleHandlers(mainWindow) {
   });
 
   ipcMain.handle('subtitle:exit', (_event, payload) => {
+    if (mainWindow.isDestroyed()) return { ok: false };
     const restore = payload?.restoreBounds ?? normalBoundsSnapshot ?? { width: 1200, height: 800 };
     if (restore.x !== undefined && restore.y !== undefined) {
       mainWindow.setBounds(restore);
@@ -60,11 +62,13 @@ function setupSubtitleHandlers(mainWindow) {
   });
 
   ipcMain.handle('subtitle:set-always-on-top', (_event, flag) => {
+    if (mainWindow.isDestroyed()) return { ok: false };
     mainWindow.setAlwaysOnTop(Boolean(flag), 'floating');
     return { ok: true };
   });
 
   ipcMain.handle('subtitle:set-locked', (_event, locked) => {
+    if (mainWindow.isDestroyed()) return { ok: false };
     mainWindow.setResizable(!locked);
     return { ok: true };
   });
@@ -81,6 +85,12 @@ function setupSubtitleHandlers(mainWindow) {
   };
   mainWindow.on('resize', onChange);
   mainWindow.on('move', onChange);
+  mainWindow.on('closed', () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+  });
 }
 
 module.exports = { setupSubtitleHandlers };
