@@ -1,0 +1,15 @@
+.subtitle-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  scroll-behavior: smooth;
+
+  // Hide scrollbar; subtitle area should look clean
+  &::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+}
