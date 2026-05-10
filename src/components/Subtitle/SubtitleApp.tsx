@@ -1,5 +1,6 @@
 // src/components/Subtitle/SubtitleApp.tsx
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
 import SubtitleSessionEnded from './SubtitleSessionEnded';
@@ -12,6 +13,7 @@ import useSettingsStore, {
   useProvider,
   useGetCurrentProviderSettings,
   useLocalInferenceSettings,
+  useCurrentTurnDetectionMode,
 } from '../../stores/settingsStore';
 import {
   useIsSessionActive,
@@ -40,6 +42,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 const SubtitleApp: React.FC = () => {
+  const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
   const saveBounds = useSaveSubtitleWindowBounds();
@@ -52,6 +55,13 @@ const SubtitleApp: React.FC = () => {
   const localInferenceSettings = useLocalInferenceSettings();
   const isSessionActive = useIsSessionActive();
   const sessionStartTime = useSessionStartTime();
+  const turnDetectionMode = useCurrentTurnDetectionMode();
+  // Mirrors isPttLikeMode in MainPanel — modes that send audio only while
+  // the user holds Space.
+  const canHoldToSpeak =
+    turnDetectionMode === 'Push-to-Talk' ||
+    turnDetectionMode === 'Push-to-Translate' ||
+    turnDetectionMode === 'Disabled';
 
   const providerSettings = useMemo(
     () => getCurrentProviderSettings(),
@@ -162,17 +172,23 @@ const SubtitleApp: React.FC = () => {
         }}
       />
       {isSessionActive ? (
-        <SubtitleStream
-          items={combinedItems}
-          compact={subtitle.compactMode}
-          fontSize={subtitle.fontSize}
-          speakerMode={speakerMode}
-          participantMode={participantMode}
-          sourceLanguage={sourceLanguage}
-          targetLanguage={targetLanguage}
-          sourceTextColor={subtitle.sourceTextColor}
-          translationTextColor={subtitle.translationTextColor}
-        />
+        canHoldToSpeak && combinedItems.length === 0 ? (
+          <div className="subtitle-ptt-hint">
+            <p>{t('subtitle.pttHint', 'Press Space to speak')}</p>
+          </div>
+        ) : (
+          <SubtitleStream
+            items={combinedItems}
+            compact={subtitle.compactMode}
+            fontSize={subtitle.fontSize}
+            speakerMode={speakerMode}
+            participantMode={participantMode}
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+            sourceTextColor={subtitle.sourceTextColor}
+            translationTextColor={subtitle.translationTextColor}
+          />
+        )
       ) : (
         <SubtitleSessionEnded onReturn={() => void exitSubtitleMode()} />
       )}

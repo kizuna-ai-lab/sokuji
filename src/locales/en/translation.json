@@ -896,6 +896,7 @@
       "bgColor": "Background color",
       "sourceColor": "Source text color",
       "translationColor": "Translation color"
-    }
+    },
+    "pttHint": "Press Space to speak"
   }
 }

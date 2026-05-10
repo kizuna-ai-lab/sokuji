@@ -8,3 +8,18 @@
   overflow: hidden;
   color: var(--subtitle-source-color, #FFFFFF);
 }
+
+.subtitle-ptt-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.3px;
+  }
+}
