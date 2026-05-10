@@ -59,6 +59,7 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
+import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
 
 
 /**
@@ -2913,6 +2914,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 onChange={setParticipantDisplayMode}
               />
             )}
+            <SubtitleEnterButton />
             <button
               className="font-size-btn"
               onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
