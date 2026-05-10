@@ -59,7 +59,6 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
-import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
 
 
 /**
@@ -2902,7 +2901,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {/* Conversation toolbar */}
         {(isSessionActive || combinedItems.length > 0) && (
           <div className="conversation-toolbar">
-            <SubtitleEnterButton />
             <DisplayModeButton
               scope="speaker"
               value={speakerDisplayMode}

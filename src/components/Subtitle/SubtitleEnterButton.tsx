@@ -12,20 +12,22 @@ const SubtitleEnterButton: React.FC = () => {
 
   if (!isElectron()) return null;
 
+  const label = t('subtitle.enterButton.label', 'Subtitle');
+  const tooltip = isSessionActive
+    ? t('subtitle.enterButton.title', 'Enter subtitle mode')
+    : t('subtitle.enterButton.disabled', 'Start a session first');
+
   return (
     <button
       type="button"
-      className="font-size-btn"
+      className="title-bar__action"
       onClick={() => void enterSubtitleMode()}
       disabled={!isSessionActive}
-      title={
-        isSessionActive
-          ? t('subtitle.enterButton.title', 'Enter subtitle mode')
-          : t('subtitle.enterButton.disabled', 'Start a session first')
-      }
-      aria-label={t('subtitle.enterButton.title', 'Enter subtitle mode')}
+      title={tooltip}
+      aria-label={tooltip}
     >
       <Captions size={14} />
+      <span className="title-bar__action-label">{label}</span>
     </button>
   );
 };

@@ -877,7 +877,8 @@
     "backToMain": "Return to main window",
     "enterButton": {
       "title": "Enter subtitle mode",
-      "disabled": "Start a session first"
+      "disabled": "Start a session first",
+      "label": "Subtitle"
     },
     "bar": {
       "fontDecrease": "Decrease font size",

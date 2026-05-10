@@ -53,7 +53,7 @@
   font-size: 12px;
   line-height: 1;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
   }
 
@@ -61,6 +61,11 @@
     background: rgba(255, 255, 255, 0.12);
     border-color: #10a37f;
     color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 

@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Minus, Square, X, Settings, Terminal } from 'lucide-react';
 import { isMacOS } from '../../utils/environment';
+import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
 import './TitleBar.scss';
 
 interface TitleBarProps {
@@ -55,6 +56,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
         <Terminal size={14} />
         <span className="title-bar__action-label">{logsLabel}</span>
       </button>
+      <SubtitleEnterButton />
     </div>
   );
 
