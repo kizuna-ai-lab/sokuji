@@ -1,0 +1,59 @@
+// src/components/TitleBar/TitleBar.scss
+.title-bar {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  background: #1a1a1a;
+  color: #e8e8e8;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+
+  &.platform-darwin {
+    // On macOS we use titleBarStyle: 'hiddenInset' so the OS draws traffic-
+    // light buttons on the left. We just need padding to keep our content
+    // clear of them.
+    padding-left: 78px;
+    padding-right: 8px;
+    justify-content: flex-start;
+  }
+
+  &.platform-other {
+    padding-left: 12px;
+    padding-right: 0;
+    justify-content: space-between;
+  }
+}
+
+.title-bar__title {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.title-bar__buttons {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar__btn {
+  width: 46px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: #c8c8c8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.title-bar__close:hover {
+    background: #c0392b;
+    color: #fff;
+  }
+}
