@@ -1,34 +1,66 @@
 .subtitle-stream {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
   padding: 12px 24px 16px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   scroll-behavior: smooth;
 
-  // Hide scrollbar; subtitle area should look clean
   &::-webkit-scrollbar {
     width: 0;
     background: transparent;
   }
 
-  // Compact mode: two flowing concatenated paragraphs.
-  .subtitle-stream__source,
-  .subtitle-stream__translation {
-    margin: 0;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+  // Compact mode: up to four equal-height bands (speaker source,
+  // speaker translation, participant source, participant translation).
+  // Each visible band gets flex:1 so they share the height evenly. Long
+  // content inside a band clips to the bottom — the newest text stays
+  // pinned to the band's bottom edge and the top is hidden by overflow.
+  &.compact {
+    overflow: hidden;
+    gap: 8px;
+
+    .subtitle-stream__line {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+
+      p {
+        margin: 0;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+    }
+
+    .subtitle-stream__line--source p {
+      color: var(--subtitle-source-color, #9aa0a6);
+      font-style: italic;
+    }
+
+    .subtitle-stream__line--translation p {
+      color: var(--subtitle-translation-color, #e8e8e8);
+    }
+
+    // Subtle visual marker so users can tell speaker vs participant
+    // apart when both are on screen.
+    .subtitle-stream__line--participant {
+      padding-left: 6px;
+      border-left: 2px solid rgba(243, 156, 18, 0.6);
+    }
+    .subtitle-stream__line--speaker {
+      padding-left: 6px;
+      border-left: 2px solid rgba(16, 163, 127, 0.6);
+    }
   }
 
-  .subtitle-stream__source {
-    color: var(--subtitle-source-color, #9aa0a6);
-    font-style: italic;
-    margin-bottom: 0.4em;
-  }
-
-  .subtitle-stream__translation {
-    color: var(--subtitle-translation-color, #e8e8e8);
+  // Expanded mode: ConversationRow drives its own layout; we just provide
+  // the scroll container.
+  &.expanded {
+    overflow-y: auto;
+    justify-content: flex-end;
   }
 }

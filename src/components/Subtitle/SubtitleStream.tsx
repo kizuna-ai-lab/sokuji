@@ -20,18 +20,29 @@ function itemText(item: any): string {
   return item?.formatted?.transcript || item?.formatted?.text || '';
 }
 
+type LineKind = 'source' | 'translation';
+type LineSource = 'speaker' | 'participant';
+interface SubtitleLine {
+  id: string;
+  kind: LineKind;
+  source: LineSource;
+  text: string;
+}
+
 /**
  * Subtitle stream has two display modes driven by `compact`:
  *
- * - compact (default for subtitle mode) — renders the conversation as two
- *   flowing lines: every visible role=user item concatenated into a single
- *   source-language paragraph, and every visible role=assistant item
- *   concatenated into a single translation paragraph. This is the classic
- *   floating-subtitle look.
+ * - compact (default) — renders up to four flowing lines: speaker source,
+ *   speaker translation, participant source, participant translation. Each
+ *   line concatenates every visible item of its category in chronological
+ *   order. Empty lines (no items, or hidden by displayMode) are dropped.
+ *   All visible lines share the available height equally; when a single
+ *   line's text is longer than its band it clips to the bottom so the
+ *   newest text stays visible without pushing other lines off-screen.
  *
- * - expanded — falls back to per-item bubbles via ConversationRow with its
- *   full layout (avatar, role label, language badge), suitable for users
- *   who want to read the conversation as a log rather than a stream.
+ * - expanded — falls back to per-item ConversationRow with its full layout
+ *   (avatar, role label, language badge), suitable for users who want to
+ *   read the conversation as a log rather than a subtitle stream.
  */
 const SubtitleStream: React.FC<Props> = ({
   items,
@@ -49,19 +60,36 @@ const SubtitleStream: React.FC<Props> = ({
     [items, speakerMode, participantMode],
   );
 
-  const { sourceText, translationText } = useMemo(() => {
-    const sourceParts: string[] = [];
-    const translationParts: string[] = [];
+  const lines = useMemo<SubtitleLine[]>(() => {
+    const buckets: Record<string, string[]> = {
+      'speaker-source': [],
+      'speaker-translation': [],
+      'participant-source': [],
+      'participant-translation': [],
+    };
     for (const item of filtered) {
       const text = itemText(item).trim();
       if (!text) continue;
-      if (item.role === 'user') sourceParts.push(text);
-      else if (item.role === 'assistant') translationParts.push(text);
+      const source: LineSource = item.source === 'participant' ? 'participant' : 'speaker';
+      const kind: LineKind | null =
+        item.role === 'user' ? 'source' : item.role === 'assistant' ? 'translation' : null;
+      if (!kind) continue;
+      buckets[`${source}-${kind}`].push(text);
     }
-    return {
-      sourceText: sourceParts.join(' '),
-      translationText: translationParts.join(' '),
-    };
+    const order: Array<{ source: LineSource; kind: LineKind }> = [
+      { source: 'speaker', kind: 'source' },
+      { source: 'speaker', kind: 'translation' },
+      { source: 'participant', kind: 'source' },
+      { source: 'participant', kind: 'translation' },
+    ];
+    return order
+      .map(({ source, kind }) => ({
+        id: `${source}-${kind}`,
+        source,
+        kind,
+        text: buckets[`${source}-${kind}`].join(' '),
+      }))
+      .filter((l) => l.text.length > 0);
   }, [filtered]);
 
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +97,7 @@ const SubtitleStream: React.FC<Props> = ({
     if (endRef.current && typeof endRef.current.scrollIntoView === 'function') {
       endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  }, [compact, sourceText.length, translationText.length, filtered.length]);
+  }, [compact, lines, filtered.length]);
 
   // Apply fontSize to both our flat-line styles and the CSS var that
   // ConversationRow reads in expanded mode.
@@ -81,31 +109,29 @@ const SubtitleStream: React.FC<Props> = ({
   if (translationTextColor) style['--subtitle-translation-color'] = translationTextColor;
 
   return (
-    <div className="subtitle-stream" style={style}>
-      {compact ? (
-        <>
-          {sourceText && (
-            <p className="subtitle-stream__source">{sourceText}</p>
-          )}
-          {translationText && (
-            <p className="subtitle-stream__translation">{translationText}</p>
-          )}
-        </>
-      ) : (
-        filtered.map((item, i) => (
-          <ConversationRow
-            key={item.id}
-            item={item}
-            prevItem={filtered[i - 1] ?? null}
-            compact={false}
-            sourceLanguage={sourceLanguage}
-            targetLanguage={targetLanguage}
-            isPlaying={false}
-            highlightedChars={0}
-            canPlay={false}
-          />
-        ))
-      )}
+    <div className={`subtitle-stream ${compact ? 'compact' : 'expanded'}`} style={style}>
+      {compact
+        ? lines.map((line) => (
+            <div
+              key={line.id}
+              className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
+            >
+              <p>{line.text}</p>
+            </div>
+          ))
+        : filtered.map((item, i) => (
+            <ConversationRow
+              key={item.id}
+              item={item}
+              prevItem={filtered[i - 1] ?? null}
+              compact={false}
+              sourceLanguage={sourceLanguage}
+              targetLanguage={targetLanguage}
+              isPlaying={false}
+              highlightedChars={0}
+              canPlay={false}
+            />
+          ))}
       <div ref={endRef} />
     </div>
   );
