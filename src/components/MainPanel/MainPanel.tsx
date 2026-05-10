@@ -2903,8 +2903,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {(isSessionActive || combinedItems.length > 0) && (
           <div className="conversation-toolbar">
             <SubtitleEnterButton />
-            {combinedItems.length > 0 && (
-              <>
             <DisplayModeButton
               scope="speaker"
               value={speakerDisplayMode}
@@ -2973,8 +2971,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               <Trash2 size={14} />
             </button>
-              </>
-            )}
           </div>
         )}
         {/* Conversation Display */}
