@@ -1442,6 +1442,42 @@ const useSettingsStore = create<SettingsStore>()(
         const conversationCompactMode = await service.getSetting('settings.common.conversationCompactMode', defaultCommonSettings.conversationCompactMode);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
+        const subtitleFontSize = await service.getSetting<number>(
+          'settings.common.subtitle.fontSize',
+          defaultCommonSettings.subtitle.fontSize,
+        );
+        const subtitleCompactMode = await service.getSetting<boolean>(
+          'settings.common.subtitle.compactMode',
+          defaultCommonSettings.subtitle.compactMode,
+        );
+        const subtitleBgOpacity = await service.getSetting<number>(
+          'settings.common.subtitle.bgOpacity',
+          defaultCommonSettings.subtitle.bgOpacity,
+        );
+        const subtitleBgColor = await service.getSetting<string>(
+          'settings.common.subtitle.bgColor',
+          defaultCommonSettings.subtitle.bgColor,
+        );
+        const subtitleSourceTextColor = await service.getSetting<string>(
+          'settings.common.subtitle.sourceTextColor',
+          defaultCommonSettings.subtitle.sourceTextColor,
+        );
+        const subtitleTranslationTextColor = await service.getSetting<string>(
+          'settings.common.subtitle.translationTextColor',
+          defaultCommonSettings.subtitle.translationTextColor,
+        );
+        const subtitleAlwaysOnTop = await service.getSetting<boolean>(
+          'settings.common.subtitle.alwaysOnTop',
+          defaultCommonSettings.subtitle.alwaysOnTop,
+        );
+        const subtitlePositionLocked = await service.getSetting<boolean>(
+          'settings.common.subtitle.positionLocked',
+          defaultCommonSettings.subtitle.positionLocked,
+        );
+        const subtitleWindowBounds = await service.getSetting<SubtitleWindowBounds | null>(
+          'settings.common.subtitle.windowBounds',
+          defaultCommonSettings.subtitle.windowBounds,
+        );
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -1480,6 +1516,17 @@ const useSettingsStore = create<SettingsStore>()(
           conversationCompactMode,
           speakerDisplayMode,
           participantDisplayMode,
+          subtitle: {
+            fontSize: subtitleFontSize,
+            compactMode: subtitleCompactMode,
+            bgOpacity: subtitleBgOpacity,
+            bgColor: subtitleBgColor,
+            sourceTextColor: subtitleSourceTextColor,
+            translationTextColor: subtitleTranslationTextColor,
+            alwaysOnTop: subtitleAlwaysOnTop,
+            positionLocked: subtitlePositionLocked,
+            windowBounds: subtitleWindowBounds,
+          },
           openai,
           gemini,
           openaiCompatible,
