@@ -42,7 +42,7 @@ Companion to `2026-05-10-subtitle-mode-design.md`.
 - [ ] 22. Font − / Font + change subtitle font size; main panel font does NOT change.
 - [ ] 23. Compact toggle changes subtitle row layout; main panel layout unchanged.
 - [ ] 24. Export downloads a transcript file.
-- [ ] 25. Clear is currently a no-op in subtitle mode (deferred to a future store-level action). Verify the button doesn't crash but doesn't clear either.
+- [ ] 25. Clear empties the subtitle stream. Exit subtitle mode and confirm the main panel conversation is also empty (same action goes through `sessionStore.requestClearConversation` so both surfaces stay in sync).
 
 ## F. Exit and error paths
 

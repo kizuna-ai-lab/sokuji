@@ -20,6 +20,13 @@ function itemText(item: any): string {
   return item?.formatted?.transcript || item?.formatted?.text || '';
 }
 
+// Cap how much text any one compact band concatenates. The band only
+// shows the tail anyway (overflow clipped to bottom), so processing the
+// full conversation history on every streaming update wastes CPU as
+// the session grows. ~2000 chars is well past what any visible band
+// could display at typical font sizes; older content drops cleanly.
+const BUCKET_MAX_CHARS = 2000;
+
 type LineKind = 'source' | 'translation';
 type LineSource = 'speaker' | 'participant';
 interface SubtitleLine {
@@ -34,11 +41,10 @@ interface SubtitleLine {
  *
  * - compact (default) — renders up to four flowing lines: speaker source,
  *   speaker translation, participant source, participant translation. Each
- *   line concatenates every visible item of its category in chronological
- *   order. Empty lines (no items, or hidden by displayMode) are dropped.
- *   All visible lines share the available height equally; when a single
- *   line's text is longer than its band it clips to the bottom so the
- *   newest text stays visible without pushing other lines off-screen.
+ *   line concatenates the most recent visible items of its category up to
+ *   BUCKET_MAX_CHARS. Empty lines are dropped. All visible lines share
+ *   the available height equally; when a line is longer than its band the
+ *   band clips to the bottom so the newest text stays pinned.
  *
  * - expanded — falls back to per-item ConversationRow with its full layout
  *   (avatar, role label, language badge), suitable for users who want to
@@ -67,15 +73,34 @@ const SubtitleStream: React.FC<Props> = ({
       'participant-source': [],
       'participant-translation': [],
     };
-    for (const item of filtered) {
+    const bucketLen: Record<string, number> = {
+      'speaker-source': 0,
+      'speaker-translation': 0,
+      'participant-source': 0,
+      'participant-translation': 0,
+    };
+
+    // Walk items newest-first, prepending each item's text to its bucket
+    // until that bucket reaches BUCKET_MAX_CHARS. Older items beyond the
+    // cap are dropped — the band only shows the tail anyway. shouldShowItem
+    // lets error/system rows pass; route them to the translation bucket of
+    // whichever side produced them so they remain visible.
+    for (let i = filtered.length - 1; i >= 0; i--) {
+      const item = filtered[i];
       const text = itemText(item).trim();
       if (!text) continue;
-      const source: LineSource = item.source === 'participant' ? 'participant' : 'speaker';
-      const kind: LineKind | null =
-        item.role === 'user' ? 'source' : item.role === 'assistant' ? 'translation' : null;
-      if (!kind) continue;
-      buckets[`${source}-${kind}`].push(text);
+      const side: LineSource = item.source === 'participant' ? 'participant' : 'speaker';
+      let kind: LineKind;
+      if (item.role === 'user') kind = 'source';
+      else if (item.role === 'assistant') kind = 'translation';
+      else if (item.type === 'error' || item.role === 'system') kind = 'translation';
+      else continue;
+      const key = `${side}-${kind}`;
+      if (bucketLen[key] >= BUCKET_MAX_CHARS) continue;
+      buckets[key].unshift(text);
+      bucketLen[key] += text.length + 1; // +1 for the joining space
     }
+
     const order: Array<{ source: LineSource; kind: LineKind }> = [
       { source: 'speaker', kind: 'source' },
       { source: 'speaker', kind: 'translation' },
@@ -92,12 +117,18 @@ const SubtitleStream: React.FC<Props> = ({
       .filter((l) => l.text.length > 0);
   }, [filtered]);
 
+  // Stick to bottom only in expanded mode, where ConversationRow rows pile
+  // up in a scrollable column and need to follow the latest content. In
+  // compact mode each band is a fixed flex slot with internal overflow:
+  // hidden, so the parent never scrolls and scrollIntoView is a no-op
+  // (and `behavior: 'smooth'` would just add jitter during streaming).
   const endRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
+    if (compact) return;
     if (endRef.current && typeof endRef.current.scrollIntoView === 'function') {
-      endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      endRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
-  }, [compact, lines, filtered.length]);
+  }, [compact, filtered.length]);
 
   // Apply fontSize to both our flat-line styles and the CSS var that
   // ConversationRow reads in expanded mode.

@@ -91,6 +91,26 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     expect(speakerSrc.textContent).toBe('hello world');
   });
 
+  it('routes error / system items into the translation bucket so they remain visible', () => {
+    const withError: any[] = [
+      ...items,
+      { id: 'e1', source: 'speaker', role: 'system', type: 'error', status: 'completed', formatted: { text: '[error] connection lost' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    const { container } = render(
+      <SubtitleStream
+        items={withError}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const speakerTr = container.querySelector('.subtitle-stream__line--speaker.subtitle-stream__line--translation p')!;
+    expect(speakerTr.textContent).toContain('[error] connection lost');
+  });
+
   it('applies fontSize and color CSS variables', () => {
     const { container } = render(
       <SubtitleStream
