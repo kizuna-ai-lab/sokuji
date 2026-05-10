@@ -36,7 +36,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    -webkit-app-region: no-drag;
+    // Non-interactive areas inside segments (logo, timer, lang label,
+    // dividers) stay in the drag region so the user can grab almost any
+    // visible part of the bar to move the window. Interactive elements
+    // below opt out individually with -webkit-app-region: no-drag.
   }
 
   .subtitle-bar__logo {
@@ -69,6 +72,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    -webkit-app-region: no-drag;
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);
@@ -89,9 +93,12 @@
   // our own .subtitle-bar__btn. Their own SCSS (color: #555) is tuned for
   // MainPanel's lighter toolbar; on the subtitle bar's near-black bg it's
   // nearly invisible. Scoping the override here keeps MainPanel untouched.
+  // Both classes also opt out of the bar's drag region so clicks land
+  // on the button rather than starting a window-drag.
   .display-mode-btn,
   .export-btn {
     color: #c8c8c8;
+    -webkit-app-region: no-drag;
 
     &:hover:not(:disabled) {
       background: rgba(255, 255, 255, 0.08);
