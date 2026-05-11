@@ -69,15 +69,35 @@ const SubtitleApp: React.FC = () => {
     () => getCurrentProviderSettings(),
     [getCurrentProviderSettings, provider],
   );
-  const sourceLanguage: string = (providerSettings as any)?.sourceLanguage ?? 'en';
-  const targetLanguage: string = (providerSettings as any)?.targetLanguage ?? 'zh';
+  // The provider-settings union doesn't guarantee these fields (a few
+  // members are text-only and never carry a language pair), so cast to a
+  // narrow shape that exposes only what we actually read.
+  const providerLanguages = providerSettings as { sourceLanguage?: string; targetLanguage?: string } | null | undefined;
+  const sourceLanguage: string = providerLanguages?.sourceLanguage ?? 'en';
+  const targetLanguage: string = providerLanguages?.targetLanguage ?? 'zh';
 
-  // Combine items with source tagging (mirrors MainPanel's logic, simplified)
-  const combinedItems = useMemo(() => {
-    const tagSpeaker = (item: ConversationItem) =>
-      ({ ...item, source: item.source ?? 'speaker', sourceLanguage, targetLanguage }) as any;
-    const tagParticipant = (item: ConversationItem) =>
-      ({ ...item, source: item.source ?? 'participant', sourceLanguage, targetLanguage }) as any;
+  // Combine items with source tagging (mirrors MainPanel's logic, simplified).
+  // Tagged items extend ConversationItem with the speaker/participant role and
+  // the snapshotted language pair so ConversationRow can render badges
+  // consistently after the languages change mid-conversation.
+  type TaggedItem = ConversationItem & {
+    source: 'speaker' | 'participant';
+    sourceLanguage: string;
+    targetLanguage: string;
+  };
+  const combinedItems = useMemo<TaggedItem[]>(() => {
+    const tagSpeaker = (item: ConversationItem): TaggedItem => ({
+      ...item,
+      source: item.source ?? 'speaker',
+      sourceLanguage,
+      targetLanguage,
+    });
+    const tagParticipant = (item: ConversationItem): TaggedItem => ({
+      ...item,
+      source: item.source ?? 'participant',
+      sourceLanguage,
+      targetLanguage,
+    });
     const all = [
       ...items.map(tagSpeaker),
       ...systemAudioItems.map(tagParticipant),
@@ -140,12 +160,14 @@ const SubtitleApp: React.FC = () => {
   // Detect whether participant has produced any items
   const participantHasAudio = systemAudioItems.length > 0;
 
-  // Build CSS variables for background
+  // Build CSS variables for background. The intersection with
+  // Record<string, string | number> lets us set CSS custom properties
+  // without TS rejecting non-camelCase keys.
   const bgAlpha = subtitle.bgOpacity / 100;
-  const rootStyle: React.CSSProperties = {
+  const rootStyle: React.CSSProperties & Record<string, string | number> = {
     background: hexToRgba(subtitle.bgColor, bgAlpha),
-    ['--bar-opacity' as any]: barVisible ? 1 : 0,
-    ['--bar-pointer-events' as any]: barVisible ? 'auto' : 'none',
+    '--bar-opacity': barVisible ? 1 : 0,
+    '--bar-pointer-events': barVisible ? 'auto' : 'none',
   };
 
   return (

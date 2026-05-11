@@ -863,7 +863,7 @@
     "settings": {
       "bgOpacity": "背景透明度",
       "bgColor": "背景颜色",
-      "sourceColor": "源文颜色",
+      "sourceColor": "原文颜色",
       "translationColor": "译文颜色"
     },
     "pttHint": "按住空格说话"
