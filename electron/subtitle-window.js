@@ -67,6 +67,9 @@ ipcMain.handle('subtitle:enter', (_event, payload) => {
   win.setBounds(clamped);
   win.setAlwaysOnTop(Boolean(payload?.alwaysOnTop), 'floating');
   win.setResizable(!payload?.locked);
+  if (process.platform === 'darwin') {
+    win.setWindowButtonVisibility(false);
+  }
   return { ok: true, bounds: clamped };
 });
 
@@ -88,6 +91,9 @@ ipcMain.handle('subtitle:exit', (_event, payload) => {
   }
   win.setAlwaysOnTop(false);
   win.setResizable(true);
+  if (process.platform === 'darwin') {
+    win.setWindowButtonVisibility(true);
+  }
   normalBoundsSnapshot = null;
   return { ok: true };
 });
