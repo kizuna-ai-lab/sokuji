@@ -54,7 +54,10 @@ const TitleBar: React.FC<TitleBarProps> = ({
         <SubtitleEnterButton />
         <button
           type="button"
-          className={`title-bar__action ${showSettings ? 'is-active' : ''}`}
+          // Keep the legacy `settings-button` class so onboarding's
+          // `.settings-button` step target keeps matching after the
+          // button moved from main-panel-header into the TitleBar.
+          className={`title-bar__action settings-button ${showSettings ? 'is-active' : ''}`}
           onClick={onToggleSettings}
           title={settingsLabel}
           aria-label={settingsLabel}
@@ -64,7 +67,9 @@ const TitleBar: React.FC<TitleBarProps> = ({
         </button>
         <button
           type="button"
-          className={`title-bar__action ${showLogs ? 'is-active' : ''}`}
+          // Keep the legacy `logs-button` class for the same reason as
+          // settings-button above — preserves any selector consumers.
+          className={`title-bar__action logs-button ${showLogs ? 'is-active' : ''}`}
           onClick={onToggleLogs}
           title={logsLabel}
           aria-label={logsLabel}
