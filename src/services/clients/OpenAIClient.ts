@@ -173,7 +173,11 @@ export class OpenAIClient implements IClient {
   private static isVoiceAgentRealtimeModel(modelId: string): boolean {
     const name = modelId.toLowerCase();
     if (!name.startsWith('gpt-realtime')) return false;
+    // Specialized realtime models that aren't end-to-end speech-to-speech
+    // belong to their own dedicated providers (transcription / translation)
+    // and must not surface in the voice-agent OpenAI provider's model list.
     if (name.startsWith('gpt-realtime-whisper')) return false;
+    if (name.startsWith('gpt-realtime-translate')) return false;
     return true;
   }
 
