@@ -20,7 +20,17 @@
 
   &.platform-other {
     padding-left: 12px;
-    padding-right: 0;
+    // Default right padding inset for environments without native window
+    // controls (e.g. the Chrome extension's side panel, whose rounded
+    // top-right corner would otherwise clip the rightmost action button).
+    padding-right: 12px;
+
+    // When Electron Win/Linux mounts its in-app min/max/close buttons at
+    // the very right edge, revert to flush — those buttons want to hug
+    // the corner the same way the system window controls would.
+    &.has-window-controls {
+      padding-right: 0;
+    }
   }
 }
 

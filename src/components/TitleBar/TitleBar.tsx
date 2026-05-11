@@ -48,7 +48,10 @@ const TitleBar: React.FC<TitleBarProps> = ({
   const platformClass = isElectron() && isMacOS() ? 'platform-darwin' : 'platform-other';
 
   return (
-    <div className={`title-bar ${platformClass}`} role="banner">
+    <div
+      className={`title-bar ${platformClass}${showInAppWindowControls ? ' has-window-controls' : ''}`}
+      role="banner"
+    >
       <span className="title-bar__title">Sokuji</span>
       <div className="title-bar__actions">
         <SubtitleEnterButton />
