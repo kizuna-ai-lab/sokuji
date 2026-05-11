@@ -4,6 +4,7 @@ import { useAnalytics } from '../lib/analytics';
 import useSettingsStore, { useProvider } from '../stores/settingsStore';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { Provider } from '../types/Provider';
+import { isKizunaAIEnabled } from '../utils/environment';
 
 export interface OnboardingStep {
   target: string;
@@ -45,8 +46,14 @@ const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
 const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
 const ONBOARDING_VERSION = '1.1.0';
 
-// Basic mode onboarding steps - simplified for regular users
-const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
+// Basic mode onboarding steps - simplified for regular users.
+// The account step targets #user-account-section, which AccountSection only
+// renders when isKizunaAIEnabled() — the browser-extension build (and any
+// build with VITE_ENABLE_KIZUNA_AI=false) omits that section, so the step
+// would land on a missing element and Joyride would skip ahead silently.
+// Filter it out at construction time instead so the step list matches reality.
+const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
+  const allSteps: (OnboardingStep | null)[] = [
   {
     target: 'body',
     content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
@@ -65,12 +72,12 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
     title: t('onboarding.basic.steps.settings.title', 'Step 1: Open Settings'),
     placement: 'bottom',
   },
-  {
+  isKizunaAIEnabled() ? {
     target: '#user-account-section',
     content: t('onboarding.basic.steps.account.content', 'Sign in to use Sokuji\'s built-in translation service, or choose another provider and enter your own API key.'),
     title: t('onboarding.basic.steps.account.title', 'Step 2: User Account'),
     placement: 'left',
-  },
+  } : null,
   {
     target: '#languages-section',
     content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want the other party to hear).'),
@@ -114,7 +121,9 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'center',
     disableBeacon: true,
   }
-];
+  ];
+  return allSteps.filter((s): s is OnboardingStep => s !== null);
+};
 
 // Advanced mode onboarding steps - detailed for experienced users
 // Steps are filtered based on current provider capabilities to avoid targeting non-existent DOM elements

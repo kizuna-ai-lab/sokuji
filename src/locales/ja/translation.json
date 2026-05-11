@@ -840,5 +840,37 @@
     "downloadDeb": ".deb をダウンロード",
     "linuxMigrateTitle": "新しいバージョン v{{version}} が利用できます",
     "linuxMigrateBody": "AppImage 形式なら自動更新を利用できます。v{{version}} をダウンロードする形式を選択してください。"
+  },
+  "subtitle": {
+    "sessionEnded": "セッションが終了しました",
+    "backToMain": "メイン画面に戻る",
+    "enterButton": {
+      "title": "字幕モードを開始",
+      "disabled": "先にセッションを開始してください",
+      "label": "字幕"
+    },
+    "bar": {
+      "fontDecrease": "文字を小さく",
+      "fontIncrease": "文字を大きく",
+      "expand": "展開表示",
+      "compact": "コンパクト表示",
+      "clear": "会話をクリア",
+      "settings": "字幕設定",
+      "alwaysOnTop": "最前面に固定",
+      "lock": "位置とサイズをロック",
+      "exit": "字幕モードを終了"
+    },
+    "settings": {
+      "bgOpacity": "背景の透明度",
+      "bgColor": "背景色",
+      "sourceColor": "原文の色",
+      "translationColor": "訳文の色"
+    },
+    "pttHint": "スペースキーを押して話す"
+  },
+  "titleBar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "閉じる"
   }
 }

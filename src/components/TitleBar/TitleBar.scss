@@ -1,0 +1,117 @@
+// src/components/TitleBar/TitleBar.scss
+.title-bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  background: #1a1a1a;
+  color: #e8e8e8;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+  gap: 12px;
+
+  &.platform-darwin {
+    // On macOS we use titleBarStyle: 'hiddenInset' so the OS draws traffic-
+    // light buttons on the left. We just need padding to keep our content
+    // clear of them.
+    padding-left: 78px;
+    padding-right: 8px;
+  }
+
+  &.platform-other {
+    padding-left: 12px;
+    // Default right padding inset for environments without native window
+    // controls (e.g. the Chrome extension's side panel, whose rounded
+    // top-right corner would otherwise clip the rightmost action button).
+    padding-right: 12px;
+
+    // When Electron Win/Linux mounts its in-app min/max/close buttons at
+    // the very right edge, revert to flush — those buttons want to hug
+    // the corner the same way the system window controls would.
+    &.has-window-controls {
+      padding-right: 0;
+    }
+  }
+}
+
+.title-bar__title {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.title-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  background: transparent;
+  color: #c8c8c8;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.is-active {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #10a37f;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.title-bar__action-label {
+  font-size: 12px;
+
+  // Hide labels on narrow windows; icon + tooltip remain
+  @media (max-width: 576px) {
+    display: none;
+  }
+}
+
+.title-bar__buttons {
+  display: flex;
+  -webkit-app-region: no-drag;
+  margin-left: 4px;
+}
+
+.title-bar__btn {
+  width: 46px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #c8c8c8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.title-bar__close:hover {
+    background: #c0392b;
+    color: #fff;
+  }
+}

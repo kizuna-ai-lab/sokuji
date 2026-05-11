@@ -784,5 +784,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sessionen avslutad",
+    "backToMain": "Tillbaka till huvudfönstret",
+    "enterButton": {
+      "title": "Aktivera undertextläge",
+      "disabled": "Starta en session först",
+      "label": "Undertexter"
+    },
+    "bar": {
+      "fontDecrease": "Minska textstorlek",
+      "fontIncrease": "Öka textstorlek",
+      "expand": "Utökad vy",
+      "compact": "Kompakt vy",
+      "clear": "Rensa konversation",
+      "settings": "Undertextinställningar",
+      "alwaysOnTop": "Alltid överst",
+      "lock": "Lås position och storlek",
+      "exit": "Avsluta undertextläge"
+    },
+    "settings": {
+      "bgOpacity": "Bakgrundsopacitet",
+      "bgColor": "Bakgrundsfärg",
+      "sourceColor": "Källtextfärg",
+      "translationColor": "Översättningsfärg"
+    },
+    "pttHint": "Tryck på mellanslag för att tala"
+  },
+  "titleBar": {
+    "minimize": "Minimera",
+    "maximize": "Maximera",
+    "close": "Stäng"
   }
 }

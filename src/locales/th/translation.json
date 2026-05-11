@@ -750,5 +750,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "เซสชันสิ้นสุดแล้ว",
+    "backToMain": "กลับสู่หน้าต่างหลัก",
+    "enterButton": {
+      "title": "เข้าสู่โหมดคำบรรยาย",
+      "disabled": "เริ่มเซสชันก่อน",
+      "label": "คำบรรยาย"
+    },
+    "bar": {
+      "fontDecrease": "ลดขนาดตัวอักษร",
+      "fontIncrease": "เพิ่มขนาดตัวอักษร",
+      "expand": "มุมมองแบบขยาย",
+      "compact": "มุมมองแบบกะทัดรัด",
+      "clear": "ล้างบทสนทนา",
+      "settings": "ตั้งค่าคำบรรยาย",
+      "alwaysOnTop": "อยู่บนสุดเสมอ",
+      "lock": "ล็อกตำแหน่งและขนาด",
+      "exit": "ออกจากโหมดคำบรรยาย"
+    },
+    "settings": {
+      "bgOpacity": "ความโปร่งใสของพื้นหลัง",
+      "bgColor": "สีพื้นหลัง",
+      "sourceColor": "สีข้อความต้นฉบับ",
+      "translationColor": "สีคำแปล"
+    },
+    "pttHint": "กด Space ค้างเพื่อพูด"
+  },
+  "titleBar": {
+    "minimize": "ย่อ",
+    "maximize": "ขยาย",
+    "close": "ปิด"
   }
 }

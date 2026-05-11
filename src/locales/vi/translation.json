@@ -779,5 +779,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Phiên đã kết thúc",
+    "backToMain": "Quay lại cửa sổ chính",
+    "enterButton": {
+      "title": "Bật chế độ phụ đề",
+      "disabled": "Hãy bắt đầu phiên trước",
+      "label": "Phụ đề"
+    },
+    "bar": {
+      "fontDecrease": "Giảm cỡ chữ",
+      "fontIncrease": "Tăng cỡ chữ",
+      "expand": "Chế độ mở rộng",
+      "compact": "Chế độ thu gọn",
+      "clear": "Xóa cuộc trò chuyện",
+      "settings": "Cài đặt phụ đề",
+      "alwaysOnTop": "Luôn trên cùng",
+      "lock": "Khóa vị trí và kích thước",
+      "exit": "Thoát chế độ phụ đề"
+    },
+    "settings": {
+      "bgOpacity": "Độ trong suốt nền",
+      "bgColor": "Màu nền",
+      "sourceColor": "Màu văn bản gốc",
+      "translationColor": "Màu bản dịch"
+    },
+    "pttHint": "Nhấn Phím cách để nói"
+  },
+  "titleBar": {
+    "minimize": "Thu nhỏ",
+    "maximize": "Phóng to",
+    "close": "Đóng"
   }
 }

@@ -836,5 +836,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "সেশন শেষ হয়েছে",
+    "backToMain": "মূল উইন্ডোতে ফিরুন",
+    "enterButton": {
+      "title": "সাবটাইটেল মোডে যান",
+      "disabled": "প্রথমে সেশন শুরু করুন",
+      "label": "সাবটাইটেল"
+    },
+    "bar": {
+      "fontDecrease": "ফন্ট ছোট করুন",
+      "fontIncrease": "ফন্ট বড় করুন",
+      "expand": "বিস্তৃত ভিউ",
+      "compact": "সংক্ষিপ্ত ভিউ",
+      "clear": "কথোপকথন মুছুন",
+      "settings": "সাবটাইটেল সেটিংস",
+      "alwaysOnTop": "সর্বদা উপরে",
+      "lock": "অবস্থান এবং আকার লক করুন",
+      "exit": "সাবটাইটেল মোড থেকে বের হোন"
+    },
+    "settings": {
+      "bgOpacity": "পটভূমির অস্বচ্ছতা",
+      "bgColor": "পটভূমির রঙ",
+      "sourceColor": "মূল টেক্সটের রঙ",
+      "translationColor": "অনুবাদের রঙ"
+    },
+    "pttHint": "কথা বলতে Space চাপুন"
+  },
+  "titleBar": {
+    "minimize": "ছোট করুন",
+    "maximize": "বড় করুন",
+    "close": "বন্ধ করুন"
   }
 }

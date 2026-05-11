@@ -836,5 +836,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "جلسه پایان یافت",
+    "backToMain": "بازگشت به پنجره اصلی",
+    "enterButton": {
+      "title": "ورود به حالت زیرنویس",
+      "disabled": "ابتدا یک جلسه شروع کنید",
+      "label": "زیرنویس"
+    },
+    "bar": {
+      "fontDecrease": "کوچک کردن فونت",
+      "fontIncrease": "بزرگ کردن فونت",
+      "expand": "نمای گسترده",
+      "compact": "نمای فشرده",
+      "clear": "پاک کردن گفت‌وگو",
+      "settings": "تنظیمات زیرنویس",
+      "alwaysOnTop": "همیشه در بالا",
+      "lock": "قفل موقعیت و اندازه",
+      "exit": "خروج از حالت زیرنویس"
+    },
+    "settings": {
+      "bgOpacity": "شفافیت پس‌زمینه",
+      "bgColor": "رنگ پس‌زمینه",
+      "sourceColor": "رنگ متن اصلی",
+      "translationColor": "رنگ ترجمه"
+    },
+    "pttHint": "برای صحبت، Space را نگه دارید"
+  },
+  "titleBar": {
+    "minimize": "کوچک کردن",
+    "maximize": "بزرگ کردن",
+    "close": "بستن"
   }
 }

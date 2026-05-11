@@ -761,5 +761,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "அமர்வு முடிந்தது",
+    "backToMain": "முதன்மை சாளரத்திற்குத் திரும்பு",
+    "enterButton": {
+      "title": "துணைத்தலைப்பு பயன்முறையில் நுழைக",
+      "disabled": "முதலில் ஒரு அமர்வைத் தொடங்கவும்",
+      "label": "துணைத்தலைப்பு"
+    },
+    "bar": {
+      "fontDecrease": "எழுத்தளவைக் குறை",
+      "fontIncrease": "எழுத்தளவை அதிகரி",
+      "expand": "விரிவாக்கப்பட்ட காட்சி",
+      "compact": "சுருக்கமான காட்சி",
+      "clear": "உரையாடலை அழி",
+      "settings": "துணைத்தலைப்பு அமைப்புகள்",
+      "alwaysOnTop": "எப்போதும் மேலே",
+      "lock": "இருப்பிடம் மற்றும் அளவைப் பூட்டு",
+      "exit": "துணைத்தலைப்பு பயன்முறையிலிருந்து வெளியேறு"
+    },
+    "settings": {
+      "bgOpacity": "பின்னணி ஒளிபுகாமை",
+      "bgColor": "பின்னணி நிறம்",
+      "sourceColor": "மூல உரை நிறம்",
+      "translationColor": "மொழிபெயர்ப்பு நிறம்"
+    },
+    "pttHint": "பேச Space அழுத்தவும்"
+  },
+  "titleBar": {
+    "minimize": "சிறிதாக்கு",
+    "maximize": "பெரிதாக்கு",
+    "close": "மூடு"
   }
 }

@@ -33,7 +33,7 @@ import {
   useCurrentTurnDetectionMode
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -162,6 +162,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   const isReconnecting = useIsReconnecting();
   const setIsReconnecting = useSetIsReconnecting();
+
+  // Store setters for mirroring local items state into sessionStore
+  const setStoreItems = useSetStoreItems();
+  const setStoreSystemAudioItems = useSetStoreSystemAudioItems();
+  const clearConversationVersion = useClearConversationVersion();
+  const requestClearConversation = useRequestClearConversation();
 
   // Get log functions from store
   const { addRealtimeEvent } = useLogActions();
@@ -580,6 +586,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
+  // Mirror items into sessionStore so SubtitleApp can read them
+  // after MainPanel unmounts (e.g. when entering subtitle mode).
+  useEffect(() => {
+    setStoreItems(items);
+  }, [items, setStoreItems]);
+
+  useEffect(() => {
+    setStoreSystemAudioItems(systemAudioItems);
+  }, [systemAudioItems, setStoreSystemAudioItems]);
+
   const clearConversation = useCallback(() => {
     // Cancel pending throttled update that would re-populate items
     if (throttleTimerRef.current) {
@@ -593,6 +609,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setItems([]);
     setSystemAudioItems([]);
   }, []);
+
+  // Watch for clear-conversation requests from anywhere in the app
+  // (e.g. the SubtitleBar's clear button) — sessionStore.requestClearConversation
+  // bumps a version counter and we run the local clearConversation logic
+  // when that counter changes. The initial value is recorded once so the
+  // first mount does not trigger a spurious clear.
+  const lastClearVersionRef = useRef(clearConversationVersion);
+  useEffect(() => {
+    if (clearConversationVersion !== lastClearVersionRef.current) {
+      lastClearVersionRef.current = clearConversationVersion;
+      clearConversation();
+    }
+  }, [clearConversationVersion, clearConversation]);
 
   // Snapshots the source/target language pair at the moment each conversation
   // item is first seen, keyed by item id. Without this, badges in the history
@@ -2885,7 +2914,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
-        {combinedItems.length > 0 && (
+        {(isSessionActive || combinedItems.length > 0) && (
           <div className="conversation-toolbar">
             <DisplayModeButton
               scope="speaker"
@@ -2948,7 +2977,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             />
             <button
               className="clear-conversation-btn"
-              onClick={clearConversation}
+              onClick={requestClearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
               aria-label={t('mainPanel.clearConversation', 'Clear conversation')}
               type="button"

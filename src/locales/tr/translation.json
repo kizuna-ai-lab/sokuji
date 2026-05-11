@@ -786,5 +786,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Oturum sona erdi",
+    "backToMain": "Ana pencereye dön",
+    "enterButton": {
+      "title": "Altyazı moduna geç",
+      "disabled": "Önce bir oturum başlatın",
+      "label": "Altyazı"
+    },
+    "bar": {
+      "fontDecrease": "Yazı tipini küçült",
+      "fontIncrease": "Yazı tipini büyüt",
+      "expand": "Genişletilmiş görünüm",
+      "compact": "Kompakt görünüm",
+      "clear": "Sohbeti temizle",
+      "settings": "Altyazı ayarları",
+      "alwaysOnTop": "Her zaman üstte",
+      "lock": "Konum ve boyutu kilitle",
+      "exit": "Altyazı modundan çık"
+    },
+    "settings": {
+      "bgOpacity": "Arka plan opaklığı",
+      "bgColor": "Arka plan rengi",
+      "sourceColor": "Kaynak metin rengi",
+      "translationColor": "Çeviri rengi"
+    },
+    "pttHint": "Konuşmak için Boşluk tuşuna basın"
+  },
+  "titleBar": {
+    "minimize": "Küçült",
+    "maximize": "Büyüt",
+    "close": "Kapat"
   }
 }

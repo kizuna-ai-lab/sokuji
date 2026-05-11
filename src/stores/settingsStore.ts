@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
+import {isElectron} from '../utils/environment';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
 import {
@@ -18,6 +19,7 @@ import {
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
+import useSessionStore from './sessionStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -27,6 +29,27 @@ import i18n from '../locales';
 
 // Conversation display mode — which half of a bilingual utterance to show
 export type DisplayMode = 'source' | 'translation' | 'both';
+
+// Subtitle (floating-bar) mode settings — Electron-only feature.
+// Persisted under settings.common.subtitle.*
+export interface SubtitleWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SubtitleSettings {
+  fontSize: number;            // 16-48, clamped on set
+  compactMode: boolean;
+  bgOpacity: number;           // 0-100
+  bgColor: string;             // hex
+  sourceTextColor: string;     // hex
+  translationTextColor: string;// hex
+  alwaysOnTop: boolean;
+  positionLocked: boolean;
+  windowBounds: SubtitleWindowBounds | null;
+}
 
 // Common Settings
 export interface CommonSettings {
@@ -42,6 +65,7 @@ export interface CommonSettings {
   conversationCompactMode: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
+  subtitle: SubtitleSettings;
 }
 
 // Transport type for OpenAI Realtime API
@@ -243,6 +267,17 @@ const defaultCommonSettings: CommonSettings = {
   participantSystemInstructions: '',
   speakerDisplayMode: 'both',
   participantDisplayMode: 'both',
+  subtitle: {
+    fontSize: 24,
+    compactMode: true,
+    bgOpacity: 70,
+    bgColor: '#000000',
+    sourceTextColor: '#FFFFFF',
+    translationTextColor: '#6CC5FF',
+    alwaysOnTop: true,
+    positionLocked: false,
+    windowBounds: null,
+  },
 };
 
 const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
@@ -411,6 +446,10 @@ interface SettingsStore {
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 
+  // Subtitle mode settings and runtime flag
+  subtitle: SubtitleSettings;
+  subtitleModeActive: boolean;
+
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
@@ -421,6 +460,17 @@ interface SettingsStore {
   setConversationCompactMode: (compact: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
+  setSubtitleFontSize: (n: number) => Promise<void>;
+  setSubtitleCompactMode: (b: boolean) => Promise<void>;
+  setSubtitleBgOpacity: (n: number) => Promise<void>;
+  setSubtitleBgColor: (s: string) => Promise<void>;
+  setSubtitleSourceTextColor: (s: string) => Promise<void>;
+  setSubtitleTranslationTextColor: (s: string) => Promise<void>;
+  toggleSubtitleAlwaysOnTop: () => Promise<void>;
+  toggleSubtitlePositionLocked: () => Promise<void>;
+  saveSubtitleWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
+  enterSubtitleMode: () => Promise<void>;
+  exitSubtitleMode: () => Promise<void>;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -788,6 +838,7 @@ const useSettingsStore = create<SettingsStore>()(
     settingsNavigationTarget: null,
 
     settingsLoaded: false,
+    subtitleModeActive: false,
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
@@ -928,6 +979,185 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting participantDisplayMode setting:', error);
         set({participantDisplayMode: previous});
+      }
+    },
+
+    setSubtitleFontSize: async (fontSize) => {
+      const clamped = Math.max(16, Math.min(48, Math.round(fontSize)));
+      const previous = get().subtitle.fontSize;
+      set((state) => ({ subtitle: { ...state.subtitle, fontSize: clamped } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.fontSize', clamped);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.fontSize:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, fontSize: previous } }));
+      }
+    },
+
+    setSubtitleCompactMode: async (compactMode) => {
+      const previous = get().subtitle.compactMode;
+      set((state) => ({ subtitle: { ...state.subtitle, compactMode } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.compactMode', compactMode);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.compactMode:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, compactMode: previous } }));
+      }
+    },
+
+    setSubtitleBgOpacity: async (n) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(n)));
+      const previous = get().subtitle.bgOpacity;
+      set((state) => ({ subtitle: { ...state.subtitle, bgOpacity: clamped } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.bgOpacity', clamped);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.bgOpacity:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, bgOpacity: previous } }));
+      }
+    },
+
+    setSubtitleBgColor: async (s) => {
+      const previous = get().subtitle.bgColor;
+      set((state) => ({ subtitle: { ...state.subtitle, bgColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.bgColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.bgColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, bgColor: previous } }));
+      }
+    },
+
+    setSubtitleSourceTextColor: async (s) => {
+      const previous = get().subtitle.sourceTextColor;
+      set((state) => ({ subtitle: { ...state.subtitle, sourceTextColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.sourceTextColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.sourceTextColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, sourceTextColor: previous } }));
+      }
+    },
+
+    setSubtitleTranslationTextColor: async (s) => {
+      const previous = get().subtitle.translationTextColor;
+      set((state) => ({ subtitle: { ...state.subtitle, translationTextColor: s } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.translationTextColor', s);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.translationTextColor:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, translationTextColor: previous } }));
+      }
+    },
+
+    toggleSubtitleAlwaysOnTop: async () => {
+      const next = !get().subtitle.alwaysOnTop;
+      set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: next } }));
+      try {
+        // Apply the live window change FIRST. If the IPC throws (e.g. main
+        // process is unreachable), we want to bail before writing the new
+        // value to disk — otherwise the next launch hydrates an
+        // un-applied state. Inside the try so any throw routes through
+        // the rollback in catch.
+        if (get().subtitleModeActive) {
+          await window.electron?.invoke('subtitle:set-always-on-top', next);
+        }
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.alwaysOnTop', next);
+      } catch (error) {
+        console.error('[SettingsStore] toggleSubtitleAlwaysOnTop failed:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, alwaysOnTop: !next } }));
+      }
+    },
+
+    toggleSubtitlePositionLocked: async () => {
+      const next = !get().subtitle.positionLocked;
+      set((state) => ({ subtitle: { ...state.subtitle, positionLocked: next } }));
+      try {
+        // IPC first, then persist (see toggleSubtitleAlwaysOnTop above).
+        if (get().subtitleModeActive) {
+          await window.electron?.invoke('subtitle:set-locked', next);
+        }
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.positionLocked', next);
+      } catch (error) {
+        console.error('[SettingsStore] toggleSubtitlePositionLocked failed:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, positionLocked: !next } }));
+      }
+    },
+
+    saveSubtitleWindowBounds: async (b) => {
+      const previous = get().subtitle.windowBounds;
+      set((state) => ({ subtitle: { ...state.subtitle, windowBounds: b } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.subtitle.windowBounds', b);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting subtitle.windowBounds:', error);
+        set((state) => ({ subtitle: { ...state.subtitle, windowBounds: previous } }));
+      }
+    },
+
+    enterSubtitleMode: async () => {
+      if (get().subtitleModeActive) return;
+      // Subtitle mode is Electron-only — entering it without the IPC
+      // bridge would hide the main UI and mount SubtitleApp over a
+      // BrowserWindow that was never resized into the floating bar.
+      // Guard at the action level so a stray call (test, web/extension
+      // build, missing preload) can't put the app into a broken state.
+      if (!isElectron() || !window.electron?.invoke) {
+        console.warn('[SettingsStore] enterSubtitleMode ignored — not running in Electron');
+        return;
+      }
+      const sessionActive = useSessionStore.getState().isSessionActive;
+      if (!sessionActive) {
+        console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
+        return;
+      }
+      const subtitle = get().subtitle;
+      // Auto-recover: ignore persisted bounds that don't look like a subtitle
+      // bar (height >> what we'd ever set). Earlier builds had a Linux WM
+      // race that could persist main-window-sized bounds; this lets affected
+      // users transition without manual cleanup.
+      const SUBTITLE_PLAUSIBLE_MAX_HEIGHT = 400;
+      const persisted = subtitle.windowBounds;
+      const requestedBounds = persisted && persisted.height <= SUBTITLE_PLAUSIBLE_MAX_HEIGHT
+        ? persisted
+        : undefined;
+      try {
+        const result = await window.electron.invoke('subtitle:enter', {
+          bounds: requestedBounds,
+          alwaysOnTop: subtitle.alwaysOnTop,
+          locked: subtitle.positionLocked,
+        });
+        if (result?.bounds) {
+          // Persist clamped bounds so next launch uses corrected values
+          set((state) => ({ subtitle: { ...state.subtitle, windowBounds: result.bounds } }));
+          const service = ServiceFactory.getSettingsService();
+          await service.setSetting('settings.common.subtitle.windowBounds', result.bounds);
+        }
+        set({ subtitleModeActive: true });
+      } catch (error) {
+        console.error('[SettingsStore] enterSubtitleMode IPC failed:', error);
+      }
+    },
+
+    exitSubtitleMode: async () => {
+      if (!get().subtitleModeActive) return;
+      try {
+        if (isElectron() && window.electron?.invoke) {
+          await window.electron.invoke('subtitle:exit', {});
+        }
+      } catch (error) {
+        console.error('[SettingsStore] exitSubtitleMode IPC failed:', error);
+      } finally {
+        set({ subtitleModeActive: false });
       }
     },
 
@@ -1404,6 +1634,42 @@ const useSettingsStore = create<SettingsStore>()(
         const conversationCompactMode = await service.getSetting('settings.common.conversationCompactMode', defaultCommonSettings.conversationCompactMode);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
+        const subtitleFontSize = await service.getSetting<number>(
+          'settings.common.subtitle.fontSize',
+          defaultCommonSettings.subtitle.fontSize,
+        );
+        const subtitleCompactMode = await service.getSetting<boolean>(
+          'settings.common.subtitle.compactMode',
+          defaultCommonSettings.subtitle.compactMode,
+        );
+        const subtitleBgOpacity = await service.getSetting<number>(
+          'settings.common.subtitle.bgOpacity',
+          defaultCommonSettings.subtitle.bgOpacity,
+        );
+        const subtitleBgColor = await service.getSetting<string>(
+          'settings.common.subtitle.bgColor',
+          defaultCommonSettings.subtitle.bgColor,
+        );
+        const subtitleSourceTextColor = await service.getSetting<string>(
+          'settings.common.subtitle.sourceTextColor',
+          defaultCommonSettings.subtitle.sourceTextColor,
+        );
+        const subtitleTranslationTextColor = await service.getSetting<string>(
+          'settings.common.subtitle.translationTextColor',
+          defaultCommonSettings.subtitle.translationTextColor,
+        );
+        const subtitleAlwaysOnTop = await service.getSetting<boolean>(
+          'settings.common.subtitle.alwaysOnTop',
+          defaultCommonSettings.subtitle.alwaysOnTop,
+        );
+        const subtitlePositionLocked = await service.getSetting<boolean>(
+          'settings.common.subtitle.positionLocked',
+          defaultCommonSettings.subtitle.positionLocked,
+        );
+        const subtitleWindowBounds = await service.getSetting<SubtitleWindowBounds | null>(
+          'settings.common.subtitle.windowBounds',
+          defaultCommonSettings.subtitle.windowBounds,
+        );
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -1442,6 +1708,17 @@ const useSettingsStore = create<SettingsStore>()(
           conversationCompactMode,
           speakerDisplayMode,
           participantDisplayMode,
+          subtitle: {
+            fontSize: subtitleFontSize,
+            compactMode: subtitleCompactMode,
+            bgOpacity: subtitleBgOpacity,
+            bgColor: subtitleBgColor,
+            sourceTextColor: subtitleSourceTextColor,
+            translationTextColor: subtitleTranslationTextColor,
+            alwaysOnTop: subtitleAlwaysOnTop,
+            positionLocked: subtitlePositionLocked,
+            windowBounds: subtitleWindowBounds,
+          },
           openai,
           gemini,
           openaiCompatible,
@@ -1606,6 +1883,19 @@ export const useConversationFontSize = () => useSettingsStore((state) => state.c
 export const useConversationCompactMode = () => useSettingsStore((state) => state.conversationCompactMode);
 export const useSpeakerDisplayMode = () => useSettingsStore((state) => state.speakerDisplayMode);
 export const useParticipantDisplayMode = () => useSettingsStore((state) => state.participantDisplayMode);
+export const useSubtitleSettings = () => useSettingsStore((state) => state.subtitle);
+export const useSubtitleModeActive = () => useSettingsStore((state) => state.subtitleModeActive);
+export const useSetSubtitleFontSize = () => useSettingsStore((state) => state.setSubtitleFontSize);
+export const useSetSubtitleCompactMode = () => useSettingsStore((state) => state.setSubtitleCompactMode);
+export const useSetSubtitleBgOpacity = () => useSettingsStore((state) => state.setSubtitleBgOpacity);
+export const useSetSubtitleBgColor = () => useSettingsStore((state) => state.setSubtitleBgColor);
+export const useSetSubtitleSourceTextColor = () => useSettingsStore((state) => state.setSubtitleSourceTextColor);
+export const useSetSubtitleTranslationTextColor = () => useSettingsStore((state) => state.setSubtitleTranslationTextColor);
+export const useToggleSubtitleAlwaysOnTop = () => useSettingsStore((state) => state.toggleSubtitleAlwaysOnTop);
+export const useToggleSubtitlePositionLocked = () => useSettingsStore((state) => state.toggleSubtitlePositionLocked);
+export const useSaveSubtitleWindowBounds = () => useSettingsStore((state) => state.saveSubtitleWindowBounds);
+export const useEnterSubtitleMode = () => useSettingsStore((state) => state.enterSubtitleMode);
+export const useExitSubtitleMode = () => useSettingsStore((state) => state.exitSubtitleMode);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);

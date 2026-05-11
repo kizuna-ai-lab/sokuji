@@ -748,5 +748,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Сеанс завершено",
+    "backToMain": "Повернутися до головного вікна",
+    "enterButton": {
+      "title": "Увімкнути режим субтитрів",
+      "disabled": "Спочатку запустіть сеанс",
+      "label": "Субтитри"
+    },
+    "bar": {
+      "fontDecrease": "Зменшити шрифт",
+      "fontIncrease": "Збільшити шрифт",
+      "expand": "Розгорнутий вигляд",
+      "compact": "Компактний вигляд",
+      "clear": "Очистити розмову",
+      "settings": "Налаштування субтитрів",
+      "alwaysOnTop": "Поверх усіх вікон",
+      "lock": "Закріпити позицію та розмір",
+      "exit": "Вийти з режиму субтитрів"
+    },
+    "settings": {
+      "bgOpacity": "Прозорість тла",
+      "bgColor": "Колір тла",
+      "sourceColor": "Колір вихідного тексту",
+      "translationColor": "Колір перекладу"
+    },
+    "pttHint": "Натисніть пробіл, щоб говорити"
+  },
+  "titleBar": {
+    "minimize": "Згорнути",
+    "maximize": "Розгорнути",
+    "close": "Закрити"
   }
 }

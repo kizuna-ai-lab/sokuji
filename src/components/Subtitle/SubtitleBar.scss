@@ -1,0 +1,120 @@
+// src/components/Subtitle/SubtitleBar.scss
+.subtitle-bar {
+  // Float above the subtitle area instead of pinning to the top of the
+  // flex column. This frees up the 36 px the bar used to reserve so the
+  // subtitle text fills the whole window when the bar is auto-hidden.
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  background: rgba(20, 20, 20, 0.95);
+  color: #e8e8e8;
+  -webkit-app-region: drag;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: var(--bar-opacity, 1);
+  transition: opacity 200ms ease-in-out;
+  // When the bar is fading out / hidden, let clicks pass through to the
+  // subtitle area underneath. SubtitleApp toggles --bar-pointer-events
+  // alongside --bar-opacity.
+  pointer-events: var(--bar-pointer-events, auto);
+
+  &.locked {
+    -webkit-app-region: no-drag;
+  }
+
+  .subtitle-bar__left,
+  .subtitle-bar__center,
+  .subtitle-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    // Non-interactive areas inside segments (logo, timer, lang label,
+    // dividers) stay in the drag region so the user can grab almost any
+    // visible part of the bar to move the window. Interactive elements
+    // below opt out individually with -webkit-app-region: no-drag.
+  }
+
+  .subtitle-bar__logo {
+    font-weight: 600;
+    color: #10a37f;
+  }
+
+  .subtitle-bar__quota {
+    color: #9aa0a6;
+    font-size: 11px;
+  }
+
+  .subtitle-bar__timer {
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  .subtitle-bar__lang {
+    color: #c8c8c8;
+    font-weight: 500;
+  }
+
+  .subtitle-bar__btn {
+    background: transparent;
+    border: none;
+    color: #c8c8c8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.active {
+      color: #10a37f;
+      background: rgba(16, 163, 127, 0.15);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  // Unify reused MainPanel buttons (DisplayModeButton, ExportButton) with
+  // our own .subtitle-bar__btn. Their own SCSS (color: #555) is tuned for
+  // MainPanel's lighter toolbar; on the subtitle bar's near-black bg it's
+  // nearly invisible. Scoping the override here keeps MainPanel untouched.
+  // Both classes also opt out of the bar's drag region so clicks land
+  // on the button rather than starting a window-drag.
+  .display-mode-btn,
+  .export-btn {
+    color: #c8c8c8;
+    -webkit-app-region: no-drag;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      color: #c8c8c8;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .subtitle-bar__divider {
+    width: 1px;
+    height: 18px;
+    background: #3a3a3a;
+    margin: 0 4px;
+  }
+}

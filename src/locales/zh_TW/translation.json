@@ -798,5 +798,37 @@
     "downloadDeb": "下載 .deb",
     "linuxMigrateTitle": "有新版本 v{{version}}",
     "linuxMigrateBody": "AppImage 格式支援自動更新。選擇一種格式下載 v{{version}}。"
+  },
+  "subtitle": {
+    "sessionEnded": "對話已結束",
+    "backToMain": "返回主視窗",
+    "enterButton": {
+      "title": "進入字幕模式",
+      "disabled": "請先啟動對話",
+      "label": "字幕"
+    },
+    "bar": {
+      "fontDecrease": "縮小字級",
+      "fontIncrease": "放大字級",
+      "expand": "展開檢視",
+      "compact": "緊湊檢視",
+      "clear": "清除對話",
+      "settings": "字幕設定",
+      "alwaysOnTop": "視窗置頂",
+      "lock": "鎖定位置與大小",
+      "exit": "退出字幕模式"
+    },
+    "settings": {
+      "bgOpacity": "背景透明度",
+      "bgColor": "背景顏色",
+      "sourceColor": "原文顏色",
+      "translationColor": "譯文顏色"
+    },
+    "pttHint": "按住空白鍵說話"
+  },
+  "titleBar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "關閉"
   }
 }

@@ -780,5 +780,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "सत्र समाप्त हुआ",
+    "backToMain": "मुख्य विंडो पर लौटें",
+    "enterButton": {
+      "title": "सबटाइटल मोड शुरू करें",
+      "disabled": "पहले सत्र शुरू करें",
+      "label": "सबटाइटल"
+    },
+    "bar": {
+      "fontDecrease": "फ़ॉन्ट छोटा करें",
+      "fontIncrease": "फ़ॉन्ट बड़ा करें",
+      "expand": "विस्तृत दृश्य",
+      "compact": "कॉम्पैक्ट दृश्य",
+      "clear": "बातचीत साफ़ करें",
+      "settings": "सबटाइटल सेटिंग्स",
+      "alwaysOnTop": "हमेशा सबसे ऊपर",
+      "lock": "स्थिति और आकार लॉक करें",
+      "exit": "सबटाइटल मोड से बाहर निकलें"
+    },
+    "settings": {
+      "bgOpacity": "पृष्ठभूमि अस्पष्टता",
+      "bgColor": "पृष्ठभूमि रंग",
+      "sourceColor": "मूल पाठ रंग",
+      "translationColor": "अनुवाद रंग"
+    },
+    "pttHint": "बोलने के लिए स्पेस दबाएँ"
+  },
+  "titleBar": {
+    "minimize": "छोटा करें",
+    "maximize": "बड़ा करें",
+    "close": "बंद करें"
   }
 }

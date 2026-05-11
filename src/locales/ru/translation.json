@@ -835,5 +835,37 @@
     "downloadDeb": "Скачать .deb",
     "linuxMigrateTitle": "Доступна новая версия v{{version}}",
     "linuxMigrateBody": "Автоматические обновления доступны в формате AppImage. Выберите формат для скачивания v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Сессия завершена",
+    "backToMain": "Вернуться в главное окно",
+    "enterButton": {
+      "title": "Включить режим субтитров",
+      "disabled": "Сначала запустите сессию",
+      "label": "Субтитры"
+    },
+    "bar": {
+      "fontDecrease": "Уменьшить шрифт",
+      "fontIncrease": "Увеличить шрифт",
+      "expand": "Развернутый вид",
+      "compact": "Компактный вид",
+      "clear": "Очистить разговор",
+      "settings": "Настройки субтитров",
+      "alwaysOnTop": "Поверх всех окон",
+      "lock": "Зафиксировать позицию и размер",
+      "exit": "Выйти из режима субтитров"
+    },
+    "settings": {
+      "bgOpacity": "Прозрачность фона",
+      "bgColor": "Цвет фона",
+      "sourceColor": "Цвет исходного текста",
+      "translationColor": "Цвет перевода"
+    },
+    "pttHint": "Удерживайте пробел для речи"
+  },
+  "titleBar": {
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "close": "Закрыть"
   }
 }

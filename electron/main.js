@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
+const { setupSubtitleHandlers } = require('./subtitle-window.js');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -250,6 +251,11 @@ function createWindow() {
     height: 800,
     title: 'Sokuji',
     icon: iconPath,
+    frame: false,
+    transparent: true,
+    hasShadow: true,
+    backgroundColor: '#00000000',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -258,6 +264,8 @@ function createWindow() {
       webSecurity: !isDev
     }
   });
+
+  setupSubtitleHandlers(mainWindow);
 
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);
@@ -451,6 +459,19 @@ app.on('will-quit', cleanupAndExit);
 
 // IPC handler for app version
 ipcMain.handle('get-app-version', () => app.getVersion());
+
+// ---- Window controls for the custom title bar ----
+ipcMain.handle('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+ipcMain.handle('window:maximize-toggle', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
+});
+ipcMain.handle('window:close', () => {
+  if (mainWindow) mainWindow.close();
+});
 
 // IPC handlers for audio functionality
 ipcMain.handle('check-audio-system', async () => {

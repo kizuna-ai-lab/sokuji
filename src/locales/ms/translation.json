@@ -827,5 +827,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sesi berakhir",
+    "backToMain": "Kembali ke tetingkap utama",
+    "enterButton": {
+      "title": "Masuk mod sari kata",
+      "disabled": "Mulakan sesi dahulu",
+      "label": "Sari kata"
+    },
+    "bar": {
+      "fontDecrease": "Kecilkan fon",
+      "fontIncrease": "Besarkan fon",
+      "expand": "Paparan dipanjangkan",
+      "compact": "Paparan padat",
+      "clear": "Kosongkan perbualan",
+      "settings": "Tetapan sari kata",
+      "alwaysOnTop": "Sentiasa di atas",
+      "lock": "Kunci kedudukan dan saiz",
+      "exit": "Keluar mod sari kata"
+    },
+    "settings": {
+      "bgOpacity": "Kelegapan latar",
+      "bgColor": "Warna latar",
+      "sourceColor": "Warna teks sumber",
+      "translationColor": "Warna terjemahan"
+    },
+    "pttHint": "Tekan Bar Ruang untuk bercakap"
+  },
+  "titleBar": {
+    "minimize": "Minimumkan",
+    "maximize": "Maksimumkan",
+    "close": "Tutup"
   }
 }

@@ -60,6 +60,8 @@ const validReceiveChannels = [
   // Auto-update channels (main → renderer)
   'update-status',
   'update-progress',
+  // Subtitle window bounds change events
+  'subtitle:window-bounds-changed',
 ];
 
 // Expose protected methods that allow the renderer process to use
@@ -128,6 +130,16 @@ contextBridge.exposeInMainWorld(
         'update-download',
         'update-install',
         'get-app-version',
+        // Window control IPC for custom title bar
+        'window:minimize',
+        'window:maximize-toggle',
+        'window:close',
+        // Subtitle mode IPC
+        'subtitle:enter',
+        'subtitle:exit',
+        'subtitle:set-always-on-top',
+        'subtitle:set-locked',
+        'subtitle:get-screen-bounds',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

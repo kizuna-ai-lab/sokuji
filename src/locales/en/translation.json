@@ -871,5 +871,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Session ended",
+    "backToMain": "Return to main window",
+    "enterButton": {
+      "title": "Enter subtitle mode",
+      "disabled": "Start a session first",
+      "label": "Subtitle"
+    },
+    "bar": {
+      "fontDecrease": "Decrease font size",
+      "fontIncrease": "Increase font size",
+      "expand": "Expanded view",
+      "compact": "Compact view",
+      "clear": "Clear conversation",
+      "settings": "Subtitle settings",
+      "alwaysOnTop": "Always on top",
+      "lock": "Lock position and size",
+      "exit": "Exit subtitle mode"
+    },
+    "settings": {
+      "bgOpacity": "Background opacity",
+      "bgColor": "Background color",
+      "sourceColor": "Source text color",
+      "translationColor": "Translation color"
+    },
+    "pttHint": "Press Space to speak"
+  },
+  "titleBar": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
   }
 }

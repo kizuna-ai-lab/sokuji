@@ -829,5 +829,37 @@
     "downloadDeb": "Descargar .deb",
     "linuxMigrateTitle": "Nueva versión v{{version}} disponible",
     "linuxMigrateBody": "Las actualizaciones automáticas están disponibles con AppImage. Elige un formato para descargar v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sesión finalizada",
+    "backToMain": "Volver a la ventana principal",
+    "enterButton": {
+      "title": "Entrar en modo subtítulos",
+      "disabled": "Inicia una sesión primero",
+      "label": "Subtítulos"
+    },
+    "bar": {
+      "fontDecrease": "Reducir tamaño de fuente",
+      "fontIncrease": "Aumentar tamaño de fuente",
+      "expand": "Vista expandida",
+      "compact": "Vista compacta",
+      "clear": "Limpiar conversación",
+      "settings": "Ajustes de subtítulos",
+      "alwaysOnTop": "Siempre visible",
+      "lock": "Bloquear posición y tamaño",
+      "exit": "Salir del modo subtítulos"
+    },
+    "settings": {
+      "bgOpacity": "Opacidad del fondo",
+      "bgColor": "Color de fondo",
+      "sourceColor": "Color del texto original",
+      "translationColor": "Color de la traducción"
+    },
+    "pttHint": "Pulsa Espacio para hablar"
+  },
+  "titleBar": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Cerrar"
   }
 }

@@ -830,5 +830,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "انتهت الجلسة",
+    "backToMain": "العودة إلى النافذة الرئيسية",
+    "enterButton": {
+      "title": "تفعيل وضع الترجمة",
+      "disabled": "ابدأ جلسة أولاً",
+      "label": "ترجمة"
+    },
+    "bar": {
+      "fontDecrease": "تصغير الخط",
+      "fontIncrease": "تكبير الخط",
+      "expand": "عرض موسع",
+      "compact": "عرض مضغوط",
+      "clear": "مسح المحادثة",
+      "settings": "إعدادات الترجمة",
+      "alwaysOnTop": "دائمًا في المقدمة",
+      "lock": "قفل الموضع والحجم",
+      "exit": "الخروج من وضع الترجمة"
+    },
+    "settings": {
+      "bgOpacity": "شفافية الخلفية",
+      "bgColor": "لون الخلفية",
+      "sourceColor": "لون النص الأصلي",
+      "translationColor": "لون الترجمة"
+    },
+    "pttHint": "اضغط مفتاح المسافة للتحدث"
+  },
+  "titleBar": {
+    "minimize": "تصغير",
+    "maximize": "تكبير",
+    "close": "إغلاق"
   }
 }

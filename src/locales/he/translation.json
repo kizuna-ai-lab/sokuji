@@ -834,5 +834,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "ההפעלה הסתיימה",
+    "backToMain": "חזרה לחלון הראשי",
+    "enterButton": {
+      "title": "הפעלת מצב כתוביות",
+      "disabled": "התחל הפעלה תחילה",
+      "label": "כתוביות"
+    },
+    "bar": {
+      "fontDecrease": "הקטנת גופן",
+      "fontIncrease": "הגדלת גופן",
+      "expand": "תצוגה מורחבת",
+      "compact": "תצוגה מצומצמת",
+      "clear": "ניקוי שיחה",
+      "settings": "הגדרות כתוביות",
+      "alwaysOnTop": "תמיד למעלה",
+      "lock": "נעילת מיקום וגודל",
+      "exit": "יציאה ממצב כתוביות"
+    },
+    "settings": {
+      "bgOpacity": "אטימות רקע",
+      "bgColor": "צבע רקע",
+      "sourceColor": "צבע טקסט מקור",
+      "translationColor": "צבע תרגום"
+    },
+    "pttHint": "לחץ על רווח כדי לדבר"
+  },
+  "titleBar": {
+    "minimize": "מזעור",
+    "maximize": "הגדלה",
+    "close": "סגירה"
   }
 }

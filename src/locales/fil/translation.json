@@ -786,5 +786,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Tapos na ang session",
+    "backToMain": "Bumalik sa pangunahing window",
+    "enterButton": {
+      "title": "Pumasok sa subtitle mode",
+      "disabled": "Magsimula muna ng session",
+      "label": "Subtitle"
+    },
+    "bar": {
+      "fontDecrease": "Bawasan ang laki ng font",
+      "fontIncrease": "Lakihan ang laki ng font",
+      "expand": "Pinalawak na view",
+      "compact": "Compact na view",
+      "clear": "Burahin ang usapan",
+      "settings": "Mga setting ng subtitle",
+      "alwaysOnTop": "Laging nasa ibabaw",
+      "lock": "I-lock ang posisyon at sukat",
+      "exit": "Lumabas sa subtitle mode"
+    },
+    "settings": {
+      "bgOpacity": "Opacity ng background",
+      "bgColor": "Kulay ng background",
+      "sourceColor": "Kulay ng orihinal na teksto",
+      "translationColor": "Kulay ng salin"
+    },
+    "pttHint": "Pindutin ang Space upang magsalita"
+  },
+  "titleBar": {
+    "minimize": "I-minimize",
+    "maximize": "I-maximize",
+    "close": "Isara"
   }
 }

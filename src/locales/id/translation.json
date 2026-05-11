@@ -828,5 +828,37 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "subtitle": {
+    "sessionEnded": "Sesi berakhir",
+    "backToMain": "Kembali ke jendela utama",
+    "enterButton": {
+      "title": "Masuk mode subtitle",
+      "disabled": "Mulai sesi terlebih dahulu",
+      "label": "Subtitle"
+    },
+    "bar": {
+      "fontDecrease": "Perkecil font",
+      "fontIncrease": "Perbesar font",
+      "expand": "Tampilan diperluas",
+      "compact": "Tampilan ringkas",
+      "clear": "Hapus percakapan",
+      "settings": "Pengaturan subtitle",
+      "alwaysOnTop": "Selalu di atas",
+      "lock": "Kunci posisi dan ukuran",
+      "exit": "Keluar mode subtitle"
+    },
+    "settings": {
+      "bgOpacity": "Opasitas latar",
+      "bgColor": "Warna latar",
+      "sourceColor": "Warna teks asli",
+      "translationColor": "Warna terjemahan"
+    },
+    "pttHint": "Tekan Spasi untuk berbicara"
+  },
+  "titleBar": {
+    "minimize": "Minimalkan",
+    "maximize": "Maksimalkan",
+    "close": "Tutup"
   }
 }

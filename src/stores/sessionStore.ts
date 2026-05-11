@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
+import type { ConversationItem } from '../services/interfaces/IClient';
 
 interface SessionStore {
   // State
@@ -9,6 +10,13 @@ interface SessionStore {
   sessionStartTime: number | null;
   translationCount: number;
   isReconnecting: boolean;
+  items: ConversationItem[];
+  systemAudioItems: ConversationItem[];
+  // Monotonic counter — every call to requestClearConversation bumps it.
+  // MainPanel watches this version and runs its local clearConversation
+  // routine when it changes, so any consumer (subtitle bar, main toolbar)
+  // can trigger a clear without holding a direct reference to MainPanel.
+  clearConversationVersion: number;
 
   // Actions
   setIsSessionActive: (active: boolean) => void;
@@ -17,7 +25,10 @@ interface SessionStore {
   setTranslationCount: (count: number) => void;
   incrementTranslationCount: () => void;
   setIsReconnecting: (reconnecting: boolean) => void;
-  
+  setItems: (items: ConversationItem[]) => void;
+  setSystemAudioItems: (items: ConversationItem[]) => void;
+  requestClearConversation: () => void;
+
   // Compound actions
   startSession: (sessionId: string) => void;
   endSession: () => void;
@@ -32,6 +43,9 @@ const useSessionStore = create<SessionStore>()(
     sessionStartTime: null,
     translationCount: 0,
     isReconnecting: false,
+    items: [],
+    systemAudioItems: [],
+    clearConversationVersion: 0,
 
     // Basic setters
     setIsSessionActive: (active) => set({ isSessionActive: active }),
@@ -39,7 +53,12 @@ const useSessionStore = create<SessionStore>()(
     setSessionStartTime: (time) => set({ sessionStartTime: time }),
     setTranslationCount: (count) => set({ translationCount: count }),
     setIsReconnecting: (reconnecting) => set({ isReconnecting: reconnecting }),
-    
+    setItems: (items) => set({ items }),
+    setSystemAudioItems: (systemAudioItems) => set({ systemAudioItems }),
+    requestClearConversation: () => set((state) => ({
+      clearConversationVersion: state.clearConversationVersion + 1,
+    })),
+
     // Increment translation count
     incrementTranslationCount: () => set((state) => ({ 
       translationCount: state.translationCount + 1 
@@ -59,6 +78,8 @@ const useSessionStore = create<SessionStore>()(
       sessionId: null,
       sessionStartTime: null,
       isReconnecting: false,
+      items: [],
+      systemAudioItems: [],
       // Keep translation count for reference
     }),
 
@@ -69,6 +90,8 @@ const useSessionStore = create<SessionStore>()(
       sessionStartTime: null,
       translationCount: 0,
       isReconnecting: false,
+      items: [],
+      systemAudioItems: [],
     }),
   }))
 );
@@ -90,6 +113,12 @@ export const useSetIsReconnecting = () => useSessionStore((state) => state.setIs
 export const useStartSession = () => useSessionStore((state) => state.startSession);
 export const useEndSession = () => useSessionStore((state) => state.endSession);
 export const useResetSession = () => useSessionStore((state) => state.resetSession);
+export const useItems = () => useSessionStore((state) => state.items);
+export const useSystemAudioItems = () => useSessionStore((state) => state.systemAudioItems);
+export const useSetItems = () => useSessionStore((state) => state.setItems);
+export const useSetSystemAudioItems = () => useSessionStore((state) => state.setSystemAudioItems);
+export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
+export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
 
 // Export actions - use individual hooks and memoize to prevent recreating objects
 export const useSessionActions = () => {
