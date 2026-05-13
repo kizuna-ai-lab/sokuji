@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { AppProviders } from './AppProviders';
+import { usePostHog } from '../contexts/PostHogContext';
 
 describe('AppProviders', () => {
   it('renders children inside the provider chain', () => {
@@ -12,13 +13,17 @@ describe('AppProviders', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  it('accepts null posthogClient (used by overlay iframe)', () => {
+  it('exposes posthogClient via usePostHog (proves the provider is actually mounted)', () => {
+    const fakeClient = { capture: () => undefined } as unknown as Parameters<typeof AppProviders>[0]['posthogClient'];
+    const Consumer = () => {
+      const client = usePostHog();
+      return <div data-testid="ph">{client === fakeClient ? 'matched' : 'no-match'}</div>;
+    };
     render(
-      <AppProviders posthogClient={null}>
-        <span>x</span>
+      <AppProviders posthogClient={fakeClient}>
+        <Consumer />
       </AppProviders>,
     );
-    // Should not throw.
-    expect(screen.getByText('x')).toBeInTheDocument();
+    expect(screen.getByTestId('ph').textContent).toBe('matched');
   });
 });
