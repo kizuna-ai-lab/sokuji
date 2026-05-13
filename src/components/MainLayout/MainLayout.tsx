@@ -160,14 +160,16 @@ const MainLayout: React.FC = () => {
     return <UserTypeSelection onSelectUserType={handleUserTypeSelection} />;
   }
 
+  // In Electron subtitle mode the main process reshapes the BrowserWindow
+  // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
+  // keeps MainPanel mounted so the active session survives) and mount
+  // SubtitleApp in their place. Extension subtitle mode is handled inside
+  // an injected iframe — sidepanel chrome stays visible.
+  const electronSubtitleTakeover = subtitleActive && isElectron();
+
   return (
     <>
-    {/* Electron-only: hide the TitleBar when subtitle mode is active —
-        the main process reshapes the BrowserWindow into a tiny bar and
-        there's no room for the regular header. In the extension the
-        sidepanel keeps its full chrome (Settings / Logs / SubtitleEnter
-        stay accessible while the subtitle overlay is up). */}
-    {(!subtitleActive || !isElectron()) && (
+    {!electronSubtitleTakeover && (
       <TitleBar
         showSettings={showSettings}
         showLogs={showLogs}
@@ -177,12 +179,7 @@ const MainLayout: React.FC = () => {
     )}
     <div
       className="main-layout"
-      // Electron-only: when subtitle mode is active the main process reshapes
-      // the BrowserWindow into a tiny bar, but hiding the main layout here too
-      // avoids a flash of MainPanel before the resize lands. In the extension,
-      // the sidepanel must stay visible (MainPanel renders the takeover hint
-      // in its conversation area; subtitle UI lives in a content-script iframe).
-      style={subtitleActive && isElectron() ? { display: 'none' } : undefined}
+      style={electronSubtitleTakeover ? { display: 'none' } : undefined}
     >
       <div className={`main-content ${(showLogs || showSettings) ? 'with-panel' : 'full-width'}`}>
         <div className="main-panel-container">
@@ -202,13 +199,7 @@ const MainLayout: React.FC = () => {
       )}
       <Onboarding />
     </div>
-    {/* Electron-only: SubtitleApp renders into the same React tree because */}
-    {/* Electron's main process reshapes the BrowserWindow into a tiny bar, */}
-    {/* visually replacing MainPanel with this overlay. In the extension, the */}
-    {/* SubtitleApp lives inside an iframe injected into the meeting tab by */}
-    {/* the content script (see ExtensionContentScriptSubtitleSurface) — */}
-    {/* rendering it here too would double-mount it on top of MainPanel. */}
-    {subtitleActive && isElectron() && <SubtitleApp />}
+    {electronSubtitleTakeover && <SubtitleApp />}
     </>
   );
 };
