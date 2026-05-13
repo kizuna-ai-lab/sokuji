@@ -33,6 +33,10 @@
   const MIN_H = 60;
   const CURSORS = {
     move: 'move',
+    'resize-n': 'ns-resize',
+    'resize-e': 'ew-resize',
+    'resize-s': 'ns-resize',
+    'resize-w': 'ew-resize',
     'resize-nw': 'nwse-resize',
     'resize-ne': 'nesw-resize',
     'resize-sw': 'nesw-resize',
@@ -178,39 +182,48 @@
   }
 
   function applyResize(kind, startRect, dx, dy) {
-    const anchor = kind.slice('resize-'.length); // 'nw' | 'ne' | 'sw' | 'se'
+    // Derive per-edge flags. The 8 kinds collapse to a question of "which
+    // edge(s) move?":
+    //   resize-n  → top edge moves
+    //   resize-s  → bottom edge moves
+    //   resize-w  → left edge moves
+    //   resize-e  → right edge moves
+    //   resize-nw → top + left
+    //   resize-ne → top + right
+    //   resize-sw → bottom + left
+    //   resize-se → bottom + right
+    const anchor = kind.slice('resize-'.length); // 'n'|'e'|'s'|'w'|'nw'|'ne'|'sw'|'se'
+    const movesLeft = anchor.includes('w');
+    const movesRight = anchor.includes('e');
+    const movesTop = anchor.includes('n');
+    const movesBottom = anchor.includes('s');
+
     let newW = startRect.width;
     let newH = startRect.height;
     let newLeft = startRect.left;
     let newTop = startRect.top;
 
-    // West / east horizontal handling
-    if (anchor === 'nw' || anchor === 'sw') {
+    if (movesLeft) {
       newW = startRect.width - dx;
       newLeft = startRect.left + dx;
-    } else {
+    } else if (movesRight) {
       newW = startRect.width + dx;
     }
-    // North / south vertical handling
-    if (anchor === 'nw' || anchor === 'ne') {
+    if (movesTop) {
       newH = startRect.height - dy;
       newTop = startRect.top + dy;
-    } else {
+    } else if (movesBottom) {
       newH = startRect.height + dy;
     }
 
-    // Min size: if shrinking past minimum, also clamp the moving edge so
-    // the bar doesn't slide.
+    // Min size: if shrinking past minimum on a moving edge, clamp that
+    // edge so the bar doesn't slide.
     if (newW < MIN_W) {
-      if (anchor === 'nw' || anchor === 'sw') {
-        newLeft = startRect.right - MIN_W;
-      }
+      if (movesLeft) newLeft = startRect.right - MIN_W;
       newW = MIN_W;
     }
     if (newH < MIN_H) {
-      if (anchor === 'nw' || anchor === 'ne') {
-        newTop = startRect.bottom - MIN_H;
-      }
+      if (movesTop) newTop = startRect.bottom - MIN_H;
       newH = MIN_H;
     }
 

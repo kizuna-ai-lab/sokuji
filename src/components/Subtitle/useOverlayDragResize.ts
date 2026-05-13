@@ -3,7 +3,16 @@ import { useCallback } from 'react';
 import { useSubtitlePositionLocked } from '../../stores/subtitleStore';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
 
-type DragKind = 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
+type DragKind =
+  | 'move'
+  | 'resize-n'
+  | 'resize-e'
+  | 'resize-s'
+  | 'resize-w'
+  | 'resize-nw'
+  | 'resize-ne'
+  | 'resize-sw'
+  | 'resize-se';
 
 interface UseOverlayDragResizeArgs {
   surface: SubtitleSurfaceKind;
@@ -42,7 +51,7 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
   const isInteractiveTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false;
     return !!target.closest(
-      'button, input, select, textarea, a, [role="button"], .subtitle-bar__resize',
+      'button, input, select, textarea, a, [role="button"], .subtitle-app__resize',
     );
   };
 
@@ -64,28 +73,23 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
     [isActive, positionLocked],
   );
 
+  const handleFor = (kind: DragKind) =>
+    isActive && !positionLocked ? { onMouseDown: startDrag(kind) } : {};
+
   return {
     dragHandleProps:
       isActive && !positionLocked
         ? { onMouseDown: startDrag('move'), style: { cursor: 'move' as const } }
         : {},
     resizeHandleProps: {
-      nw:
-        isActive && !positionLocked
-          ? { onMouseDown: startDrag('resize-nw') }
-          : {},
-      ne:
-        isActive && !positionLocked
-          ? { onMouseDown: startDrag('resize-ne') }
-          : {},
-      sw:
-        isActive && !positionLocked
-          ? { onMouseDown: startDrag('resize-sw') }
-          : {},
-      se:
-        isActive && !positionLocked
-          ? { onMouseDown: startDrag('resize-se') }
-          : {},
+      n: handleFor('resize-n'),
+      e: handleFor('resize-e'),
+      s: handleFor('resize-s'),
+      w: handleFor('resize-w'),
+      nw: handleFor('resize-nw'),
+      ne: handleFor('resize-ne'),
+      sw: handleFor('resize-sw'),
+      se: handleFor('resize-se'),
     },
   };
 }

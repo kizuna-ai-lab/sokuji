@@ -14,9 +14,11 @@ import useSettingsStore, {
 import {
   useSubtitleSettings,
   useSaveSubtitleWindowBounds,
+  useSubtitlePositionLocked,
   useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
   useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
 } from '../../stores/subtitleStore';
+import { useOverlayDragResize } from './useOverlayDragResize';
 import {
   useIsSessionActive,
   useSessionStartTime,
@@ -182,6 +184,12 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   // Detect whether participant has produced any items
   const participantHasAudio = systemAudioItems.length > 0;
 
+  // Resize handles (extension-overlay only). Lock state from subtitleStore
+  // gates rendering — locked = no handles, no cursor change.
+  const positionLocked = useSubtitlePositionLocked();
+  const { resizeHandleProps } = useOverlayDragResize({ surface });
+  const showResizeHandles = surface === 'extension-overlay' && !positionLocked;
+
   // Build CSS variables for background. The intersection with
   // Record<string, string | number> lets us set CSS custom properties
   // without TS rejecting non-camelCase keys.
@@ -236,6 +244,18 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
         )
       ) : (
         <SubtitleSessionEnded onReturn={requestExit} />
+      )}
+      {showResizeHandles && (
+        <>
+          <div className="subtitle-app__resize subtitle-app__resize--n"  {...resizeHandleProps.n} />
+          <div className="subtitle-app__resize subtitle-app__resize--e"  {...resizeHandleProps.e} />
+          <div className="subtitle-app__resize subtitle-app__resize--s"  {...resizeHandleProps.s} />
+          <div className="subtitle-app__resize subtitle-app__resize--w"  {...resizeHandleProps.w} />
+          <div className="subtitle-app__resize subtitle-app__resize--nw" {...resizeHandleProps.nw} />
+          <div className="subtitle-app__resize subtitle-app__resize--ne" {...resizeHandleProps.ne} />
+          <div className="subtitle-app__resize subtitle-app__resize--sw" {...resizeHandleProps.sw} />
+          <div className="subtitle-app__resize subtitle-app__resize--se" {...resizeHandleProps.se} />
+        </>
       )}
     </div>
   );

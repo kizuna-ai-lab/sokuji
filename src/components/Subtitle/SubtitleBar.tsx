@@ -75,7 +75,10 @@ const SubtitleBar: React.FC<Props> = ({
       void exitSubtitleMode();
     }
   }, [surface, exitSubtitleMode]);
-  const { dragHandleProps, resizeHandleProps } = useOverlayDragResize({ surface });
+  // SubtitleBar only needs the drag (move) handle — the 8 resize handles
+  // live on SubtitleApp's iframe-filling root so they sit at the iframe
+  // edges, not the bar's 36px footprint.
+  const { dragHandleProps } = useOverlayDragResize({ surface });
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
@@ -94,14 +97,6 @@ const SubtitleBar: React.FC<Props> = ({
       role="toolbar"
       {...dragHandleProps}
     >
-      {surface === 'extension-overlay' && (
-        <>
-          <div className="subtitle-bar__resize subtitle-bar__resize--nw" {...resizeHandleProps.nw} />
-          <div className="subtitle-bar__resize subtitle-bar__resize--ne" {...resizeHandleProps.ne} />
-          <div className="subtitle-bar__resize subtitle-bar__resize--sw" {...resizeHandleProps.sw} />
-          <div className="subtitle-bar__resize subtitle-bar__resize--se" {...resizeHandleProps.se} />
-        </>
-      )}
       <div className="subtitle-bar__left">
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
