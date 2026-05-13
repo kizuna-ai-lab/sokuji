@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { installSessionPortMirror } from './sessionPortMirror';
 import useSessionStore from './sessionStore';
+import useSettingsStore from './settingsStore';
+
+// Mock SettingsService factory so settingsStore can be imported without
+// pulling audio worklet side-effects through ServiceFactory.
+vi.mock('../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: vi.fn(async (_key: string, def: unknown) => def),
+      setSetting: vi.fn(async () => ({ success: true })),
+    }),
+  },
+}));
 
 declare const globalThis: any;
 
@@ -50,5 +62,42 @@ describe('sessionPortMirror', () => {
     installSessionPortMirror();
     useSessionStore.getState().requestClearConversation();
     expect(connectedPort.postMessage).toHaveBeenCalledWith({ type: 'subtitle:request-clear' });
+  });
+
+  it('on config message, populates settingsStore.provider + language pair fields', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({
+      type: 'config',
+      provider: 'gemini',
+      sourceLanguage: 'ja',
+      targetLanguage: 'en',
+      turnDetectionMode: 'Auto',
+    });
+    const state = useSettingsStore.getState();
+    expect(state.provider).toBe('gemini');
+    const geminiSettings = (state as any).gemini;
+    expect(geminiSettings?.sourceLanguage).toBe('ja');
+    expect(geminiSettings?.targetLanguage).toBe('en');
+    expect(geminiSettings?.turnDetectionMode).toBe('Auto');
+  });
+
+  it('on state-init with provider/languages, populates settingsStore', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({
+      type: 'state-init',
+      payload: {
+        items: [],
+        provider: 'gemini',
+        sourceLanguage: 'fr',
+        targetLanguage: 'de',
+      },
+    });
+    const state = useSettingsStore.getState();
+    expect(state.provider).toBe('gemini');
+    const geminiSettings = (state as any).gemini;
+    expect(geminiSettings?.sourceLanguage).toBe('fr');
+    expect(geminiSettings?.targetLanguage).toBe('de');
   });
 });

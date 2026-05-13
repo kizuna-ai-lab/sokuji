@@ -89,7 +89,10 @@ const SubtitleBar: React.FC<Props> = ({
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
   return (
-    <div className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''}`} role="toolbar">
+    <div
+      className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''} ${surface === 'electron' ? 'surface-electron' : 'surface-overlay'}`}
+      role="toolbar"
+    >
       {surface === 'extension-overlay' && (
         <>
           <div className="subtitle-bar__resize subtitle-bar__resize--nw" {...resizeHandleProps.nw} />

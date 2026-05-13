@@ -16,7 +16,6 @@
   padding: 0 12px;
   background: rgba(20, 20, 20, 0.95);
   color: #e8e8e8;
-  -webkit-app-region: drag;
   font-size: 12px;
   flex-shrink: 0;
   opacity: var(--bar-opacity, 1);
@@ -26,8 +25,17 @@
   // alongside --bar-opacity.
   pointer-events: var(--bar-pointer-events, auto);
 
-  &.locked {
-    -webkit-app-region: no-drag;
+  // -webkit-app-region only applies inside Electron's BrowserWindow chrome.
+  // In the extension overlay we mount inside a content-script iframe, where
+  // the property is a no-op at best and a footgun for future moves of the
+  // class onto a real Chromium-only surface. Scope it to the Electron flavour
+  // so the overlay tree never carries any drag-region styling.
+  &.surface-electron {
+    -webkit-app-region: drag;
+
+    &.locked {
+      -webkit-app-region: no-drag;
+    }
   }
 
   .subtitle-bar__left,

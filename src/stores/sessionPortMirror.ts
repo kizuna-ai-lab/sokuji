@@ -1,4 +1,5 @@
 import useSessionStore from './sessionStore';
+import useSettingsStore from './settingsStore';
 
 declare const chrome: any;
 
@@ -12,8 +13,10 @@ interface InboundStateInit {
     systemAudioItems?: any[];
     isSessionActive?: boolean;
     sessionStartTime?: number | null;
+    provider?: string;
     sourceLanguage?: string;
     targetLanguage?: string;
+    turnDetectionMode?: string;
   };
 }
 interface InboundItems {
@@ -26,7 +29,14 @@ interface InboundSession {
   isSessionActive: boolean;
   sessionStartTime?: number | null;
 }
-type Inbound = InboundStateInit | InboundItems | InboundSession;
+interface InboundConfig {
+  type: 'config';
+  provider: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode?: string;
+}
+type Inbound = InboundStateInit | InboundItems | InboundSession | InboundConfig;
 
 /**
  * Installs the iframe-side mirror that forwards sessionStore state from the
@@ -64,6 +74,31 @@ export function postUserExit(): void {
   port?.postMessage({ type: 'subtitle:user-exit' });
 }
 
+/**
+ * Apply provider + language pair + turn detection mode into the iframe-side
+ * settingsStore so that SubtitleApp's existing selectors
+ * (useProvider / useGetCurrentProviderSettings / useCurrentTurnDetectionMode)
+ * resolve to the side panel's actual session config. The side panel is the
+ * source of truth — we only write a slim shape here, preserving any unrelated
+ * fields the iframe's settingsStore may carry from its hydrate step.
+ */
+function applyConfig(provider: string, sourceLanguage: string, targetLanguage: string, turnDetectionMode?: string): void {
+  useSettingsStore.setState((s: any) => {
+    const providerKey = provider;
+    const currentProviderSettings = s[providerKey] ?? {};
+    return {
+      provider,
+      [providerKey]: {
+        ...currentProviderSettings,
+        sourceLanguage,
+        targetLanguage,
+        turnDetectionMode:
+          turnDetectionMode ?? (currentProviderSettings as any).turnDetectionMode,
+      },
+    } as any;
+  });
+}
+
 function handle(msg: Inbound): void {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'state-init') {
@@ -73,6 +108,14 @@ function handle(msg: Inbound): void {
       isSessionActive: msg.payload.isSessionActive ?? false,
       sessionStartTime: msg.payload.sessionStartTime ?? null,
     } as any);
+    if (msg.payload.provider) {
+      applyConfig(
+        msg.payload.provider,
+        msg.payload.sourceLanguage ?? 'en',
+        msg.payload.targetLanguage ?? 'zh',
+        msg.payload.turnDetectionMode,
+      );
+    }
   } else if (msg.type === 'items') {
     useSessionStore.setState({
       items: msg.items,
@@ -83,5 +126,7 @@ function handle(msg: Inbound): void {
       isSessionActive: msg.isSessionActive,
       sessionStartTime: msg.sessionStartTime ?? null,
     } as any);
+  } else if (msg.type === 'config') {
+    applyConfig(msg.provider, msg.sourceLanguage, msg.targetLanguage, msg.turnDetectionMode);
   }
 }

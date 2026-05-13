@@ -110,8 +110,30 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     // If the port was torn down while we awaited the import, bail out.
     if (!this.port) return;
 
-    // Push initial snapshot.
+    // Snapshot session + settings state so SubtitleApp's selectors
+    // (useProvider / useGetCurrentProviderSettings / useCurrentTurnDetectionMode)
+    // resolve to the user's real values inside the iframe.
     const session = useSessionStore.getState();
+    const settings = useSettingsStore.getState();
+    const providerSettings = settings.getCurrentProviderSettings();
+    const langs = providerSettings as
+      | { sourceLanguage?: string; targetLanguage?: string }
+      | null
+      | undefined;
+    const turnDetectionMode =
+      providerSettings && 'turnDetectionMode' in providerSettings
+        ? (providerSettings as { turnDetectionMode?: string }).turnDetectionMode
+        : undefined;
+
+    // Track last-emitted config so we can dedupe and avoid spamming the port
+    // on every unrelated settings-store change.
+    let lastConfig = {
+      provider: settings.provider as string,
+      sourceLanguage: langs?.sourceLanguage ?? 'en',
+      targetLanguage: langs?.targetLanguage ?? 'zh',
+      turnDetectionMode,
+    };
+
     this.port.postMessage({
       type: 'state-init',
       payload: {
@@ -119,6 +141,10 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
         systemAudioItems: session.systemAudioItems,
         isSessionActive: session.isSessionActive,
         sessionStartTime: session.sessionStartTime,
+        provider: lastConfig.provider,
+        sourceLanguage: lastConfig.sourceLanguage,
+        targetLanguage: lastConfig.targetLanguage,
+        turnDetectionMode: lastConfig.turnDetectionMode,
       },
     });
 
@@ -152,7 +178,40 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
           a.sessionStartTime === b.sessionStartTime,
       },
     );
-    this.subscriptions = [unsubItems, unsubSession];
+
+    // Forward provider + language pair + turn detection mode whenever they
+    // change in the side panel. We listen to the full state (rather than a
+    // narrow selector) because the language pair lives inside a
+    // provider-specific sub-object that varies by provider, so dedupe in the
+    // callback against `lastConfig`.
+    const pushConfigIfChanged = () => {
+      if (!this.port) return;
+      const s = useSettingsStore.getState();
+      const ps = s.getCurrentProviderSettings();
+      const l = ps as { sourceLanguage?: string; targetLanguage?: string } | null | undefined;
+      const tdm = ps && 'turnDetectionMode' in ps
+        ? (ps as { turnDetectionMode?: string }).turnDetectionMode
+        : undefined;
+      const next = {
+        provider: s.provider as string,
+        sourceLanguage: l?.sourceLanguage ?? 'en',
+        targetLanguage: l?.targetLanguage ?? 'zh',
+        turnDetectionMode: tdm,
+      };
+      if (
+        next.provider === lastConfig.provider &&
+        next.sourceLanguage === lastConfig.sourceLanguage &&
+        next.targetLanguage === lastConfig.targetLanguage &&
+        next.turnDetectionMode === lastConfig.turnDetectionMode
+      ) {
+        return;
+      }
+      lastConfig = next;
+      this.port.postMessage({ type: 'config', ...next });
+    };
+    const unsubConfig = useSettingsStore.subscribe(pushConfigIfChanged);
+
+    this.subscriptions = [unsubItems, unsubSession, unsubConfig];
   }
 }
 

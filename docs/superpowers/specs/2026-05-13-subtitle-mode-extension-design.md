@@ -450,7 +450,7 @@ export interface SubtitleState {
   // ──────────── Always persisted ────────────
 
   // Typography & layout
-  fontSize: number;                 // 12–48, default 24
+  fontSize: number;                 // 16–48, default 24
   compactMode: boolean;             // default false
 
   // Background
