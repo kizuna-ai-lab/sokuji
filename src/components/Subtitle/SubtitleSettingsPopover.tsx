@@ -6,7 +6,7 @@ import {
   useSetSubtitleBgColor,
   useSetSubtitleSourceTextColor,
   useSetSubtitleTranslationTextColor,
-} from '../../stores/settingsStore';
+} from '../../stores/subtitleStore';
 import './SubtitleSettingsPopover.scss';
 
 const BG_PRESETS = ['#000000', '#1a1a1a', '#0d2032', '#0f2419', '#FFFFFF', '#2a2a2a'];

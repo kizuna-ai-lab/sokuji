@@ -5,16 +5,18 @@ import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
 import SubtitleSessionEnded from './SubtitleSessionEnded';
 import useSettingsStore, {
-  useSubtitleSettings,
   useExitSubtitleMode,
-  useSaveSubtitleWindowBounds,
-  useSpeakerDisplayMode,
-  useParticipantDisplayMode,
   useProvider,
   useGetCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
 } from '../../stores/settingsStore';
+import {
+  useSubtitleSettings,
+  useSaveSubtitleWindowBounds,
+  useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
+  useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+} from '../../stores/subtitleStore';
 import {
   useIsSessionActive,
   useSessionStartTime,

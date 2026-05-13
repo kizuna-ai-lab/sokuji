@@ -10,18 +10,18 @@ import {
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
+import { useExitSubtitleMode } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
   useSetSubtitleFontSize,
   useSetSubtitleCompactMode,
   useToggleSubtitleAlwaysOnTop,
   useToggleSubtitlePositionLocked,
-  useSpeakerDisplayMode,
-  useParticipantDisplayMode,
-  useSetSpeakerDisplayMode,
-  useSetParticipantDisplayMode,
-  useExitSubtitleMode,
-} from '../../stores/settingsStore';
+  useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
+  useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+  useSetSubtitleSpeakerDisplayMode as useSetSpeakerDisplayMode,
+  useSetSubtitleParticipantDisplayMode as useSetParticipantDisplayMode,
+} from '../../stores/subtitleStore';
 import SubtitleSettingsPopover from './SubtitleSettingsPopover';
 import './SubtitleBar.scss';
 
