@@ -23,6 +23,7 @@ import {
   useSetSubtitleParticipantDisplayMode as useSetParticipantDisplayMode,
 } from '../../stores/subtitleStore';
 import SubtitleSettingsPopover from './SubtitleSettingsPopover';
+import type { SubtitleSurfaceKind } from './SubtitleApp';
 import './SubtitleBar.scss';
 
 interface Props {
@@ -32,6 +33,7 @@ interface Props {
   onClearConversation: () => void;
   participantHasAudio: boolean;
   exportProps: React.ComponentProps<typeof ExportButton>;
+  surface?: SubtitleSurfaceKind;
 }
 
 function formatElapsed(ms: number): string {
@@ -49,6 +51,7 @@ const SubtitleBar: React.FC<Props> = ({
   onClearConversation,
   participantHasAudio,
   exportProps,
+  surface = 'electron',
 }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
@@ -144,15 +147,17 @@ const SubtitleBar: React.FC<Props> = ({
         >
           <Settings size={14} />
         </button>
-        <button
-          type="button"
-          className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
-          onClick={toggleAlwaysOnTop}
-          title={t('subtitle.bar.alwaysOnTop', 'Always on top')}
-          aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
-        >
-          <Pin size={14} />
-        </button>
+        {surface === 'electron' && (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
+            onClick={toggleAlwaysOnTop}
+            title={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+            aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+          >
+            <Pin size={14} />
+          </button>
+        )}
         <button
           type="button"
           className={`subtitle-bar__btn ${subtitle.positionLocked ? 'active' : ''}`}

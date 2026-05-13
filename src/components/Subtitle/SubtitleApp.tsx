@@ -44,7 +44,9 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-const SubtitleApp: React.FC = () => {
+export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
+
+const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'electron' }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
@@ -116,6 +118,10 @@ const SubtitleApp: React.FC = () => {
   }, [isSessionActive]);
   const elapsedMs = isSessionActive && sessionStartTime ? now - sessionStartTime : 0;
 
+  // Root ref — used to derive the owner document for keyboard listeners so
+  // ESC works correctly when SubtitleApp is mounted inside an iframe.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
   // Auto-hide bar
   const [barVisible, setBarVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,11 +136,12 @@ const SubtitleApp: React.FC = () => {
 
   // ESC to exit subtitle mode
   useEffect(() => {
+    const target = rootRef.current?.ownerDocument ?? document;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') void exitSubtitleMode();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    target.addEventListener('keydown', onKey);
+    return () => target.removeEventListener('keydown', onKey);
   }, [exitSubtitleMode]);
 
   // Bounds-changed listener (debounced 500 ms before persistence).
@@ -143,6 +150,7 @@ const SubtitleApp: React.FC = () => {
   // prevents the resize event triggered by exiting (setBounds(restore))
   // from being saved as subtitle bounds.
   useEffect(() => {
+    if (surface !== 'electron') return;
     if (!window.electron?.receive) return;
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const handler = (bounds: { x: number; y: number; width: number; height: number }) => {
@@ -157,7 +165,7 @@ const SubtitleApp: React.FC = () => {
       if (debounce) clearTimeout(debounce);
       window.electron?.removeListener?.('subtitle:window-bounds-changed', handler);
     };
-  }, [saveBounds]);
+  }, [saveBounds, surface]);
 
   // Detect whether participant has produced any items
   const participantHasAudio = systemAudioItems.length > 0;
@@ -174,6 +182,7 @@ const SubtitleApp: React.FC = () => {
 
   return (
     <div
+      ref={rootRef}
       className="subtitle-app"
       style={rootStyle}
       onMouseEnter={onMouseEnter}
@@ -193,6 +202,7 @@ const SubtitleApp: React.FC = () => {
           sourceLanguage,
           targetLanguage,
         }}
+        surface={surface}
       />
       {isSessionActive ? (
         canHoldToSpeak && combinedItems.length === 0 ? (
