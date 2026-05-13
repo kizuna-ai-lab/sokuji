@@ -91,7 +91,7 @@
     const shadow = host.attachShadow({ mode: 'closed' });
 
     const defaultW = Math.min(window.innerWidth * 0.7, 1200);
-    const defaultH = 80;
+    const defaultH = 140;
 
     iframeEl = document.createElement('iframe');
     iframeEl.src = chrome.runtime.getURL('subtitle-overlay.html');

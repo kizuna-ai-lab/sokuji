@@ -21,6 +21,8 @@ import {
   useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
   useSetSubtitleSpeakerDisplayMode as useSetSpeakerDisplayMode,
   useSetSubtitleParticipantDisplayMode as useSetParticipantDisplayMode,
+  FONT_SIZE_MIN,
+  FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
 import SubtitleSettingsPopover from './SubtitleSettingsPopover';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
@@ -118,7 +120,7 @@ const SubtitleBar: React.FC<Props> = ({
           type="button"
           className="subtitle-bar__btn"
           onClick={() => setFontSize(subtitle.fontSize - 2)}
-          disabled={subtitle.fontSize <= 16}
+          disabled={subtitle.fontSize <= FONT_SIZE_MIN}
           title={t('subtitle.bar.fontDecrease', 'Decrease font size')}
           aria-label={t('subtitle.bar.fontDecrease', 'Decrease font size')}
         >
@@ -128,7 +130,7 @@ const SubtitleBar: React.FC<Props> = ({
           type="button"
           className="subtitle-bar__btn"
           onClick={() => setFontSize(subtitle.fontSize + 2)}
-          disabled={subtitle.fontSize >= 48}
+          disabled={subtitle.fontSize >= FONT_SIZE_MAX}
           title={t('subtitle.bar.fontIncrease', 'Increase font size')}
           aria-label={t('subtitle.bar.fontIncrease', 'Increase font size')}
         >
