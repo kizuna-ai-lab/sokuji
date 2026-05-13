@@ -70,7 +70,7 @@ Everything else — logo slot, timer, language pair, speaker / participant displ
 
 ### Overlay positioning, drag, and resize {#drag-and-resize}
 
-**Default position and size** (used on every `subtitle:enter` — position is not persisted, see [State](#state-subtitlestore)): `position: fixed`, `bottom: 80px`, `left: 50%`, `transform: translateX(-50%)`, `width: min(70vw, 1200px)`, `height: 80px`, `z-index: 2147483647`. Applied to the iframe element itself via inline style.
+**Default position and size** (used on every `subtitle:enter` — position is not persisted, see [State](#state-subtitlestore)): `position: fixed`, `bottom: 80px`, `left: 50%`, `transform: translateX(-50%)`, `width: min(70vw, 1200px)`, `height: 140px`, `z-index: 2147483647`. Applied to the iframe element itself via inline style.
 
 The `bottom: 80px` offset clears Meet's bottom toolbar (~64 px) with a small safety margin. v2 uses this fixed default for all nine sites; per-site overrides are out of scope.
 
@@ -106,7 +106,7 @@ Identical to v1. When the side panel sees `sessionStore.isActive` flip to `false
 
 ## Architecture & Lifecycle
 
-```
+```text
 [Side panel — fullpage.html]                       [Meet tab — content.js → iframe]
  React, sessionStore, settingsStore, audio          ┌── injected sokuji-subtitle-host ────────┐
  ExtensionContentScriptSubtitleSurface              │  <div id="sokuji-subtitle-host">         │
@@ -155,7 +155,7 @@ Invariants:
 
 The platform branch lives behind a thin interface so that `SubtitleApp`, `SubtitleBar`, `SubtitleEnterButton`, and the store actions stay platform-agnostic.
 
-```
+```text
 src/components/Subtitle/surfaces/
   SubtitleSurface.ts                       // interface
   ElectronSubtitleSurface.ts               // wraps existing subtitle:* IPC — refactor only
@@ -314,7 +314,7 @@ function mountHost() {
     'left: 50%',
     'transform: translateX(-50%)',
     'width: min(70vw, 1200px)',
-    'height: 80px',
+    'height: 140px',
     'border: none',
     'background: transparent',
     'pointer-events: auto',
@@ -681,7 +681,7 @@ Reused unchanged: `SubtitleSessionEnded`, `ConversationRow`, `DisplayModeButton`
 
 1. **Build & launch (extension)**:
 
-   ```
+   ```bash
    cd extension && npm run build
    ```
 
@@ -711,7 +711,7 @@ Reused unchanged: `SubtitleSessionEnded`, `ConversationRow`, `DisplayModeButton`
 
 7. **Automated tests**:
 
-   ```
+   ```bash
    npm run test
    ```
 
