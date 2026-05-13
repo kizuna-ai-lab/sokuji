@@ -89,10 +89,48 @@ function timestamp(): string {
   return new Date().toISOString().replace(/[-:.]/g, '').slice(0, -1);
 }
 
+// Sec-MS-GEC buckets the current time into 5-minute windows; if the user's
+// system clock is off by more than that, every request is rejected. We
+// compensate by sampling the server's Date header once and caching the
+// offset for the rest of the session.
+let serverTimeOffsetMs = 0;
+let serverTimeOffsetPromise: Promise<number> | null = null;
+
+export function getServerTimeOffsetMs(forceRefresh = false): Promise<number> {
+  if (forceRefresh) serverTimeOffsetPromise = null;
+  if (serverTimeOffsetPromise) return serverTimeOffsetPromise;
+
+  serverTimeOffsetPromise = (async () => {
+    try {
+      const t0 = Date.now();
+      const probeUrl = `https://${READALOUD_BASE}/voices/list?trustedclienttoken=${TRUSTED_CLIENT_TOKEN}`;
+      const response = await fetch(probeUrl, { method: 'HEAD', cache: 'no-store' });
+      const t1 = Date.now();
+      const dateHeader = response.headers.get('date');
+      if (dateHeader) {
+        const serverMs = new Date(dateHeader).getTime();
+        if (!Number.isNaN(serverMs)) {
+          // Midpoint of request/response brackets the moment the server
+          // stamped Date — gives ~RTT/2 accuracy, far below the 300s window.
+          serverTimeOffsetMs = serverMs - (t0 + t1) / 2;
+        }
+      }
+    } catch {
+      // Probe failed (offline / DNS / TLS). Fall through with offset=0;
+      // the actual TTS call will surface a more specific error.
+      serverTimeOffsetPromise = null;
+    }
+    return serverTimeOffsetMs;
+  })();
+
+  return serverTimeOffsetPromise;
+}
+
 export async function makeSecMsGec(): Promise<string> {
+  const offsetMs = await getServerTimeOffsetMs();
   const winEpoch = 11644473600;
   const secondsToNs = 1e9;
-  let ticks = Date.now() / 1000;
+  let ticks = (Date.now() + offsetMs) / 1000;
   ticks += winEpoch;
   ticks -= ticks % 300;
   ticks *= secondsToNs / 100;
