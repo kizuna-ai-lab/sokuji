@@ -162,7 +162,12 @@ const MainLayout: React.FC = () => {
 
   return (
     <>
-    {!subtitleActive && (
+    {/* Electron-only: hide the TitleBar when subtitle mode is active —
+        the main process reshapes the BrowserWindow into a tiny bar and
+        there's no room for the regular header. In the extension the
+        sidepanel keeps its full chrome (Settings / Logs / SubtitleEnter
+        stay accessible while the subtitle overlay is up). */}
+    {(!subtitleActive || !isElectron()) && (
       <TitleBar
         showSettings={showSettings}
         showLogs={showLogs}

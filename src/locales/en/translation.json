@@ -881,6 +881,10 @@
       "disabled": "Start a session first",
       "label": "Subtitle"
     },
+    "exitButton": {
+      "title": "Exit subtitle mode",
+      "label": "Exit subtitle"
+    },
     "bar": {
       "fontDecrease": "Decrease font size",
       "fontIncrease": "Increase font size",
