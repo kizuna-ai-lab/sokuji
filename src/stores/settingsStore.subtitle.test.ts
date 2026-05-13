@@ -11,7 +11,7 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 // Pretend we're running inside Electron so the IPC-guarded actions
-// (enterSubtitleMode, exit*, toggle*) follow their real-environment paths.
+// (enterSubtitleMode, exitSubtitleMode) follow their real-environment paths.
 vi.mock('../utils/environment', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../utils/environment')>();
   return {
