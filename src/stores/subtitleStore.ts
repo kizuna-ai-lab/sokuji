@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
 import { ServiceFactory } from '../services/ServiceFactory';
 
 export type DisplayMode = 'source' | 'translation' | 'both';
@@ -13,10 +14,10 @@ export interface SubtitleWindowBounds {
 
 interface SubtitleState {
   // Typography
-  fontSize: number;            // clamped [16, 48]
+  fontSize: number;            // clamped [FONT_SIZE_MIN, FONT_SIZE_MAX]
   compactMode: boolean;
   // Background
-  bgOpacity: number;           // clamped [0, 100]
+  bgOpacity: number;           // clamped [BG_OPACITY_MIN, BG_OPACITY_MAX]
   bgColor: string;             // hex
   // Text colours
   sourceTextColor: string;
@@ -60,87 +61,105 @@ const DEFAULTS = {
   participantDisplayMode: 'both' as DisplayMode,
 };
 
+const FONT_SIZE_MIN = 16;
+const FONT_SIZE_MAX = 48;
+const BG_OPACITY_MIN = 0;
+const BG_OPACITY_MAX = 100;
+
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
 const KEY = (suffix: string) => `settings.common.subtitle.${suffix}`;
 
+// Persistence helper — keeps each setter compact and centralises the log format.
+async function persist(
+  keySuffix: string,
+  value: unknown,
+  fieldNameForLog: string,
+): Promise<{ ok: boolean }> {
+  try {
+    await ServiceFactory.getSettingsService().setSetting(KEY(keySuffix), value);
+    return { ok: true };
+  } catch (error) {
+    console.error(`[SubtitleStore] Error persisting ${fieldNameForLog}:`, error);
+    return { ok: false };
+  }
+}
+
 export const useSubtitleStore = create<SubtitleState>()(
   subscribeWithSelector((set, get) => ({
     ...DEFAULTS,
 
     setFontSize: async (n) => {
-      const clamped = clamp(Math.round(n), 16, 48);
+      const clamped = clamp(Math.round(n), FONT_SIZE_MIN, FONT_SIZE_MAX);
+      const previous = get().fontSize;
       set({ fontSize: clamped });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('fontSize'), clamped);
-      } catch (e) {
-        console.error('[SubtitleStore] persist fontSize failed', e);
-      }
+      const { ok } = await persist('fontSize', clamped, 'fontSize');
+      if (!ok) set({ fontSize: previous });
     },
     setCompactMode: async (b) => {
+      const previous = get().compactMode;
       set({ compactMode: b });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('compactMode'), b);
-      } catch (e) { console.error('[SubtitleStore] persist compactMode failed', e); }
+      const { ok } = await persist('compactMode', b, 'compactMode');
+      if (!ok) set({ compactMode: previous });
     },
     setBgOpacity: async (n) => {
-      const clamped = clamp(Math.round(n), 0, 100);
+      const clamped = clamp(Math.round(n), BG_OPACITY_MIN, BG_OPACITY_MAX);
+      const previous = get().bgOpacity;
       set({ bgOpacity: clamped });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('bgOpacity'), clamped);
-      } catch (e) { console.error('[SubtitleStore] persist bgOpacity failed', e); }
+      const { ok } = await persist('bgOpacity', clamped, 'bgOpacity');
+      if (!ok) set({ bgOpacity: previous });
     },
     setBgColor: async (s) => {
+      const previous = get().bgColor;
       set({ bgColor: s });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('bgColor'), s);
-      } catch (e) { console.error('[SubtitleStore] persist bgColor failed', e); }
+      const { ok } = await persist('bgColor', s, 'bgColor');
+      if (!ok) set({ bgColor: previous });
     },
     setSourceTextColor: async (s) => {
+      const previous = get().sourceTextColor;
       set({ sourceTextColor: s });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('sourceTextColor'), s);
-      } catch (e) { console.error('[SubtitleStore] persist sourceTextColor failed', e); }
+      const { ok } = await persist('sourceTextColor', s, 'sourceTextColor');
+      if (!ok) set({ sourceTextColor: previous });
     },
     setTranslationTextColor: async (s) => {
+      const previous = get().translationTextColor;
       set({ translationTextColor: s });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('translationTextColor'), s);
-      } catch (e) { console.error('[SubtitleStore] persist translationTextColor failed', e); }
+      const { ok } = await persist('translationTextColor', s, 'translationTextColor');
+      if (!ok) set({ translationTextColor: previous });
     },
     toggleAlwaysOnTop: async () => {
-      const next = !get().alwaysOnTop;
+      const previous = get().alwaysOnTop;
+      const next = !previous;
       set({ alwaysOnTop: next });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('alwaysOnTop'), next);
-      } catch (e) { console.error('[SubtitleStore] persist alwaysOnTop failed', e); }
+      const { ok } = await persist('alwaysOnTop', next, 'alwaysOnTop');
+      if (!ok) set({ alwaysOnTop: previous });
     },
     togglePositionLocked: async () => {
-      const next = !get().positionLocked;
+      const previous = get().positionLocked;
+      const next = !previous;
       set({ positionLocked: next });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('positionLocked'), next);
-      } catch (e) { console.error('[SubtitleStore] persist positionLocked failed', e); }
+      const { ok } = await persist('positionLocked', next, 'positionLocked');
+      if (!ok) set({ positionLocked: previous });
     },
     saveWindowBounds: async (b) => {
+      const previous = get().windowBounds;
       set({ windowBounds: b });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('windowBounds'), b);
-      } catch (e) { console.error('[SubtitleStore] persist windowBounds failed', e); }
+      const { ok } = await persist('windowBounds', b, 'windowBounds');
+      if (!ok) set({ windowBounds: previous });
     },
     setSpeakerDisplayMode: async (m) => {
+      const previous = get().speakerDisplayMode;
       set({ speakerDisplayMode: m });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('speakerDisplayMode'), m);
-      } catch (e) { console.error('[SubtitleStore] persist speakerDisplayMode failed', e); }
+      const { ok } = await persist('speakerDisplayMode', m, 'speakerDisplayMode');
+      if (!ok) set({ speakerDisplayMode: previous });
     },
     setParticipantDisplayMode: async (m) => {
+      const previous = get().participantDisplayMode;
       set({ participantDisplayMode: m });
-      try {
-        await ServiceFactory.getSettingsService().setSetting(KEY('participantDisplayMode'), m);
-      } catch (e) { console.error('[SubtitleStore] persist participantDisplayMode failed', e); }
+      const { ok } = await persist('participantDisplayMode', m, 'participantDisplayMode');
+      if (!ok) set({ participantDisplayMode: previous });
     },
 
     hydrate: async () => {
@@ -164,9 +183,9 @@ export const useSubtitleStore = create<SubtitleState>()(
         svc.getSetting<DisplayMode>(KEY('participantDisplayMode'), DEFAULTS.participantDisplayMode),
       ]);
       set({
-        fontSize: clamp(Math.round(fontSize), 16, 48),
+        fontSize: clamp(Math.round(fontSize), FONT_SIZE_MIN, FONT_SIZE_MAX),
         compactMode,
-        bgOpacity: clamp(Math.round(bgOpacity), 0, 100),
+        bgOpacity: clamp(Math.round(bgOpacity), BG_OPACITY_MIN, BG_OPACITY_MAX),
         bgColor,
         sourceTextColor,
         translationTextColor,
@@ -193,18 +212,23 @@ export const useSubtitleWindowBounds = () => useSubtitleStore((s) => s.windowBou
 export const useSubtitleSpeakerDisplayMode = () => useSubtitleStore((s) => s.speakerDisplayMode);
 export const useSubtitleParticipantDisplayMode = () => useSubtitleStore((s) => s.participantDisplayMode);
 
-// Convenience snapshot reader (mirrors useSubtitleSettings from v1)
-export const useSubtitleSettings = () => useSubtitleStore((s) => ({
-  fontSize: s.fontSize,
-  compactMode: s.compactMode,
-  bgOpacity: s.bgOpacity,
-  bgColor: s.bgColor,
-  sourceTextColor: s.sourceTextColor,
-  translationTextColor: s.translationTextColor,
-  alwaysOnTop: s.alwaysOnTop,
-  positionLocked: s.positionLocked,
-  windowBounds: s.windowBounds,
-}));
+// Convenience snapshot reader (mirrors useSubtitleSettings from v1).
+// useShallow keeps the returned object reference stable across renders when
+// the individual fields haven't changed — avoids re-render loops in consumers.
+export const useSubtitleSettings = () =>
+  useSubtitleStore(
+    useShallow((s) => ({
+      fontSize: s.fontSize,
+      compactMode: s.compactMode,
+      bgOpacity: s.bgOpacity,
+      bgColor: s.bgColor,
+      sourceTextColor: s.sourceTextColor,
+      translationTextColor: s.translationTextColor,
+      alwaysOnTop: s.alwaysOnTop,
+      positionLocked: s.positionLocked,
+      windowBounds: s.windowBounds,
+    })),
+  );
 
 // Action hooks
 export const useSetSubtitleFontSize = () => useSubtitleStore((s) => s.setFontSize);
