@@ -58,6 +58,10 @@
     if (!data || typeof data !== 'object') return;
     if (data.type === 'sokuji-subtitle:drag-start') {
       startDrag(data.kind, data.iframeX, data.iframeY);
+    } else if (data.type === 'sokuji-subtitle:sidepanel-gone') {
+      // Side panel closed; the iframe lost its port and is now an orphan
+      // with no working dismiss button. Tear the host down.
+      unmountHost();
     }
   });
 

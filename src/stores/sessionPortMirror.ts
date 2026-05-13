@@ -49,6 +49,15 @@ export function installSessionPortMirror(): void {
   port.onMessage.addListener(handle);
   port.onDisconnect.addListener(() => {
     port = null;
+    // The side panel closed (or the extension reloaded), so the only way to
+    // dismiss the overlay — posting subtitle:user-exit over this port — is
+    // gone. Ask the parent content script to unmount the host so the user
+    // isn't stuck with a frozen bar on the page.
+    try {
+      window.parent.postMessage({ type: 'sokuji-subtitle:sidepanel-gone' }, '*');
+    } catch {
+      /* iframe may already be detached from the meeting page */
+    }
   });
 
   if (!exitHandlerInstalled) {
