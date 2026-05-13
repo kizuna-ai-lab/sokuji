@@ -172,7 +172,12 @@ const MainLayout: React.FC = () => {
     )}
     <div
       className="main-layout"
-      style={subtitleActive ? { display: 'none' } : undefined}
+      // Electron-only: when subtitle mode is active the main process reshapes
+      // the BrowserWindow into a tiny bar, but hiding the main layout here too
+      // avoids a flash of MainPanel before the resize lands. In the extension,
+      // the sidepanel must stay visible (MainPanel renders the takeover hint
+      // in its conversation area; subtitle UI lives in a content-script iframe).
+      style={subtitleActive && isElectron() ? { display: 'none' } : undefined}
     >
       <div className={`main-content ${(showLogs || showSettings) ? 'with-panel' : 'full-width'}`}>
         <div className="main-panel-container">
