@@ -72,17 +72,6 @@ describe('settingsStore subtitle actions', () => {
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
 
-  it('setSubtitleFontSize clamps to 16-48', async () => {
-    await useSettingsStore.getState().setSubtitleFontSize(8);
-    expect(useSettingsStore.getState().subtitle.fontSize).toBe(16);
-    await useSettingsStore.getState().setSubtitleFontSize(100);
-    expect(useSettingsStore.getState().subtitle.fontSize).toBe(48);
-  });
-
-  it('setSubtitleBgOpacity clamps to 0-100', async () => {
-    await useSettingsStore.getState().setSubtitleBgOpacity(-5);
-    expect(useSettingsStore.getState().subtitle.bgOpacity).toBe(0);
-    await useSettingsStore.getState().setSubtitleBgOpacity(150);
-    expect(useSettingsStore.getState().subtitle.bgOpacity).toBe(100);
-  });
+  // NOTE: setSubtitleFontSize / setSubtitleBgOpacity / etc. moved to subtitleStore in Task 5.
+  // Their clamping behavior is covered by subtitleStore tests.
 });
