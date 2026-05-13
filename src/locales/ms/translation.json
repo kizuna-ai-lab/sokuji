@@ -496,6 +496,7 @@
     "logsCopied": "Disalin!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Terjemahan dipaparkan di tindanan sari kata",
     "conversationPlaceholder": "Perbualan akan muncul di sini",
     "speechDetected": "[Pertuturan dikesan]",
     "audioContent": "Kandungan audio",
@@ -834,7 +835,12 @@
     "enterButton": {
       "title": "Masuk mod sari kata",
       "disabled": "Mulakan sesi dahulu",
-      "label": "Sari kata"
+      "label": "Sari kata",
+      "refreshPageHint": "Muat semula tab mesyuarat dan cuba lagi"
+    },
+    "exitButton": {
+      "title": "Keluar mod sari kata",
+      "label": "Keluar sari kata"
     },
     "bar": {
       "fontDecrease": "Kecilkan fon",

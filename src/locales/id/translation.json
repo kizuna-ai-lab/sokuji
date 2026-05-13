@@ -499,6 +499,7 @@
     "logsCopied": "Disalin!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
     "conversationPlaceholder": "Percakapan akan muncul di sini",
     "speechDetected": "[Ucapan terdeteksi]",
     "audioContent": "Konten audio",
@@ -835,7 +836,12 @@
     "enterButton": {
       "title": "Masuk mode subtitle",
       "disabled": "Mulai sesi terlebih dahulu",
-      "label": "Subtitle"
+      "label": "Subtitle",
+      "refreshPageHint": "Muat ulang tab rapat lalu coba lagi"
+    },
+    "exitButton": {
+      "title": "Keluar dari mode subtitle",
+      "label": "Keluar subtitle"
     },
     "bar": {
       "fontDecrease": "Perkecil font",

@@ -404,6 +404,7 @@
     "translateSourceParticipantWarning": "การแปล Participant อาจใช้งานไม่ได้ — ภาษาต้นทางที่คุณเลือกไม่อยู่ใน 13 ภาษาปลายทางที่รองรับ"
   },
   "mainPanel": {
+    "subtitleTakeover": "คำแปลกำลังแสดงในชั้นคำบรรยาย",
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",
     "speechDetected": "[ตรวจพบเสียงพูด]",
     "pushToTalk": "กดเพื่อพูด (Space)",
@@ -757,7 +758,12 @@
     "enterButton": {
       "title": "เข้าสู่โหมดคำบรรยาย",
       "disabled": "เริ่มเซสชันก่อน",
-      "label": "คำบรรยาย"
+      "label": "คำบรรยาย",
+      "refreshPageHint": "รีเฟรชแท็บการประชุมแล้วลองอีกครั้ง"
+    },
+    "exitButton": {
+      "title": "ออกจากโหมดคำบรรยาย",
+      "label": "ออกคำบรรยาย"
     },
     "bar": {
       "fontDecrease": "ลดขนาดตัวอักษร",

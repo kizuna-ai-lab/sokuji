@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleBar.tsx
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
@@ -10,19 +10,23 @@ import {
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
+import { useExitSubtitleMode } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
   useSetSubtitleFontSize,
   useSetSubtitleCompactMode,
   useToggleSubtitleAlwaysOnTop,
   useToggleSubtitlePositionLocked,
-  useSpeakerDisplayMode,
-  useParticipantDisplayMode,
-  useSetSpeakerDisplayMode,
-  useSetParticipantDisplayMode,
-  useExitSubtitleMode,
-} from '../../stores/settingsStore';
+  useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
+  useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+  useSetSubtitleSpeakerDisplayMode as useSetSpeakerDisplayMode,
+  useSetSubtitleParticipantDisplayMode as useSetParticipantDisplayMode,
+  FONT_SIZE_MIN,
+  FONT_SIZE_MAX,
+} from '../../stores/subtitleStore';
 import SubtitleSettingsPopover from './SubtitleSettingsPopover';
+import type { SubtitleSurfaceKind } from './SubtitleApp';
+import { useOverlayDragResize } from './useOverlayDragResize';
 import './SubtitleBar.scss';
 
 interface Props {
@@ -32,6 +36,7 @@ interface Props {
   onClearConversation: () => void;
   participantHasAudio: boolean;
   exportProps: React.ComponentProps<typeof ExportButton>;
+  surface?: SubtitleSurfaceKind;
 }
 
 function formatElapsed(ms: number): string {
@@ -49,6 +54,7 @@ const SubtitleBar: React.FC<Props> = ({
   onClearConversation,
   participantHasAudio,
   exportProps,
+  surface = 'electron',
 }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
@@ -61,6 +67,20 @@ const SubtitleBar: React.FC<Props> = ({
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
   const exitSubtitleMode = useExitSubtitleMode();
+  // See SubtitleApp.requestExit — in the extension-overlay surface we forward
+  // the exit intent to the side panel via a window event instead of calling
+  // the local (no-op) settings store action.
+  const requestExit = useCallback(() => {
+    if (surface === 'extension-overlay') {
+      window.dispatchEvent(new Event('sokuji:user-exit'));
+    } else {
+      void exitSubtitleMode();
+    }
+  }, [surface, exitSubtitleMode]);
+  // SubtitleBar only needs the drag (move) handle — the 8 resize handles
+  // live on SubtitleApp's iframe-filling root so they sit at the iframe
+  // edges, not the bar's 36px footprint.
+  const { dragHandleProps } = useOverlayDragResize({ surface });
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
@@ -74,7 +94,11 @@ const SubtitleBar: React.FC<Props> = ({
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
   return (
-    <div className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''}`} role="toolbar">
+    <div
+      className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''} ${surface === 'electron' ? 'surface-electron' : 'surface-overlay'}`}
+      role="toolbar"
+      {...dragHandleProps}
+    >
       <div className="subtitle-bar__left">
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
@@ -96,7 +120,7 @@ const SubtitleBar: React.FC<Props> = ({
           type="button"
           className="subtitle-bar__btn"
           onClick={() => setFontSize(subtitle.fontSize - 2)}
-          disabled={subtitle.fontSize <= 16}
+          disabled={subtitle.fontSize <= FONT_SIZE_MIN}
           title={t('subtitle.bar.fontDecrease', 'Decrease font size')}
           aria-label={t('subtitle.bar.fontDecrease', 'Decrease font size')}
         >
@@ -106,7 +130,7 @@ const SubtitleBar: React.FC<Props> = ({
           type="button"
           className="subtitle-bar__btn"
           onClick={() => setFontSize(subtitle.fontSize + 2)}
-          disabled={subtitle.fontSize >= 48}
+          disabled={subtitle.fontSize >= FONT_SIZE_MAX}
           title={t('subtitle.bar.fontIncrease', 'Increase font size')}
           aria-label={t('subtitle.bar.fontIncrease', 'Increase font size')}
         >
@@ -144,15 +168,17 @@ const SubtitleBar: React.FC<Props> = ({
         >
           <Settings size={14} />
         </button>
-        <button
-          type="button"
-          className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
-          onClick={toggleAlwaysOnTop}
-          title={t('subtitle.bar.alwaysOnTop', 'Always on top')}
-          aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
-        >
-          <Pin size={14} />
-        </button>
+        {surface === 'electron' && (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
+            onClick={toggleAlwaysOnTop}
+            title={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+            aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+          >
+            <Pin size={14} />
+          </button>
+        )}
         <button
           type="button"
           className={`subtitle-bar__btn ${subtitle.positionLocked ? 'active' : ''}`}
@@ -165,7 +191,7 @@ const SubtitleBar: React.FC<Props> = ({
         <button
           type="button"
           className="subtitle-bar__btn"
-          onClick={() => void exitSubtitleMode()}
+          onClick={requestExit}
           title={t('subtitle.bar.exit', 'Exit subtitle mode')}
           aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
         >

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -30,7 +30,8 @@ import {
   useParticipantDisplayMode,
   useSetSpeakerDisplayMode,
   useSetParticipantDisplayMode,
-  useCurrentTurnDetectionMode
+  useCurrentTurnDetectionMode,
+  useSubtitleModeActive
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
@@ -121,6 +122,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get settings from store
   const provider = useProvider();
   const uiMode = useUIMode();
+  const subtitleModeActive = useSubtitleModeActive();
+  const subtitleTakeover = subtitleModeActive && isExtension();
   const conversationFontSize = useConversationFontSize();
   const setConversationFontSize = useSetConversationFontSize();
   const conversationCompactMode = useConversationCompactMode();
@@ -2992,7 +2995,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           ref={conversationContainerRef}
           style={{ '--conversation-font-size': `${conversationFontSize}px` } as React.CSSProperties}
         >
-          {combinedItems.length === 0 ? (
+          {subtitleTakeover ? (
+            <div className="empty-state">
+              <Captions size={32} />
+              <p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
+            </div>
+          ) : combinedItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
               <p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p>

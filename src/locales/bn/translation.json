@@ -457,6 +457,7 @@
     "logsCopied": "কপি হয়েছে!"
   },
   "mainPanel": {
+    "subtitleTakeover": "অনুবাদগুলি সাবটাইটেল ওভারলেতে দেখানো হচ্ছে",
     "conversationPlaceholder": "কথোপকথন এখানে প্রদর্শিত হবে",
     "speechDetected": "[কথা শনাক্ত হয়েছে]",
     "audioContent": "অডিও কন্টেন্ট",
@@ -843,7 +844,12 @@
     "enterButton": {
       "title": "সাবটাইটেল মোডে যান",
       "disabled": "প্রথমে সেশন শুরু করুন",
-      "label": "সাবটাইটেল"
+      "label": "সাবটাইটেল",
+      "refreshPageHint": "মিটিং ট্যাবটি রিফ্রেশ করে আবার চেষ্টা করুন"
+    },
+    "exitButton": {
+      "title": "সাবটাইটেল মোড থেকে বের হন",
+      "label": "সাবটাইটেল বন্ধ"
     },
     "bar": {
       "fontDecrease": "ফন্ট ছোট করুন",

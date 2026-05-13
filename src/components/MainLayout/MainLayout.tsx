@@ -9,6 +9,7 @@ import TitleBar from '../TitleBar/TitleBar';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import { isElectron } from '../../utils/environment';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
@@ -159,9 +160,16 @@ const MainLayout: React.FC = () => {
     return <UserTypeSelection onSelectUserType={handleUserTypeSelection} />;
   }
 
+  // In Electron subtitle mode the main process reshapes the BrowserWindow
+  // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
+  // keeps MainPanel mounted so the active session survives) and mount
+  // SubtitleApp in their place. Extension subtitle mode is handled inside
+  // an injected iframe — sidepanel chrome stays visible.
+  const electronSubtitleTakeover = subtitleActive && isElectron();
+
   return (
     <>
-    {!subtitleActive && (
+    {!electronSubtitleTakeover && (
       <TitleBar
         showSettings={showSettings}
         showLogs={showLogs}
@@ -171,7 +179,7 @@ const MainLayout: React.FC = () => {
     )}
     <div
       className="main-layout"
-      style={subtitleActive ? { display: 'none' } : undefined}
+      style={electronSubtitleTakeover ? { display: 'none' } : undefined}
     >
       <div className={`main-content ${(showLogs || showSettings) ? 'with-panel' : 'full-width'}`}>
         <div className="main-panel-container">
@@ -191,7 +199,7 @@ const MainLayout: React.FC = () => {
       )}
       <Onboarding />
     </div>
-    {subtitleActive && <SubtitleApp />}
+    {electronSubtitleTakeover && <SubtitleApp />}
     </>
   );
 };

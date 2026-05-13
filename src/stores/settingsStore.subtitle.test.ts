@@ -11,7 +11,7 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 // Pretend we're running inside Electron so the IPC-guarded actions
-// (enterSubtitleMode, exit*, toggle*) follow their real-environment paths.
+// (enterSubtitleMode, exitSubtitleMode) follow their real-environment paths.
 vi.mock('../utils/environment', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../utils/environment')>();
   return {
@@ -72,17 +72,50 @@ describe('settingsStore subtitle actions', () => {
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
 
-  it('setSubtitleFontSize clamps to 16-48', async () => {
-    await useSettingsStore.getState().setSubtitleFontSize(8);
-    expect(useSettingsStore.getState().subtitle.fontSize).toBe(16);
-    await useSettingsStore.getState().setSubtitleFontSize(100);
-    expect(useSettingsStore.getState().subtitle.fontSize).toBe(48);
+  it('enterSubtitleMode is concurrency-safe (TOCTOU)', async () => {
+    // Regression: two concurrent enter() calls (e.g. double-click) both
+    // pass the subtitleModeActive guard, then both await the surface and
+    // both fire the subtitle:enter IPC. On the Electron path the main
+    // process snapshots normalBoundsSnapshot on every call, and the
+    // second invocation captures the *already-shrunk* subtitle bounds —
+    // exit would then restore the window to subtitle size. Same bug
+    // class as the one fixed in 8f9aea85.
+    useSessionStore.setState({ isSessionActive: true } as any);
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockClear();
+    const enter = useSettingsStore.getState().enterSubtitleMode;
+    await Promise.all([enter(), enter()]);
+    const enterCalls = invokeMock.mock.calls.filter(
+      (c: any[]) => c[0] === 'subtitle:enter',
+    );
+    expect(enterCalls.length).toBe(1);
+    expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
   });
 
-  it('setSubtitleBgOpacity clamps to 0-100', async () => {
-    await useSettingsStore.getState().setSubtitleBgOpacity(-5);
-    expect(useSettingsStore.getState().subtitle.bgOpacity).toBe(0);
-    await useSettingsStore.getState().setSubtitleBgOpacity(150);
-    expect(useSettingsStore.getState().subtitle.bgOpacity).toBe(100);
+  it('exitSubtitleMode is concurrency-safe', async () => {
+    useSettingsStore.setState({ subtitleModeActive: true });
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockClear();
+    const exit = useSettingsStore.getState().exitSubtitleMode;
+    await Promise.all([exit(), exit()]);
+    const exitCalls = invokeMock.mock.calls.filter(
+      (c: any[]) => c[0] === 'subtitle:exit',
+    );
+    expect(exitCalls.length).toBe(1);
+    expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
+
+  it('enterSubtitleMode rolls back the flag and re-throws if surface.enter() rejects', async () => {
+    useSessionStore.setState({ isSessionActive: true } as any);
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockImplementationOnce(async (channel: string) => {
+      if (channel === 'subtitle:enter') throw new Error('boom');
+      return { ok: true };
+    });
+    await expect(useSettingsStore.getState().enterSubtitleMode()).rejects.toThrow(/boom/);
+    expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+  });
+
+  // NOTE: setSubtitleFontSize / setSubtitleBgOpacity / etc. moved to subtitleStore in Task 5.
+  // Their clamping behavior is covered by subtitleStore tests.
 });

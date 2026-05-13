@@ -344,6 +344,7 @@
     "logsCopied": "Gekopieerd!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
     "conversationPlaceholder": "Gesprek verschijnt hier",
     "speechDetected": "[Spraak gedetecteerd]",
     "audioContent": "Audio inhoud",
@@ -835,7 +836,12 @@
     "enterButton": {
       "title": "Ondertitelmodus inschakelen",
       "disabled": "Start eerst een sessie",
-      "label": "Ondertiteling"
+      "label": "Ondertiteling",
+      "refreshPageHint": "Vernieuw het meetingtabblad en probeer het opnieuw"
+    },
+    "exitButton": {
+      "title": "Ondertitelmodus afsluiten",
+      "label": "Ondertiteling afsluiten"
     },
     "bar": {
       "fontDecrease": "Lettergrootte verkleinen",

@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => {
           { src: 'background/background.js', dest: '.' },
           { src: 'content/content.js', dest: '.' },
           { src: 'content/zoom-content.js', dest: '.' },
+          { src: 'content/subtitle-overlay-content.js', dest: '.' },
           { src: 'content/site-plugins.js', dest: 'content' },
           { src: 'content/virtual-microphone.js', dest: 'content' },
           { src: 'content/device-emulator.iife.js', dest: 'content' },
@@ -115,6 +116,7 @@ export default defineConfig(({ mode }) => {
         input: {
           fullpage: path.resolve(__dirname, 'fullpage.html'),
           popup: path.resolve(__dirname, 'popup.html'),
+          'subtitle-overlay': path.resolve(__dirname, 'subtitle-overlay.html'),
         },
         output: {
           // Stable filenames for manifest.json references

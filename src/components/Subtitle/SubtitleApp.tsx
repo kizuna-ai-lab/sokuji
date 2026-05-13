@@ -1,20 +1,24 @@
 // src/components/Subtitle/SubtitleApp.tsx
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
 import SubtitleSessionEnded from './SubtitleSessionEnded';
 import useSettingsStore, {
-  useSubtitleSettings,
   useExitSubtitleMode,
-  useSaveSubtitleWindowBounds,
-  useSpeakerDisplayMode,
-  useParticipantDisplayMode,
   useProvider,
-  useGetCurrentProviderSettings,
+  useCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
 } from '../../stores/settingsStore';
+import {
+  useSubtitleSettings,
+  useSaveSubtitleWindowBounds,
+  useSubtitlePositionLocked,
+  useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
+  useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+} from '../../stores/subtitleStore';
+import { useOverlayDragResize } from './useOverlayDragResize';
 import {
   useIsSessionActive,
   useSessionStartTime,
@@ -42,7 +46,9 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-const SubtitleApp: React.FC = () => {
+export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
+
+const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'electron' }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
@@ -52,7 +58,6 @@ const SubtitleApp: React.FC = () => {
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
   const provider = useProvider();
-  const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const isSessionActive = useIsSessionActive();
   const sessionStartTime = useSessionStartTime();
@@ -65,10 +70,13 @@ const SubtitleApp: React.FC = () => {
     turnDetectionMode === 'Push-to-Translate' ||
     turnDetectionMode === 'Disabled';
 
-  const providerSettings = useMemo(
-    () => getCurrentProviderSettings(),
-    [getCurrentProviderSettings, provider],
-  );
+  // Reactive: re-emits whenever state[provider] is replaced, so changing
+  // sourceLanguage / targetLanguage in the side panel (which mutates the
+  // provider settings object) updates the bar live. A useMemo keyed on
+  // the provider *name* would cache the first state[provider] reference
+  // and never refresh, locking the bar to the language pair that was
+  // active when SubtitleApp first mounted.
+  const providerSettings = useCurrentProviderSettings();
   // The provider-settings union doesn't guarantee these fields (a few
   // members are text-only and never carry a language pair), so cast to a
   // narrow shape that exposes only what we actually read.
@@ -114,6 +122,10 @@ const SubtitleApp: React.FC = () => {
   }, [isSessionActive]);
   const elapsedMs = isSessionActive && sessionStartTime ? now - sessionStartTime : 0;
 
+  // Root ref — used to derive the owner document for keyboard listeners so
+  // ESC works correctly when SubtitleApp is mounted inside an iframe.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
   // Auto-hide bar
   const [barVisible, setBarVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,14 +138,27 @@ const SubtitleApp: React.FC = () => {
     hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
   };
 
+  // Centralised exit request. In the extension-overlay surface we don't have
+  // direct access to the side panel's settingsStore.exitSubtitleMode; instead
+  // we dispatch a window event that the iframe entry forwards to the side
+  // panel via the chrome.runtime port (see subtitle-overlay-entry.tsx).
+  const requestExit = useCallback(() => {
+    if (surface === 'extension-overlay') {
+      window.dispatchEvent(new Event('sokuji:user-exit'));
+    } else {
+      void exitSubtitleMode();
+    }
+  }, [surface, exitSubtitleMode]);
+
   // ESC to exit subtitle mode
   useEffect(() => {
+    const target = rootRef.current?.ownerDocument ?? document;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') void exitSubtitleMode();
+      if (e.key === 'Escape') requestExit();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [exitSubtitleMode]);
+    target.addEventListener('keydown', onKey);
+    return () => target.removeEventListener('keydown', onKey);
+  }, [requestExit]);
 
   // Bounds-changed listener (debounced 500 ms before persistence).
   // The main process emits this for any resize/move regardless of mode, so
@@ -141,6 +166,7 @@ const SubtitleApp: React.FC = () => {
   // prevents the resize event triggered by exiting (setBounds(restore))
   // from being saved as subtitle bounds.
   useEffect(() => {
+    if (surface !== 'electron') return;
     if (!window.electron?.receive) return;
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const handler = (bounds: { x: number; y: number; width: number; height: number }) => {
@@ -155,10 +181,16 @@ const SubtitleApp: React.FC = () => {
       if (debounce) clearTimeout(debounce);
       window.electron?.removeListener?.('subtitle:window-bounds-changed', handler);
     };
-  }, [saveBounds]);
+  }, [saveBounds, surface]);
 
   // Detect whether participant has produced any items
   const participantHasAudio = systemAudioItems.length > 0;
+
+  // Resize handles (extension-overlay only). Lock state from subtitleStore
+  // gates rendering — locked = no handles, no cursor change.
+  const positionLocked = useSubtitlePositionLocked();
+  const { resizeHandleProps } = useOverlayDragResize({ surface });
+  const showResizeHandles = surface === 'extension-overlay' && !positionLocked;
 
   // Build CSS variables for background. The intersection with
   // Record<string, string | number> lets us set CSS custom properties
@@ -172,6 +204,7 @@ const SubtitleApp: React.FC = () => {
 
   return (
     <div
+      ref={rootRef}
       className="subtitle-app"
       style={rootStyle}
       onMouseEnter={onMouseEnter}
@@ -191,6 +224,7 @@ const SubtitleApp: React.FC = () => {
           sourceLanguage,
           targetLanguage,
         }}
+        surface={surface}
       />
       {isSessionActive ? (
         canHoldToSpeak && combinedItems.length === 0 ? (
@@ -211,7 +245,19 @@ const SubtitleApp: React.FC = () => {
           />
         )
       ) : (
-        <SubtitleSessionEnded onReturn={() => void exitSubtitleMode()} />
+        <SubtitleSessionEnded onReturn={requestExit} />
+      )}
+      {showResizeHandles && (
+        <>
+          <div className="subtitle-app__resize subtitle-app__resize--n"  {...resizeHandleProps.n} />
+          <div className="subtitle-app__resize subtitle-app__resize--e"  {...resizeHandleProps.e} />
+          <div className="subtitle-app__resize subtitle-app__resize--s"  {...resizeHandleProps.s} />
+          <div className="subtitle-app__resize subtitle-app__resize--w"  {...resizeHandleProps.w} />
+          <div className="subtitle-app__resize subtitle-app__resize--nw" {...resizeHandleProps.nw} />
+          <div className="subtitle-app__resize subtitle-app__resize--ne" {...resizeHandleProps.ne} />
+          <div className="subtitle-app__resize subtitle-app__resize--sw" {...resizeHandleProps.sw} />
+          <div className="subtitle-app__resize subtitle-app__resize--se" {...resizeHandleProps.se} />
+        </>
       )}
     </div>
   );

@@ -344,6 +344,7 @@
     "logsCopied": "¡Copiado!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Las traducciones se muestran en la superposición de subtítulos",
     "conversationPlaceholder": "La conversación aparecerá aquí",
     "speechDetected": "[Voz detectada]",
     "audioContent": "Contenido de audio",
@@ -836,7 +837,12 @@
     "enterButton": {
       "title": "Entrar en modo subtítulos",
       "disabled": "Inicia una sesión primero",
-      "label": "Subtítulos"
+      "label": "Subtítulos",
+      "refreshPageHint": "Actualiza la pestaña de la reunión e inténtalo de nuevo"
+    },
+    "exitButton": {
+      "title": "Salir del modo subtítulos",
+      "label": "Salir de subtítulos"
     },
     "bar": {
       "fontDecrease": "Reducir tamaño de fuente",

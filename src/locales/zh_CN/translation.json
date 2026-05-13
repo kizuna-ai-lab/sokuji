@@ -498,6 +498,7 @@
     "logsCopied": "已复制！"
   },
   "mainPanel": {
+    "subtitleTakeover": "翻译内容正在字幕浮层中显示",
     "conversationPlaceholder": "对话将在此处显示",
     "speechDetected": "[检测到语音]",
     "audioContent": "音频内容",
@@ -847,7 +848,12 @@
     "enterButton": {
       "title": "进入字幕模式",
       "disabled": "请先启动会话",
-      "label": "字幕"
+      "label": "字幕",
+      "refreshPageHint": "请刷新会议标签页后重试"
+    },
+    "exitButton": {
+      "title": "退出字幕模式",
+      "label": "退出字幕"
     },
     "bar": {
       "fontDecrease": "减小字号",

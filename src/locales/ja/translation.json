@@ -349,6 +349,7 @@
     "logsCopied": "コピー完了！"
   },
   "mainPanel": {
+    "subtitleTakeover": "翻訳は字幕オーバーレイに表示されています",
     "conversationPlaceholder": "会話がここに表示されます",
     "speechDetected": "[音声を検出しました]",
     "audioContent": "音声コンテンツ",
@@ -847,7 +848,12 @@
     "enterButton": {
       "title": "字幕モードを開始",
       "disabled": "先にセッションを開始してください",
-      "label": "字幕"
+      "label": "字幕",
+      "refreshPageHint": "会議タブを再読み込みしてからもう一度お試しください"
+    },
+    "exitButton": {
+      "title": "字幕モードを終了",
+      "label": "字幕を終了"
     },
     "bar": {
       "fontDecrease": "文字を小さく",

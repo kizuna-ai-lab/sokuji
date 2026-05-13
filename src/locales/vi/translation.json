@@ -280,6 +280,7 @@
     "translateSourceParticipantWarning": "Bản dịch Participant có thể không hoạt động — ngôn ngữ nguồn bạn chọn không thuộc 13 ngôn ngữ đích được hỗ trợ."
   },
   "mainPanel": {
+    "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
     "speechDetected": "[Phát hiện giọng nói]",
     "pushToTalk": "nhấn để nói (Space)",
@@ -786,7 +787,12 @@
     "enterButton": {
       "title": "Bật chế độ phụ đề",
       "disabled": "Hãy bắt đầu phiên trước",
-      "label": "Phụ đề"
+      "label": "Phụ đề",
+      "refreshPageHint": "Tải lại tab cuộc họp và thử lại"
+    },
+    "exitButton": {
+      "title": "Thoát chế độ phụ đề",
+      "label": "Thoát phụ đề"
     },
     "bar": {
       "fontDecrease": "Giảm cỡ chữ",

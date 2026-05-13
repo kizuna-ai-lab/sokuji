@@ -46,7 +46,7 @@
   "content_scripts": [
     {
       "matches": ["https://meet.google.com/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://teams.cloud.microsoft/*", "https://app.gather.town/*", "https://app.v2.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
-      "js": ["content.js"],
+      "js": ["content.js", "subtitle-overlay-content.js"],
       "run_at": "document_start"
     },
     {
@@ -54,6 +54,11 @@
       "js": ["zoom-content.js"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["https://app.zoom.us/*"],
+      "js": ["subtitle-overlay-content.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -75,6 +80,21 @@
         "workers/*"
       ],
       "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["subtitle-overlay.html", "subtitle-overlay.js", "assets/*"],
+      "matches": [
+        "https://meet.google.com/*",
+        "https://teams.live.com/*",
+        "https://teams.microsoft.com/*",
+        "https://teams.cloud.microsoft/*",
+        "https://app.zoom.us/*",
+        "https://app.gather.town/*",
+        "https://app.v2.gather.town/*",
+        "https://whereby.com/*",
+        "https://discord.com/*",
+        "https://app.slack.com/*"
+      ]
     }
   ],
   "content_security_policy": {

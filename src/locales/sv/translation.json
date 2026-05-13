@@ -280,6 +280,7 @@
     "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds."
   },
   "mainPanel": {
+    "subtitleTakeover": "Översättningar visas i undertextöverlägget",
     "conversationPlaceholder": "Konversationen kommer att visas här",
     "speechDetected": "[Tal upptäckt]",
     "pushToTalk": "tryck för att tala (Mellanslag)",
@@ -791,7 +792,12 @@
     "enterButton": {
       "title": "Aktivera undertextläge",
       "disabled": "Starta en session först",
-      "label": "Undertexter"
+      "label": "Undertexter",
+      "refreshPageHint": "Uppdatera mötesfliken och försök igen"
+    },
+    "exitButton": {
+      "title": "Avsluta undertextläge",
+      "label": "Avsluta undertexter"
     },
     "bar": {
       "fontDecrease": "Minska textstorlek",

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
-import type { DisplayMode } from '../../stores/settingsStore';
+import type { DisplayMode } from '../../stores/subtitleStore';
 import './SubtitleStream.scss';
 
 interface Props {

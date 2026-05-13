@@ -344,6 +344,7 @@
     "logsCopied": "Copiado!"
   },
   "mainPanel": {
+    "subtitleTakeover": "As traduções estão sendo exibidas na sobreposição de legendas",
     "conversationPlaceholder": "A conversa aparecerá aqui",
     "speechDetected": "[Fala detectada]",
     "audioContent": "Conteúdo de áudio",
@@ -835,7 +836,12 @@
     "enterButton": {
       "title": "Ativar modo de legendas",
       "disabled": "Inicie uma sessão primeiro",
-      "label": "Legendas"
+      "label": "Legendas",
+      "refreshPageHint": "Atualize a aba da reunião e tente novamente"
+    },
+    "exitButton": {
+      "title": "Sair do modo de legendas",
+      "label": "Sair das legendas"
     },
     "bar": {
       "fontDecrease": "Diminuir tamanho da fonte",

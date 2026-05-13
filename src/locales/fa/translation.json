@@ -457,6 +457,7 @@
     "logsCopied": "کپی شد!"
   },
   "mainPanel": {
+    "subtitleTakeover": "ترجمه‌ها در پوشش زیرنویس نمایش داده می‌شوند",
     "conversationPlaceholder": "مکالمه اینجا نمایش داده خواهد شد",
     "speechDetected": "[گفتار شناسایی شد]",
     "audioContent": "محتوای صوتی",
@@ -843,7 +844,12 @@
     "enterButton": {
       "title": "ورود به حالت زیرنویس",
       "disabled": "ابتدا یک جلسه شروع کنید",
-      "label": "زیرنویس"
+      "label": "زیرنویس",
+      "refreshPageHint": "برگه جلسه را تازه‌سازی کرده و دوباره تلاش کنید"
+    },
+    "exitButton": {
+      "title": "خروج از حالت زیرنویس",
+      "label": "خروج از زیرنویس"
     },
     "bar": {
       "fontDecrease": "کوچک کردن فونت",

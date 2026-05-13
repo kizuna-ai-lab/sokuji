@@ -287,6 +287,7 @@
     "translateSourceParticipantWarning": "Participant çevirisi çalışmayabilir — seçtiğiniz kaynak dil, desteklenen 13 hedef dil arasında değil."
   },
   "mainPanel": {
+    "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
     "conversationPlaceholder": "Konuşma burada görünecek",
     "speechDetected": "[Konuşma algılandı]",
     "pushToTalk": "konuşmak için basın (Boşluk)",
@@ -793,7 +794,12 @@
     "enterButton": {
       "title": "Altyazı moduna geç",
       "disabled": "Önce bir oturum başlatın",
-      "label": "Altyazı"
+      "label": "Altyazı",
+      "refreshPageHint": "Toplantı sekmesini yenileyin ve tekrar deneyin"
+    },
+    "exitButton": {
+      "title": "Altyazı modundan çık",
+      "label": "Altyazıdan çık"
     },
     "bar": {
       "fontDecrease": "Yazı tipini küçült",

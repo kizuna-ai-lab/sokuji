@@ -505,6 +505,7 @@
     "logsCopied": "הועתק!"
   },
   "mainPanel": {
+    "subtitleTakeover": "התרגומים מוצגים בשכבת הכתוביות",
     "conversationPlaceholder": "השיחה תופיע כאן",
     "speechDetected": "[זוהה דיבור]",
     "audioContent": "תוכן אודיו",
@@ -841,7 +842,12 @@
     "enterButton": {
       "title": "הפעלת מצב כתוביות",
       "disabled": "התחל הפעלה תחילה",
-      "label": "כתוביות"
+      "label": "כתוביות",
+      "refreshPageHint": "רענן את לשונית הפגישה ונסה שוב"
+    },
+    "exitButton": {
+      "title": "יציאה ממצב כתוביות",
+      "label": "יציאה מכתוביות"
     },
     "bar": {
       "fontDecrease": "הקטנת גופן",
