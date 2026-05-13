@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleApp.tsx
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
@@ -134,15 +134,27 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
   };
 
+  // Centralised exit request. In the extension-overlay surface we don't have
+  // direct access to the side panel's settingsStore.exitSubtitleMode; instead
+  // we dispatch a window event that the iframe entry forwards to the side
+  // panel via the chrome.runtime port (see subtitle-overlay-entry.tsx).
+  const requestExit = useCallback(() => {
+    if (surface === 'extension-overlay') {
+      window.dispatchEvent(new Event('sokuji:user-exit'));
+    } else {
+      void exitSubtitleMode();
+    }
+  }, [surface, exitSubtitleMode]);
+
   // ESC to exit subtitle mode
   useEffect(() => {
     const target = rootRef.current?.ownerDocument ?? document;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') void exitSubtitleMode();
+      if (e.key === 'Escape') requestExit();
     };
     target.addEventListener('keydown', onKey);
     return () => target.removeEventListener('keydown', onKey);
-  }, [exitSubtitleMode]);
+  }, [requestExit]);
 
   // Bounds-changed listener (debounced 500 ms before persistence).
   // The main process emits this for any resize/move regardless of mode, so
@@ -223,7 +235,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           />
         )
       ) : (
-        <SubtitleSessionEnded onReturn={() => void exitSubtitleMode()} />
+        <SubtitleSessionEnded onReturn={requestExit} />
       )}
     </div>
   );

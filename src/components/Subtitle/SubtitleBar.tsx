@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleBar.tsx
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
@@ -65,6 +65,16 @@ const SubtitleBar: React.FC<Props> = ({
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
   const exitSubtitleMode = useExitSubtitleMode();
+  // See SubtitleApp.requestExit — in the extension-overlay surface we forward
+  // the exit intent to the side panel via a window event instead of calling
+  // the local (no-op) settings store action.
+  const requestExit = useCallback(() => {
+    if (surface === 'extension-overlay') {
+      window.dispatchEvent(new Event('sokuji:user-exit'));
+    } else {
+      void exitSubtitleMode();
+    }
+  }, [surface, exitSubtitleMode]);
   const { dragHandleProps, resizeHandleProps } = useOverlayDragResize({ surface });
 
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -180,7 +190,7 @@ const SubtitleBar: React.FC<Props> = ({
         <button
           type="button"
           className="subtitle-bar__btn"
-          onClick={() => void exitSubtitleMode()}
+          onClick={requestExit}
           title={t('subtitle.bar.exit', 'Exit subtitle mode')}
           aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
         >
