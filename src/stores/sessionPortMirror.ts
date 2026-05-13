@@ -83,6 +83,25 @@ export function postUserExit(): void {
   port?.postMessage({ type: 'subtitle:user-exit' });
 }
 
+// Provider enum values travel over the port as snake_case strings, but the
+// settingsStore stores provider sub-objects under camelCase keys. Without
+// this mapping, snake_case providers (openai_compatible / openai_translate /
+// volcengine_st / volcengine_ast2 / local_inference) would be written to a
+// junk top-level key while `getCurrentProviderSettings()` continued to read
+// the *real* key — pinning SubtitleApp's language pair to the provider's
+// hardcoded defaults (e.g., local_inference → JA → EN).
+const PROVIDER_STATE_KEY: Record<string, string> = {
+  openai: 'openai',
+  gemini: 'gemini',
+  palabraai: 'palabraai',
+  kizunaai: 'kizunaai',
+  openai_compatible: 'openaiCompatible',
+  openai_translate: 'openaiTranslate',
+  volcengine_st: 'volcengineST',
+  volcengine_ast2: 'volcengineAST2',
+  local_inference: 'localInference',
+};
+
 /**
  * Apply provider + language pair + turn detection mode into the iframe-side
  * settingsStore so that SubtitleApp's existing selectors
@@ -93,7 +112,7 @@ export function postUserExit(): void {
  */
 function applyConfig(provider: string, sourceLanguage: string, targetLanguage: string, turnDetectionMode?: string): void {
   useSettingsStore.setState((s: any) => {
-    const providerKey = provider;
+    const providerKey = PROVIDER_STATE_KEY[provider] ?? provider;
     const currentProviderSettings = s[providerKey] ?? {};
     return {
       provider,

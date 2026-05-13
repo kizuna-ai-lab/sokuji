@@ -100,4 +100,29 @@ describe('sessionPortMirror', () => {
     expect(geminiSettings?.sourceLanguage).toBe('fr');
     expect(geminiSettings?.targetLanguage).toBe('de');
   });
+
+  it('on config message, writes to the camelCase store key for providers whose enum value is snake_case', () => {
+    // Regression: Provider enum values like 'local_inference' /
+    // 'openai_translate' / 'volcengine_st' don't match their camelCase
+    // store keys (localInference / openaiTranslate / volcengineST). The
+    // earlier message handler used `s[provider]` directly, writing to a
+    // garbage key while the real key kept its hardcoded defaults — so
+    // SubtitleApp's `getCurrentProviderSettings()` returned the unchanged
+    // defaults (local_inference → JA → EN, exactly the reported symptom).
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({
+      type: 'config',
+      provider: 'local_inference',
+      sourceLanguage: 'fr',
+      targetLanguage: 'de',
+    });
+    const state = useSettingsStore.getState();
+    expect(state.provider).toBe('local_inference');
+    // The contract that matters: getCurrentProviderSettings (the same
+    // resolver SubtitleApp uses) must observe the new languages.
+    const ps = state.getCurrentProviderSettings() as any;
+    expect(ps?.sourceLanguage).toBe('fr');
+    expect(ps?.targetLanguage).toBe('de');
+  });
 });
