@@ -117,4 +117,15 @@
     background: #3a3a3a;
     margin: 0 4px;
   }
+
+  .subtitle-bar__resize {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    z-index: 10;
+    &--nw { top: 0; left: 0; cursor: nwse-resize; }
+    &--ne { top: 0; right: 0; cursor: nesw-resize; }
+    &--sw { bottom: 0; left: 0; cursor: nesw-resize; }
+    &--se { bottom: 0; right: 0; cursor: nwse-resize; }
+  }
 }

@@ -24,6 +24,7 @@ import {
 } from '../../stores/subtitleStore';
 import SubtitleSettingsPopover from './SubtitleSettingsPopover';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
+import { useOverlayDragResize } from './useOverlayDragResize';
 import './SubtitleBar.scss';
 
 interface Props {
@@ -64,6 +65,7 @@ const SubtitleBar: React.FC<Props> = ({
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
   const exitSubtitleMode = useExitSubtitleMode();
+  const { dragHandleProps, resizeHandleProps } = useOverlayDragResize({ surface });
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
@@ -78,7 +80,15 @@ const SubtitleBar: React.FC<Props> = ({
 
   return (
     <div className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''}`} role="toolbar">
-      <div className="subtitle-bar__left">
+      {surface === 'extension-overlay' && (
+        <>
+          <div className="subtitle-bar__resize subtitle-bar__resize--nw" {...resizeHandleProps.nw} />
+          <div className="subtitle-bar__resize subtitle-bar__resize--ne" {...resizeHandleProps.ne} />
+          <div className="subtitle-bar__resize subtitle-bar__resize--sw" {...resizeHandleProps.sw} />
+          <div className="subtitle-bar__resize subtitle-bar__resize--se" {...resizeHandleProps.se} />
+        </>
+      )}
+      <div className="subtitle-bar__left" {...dragHandleProps}>
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
       </div>
