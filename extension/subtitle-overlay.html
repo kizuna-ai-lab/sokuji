@@ -3,8 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- color-scheme: dark prevents Chrome from painting a white canvas
+         behind the iframe document. Without this, even with html / body /
+         iframe element all explicitly transparent, the underlying canvas
+         is light-themed and shows white through any transparent areas of
+         .subtitle-app (e.g., when the user lowers bgOpacity). -->
+    <meta name="color-scheme" content="dark" />
     <title>Sokuji subtitle</title>
-    <style> html, body { margin: 0; height: 100%; background: transparent; } #root { height: 100%; } </style>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: transparent !important;
+      }
+      #root {
+        height: 100%;
+        background: transparent;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

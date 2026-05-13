@@ -1,72 +1,44 @@
 // src/components/Subtitle/useOverlayDragResize.ts
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useSubtitlePositionLocked } from '../../stores/subtitleStore';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
+
+type DragKind = 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
 
 interface UseOverlayDragResizeArgs {
   surface: SubtitleSurfaceKind;
 }
 
 /**
- * Wires drag (anywhere on the bar except buttons / resize handles) and resize
- * (on 4 corners) for the extension-overlay iframe. Sends per-event mouse
- * deltas via window.parent.postMessage; the content script applies them
- * relative to the iframe's current position/size with viewport clamping.
+ * Wires drag (anywhere on the bar except buttons / resize handles) and
+ * resize (4 corners) for the extension-overlay iframe.
+ *
+ * Strategy: the iframe ONLY signals "drag-start" to the parent (content
+ * script) on mousedown. All subsequent mousemove / mouseup tracking
+ * happens in the parent document, via a transparent full-viewport
+ * overlay div that the content script installs for the duration of the
+ * drag. Reasons:
+ *
+ * - When the cursor leaves the iframe's document bounds (but stays in
+ *   the browser window), the iframe stops receiving mouse events. The
+ *   content script's overlay covers the entire viewport, so the parent
+ *   document keeps tracking. Without this, drag state in the iframe
+ *   could get stuck mid-operation.
+ * - Mouseup outside the iframe reliably terminates the drag because the
+ *   overlay catches it.
+ * - The content script reads `e.clientX/clientY` directly against the
+ *   iframe's stored startRect, producing exact 1:1 cursor tracking with
+ *   no accumulator double-counting bug.
+ *
+ * The iframe sends its mousedown clientX/clientY (iframe-doc viewport
+ * coords); content script combines with iframe.getBoundingClientRect()
+ * to recover the absolute starting mouse position in the parent
+ * viewport, then computes deltas off that anchor.
  */
 export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
   const positionLocked = useSubtitlePositionLocked();
-  const dragging = useRef<null | {
-    kind: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
-  }>(null);
-
   const isActive = surface === 'extension-overlay';
 
-  const postMove = useCallback((dx: number, dy: number) => {
-    window.parent.postMessage({ type: 'sokuji-subtitle:move', dx, dy }, '*');
-  }, []);
-
-  const postResize = useCallback(
-    (dw: number, dh: number, anchor: 'nw' | 'ne' | 'sw' | 'se') => {
-      window.parent.postMessage(
-        { type: 'sokuji-subtitle:resize', dw, dh, anchor },
-        '*',
-      );
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!isActive) return;
-
-    const onMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
-      if (dragging.current.kind === 'move') {
-        postMove(e.movementX, e.movementY);
-      } else {
-        const anchor = dragging.current.kind.slice('resize-'.length) as
-          | 'nw'
-          | 'ne'
-          | 'sw'
-          | 'se';
-        // For nw / sw we want to grow when mouse moves left/up; flip the sign.
-        const dw = anchor === 'nw' || anchor === 'sw' ? -e.movementX : e.movementX;
-        const dh = anchor === 'nw' || anchor === 'ne' ? -e.movementY : e.movementY;
-        postResize(dw, dh, anchor);
-      }
-    };
-    const onUp = () => {
-      dragging.current = null;
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [isActive, postMove, postResize]);
-
-  // Skip drag start if the mousedown landed on something interactive
-  // (button, input, link, resize-handle).
   const isInteractiveTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false;
     return !!target.closest(
@@ -75,13 +47,20 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
   };
 
   const startDrag = useCallback(
-    (kind: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se') =>
-      (e: React.MouseEvent) => {
-        if (!isActive || positionLocked) return;
-        if (kind === 'move' && isInteractiveTarget(e.target)) return;
-        e.preventDefault();
-        dragging.current = { kind };
-      },
+    (kind: DragKind) => (e: React.MouseEvent) => {
+      if (!isActive || positionLocked) return;
+      if (kind === 'move' && isInteractiveTarget(e.target)) return;
+      e.preventDefault();
+      window.parent.postMessage(
+        {
+          type: 'sokuji-subtitle:drag-start',
+          kind,
+          iframeX: e.clientX,
+          iframeY: e.clientY,
+        },
+        '*',
+      );
+    },
     [isActive, positionLocked],
   );
 
