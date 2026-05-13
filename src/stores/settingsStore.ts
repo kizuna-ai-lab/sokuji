@@ -1,7 +1,6 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
-import {isElectron} from '../utils/environment';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
 import {
@@ -20,7 +19,7 @@ import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimat
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
-import { useSubtitleStore } from './subtitleStore';
+import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -429,6 +428,13 @@ interface SettingsStore {
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
   exitSubtitleMode: () => Promise<void>;
+  /**
+   * Internal: invoked by a SubtitleSurface implementation when the surface
+   * exits outside of our explicit exitSubtitleMode() call (e.g. user closes
+   * the iframe overlay, content script disposes, host page navigates).
+   * Resets the flag without re-entering the exit path.
+   */
+  __notifySubtitleSurfaceExited: () => void;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -942,61 +948,31 @@ const useSettingsStore = create<SettingsStore>()(
 
     enterSubtitleMode: async () => {
       if (get().subtitleModeActive) return;
-      // Subtitle mode is Electron-only — entering it without the IPC
-      // bridge would hide the main UI and mount SubtitleApp over a
-      // BrowserWindow that was never resized into the floating bar.
-      // Guard at the action level so a stray call (test, web/extension
-      // build, missing preload) can't put the app into a broken state.
-      if (!isElectron() || !window.electron?.invoke) {
-        console.warn('[SettingsStore] enterSubtitleMode ignored — not running in Electron');
-        return;
-      }
-      const sessionActive = useSessionStore.getState().isSessionActive;
-      if (!sessionActive) {
+      if (!useSessionStore.getState().isSessionActive) {
         console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
         return;
       }
-      // Subtitle settings (bounds, alwaysOnTop, positionLocked) now live in
-      // subtitleStore. Task 8 will refactor this into a SubtitleSurface
-      // abstraction; until then, read directly from subtitleStore so the
-      // lifecycle action keeps working.
-      const subtitle = useSubtitleStore.getState();
-      // Auto-recover: ignore persisted bounds that don't look like a subtitle
-      // bar (height >> what we'd ever set). Earlier builds had a Linux WM
-      // race that could persist main-window-sized bounds; this lets affected
-      // users transition without manual cleanup.
-      const SUBTITLE_PLAUSIBLE_MAX_HEIGHT = 400;
-      const persisted = subtitle.windowBounds;
-      const requestedBounds = persisted && persisted.height <= SUBTITLE_PLAUSIBLE_MAX_HEIGHT
-        ? persisted
-        : undefined;
       try {
-        const result = await window.electron.invoke('subtitle:enter', {
-          bounds: requestedBounds,
-          alwaysOnTop: subtitle.alwaysOnTop,
-          locked: subtitle.positionLocked,
-        });
-        if (result?.bounds) {
-          // Persist clamped bounds so next launch uses corrected values
-          await useSubtitleStore.getState().saveWindowBounds(result.bounds);
-        }
+        await getSubtitleSurface().enter();
         set({ subtitleModeActive: true });
       } catch (error) {
-        console.error('[SettingsStore] enterSubtitleMode IPC failed:', error);
+        console.error('[SettingsStore] enterSubtitleMode failed:', error);
       }
     },
 
     exitSubtitleMode: async () => {
       if (!get().subtitleModeActive) return;
       try {
-        if (isElectron() && window.electron?.invoke) {
-          await window.electron.invoke('subtitle:exit', {});
-        }
+        await getSubtitleSurface().exit();
       } catch (error) {
-        console.error('[SettingsStore] exitSubtitleMode IPC failed:', error);
+        console.error('[SettingsStore] exitSubtitleMode failed:', error);
       } finally {
         set({ subtitleModeActive: false });
       }
+    },
+
+    __notifySubtitleSurfaceExited: () => {
+      set({ subtitleModeActive: false });
     },
 
     // === Provider Settings Actions ===
@@ -1678,6 +1654,8 @@ export const useParticipantDisplayMode = () => useSettingsStore((state) => state
 export const useSubtitleModeActive = () => useSettingsStore((state) => state.subtitleModeActive);
 export const useEnterSubtitleMode = () => useSettingsStore((state) => state.enterSubtitleMode);
 export const useExitSubtitleMode = () => useSettingsStore((state) => state.exitSubtitleMode);
+export const useNotifySubtitleSurfaceExited = () =>
+  useSettingsStore((state) => state.__notifySubtitleSurfaceExited);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
