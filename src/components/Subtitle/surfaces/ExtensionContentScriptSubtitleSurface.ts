@@ -21,6 +21,7 @@ function isSupportedUrl(url: string | undefined): boolean {
 export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   private targetTabId: number | null = null;
   private port: any = null;
+  private subscriptions: (() => void)[] = [];
 
   private handleConnect = (p: any) => {
     if (p.name !== 'sokuji-subtitle') return;
@@ -31,7 +32,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       // NOTE: do NOT call tearDown — disconnects also fire on page reload.
     });
     // Initial push happens via store subscriptions installed lazily on first connect.
-    this.installStoreSubscriptions();
+    void this.installStoreSubscriptions();
   };
 
   private handlePortMessage = (msg: { type?: string }) => {
@@ -93,16 +94,65 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     chrome.runtime.onConnect.removeListener(this.handleConnect);
     chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
     chrome.tabs.onUpdated.removeListener(this.handleTabUpdated);
+    this.subscriptions.forEach((u) => u());
+    this.subscriptions = [];
     this.port?.disconnect();
     this.port = null;
     this.targetTabId = null;
     useSettingsStore.getState().__notifySubtitleSurfaceExited();
   }
 
-  private installStoreSubscriptions() {
-    // Implemented in Task 12 (sessionPortMirror sidepanel side). For now,
-    // push an empty initial snapshot so the iframe doesn't sit empty.
-    this.port?.postMessage({ type: 'state-init', payload: {} });
+  private async installStoreSubscriptions(): Promise<void> {
+    // Lazy dynamic import keeps the surface module testable in environments
+    // that don't want to pull in sessionStore (and its audio dependencies)
+    // until the surface is actually used.
+    const { default: useSessionStore } = await import('../../../stores/sessionStore');
+    // If the port was torn down while we awaited the import, bail out.
+    if (!this.port) return;
+
+    // Push initial snapshot.
+    const session = useSessionStore.getState();
+    this.port.postMessage({
+      type: 'state-init',
+      payload: {
+        items: session.items,
+        systemAudioItems: session.systemAudioItems,
+        isSessionActive: session.isSessionActive,
+        sessionStartTime: session.sessionStartTime,
+      },
+    });
+
+    // Subscribe to subsequent changes.
+    const unsubItems = useSessionStore.subscribe(
+      (s) => ({ items: s.items, systemAudioItems: s.systemAudioItems }),
+      (next) => {
+        this.port?.postMessage({
+          type: 'items',
+          items: next.items,
+          systemAudioItems: next.systemAudioItems,
+        });
+      },
+      {
+        equalityFn: (a, b) =>
+          a.items === b.items && a.systemAudioItems === b.systemAudioItems,
+      },
+    );
+    const unsubSession = useSessionStore.subscribe(
+      (s) => ({ isSessionActive: s.isSessionActive, sessionStartTime: s.sessionStartTime }),
+      (next) => {
+        this.port?.postMessage({
+          type: 'session',
+          isSessionActive: next.isSessionActive,
+          sessionStartTime: next.sessionStartTime,
+        });
+      },
+      {
+        equalityFn: (a, b) =>
+          a.isSessionActive === b.isSessionActive &&
+          a.sessionStartTime === b.sessionStartTime,
+      },
+    );
+    this.subscriptions = [unsubItems, unsubSession];
   }
 }
 
