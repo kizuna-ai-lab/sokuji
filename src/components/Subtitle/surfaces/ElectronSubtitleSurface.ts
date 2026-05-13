@@ -12,9 +12,12 @@ export class ElectronSubtitleSurface implements SubtitleSurface {
   }
 
   async exit(): Promise<void> {
-    const { windowBounds } = useSubtitleStore.getState();
-    await window.electron?.invoke('subtitle:exit', {
-      restoreBounds: windowBounds ?? undefined,
-    });
+    // Empty payload on purpose: the main process snapshots the pre-subtitle
+    // bounds on subtitle:enter and restores from that snapshot here. The
+    // renderer must NOT pass restoreBounds — subtitleStore.windowBounds is
+    // the *subtitle* window's bounds (the small floating bar), so sending
+    // it would shrink the window to subtitle size instead of restoring
+    // normal mode.
+    await window.electron?.invoke('subtitle:exit', {});
   }
 }

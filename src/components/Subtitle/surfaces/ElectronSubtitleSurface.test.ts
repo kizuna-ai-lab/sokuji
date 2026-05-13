@@ -42,7 +42,23 @@ describe('ElectronSubtitleSurface', () => {
     });
   });
 
-  it('exit() sends subtitle:exit with restoreBounds undefined when none stored', async () => {
+  it('exit() sends subtitle:exit with an empty payload, regardless of stored windowBounds', async () => {
+    // Regression: subtitleStore.windowBounds is the SUBTITLE window's bounds
+    // (the small floating bar), not the main window's pre-subtitle bounds.
+    // The main process captures pre-subtitle bounds itself on enter and
+    // restores from that snapshot — the renderer must NOT pass restoreBounds,
+    // or the window would shrink to subtitle size on exit.
+    const { useSubtitleStore } = await import('../../../stores/subtitleStore');
+    useSubtitleStore.setState({
+      windowBounds: { x: 100, y: 800, width: 960, height: 200 },
+    });
+
+    const surface = new ElectronSubtitleSurface();
+    await surface.exit();
+    expect(invoke).toHaveBeenCalledWith('subtitle:exit', {});
+  });
+
+  it('exit() sends an empty payload even when no subtitle bounds were stored', async () => {
     const { useSubtitleStore } = await import('../../../stores/subtitleStore');
     useSubtitleStore.setState({
       windowBounds: null,
@@ -50,6 +66,6 @@ describe('ElectronSubtitleSurface', () => {
 
     const surface = new ElectronSubtitleSurface();
     await surface.exit();
-    expect(invoke).toHaveBeenCalledWith('subtitle:exit', { restoreBounds: undefined });
+    expect(invoke).toHaveBeenCalledWith('subtitle:exit', {});
   });
 });
