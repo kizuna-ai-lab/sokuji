@@ -344,6 +344,7 @@
     "logsCopied": "복사됨!"
   },
   "mainPanel": {
+    "subtitleTakeover": "번역이 자막 오버레이에 표시되고 있습니다",
     "conversationPlaceholder": "대화가 여기에 표시됩니다",
     "speechDetected": "[음성 감지됨]",
     "audioContent": "오디오 콘텐츠",
@@ -836,6 +837,10 @@
       "title": "자막 모드 시작",
       "disabled": "먼저 세션을 시작하세요",
       "label": "자막"
+    },
+    "exitButton": {
+      "title": "자막 모드 종료",
+      "label": "자막 종료"
     },
     "bar": {
       "fontDecrease": "글자 크기 축소",

@@ -344,6 +344,7 @@
     "logsCopied": "Gekopieerd!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
     "conversationPlaceholder": "Gesprek verschijnt hier",
     "speechDetected": "[Spraak gedetecteerd]",
     "audioContent": "Audio inhoud",
@@ -836,6 +837,10 @@
       "title": "Ondertitelmodus inschakelen",
       "disabled": "Start eerst een sessie",
       "label": "Ondertiteling"
+    },
+    "exitButton": {
+      "title": "Ondertitelmodus afsluiten",
+      "label": "Ondertiteling afsluiten"
     },
     "bar": {
       "fontDecrease": "Lettergrootte verkleinen",

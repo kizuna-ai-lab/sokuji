@@ -436,6 +436,7 @@
     "reconnecting": "पुनः कनेक्ट हो रहा है..."
   },
   "mainPanel": {
+    "subtitleTakeover": "अनुवाद सबटाइटल ओवरले में दिख रहे हैं",
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",
     "speechDetected": "[भाषण का पता चला]",
     "pushToTalk": "बोलने के लिए दबाएं (स्पेस)",
@@ -788,6 +789,10 @@
       "title": "सबटाइटल मोड शुरू करें",
       "disabled": "पहले सत्र शुरू करें",
       "label": "सबटाइटल"
+    },
+    "exitButton": {
+      "title": "सबटाइटल मोड से बाहर निकलें",
+      "label": "सबटाइटल बंद"
     },
     "bar": {
       "fontDecrease": "फ़ॉन्ट छोटा करें",

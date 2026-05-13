@@ -499,6 +499,7 @@
     "logsCopied": "Disalin!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
     "conversationPlaceholder": "Percakapan akan muncul di sini",
     "speechDetected": "[Ucapan terdeteksi]",
     "audioContent": "Konten audio",
@@ -836,6 +837,10 @@
       "title": "Masuk mode subtitle",
       "disabled": "Mulai sesi terlebih dahulu",
       "label": "Subtitle"
+    },
+    "exitButton": {
+      "title": "Keluar dari mode subtitle",
+      "label": "Keluar subtitle"
     },
     "bar": {
       "fontDecrease": "Perkecil font",

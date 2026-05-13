@@ -344,6 +344,7 @@
     "logsCopied": "Kopiert!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Übersetzungen erscheinen im Untertitel-Overlay",
     "conversationPlaceholder": "Unterhaltung wird hier angezeigt",
     "speechDetected": "[Sprache erkannt]",
     "audioContent": "Audio-Inhalt",
@@ -837,6 +838,10 @@
       "title": "Untertitel-Modus aktivieren",
       "disabled": "Sitzung zuerst starten",
       "label": "Untertitel"
+    },
+    "exitButton": {
+      "title": "Untertitel-Modus beenden",
+      "label": "Untertitel beenden"
     },
     "bar": {
       "fontDecrease": "Schrift verkleinern",

@@ -442,6 +442,7 @@
     "reconnecting": "Yhdistetään uudelleen..."
   },
   "mainPanel": {
+    "subtitleTakeover": "Käännökset näkyvät tekstityspeitossa",
     "conversationPlaceholder": "Keskustelu näkyy tässä",
     "speechDetected": "[Puhe havaittu]",
     "pushToTalk": "paina puhuaksesi (Välilyönti)",
@@ -794,6 +795,10 @@
       "title": "Ota tekstitystila käyttöön",
       "disabled": "Aloita istunto ensin",
       "label": "Tekstitys"
+    },
+    "exitButton": {
+      "title": "Poistu tekstitystilasta",
+      "label": "Poistu tekstityksestä"
     },
     "bar": {
       "fontDecrease": "Pienennä fonttia",

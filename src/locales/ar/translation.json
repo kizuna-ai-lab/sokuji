@@ -451,6 +451,7 @@
     "logsCopied": "تم النسخ!"
   },
   "mainPanel": {
+    "subtitleTakeover": "تظهر الترجمات في طبقة الترجمة العائمة",
     "conversationPlaceholder": "ستظهر المحادثة هنا",
     "speechDetected": "[تم اكتشاف كلام]",
     "audioContent": "محتوى صوتي",
@@ -838,6 +839,10 @@
       "title": "تفعيل وضع الترجمة",
       "disabled": "ابدأ جلسة أولاً",
       "label": "ترجمة"
+    },
+    "exitButton": {
+      "title": "إيقاف وضع الترجمة",
+      "label": "إيقاف الترجمة"
     },
     "bar": {
       "fontDecrease": "تصغير الخط",

@@ -442,6 +442,7 @@
     "reconnecting": "Muling kumukonekta..."
   },
   "mainPanel": {
+    "subtitleTakeover": "Ipinapakita ang mga pagsasalin sa subtitle overlay",
     "conversationPlaceholder": "Ang usapan ay lalabas dito",
     "speechDetected": "[Nakita ang pagsasalita]",
     "pushToTalk": "pindutin para magsalita (Space)",
@@ -794,6 +795,10 @@
       "title": "Pumasok sa subtitle mode",
       "disabled": "Magsimula muna ng session",
       "label": "Subtitle"
+    },
+    "exitButton": {
+      "title": "Lumabas sa subtitle mode",
+      "label": "Lumabas sa subtitle"
     },
     "bar": {
       "fontDecrease": "Bawasan ang laki ng font",

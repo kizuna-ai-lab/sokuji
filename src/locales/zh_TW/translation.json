@@ -466,6 +466,7 @@
     "logsCopied": "已複製！"
   },
   "mainPanel": {
+    "subtitleTakeover": "翻譯內容正在字幕浮層中顯示",
     "conversationPlaceholder": "對話將在此處顯示",
     "speechDetected": "[偵測到語音]",
     "audioContent": "音訊內容",
@@ -806,6 +807,10 @@
       "title": "進入字幕模式",
       "disabled": "請先啟動對話",
       "label": "字幕"
+    },
+    "exitButton": {
+      "title": "退出字幕模式",
+      "label": "退出字幕"
     },
     "bar": {
       "fontDecrease": "縮小字級",

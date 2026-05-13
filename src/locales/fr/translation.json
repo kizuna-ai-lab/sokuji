@@ -344,6 +344,7 @@
     "logsCopied": "Copié !"
   },
   "mainPanel": {
+    "subtitleTakeover": "Les traductions s’affichent dans la superposition de sous-titres",
     "conversationPlaceholder": "La conversation apparaîtra ici",
     "speechDetected": "[Parole détectée]",
     "audioContent": "Contenu audio",
@@ -837,6 +838,10 @@
       "title": "Activer le mode sous-titres",
       "disabled": "Démarrez d’abord une session",
       "label": "Sous-titres"
+    },
+    "exitButton": {
+      "title": "Quitter le mode sous-titres",
+      "label": "Quitter les sous-titres"
     },
     "bar": {
       "fontDecrease": "Réduire la taille du texte",

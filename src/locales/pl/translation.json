@@ -343,6 +343,7 @@
     "logsCopied": "Skopiowano!"
   },
   "mainPanel": {
+    "subtitleTakeover": "Tłumaczenia są wyświetlane w nakładce napisów",
     "conversationPlaceholder": "Rozmowa pojawi się tutaj",
     "speechDetected": "[Wykryto mowę]",
     "audioContent": "Zawartość audio",
@@ -835,6 +836,10 @@
       "title": "Włącz tryb napisów",
       "disabled": "Najpierw uruchom sesję",
       "label": "Napisy"
+    },
+    "exitButton": {
+      "title": "Wyłącz tryb napisów",
+      "label": "Wyłącz napisy"
     },
     "bar": {
       "fontDecrease": "Zmniejsz czcionkę",
