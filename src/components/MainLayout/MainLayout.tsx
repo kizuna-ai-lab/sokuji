@@ -9,6 +9,7 @@ import TitleBar from '../TitleBar/TitleBar';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import { isElectron } from '../../utils/environment';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
@@ -191,7 +192,13 @@ const MainLayout: React.FC = () => {
       )}
       <Onboarding />
     </div>
-    {subtitleActive && <SubtitleApp />}
+    {/* Electron-only: SubtitleApp renders into the same React tree because */}
+    {/* Electron's main process reshapes the BrowserWindow into a tiny bar, */}
+    {/* visually replacing MainPanel with this overlay. In the extension, the */}
+    {/* SubtitleApp lives inside an iframe injected into the meeting tab by */}
+    {/* the content script (see ExtensionContentScriptSubtitleSurface) — */}
+    {/* rendering it here too would double-mount it on top of MainPanel. */}
+    {subtitleActive && isElectron() && <SubtitleApp />}
     </>
   );
 };
