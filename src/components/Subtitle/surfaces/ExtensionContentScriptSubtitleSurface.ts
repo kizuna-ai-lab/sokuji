@@ -103,6 +103,14 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   }
 
   private async installStoreSubscriptions(): Promise<void> {
+    // Drop any subscriptions from a prior port. handleConnect runs again
+    // when the meeting tab reloads (iframe re-mounts → new port), and
+    // without this cleanup the previous generation of Zustand listeners
+    // would stay alive, fan messages to the new port too, and accumulate
+    // on every reload.
+    this.subscriptions.forEach((u) => u());
+    this.subscriptions = [];
+
     // Lazy dynamic import keeps the surface module testable in environments
     // that don't want to pull in sessionStore (and its audio dependencies)
     // until the surface is actually used.

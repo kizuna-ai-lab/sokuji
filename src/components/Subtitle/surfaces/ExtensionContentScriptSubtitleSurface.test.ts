@@ -62,4 +62,55 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     listeners.onRemoved[0](7);
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
+
+  it('port reconnect does not leak Zustand subscriptions', async () => {
+    // Regression: meeting-tab reload destroys the iframe, which disconnects
+    // the port. The surface intentionally doesn't tearDown on disconnect
+    // (the content script re-mounts on subsequent subtitle:enter). But
+    // before, installStoreSubscriptions() overwrote `this.subscriptions`
+    // without unsubscribing the prior ones, leaving old listeners alive on
+    // the Zustand stores. Each store change would then fan out to N copies.
+    const { default: useSessionStore } = await import('../../../stores/sessionStore');
+    useSessionStore.setState({ items: [], systemAudioItems: [], isSessionActive: false } as any);
+
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    await surface.enter();
+
+    const makePort = () => ({
+      name: 'sokuji-subtitle',
+      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn() },
+      postMessage: vi.fn(),
+      disconnect: vi.fn(),
+    });
+
+    const handleConnect = listeners.onConnect[0];
+
+    // First connect — installs initial subscriptions
+    const port1 = makePort();
+    handleConnect(port1);
+    // Let the lazily-imported installStoreSubscriptions() resolve.
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Capture port1's onDisconnect callback before "tab reload" tears it down.
+    const port1Disconnect = port1.onDisconnect.addListener.mock.calls[0][0];
+    port1Disconnect();
+
+    // Second connect — would previously stack a second set of subscriptions
+    const port2 = makePort();
+    handleConnect(port2);
+    await new Promise((r) => setTimeout(r, 0));
+
+    port2.postMessage.mockClear();
+
+    // Mutate sessionStore.items → exactly ONE 'items' message should reach
+    // port2 (was 2 before the fix: one from each generation of subscription).
+    useSessionStore.setState({ items: [{ id: 'x' }] } as any);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const itemsMessages = port2.postMessage.mock.calls.filter(
+      (call: any[]) => call[0]?.type === 'items',
+    );
+    expect(itemsMessages.length).toBe(1);
+  });
 });
