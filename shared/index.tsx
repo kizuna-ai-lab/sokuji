@@ -1,29 +1,16 @@
-import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
 import PostHog from 'posthog-js-lite';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyticsEnabled } from '../src/config/analytics';
 import { setupErrorTracking } from '../src/lib/errorTracking';
+import { AppProviders } from '../src/components/AppProviders';
 
-// Create PostHog context for React
-const PostHogContext = createContext<PostHog | null>(null);
-
-// PostHog Provider component - accepts null client for async initialization
-export const PostHogProvider: React.FC<{ client: PostHog | null; children: React.ReactNode }> = ({ client, children }) => {
-  return (
-    <PostHogContext.Provider value={client}>
-      {children}
-    </PostHogContext.Provider>
-  );
-};
-
-// Hook to use PostHog in components
-export const usePostHog = () => {
-  const posthog = useContext(PostHogContext);
-  // PostHog can be null during async initialization, this is expected
-  // The useAnalytics hook already handles null checks properly
-  return posthog;
-};
+// Re-export PostHog context from its dedicated side-effect-free module.
+// Keeping the named exports here preserves backward compatibility with
+// existing call sites (e.g. `src/lib/analytics.ts`) that import them
+// from `shared/index`.
+export { PostHogProvider, usePostHog } from '../src/contexts/PostHogContext';
 
 
 // Dynamically import styles based on environment
@@ -184,11 +171,9 @@ const UnifiedApp = () => {
 
   // Render app immediately with PostHogProvider (client can be null during initialization)
   return (
-    <React.StrictMode>
-      <PostHogProvider client={posthogClient}>
-        <App />
-      </PostHogProvider>
-    </React.StrictMode>
+    <AppProviders posthogClient={posthogClient}>
+      <App />
+    </AppProviders>
   );
 };
 
