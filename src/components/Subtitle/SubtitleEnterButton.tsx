@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { Captions } from 'lucide-react';
 import { useIsSessionActive } from '../../stores/sessionStore';
 import { useEnterSubtitleMode } from '../../stores/settingsStore';
-import { isElectron } from '../../utils/environment';
+import { isElectron, isExtension } from '../../utils/environment';
 
 const SubtitleEnterButton: React.FC = () => {
   const { t } = useTranslation();
   const enterSubtitleMode = useEnterSubtitleMode();
   const isSessionActive = useIsSessionActive();
 
-  if (!isElectron()) return null;
+  if (!isElectron() && !isExtension()) return null;
 
   const label = t('subtitle.enterButton.label', 'Subtitle');
   const tooltip = isSessionActive
