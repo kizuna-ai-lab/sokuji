@@ -8,39 +8,32 @@ interface UseOverlayDragResizeArgs {
 }
 
 /**
- * Wires drag (on a handle) and resize (on corners) for the extension-overlay
- * iframe. The iframe doesn't know its parent viewport dimensions, so it sends
- * mousemove deltas via window.parent.postMessage; the content script clamps
- * and applies the new position to iframe.style.
- *
- * Returns:
- *   dragHandleProps — spread on the SubtitleBar's drag area
- *   resizeHandleProps — array of 4 spread objects for the corner handles
+ * Wires drag (anywhere on the bar except buttons / resize handles) and resize
+ * (on 4 corners) for the extension-overlay iframe. Sends per-event mouse
+ * deltas via window.parent.postMessage; the content script applies them
+ * relative to the iframe's current position/size with viewport clamping.
  */
 export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
   const positionLocked = useSubtitlePositionLocked();
-  const dragging = useRef<null | { kind: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se' }>(null);
-  const accum = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const dragging = useRef<null | {
+    kind: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
+  }>(null);
 
   const isActive = surface === 'extension-overlay';
 
   const postMove = useCallback((dx: number, dy: number) => {
-    accum.current.x += dx;
-    accum.current.y += dy;
-    window.parent.postMessage(
-      { type: 'sokuji-subtitle:move', dx: accum.current.x, dy: accum.current.y },
-      '*',
-    );
+    window.parent.postMessage({ type: 'sokuji-subtitle:move', dx, dy }, '*');
   }, []);
 
-  const postResize = useCallback((dw: number, dh: number, anchor: 'nw' | 'ne' | 'sw' | 'se') => {
-    accum.current.w += dw;
-    accum.current.h += dh;
-    window.parent.postMessage(
-      { type: 'sokuji-subtitle:resize', dw: accum.current.w, dh: accum.current.h, anchor },
-      '*',
-    );
-  }, []);
+  const postResize = useCallback(
+    (dw: number, dh: number, anchor: 'nw' | 'ne' | 'sw' | 'se') => {
+      window.parent.postMessage(
+        { type: 'sokuji-subtitle:resize', dw, dh, anchor },
+        '*',
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isActive) return;
@@ -50,7 +43,11 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
       if (dragging.current.kind === 'move') {
         postMove(e.movementX, e.movementY);
       } else {
-        const anchor = dragging.current.kind.slice('resize-'.length) as 'nw' | 'ne' | 'sw' | 'se';
+        const anchor = dragging.current.kind.slice('resize-'.length) as
+          | 'nw'
+          | 'ne'
+          | 'sw'
+          | 'se';
         // For nw / sw we want to grow when mouse moves left/up; flip the sign.
         const dw = anchor === 'nw' || anchor === 'sw' ? -e.movementX : e.movementX;
         const dh = anchor === 'nw' || anchor === 'ne' ? -e.movementY : e.movementY;
@@ -59,7 +56,6 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
     };
     const onUp = () => {
       dragging.current = null;
-      accum.current = { x: 0, y: 0, w: 0, h: 0 };
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -69,26 +65,48 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
     };
   }, [isActive, postMove, postResize]);
 
+  // Skip drag start if the mousedown landed on something interactive
+  // (button, input, link, resize-handle).
+  const isInteractiveTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false;
+    return !!target.closest(
+      'button, input, select, textarea, a, [role="button"], .subtitle-bar__resize',
+    );
+  };
+
   const startDrag = useCallback(
     (kind: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se') =>
       (e: React.MouseEvent) => {
         if (!isActive || positionLocked) return;
+        if (kind === 'move' && isInteractiveTarget(e.target)) return;
         e.preventDefault();
         dragging.current = { kind };
-        accum.current = { x: 0, y: 0, w: 0, h: 0 };
       },
     [isActive, positionLocked],
   );
 
   return {
-    dragHandleProps: isActive && !positionLocked
-      ? { onMouseDown: startDrag('move'), style: { cursor: 'move' as const } }
-      : {},
+    dragHandleProps:
+      isActive && !positionLocked
+        ? { onMouseDown: startDrag('move'), style: { cursor: 'move' as const } }
+        : {},
     resizeHandleProps: {
-      nw: isActive && !positionLocked ? { onMouseDown: startDrag('resize-nw') } : {},
-      ne: isActive && !positionLocked ? { onMouseDown: startDrag('resize-ne') } : {},
-      sw: isActive && !positionLocked ? { onMouseDown: startDrag('resize-sw') } : {},
-      se: isActive && !positionLocked ? { onMouseDown: startDrag('resize-se') } : {},
+      nw:
+        isActive && !positionLocked
+          ? { onMouseDown: startDrag('resize-nw') }
+          : {},
+      ne:
+        isActive && !positionLocked
+          ? { onMouseDown: startDrag('resize-ne') }
+          : {},
+      sw:
+        isActive && !positionLocked
+          ? { onMouseDown: startDrag('resize-sw') }
+          : {},
+      se:
+        isActive && !positionLocked
+          ? { onMouseDown: startDrag('resize-se') }
+          : {},
     },
   };
 }

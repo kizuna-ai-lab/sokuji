@@ -92,6 +92,7 @@ const SubtitleBar: React.FC<Props> = ({
     <div
       className={`subtitle-bar ${subtitle.positionLocked ? 'locked' : ''} ${surface === 'electron' ? 'surface-electron' : 'surface-overlay'}`}
       role="toolbar"
+      {...dragHandleProps}
     >
       {surface === 'extension-overlay' && (
         <>
@@ -101,7 +102,7 @@ const SubtitleBar: React.FC<Props> = ({
           <div className="subtitle-bar__resize subtitle-bar__resize--se" {...resizeHandleProps.se} />
         </>
       )}
-      <div className="subtitle-bar__left" {...dragHandleProps}>
+      <div className="subtitle-bar__left">
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
       </div>
