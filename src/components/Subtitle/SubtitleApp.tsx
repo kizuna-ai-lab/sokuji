@@ -7,7 +7,7 @@ import SubtitleSessionEnded from './SubtitleSessionEnded';
 import useSettingsStore, {
   useExitSubtitleMode,
   useProvider,
-  useGetCurrentProviderSettings,
+  useCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
 } from '../../stores/settingsStore';
@@ -58,7 +58,6 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
   const provider = useProvider();
-  const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const isSessionActive = useIsSessionActive();
   const sessionStartTime = useSessionStartTime();
@@ -71,10 +70,13 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     turnDetectionMode === 'Push-to-Translate' ||
     turnDetectionMode === 'Disabled';
 
-  const providerSettings = useMemo(
-    () => getCurrentProviderSettings(),
-    [getCurrentProviderSettings, provider],
-  );
+  // Reactive: re-emits whenever state[provider] is replaced, so changing
+  // sourceLanguage / targetLanguage in the side panel (which mutates the
+  // provider settings object) updates the bar live. A useMemo keyed on
+  // the provider *name* would cache the first state[provider] reference
+  // and never refresh, locking the bar to the language pair that was
+  // active when SubtitleApp first mounted.
+  const providerSettings = useCurrentProviderSettings();
   // The provider-settings union doesn't guarantee these fields (a few
   // members are text-only and never carry a language pair), so cast to a
   // narrow shape that exposes only what we actually read.

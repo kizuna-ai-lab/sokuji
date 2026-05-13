@@ -1736,6 +1736,15 @@ export const useLoadSettings = () => useSettingsStore((state) => state.loadSetti
 export const useClearCache = () => useSettingsStore((state) => state.clearCache);
 
 export const useGetCurrentProviderSettings = () => useSettingsStore((state) => state.getCurrentProviderSettings);
+
+// Reactive selector that returns the current provider's settings object,
+// re-emitting whenever the underlying state[provider] reference changes.
+// Prefer this over `useGetCurrentProviderSettings()` + manual useMemo —
+// a useMemo keyed on the provider *name* never re-evaluates when the
+// user only changes language pairs within a provider, leaving stale
+// values cached (see SubtitleApp.tsx fix).
+export const useCurrentProviderSettings = () =>
+  useSettingsStore((state) => state.getCurrentProviderSettings());
 export const useGetCurrentProviderConfig = () => useSettingsStore((state) => state.getCurrentProviderConfig);
 export const useGetProcessedSystemInstructions = () => useSettingsStore((state) => state.getProcessedSystemInstructions);
 export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
