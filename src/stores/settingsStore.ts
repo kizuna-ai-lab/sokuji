@@ -952,22 +952,31 @@ const useSettingsStore = create<SettingsStore>()(
         console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
         return;
       }
+      // Claim the slot synchronously so a concurrent call (double-click,
+      // duplicate dispatch) short-circuits at the guard above instead of
+      // racing into a second surface.enter(). On the Electron path the
+      // second IPC would otherwise overwrite normalBoundsSnapshot with
+      // the already-shrunk subtitle bounds — same bug class as 8f9aea85.
+      set({ subtitleModeActive: true });
       try {
         await getSubtitleSurface().enter();
-        set({ subtitleModeActive: true });
       } catch (error) {
         console.error('[SettingsStore] enterSubtitleMode failed:', error);
+        set({ subtitleModeActive: false });
       }
     },
 
     exitSubtitleMode: async () => {
       if (!get().subtitleModeActive) return;
+      // Same TOCTOU-closing trick as enterSubtitleMode: flip the flag
+      // first so a re-entrant exit() short-circuits. The original
+      // `finally` already set the flag false on the way out; the only
+      // observable difference is concurrent callers, which we want.
+      set({ subtitleModeActive: false });
       try {
         await getSubtitleSurface().exit();
       } catch (error) {
         console.error('[SettingsStore] exitSubtitleMode failed:', error);
-      } finally {
-        set({ subtitleModeActive: false });
       }
     },
 
