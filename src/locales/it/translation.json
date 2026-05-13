@@ -836,7 +836,8 @@
     "enterButton": {
       "title": "Attiva modalità sottotitoli",
       "disabled": "Avvia prima una sessione",
-      "label": "Sottotitoli"
+      "label": "Sottotitoli",
+      "refreshPageHint": "Aggiorna la scheda della riunione e riprova"
     },
     "exitButton": {
       "title": "Esci dalla modalità sottotitoli",

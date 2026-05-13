@@ -806,7 +806,8 @@
     "enterButton": {
       "title": "進入字幕模式",
       "disabled": "請先啟動對話",
-      "label": "字幕"
+      "label": "字幕",
+      "refreshPageHint": "請重新整理會議分頁後再試一次"
     },
     "exitButton": {
       "title": "退出字幕模式",

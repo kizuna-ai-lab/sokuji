@@ -836,7 +836,8 @@
     "enterButton": {
       "title": "자막 모드 시작",
       "disabled": "먼저 세션을 시작하세요",
-      "label": "자막"
+      "label": "자막",
+      "refreshPageHint": "회의 탭을 새로 고친 후 다시 시도하세요"
     },
     "exitButton": {
       "title": "자막 모드 종료",

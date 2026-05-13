@@ -794,7 +794,8 @@
     "enterButton": {
       "title": "Pumasok sa subtitle mode",
       "disabled": "Magsimula muna ng session",
-      "label": "Subtitle"
+      "label": "Subtitle",
+      "refreshPageHint": "I-refresh ang meeting tab at subukang muli"
     },
     "exitButton": {
       "title": "Lumabas sa subtitle mode",

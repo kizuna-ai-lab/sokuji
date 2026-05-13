@@ -787,7 +787,8 @@
     "enterButton": {
       "title": "Bật chế độ phụ đề",
       "disabled": "Hãy bắt đầu phiên trước",
-      "label": "Phụ đề"
+      "label": "Phụ đề",
+      "refreshPageHint": "Tải lại tab cuộc họp và thử lại"
     },
     "exitButton": {
       "title": "Thoát chế độ phụ đề",

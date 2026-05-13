@@ -963,6 +963,10 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] enterSubtitleMode failed:', error);
         set({ subtitleModeActive: false });
+        // Re-throw so the caller (e.g. SubtitleEnterButton) can show a
+        // user-facing toast for actionable failure modes such as a stale
+        // meeting tab that needs a refresh.
+        throw error;
       }
     },
 

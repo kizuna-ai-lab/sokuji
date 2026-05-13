@@ -837,7 +837,8 @@
     "enterButton": {
       "title": "Untertitel-Modus aktivieren",
       "disabled": "Sitzung zuerst starten",
-      "label": "Untertitel"
+      "label": "Untertitel",
+      "refreshPageHint": "Aktualisieren Sie den Meeting-Tab und versuchen Sie es erneut"
     },
     "exitButton": {
       "title": "Untertitel-Modus beenden",

@@ -46,6 +46,30 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     await expect(surface.enter()).rejects.toThrow(/not on supported site/);
   });
 
+  it('enter() throws CONTENT_SCRIPT_UNAVAILABLE when sendMessage fails (stale tab)', async () => {
+    // Repro: extension was reloaded while the meeting tab was already open.
+    // The content script that ships with the new extension was not injected
+    // into the pre-existing tab, so sendMessage cannot reach a receiver.
+    // Surface must classify this so the caller can prompt the user to
+    // refresh the tab.
+    sendMessage.mockImplementationOnce(async () => {
+      throw new Error('Could not establish connection. Receiving end does not exist.');
+    });
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    const removeOnConnect = globalThis.chrome.runtime.onConnect.removeListener;
+    const removeOnRemoved = globalThis.chrome.tabs.onRemoved.removeListener;
+    const removeOnUpdated = globalThis.chrome.tabs.onUpdated.removeListener;
+    await expect(surface.enter()).rejects.toMatchObject({
+      code: 'CONTENT_SCRIPT_UNAVAILABLE',
+    });
+    // Listeners that were attached before the failed sendMessage must be
+    // cleaned up; otherwise a follow-up enter() that succeeds would
+    // double-register them.
+    expect(removeOnConnect).toHaveBeenCalledTimes(1);
+    expect(removeOnRemoved).toHaveBeenCalledTimes(1);
+    expect(removeOnUpdated).toHaveBeenCalledTimes(1);
+  });
+
   it('exit() sends subtitle:exit to the captured tab', async () => {
     const surface = new ExtensionContentScriptSubtitleSurface();
     await surface.enter();

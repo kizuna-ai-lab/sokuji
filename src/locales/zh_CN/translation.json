@@ -848,7 +848,8 @@
     "enterButton": {
       "title": "进入字幕模式",
       "disabled": "请先启动会话",
-      "label": "字幕"
+      "label": "字幕",
+      "refreshPageHint": "请刷新会议标签页后重试"
     },
     "exitButton": {
       "title": "退出字幕模式",

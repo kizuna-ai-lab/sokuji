@@ -835,7 +835,8 @@
     "enterButton": {
       "title": "Włącz tryb napisów",
       "disabled": "Najpierw uruchom sesję",
-      "label": "Napisy"
+      "label": "Napisy",
+      "refreshPageHint": "Odśwież kartę spotkania i spróbuj ponownie"
     },
     "exitButton": {
       "title": "Wyłącz tryb napisów",

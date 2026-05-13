@@ -836,7 +836,8 @@
     "enterButton": {
       "title": "Masuk mode subtitle",
       "disabled": "Mulai sesi terlebih dahulu",
-      "label": "Subtitle"
+      "label": "Subtitle",
+      "refreshPageHint": "Muat ulang tab rapat lalu coba lagi"
     },
     "exitButton": {
       "title": "Keluar dari mode subtitle",

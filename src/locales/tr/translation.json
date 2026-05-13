@@ -794,7 +794,8 @@
     "enterButton": {
       "title": "Altyazı moduna geç",
       "disabled": "Önce bir oturum başlatın",
-      "label": "Altyazı"
+      "label": "Altyazı",
+      "refreshPageHint": "Toplantı sekmesini yenileyin ve tekrar deneyin"
     },
     "exitButton": {
       "title": "Altyazı modundan çık",

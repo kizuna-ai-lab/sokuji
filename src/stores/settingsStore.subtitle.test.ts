@@ -105,14 +105,14 @@ describe('settingsStore subtitle actions', () => {
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
 
-  it('enterSubtitleMode rolls back the flag if surface.enter() rejects', async () => {
+  it('enterSubtitleMode rolls back the flag and re-throws if surface.enter() rejects', async () => {
     useSessionStore.setState({ isSessionActive: true } as any);
     const invokeMock = (window as any).electron.invoke;
     invokeMock.mockImplementationOnce(async (channel: string) => {
       if (channel === 'subtitle:enter') throw new Error('boom');
       return { ok: true };
     });
-    await useSettingsStore.getState().enterSubtitleMode();
+    await expect(useSettingsStore.getState().enterSubtitleMode()).rejects.toThrow(/boom/);
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
 

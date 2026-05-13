@@ -8,6 +8,8 @@ import {
   useSubtitleModeActive,
 } from '../../stores/settingsStore';
 import { isElectron, isExtension } from '../../utils/environment';
+import { useToast } from '../Toast';
+import { CONTENT_SCRIPT_UNAVAILABLE } from './surfaces/ExtensionContentScriptSubtitleSurface';
 
 const SubtitleEnterButton: React.FC = () => {
   const { t } = useTranslation();
@@ -15,6 +17,7 @@ const SubtitleEnterButton: React.FC = () => {
   const exitSubtitleMode = useExitSubtitleMode();
   const isSessionActive = useIsSessionActive();
   const subtitleActive = useSubtitleModeActive();
+  const { showToast } = useToast();
 
   if (!isElectron() && !isExtension()) return null;
 
@@ -30,9 +33,29 @@ const SubtitleEnterButton: React.FC = () => {
   const label = subtitleActive ? exitLabel : enterLabel;
   const tooltip = subtitleActive ? exitTooltip : enterTooltip;
   const Icon = subtitleActive ? CaptionsOff : Captions;
+  const handleEnter = async () => {
+    try {
+      await enterSubtitleMode();
+    } catch (err) {
+      // Most common case (extension): the meeting tab was open before the
+      // extension was reloaded, so the new content script was never
+      // injected and chrome.tabs.sendMessage has no receiver. Prompt the
+      // user to refresh.
+      const code = (err as { code?: string } | null)?.code;
+      if (code === CONTENT_SCRIPT_UNAVAILABLE) {
+        showToast(
+          t(
+            'subtitle.enterButton.refreshPageHint',
+            'Refresh the meeting tab and try again',
+          ),
+          { variant: 'error', durationMs: 5000 },
+        );
+      }
+    }
+  };
   const onClick = subtitleActive
     ? () => void exitSubtitleMode()
-    : () => void enterSubtitleMode();
+    : () => void handleEnter();
   // Exit is always available while active; Enter is gated on isSessionActive.
   const disabled = subtitleActive ? false : !isSessionActive;
 

@@ -842,7 +842,8 @@
     "enterButton": {
       "title": "הפעלת מצב כתוביות",
       "disabled": "התחל הפעלה תחילה",
-      "label": "כתוביות"
+      "label": "כתוביות",
+      "refreshPageHint": "רענן את לשונית הפגישה ונסה שוב"
     },
     "exitButton": {
       "title": "יציאה ממצב כתוביות",

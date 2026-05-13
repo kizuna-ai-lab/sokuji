@@ -18,6 +18,14 @@ function isSupportedUrl(url: string | undefined): boolean {
   try { return SUPPORTED_HOSTS.has(new URL(url).hostname); } catch { return false; }
 }
 
+/**
+ * Thrown when the meeting tab has no content-script receiver. Most common
+ * cause: the user reloaded the extension after the meeting tab was already
+ * open, so the (now-current) content script was never injected into it. The
+ * caller is expected to surface a "refresh the tab" prompt.
+ */
+export const CONTENT_SCRIPT_UNAVAILABLE = 'CONTENT_SCRIPT_UNAVAILABLE';
+
 export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   private targetTabId: number | null = null;
   private port: any = null;
@@ -76,7 +84,23 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     chrome.runtime.onConnect.addListener(this.handleConnect);
     chrome.tabs.onRemoved.addListener(this.handleTabRemoved);
     chrome.tabs.onUpdated.addListener(this.handleTabUpdated);
-    await chrome.tabs.sendMessage(tab.id, { type: 'subtitle:enter' });
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: 'subtitle:enter' });
+    } catch (rawError) {
+      // The most common cause is a stale meeting tab — the extension was
+      // reloaded after the tab was opened, so the new content script was
+      // never injected and there's nothing on the other side to receive
+      // the message. Roll back the listeners we just attached, then throw
+      // a classified error so the caller can prompt the user to refresh.
+      chrome.runtime.onConnect.removeListener(this.handleConnect);
+      chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
+      chrome.tabs.onUpdated.removeListener(this.handleTabUpdated);
+      const err = new Error(
+        rawError instanceof Error ? rawError.message : String(rawError),
+      ) as Error & { code: string };
+      err.code = CONTENT_SCRIPT_UNAVAILABLE;
+      throw err;
+    }
     this.targetTabId = tab.id;
   }
 

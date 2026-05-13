@@ -835,7 +835,8 @@
     "enterButton": {
       "title": "Masuk mod sari kata",
       "disabled": "Mulakan sesi dahulu",
-      "label": "Sari kata"
+      "label": "Sari kata",
+      "refreshPageHint": "Muat semula tab mesyuarat dan cuba lagi"
     },
     "exitButton": {
       "title": "Keluar mod sari kata",

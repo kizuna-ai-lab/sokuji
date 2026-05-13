@@ -792,7 +792,8 @@
     "enterButton": {
       "title": "Aktivera undertextläge",
       "disabled": "Starta en session först",
-      "label": "Undertexter"
+      "label": "Undertexter",
+      "refreshPageHint": "Uppdatera mötesfliken och försök igen"
     },
     "exitButton": {
       "title": "Avsluta undertextläge",

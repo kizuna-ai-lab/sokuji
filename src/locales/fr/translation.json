@@ -837,7 +837,8 @@
     "enterButton": {
       "title": "Activer le mode sous-titres",
       "disabled": "Démarrez d’abord une session",
-      "label": "Sous-titres"
+      "label": "Sous-titres",
+      "refreshPageHint": "Actualisez l’onglet de la réunion, puis réessayez"
     },
     "exitButton": {
       "title": "Quitter le mode sous-titres",

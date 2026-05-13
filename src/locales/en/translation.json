@@ -879,7 +879,8 @@
     "enterButton": {
       "title": "Enter subtitle mode",
       "disabled": "Start a session first",
-      "label": "Subtitle"
+      "label": "Subtitle",
+      "refreshPageHint": "Refresh the meeting tab and try again"
     },
     "exitButton": {
       "title": "Exit subtitle mode",

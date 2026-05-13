@@ -794,7 +794,8 @@
     "enterButton": {
       "title": "Ota tekstitystila käyttöön",
       "disabled": "Aloita istunto ensin",
-      "label": "Tekstitys"
+      "label": "Tekstitys",
+      "refreshPageHint": "Päivitä kokousvälilehti ja yritä uudelleen"
     },
     "exitButton": {
       "title": "Poistu tekstitystilasta",
