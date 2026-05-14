@@ -31,6 +31,7 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   position: relative;
+  background: var(--conversation-bg-color, #1f1f1f);
 
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -124,30 +125,6 @@
 
   // ── Role variants ──
 
-  &.user {
-    align-self: flex-end;
-    background: #2a2a2a;
-    margin-left: auto;
-    border-bottom-right-radius: 4px;
-
-    &.playing {
-      background: #353535;
-      box-shadow: 0 0 10px rgba(16, 163, 127, 0.3);
-    }
-  }
-
-  &.assistant {
-    align-self: flex-start;
-    background: #10a37f;
-    margin-right: auto;
-    border-bottom-left-radius: 4px;
-
-    &.playing {
-      background: #12b88f;
-      box-shadow: 0 0 10px rgba(16, 163, 127, 0.5);
-    }
-  }
-
   &.system {
     align-self: center;
     background: #444;
@@ -157,22 +134,6 @@
     &.playing {
       background: #555;
       box-shadow: 0 0 10px rgba(16, 163, 127, 0.3);
-    }
-  }
-
-  // ── Participant source (orange) ──
-
-  &.participant-source {
-    border-left: 3px solid #f39c12;
-
-    &.user {
-      background: rgba(243, 156, 18, 0.15);
-      &.playing { background: rgba(243, 156, 18, 0.25); box-shadow: 0 0 10px rgba(243, 156, 18, 0.3); }
-    }
-
-    &.assistant {
-      background: #e67e22;
-      &.playing { background: #f39c12; box-shadow: 0 0 10px rgba(243, 156, 18, 0.5); }
     }
   }
 
@@ -235,12 +196,6 @@
 .karaoke-unplayed {
   opacity: 0.7;
   transition: all 0.2s ease;
-}
-
-// Assistant bubble (green bg) → white highlight
-.message-bubble.assistant .karaoke-played {
-  color: #fff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
 // ─── Advanced-only Content Items ───────────────────
