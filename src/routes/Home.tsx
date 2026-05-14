@@ -5,6 +5,7 @@ import { OnboardingProvider } from '../contexts/OnboardingContext';
 import { useInitializeAudioService } from '../stores/audioStore';
 import { useLoadSettings } from '../stores/settingsStore';
 import { useSubtitleStore } from '../stores/subtitleStore';
+import { useConversationDisplayStore } from '../stores/conversationDisplayStore';
 import { SettingsInitializer } from '../components/SettingsInitializer/SettingsInitializer';
 
 export function Home() {
@@ -17,12 +18,13 @@ export function Home() {
     initializeAudioService();
 
     console.info('[Home] Loading settings');
-    // Hydrate settingsStore and subtitleStore in parallel from persisted storage.
+    // Hydrate settingsStore, subtitleStore, and conversationDisplayStore in parallel from persisted storage.
     Promise.all([
       loadSettings(),
       useSubtitleStore.getState().hydrate(),
+      useConversationDisplayStore.getState().hydrate(),
     ]).catch((err) => {
-      console.warn('[Home] Settings/subtitle hydration error:', err);
+      console.warn('[Home] Settings/subtitle/conversationDisplay hydration error:', err);
     });
   }, []); // Empty dependency array - only run once on mount
 
