@@ -7,13 +7,17 @@ import {
   useSetSubtitleSourceTextColor,
   useSetSubtitleTranslationTextColor,
 } from '../../stores/subtitleStore';
-import './SubtitleSettingsPopover.scss';
+import './DisplaySettingsPopover.scss';
 
 const BG_PRESETS = ['#000000', '#1a1a1a', '#0d2032', '#0f2419', '#FFFFFF', '#2a2a2a'];
 const SOURCE_PRESETS = ['#FFFFFF', '#E8E8E8', '#FFD27D', '#FFAA66', '#9aa0a6', '#FF6B6B'];
 const TRANSLATION_PRESETS = ['#6CC5FF', '#10a37f', '#FFFFFF', '#A8E6CF', '#FFB86C', '#BD93F9'];
 
-const SubtitleSettingsPopover: React.FC = () => {
+export interface DisplaySettingsPopoverProps {
+  source: 'subtitle' | 'conversation';
+}
+
+const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const setBgOpacity = useSetSubtitleBgOpacity();
@@ -21,8 +25,14 @@ const SubtitleSettingsPopover: React.FC = () => {
   const setSourceColor = useSetSubtitleSourceTextColor();
   const setTranslationColor = useSetSubtitleTranslationTextColor();
 
+  // Task 7 will add the source='conversation' branch; today this file
+  // still serves only the subtitle path.
+  if (source !== 'subtitle') {
+    return <div className="display-settings-popover" role="dialog" />;
+  }
+
   return (
-    <div className="subtitle-settings-popover" role="dialog">
+    <div className="display-settings-popover" role="dialog">
       <div className="field">
         <label>{t('subtitle.settings.bgOpacity', 'Background opacity')} ({subtitle.bgOpacity}%)</label>
         <input
@@ -36,7 +46,7 @@ const SubtitleSettingsPopover: React.FC = () => {
       </div>
 
       <div className="field">
-        <label>{t('subtitle.settings.bgColor', 'Background color')}</label>
+        <label>{t('subtitle.settings.bgColor', 'Display background')}</label>
         <div className="palette">
           {BG_PRESETS.map((c) => (
             <button
@@ -52,7 +62,7 @@ const SubtitleSettingsPopover: React.FC = () => {
       </div>
 
       <div className="field">
-        <label>{t('subtitle.settings.sourceColor', 'Source text color')}</label>
+        <label>{t('subtitle.settings.sourceColor', 'Source text')}</label>
         <div className="palette">
           {SOURCE_PRESETS.map((c) => (
             <button
@@ -68,7 +78,7 @@ const SubtitleSettingsPopover: React.FC = () => {
       </div>
 
       <div className="field">
-        <label>{t('subtitle.settings.translationColor', 'Translation color')}</label>
+        <label>{t('subtitle.settings.translationColor', 'Translation text')}</label>
         <div className="palette">
           {TRANSLATION_PRESETS.map((c) => (
             <button
@@ -86,4 +96,4 @@ const SubtitleSettingsPopover: React.FC = () => {
   );
 };
 
-export default SubtitleSettingsPopover;
+export default DisplaySettingsPopover;

@@ -24,7 +24,7 @@ import {
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
-import SubtitleSettingsPopover from './SubtitleSettingsPopover';
+import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import './SubtitleBar.scss';
@@ -202,7 +202,7 @@ const SubtitleBar: React.FC<Props> = ({
       {popoverOpen && (
         <FloatingPortal>
           <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
-            <SubtitleSettingsPopover />
+            <DisplaySettingsPopover source="subtitle" />
           </div>
         </FloatingPortal>
       )}
