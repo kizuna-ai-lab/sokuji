@@ -28,11 +28,11 @@ describe('subtitleStore', () => {
     });
   });
 
-  it('clamps fontSize to [12, 48]', async () => {
+  it('clamps fontSize to [12, 64]', async () => {
     await useSubtitleStore.getState().setFontSize(8);
     expect(useSubtitleStore.getState().fontSize).toBe(12);
     await useSubtitleStore.getState().setFontSize(99);
-    expect(useSubtitleStore.getState().fontSize).toBe(48);
+    expect(useSubtitleStore.getState().fontSize).toBe(64);
     await useSubtitleStore.getState().setFontSize(28);
     expect(useSubtitleStore.getState().fontSize).toBe(28);
   });

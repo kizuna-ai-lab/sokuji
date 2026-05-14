@@ -62,7 +62,7 @@ const DEFAULTS = {
 };
 
 export const FONT_SIZE_MIN = 12;
-export const FONT_SIZE_MAX = 48;
+export const FONT_SIZE_MAX = 64;
 const BG_OPACITY_MIN = 0;
 const BG_OPACITY_MAX = 100;
 
