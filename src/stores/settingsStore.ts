@@ -182,6 +182,17 @@ interface CacheEntry {
   timestamp: number;
 }
 
+// ==================== Font Size Constants ====================
+
+export const CONVERSATION_FONT_SIZE_MIN = 12;
+export const CONVERSATION_FONT_SIZE_MAX = 64;
+
+const clampConversationFontSize = (n: number): number =>
+  Math.max(
+    CONVERSATION_FONT_SIZE_MIN,
+    Math.min(CONVERSATION_FONT_SIZE_MAX, Math.round(n)),
+  );
+
 // ==================== Default Values ====================
 
 const defaultCommonSettings: CommonSettings = {
@@ -899,11 +910,12 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     setConversationFontSize: async (conversationFontSize) => {
+      const clamped = clampConversationFontSize(conversationFontSize);
       const previous = get().conversationFontSize;
-      set({conversationFontSize});
+      set({conversationFontSize: clamped});
       try {
         const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.common.conversationFontSize', conversationFontSize);
+        await service.setSetting('settings.common.conversationFontSize', clamped);
       } catch (error) {
         console.error('[SettingsStore] Error persisting conversationFontSize setting:', error);
         set({conversationFontSize: previous});
@@ -1457,7 +1469,8 @@ const useSettingsStore = create<SettingsStore>()(
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
-        const conversationFontSize = await service.getSetting('settings.common.conversationFontSize', defaultCommonSettings.conversationFontSize);
+        const conversationFontSizeRaw = await service.getSetting('settings.common.conversationFontSize', defaultCommonSettings.conversationFontSize);
+        const conversationFontSize = clampConversationFontSize(conversationFontSizeRaw);
         const conversationCompactMode = await service.getSetting('settings.common.conversationCompactMode', defaultCommonSettings.conversationCompactMode);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
