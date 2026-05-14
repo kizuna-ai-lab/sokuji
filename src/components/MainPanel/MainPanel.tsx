@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -64,6 +64,10 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
+import {
+  useFloating, useClick, useDismiss, useInteractions, offset, flip, FloatingPortal,
+} from '@floating-ui/react';
+import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 
 
 /**
@@ -255,6 +259,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // AI response state for text input queueing (OpenAI only)
   const [isAIResponding, setIsAIResponding] = useState(false);
   const pendingTextRef = useRef<string | null>(null);
+
+  // Display settings popover (conversation-toolbar ⚙)
+  const [displayPopoverOpen, setDisplayPopoverOpen] = useState(false);
+  const displayPopoverFloating = useFloating({
+    open: displayPopoverOpen,
+    onOpenChange: setDisplayPopoverOpen,
+    placement: 'bottom-end',
+    middleware: [offset(8), flip()],
+  });
+  const displayPopoverInteractions = useInteractions([
+    useClick(displayPopoverFloating.context),
+    useDismiss(displayPopoverFloating.context),
+  ]);
 
   /**
    * Convert settings to SessionConfig
@@ -2922,6 +2939,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="main-panel">
         {/* Conversation toolbar */}
         {(isSessionActive || combinedItems.length > 0) && (
+          <>
           <div className="conversation-toolbar">
             <DisplayModeButton
               scope="speaker"
@@ -2983,6 +3001,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               targetLanguage={targetLanguage}
             />
             <button
+              className="font-size-btn"
+              ref={displayPopoverFloating.refs.setReference}
+              {...displayPopoverInteractions.getReferenceProps()}
+              title={t('mainPanel.displaySettings', 'Display settings')}
+              aria-label={t('mainPanel.displaySettings', 'Display settings')}
+              type="button"
+            >
+              <Settings size={14} />
+            </button>
+            <button
               className="clear-conversation-btn"
               onClick={requestClearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
@@ -2992,6 +3020,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <Trash2 size={14} />
             </button>
           </div>
+          {displayPopoverOpen && (
+            <FloatingPortal>
+              <div
+                ref={displayPopoverFloating.refs.setFloating}
+                style={displayPopoverFloating.floatingStyles}
+                {...displayPopoverInteractions.getFloatingProps()}
+              >
+                <DisplaySettingsPopover source="conversation" />
+              </div>
+            </FloatingPortal>
+          )}
+          </>
         )}
         {/* Conversation Display */}
         <div
