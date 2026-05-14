@@ -22,12 +22,17 @@ interface ConversationDisplayState {
   hydrate: () => Promise<void>;
 }
 
+// ──────────── Default colors (exported for popover preset wiring) ────────────
+export const CONVERSATION_DISPLAY_DEFAULT_BG_COLOR = '#1f1f1f';
+export const CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR = '#9aa0a6';
+export const CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR = '#e8e8e8';
+
 const DEFAULTS = {
   fontSize: 14,
   compactMode: false,
-  bgColor: '#1f1f1f',
-  sourceTextColor: '#9aa0a6',
-  translationTextColor: '#e8e8e8',
+  bgColor: CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
+  sourceTextColor: CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
+  translationTextColor: CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
 };
 
 export const CONVERSATION_FONT_SIZE_MIN = 12;

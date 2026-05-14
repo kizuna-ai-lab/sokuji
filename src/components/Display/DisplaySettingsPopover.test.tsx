@@ -119,4 +119,28 @@ describe('DisplaySettingsPopover', () => {
     // After debounce: only the LAST value applied
     expect(useConversationDisplayStore.getState().bgColor).toBe('#cccccc');
   });
+
+  it('first chip in each row reflects the source store default (subtitle)', () => {
+    const { container } = render(<DisplaySettingsPopover source="subtitle" />);
+    const fields = container.querySelectorAll('.field');
+    // Field 0 = opacity slider; fields 1-3 = bg/source/translation
+    const bgFirstChip = fields[1].querySelector('button.swatch') as HTMLButtonElement;
+    const sourceFirstChip = fields[2].querySelector('button.swatch') as HTMLButtonElement;
+    const translationFirstChip = fields[3].querySelector('button.swatch') as HTMLButtonElement;
+    expect(bgFirstChip.getAttribute('aria-label')).toBe('#000000');
+    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#ffffff');
+    expect(translationFirstChip.getAttribute('aria-label')).toBe('#9ad0ff');
+  });
+
+  it('first chip in each row reflects the source store default (conversation)', () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const fields = container.querySelectorAll('.field');
+    // No opacity slider in conversation source; fields 0-2 = bg/source/translation
+    const bgFirstChip = fields[0].querySelector('button.swatch') as HTMLButtonElement;
+    const sourceFirstChip = fields[1].querySelector('button.swatch') as HTMLButtonElement;
+    const translationFirstChip = fields[2].querySelector('button.swatch') as HTMLButtonElement;
+    expect(bgFirstChip.getAttribute('aria-label')).toBe('#1f1f1f');
+    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#9aa0a6');
+    expect(translationFirstChip.getAttribute('aria-label')).toBe('#e8e8e8');
+  });
 });

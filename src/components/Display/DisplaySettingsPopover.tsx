@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import {
@@ -10,6 +10,9 @@ import {
   useSetSubtitleBgColor,
   useSetSubtitleSourceTextColor,
   useSetSubtitleTranslationTextColor,
+  SUBTITLE_DEFAULT_BG_COLOR,
+  SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
+  SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/subtitleStore';
 import {
   useConversationDisplayBgColor,
@@ -18,6 +21,9 @@ import {
   useSetConversationDisplayBgColor,
   useSetConversationDisplaySourceTextColor,
   useSetConversationDisplayTranslationTextColor,
+  CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
+  CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
+  CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/conversationDisplayStore';
 import './DisplaySettingsPopover.scss';
 
@@ -48,6 +54,9 @@ interface InnerBindings {
   setBgColor: (s: string) => Promise<void>;
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
+  defaultBgColor: string;
+  defaultSourceTextColor: string;
+  defaultTranslationTextColor: string;
 }
 
 const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source }) =>
@@ -70,6 +79,9 @@ const SubtitleBoundPopover: React.FC = () => {
     setBgColor: useSetSubtitleBgColor(),
     setSourceTextColor: useSetSubtitleSourceTextColor(),
     setTranslationTextColor: useSetSubtitleTranslationTextColor(),
+    defaultBgColor: SUBTITLE_DEFAULT_BG_COLOR,
+    defaultSourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
+    defaultTranslationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
   };
   return <DisplaySettingsPopoverInner bindings={bindings} />;
 };
@@ -84,6 +96,9 @@ const ConversationBoundPopover: React.FC = () => {
     setBgColor: useSetConversationDisplayBgColor(),
     setSourceTextColor: useSetConversationDisplaySourceTextColor(),
     setTranslationTextColor: useSetConversationDisplayTranslationTextColor(),
+    defaultBgColor: CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
+    defaultSourceTextColor: CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
+    defaultTranslationTextColor: CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
   };
   return <DisplaySettingsPopoverInner bindings={bindings} />;
 };
@@ -116,6 +131,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
       <ColorRow
         labelKey="subtitle.settings.bgColor"
         labelDefault="Display background"
+        defaultColor={bindings.defaultBgColor}
         presets={BG_PRESETS}
         value={bindings.bgColor}
         onChange={bindings.setBgColor}
@@ -123,6 +139,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
       <ColorRow
         labelKey="subtitle.settings.sourceColor"
         labelDefault="Source text"
+        defaultColor={bindings.defaultSourceTextColor}
         presets={SOURCE_PRESETS}
         value={bindings.sourceTextColor}
         onChange={bindings.setSourceTextColor}
@@ -130,6 +147,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
       <ColorRow
         labelKey="subtitle.settings.translationColor"
         labelDefault="Translation text"
+        defaultColor={bindings.defaultTranslationTextColor}
         presets={TRANSLATION_PRESETS}
         value={bindings.translationTextColor}
         onChange={bindings.setTranslationTextColor}
@@ -143,6 +161,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
 interface ColorRowProps {
   labelKey: string;
   labelDefault: string;
+  defaultColor: string;
   presets: readonly string[];
   value: string;
   onChange: (s: string) => Promise<void>;
@@ -151,13 +170,23 @@ interface ColorRowProps {
 const ColorRow: React.FC<ColorRowProps> = ({
   labelKey,
   labelDefault,
+  defaultColor,
   presets,
   value,
   onChange,
 }) => {
   const { t } = useTranslation();
   const valueLower = value.toLowerCase();
-  const isCustom = !presets.some((p) => p.toLowerCase() === valueLower);
+
+  // First chip is always this surface's default. Drop any duplicate of the
+  // default that appears later in the shared preset list.
+  const orderedPresets = useMemo(() => {
+    const defaultLower = defaultColor.toLowerCase();
+    const rest = presets.filter((p) => p.toLowerCase() !== defaultLower);
+    return [defaultColor, ...rest] as const;
+  }, [defaultColor, presets]);
+
+  const isCustom = !orderedPresets.some((p) => p.toLowerCase() === valueLower);
 
   // Debounce the high-frequency change events emitted while the user
   // drags inside the OS color picker.
@@ -182,7 +211,7 @@ const ColorRow: React.FC<ColorRowProps> = ({
     <div className="field">
       <label>{t(labelKey, labelDefault)}</label>
       <div className="palette">
-        {presets.map((c) => (
+        {orderedPresets.map((c) => (
           <button
             key={c}
             type="button"
