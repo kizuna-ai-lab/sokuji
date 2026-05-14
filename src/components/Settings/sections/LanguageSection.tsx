@@ -248,7 +248,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const handleSwapLanguages = useCallback(() => {
     const src = currentProviderSettings?.sourceLanguage;
     const tgt = currentProviderSettings?.targetLanguage;
-    if (!src || !tgt || src === 'auto') return;
+    if (!src || !tgt || src === 'auto' || src === 'zhen') return;
 
     if (provider === Provider.LOCAL_INFERENCE) {
       const availableTargets = getTranslationTargetLanguages(tgt);
@@ -453,7 +453,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               <button
                 className="language-swap-btn"
                 onClick={handleSwapLanguages}
-                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto'}
+                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto' || currentProviderSettings.sourceLanguage === 'zhen'}
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"
               >
