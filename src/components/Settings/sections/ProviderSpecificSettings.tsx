@@ -2,6 +2,7 @@ import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
+import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
   useProvider,
   useSystemInstructions,
@@ -1461,14 +1462,29 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               value={volcengineAST2Settings.sourceLanguage}
               onChange={(e) => {
                 const oldSourceLang = volcengineAST2Settings.sourceLanguage;
+                const oldTargetLang = volcengineAST2Settings.targetLanguage;
                 const newSourceLang = e.target.value;
-                updateVolcengineAST2Settings({ sourceLanguage: newSourceLang });
+                const next = resolveAST2LanguagePair(
+                  { sourceLanguage: oldSourceLang, targetLanguage: oldTargetLang },
+                  { side: 'source', value: newSourceLang },
+                );
+                updateVolcengineAST2Settings({
+                  sourceLanguage: next.sourceLanguage,
+                  targetLanguage: next.targetLanguage,
+                });
 
                 trackEvent('language_changed', {
                   from_language: oldSourceLang,
-                  to_language: newSourceLang,
+                  to_language: next.sourceLanguage,
                   language_type: 'source'
                 });
+                if (next.targetLanguage !== oldTargetLang) {
+                  trackEvent('language_changed', {
+                    from_language: oldTargetLang,
+                    to_language: next.targetLanguage,
+                    language_type: 'target'
+                  });
+                }
               }}
               disabled={isSessionActive}
             >
@@ -1485,15 +1501,30 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               className="select-dropdown"
               value={volcengineAST2Settings.targetLanguage}
               onChange={(e) => {
+                const oldSourceLang = volcengineAST2Settings.sourceLanguage;
                 const oldTargetLang = volcengineAST2Settings.targetLanguage;
                 const newTargetLang = e.target.value;
-                updateVolcengineAST2Settings({ targetLanguage: newTargetLang });
+                const next = resolveAST2LanguagePair(
+                  { sourceLanguage: oldSourceLang, targetLanguage: oldTargetLang },
+                  { side: 'target', value: newTargetLang },
+                );
+                updateVolcengineAST2Settings({
+                  sourceLanguage: next.sourceLanguage,
+                  targetLanguage: next.targetLanguage,
+                });
 
                 trackEvent('language_changed', {
                   from_language: oldTargetLang,
-                  to_language: newTargetLang,
+                  to_language: next.targetLanguage,
                   language_type: 'target'
                 });
+                if (next.sourceLanguage !== oldSourceLang) {
+                  trackEvent('language_changed', {
+                    from_language: oldSourceLang,
+                    to_language: next.sourceLanguage,
+                    language_type: 'source'
+                  });
+                }
               }}
               disabled={isSessionActive}
             >
