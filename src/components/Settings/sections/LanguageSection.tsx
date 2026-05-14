@@ -254,6 +254,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       const availableTargets = getTranslationTargetLanguages(tgt);
       const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
       updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+    } else if (provider === Provider.VOLCENGINE_AST2) {
+      // AST2's updateSource/Target paths each write BOTH fields through the
+      // helper, reading prev from this closure. A two-step swap would invoke
+      // the second write with a stale prev — overwriting the first write with
+      // the original source value and producing src/src. Apply both new values
+      // in one update here instead. src === 'zhen' is already excluded above,
+      // so no resolveAST2LanguagePair invocation is needed.
+      updateVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
+      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
+      trackEvent('language_changed', { to_language: src, language_type: 'target' });
     } else {
       updateSourceLanguage(tgt);
       // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
@@ -267,7 +277,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
+  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateVolcengineAST2Settings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
