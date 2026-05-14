@@ -327,11 +327,19 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().conversationFontSize).toBe(
         CONVERSATION_FONT_SIZE_MIN,
       );
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.conversationFontSize',
+        CONVERSATION_FONT_SIZE_MIN,
+      );
     });
 
     it('clamps values above MAX', async () => {
       await useSettingsStore.getState().setConversationFontSize(200);
       expect(useSettingsStore.getState().conversationFontSize).toBe(
+        CONVERSATION_FONT_SIZE_MAX,
+      );
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.conversationFontSize',
         CONVERSATION_FONT_SIZE_MAX,
       );
     });
