@@ -35,6 +35,9 @@ import {
   useSetConversationDisplayFontSize,
   useConversationDisplayCompactMode,
   useSetConversationDisplayCompactMode,
+  useConversationDisplayBgColor,
+  useConversationDisplaySourceTextColor,
+  useConversationDisplayTranslationTextColor,
   CONVERSATION_FONT_SIZE_MIN,
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
@@ -136,6 +139,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const setConversationFontSize = useSetConversationDisplayFontSize();
   const conversationCompactMode = useConversationDisplayCompactMode();
   const setConversationCompactMode = useSetConversationDisplayCompactMode();
+  const conversationBgColor = useConversationDisplayBgColor();
+  const conversationSourceTextColor = useConversationDisplaySourceTextColor();
+  const conversationTranslationTextColor = useConversationDisplayTranslationTextColor();
   const speakerDisplayMode = useSpeakerDisplayMode();
   const participantDisplayMode = useParticipantDisplayMode();
   const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
@@ -2933,7 +2939,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Unified render for both modes
   return (
-    <div className="main-panel-wrapper">
+    <div
+      className="main-panel-wrapper"
+      style={{
+        '--conversation-bg-color': conversationBgColor,
+        '--conversation-source-color': conversationSourceTextColor,
+        '--conversation-translation-color': conversationTranslationTextColor,
+      } as React.CSSProperties}
+    >
       <UpdateBanner />
       <UpdateDialog />
       <div className="main-panel">
