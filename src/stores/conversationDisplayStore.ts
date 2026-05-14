@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { useShallow } from 'zustand/shallow';
 import { ServiceFactory } from '../services/ServiceFactory';
 
 interface ConversationDisplayState {
@@ -117,17 +116,6 @@ export const useConversationDisplayCompactMode = () => useConversationDisplaySto
 export const useConversationDisplayBgColor = () => useConversationDisplayStore((s) => s.bgColor);
 export const useConversationDisplaySourceTextColor = () => useConversationDisplayStore((s) => s.sourceTextColor);
 export const useConversationDisplayTranslationTextColor = () => useConversationDisplayStore((s) => s.translationTextColor);
-
-export const useConversationDisplaySettings = () =>
-  useConversationDisplayStore(
-    useShallow((s) => ({
-      fontSize: s.fontSize,
-      compactMode: s.compactMode,
-      bgColor: s.bgColor,
-      sourceTextColor: s.sourceTextColor,
-      translationTextColor: s.translationTextColor,
-    })),
-  );
 
 // ──────────── Action hooks ────────────
 export const useSetConversationDisplayFontSize = () => useConversationDisplayStore((s) => s.setFontSize);
