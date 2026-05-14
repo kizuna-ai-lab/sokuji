@@ -65,14 +65,14 @@
   padding: 2px 0 2px 30px; // indent so the line aligns under the name, avatar reserves space
   line-height: 1.4;
   font-size: var(--conversation-font-size, 14px);
-  transition: background-color 0.3s ease;
+  transition: box-shadow 0.15s ease, border-radius 0.15s ease;
 
   .conversation-row.grouped & {
     padding-left: 30px;
   }
 
   &.playing {
-    background: rgba(16, 163, 127, 0.1);
+    box-shadow: 0 0 0 1px var(--conversation-translation-color, #10a37f);
     border-radius: 4px;
   }
 }
@@ -111,12 +111,12 @@
   overflow-wrap: anywhere;
 
   &.src {
-    color: var(--subtitle-source-color, #9aa0a6);
+    color: var(--conversation-source-color, #9aa0a6);
     font-style: italic;
   }
 
   &.tr {
-    color: var(--subtitle-translation-color, #e8e8e8);
+    color: var(--conversation-translation-color, #e8e8e8);
   }
 }
 
