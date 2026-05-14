@@ -31,7 +31,7 @@ export class VolcengineAST2ProviderConfig {
   }
 
   static getTargetLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.LANGUAGES;
+    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
   }
 
   getConfig(): ProviderConfig {
