@@ -22,13 +22,18 @@ The plumbing for adjustable font sizes already exists on both surfaces:
 **Subtitle mode** (Electron floating window + extension overlay):
 - Has its own +/- buttons in `SubtitleBar.tsx:122-133`.
 - Range `FONT_SIZE_MIN=12 → FONT_SIZE_MAX=48`, step 2, default 24, persisted via `subtitleStore`.
-- Already adequate for projection; no change needed.
+- Adequate for typical screens but still small for large classroom / hall projection.
 
-The single concrete gap blocking the classroom use case is that **MainPanel's cap of 28 px is too small for projection**.
+Both surfaces have a cap that is too low for classroom-scale projection. **MainPanel's 28 px is the more severe gap, but subtitle's 48 px also leaves headroom for larger projection setups.**
 
 ## Proposed change
 
-Raise MainPanel's font-size cap from **28 → 48 px**, matching subtitle mode's existing range. Keep the existing +/- stepper UI, default value, persistence, and CSS variable wiring. No new settings surface.
+Raise the font-size cap on **both** surfaces to **64 px**:
+
+- MainPanel: **28 → 64 px**
+- Subtitle mode: **48 → 64 px**
+
+Keep the existing +/- stepper UI, default values, persistence, and CSS variable wiring on both surfaces. No new settings surface.
 
 ## Detailed design
 
@@ -38,7 +43,7 @@ Raise MainPanel's font-size cap from **28 → 48 px**, matching subtitle mode's 
 
   ```ts
   export const CONVERSATION_FONT_SIZE_MIN = 12;
-  export const CONVERSATION_FONT_SIZE_MAX = 48;
+  export const CONVERSATION_FONT_SIZE_MAX = 64;
   ```
 
   (Mirrors the `FONT_SIZE_MIN` / `FONT_SIZE_MAX` exports from `subtitleStore.ts:64-65`.)
@@ -64,50 +69,59 @@ No SCSS change. `.message-content { font-size: var(--conversation-font-size, 14p
 
 No extension-specific change. `extension/vite.config.ts` aliases `@components` to `../src/components`, so the same MainPanel ships in both targets.
 
-### 5. Subtitle mode
+### 5. `src/stores/subtitleStore.ts`
 
-Untouched. Already 12-48.
+- Update `FONT_SIZE_MAX` from `48` → `64` (line 65). `FONT_SIZE_MIN`, default (24), and step (2) stay the same.
+- Existing clamp logic (`clamp(Math.round(n), FONT_SIZE_MIN, FONT_SIZE_MAX)` on both setter and load path) automatically picks up the new bound.
+- Update the existing test in `src/stores/subtitleStore.test.ts` that hardcodes 48: line 31 description (`'clamps fontSize to [12, 48]'` → `'[12, 64]'`) and line 35 assertion (`toBe(48)` → `toBe(64)`). The line 37 in-range assertion (28) is unaffected.
 
 ## Acceptance-criteria mapping
 
 | Criterion (from issue #230) | How met |
 | --- | --- |
-| User can pick a font size that is clearly readable from across a typical classroom | Cap rises 28 → 48 px (~70% larger maximum), matching subtitle-mode max |
-| Default size unchanged | Default stays at 14 |
-| Persists across sessions | Already wired through `settingsStore`; clamp on load preserves valid stored values |
-| Layout works at the largest setting — no clipping, no overlap with controls/footer, scrolling still behaves | Verified manually at the new max; `line-height: 1.4` scales with font; bubbles wrap; toolbar sits above conversation, unaffected |
-| Works in both Electron and browser extension | Shared MainPanel code via `@components` alias |
+| User can pick a font size that is clearly readable from across a typical classroom | MainPanel cap rises 28 → 64 px (~2.3× larger max); subtitle cap rises 48 → 64 px |
+| Defaults unchanged | MainPanel default stays at 14; subtitle default stays at 24 |
+| Persists across sessions | Already wired through `settingsStore` and `subtitleStore`; clamp on load preserves valid stored values |
+| Layout works at the largest setting — no clipping, no overlap with controls/footer, scrolling still behaves | Verified manually at 64 on both surfaces; `line-height: 1.4` scales with font; bubbles wrap; toolbars / bars sit above conversation, unaffected |
+| Works in both Electron and browser extension | Shared MainPanel and Subtitle code via `@components` alias |
 
 ## Automated tests
 
-Add to `src/stores/settingsStore.test.ts` (currently has no coverage for `conversationFontSize`):
+**`src/stores/settingsStore.test.ts`** (currently has no coverage for `conversationFontSize`):
 
 - `setConversationFontSize(5)` → state value is clamped to `CONVERSATION_FONT_SIZE_MIN` (12).
-- `setConversationFontSize(100)` → state value is clamped to `CONVERSATION_FONT_SIZE_MAX` (48).
+- `setConversationFontSize(100)` → state value is clamped to `CONVERSATION_FONT_SIZE_MAX` (64).
 - `setConversationFontSize(20)` → state value stays at 20 (in-range pass-through).
 
 Mirrors the existing pattern in `src/stores/subtitleStore.test.ts:31-37`.
 
+**`src/stores/subtitleStore.test.ts`**: update the existing `'clamps fontSize to [12, 48]'` test to assert the new upper bound of 64 (description string + line 35 `toBe(48)` → `toBe(64)`).
+
 ## Manual verification (test plan)
 
-Run on Electron and on the extension side panel, in both basic and advanced UI modes:
+**MainPanel** — run on Electron and on the extension side panel, in both basic and advanced UI modes:
 
 1. Start a session, send / receive a few messages.
-2. Click `A↑` repeatedly — value reaches 48 and stops; button becomes disabled.
+2. Click `A↑` repeatedly — value reaches 64 and stops; button becomes disabled.
 3. Click `A↓` repeatedly — value reaches 12 and stops; button becomes disabled.
-4. At 48 px, verify:
+4. At 64 px, verify:
    - Bubbles wrap; no horizontal overflow.
    - Conversation scrolls correctly when content exceeds the viewport.
    - The conversation toolbar above and the footer below are unaffected.
    - Karaoke-highlighted (currently-playing) bubbles still render correctly with the new size.
 5. Reload the app — the chosen size persists.
-6. Manually inject an out-of-range value (e.g., 200) into stored settings, reload — value gets clamped to 48.
+6. Manually inject an out-of-range value (e.g., 200) into stored settings, reload — value gets clamped to 64.
+
+**Subtitle mode** — run on Electron's floating subtitle window and the extension overlay:
+
+7. Open subtitle mode, click `+` repeatedly — value reaches 64 and stops; button becomes disabled.
+8. At 64 px, verify the subtitle window/overlay still renders the original + translated text without clipping or layout breakage; controls in the bar remain usable.
+9. Reload — chosen size persists.
 
 ## Out of scope
 
 - Adding a separate "Presentation / Projection" preset (existing +/- control already implements an S/M/L/XL stepper shape; raising the cap covers the classroom use case).
-- Bumping subtitle mode's max (already adequate at 48).
-- Asymmetric step sizing (e.g., step=4 above 28). Subtitle mode lives with step=2 across its full range; consistency wins.
+- Asymmetric step sizing (e.g., step=4 above 28). Step=2 across the full range matches subtitle mode's existing behavior; consistency wins. (12 → 64 in steps of 2 is 26 clicks but still acceptable, and users typically set once and persist.)
 - Per-bubble-type or per-language sizing.
 - Replacing the +/- stepper with a slider or numeric input.
 
