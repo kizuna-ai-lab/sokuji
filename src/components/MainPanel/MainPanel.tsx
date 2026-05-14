@@ -24,6 +24,8 @@ import {
   useNavigateToSettings,
   useConversationFontSize,
   useSetConversationFontSize,
+  CONVERSATION_FONT_SIZE_MIN,
+  CONVERSATION_FONT_SIZE_MAX,
   useConversationCompactMode,
   useSetConversationCompactMode,
   useSpeakerDisplayMode,
@@ -2933,8 +2935,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             )}
             <button
               className="font-size-btn"
-              onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
-              disabled={conversationFontSize <= 12}
+              onClick={() => setConversationFontSize(Math.max(CONVERSATION_FONT_SIZE_MIN, conversationFontSize - 2))}
+              disabled={conversationFontSize <= CONVERSATION_FONT_SIZE_MIN}
               title={t('mainPanel.decreaseFontSize', 'Decrease font size')}
               aria-label={t('mainPanel.decreaseFontSize', 'Decrease font size')}
               type="button"
@@ -2943,8 +2945,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </button>
             <button
               className="font-size-btn"
-              onClick={() => setConversationFontSize(Math.min(28, conversationFontSize + 2))}
-              disabled={conversationFontSize >= 28}
+              onClick={() => setConversationFontSize(Math.min(CONVERSATION_FONT_SIZE_MAX, conversationFontSize + 2))}
+              disabled={conversationFontSize >= CONVERSATION_FONT_SIZE_MAX}
               title={t('mainPanel.increaseFontSize', 'Increase font size')}
               aria-label={t('mainPanel.increaseFontSize', 'Increase font size')}
               type="button"
