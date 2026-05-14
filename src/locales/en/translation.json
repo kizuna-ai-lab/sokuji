@@ -573,6 +573,7 @@
     "decreaseFontSize": "Decrease font size",
     "increaseFontSize": "Increase font size",
     "compactView": "Compact view",
+    "displaySettings": "Display settings",
     "expandedView": "Expanded view",
     "displayMode": {
       "speaker": "Speaker",
@@ -899,9 +900,10 @@
     },
     "settings": {
       "bgOpacity": "Background opacity",
-      "bgColor": "Background color",
-      "sourceColor": "Source text color",
-      "translationColor": "Translation color"
+      "bgColor": "Display background",
+      "sourceColor": "Source text",
+      "translationColor": "Translation text",
+      "customColor": "Custom color"
     },
     "pttHint": "Press Space to speak"
   },
