@@ -32,6 +32,7 @@ import {
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
+import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
 import { useIsSystemAudioCaptureEnabled } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
@@ -153,9 +154,27 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ sourceLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2:
-        updateVolcengineAST2Settings({ sourceLanguage: value });
+      case Provider.VOLCENGINE_AST2: {
+        const prev = volcengineAST2Settings;
+        const next = resolveAST2LanguagePair(
+          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
+          { side: 'source', value },
+        );
+        updateVolcengineAST2Settings({
+          sourceLanguage: next.sourceLanguage,
+          targetLanguage: next.targetLanguage,
+        });
+        // Spec §5: when bidirectional sync also changes the other side, emit a
+        // second analytics event so consumers see both transitions. The trailing
+        // `trackEvent` below this switch still emits the source-side event.
+        if (next.targetLanguage !== prev.targetLanguage) {
+          trackEvent('language_changed', {
+            to_language: next.targetLanguage,
+            language_type: 'target',
+          });
+        }
         break;
+      }
       case Provider.LOCAL_INFERENCE: {
         const availableTargets = getTranslationTargetLanguages(value);
         const currentTarget = localInferenceSettings.targetLanguage;
@@ -197,9 +216,24 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ targetLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2:
-        updateVolcengineAST2Settings({ targetLanguage: value });
+      case Provider.VOLCENGINE_AST2: {
+        const prev = volcengineAST2Settings;
+        const next = resolveAST2LanguagePair(
+          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
+          { side: 'target', value },
+        );
+        updateVolcengineAST2Settings({
+          sourceLanguage: next.sourceLanguage,
+          targetLanguage: next.targetLanguage,
+        });
+        if (next.sourceLanguage !== prev.sourceLanguage) {
+          trackEvent('language_changed', {
+            to_language: next.sourceLanguage,
+            language_type: 'source',
+          });
+        }
         break;
+      }
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
