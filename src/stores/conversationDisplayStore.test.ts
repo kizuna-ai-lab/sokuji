@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   useConversationDisplayStore,
   CONVERSATION_FONT_SIZE_MIN,
@@ -100,6 +100,13 @@ describe('conversationDisplayStore', () => {
     const calls = mockGetSetting.mock.calls.map((c) => c[0] as string);
     expect(calls).not.toContain('settings.common.conversationFontSize');
     expect(calls).not.toContain('settings.common.conversationCompactMode');
+  });
+
+  it('rolls back optimistic state when persistence fails', async () => {
+    mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+    const before = useConversationDisplayStore.getState().bgColor;
+    await useConversationDisplayStore.getState().setBgColor('#FFFFFF');
+    expect(useConversationDisplayStore.getState().bgColor).toBe(before);
   });
 
   it('selector hooks exist', () => {
