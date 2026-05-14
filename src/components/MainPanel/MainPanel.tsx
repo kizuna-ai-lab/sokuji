@@ -22,12 +22,6 @@ import {
   useCreateSessionConfig,
   useTransportType,
   useNavigateToSettings,
-  useConversationFontSize,
-  useSetConversationFontSize,
-  CONVERSATION_FONT_SIZE_MIN,
-  CONVERSATION_FONT_SIZE_MAX,
-  useConversationCompactMode,
-  useSetConversationCompactMode,
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
   useSetSpeakerDisplayMode,
@@ -36,6 +30,14 @@ import {
   useSubtitleModeActive
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
+import {
+  useConversationDisplayFontSize,
+  useSetConversationDisplayFontSize,
+  useConversationDisplayCompactMode,
+  useSetConversationDisplayCompactMode,
+  CONVERSATION_FONT_SIZE_MIN,
+  CONVERSATION_FONT_SIZE_MAX,
+} from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
@@ -126,10 +128,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
   const subtitleTakeover = subtitleModeActive && isExtension();
-  const conversationFontSize = useConversationFontSize();
-  const setConversationFontSize = useSetConversationFontSize();
-  const conversationCompactMode = useConversationCompactMode();
-  const setConversationCompactMode = useSetConversationCompactMode();
+  const conversationFontSize = useConversationDisplayFontSize();
+  const setConversationFontSize = useSetConversationDisplayFontSize();
+  const conversationCompactMode = useConversationDisplayCompactMode();
+  const setConversationCompactMode = useSetConversationDisplayCompactMode();
   const speakerDisplayMode = useSpeakerDisplayMode();
   const participantDisplayMode = useParticipantDisplayMode();
   const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
