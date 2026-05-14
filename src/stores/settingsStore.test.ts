@@ -25,7 +25,11 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 });
 
 // Import after mocking
-const { default: useSettingsStore } = await import('./settingsStore');
+const {
+  default: useSettingsStore,
+  CONVERSATION_FONT_SIZE_MIN,
+  CONVERSATION_FONT_SIZE_MAX,
+} = await import('./settingsStore');
 
 describe('settingsStore', () => {
   beforeEach(() => {
@@ -309,6 +313,40 @@ describe('settingsStore', () => {
       });
       await store.updateKizunaAI({ transportType: 'webrtc' });
       expect(useSettingsStore.getState().kizunaai.turnDetectionMode).toBe('Disabled');
+    });
+  });
+
+  describe('conversationFontSize clamping', () => {
+    it('exports MIN=12 and MAX=64 constants', () => {
+      expect(CONVERSATION_FONT_SIZE_MIN).toBe(12);
+      expect(CONVERSATION_FONT_SIZE_MAX).toBe(64);
+    });
+
+    it('clamps values below MIN', async () => {
+      await useSettingsStore.getState().setConversationFontSize(5);
+      expect(useSettingsStore.getState().conversationFontSize).toBe(
+        CONVERSATION_FONT_SIZE_MIN,
+      );
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.conversationFontSize',
+        CONVERSATION_FONT_SIZE_MIN,
+      );
+    });
+
+    it('clamps values above MAX', async () => {
+      await useSettingsStore.getState().setConversationFontSize(200);
+      expect(useSettingsStore.getState().conversationFontSize).toBe(
+        CONVERSATION_FONT_SIZE_MAX,
+      );
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.conversationFontSize',
+        CONVERSATION_FONT_SIZE_MAX,
+      );
+    });
+
+    it('passes through in-range values', async () => {
+      await useSettingsStore.getState().setConversationFontSize(20);
+      expect(useSettingsStore.getState().conversationFontSize).toBe(20);
     });
   });
 });
