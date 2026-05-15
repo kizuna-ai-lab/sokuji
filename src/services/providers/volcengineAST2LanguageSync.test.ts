@@ -92,4 +92,44 @@ describe('resolveAST2LanguagePair', () => {
       ),
     ).toEqual({ sourceLanguage: 'zh', targetLanguage: 'fr' });
   });
+
+  // Legacy persisted states: before this PR exposed 'zhen' on the target side,
+  // users could end up with sourceLanguage='zhen' but a non-'zhen' target.
+  // The helper must reset the orphaned 'zhen' side rather than emit it back
+  // to the server, which would reject the mixed pair.
+  it('legacy zhen/en → target=fr ⇒ zh/fr (orphan zhen source reset)', () => {
+    expect(
+      resolveAST2LanguagePair(
+        { sourceLanguage: 'zhen', targetLanguage: 'en' },
+        { side: 'target', value: 'fr' },
+      ),
+    ).toEqual({ sourceLanguage: 'zh', targetLanguage: 'fr' });
+  });
+
+  it('legacy zhen/en → source=ja ⇒ ja/en (target was not zhen, no reset)', () => {
+    expect(
+      resolveAST2LanguagePair(
+        { sourceLanguage: 'zhen', targetLanguage: 'en' },
+        { side: 'source', value: 'ja' },
+      ),
+    ).toEqual({ sourceLanguage: 'ja', targetLanguage: 'en' });
+  });
+
+  it('legacy en/zhen → source=de ⇒ de/en (orphan zhen target reset)', () => {
+    expect(
+      resolveAST2LanguagePair(
+        { sourceLanguage: 'en', targetLanguage: 'zhen' },
+        { side: 'source', value: 'de' },
+      ),
+    ).toEqual({ sourceLanguage: 'de', targetLanguage: 'en' });
+  });
+
+  it('legacy en/zhen → target=ja ⇒ en/ja (source was not zhen, no reset)', () => {
+    expect(
+      resolveAST2LanguagePair(
+        { sourceLanguage: 'en', targetLanguage: 'zhen' },
+        { side: 'target', value: 'ja' },
+      ),
+    ).toEqual({ sourceLanguage: 'en', targetLanguage: 'ja' });
+  });
 });
