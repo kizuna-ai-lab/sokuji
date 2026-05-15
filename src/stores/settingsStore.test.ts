@@ -25,7 +25,9 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 });
 
 // Import after mocking
-const { default: useSettingsStore } = await import('./settingsStore');
+const {
+  default: useSettingsStore,
+} = await import('./settingsStore');
 
 describe('settingsStore', () => {
   beforeEach(() => {
@@ -311,6 +313,7 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().kizunaai.turnDetectionMode).toBe('Disabled');
     });
   });
+
 });
 
 describe('createParticipantLocalInferenceConfig', () => {

@@ -47,13 +47,18 @@ interface SubtitleState {
   hydrate: () => Promise<void>;
 }
 
+// ──────────── Default colors (exported for popover preset wiring) ────────────
+export const SUBTITLE_DEFAULT_BG_COLOR = '#000000';
+export const SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR = '#ffffff';
+export const SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR = '#9ad0ff';
+
 const DEFAULTS = {
   fontSize: 24,
   compactMode: false,
   bgOpacity: 80,
-  bgColor: '#000000',
-  sourceTextColor: '#ffffff',
-  translationTextColor: '#9ad0ff',
+  bgColor: SUBTITLE_DEFAULT_BG_COLOR,
+  sourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
+  translationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
   alwaysOnTop: false,
   positionLocked: false,
   windowBounds: null as SubtitleWindowBounds | null,
@@ -62,7 +67,7 @@ const DEFAULTS = {
 };
 
 export const FONT_SIZE_MIN = 12;
-export const FONT_SIZE_MAX = 48;
+export const FONT_SIZE_MAX = 64;
 const BG_OPACITY_MIN = 0;
 const BG_OPACITY_MAX = 100;
 

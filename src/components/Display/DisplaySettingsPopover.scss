@@ -1,0 +1,82 @@
+.display-settings-popover {
+  background: #1a1a1a;
+  color: #e8e8e8;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 16px;
+  width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  .field {
+    margin-bottom: 12px;
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: #c8c8c8;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .palette {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        padding: 0;
+        position: relative;
+
+        // Keyboard focus indicator. Reuses the green "selected" colour and
+        // sits outside the chip so it doesn't compete with the selected
+        // border. :focus-visible (not :focus) so mouse-clicks don't show it.
+        &:focus-visible {
+          outline: 2px solid #10a37f;
+          outline-offset: 2px;
+        }
+
+        &.selected {
+          border-color: #10a37f;
+        }
+
+        // Custom-color chip: a <label> wrapping a hidden <input type="color">.
+        // The chip's background reflects the current chosen color so it
+        // doubles as a "current value" indicator. The Plus icon is rendered
+        // in white with a thin dark outline so it stays legible regardless
+        // of the chip background.
+        &.custom {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+
+          // The hidden <input type="color"> takes the focus, not the label.
+          // Mirror it back to the label via :focus-within so the visible
+          // chip shows the ring instead of the invisible input.
+          &:focus-within {
+            outline: 2px solid #10a37f;
+            outline-offset: 2px;
+          }
+
+          input[type="color"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+          }
+        }
+      }
+    }
+  }
+}

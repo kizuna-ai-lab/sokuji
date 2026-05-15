@@ -6,7 +6,7 @@ import {
   Pin, Lock, X, Settings, Trash2,
 } from 'lucide-react';
 import {
-  useFloating, useClick, useDismiss, useInteractions, offset, flip, FloatingPortal,
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
@@ -24,7 +24,7 @@ import {
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
-import SubtitleSettingsPopover from './SubtitleSettingsPopover';
+import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import './SubtitleBar.scss';
@@ -91,7 +91,10 @@ const SubtitleBar: React.FC<Props> = ({
   });
   const click = useClick(context);
   const dismiss = useDismiss(context);
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
+  // useRole wires aria-haspopup / aria-expanded / aria-controls on the
+  // trigger button and role="dialog" / aria-modal on the floating wrapper.
+  const role = useRole(context, { role: 'dialog' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
   return (
     <div
@@ -201,8 +204,13 @@ const SubtitleBar: React.FC<Props> = ({
 
       {popoverOpen && (
         <FloatingPortal>
-          <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
-            <SubtitleSettingsPopover />
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
+            {...getFloatingProps()}
+          >
+            <DisplaySettingsPopover source="subtitle" />
           </div>
         </FloatingPortal>
       )}

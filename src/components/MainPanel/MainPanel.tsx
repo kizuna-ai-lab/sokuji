@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -22,10 +22,6 @@ import {
   useCreateSessionConfig,
   useTransportType,
   useNavigateToSettings,
-  useConversationFontSize,
-  useSetConversationFontSize,
-  useConversationCompactMode,
-  useSetConversationCompactMode,
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
   useSetSpeakerDisplayMode,
@@ -34,6 +30,17 @@ import {
   useSubtitleModeActive
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
+import {
+  useConversationDisplayFontSize,
+  useSetConversationDisplayFontSize,
+  useConversationDisplayCompactMode,
+  useSetConversationDisplayCompactMode,
+  useConversationDisplayBgColor,
+  useConversationDisplaySourceTextColor,
+  useConversationDisplayTranslationTextColor,
+  CONVERSATION_FONT_SIZE_MIN,
+  CONVERSATION_FONT_SIZE_MAX,
+} from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
@@ -60,6 +67,10 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
+import {
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
+} from '@floating-ui/react';
+import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 
 
 /**
@@ -124,10 +135,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
   const subtitleTakeover = subtitleModeActive && isExtension();
-  const conversationFontSize = useConversationFontSize();
-  const setConversationFontSize = useSetConversationFontSize();
-  const conversationCompactMode = useConversationCompactMode();
-  const setConversationCompactMode = useSetConversationCompactMode();
+  const conversationFontSize = useConversationDisplayFontSize();
+  const setConversationFontSize = useSetConversationDisplayFontSize();
+  const conversationCompactMode = useConversationDisplayCompactMode();
+  const setConversationCompactMode = useSetConversationDisplayCompactMode();
+  const conversationBgColor = useConversationDisplayBgColor();
+  const conversationSourceTextColor = useConversationDisplaySourceTextColor();
+  const conversationTranslationTextColor = useConversationDisplayTranslationTextColor();
   const speakerDisplayMode = useSpeakerDisplayMode();
   const participantDisplayMode = useParticipantDisplayMode();
   const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
@@ -251,6 +265,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // AI response state for text input queueing (OpenAI only)
   const [isAIResponding, setIsAIResponding] = useState(false);
   const pendingTextRef = useRef<string | null>(null);
+
+  // Display settings popover (conversation-toolbar ⚙)
+  const [displayPopoverOpen, setDisplayPopoverOpen] = useState(false);
+  const displayPopoverFloating = useFloating({
+    open: displayPopoverOpen,
+    onOpenChange: setDisplayPopoverOpen,
+    placement: 'bottom-end',
+    middleware: [offset(8), flip()],
+  });
+  // useRole wires aria-haspopup / aria-expanded / aria-controls on the
+  // trigger button and role="dialog" / aria-modal on the floating wrapper.
+  const displayPopoverInteractions = useInteractions([
+    useClick(displayPopoverFloating.context),
+    useDismiss(displayPopoverFloating.context),
+    useRole(displayPopoverFloating.context, { role: 'dialog' }),
+  ]);
 
   /**
    * Convert settings to SessionConfig
@@ -2912,12 +2942,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Unified render for both modes
   return (
-    <div className="main-panel-wrapper">
+    <div
+      className="main-panel-wrapper"
+      style={{
+        '--conversation-bg-color': conversationBgColor,
+        '--conversation-source-color': conversationSourceTextColor,
+        '--conversation-translation-color': conversationTranslationTextColor,
+      } as React.CSSProperties}
+    >
       <UpdateBanner />
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
         {(isSessionActive || combinedItems.length > 0) && (
+          <>
           <div className="conversation-toolbar">
             <DisplayModeButton
               scope="speaker"
@@ -2933,8 +2971,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             )}
             <button
               className="font-size-btn"
-              onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
-              disabled={conversationFontSize <= 12}
+              onClick={() => setConversationFontSize(Math.max(CONVERSATION_FONT_SIZE_MIN, conversationFontSize - 2))}
+              disabled={conversationFontSize <= CONVERSATION_FONT_SIZE_MIN}
               title={t('mainPanel.decreaseFontSize', 'Decrease font size')}
               aria-label={t('mainPanel.decreaseFontSize', 'Decrease font size')}
               type="button"
@@ -2943,8 +2981,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </button>
             <button
               className="font-size-btn"
-              onClick={() => setConversationFontSize(Math.min(28, conversationFontSize + 2))}
-              disabled={conversationFontSize >= 28}
+              onClick={() => setConversationFontSize(Math.min(CONVERSATION_FONT_SIZE_MAX, conversationFontSize + 2))}
+              disabled={conversationFontSize >= CONVERSATION_FONT_SIZE_MAX}
               title={t('mainPanel.increaseFontSize', 'Increase font size')}
               aria-label={t('mainPanel.increaseFontSize', 'Increase font size')}
               type="button"
@@ -2979,6 +3017,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               targetLanguage={targetLanguage}
             />
             <button
+              className="font-size-btn"
+              ref={displayPopoverFloating.refs.setReference}
+              {...displayPopoverInteractions.getReferenceProps()}
+              title={t('mainPanel.displaySettings', 'Display settings')}
+              aria-label={t('mainPanel.displaySettings', 'Display settings')}
+              type="button"
+            >
+              <Settings size={14} />
+            </button>
+            <button
               className="clear-conversation-btn"
               onClick={requestClearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
@@ -2988,6 +3036,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <Trash2 size={14} />
             </button>
           </div>
+          {displayPopoverOpen && (
+            <FloatingPortal>
+              <div
+                ref={displayPopoverFloating.refs.setFloating}
+                style={displayPopoverFloating.floatingStyles}
+                aria-label={t('mainPanel.displaySettings', 'Display settings')}
+                {...displayPopoverInteractions.getFloatingProps()}
+              >
+                <DisplaySettingsPopover source="conversation" />
+              </div>
+            </FloatingPortal>
+          )}
+          </>
         )}
         {/* Conversation Display */}
         <div
