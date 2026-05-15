@@ -103,8 +103,7 @@ export function getServerTimeOffsetMs(forceRefresh = false): Promise<number> {
   serverTimeOffsetPromise = (async () => {
     try {
       const t0 = Date.now();
-      const probeUrl = `https://${READALOUD_BASE}/voices/list?trustedclienttoken=${TRUSTED_CLIENT_TOKEN}`;
-      const response = await fetch(probeUrl, { method: 'HEAD', cache: 'no-store' });
+      const response = await fetch(VOICE_LIST_URL, { method: 'HEAD', cache: 'no-store' });
       const t1 = Date.now();
       const dateHeader = response.headers.get('date');
       if (dateHeader) {
