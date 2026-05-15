@@ -68,7 +68,7 @@ import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
 import {
-  useFloating, useClick, useDismiss, useInteractions, offset, flip, FloatingPortal,
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 
@@ -274,9 +274,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     placement: 'bottom-end',
     middleware: [offset(8), flip()],
   });
+  // useRole wires aria-haspopup / aria-expanded / aria-controls on the
+  // trigger button and role="dialog" / aria-modal on the floating wrapper.
   const displayPopoverInteractions = useInteractions([
     useClick(displayPopoverFloating.context),
     useDismiss(displayPopoverFloating.context),
+    useRole(displayPopoverFloating.context, { role: 'dialog' }),
   ]);
 
   /**
@@ -3038,6 +3041,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <div
                 ref={displayPopoverFloating.refs.setFloating}
                 style={displayPopoverFloating.floatingStyles}
+                aria-label={t('mainPanel.displaySettings', 'Display settings')}
                 {...displayPopoverInteractions.getFloatingProps()}
               >
                 <DisplaySettingsPopover source="conversation" />

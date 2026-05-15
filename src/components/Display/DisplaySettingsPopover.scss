@@ -35,6 +35,14 @@
         padding: 0;
         position: relative;
 
+        // Keyboard focus indicator. Reuses the green "selected" colour and
+        // sits outside the chip so it doesn't compete with the selected
+        // border. :focus-visible (not :focus) so mouse-clicks don't show it.
+        &:focus-visible {
+          outline: 2px solid #10a37f;
+          outline-offset: 2px;
+        }
+
         &.selected {
           border-color: #10a37f;
         }
@@ -50,6 +58,14 @@
           justify-content: center;
           color: #fff;
           filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+
+          // The hidden <input type="color"> takes the focus, not the label.
+          // Mirror it back to the label via :focus-within so the visible
+          // chip shows the ring instead of the invisible input.
+          &:focus-within {
+            outline: 2px solid #10a37f;
+            outline-offset: 2px;
+          }
 
           input[type="color"] {
             position: absolute;

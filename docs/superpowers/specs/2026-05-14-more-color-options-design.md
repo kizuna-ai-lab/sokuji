@@ -69,7 +69,7 @@ When the user changes any of the three color settings via the conversation-toolb
 - **Conversation content area background** follows `conversationDisplayStore.bgColor`.
 - **Original-language text** in conversation rows follows `conversationDisplayStore.sourceTextColor`.
 - **Translated text** in conversation rows follows `conversationDisplayStore.translationTextColor`.
-- **Currently-playing row** is indicated by a 1px ring in the translation-text color around the row body, instead of the existing translucent green background. The ring works against any background color; the translucent green stops being visible against translation-color backgrounds.
+- **Currently-playing row** is indicated by a translucent overlay in the translation-text color (`color-mix(in srgb, var(--conversation-translation-color, #10a37f) 15%, transparent)`) on top of the row body, replacing the previous hardcoded translucent green. The overlay stays subtle and follows the user's chosen translation color so it remains visible (and consistent with the theme) against any background. An earlier draft of this spec called for a 1px translation-color ring around the row; that was reverted during review because, on a row that spans the full conversation-display width, the ring read as an oversized box around the row rather than a subtle now-playing hint.
 
 The chrome (control footer, text input section, titlebar, sidebar) does **not** change color and stays on its existing dark tokens.
 
@@ -224,7 +224,7 @@ Two distinct changes:
 Two functional edits and one cleanup:
 
 1. `.conversation-display` gets `background: var(--conversation-bg-color, #1f1f1f);` — the conversation content area becomes themable from `conversationDisplayStore`.
-2. `.conversation-list .row-body.playing` (currently `background: rgba(16, 163, 127, 0.1)`) drops the background and gets `box-shadow: 0 0 0 1px var(--conversation-translation-color, #10a37f); border-radius: 4px;` — playing-state indicator becomes a translation-color ring that survives any background.
+2. `.conversation-list .row-body.playing` (currently `background: rgba(16, 163, 127, 0.1)`) keeps the translucent-overlay shape but derives its color from the active translation color via `color-mix`: `background: color-mix(in srgb, var(--conversation-translation-color, #10a37f) 15%, transparent); border-radius: 4px;`. The transition stays on `background-color`. Earlier drafts proposed a `box-shadow` ring; see the User-Visible Behavior section for why the overlay shape was kept.
 3. **Cleanup**: remove the `.message-bubble.user`, `.message-bubble.assistant`, `.message-bubble.user.playing`, `.message-bubble.assistant.playing`, `.message-bubble.participant-source.user`, `.message-bubble.participant-source.assistant` (and their `.playing` nested rules) blocks, plus the `.message-bubble.assistant .karaoke-played` override. These selectors are no longer rendered: `MainPanel.tsx` only emits `message-bubble error` and `message-bubble system` for the bubble class today; conversation rows go through `<ConversationRow>`. Removing them prevents future readers from inferring user/assistant visual differentiation that no longer exists.
 
 `.message-bubble.error`, `.message-bubble.system`, `.text-input-section`, `.control-footer`, and `.conversation-toolbar` are unchanged: error and system are status-semantic colors; the rest are chrome.

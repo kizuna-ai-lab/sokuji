@@ -6,7 +6,7 @@ import {
   Pin, Lock, X, Settings, Trash2,
 } from 'lucide-react';
 import {
-  useFloating, useClick, useDismiss, useInteractions, offset, flip, FloatingPortal,
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
@@ -91,7 +91,10 @@ const SubtitleBar: React.FC<Props> = ({
   });
   const click = useClick(context);
   const dismiss = useDismiss(context);
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
+  // useRole wires aria-haspopup / aria-expanded / aria-controls on the
+  // trigger button and role="dialog" / aria-modal on the floating wrapper.
+  const role = useRole(context, { role: 'dialog' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
   return (
     <div
@@ -201,7 +204,12 @@ const SubtitleBar: React.FC<Props> = ({
 
       {popoverOpen && (
         <FloatingPortal>
-          <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
+            {...getFloatingProps()}
+          >
             <DisplaySettingsPopover source="subtitle" />
           </div>
         </FloatingPortal>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import {
@@ -106,26 +106,18 @@ const ConversationBoundPopover: React.FC = () => {
 // ──────────── Pure presentational inner ────────────
 
 const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bindings }) => {
-  const { t } = useTranslation();
   const includeOpacity =
     bindings.bgOpacity !== undefined && bindings.setBgOpacity !== undefined;
 
+  // Note: role="dialog" + accessible name are intentionally NOT set on this
+  // root. They live on the floating wrapper in SubtitleBar / MainPanel via
+  // @floating-ui/react's useRole, which also wires aria-haspopup / aria-
+  // expanded / aria-controls on the trigger. Keeping the role on a single
+  // level avoids duplicate dialog announcements.
   return (
-    <div className="display-settings-popover" role="dialog">
+    <div className="display-settings-popover">
       {includeOpacity && (
-        <div className="field">
-          <label>
-            {t('subtitle.settings.bgOpacity', 'Background opacity')} ({bindings.bgOpacity}%)
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={bindings.bgOpacity}
-            onChange={(e) => bindings.setBgOpacity!(Number(e.target.value))}
-          />
-        </div>
+        <OpacitySlider value={bindings.bgOpacity!} onCommit={bindings.setBgOpacity!} />
       )}
 
       <ColorRow
@@ -151,6 +143,52 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         presets={TRANSLATION_PRESETS}
         value={bindings.translationTextColor}
         onChange={bindings.setTranslationTextColor}
+      />
+    </div>
+  );
+};
+
+// ──────────── Opacity slider (subtitle-only) ────────────
+// Local state during pointer drag so we don't fire setBgOpacity (and the
+// async persist behind it) for every intermediate value. The store is
+// updated only when the user releases the pointer or finishes a keyboard
+// interaction.
+
+const OpacitySlider: React.FC<{
+  value: number;
+  onCommit: (n: number) => Promise<void>;
+}> = ({ value, onCommit }) => {
+  const { t } = useTranslation();
+  const id = useId();
+  const [local, setLocal] = useState(value);
+
+  // Sync local state if the bound value changes externally (hydration,
+  // someone else's update).
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const commit = useCallback(() => {
+    if (local !== value) {
+      void onCommit(local);
+    }
+  }, [local, value, onCommit]);
+
+  return (
+    <div className="field">
+      <label htmlFor={id}>
+        {t('subtitle.settings.bgOpacity', 'Background opacity')} ({local}%)
+      </label>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={local}
+        onChange={(e) => setLocal(Number(e.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
       />
     </div>
   );
@@ -231,6 +269,7 @@ const ColorRow: React.FC<ColorRowProps> = ({
           <input
             type="color"
             value={value}
+            aria-label={t('subtitle.settings.customColor', 'Custom color')}
             onChange={(e) => onPickerChange(e.target.value)}
           />
         </label>
