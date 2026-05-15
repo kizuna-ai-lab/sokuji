@@ -98,7 +98,7 @@ This adds noise (two events per user action when only one click happened) but ma
 
 ### 6. Testing
 
-**Unit (Vitest)**: a single test file covering the helper applies R1–R4 to a mocked store and asserts the post-state plus that `updateVolcengineAST2Settings` was called **exactly once** per user action.
+**Unit (Vitest)**: a single test file (`volcengineAST2LanguageSync.test.ts`) covering the pure helper `resolveAST2LanguagePair`. Each case constructs an `AST2LanguagePair` + `AST2LanguageChange` and asserts the returned post-state matches the rule table below. No store mocking — the "single store update" guarantee is enforced by the call site contract (each call site issues exactly one `updateVolcengineAST2Settings({sourceLanguage, targetLanguage})` per user action) and verified by reading the code, not by unit tests on the helper itself.
 
 | case | initial src / tgt | action | expected post-state |
 | ---- | ----------------- | ------ | ------------------- |
