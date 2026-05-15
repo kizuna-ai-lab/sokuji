@@ -31,7 +31,7 @@ export class VolcengineAST2ProviderConfig {
   }
 
   static getTargetLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.LANGUAGES;
+    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
   }
 
   getConfig(): ProviderConfig {
@@ -42,7 +42,7 @@ export class VolcengineAST2ProviderConfig {
       apiKeyLabel: 'App Key',
       apiKeyPlaceholder: 'Enter your Volcengine App Key',
 
-      languages: VolcengineAST2ProviderConfig.LANGUAGES,
+      languages: VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES,
       voices: VolcengineAST2ProviderConfig.VOICES,
       models: VolcengineAST2ProviderConfig.MODELS,
       noiseReductionModes: [],

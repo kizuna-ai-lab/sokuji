@@ -32,6 +32,7 @@ import {
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
+import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
 import { useIsSystemAudioCaptureEnabled } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
@@ -153,9 +154,33 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ sourceLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2:
-        updateVolcengineAST2Settings({ sourceLanguage: value });
-        break;
+      case Provider.VOLCENGINE_AST2: {
+        const prev = volcengineAST2Settings;
+        const next = resolveAST2LanguagePair(
+          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
+          { side: 'source', value },
+        );
+        updateVolcengineAST2Settings({
+          sourceLanguage: next.sourceLanguage,
+          targetLanguage: next.targetLanguage,
+        });
+        // Spec §5: emit source event first (the user-touched side), then a
+        // secondary target event when bidirectional sync also changed the
+        // other side. Both fire from inside this branch so the ordering is
+        // source-then-target — the function returns to skip the trailing
+        // emit below this switch.
+        trackEvent('language_changed', {
+          to_language: next.sourceLanguage,
+          language_type: 'source',
+        });
+        if (next.targetLanguage !== prev.targetLanguage) {
+          trackEvent('language_changed', {
+            to_language: next.targetLanguage,
+            language_type: 'target',
+          });
+        }
+        return;
+      }
       case Provider.LOCAL_INFERENCE: {
         const availableTargets = getTranslationTargetLanguages(value);
         const currentTarget = localInferenceSettings.targetLanguage;
@@ -197,9 +222,32 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ targetLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2:
-        updateVolcengineAST2Settings({ targetLanguage: value });
-        break;
+      case Provider.VOLCENGINE_AST2: {
+        const prev = volcengineAST2Settings;
+        const next = resolveAST2LanguagePair(
+          { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
+          { side: 'target', value },
+        );
+        updateVolcengineAST2Settings({
+          sourceLanguage: next.sourceLanguage,
+          targetLanguage: next.targetLanguage,
+        });
+        // Spec §5: emit secondary source event FIRST when the synced side
+        // changed, then the user-touched target event — matches the
+        // source-then-target ordering used for the source-side handler. Both
+        // fire from inside this branch; return to skip the trailing emit.
+        if (next.sourceLanguage !== prev.sourceLanguage) {
+          trackEvent('language_changed', {
+            to_language: next.sourceLanguage,
+            language_type: 'source',
+          });
+        }
+        trackEvent('language_changed', {
+          to_language: next.targetLanguage,
+          language_type: 'target',
+        });
+        return;
+      }
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
@@ -214,12 +262,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const handleSwapLanguages = useCallback(() => {
     const src = currentProviderSettings?.sourceLanguage;
     const tgt = currentProviderSettings?.targetLanguage;
-    if (!src || !tgt || src === 'auto') return;
+    if (!src || !tgt || src === 'auto' || src === 'zhen') return;
 
     if (provider === Provider.LOCAL_INFERENCE) {
       const availableTargets = getTranslationTargetLanguages(tgt);
       const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
       updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+    } else if (provider === Provider.VOLCENGINE_AST2) {
+      // AST2's updateSource/Target paths each write BOTH fields through the
+      // helper, reading prev from this closure. A two-step swap would invoke
+      // the second write with a stale prev — overwriting the first write with
+      // the original source value and producing src/src. Apply both new values
+      // in one update here instead. src === 'zhen' is already excluded above,
+      // so no resolveAST2LanguagePair invocation is needed.
+      updateVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
+      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
+      trackEvent('language_changed', { to_language: src, language_type: 'target' });
     } else {
       updateSourceLanguage(tgt);
       // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
@@ -233,7 +291,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
+  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateVolcengineAST2Settings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -419,7 +477,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               <button
                 className="language-swap-btn"
                 onClick={handleSwapLanguages}
-                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto'}
+                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto' || currentProviderSettings.sourceLanguage === 'zhen'}
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"
               >
