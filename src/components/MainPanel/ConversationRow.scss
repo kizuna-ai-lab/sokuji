@@ -65,14 +65,14 @@
   padding: 2px 0 2px 30px; // indent so the line aligns under the name, avatar reserves space
   line-height: 1.4;
   font-size: var(--conversation-font-size, 14px);
-  transition: box-shadow 0.15s ease, border-radius 0.15s ease;
+  transition: background-color 0.15s ease, border-radius 0.15s ease;
 
   .conversation-row.grouped & {
     padding-left: 30px;
   }
 
   &.playing {
-    box-shadow: 0 0 0 1px var(--conversation-translation-color, #10a37f);
+    background: color-mix(in srgb, var(--conversation-translation-color, #10a37f) 15%, transparent);
     border-radius: 4px;
   }
 }
