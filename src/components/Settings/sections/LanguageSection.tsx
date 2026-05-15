@@ -164,16 +164,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
           sourceLanguage: next.sourceLanguage,
           targetLanguage: next.targetLanguage,
         });
-        // Spec §5: when bidirectional sync also changes the other side, emit a
-        // second analytics event so consumers see both transitions. The trailing
-        // `trackEvent` below this switch still emits the source-side event.
+        // Spec §5: emit source event first (the user-touched side), then a
+        // secondary target event when bidirectional sync also changed the
+        // other side. Both fire from inside this branch so the ordering is
+        // source-then-target — the function returns to skip the trailing
+        // emit below this switch.
+        trackEvent('language_changed', {
+          to_language: next.sourceLanguage,
+          language_type: 'source',
+        });
         if (next.targetLanguage !== prev.targetLanguage) {
           trackEvent('language_changed', {
             to_language: next.targetLanguage,
             language_type: 'target',
           });
         }
-        break;
+        return;
       }
       case Provider.LOCAL_INFERENCE: {
         const availableTargets = getTranslationTargetLanguages(value);
@@ -226,13 +232,21 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
           sourceLanguage: next.sourceLanguage,
           targetLanguage: next.targetLanguage,
         });
+        // Spec §5: emit secondary source event FIRST when the synced side
+        // changed, then the user-touched target event — matches the
+        // source-then-target ordering used for the source-side handler. Both
+        // fire from inside this branch; return to skip the trailing emit.
         if (next.sourceLanguage !== prev.sourceLanguage) {
           trackEvent('language_changed', {
             to_language: next.sourceLanguage,
             language_type: 'source',
           });
         }
-        break;
+        trackEvent('language_changed', {
+          to_language: next.targetLanguage,
+          language_type: 'target',
+        });
+        return;
       }
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
