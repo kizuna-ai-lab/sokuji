@@ -117,7 +117,7 @@ The worker therefore does not need to import any model class directly.
 
 Identical to the Qwen3-0.6B / TranslateGemma path:
 
-```
+```text
 ModelManagementSection.tsx ─ user clicks Download ─▶
   modelStore.downloadModel('hy-mt15-1.8b-translation')
     ─▶ ModelManager.downloadModel
