@@ -122,6 +122,12 @@ export class TranslationEngine {
             { type: 'module' }
           );
           break;
+        case 'hy-mt':
+          this.worker = new Worker(
+            new URL('../workers/hy-mt-translation.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          break;
         default: // opus-mt
           this.worker = new Worker(
             new URL('../workers/translation.worker.ts', import.meta.url),
