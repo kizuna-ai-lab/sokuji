@@ -381,26 +381,30 @@ function qwen35_2bTranslationFilesQ4f16(): ModelFileEntry[] {
   ];
 }
 
+/** HY-MT1.5-1.8B q4 files (~1.34 GB total).
+ *  Source: onnx-community/HY-MT1.5-1.8B-ONNX */
 function hyMt15_1_8bTranslationFiles(): ModelFileEntry[] {
   return [
-    { filename: 'chat_template.jinja',        sizeBytes: 654 },
-    { filename: 'config.json',                sizeBytes: 1_640 },
-    { filename: 'generation_config.json',     sizeBytes: 255 },
-    { filename: 'tokenizer.json',             sizeBytes: 8_672_000 },
-    { filename: 'tokenizer_config.json',      sizeBytes: 1_170 },
-    { filename: 'onnx/model_q4.onnx',         sizeBytes: 448_829 },
-    { filename: 'onnx/model_q4.onnx_data',    sizeBytes: 1_405_788_224 },
+    { filename: 'chat_template.jinja', sizeBytes: 654 },
+    { filename: 'config.json', sizeBytes: 1_640 },
+    { filename: 'generation_config.json', sizeBytes: 255 },
+    { filename: 'tokenizer.json', sizeBytes: 8_672_000 },
+    { filename: 'tokenizer_config.json', sizeBytes: 1_170 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 448_829 },
+    { filename: 'onnx/model_q4.onnx_data', sizeBytes: 1_405_788_224 },
   ];
 }
 
+/** HY-MT1.5-1.8B q4f16 files (~1.17 GB total, requires shader-f16).
+ *  Source: onnx-community/HY-MT1.5-1.8B-ONNX */
 function hyMt15_1_8bTranslationFilesQ4f16(): ModelFileEntry[] {
   return [
-    { filename: 'chat_template.jinja',        sizeBytes: 654 },
-    { filename: 'config.json',                sizeBytes: 1_640 },
-    { filename: 'generation_config.json',     sizeBytes: 255 },
-    { filename: 'tokenizer.json',             sizeBytes: 8_672_000 },
-    { filename: 'tokenizer_config.json',      sizeBytes: 1_170 },
-    { filename: 'onnx/model_q4f16.onnx',      sizeBytes: 434_623 },
+    { filename: 'chat_template.jinja', sizeBytes: 654 },
+    { filename: 'config.json', sizeBytes: 1_640 },
+    { filename: 'generation_config.json', sizeBytes: 255 },
+    { filename: 'tokenizer.json', sizeBytes: 8_672_000 },
+    { filename: 'tokenizer_config.json', sizeBytes: 1_170 },
+    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 434_623 },
     { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 1_226_479_424 },
   ];
 }
