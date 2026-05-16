@@ -180,8 +180,13 @@ async function handleTranslate(msg: TranslateMessage) {
 
 async function handleDispose() {
   if (generator) {
-    await generator?.dispose?.();
-    generator = null;
+    try {
+      await generator?.dispose?.();
+    } catch {
+      // Ignore cleanup errors so 'disposed' still fires and the engine unblocks.
+    } finally {
+      generator = null;
+    }
   }
   self.postMessage({ type: 'disposed' });
 }
