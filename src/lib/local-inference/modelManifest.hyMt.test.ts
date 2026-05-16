@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   getManifestEntry,
+  getTranslationModel,
   pickBestModel,
   type ModelManifestEntry,
 } from './modelManifest';
@@ -80,5 +81,20 @@ describe('pickBestModel preference', () => {
     const q  = getManifestEntry('qwen3-0.6b-translation') as ModelManifestEntry;
     expect(pickBestModel([tg, q, hy])?.id).toBe('hy-mt15-1.8b-translation');
     expect(pickBestModel([hy, tg])?.id).toBe('hy-mt15-1.8b-translation');
+  });
+});
+
+describe('getTranslationModel multilingual fallback', () => {
+  // Locks the manifest-order-bypass fix: getTranslationModel must route through
+  // pickBestModel so the highest-priority (recommended + lowest sortOrder)
+  // multilingual model wins regardless of where it sits in MODEL_MANIFEST.
+  // ja→zh and km→en have no pair-specific Opus-MT entries, so the multilingual
+  // fallback path is exercised.
+  it('returns HY-MT1.5 for ja→zh (no pair-specific model, both langs in HY-MT)', () => {
+    expect(getTranslationModel('ja', 'zh')?.id).toBe('hy-mt15-1.8b-translation');
+  });
+
+  it('returns HY-MT1.5 for km→en (low-resource source, HY-MT is the only candidate)', () => {
+    expect(getTranslationModel('km', 'en')?.id).toBe('hy-mt15-1.8b-translation');
   });
 });

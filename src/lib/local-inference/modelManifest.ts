@@ -3085,18 +3085,22 @@ export function getAsrModelsForLanguage(lang: string): ModelManifestEntry[] {
 }
 
 /** Get translation model for a language pair.
- *  Prefers pair-specific models (faster, higher quality) over multilingual fallback. */
+ *  Prefers pair-specific models (faster, higher quality) over multilingual fallback.
+ *  Multilingual fallback uses pickBestModel so recommended + lower sortOrder wins
+ *  over manifest position — otherwise the first multilingual entry in the array
+ *  short-circuits the default-recommended model. */
 export function getTranslationModel(sourceLang: string, targetLang: string): ModelManifestEntry | undefined {
   // Prefer pair-specific models (higher quality, faster)
   const pairModel = MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
   if (pairModel) return pairModel;
-  // Fallback: multilingual model that supports both languages
-  return MODEL_MANIFEST.find(
+  // Fallback: best multilingual model that supports both languages, by recommended/sortOrder
+  const candidates = MODEL_MANIFEST.filter(
     m => m.type === 'translation' && m.multilingual
       && (isUniversalMultilingual(m) || (m.languages.includes(sourceLang) && m.languages.includes(targetLang)))
   );
+  return pickBestModel(candidates);
 }
 
 /** Check if a translation model is compatible with a given language pair. */
