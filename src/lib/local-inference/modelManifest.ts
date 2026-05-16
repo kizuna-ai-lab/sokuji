@@ -113,7 +113,7 @@ export interface ModelManifestEntry {
   sourceLang?: string;
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
-  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma' | 'bing';
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma' | 'bing' | 'hy-mt';
 }
 
 // ─── Variant Selection ──────────────────────────────────────────────────────
@@ -378,6 +378,34 @@ function qwen35_2bTranslationFilesQ4f16(): ModelFileEntry[] {
     { filename: 'onnx/vision_encoder_q4f16.onnx_data', sizeBytes: 196_945_920 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 1_046_438 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 1_089_777_664 },
+  ];
+}
+
+/** HY-MT1.5-1.8B q4 files (~1.34 GB total).
+ *  Source: onnx-community/HY-MT1.5-1.8B-ONNX */
+function hyMt15_1_8bTranslationFiles(): ModelFileEntry[] {
+  return [
+    { filename: 'chat_template.jinja', sizeBytes: 654 },
+    { filename: 'config.json', sizeBytes: 1_640 },
+    { filename: 'generation_config.json', sizeBytes: 255 },
+    { filename: 'tokenizer.json', sizeBytes: 8_672_000 },
+    { filename: 'tokenizer_config.json', sizeBytes: 1_170 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 448_829 },
+    { filename: 'onnx/model_q4.onnx_data', sizeBytes: 1_405_788_224 },
+  ];
+}
+
+/** HY-MT1.5-1.8B q4f16 files (~1.17 GB total, requires shader-f16).
+ *  Source: onnx-community/HY-MT1.5-1.8B-ONNX */
+function hyMt15_1_8bTranslationFilesQ4f16(): ModelFileEntry[] {
+  return [
+    { filename: 'chat_template.jinja', sizeBytes: 654 },
+    { filename: 'config.json', sizeBytes: 1_640 },
+    { filename: 'generation_config.json', sizeBytes: 255 },
+    { filename: 'tokenizer.json', sizeBytes: 8_672_000 },
+    { filename: 'tokenizer_config.json', sizeBytes: 1_170 },
+    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 434_623 },
+    { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 1_226_479_424 },
   ];
 }
 
@@ -2865,7 +2893,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     },
     translationWorkerType: 'qwen',
     recommended: true,
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
     id: 'qwen3.5-0.8b-translation',
@@ -2931,10 +2959,38 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     variants: {},
   },
 
+  // ── Hunyuan MT 1.5 ───────────────────────────────────────────────────
+  // Tencent's translation-specialized LLM (WMT25 championship lineage).
+  // Single model covers 36 languages including low-resource targets (km, my, bo, mn, ug, kk).
+  // Direct from onnx-community; pipeline('text-generation', ...) auto-routes via the
+  // 'hunyuan_v1_dense' entry in @huggingface/transformers' MODEL_FOR_CAUSAL_LM_MAPPING_NAMES.
+  {
+    id: 'hy-mt15-1.8b-translation',
+    type: 'translation',
+    name: 'Hunyuan MT 1.5 1.8B (36 languages, WebGPU)',
+    languages: [
+      'zh', 'en', 'fr', 'pt', 'es', 'ja', 'tr', 'ru', 'ar', 'ko',
+      'th', 'it', 'de', 'vi', 'ms', 'id', 'tl', 'hi', 'pl', 'cs',
+      'nl', 'km', 'my', 'fa', 'gu', 'ur', 'te', 'mr', 'he', 'bn',
+      'ta', 'uk', 'bo', 'kk', 'mn', 'ug',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/HY-MT1.5-1.8B-ONNX',
+    variants: {
+      'q4':    { dtype: 'q4',    files: hyMt15_1_8bTranslationFiles() },
+      'q4f16': { dtype: 'q4f16', files: hyMt15_1_8bTranslationFilesQ4f16(),
+                 requiredFeatures: ['shader-f16'] },
+    },
+    translationWorkerType: 'hy-mt',
+    recommended: true,
+    sortOrder: 1,
+  },
+
   // ── TranslateGemma ───────────────────────────────────────────────────
   // Google's purpose-built translation model. Uses structured content format
   // with source/target language codes (not system prompts).
-  // Placed after Qwen entries so Qwen retains getTranslationModel() auto-selection priority.
+  // Now sortOrder=2 (below HY-MT1.5 which beats it on size and low-resource coverage).
   {
     id: 'translategemma-4b-translation',
     type: 'translation',
@@ -2957,7 +3013,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       // 'q4f16': { dtype: 'q4f16', files: translateGemmaQ4f16Files(), requiredFeatures: ['shader-f16'] },
     },
     recommended: true,
-    sortOrder: 1,
+    sortOrder: 2,
   },
 
   // ── Language Family Models ─────────────────────────────────────────────
@@ -3029,18 +3085,22 @@ export function getAsrModelsForLanguage(lang: string): ModelManifestEntry[] {
 }
 
 /** Get translation model for a language pair.
- *  Prefers pair-specific models (faster, higher quality) over multilingual fallback. */
+ *  Prefers pair-specific models (faster, higher quality) over multilingual fallback.
+ *  Multilingual fallback uses pickBestModel so recommended + lower sortOrder wins
+ *  over manifest position — otherwise the first multilingual entry in the array
+ *  short-circuits the default-recommended model. */
 export function getTranslationModel(sourceLang: string, targetLang: string): ModelManifestEntry | undefined {
   // Prefer pair-specific models (higher quality, faster)
   const pairModel = MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
   if (pairModel) return pairModel;
-  // Fallback: multilingual model that supports both languages
-  return MODEL_MANIFEST.find(
+  // Fallback: best multilingual model that supports both languages, by recommended/sortOrder
+  const candidates = MODEL_MANIFEST.filter(
     m => m.type === 'translation' && m.multilingual
       && (isUniversalMultilingual(m) || (m.languages.includes(sourceLang) && m.languages.includes(targetLang)))
   );
+  return pickBestModel(candidates);
 }
 
 /** Check if a translation model is compatible with a given language pair. */
