@@ -140,9 +140,16 @@ async function handleTranslate(msg: TranslateMessage) {
   try {
     const startTime = performance.now();
 
-    const targetName = LANG_NAMES[msg.targetLang] ?? msg.targetLang;
+    // HY-MT was trained on English language names; falling back to a raw BCP-47
+    // code degrades output quality. Surface a warn so manual validation catches
+    // any UI ↔ model coverage drift early.
+    const targetName = LANG_NAMES[msg.targetLang];
+    if (!targetName) {
+      console.warn(`[hy-mt-worker] Unknown targetLang '${msg.targetLang}', falling back to raw code`);
+    }
+    const resolvedTargetName = targetName ?? msg.targetLang;
     const userPrompt =
-      `Translate the following segment into ${targetName}, without additional explanation.\n\n${msg.text}`;
+      `Translate the following segment into ${resolvedTargetName}, without additional explanation.\n\n${msg.text}`;
 
     const result = await generator(
       [{ role: 'user', content: userPrompt }],
