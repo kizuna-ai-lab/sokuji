@@ -380,6 +380,25 @@ export class LocalInferenceClient implements IClient {
     });
   }
 
+  /**
+   * Append a TTS audio chunk onto the assistant item so the inline replay
+   * button (ConversationRow → handlePlayAudio) has a complete Int16Array to
+   * play back. Without this, chunks only stream through the audio player and
+   * `item.formatted.audio` stays empty, leaving the replay button disabled.
+   */
+  private appendItemAudio(item: ConversationItem, chunk: Int16Array): void {
+    if (!item.formatted) item.formatted = {};
+    const prev = item.formatted.audio;
+    if (prev instanceof Int16Array && prev.length > 0) {
+      const combined = new Int16Array(prev.length + chunk.length);
+      combined.set(prev);
+      combined.set(chunk, prev.length);
+      item.formatted.audio = combined;
+    } else {
+      item.formatted.audio = new Int16Array(chunk);
+    }
+  }
+
   // ─── Pipeline ─────────────────────────────────────────────
 
   /**
@@ -593,6 +612,7 @@ export class LocalInferenceClient implements IClient {
                   const resampled = resampleFloat32(chunkSamples, chunkSampleRate, 24000);
                   const int16Audio = float32ToInt16(resampled);
                   chunkSampleCount += int16Audio.length;
+                  this.appendItemAudio(assistantItem, int16Audio);
                   this.handlers.onConversationUpdated?.({
                     item: assistantItem,
                     delta: { audio: int16Audio },
@@ -663,6 +683,7 @@ export class LocalInferenceClient implements IClient {
               console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${displayText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
 
               // Emit audio delta immediately — player receives chunk right away
+              this.appendItemAudio(assistantItem, int16Audio);
               this.handlers.onConversationUpdated?.({
                 item: assistantItem,
                 delta: { audio: int16Audio },
