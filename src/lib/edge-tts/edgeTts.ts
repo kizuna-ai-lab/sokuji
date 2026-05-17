@@ -91,42 +91,27 @@ function timestamp(): string {
 
 // Sec-MS-GEC buckets the current time into 5-minute windows; if the user's
 // system clock is off by more than that, every request is rejected. We
-// compensate by sampling the server's Date header once and caching the
-// offset for the rest of the session.
+// compensate by reading the server's Date header from every voice-list
+// response (success or auth failure) and caching the offset for the rest
+// of the session — see updateServerTimeOffsetFromResponse + fetchVoiceList.
 let serverTimeOffsetMs = 0;
-let serverTimeOffsetPromise: Promise<number> | null = null;
 
-export function getServerTimeOffsetMs(forceRefresh = false): Promise<number> {
-  if (forceRefresh) serverTimeOffsetPromise = null;
-  if (serverTimeOffsetPromise) return serverTimeOffsetPromise;
+export function getServerTimeOffsetMs(): number {
+  return serverTimeOffsetMs;
+}
 
-  serverTimeOffsetPromise = (async () => {
-    try {
-      const t0 = Date.now();
-      const response = await fetch(VOICE_LIST_URL, { method: 'HEAD', cache: 'no-store' });
-      const t1 = Date.now();
-      const dateHeader = response.headers.get('date');
-      if (dateHeader) {
-        const serverMs = new Date(dateHeader).getTime();
-        if (!Number.isNaN(serverMs)) {
-          // Midpoint of request/response brackets the moment the server
-          // stamped Date — gives ~RTT/2 accuracy, far below the 300s window.
-          serverTimeOffsetMs = serverMs - (t0 + t1) / 2;
-        }
-      }
-    } catch {
-      // Probe failed (offline / DNS / TLS). Fall through with offset=0;
-      // the actual TTS call will surface a more specific error.
-      serverTimeOffsetPromise = null;
-    }
-    return serverTimeOffsetMs;
-  })();
-
-  return serverTimeOffsetPromise;
+function updateServerTimeOffsetFromResponse(response: Response, t0: number, t1: number): void {
+  const dateHeader = response.headers.get('date');
+  if (!dateHeader) return;
+  const serverMs = new Date(dateHeader).getTime();
+  if (Number.isNaN(serverMs)) return;
+  // Midpoint of request/response brackets the moment the server stamped
+  // Date — gives ~RTT/2 accuracy, far below the 300s window.
+  serverTimeOffsetMs = serverMs - (t0 + t1) / 2;
 }
 
 export async function makeSecMsGec(): Promise<string> {
-  const offsetMs = await getServerTimeOffsetMs();
+  const offsetMs = serverTimeOffsetMs;
   const winEpoch = 11644473600;
   const secondsToNs = 1e9;
   let ticks = (Date.now() + offsetMs) / 1000;
@@ -237,9 +222,25 @@ export function makeCookie(): string {
 // ── Voice list ───────────────────────────────────────────────────────────
 
 export async function fetchVoiceList(): Promise<Voice[]> {
-  const secMsGec = await makeSecMsGec();
-  const url = `${VOICE_LIST_URL}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}`;
-  const response = await fetch(url, { headers: VOICE_HEADERS });
-  if (!response.ok) throw new Error(`Voice list request failed with status ${response.status}`);
-  return (await response.json()) as Voice[];
+  // Try up to twice: the first attempt may fail with 401/403 if the local
+  // clock is off by more than the 5-minute Sec-MS-GEC window. The failed
+  // response still carries a Date header, which updateServerTimeOffsetFromResponse
+  // uses to correct serverTimeOffsetMs — the retry then succeeds.
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const t0 = Date.now();
+    const secMsGec = await makeSecMsGec();
+    const url = `${VOICE_LIST_URL}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}`;
+    const response = await fetch(url, { headers: VOICE_HEADERS });
+    const t1 = Date.now();
+
+    updateServerTimeOffsetFromResponse(response, t0, t1);
+
+    if (response.ok) return (await response.json()) as Voice[];
+
+    lastStatus = response.status;
+    if (response.status === 401 || response.status === 403) continue;
+    throw new Error(`Voice list request failed with status ${response.status}`);
+  }
+  throw new Error(`Voice list request failed with status ${lastStatus} after retry`);
 }
