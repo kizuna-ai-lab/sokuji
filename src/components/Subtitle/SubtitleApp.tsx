@@ -59,18 +59,16 @@ const HIGHLIGHT_ALPHA = 0.3;
  * a known limitation accepted in the design spec.
  */
 export function getHighlightOverlayForBg(hex: string): string {
-  const cleaned = hex.replace('#', '');
-  if (cleaned.length !== 6) return `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`;
-  const r = parseInt(cleaned.slice(0, 2), 16);
-  const g = parseInt(cleaned.slice(2, 4), 16);
-  const b = parseInt(cleaned.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
-    return `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`;
-  }
+  const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
+  if (!m) return `rgba(255,255,255,${HIGHLIGHT_ALPHA})`;
+  const v = parseInt(m[1], 16);
+  const r = (v >> 16) & 0xff;
+  const g = (v >> 8) & 0xff;
+  const b = v & 0xff;
   const yiq = (r * 299 + g * 587 + b * 114) / 1000;
   return yiq < 128
-    ? `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`
-    : `rgba(0, 0, 0, ${HIGHLIGHT_ALPHA})`;
+    ? `rgba(255,255,255,${HIGHLIGHT_ALPHA})`
+    : `rgba(0,0,0,${HIGHLIGHT_ALPHA})`;
 }
 
 export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
