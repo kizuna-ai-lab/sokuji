@@ -22,6 +22,9 @@ interface SubtitleState {
   // Text colours
   sourceTextColor: string;
   translationTextColor: string;
+  // Visual cue for newly-arrived items in the compact band (issue #236).
+  // When false, the per-item fade-in + overlay animation is suppressed.
+  newItemHighlightEnabled: boolean;
   // Window/positioning (Electron path; extension surface ignores them)
   alwaysOnTop: boolean;
   positionLocked: boolean;
@@ -37,6 +40,7 @@ interface SubtitleState {
   setBgColor: (s: string) => Promise<void>;
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
+  setNewItemHighlightEnabled: (b: boolean) => Promise<void>;
   toggleAlwaysOnTop: () => Promise<void>;
   togglePositionLocked: () => Promise<void>;
   saveWindowBounds: (b: SubtitleWindowBounds) => Promise<void>;
@@ -59,6 +63,7 @@ const DEFAULTS = {
   bgColor: SUBTITLE_DEFAULT_BG_COLOR,
   sourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
   translationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
+  newItemHighlightEnabled: true,
   alwaysOnTop: false,
   positionLocked: false,
   windowBounds: null as SubtitleWindowBounds | null,
@@ -134,6 +139,12 @@ export const useSubtitleStore = create<SubtitleState>()(
       const { ok } = await persist('translationTextColor', s, 'translationTextColor');
       if (!ok) set({ translationTextColor: previous });
     },
+    setNewItemHighlightEnabled: async (b) => {
+      const previous = get().newItemHighlightEnabled;
+      set({ newItemHighlightEnabled: b });
+      const { ok } = await persist('newItemHighlightEnabled', b, 'newItemHighlightEnabled');
+      if (!ok) set({ newItemHighlightEnabled: previous });
+    },
     toggleAlwaysOnTop: async () => {
       const previous = get().alwaysOnTop;
       const next = !previous;
@@ -171,7 +182,7 @@ export const useSubtitleStore = create<SubtitleState>()(
       const svc = ServiceFactory.getSettingsService();
       const [
         fontSize, compactMode, bgOpacity, bgColor,
-        sourceTextColor, translationTextColor,
+        sourceTextColor, translationTextColor, newItemHighlightEnabled,
         alwaysOnTop, positionLocked, windowBounds,
         speakerDisplayMode, participantDisplayMode,
       ] = await Promise.all([
@@ -181,6 +192,7 @@ export const useSubtitleStore = create<SubtitleState>()(
         svc.getSetting(KEY('bgColor'), DEFAULTS.bgColor),
         svc.getSetting(KEY('sourceTextColor'), DEFAULTS.sourceTextColor),
         svc.getSetting(KEY('translationTextColor'), DEFAULTS.translationTextColor),
+        svc.getSetting(KEY('newItemHighlightEnabled'), DEFAULTS.newItemHighlightEnabled),
         svc.getSetting(KEY('alwaysOnTop'), DEFAULTS.alwaysOnTop),
         svc.getSetting(KEY('positionLocked'), DEFAULTS.positionLocked),
         svc.getSetting<SubtitleWindowBounds | null>(KEY('windowBounds'), DEFAULTS.windowBounds),
@@ -194,6 +206,7 @@ export const useSubtitleStore = create<SubtitleState>()(
         bgColor,
         sourceTextColor,
         translationTextColor,
+        newItemHighlightEnabled,
         alwaysOnTop,
         positionLocked,
         windowBounds,
@@ -211,6 +224,8 @@ export const useSubtitleBgOpacity = () => useSubtitleStore((s) => s.bgOpacity);
 export const useSubtitleBgColor = () => useSubtitleStore((s) => s.bgColor);
 export const useSubtitleSourceTextColor = () => useSubtitleStore((s) => s.sourceTextColor);
 export const useSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.translationTextColor);
+export const useSubtitleNewItemHighlightEnabled = () =>
+  useSubtitleStore((s) => s.newItemHighlightEnabled);
 export const useSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.alwaysOnTop);
 export const useSubtitlePositionLocked = () => useSubtitleStore((s) => s.positionLocked);
 export const useSubtitleWindowBounds = () => useSubtitleStore((s) => s.windowBounds);
@@ -242,6 +257,8 @@ export const useSetSubtitleBgOpacity = () => useSubtitleStore((s) => s.setBgOpac
 export const useSetSubtitleBgColor = () => useSubtitleStore((s) => s.setBgColor);
 export const useSetSubtitleSourceTextColor = () => useSubtitleStore((s) => s.setSourceTextColor);
 export const useSetSubtitleTranslationTextColor = () => useSubtitleStore((s) => s.setTranslationTextColor);
+export const useSetSubtitleNewItemHighlightEnabled = () =>
+  useSubtitleStore((s) => s.setNewItemHighlightEnabled);
 export const useToggleSubtitleAlwaysOnTop = () => useSubtitleStore((s) => s.toggleAlwaysOnTop);
 export const useToggleSubtitlePositionLocked = () => useSubtitleStore((s) => s.togglePositionLocked);
 export const useSaveSubtitleWindowBounds = () => useSubtitleStore((s) => s.saveWindowBounds);

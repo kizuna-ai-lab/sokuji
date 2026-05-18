@@ -120,6 +120,35 @@ describe('DisplaySettingsPopover', () => {
     expect(useConversationDisplayStore.getState().bgColor).toBe('#cccccc');
   });
 
+  it('renders the new-item-highlight toggle in subtitle mode only', () => {
+    const subtitleRender = render(<DisplaySettingsPopover source="subtitle" />);
+    expect(
+      subtitleRender.container.querySelector('.toggle-switch-component'),
+    ).not.toBeNull();
+    subtitleRender.unmount();
+
+    const conversationRender = render(<DisplaySettingsPopover source="conversation" />);
+    expect(
+      conversationRender.container.querySelector('.toggle-switch-component'),
+    ).toBeNull();
+  });
+
+  it('clicking the new-item-highlight toggle flips subtitleStore.newItemHighlightEnabled', async () => {
+    useSubtitleStore.setState({ newItemHighlightEnabled: true } as never);
+    const { container } = render(<DisplaySettingsPopover source="subtitle" />);
+    const trigger = container.querySelector(
+      '.toggle-switch-component [role="switch"]',
+    ) as HTMLElement;
+    expect(trigger).not.toBeNull();
+    expect(trigger.getAttribute('aria-checked')).toBe('true');
+
+    await act(async () => { fireEvent.click(trigger); });
+    expect(useSubtitleStore.getState().newItemHighlightEnabled).toBe(false);
+
+    await act(async () => { fireEvent.click(trigger); });
+    expect(useSubtitleStore.getState().newItemHighlightEnabled).toBe(true);
+  });
+
   it('first chip in each row reflects the source store default (subtitle)', () => {
     const { container } = render(<DisplaySettingsPopover source="subtitle" />);
     const fields = container.querySelectorAll('.field');

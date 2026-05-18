@@ -17,6 +17,7 @@ import {
   useSubtitlePositionLocked,
   useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
   useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+  useSubtitleNewItemHighlightEnabled,
 } from '../../stores/subtitleStore';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import {
@@ -46,6 +47,31 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+const HIGHLIGHT_ALPHA = 0.3;
+
+/**
+ * Returns a CSS color for the "newly-arrived item" overlay, chosen so it
+ * contrasts with the user-selected background. YIQ luminance < 128 means
+ * the background is dark → use a light overlay; otherwise use dark.
+ *
+ * The user-set bgOpacity is intentionally not factored in. When opacity is
+ * very low and the actual visible background is whatever sits behind the
+ * subtitle window, this falls back to the bgColor's nominal lightness —
+ * a known limitation accepted in the design spec.
+ */
+export function getHighlightOverlayForBg(hex: string): string {
+  const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
+  if (!m) return `rgba(255,255,255,${HIGHLIGHT_ALPHA})`;
+  const v = parseInt(m[1], 16);
+  const r = (v >> 16) & 0xff;
+  const g = (v >> 8) & 0xff;
+  const b = v & 0xff;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq < 128
+    ? `rgba(255,255,255,${HIGHLIGHT_ALPHA})`
+    : `rgba(0,0,0,${HIGHLIGHT_ALPHA})`;
+}
+
 export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
 
 const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'electron' }) => {
@@ -57,6 +83,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const systemAudioItems = useSystemAudioItems();
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
+  const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
   const provider = useProvider();
   const localInferenceSettings = useLocalInferenceSettings();
   const isSessionActive = useIsSessionActive();
@@ -200,6 +227,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     background: hexToRgba(subtitle.bgColor, bgAlpha),
     '--bar-opacity': barVisible ? 1 : 0,
     '--bar-pointer-events': barVisible ? 'auto' : 'none',
+    '--subtitle-highlight-overlay': getHighlightOverlayForBg(subtitle.bgColor),
   };
 
   return (
@@ -242,6 +270,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
             targetLanguage={targetLanguage}
             sourceTextColor={subtitle.sourceTextColor}
             translationTextColor={subtitle.translationTextColor}
+            newItemHighlightEnabled={newItemHighlightEnabled}
           />
         )
       ) : (

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
 import type { DisplayMode } from '../../stores/subtitleStore';
@@ -14,6 +14,10 @@ interface Props {
   targetLanguage: string;
   sourceTextColor?: string;
   translationTextColor?: string;
+  // When false, items that arrive after first mount are still tracked but
+  // do not receive the `--new` modifier — the CSS highlight never fires.
+  // Defaults to true; passed through from the persisted subtitle setting.
+  newItemHighlightEnabled?: boolean;
 }
 
 function itemText(item: any): string {
@@ -29,11 +33,15 @@ const BUCKET_MAX_CHARS = 2000;
 
 type LineKind = 'source' | 'translation';
 type LineSource = 'speaker' | 'participant';
+interface SubtitleLineItem {
+  id: string;
+  text: string;
+}
 interface SubtitleLine {
   id: string;
   kind: LineKind;
   source: LineSource;
-  text: string;
+  items: SubtitleLineItem[];
 }
 
 /**
@@ -60,6 +68,7 @@ const SubtitleStream: React.FC<Props> = ({
   targetLanguage,
   sourceTextColor,
   translationTextColor,
+  newItemHighlightEnabled = true,
 }) => {
   const filtered = useMemo(
     () => items.filter((item) => shouldShowItem(item, speakerMode, participantMode)),
@@ -67,7 +76,7 @@ const SubtitleStream: React.FC<Props> = ({
   );
 
   const lines = useMemo<SubtitleLine[]>(() => {
-    const buckets: Record<string, string[]> = {
+    const buckets: Record<string, SubtitleLineItem[]> = {
       'speaker-source': [],
       'speaker-translation': [],
       'participant-source': [],
@@ -97,7 +106,7 @@ const SubtitleStream: React.FC<Props> = ({
       else continue;
       const key = `${side}-${kind}`;
       if (bucketLen[key] >= BUCKET_MAX_CHARS) continue;
-      buckets[key].unshift(text);
+      buckets[key].unshift({ id: item.id, text });
       bucketLen[key] += text.length + 1; // +1 for the joining space
     }
 
@@ -112,9 +121,9 @@ const SubtitleStream: React.FC<Props> = ({
         id: `${source}-${kind}`,
         source,
         kind,
-        text: buckets[`${source}-${kind}`].join(' '),
+        items: buckets[`${source}-${kind}`],
       }))
-      .filter((l) => l.text.length > 0);
+      .filter((l) => l.items.length > 0);
   }, [filtered]);
 
   // Stick to bottom only in expanded mode, where ConversationRow rows pile
@@ -129,6 +138,39 @@ const SubtitleStream: React.FC<Props> = ({
       endRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
   }, [compact, filtered.length]);
+
+  // Each item is classified once and locked: 'existing' = present at first
+  // render of this component instance (never animates), 'new' = arrived later
+  // (animates exactly once on first paint via CSS @keyframes). The map grows
+  // monotonically — by design, no pruning — typical sessions hit hundreds
+  // of entries, well below any memory concern. StrictMode's double-invocation
+  // of effects is safe: the `has()` guard skips re-insertion on the second pass.
+  const itemStatesRef = useRef<Map<string, 'existing' | 'new'>>(new Map());
+  const isFirstRenderRef = useRef(true);
+
+  const itemStateFor = (id: string): 'existing' | 'new' => {
+    const known = itemStatesRef.current.get(id);
+    if (known !== undefined) return known;
+    return isFirstRenderRef.current ? 'existing' : 'new';
+  };
+
+  // No deps — runs after every render to lock in state for newly-visible
+  // items. Adding a [lines] dep would also work in practice; the no-deps
+  // form is chosen so future refactors of `lines` (e.g. additional memo
+  // layers) can't accidentally skip a commit.
+  useLayoutEffect(() => {
+    for (const line of lines) {
+      for (const it of line.items) {
+        if (!itemStatesRef.current.has(it.id)) {
+          itemStatesRef.current.set(
+            it.id,
+            isFirstRenderRef.current ? 'existing' : 'new',
+          );
+        }
+      }
+    }
+    isFirstRenderRef.current = false;
+  });
 
   // Apply fontSize to both our flat-line styles and the CSS var that
   // ConversationRow reads in expanded mode.
@@ -147,7 +189,20 @@ const SubtitleStream: React.FC<Props> = ({
               key={line.id}
               className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
             >
-              <p>{line.text}</p>
+              <p>
+                {line.items.map((it, idx) => {
+                  const showHighlight =
+                    newItemHighlightEnabled && itemStateFor(it.id) === 'new';
+                  const className = showHighlight
+                    ? 'subtitle-stream__item subtitle-stream__item--new'
+                    : 'subtitle-stream__item';
+                  return (
+                    <span key={it.id} className={className}>
+                      {idx > 0 ? ' ' : ''}{it.text}
+                    </span>
+                  );
+                })}
+              </p>
             </div>
           ))
         : filtered.map((item, i) => (

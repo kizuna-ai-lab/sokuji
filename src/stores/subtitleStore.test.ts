@@ -20,12 +20,21 @@ describe('subtitleStore', () => {
       bgColor: '#000000',
       sourceTextColor: '#ffffff',
       translationTextColor: '#9ad0ff',
+      newItemHighlightEnabled: true,
       alwaysOnTop: false,
       positionLocked: false,
       windowBounds: null,
       speakerDisplayMode: 'both',
       participantDisplayMode: 'both',
     });
+  });
+
+  it('setNewItemHighlightEnabled flips the boolean and defaults to true', async () => {
+    expect(useSubtitleStore.getState().newItemHighlightEnabled).toBe(true);
+    await useSubtitleStore.getState().setNewItemHighlightEnabled(false);
+    expect(useSubtitleStore.getState().newItemHighlightEnabled).toBe(false);
+    await useSubtitleStore.getState().setNewItemHighlightEnabled(true);
+    expect(useSubtitleStore.getState().newItemHighlightEnabled).toBe(true);
   });
 
   it('clamps fontSize to [12, 64]', async () => {

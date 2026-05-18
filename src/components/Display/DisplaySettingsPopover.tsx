@@ -6,14 +6,17 @@ import {
   useSubtitleBgColor,
   useSubtitleSourceTextColor,
   useSubtitleTranslationTextColor,
+  useSubtitleNewItemHighlightEnabled,
   useSetSubtitleBgOpacity,
   useSetSubtitleBgColor,
   useSetSubtitleSourceTextColor,
   useSetSubtitleTranslationTextColor,
+  useSetSubtitleNewItemHighlightEnabled,
   SUBTITLE_DEFAULT_BG_COLOR,
   SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
   SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/subtitleStore';
+import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import {
   useConversationDisplayBgColor,
   useConversationDisplaySourceTextColor,
@@ -50,10 +53,14 @@ interface InnerBindings {
   bgColor: string;
   sourceTextColor: string;
   translationTextColor: string;
+  // newItemHighlightEnabled is subtitle-only. Conversation-mode bindings
+  // leave it undefined so the toggle row is suppressed.
+  newItemHighlightEnabled: boolean | undefined;
   setBgOpacity: ((n: number) => Promise<void>) | undefined;
   setBgColor: (s: string) => Promise<void>;
   setSourceTextColor: (s: string) => Promise<void>;
   setTranslationTextColor: (s: string) => Promise<void>;
+  setNewItemHighlightEnabled: ((b: boolean) => Promise<void>) | undefined;
   defaultBgColor: string;
   defaultSourceTextColor: string;
   defaultTranslationTextColor: string;
@@ -75,10 +82,12 @@ const SubtitleBoundPopover: React.FC = () => {
     bgColor: useSubtitleBgColor(),
     sourceTextColor: useSubtitleSourceTextColor(),
     translationTextColor: useSubtitleTranslationTextColor(),
+    newItemHighlightEnabled: useSubtitleNewItemHighlightEnabled(),
     setBgOpacity: useSetSubtitleBgOpacity(),
     setBgColor: useSetSubtitleBgColor(),
     setSourceTextColor: useSetSubtitleSourceTextColor(),
     setTranslationTextColor: useSetSubtitleTranslationTextColor(),
+    setNewItemHighlightEnabled: useSetSubtitleNewItemHighlightEnabled(),
     defaultBgColor: SUBTITLE_DEFAULT_BG_COLOR,
     defaultSourceTextColor: SUBTITLE_DEFAULT_SOURCE_TEXT_COLOR,
     defaultTranslationTextColor: SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
@@ -92,10 +101,12 @@ const ConversationBoundPopover: React.FC = () => {
     bgColor: useConversationDisplayBgColor(),
     sourceTextColor: useConversationDisplaySourceTextColor(),
     translationTextColor: useConversationDisplayTranslationTextColor(),
+    newItemHighlightEnabled: undefined,
     setBgOpacity: undefined,
     setBgColor: useSetConversationDisplayBgColor(),
     setSourceTextColor: useSetConversationDisplaySourceTextColor(),
     setTranslationTextColor: useSetConversationDisplayTranslationTextColor(),
+    setNewItemHighlightEnabled: undefined,
     defaultBgColor: CONVERSATION_DISPLAY_DEFAULT_BG_COLOR,
     defaultSourceTextColor: CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR,
     defaultTranslationTextColor: CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR,
@@ -106,8 +117,12 @@ const ConversationBoundPopover: React.FC = () => {
 // ──────────── Pure presentational inner ────────────
 
 const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bindings }) => {
+  const { t } = useTranslation();
   const includeOpacity =
     bindings.bgOpacity !== undefined && bindings.setBgOpacity !== undefined;
+  const includeHighlightToggle =
+    bindings.newItemHighlightEnabled !== undefined &&
+    bindings.setNewItemHighlightEnabled !== undefined;
 
   // Note: role="dialog" + accessible name are intentionally NOT set on this
   // root. They live on the floating wrapper in SubtitleBar / MainPanel via
@@ -144,6 +159,22 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         value={bindings.translationTextColor}
         onChange={bindings.setTranslationTextColor}
       />
+      {includeHighlightToggle && (
+        <div className="field">
+          <ToggleSwitch
+            checked={bindings.newItemHighlightEnabled!}
+            onChange={() =>
+              void bindings.setNewItemHighlightEnabled!(
+                !bindings.newItemHighlightEnabled,
+              )
+            }
+            label={t(
+              'subtitle.settings.newItemHighlight',
+              'Highlight newly-arrived text',
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 };
