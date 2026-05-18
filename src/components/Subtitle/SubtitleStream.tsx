@@ -29,11 +29,15 @@ const BUCKET_MAX_CHARS = 2000;
 
 type LineKind = 'source' | 'translation';
 type LineSource = 'speaker' | 'participant';
+interface SubtitleLineItem {
+  id: string;
+  text: string;
+}
 interface SubtitleLine {
   id: string;
   kind: LineKind;
   source: LineSource;
-  text: string;
+  items: SubtitleLineItem[];
 }
 
 /**
@@ -67,7 +71,7 @@ const SubtitleStream: React.FC<Props> = ({
   );
 
   const lines = useMemo<SubtitleLine[]>(() => {
-    const buckets: Record<string, string[]> = {
+    const buckets: Record<string, SubtitleLineItem[]> = {
       'speaker-source': [],
       'speaker-translation': [],
       'participant-source': [],
@@ -97,7 +101,7 @@ const SubtitleStream: React.FC<Props> = ({
       else continue;
       const key = `${side}-${kind}`;
       if (bucketLen[key] >= BUCKET_MAX_CHARS) continue;
-      buckets[key].unshift(text);
+      buckets[key].unshift({ id: item.id, text });
       bucketLen[key] += text.length + 1; // +1 for the joining space
     }
 
@@ -112,9 +116,9 @@ const SubtitleStream: React.FC<Props> = ({
         id: `${source}-${kind}`,
         source,
         kind,
-        text: buckets[`${source}-${kind}`].join(' '),
+        items: buckets[`${source}-${kind}`],
       }))
-      .filter((l) => l.text.length > 0);
+      .filter((l) => l.items.length > 0);
   }, [filtered]);
 
   // Stick to bottom only in expanded mode, where ConversationRow rows pile
@@ -147,7 +151,13 @@ const SubtitleStream: React.FC<Props> = ({
               key={line.id}
               className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
             >
-              <p>{line.text}</p>
+              <p>
+                {line.items.map((it, idx) => (
+                  <span key={it.id} className="subtitle-stream__item">
+                    {idx > 0 ? ' ' : ''}{it.text}
+                  </span>
+                ))}
+              </p>
             </div>
           ))
         : filtered.map((item, i) => (

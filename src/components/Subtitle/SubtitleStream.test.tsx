@@ -91,6 +91,33 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     expect(speakerSrc.textContent).toBe('hello world');
   });
 
+  it('renders one span per visible item with the item id as the key', () => {
+    const many: any[] = [
+      { id: '1', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'hello' },  sourceLanguage: 'en', targetLanguage: 'zh' },
+      { id: '5', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'world' },  sourceLanguage: 'en', targetLanguage: 'zh' },
+      { id: '9', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'again' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    const { container } = render(
+      <SubtitleStream
+        items={many}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const spans = container.querySelectorAll(
+      '.subtitle-stream__line--speaker.subtitle-stream__line--source .subtitle-stream__item',
+    );
+    expect(spans.length).toBe(3);
+    // Chronological order: oldest first
+    expect(spans[0].textContent).toBe('hello');
+    expect(spans[1].textContent).toBe(' world');
+    expect(spans[2].textContent).toBe(' again');
+  });
+
   it('routes error / system items into the translation bucket so they remain visible', () => {
     const withError: any[] = [
       ...items,
