@@ -637,3 +637,39 @@ The implementation must satisfy every item in this checklist before considering 
 - Touching expanded mode.
 - Extracting `hexToRgba` to a shared utility module.
 - Any test infrastructure beyond what already exists (Vitest + jsdom).
+
+---
+
+## Follow-up Task 7: User Toggle (post-approval)
+
+Added after the original 6 tasks were implemented, in response to a user
+request to make the highlight feature opt-out. See the spec's
+"Follow-up Addition (post-approval)" section for design details.
+
+**Files modified:**
+
+- `src/stores/subtitleStore.ts` — new `newItemHighlightEnabled: boolean`
+  field (default `true`), `setNewItemHighlightEnabled` setter, hydration
+  entry, `useSubtitleNewItemHighlightEnabled` /
+  `useSetSubtitleNewItemHighlightEnabled` hooks.
+- `src/stores/subtitleStore.test.ts` — new `setNewItemHighlightEnabled`
+  test; reset state includes the new field.
+- `src/components/Subtitle/SubtitleStream.tsx` — new optional prop
+  `newItemHighlightEnabled?: boolean` (default `true`); compact branch
+  gates the `--new` modifier on this flag.
+- `src/components/Subtitle/SubtitleStream.test.tsx` — new test asserting
+  that `newItemHighlightEnabled={false}` suppresses the `--new` class
+  even for items arriving post-mount.
+- `src/components/Subtitle/SubtitleApp.tsx` — reads the setting and
+  passes it through to `SubtitleStream`.
+- `src/components/Display/DisplaySettingsPopover.tsx` — adds a
+  subtitle-only `ToggleSwitch` row consuming the new setter.
+- `src/components/Display/DisplaySettingsPopover.test.tsx` — verifies
+  the toggle renders in subtitle mode only and that clicking it flips
+  the store.
+- `src/locales/en/translation.json` — new English key
+  `subtitle.settings.newItemHighlight` → "Highlight newly-arrived text".
+
+The earlier "self-review checklist" item **"No new persisted settings,
+no new UI controls"** no longer holds; the toggle was explicitly added.
+All other checklist items still apply.

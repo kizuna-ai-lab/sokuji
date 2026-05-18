@@ -43,7 +43,7 @@ The state machine that decides *which* spans get the `--new` class lives in `Sub
 
 The decision rule is:
 
-```
+```text
 state = itemStatesRef.get(itemId)
 if state defined        → use that
 else if isFirstRender   → 'existing'   (do not animate)
@@ -317,3 +317,41 @@ New tests to add:
 | What about session-start where many items are already on screen? | Suppress first-mount animation (`isFirstRenderRef`). Only items arriving after first commit animate. |
 | Error / system items? | Same highlight. |
 | `bgOpacity` very low (transparent subtitle window over an arbitrary backdrop)? | Accepted limitation. Overlay color uses `bgColor` only. |
+
+## Follow-up Addition (post-approval): User Toggle
+
+After the original spec was approved and the implementation landed, the user
+requested an on/off switch for the highlight feature. This section records
+the change so the spec stays in sync with shipped reality.
+
+**What was added (PR #239):**
+
+- `subtitleStore` gains a `newItemHighlightEnabled: boolean` field (default
+  `true`), with the usual setter / hydration / selector / action hooks. The
+  persistence key is `settings.common.subtitle.newItemHighlightEnabled`.
+- `SubtitleStream` accepts a new optional prop `newItemHighlightEnabled`
+  (default `true`). When `false`, the lifecycle refs still run but the
+  `--new` modifier is never applied, so the CSS animation is suppressed.
+  Items still render correctly.
+- `SubtitleApp` reads the setting and passes it through.
+- `DisplaySettingsPopover` renders an additional row (subtitle-source only,
+  using the existing `ToggleSwitch` component) labelled
+  `subtitle.settings.newItemHighlight` → "Highlight newly-arrived text".
+  The conversation-display popover is unaffected (no equivalent feature).
+- i18n: new English key `subtitle.settings.newItemHighlight`.
+
+**Revisions to earlier sections:**
+
+- The "Goals & Non-Goals" non-goal "Adding a new user-facing setting for the
+  highlight (color, duration, on/off)" is partially superseded: the on/off
+  toggle is now in scope; color and duration remain out of scope.
+- The "Files Affected" table additionally touches `src/stores/subtitleStore.ts`,
+  `src/components/Display/DisplaySettingsPopover.tsx`, and
+  `src/locales/en/translation.json`.
+- The "Not touched" list line "`subtitleStore` — no new persisted settings" and
+  "`DisplaySettingsPopover` — no new controls" no longer hold.
+
+**What is still in scope as the design intended:** the on/off toggle gates
+visibility only — the entire item-lifecycle machinery (refs, first-mount
+suppression, per-item spans) runs unchanged regardless of the setting. The
+default is `true`, so behavior matches the original spec out of the box.

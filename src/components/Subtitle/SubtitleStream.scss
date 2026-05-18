@@ -69,14 +69,18 @@
   // animation; the class persists on the span afterwards (harmless —
   // CSS animations only fire once per class application).
   // ------------------------------------------------------------------
+  // padding + border-radius live on every item (not just `--new`) so the
+  // post-animation layout matches items that were present at first mount.
+  // If they sat only on `--new`, items rendered after mount would keep a
+  // few extra px of padding forever and drift visually away from their
+  // pre-mount siblings.
   .subtitle-stream__item {
-    // No styles in the un-animated case — the span is a plain inline.
+    border-radius: 2px;
+    padding: 1px 3px;
   }
 
   .subtitle-stream__item--new {
     animation: subtitle-item-highlight 2s ease-out both;
-    border-radius: 2px;
-    padding: 1px 3px;
   }
 
   // Expanded mode: ConversationRow drives its own layout; we just provide
