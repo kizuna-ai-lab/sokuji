@@ -212,14 +212,10 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
   });
 
   it('does not re-toggle the --new class when a streaming item grows in place', () => {
-    // Item is present at first render → marked 'existing' permanently.
-    // Then it "grows" (text changes while id stays the same).
-    const initial: any[] = [
-      { id: 'GROW', source: 'speaker', role: 'user', type: 'message', status: 'in_progress', formatted: { text: 'Hel' }, sourceLanguage: 'en', targetLanguage: 'zh' },
-    ];
+    // Empty first render so the streaming item isn't classified 'existing'.
     const { container, rerender } = render(
       <SubtitleStream
-        items={initial}
+        items={[] as any[]}
         compact
         fontSize={24}
         speakerMode="both"
@@ -230,6 +226,26 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     );
     expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
 
+    // Streaming item arrives post-mount → classified 'new', should animate.
+    const partial: any[] = [
+      { id: 'GROW', source: 'speaker', role: 'user', type: 'message', status: 'in_progress', formatted: { text: 'Hel' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    rerender(
+      <SubtitleStream
+        items={partial}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const afterArrival = container.querySelectorAll('.subtitle-stream__item--new');
+    expect(afterArrival.length).toBe(1);
+    expect(afterArrival[0].textContent).toContain('Hel');
+
+    // Same id, more text — state must remain 'new' (no re-toggle, no extra spans).
     const grown: any[] = [
       { id: 'GROW', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'Hello world' }, sourceLanguage: 'en', targetLanguage: 'zh' },
     ];
@@ -244,8 +260,9 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
         targetLanguage="zh"
       />,
     );
-    // Same id → 'existing' state preserved → still no --new class.
-    expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
+    const afterGrowth = container.querySelectorAll('.subtitle-stream__item--new');
+    expect(afterGrowth.length).toBe(1);
+    expect(afterGrowth[0].textContent).toContain('Hello world');
   });
 });
 

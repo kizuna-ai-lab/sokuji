@@ -136,16 +136,23 @@ const SubtitleStream: React.FC<Props> = ({
 
   // Each item is classified once and locked: 'existing' = present at first
   // render of this component instance (never animates), 'new' = arrived later
-  // (animates exactly once on first paint via CSS @keyframes).
+  // (animates exactly once on first paint via CSS @keyframes). The map grows
+  // monotonically — by design, no pruning — typical sessions hit hundreds
+  // of entries, well below any memory concern. StrictMode's double-invocation
+  // of effects is safe: the `has()` guard skips re-insertion on the second pass.
   const itemStatesRef = useRef<Map<string, 'existing' | 'new'>>(new Map());
   const isFirstRenderRef = useRef(true);
 
   const itemStateFor = (id: string): 'existing' | 'new' => {
     const known = itemStatesRef.current.get(id);
-    if (known) return known;
+    if (known !== undefined) return known;
     return isFirstRenderRef.current ? 'existing' : 'new';
   };
 
+  // No deps — runs after every render to lock in state for newly-visible
+  // items. Adding a [lines] dep would also work in practice; the no-deps
+  // form is chosen so future refactors of `lines` (e.g. additional memo
+  // layers) can't accidentally skip a commit.
   useLayoutEffect(() => {
     for (const line of lines) {
       for (const it of line.items) {
