@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
 import type { DisplayMode } from '../../stores/subtitleStore';
@@ -134,6 +134,32 @@ const SubtitleStream: React.FC<Props> = ({
     }
   }, [compact, filtered.length]);
 
+  // Each item is classified once and locked: 'existing' = present at first
+  // render of this component instance (never animates), 'new' = arrived later
+  // (animates exactly once on first paint via CSS @keyframes).
+  const itemStatesRef = useRef<Map<string, 'existing' | 'new'>>(new Map());
+  const isFirstRenderRef = useRef(true);
+
+  const itemStateFor = (id: string): 'existing' | 'new' => {
+    const known = itemStatesRef.current.get(id);
+    if (known) return known;
+    return isFirstRenderRef.current ? 'existing' : 'new';
+  };
+
+  useLayoutEffect(() => {
+    for (const line of lines) {
+      for (const it of line.items) {
+        if (!itemStatesRef.current.has(it.id)) {
+          itemStatesRef.current.set(
+            it.id,
+            isFirstRenderRef.current ? 'existing' : 'new',
+          );
+        }
+      }
+    }
+    isFirstRenderRef.current = false;
+  });
+
   // Apply fontSize to both our flat-line styles and the CSS var that
   // ConversationRow reads in expanded mode.
   const style: React.CSSProperties & Record<string, string> = {
@@ -152,11 +178,17 @@ const SubtitleStream: React.FC<Props> = ({
               className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
             >
               <p>
-                {line.items.map((it, idx) => (
-                  <span key={it.id} className="subtitle-stream__item">
-                    {idx > 0 ? ' ' : ''}{it.text}
-                  </span>
-                ))}
+                {line.items.map((it, idx) => {
+                  const className =
+                    itemStateFor(it.id) === 'new'
+                      ? 'subtitle-stream__item subtitle-stream__item--new'
+                      : 'subtitle-stream__item';
+                  return (
+                    <span key={it.id} className={className}>
+                      {idx > 0 ? ' ' : ''}{it.text}
+                    </span>
+                  );
+                })}
               </p>
             </div>
           ))

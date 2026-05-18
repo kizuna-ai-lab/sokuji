@@ -158,6 +158,95 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     expect(root.style.getPropertyValue('--subtitle-translation-color')).toBe('#00FF00');
     expect(root.style.getPropertyValue('--conversation-font-size')).toBe('36px');
   });
+
+  it('does not mark items as new on the very first render (no flash for pre-existing items)', () => {
+    const { container } = render(
+      <SubtitleStream
+        items={items}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const newSpans = container.querySelectorAll('.subtitle-stream__item--new');
+    expect(newSpans.length).toBe(0);
+  });
+
+  it('marks only items that arrive after the first render as new', () => {
+    const { container, rerender } = render(
+      <SubtitleStream
+        items={items}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // First render — none should be new
+    expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
+
+    // A new speaker source item arrives
+    const arrived: any[] = [
+      ...items,
+      { id: 'NEW1', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'just arrived' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    rerender(
+      <SubtitleStream
+        items={arrived}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const newSpans = container.querySelectorAll('.subtitle-stream__item--new');
+    expect(newSpans.length).toBe(1);
+    expect(newSpans[0].textContent).toContain('just arrived');
+  });
+
+  it('does not re-toggle the --new class when a streaming item grows in place', () => {
+    // Item is present at first render → marked 'existing' permanently.
+    // Then it "grows" (text changes while id stays the same).
+    const initial: any[] = [
+      { id: 'GROW', source: 'speaker', role: 'user', type: 'message', status: 'in_progress', formatted: { text: 'Hel' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    const { container, rerender } = render(
+      <SubtitleStream
+        items={initial}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
+
+    const grown: any[] = [
+      { id: 'GROW', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'Hello world' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    rerender(
+      <SubtitleStream
+        items={grown}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // Same id → 'existing' state preserved → still no --new class.
+    expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
+  });
 });
 
 describe('SubtitleStream — expanded mode (per-item rows)', () => {
