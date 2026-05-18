@@ -62,10 +62,42 @@
     }
   }
 
+  // ------------------------------------------------------------------
+  // Per-item highlight in compact mode.
+  // The item-aware spans created by SubtitleStream are styled here.
+  // The `--new` modifier triggers a one-shot fade-in + decaying overlay
+  // animation; the class persists on the span afterwards (harmless —
+  // CSS animations only fire once per class application).
+  // ------------------------------------------------------------------
+  .subtitle-stream__item {
+    // No styles in the un-animated case — the span is a plain inline.
+  }
+
+  .subtitle-stream__item--new {
+    animation: subtitle-item-highlight 2s ease-out both;
+    border-radius: 2px;
+    padding: 1px 3px;
+  }
+
   // Expanded mode: ConversationRow drives its own layout; we just provide
   // the scroll container.
   &.expanded {
     overflow-y: auto;
     justify-content: flex-end;
+  }
+}
+
+@keyframes subtitle-item-highlight {
+  0% {
+    opacity: 0;
+    background-color: var(--subtitle-highlight-overlay, rgba(255,255,255,0.3));
+  }
+  20% {
+    opacity: 1;
+    background-color: var(--subtitle-highlight-overlay, rgba(255,255,255,0.3));
+  }
+  100% {
+    opacity: 1;
+    background-color: transparent;
   }
 }
