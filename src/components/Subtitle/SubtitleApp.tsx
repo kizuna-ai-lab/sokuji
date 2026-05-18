@@ -46,6 +46,33 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+const HIGHLIGHT_ALPHA = 0.3;
+
+/**
+ * Returns a CSS color for the "newly-arrived item" overlay, chosen so it
+ * contrasts with the user-selected background. YIQ luminance < 128 means
+ * the background is dark → use a light overlay; otherwise use dark.
+ *
+ * The user-set bgOpacity is intentionally not factored in. When opacity is
+ * very low and the actual visible background is whatever sits behind the
+ * subtitle window, this falls back to the bgColor's nominal lightness —
+ * a known limitation accepted in the design spec.
+ */
+export function getHighlightOverlayForBg(hex: string): string {
+  const cleaned = hex.replace('#', '');
+  if (cleaned.length !== 6) return `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`;
+  const r = parseInt(cleaned.slice(0, 2), 16);
+  const g = parseInt(cleaned.slice(2, 4), 16);
+  const b = parseInt(cleaned.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`;
+  }
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq < 128
+    ? `rgba(255, 255, 255, ${HIGHLIGHT_ALPHA})`
+    : `rgba(0, 0, 0, ${HIGHLIGHT_ALPHA})`;
+}
+
 export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
 
 const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'electron' }) => {
