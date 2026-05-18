@@ -225,6 +225,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     background: hexToRgba(subtitle.bgColor, bgAlpha),
     '--bar-opacity': barVisible ? 1 : 0,
     '--bar-pointer-events': barVisible ? 'auto' : 'none',
+    '--subtitle-highlight-overlay': getHighlightOverlayForBg(subtitle.bgColor),
   };
 
   return (
