@@ -91,6 +91,36 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     expect(speakerSrc.textContent).toBe('hello world');
   });
 
+  it('drops items beyond BUCKET_MAX_CHARS to keep the band fast', () => {
+    // ~2000-char cap; 10 × 250-char items = 2500 chars total → at least one drops.
+    const bigItems: any[] = Array.from({ length: 10 }, (_, i) => ({
+      id: String(i),
+      source: 'speaker',
+      role: 'user',
+      type: 'message',
+      status: 'completed',
+      formatted: { text: 'x'.repeat(250) },
+      sourceLanguage: 'en',
+      targetLanguage: 'zh',
+    }));
+    const { container } = render(
+      <SubtitleStream
+        items={bigItems}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const spans = container.querySelectorAll(
+      '.subtitle-stream__line--speaker.subtitle-stream__line--source .subtitle-stream__item',
+    );
+    expect(spans.length).toBeLessThan(10);
+    expect(spans.length).toBeGreaterThan(0);
+  });
+
   it('renders one span per visible item with the item id as the key', () => {
     const many: any[] = [
       { id: '1', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'hello' },  sourceLanguage: 'en', targetLanguage: 'zh' },
