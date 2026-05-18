@@ -14,6 +14,10 @@ interface Props {
   targetLanguage: string;
   sourceTextColor?: string;
   translationTextColor?: string;
+  // When false, items that arrive after first mount are still tracked but
+  // do not receive the `--new` modifier — the CSS highlight never fires.
+  // Defaults to true; passed through from the persisted subtitle setting.
+  newItemHighlightEnabled?: boolean;
 }
 
 function itemText(item: any): string {
@@ -64,6 +68,7 @@ const SubtitleStream: React.FC<Props> = ({
   targetLanguage,
   sourceTextColor,
   translationTextColor,
+  newItemHighlightEnabled = true,
 }) => {
   const filtered = useMemo(
     () => items.filter((item) => shouldShowItem(item, speakerMode, participantMode)),
@@ -186,10 +191,11 @@ const SubtitleStream: React.FC<Props> = ({
             >
               <p>
                 {line.items.map((it, idx) => {
-                  const className =
-                    itemStateFor(it.id) === 'new'
-                      ? 'subtitle-stream__item subtitle-stream__item--new'
-                      : 'subtitle-stream__item';
+                  const showHighlight =
+                    newItemHighlightEnabled && itemStateFor(it.id) === 'new';
+                  const className = showHighlight
+                    ? 'subtitle-stream__item subtitle-stream__item--new'
+                    : 'subtitle-stream__item';
                   return (
                     <span key={it.id} className={className}>
                       {idx > 0 ? ' ' : ''}{it.text}

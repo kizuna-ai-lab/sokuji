@@ -903,7 +903,8 @@
       "bgColor": "Display background",
       "sourceColor": "Source text",
       "translationColor": "Translation text",
-      "customColor": "Custom color"
+      "customColor": "Custom color",
+      "newItemHighlight": "Highlight newly-arrived text"
     },
     "pttHint": "Press Space to speak"
   },

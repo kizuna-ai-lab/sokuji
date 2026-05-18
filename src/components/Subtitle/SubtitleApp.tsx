@@ -17,6 +17,7 @@ import {
   useSubtitlePositionLocked,
   useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
   useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
+  useSubtitleNewItemHighlightEnabled,
 } from '../../stores/subtitleStore';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import {
@@ -82,6 +83,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const systemAudioItems = useSystemAudioItems();
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
+  const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
   const provider = useProvider();
   const localInferenceSettings = useLocalInferenceSettings();
   const isSessionActive = useIsSessionActive();
@@ -268,6 +270,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
             targetLanguage={targetLanguage}
             sourceTextColor={subtitle.sourceTextColor}
             translationTextColor={subtitle.translationTextColor}
+            newItemHighlightEnabled={newItemHighlightEnabled}
           />
         )
       ) : (

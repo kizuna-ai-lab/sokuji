@@ -241,6 +241,40 @@ describe('SubtitleStream — compact mode (up to 4 equal-height lines)', () => {
     expect(newSpans[0].textContent).toContain('just arrived');
   });
 
+  it('suppresses the --new class when newItemHighlightEnabled is false', () => {
+    const { container, rerender } = render(
+      <SubtitleStream
+        items={[] as any[]}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+        newItemHighlightEnabled={false}
+      />,
+    );
+    // Item arrives post-mount — would be 'new' if the highlight were enabled.
+    const arrived: any[] = [
+      { id: 'AFTER', source: 'speaker', role: 'user', type: 'message', status: 'completed', formatted: { text: 'after mount' }, sourceLanguage: 'en', targetLanguage: 'zh' },
+    ];
+    rerender(
+      <SubtitleStream
+        items={arrived}
+        compact
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+        newItemHighlightEnabled={false}
+      />,
+    );
+    // Span exists, just without the highlight modifier.
+    expect(container.querySelectorAll('.subtitle-stream__item').length).toBe(1);
+    expect(container.querySelectorAll('.subtitle-stream__item--new').length).toBe(0);
+  });
+
   it('does not re-toggle the --new class when a streaming item grows in place', () => {
     // Empty first render so the streaming item isn't classified 'existing'.
     const { container, rerender } = render(
