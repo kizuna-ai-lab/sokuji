@@ -171,7 +171,16 @@ function handle(msg: Inbound): void {
         msg.payload.turnDetectionMode,
       );
     }
-    if (msg.payload.playback) applyPlayback(msg.payload.playback);
+    // `playback: null` is the explicit "nothing playing" signal — we must
+    // clear stale state on port reconnect (a truthy-only check would skip it
+    // and leave the iframe stuck on a prior playingItemId).
+    if ('playback' in msg.payload) {
+      if (msg.payload.playback === null) {
+        usePlaybackStore.getState().setPlayingItem(null);
+      } else if (msg.payload.playback) {
+        applyPlayback(msg.payload.playback);
+      }
+    }
   } else if (msg.type === 'playback') {
     applyPlayback(msg);
   } else if (msg.type === 'items') {

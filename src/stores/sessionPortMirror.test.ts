@@ -210,4 +210,24 @@ describe('sessionPortMirror — playback inbound', () => {
     onMessage({ type: 'state-init', payload: { items: [] } });
     expect(usePlaybackStore.getState().playingItemId).toBeNull();
   });
+
+  it('state-init with explicit playback:null clears stale playback state', () => {
+    // Simulates port reconnect: the iframe already had a prior playingItemId
+    // from a previous connection; the new state-init says the sidepanel is
+    // now idle. The mirror must clear, not silently leave stale state.
+    usePlaybackStore.getState().setPlayingItem('item_prior');
+    usePlaybackStore.getState().setProgress({
+      currentTime: 1.0,
+      duration: 5.0,
+      bufferedTime: 4.0,
+    });
+    expect(usePlaybackStore.getState().playingItemId).toBe('item_prior');
+
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'state-init', payload: { items: [], playback: null } });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBeNull();
+    expect(s.currentTime).toBeNull();
+  });
 });
