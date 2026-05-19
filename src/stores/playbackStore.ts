@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
+import { getHighlightedChars } from '../lib/playback/highlight';
 
 interface PlaybackPublic {
   playingItemId: string | null;
@@ -143,5 +145,43 @@ export function subscribePlaybackForPort(callback: (encoded: PlaybackWire) => vo
       equalityFn: (a, b) =>
         a.playingItemId === b.playingItemId && rawEqual(a._raw, b._raw),
     },
+  );
+}
+
+export interface PlaybackHighlight {
+  isPlaying: boolean;
+  highlightedChars: number;
+}
+
+const EMPTY_HIGHLIGHT: PlaybackHighlight = { isPlaying: false, highlightedChars: 0 };
+
+export function usePlaybackHighlight(
+  item:
+    | {
+        id: string;
+        formatted?: {
+          transcript?: string;
+          text?: string;
+          audioSegments?: Array<{ textEnd: number; audioEnd: number }>;
+        };
+      }
+    | null
+    | undefined,
+): PlaybackHighlight {
+  return usePlaybackStore(
+    useShallow((s): PlaybackHighlight => {
+      if (!item || s.playingItemId !== item.id) return EMPTY_HIGHLIGHT;
+      const text = item.formatted?.transcript || item.formatted?.text || '';
+      const segments = item.formatted?.audioSegments;
+      return {
+        isPlaying: true,
+        highlightedChars: getHighlightedChars(
+          s.currentTime ?? 0,
+          segments,
+          text.length,
+          s.progressRatio,
+        ),
+      };
+    }),
   );
 }
