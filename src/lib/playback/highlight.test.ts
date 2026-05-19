@@ -10,8 +10,9 @@ describe('getHighlightedChars', () => {
     ];
 
     it('inside the first segment scales by segment progress', () => {
-      // half-way through segment 1: 0.5s of [0, 1.0s] → 50% of "Hello" (5 chars) = 2
-      expect(getHighlightedChars(0.5, segments, 14, 0)).toBe(2);
+      // half-way through segment 1: 0.5s of [0, 1.0s] → 50% of "Hello" (5 chars).
+      // Math.round(2.5) = 3 (round-half-up).
+      expect(getHighlightedChars(0.5, segments, 14, 0)).toBe(3);
     });
 
     it('inside a later segment uses prevTextEnd + intra-segment progress', () => {
@@ -31,14 +32,24 @@ describe('getHighlightedChars', () => {
       // currentTime exactly at the boundary chooses seg 2 (currentTime < audioEnd false for seg 1)
       expect(getHighlightedChars(1.0, zeroDur, 7, 0)).toBe(7);
     });
+
+    it('near end of final segment highlights the last character', () => {
+      // The end-of-playback case from the bug: currentTime hovers just under
+      // audioEnd because the player polls at 10Hz and stops before reaching
+      // the segment boundary exactly. Math.round bridges the gap; floor would
+      // leave the last char permanently uncolored.
+      // 2.95s into seg 3 (range [2.0, 3.0], width 3): segProgress 0.95.
+      // Math.round(3 * 0.95) = 3. prevTextEnd 11 + 3 = 14 = textLength.
+      expect(getHighlightedChars(2.95, segments, 14, 0)).toBe(14);
+    });
   });
 
   describe('linear fallback', () => {
-    it('uses floor(textLength * progressRatio) when segments is undefined', () => {
+    it('rounds textLength * progressRatio when segments is undefined', () => {
       expect(getHighlightedChars(0, undefined, 10, 0.5)).toBe(5);
     });
 
-    it('uses floor(textLength * progressRatio) when segments is empty', () => {
+    it('rounds textLength * progressRatio when segments is empty', () => {
       expect(getHighlightedChars(0, [], 10, 0.3)).toBe(3);
     });
 
@@ -48,6 +59,13 @@ describe('getHighlightedChars', () => {
 
     it('progressRatio 1 returns textLength', () => {
       expect(getHighlightedChars(0, undefined, 10, 1)).toBe(10);
+    });
+
+    it('near-complete progressRatio still highlights the final character', () => {
+      // Math.floor(11 * 0.95) = 10 (last char missed).
+      // Math.round(11 * 0.95) = 10. But Math.round(11 * 0.96) = 11.
+      // The key end-of-playback case: even slightly under 1.0 reaches textLength.
+      expect(getHighlightedChars(0, undefined, 11, 0.96)).toBe(11);
     });
   });
 

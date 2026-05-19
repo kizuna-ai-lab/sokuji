@@ -242,8 +242,18 @@ const CompactSpan: React.FC<CompactSpanProps> = ({
     : 'subtitle-stream__item';
   const prefix = leadingSpace ? ' ' : '';
 
-  if (!isPlaying || highlightedChars <= 0 || highlightedChars >= it.text.length) {
+  if (!isPlaying || highlightedChars <= 0) {
     return <span className={baseClass}>{prefix}{it.text}</span>;
+  }
+  if (highlightedChars >= it.text.length) {
+    // Fully played — color the whole span (the previous behaviour stripped
+    // the styling here, producing a brief "all uncolored" frame at completion).
+    return (
+      <span className={baseClass}>
+        {prefix}
+        <span className="karaoke-played">{it.text}</span>
+      </span>
+    );
   }
   return (
     <span className={baseClass}>

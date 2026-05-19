@@ -390,9 +390,41 @@ describe('SubtitleStream — expanded karaoke highlight', () => {
         targetLanguage="zh"
       />,
     );
-    // floor(11 * 0.5) = 5 → "Hello"
+    // round(11 * 0.5) = 6 → "Hello "
     const played = container.querySelector('.karaoke-played');
-    expect(played?.textContent).toBe('Hello');
+    expect(played?.textContent).toBe('Hello ');
+  });
+
+  it('renders the whole text with karaoke-played at completion', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 1,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={false}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // Full completion: highlightedChars === text.length → whole text colored.
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello world');
   });
 });
 
@@ -438,8 +470,41 @@ describe('SubtitleStream — compact karaoke highlight', () => {
         targetLanguage="zh"
       />,
     );
+    // round(11 * 0.5) = 6 → "Hello "
     const played = container.querySelector('.karaoke-played');
-    expect(played?.textContent).toBe('Hello');
+    expect(played?.textContent).toBe('Hello ');
+  });
+
+  it('compact band colors the full span at completion', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 1,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello world');
   });
 
   it('compact band does not split spans for non-playing items', () => {

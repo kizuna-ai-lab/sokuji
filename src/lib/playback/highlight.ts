@@ -3,7 +3,10 @@
  * return the number of characters that should be highlighted.
  * Falls back to linear interpolation when segments are not available.
  *
- * Lifted from MainPanel.tsx:91-113; identical logic, no behavioural changes.
+ * Uses Math.round so the final character actually gets highlighted at
+ * end-of-playback: Math.floor would peg at width-1 because segProgress
+ * never quite reaches 1.0 (the player's poll tick before isPlaying flips
+ * to false has currentTime slightly under audioEnd).
  */
 export function getHighlightedChars(
   currentTime: number,
@@ -12,7 +15,7 @@ export function getHighlightedChars(
   progressRatio: number,
 ): number {
   if (!segments || segments.length === 0) {
-    return Math.floor(textLength * progressRatio);
+    return Math.min(Math.round(textLength * progressRatio), textLength);
   }
 
   let prevTextEnd = 0;
@@ -21,7 +24,8 @@ export function getHighlightedChars(
     if (currentTime < seg.audioEnd) {
       const segDuration = seg.audioEnd - prevAudioEnd;
       const segProgress = segDuration > 0 ? (currentTime - prevAudioEnd) / segDuration : 1;
-      return prevTextEnd + Math.floor((seg.textEnd - prevTextEnd) * segProgress);
+      const width = seg.textEnd - prevTextEnd;
+      return prevTextEnd + Math.min(Math.round(width * segProgress), width);
     }
     prevTextEnd = seg.textEnd;
     prevAudioEnd = seg.audioEnd;

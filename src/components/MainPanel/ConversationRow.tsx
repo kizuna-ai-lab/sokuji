@@ -81,8 +81,12 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   );
 
   const renderText = () => {
-    if (!isPlaying || highlightedChars <= 0 || highlightedChars >= text.length) {
+    if (!isPlaying || highlightedChars <= 0) {
       return <span>{text}</span>;
+    }
+    if (highlightedChars >= text.length) {
+      // Fully played — color the entire text, not strip the styling.
+      return <span className="karaoke-played">{text}</span>;
     }
     return (
       <>

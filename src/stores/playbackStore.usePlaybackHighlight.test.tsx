@@ -46,7 +46,7 @@ describe('usePlaybackHighlight', () => {
     });
     render(<Probe item={item} />);
     expect(screen.getByTestId('playing').textContent).toBe('true');
-    expect(screen.getByTestId('chars').textContent).toBe('5'); // floor(11 * 0.5)
+    expect(screen.getByTestId('chars').textContent).toBe('6'); // round(11 * 0.5) = 6
   });
 
   it('uses audioSegments when present', () => {
