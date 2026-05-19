@@ -104,4 +104,50 @@ describe('usePlaybackHighlight', () => {
     render(<Probe item={item as any} textOverride="Hello" />);
     expect(screen.getByTestId('chars').textContent).toBe('5');
   });
+
+  it('with audioSegments + textOverride, shifts indices by leading-trim offset', () => {
+    // Provider returned a transcript with leading whitespace AND
+    // per-segment audioSegments. Segment textEnd values index the original
+    // (untrimmed) string. The caller (SubtitleStream's CompactSpan) renders
+    // the trimmed copy, so highlightedChars must be relative to that.
+    const item = {
+      id: 'item_a',
+      formatted: {
+        text: '  Hello world',
+        audioSegments: [
+          { textEnd: 7, audioEnd: 1.0 },  // "  Hello" (original-indexed)
+          { textEnd: 13, audioEnd: 2.0 }, // "  Hello world"
+        ],
+      },
+    };
+    act(() => {
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      usePlaybackStore.setState({ currentTime: 1.5, progressRatio: 0 });
+    });
+    // 1.5s → 0.5/1.0 through seg 2 (width 6) → rawIndex = 7 + 3 = 10 in original.
+    // Override "Hello world" (11 chars) strips 2 leading spaces, so the rendered
+    // index is 10 - 2 = 8 → highlight covers "Hello wo".
+    render(<Probe item={item as any} textOverride="Hello world" />);
+    expect(screen.getByTestId('chars').textContent).toBe('8');
+  });
+
+  it('with audioSegments + textOverride, clamps index to rendered length', () => {
+    // Trailing whitespace stripped by trim should not produce out-of-range
+    // slice indices: rawIndex past renderedText.length is clamped.
+    const item = {
+      id: 'item_a',
+      formatted: {
+        text: 'Hello  ', // trailing whitespace
+        audioSegments: [{ textEnd: 7, audioEnd: 1.0 }],
+      },
+    };
+    act(() => {
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      usePlaybackStore.setState({ currentTime: 0.99, progressRatio: 0 });
+    });
+    // Just before audioEnd: rawIndex approaches 7 (full original length).
+    // Trimmed override "Hello" is 5 chars → clamp to 5.
+    render(<Probe item={item as any} textOverride="Hello" />);
+    expect(Number(screen.getByTestId('chars').textContent)).toBeLessThanOrEqual(5);
+  });
 });

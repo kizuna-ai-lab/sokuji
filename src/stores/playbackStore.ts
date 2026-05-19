@@ -183,17 +183,40 @@ export function usePlaybackHighlight(
   return usePlaybackStore(
     useShallow((s): PlaybackHighlight => {
       if (!item || s.playingItemId !== item.id) return EMPTY_HIGHLIGHT;
-      const text = textOverride ?? (item.formatted?.transcript || item.formatted?.text || '');
+      const originalText = item.formatted?.transcript || item.formatted?.text || '';
+      const renderedText = textOverride ?? originalText;
       const segments = item.formatted?.audioSegments;
-      return {
-        isPlaying: true,
-        highlightedChars: getHighlightedChars(
+      const usingSegments = !!(segments && segments.length > 0);
+
+      let highlightedChars: number;
+      if (usingSegments) {
+        // Segments carry textEnd values indexed against the original transcript.
+        // Pass originalText.length so the segment math is correct, then shift by
+        // the caller's leading-whitespace strip (if any) and clamp to the
+        // rendered text the caller will actually slice.
+        const rawIndex = getHighlightedChars(
           s.currentTime ?? 0,
           segments,
-          text.length,
+          originalText.length,
           s.progressRatio,
-        ),
-      };
+        );
+        let offset = 0;
+        if (textOverride && textOverride !== originalText) {
+          const idx = originalText.indexOf(textOverride);
+          if (idx > 0) offset = idx;
+        }
+        highlightedChars = Math.max(0, Math.min(rawIndex - offset, renderedText.length));
+      } else {
+        // Linear fallback indexes against textLength directly — no offset needed.
+        highlightedChars = getHighlightedChars(
+          s.currentTime ?? 0,
+          undefined,
+          renderedText.length,
+          s.progressRatio,
+        );
+      }
+
+      return { isPlaying: true, highlightedChars };
     }),
   );
 }
