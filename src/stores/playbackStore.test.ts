@@ -101,3 +101,33 @@ describe('playbackStore — setProgress happy path', () => {
     expect(s.progressRatio).toBe(1.0);
   });
 });
+
+describe('playbackStore — setProgress entry eviction', () => {
+  beforeEach(resetStore);
+
+  it('regression > 50ms with _lastBt > 0 bumps _cumOffset by _lastBt', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    // Entry 1 fills up: ct=1.0, bt=2.0
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 2.0, bufferedTime: 2.0 });
+    // Entry 1 evicted; new entry: ct regresses to 0.1 (1.0 - 0.9 > 0.05)
+    usePlaybackStore.getState().setProgress({ currentTime: 0.1, duration: 1.0, bufferedTime: 1.0 });
+    const s = usePlaybackStore.getState();
+    expect(s._cumOffset).toBe(2.0); // accumulated entry-1 bufferedTime
+    expect(s.currentTime).toBe(2.1); // offset + new ct
+  });
+
+  it('regression <= 50ms does NOT bump offset', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 2.0, bufferedTime: 2.0 });
+    // ct goes back 30ms — within threshold; treated as same entry jitter
+    usePlaybackStore.getState().setProgress({ currentTime: 0.97, duration: 2.0, bufferedTime: 2.0 });
+    expect(usePlaybackStore.getState()._cumOffset).toBe(0);
+  });
+
+  it('regression with _lastBt == 0 does NOT bump offset', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 2.0, bufferedTime: 0 });
+    usePlaybackStore.getState().setProgress({ currentTime: 0.1, duration: 1.0, bufferedTime: 1.0 });
+    expect(usePlaybackStore.getState()._cumOffset).toBe(0);
+  });
+});

@@ -61,8 +61,16 @@ export const usePlaybackStore = create<PlaybackState>()(
       }
       if (s.playingItemId === null) return;
 
-      // Cumulative tracker (Task 4 adds eviction handling; here it just passes through).
-      const offset = s._cumOffset;
+      // Cumulative tracker: when currentTime regresses by more than ENTRY_RESET_THRESHOLD
+      // and the last entry had non-zero bufferedTime, the player evicted that entry and
+      // started a new one — accumulate the previous entry's bufferedTime into the offset.
+      let offset = s._cumOffset;
+      if (
+        raw.currentTime < s._lastCt - ENTRY_RESET_THRESHOLD &&
+        s._lastBt > 0
+      ) {
+        offset += s._lastBt;
+      }
       const cumCurrentTime = offset + raw.currentTime;
       const cumBufferedTime = offset + raw.bufferedTime;
       const cumDuration = offset + raw.duration;
