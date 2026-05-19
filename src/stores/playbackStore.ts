@@ -22,6 +22,8 @@ interface PlaybackActions {
 
 type PlaybackState = PlaybackPublic & PlaybackInternal & PlaybackActions;
 
+const ENTRY_RESET_THRESHOLD = 0.05; // seconds; matches MainPanel
+
 const DEFAULTS: PlaybackPublic & PlaybackInternal = {
   playingItemId: null,
   currentTime: null,
@@ -51,8 +53,34 @@ export const usePlaybackStore = create<PlaybackState>()(
       });
     },
 
-    setProgress(_raw) {
-      // Implemented in Task 3.
+    setProgress(raw) {
+      const s = get();
+      if (raw === null) {
+        // Implemented in Task 5.
+        return;
+      }
+      if (s.playingItemId === null) return;
+
+      // Cumulative tracker (Task 4 adds eviction handling; here it just passes through).
+      const offset = s._cumOffset;
+      const cumCurrentTime = offset + raw.currentTime;
+      const cumBufferedTime = offset + raw.bufferedTime;
+      const cumDuration = offset + raw.duration;
+
+      // Monotonic-clamped ratio.
+      const divisor = cumBufferedTime || cumDuration || 1;
+      const calculatedRatio = Math.min(cumCurrentTime / divisor, 1);
+      const progressRatio = Math.max(calculatedRatio, s._maxProgress);
+
+      set({
+        currentTime: cumCurrentTime,
+        progressRatio,
+        _cumOffset: offset,
+        _lastBt: raw.bufferedTime,
+        _lastCt: raw.currentTime,
+        _maxProgress: progressRatio,
+        _raw: raw,
+      });
     },
   })),
 );

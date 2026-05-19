@@ -61,3 +61,43 @@ describe('playbackStore — setPlayingItem', () => {
     expect(s._maxProgress).toBe(0);
   });
 });
+
+describe('playbackStore — setProgress happy path', () => {
+  beforeEach(resetStore);
+
+  it('first non-null tick after setPlayingItem populates derived', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({
+      currentTime: 1.0,
+      duration: 5.0,
+      bufferedTime: 4.0,
+    });
+    const s = usePlaybackStore.getState();
+    expect(s.currentTime).toBe(1.0);
+    expect(s.progressRatio).toBeCloseTo(1.0 / 4.0, 5);
+    expect(s._raw).toEqual({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
+  });
+
+  it('successive ticks advance derived monotonically', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 0.5, duration: 5.0, bufferedTime: 4.0 });
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
+    const s = usePlaybackStore.getState();
+    expect(s.currentTime).toBe(1.0);
+    expect(s.progressRatio).toBeCloseTo(0.25, 5);
+  });
+
+  it('divisor falls back to duration when bufferedTime is 0', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 4.0, bufferedTime: 0 });
+    const s = usePlaybackStore.getState();
+    expect(s.progressRatio).toBeCloseTo(0.25, 5);
+  });
+
+  it('ratio clamps at 1.0 when currentTime exceeds bufferedTime', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 5.0, duration: 5.0, bufferedTime: 4.0 });
+    const s = usePlaybackStore.getState();
+    expect(s.progressRatio).toBe(1.0);
+  });
+});
