@@ -139,6 +139,10 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     // that don't want to pull in sessionStore (and its audio dependencies)
     // until the surface is actually used.
     const { default: useSessionStore } = await import('../../../stores/sessionStore');
+    const {
+      getWirePlaybackSnapshot,
+      subscribePlaybackForPort,
+    } = await import('../../../stores/playbackStore');
     // If the port was torn down while we awaited the import, bail out.
     if (!this.port) return;
 
@@ -166,6 +170,8 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       turnDetectionMode,
     };
 
+    const playbackSnapshot = getWirePlaybackSnapshot();
+
     this.port.postMessage({
       type: 'state-init',
       payload: {
@@ -177,6 +183,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
         sourceLanguage: lastConfig.sourceLanguage,
         targetLanguage: lastConfig.targetLanguage,
         turnDetectionMode: lastConfig.turnDetectionMode,
+        playback: playbackSnapshot,
       },
     });
 
@@ -243,7 +250,11 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     };
     const unsubConfig = useSettingsStore.subscribe(pushConfigIfChanged);
 
-    this.subscriptions = [unsubItems, unsubSession, unsubConfig];
+    const unsubPlayback = subscribePlaybackForPort((encoded) => {
+      this.port?.postMessage({ type: 'playback', ...encoded });
+    });
+
+    this.subscriptions = [unsubItems, unsubSession, unsubConfig, unsubPlayback];
   }
 }
 

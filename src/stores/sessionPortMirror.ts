@@ -1,5 +1,6 @@
 import useSessionStore from './sessionStore';
 import useSettingsStore from './settingsStore';
+import { usePlaybackStore } from './playbackStore';
 
 declare const chrome: any;
 
@@ -17,6 +18,7 @@ interface InboundStateInit {
     sourceLanguage?: string;
     targetLanguage?: string;
     turnDetectionMode?: string;
+    playback?: { i: string | null; c?: number | null; d?: number; b?: number } | null;
   };
 }
 interface InboundItems {
@@ -36,7 +38,14 @@ interface InboundConfig {
   targetLanguage: string;
   turnDetectionMode?: string;
 }
-type Inbound = InboundStateInit | InboundItems | InboundSession | InboundConfig;
+interface InboundPlayback {
+  type: 'playback';
+  i: string | null;
+  c?: number | null;
+  d?: number;
+  b?: number;
+}
+type Inbound = InboundStateInit | InboundItems | InboundSession | InboundConfig | InboundPlayback;
 
 /**
  * Installs the iframe-side mirror that forwards sessionStore state from the
@@ -127,6 +136,24 @@ function applyConfig(provider: string, sourceLanguage: string, targetLanguage: s
   });
 }
 
+function applyPlayback(msg: { i: string | null; c?: number | null; d?: number; b?: number }): void {
+  const playback = usePlaybackStore.getState();
+  if (msg.i === null) {
+    playback.setPlayingItem(null);
+    return;
+  }
+  playback.setPlayingItem(msg.i);
+  if (msg.c === null || msg.c === undefined) {
+    playback.setProgress(null);
+    return;
+  }
+  playback.setProgress({
+    currentTime: msg.c,
+    duration: msg.d ?? 0,
+    bufferedTime: msg.b ?? 0,
+  });
+}
+
 function handle(msg: Inbound): void {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'state-init') {
@@ -144,6 +171,18 @@ function handle(msg: Inbound): void {
         msg.payload.turnDetectionMode,
       );
     }
+    // `playback: null` is the explicit "nothing playing" signal — we must
+    // clear stale state on port reconnect (a truthy-only check would skip it
+    // and leave the iframe stuck on a prior playingItemId).
+    if ('playback' in msg.payload) {
+      if (msg.payload.playback === null) {
+        usePlaybackStore.getState().setPlayingItem(null);
+      } else if (msg.payload.playback) {
+        applyPlayback(msg.payload.playback);
+      }
+    }
+  } else if (msg.type === 'playback') {
+    applyPlayback(msg);
   } else if (msg.type === 'items') {
     useSessionStore.setState({
       items: msg.items,

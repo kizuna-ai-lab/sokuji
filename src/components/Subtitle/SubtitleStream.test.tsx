@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, act } from '@testing-library/react';
 import SubtitleStream from './SubtitleStream';
+import { usePlaybackStore } from '../../stores/playbackStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -345,5 +346,216 @@ describe('SubtitleStream — expanded mode (per-item rows)', () => {
     );
     expect(container.querySelectorAll('.conversation-row').length).toBe(4);
     expect(container.querySelector('.subtitle-stream__line')).toBeNull();
+  });
+});
+
+describe('SubtitleStream — expanded karaoke highlight', () => {
+  beforeEach(() => {
+    usePlaybackStore.setState({
+      playingItemId: null,
+      currentTime: null,
+      progressRatio: 0,
+      _cumOffset: 0,
+      _lastBt: 0,
+      _lastCt: 0,
+      _maxProgress: 0,
+      _raw: null,
+    });
+  });
+
+  it('renders karaoke split on the playing assistant item', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={false}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // round(11 * 0.5) = 6 → "Hello "
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello ');
+  });
+
+  it('renders the whole text with karaoke-played at completion', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 1,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={false}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // Full completion: highlightedChars === text.length → whole text colored.
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello world');
+  });
+});
+
+describe('SubtitleStream — compact karaoke highlight', () => {
+  beforeEach(() => {
+    usePlaybackStore.setState({
+      playingItemId: null,
+      currentTime: null,
+      progressRatio: 0,
+      _cumOffset: 0,
+      _lastBt: 0,
+      _lastCt: 0,
+      _maxProgress: 0,
+      _raw: null,
+    });
+  });
+
+  it('compact band splits the playing assistant item into played/unplayed spans', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // round(11 * 0.5) = 6 → "Hello "
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello ');
+  });
+
+  it('compact band colors the full span at completion', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 1,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello world');
+  });
+
+  it('compact band does not split spans for non-playing items', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    // playingItemId is null in the beforeEach reset
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelector('.karaoke-played')).toBeNull();
+  });
+
+  it('compact band renders plain text when item is missing from items[]', () => {
+    // line bucket has an id that isn't in items (rare timing race)
+    const items: any[] = [];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    // We can't simulate "in lines but not in items" directly without
+    // restructuring the test; assert at minimum that an empty items
+    // array doesn't crash and renders no .karaoke-played.
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelector('.karaoke-played')).toBeNull();
   });
 });

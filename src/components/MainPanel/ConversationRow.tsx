@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Play, User, Users } from 'lucide-react';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './ConversationRow.scss';
+import '../../styles/karaoke.scss';
 
 interface ConversationRowProps {
   item: ConversationItem & {
@@ -80,12 +81,16 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   );
 
   const renderText = () => {
-    if (!isPlaying || highlightedChars <= 0 || highlightedChars >= text.length) {
+    if (!isPlaying || highlightedChars <= 0) {
       return <span>{text}</span>;
+    }
+    if (highlightedChars >= text.length) {
+      // Fully played — color the entire text, not strip the styling.
+      return <span className="karaoke-played">{text}</span>;
     }
     return (
       <>
-        <span className="row-text-played">{text.slice(0, highlightedChars)}</span>
+        <span className="karaoke-played">{text.slice(0, highlightedChars)}</span>
         <span>{text.slice(highlightedChars)}</span>
       </>
     );

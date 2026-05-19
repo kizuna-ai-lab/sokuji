@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ExtensionContentScriptSubtitleSurface } from './ExtensionContentScriptSubtitleSurface';
+import { usePlaybackStore } from '../../../stores/playbackStore';
 
 // Mock SettingsService factory so settingsStore can be imported without
 // pulling audio worklet side-effects through ServiceFactory.
@@ -136,5 +137,101 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
       (call: any[]) => call[0]?.type === 'items',
     );
     expect(itemsMessages.length).toBe(1);
+  });
+
+  describe('playback forwarding', () => {
+    beforeEach(() => {
+      usePlaybackStore.setState({
+        playingItemId: null,
+        currentTime: null,
+        progressRatio: 0,
+        _cumOffset: 0,
+        _lastBt: 0,
+        _lastCt: 0,
+        _maxProgress: 0,
+        _raw: null,
+      });
+    });
+
+    const makePort = () => ({
+      name: 'sokuji-subtitle',
+      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn() },
+      postMessage: vi.fn(),
+      disconnect: vi.fn(),
+    });
+
+    it('state-init carries playback=null when nothing is playing', async () => {
+      const surface = new ExtensionContentScriptSubtitleSurface();
+      await surface.enter();
+      const port = makePort();
+      listeners.onConnect[0](port);
+      // Drain the lazy import + initial state-init push.
+      await new Promise((r) => setTimeout(r, 0));
+
+      const init = port.postMessage.mock.calls.find(
+        (call: any[]) => call[0]?.type === 'state-init',
+      );
+      expect(init).toBeDefined();
+      expect(init![0].payload.playback).toBeNull();
+    });
+
+    it('state-init carries playback snapshot when item is playing', async () => {
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      usePlaybackStore.getState().setProgress({ currentTime: 1.234, duration: 5, bufferedTime: 4 });
+
+      const surface = new ExtensionContentScriptSubtitleSurface();
+      await surface.enter();
+      const port = makePort();
+      listeners.onConnect[0](port);
+      await new Promise((r) => setTimeout(r, 0));
+
+      const init = port.postMessage.mock.calls.find(
+        (call: any[]) => call[0]?.type === 'state-init',
+      );
+      expect(init![0].payload.playback).toEqual({ i: 'item_a', c: 1.234, d: 5, b: 4 });
+    });
+
+    it('forwards playback changes as typed messages', async () => {
+      const surface = new ExtensionContentScriptSubtitleSurface();
+      await surface.enter();
+      const port = makePort();
+      listeners.onConnect[0](port);
+      await new Promise((r) => setTimeout(r, 0));
+      port.postMessage.mockClear();
+
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      await new Promise((r) => setTimeout(r, 0));
+      expect(port.postMessage.mock.calls).toContainEqual([
+        { type: 'playback', i: 'item_a', c: null },
+      ]);
+
+      usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(port.postMessage.mock.calls).toContainEqual([
+        { type: 'playback', i: 'item_a', c: 1, d: 5, b: 4 },
+      ]);
+    });
+
+    it('dedupes round-equal raw values', async () => {
+      const surface = new ExtensionContentScriptSubtitleSurface();
+      await surface.enter();
+      const port = makePort();
+      listeners.onConnect[0](port);
+      await new Promise((r) => setTimeout(r, 0));
+
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      usePlaybackStore.getState().setProgress({ currentTime: 1.2345, duration: 5, bufferedTime: 4 });
+      await new Promise((r) => setTimeout(r, 0));
+      port.postMessage.mockClear();
+
+      usePlaybackStore.getState().setProgress({ currentTime: 1.2347, duration: 5, bufferedTime: 4 });
+      await new Promise((r) => setTimeout(r, 0));
+
+      const playbackMsgs = port.postMessage.mock.calls.filter(
+        (c: any[]) => c[0]?.type === 'playback',
+      );
+      expect(playbackMsgs.length).toBe(0);
+    });
   });
 });

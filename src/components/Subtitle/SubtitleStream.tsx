@@ -2,7 +2,9 @@ import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
 import type { DisplayMode } from '../../stores/subtitleStore';
+import { usePlaybackHighlight } from '../../stores/playbackStore';
 import './SubtitleStream.scss';
+import '../../styles/karaoke.scss';
 
 interface Props {
   items: any[];
@@ -126,6 +128,11 @@ const SubtitleStream: React.FC<Props> = ({
       .filter((l) => l.items.length > 0);
   }, [filtered]);
 
+  const itemsById = useMemo(
+    () => new Map<string, any>(items.map((it) => [it.id, it])),
+    [items],
+  );
+
   // Stick to bottom only in expanded mode, where ConversationRow rows pile
   // up in a scrollable column and need to follow the latest content. In
   // compact mode each band is a fixed flex slot with internal overflow:
@@ -190,36 +197,91 @@ const SubtitleStream: React.FC<Props> = ({
               className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
             >
               <p>
-                {line.items.map((it, idx) => {
-                  const showHighlight =
-                    newItemHighlightEnabled && itemStateFor(it.id) === 'new';
-                  const className = showHighlight
-                    ? 'subtitle-stream__item subtitle-stream__item--new'
-                    : 'subtitle-stream__item';
-                  return (
-                    <span key={it.id} className={className}>
-                      {idx > 0 ? ' ' : ''}{it.text}
-                    </span>
-                  );
-                })}
+                {line.items.map((it, idx) => (
+                  <CompactSpan
+                    key={it.id}
+                    it={it}
+                    item={itemsById.get(it.id)}
+                    showNewHighlight={newItemHighlightEnabled && itemStateFor(it.id) === 'new'}
+                    leadingSpace={idx > 0}
+                  />
+                ))}
               </p>
             </div>
           ))
         : filtered.map((item, i) => (
-            <ConversationRow
+            <SubtitleConversationRow
               key={item.id}
               item={item}
               prevItem={filtered[i - 1] ?? null}
-              compact={false}
               sourceLanguage={sourceLanguage}
               targetLanguage={targetLanguage}
-              isPlaying={false}
-              highlightedChars={0}
-              canPlay={false}
             />
           ))}
       <div ref={endRef} />
     </div>
+  );
+};
+
+interface CompactSpanProps {
+  it: SubtitleLineItem;
+  item: any | undefined;
+  showNewHighlight: boolean;
+  leadingSpace: boolean;
+}
+
+const CompactSpan: React.FC<CompactSpanProps> = ({
+  it,
+  item,
+  showNewHighlight,
+  leadingSpace,
+}) => {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item, it.text);
+  const baseClass = showNewHighlight
+    ? 'subtitle-stream__item subtitle-stream__item--new'
+    : 'subtitle-stream__item';
+  const prefix = leadingSpace ? ' ' : '';
+
+  if (!isPlaying || highlightedChars <= 0) {
+    return <span className={baseClass}>{prefix}{it.text}</span>;
+  }
+  if (highlightedChars >= it.text.length) {
+    // Fully played — color the whole span (the previous behaviour stripped
+    // the styling here, producing a brief "all uncolored" frame at completion).
+    return (
+      <span className={baseClass}>
+        {prefix}
+        <span className="karaoke-played">{it.text}</span>
+      </span>
+    );
+  }
+  return (
+    <span className={baseClass}>
+      {prefix}
+      <span className="karaoke-played">{it.text.slice(0, highlightedChars)}</span>
+      <span>{it.text.slice(highlightedChars)}</span>
+    </span>
+  );
+};
+
+const SubtitleConversationRow: React.FC<{
+  item: any;
+  prevItem: any;
+  sourceLanguage: string;
+  targetLanguage: string;
+}> = ({ item, prevItem, sourceLanguage, targetLanguage }) => {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+  return (
+    <ConversationRow
+      item={item}
+      prevItem={prevItem}
+      compact={false}
+      sourceLanguage={sourceLanguage}
+      targetLanguage={targetLanguage}
+      isPlaying={isPlaying}
+      highlightedChars={highlightedChars}
+      canPlay={false}
+    />
   );
 };
 

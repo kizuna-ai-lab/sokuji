@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { installSessionPortMirror } from './sessionPortMirror';
 import useSessionStore from './sessionStore';
 import useSettingsStore from './settingsStore';
+import { usePlaybackStore } from './playbackStore';
 
 // Mock SettingsService factory so settingsStore can be imported without
 // pulling audio worklet side-effects through ServiceFactory.
@@ -124,5 +125,109 @@ describe('sessionPortMirror', () => {
     const ps = state.getCurrentProviderSettings() as any;
     expect(ps?.sourceLanguage).toBe('fr');
     expect(ps?.targetLanguage).toBe('de');
+  });
+});
+
+describe('sessionPortMirror — playback inbound', () => {
+  let connectedPort: any;
+
+  beforeEach(() => {
+    usePlaybackStore.setState({
+      playingItemId: null,
+      currentTime: null,
+      progressRatio: 0,
+      _cumOffset: 0,
+      _lastBt: 0,
+      _lastCt: 0,
+      _maxProgress: 0,
+      _raw: null,
+    });
+    useSessionStore.setState({
+      items: [],
+      systemAudioItems: [],
+      isSessionActive: false,
+      sessionStartTime: null,
+    } as any);
+
+    connectedPort = {
+      name: 'sokuji-subtitle',
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      postMessage: vi.fn(),
+      disconnect: vi.fn(),
+    };
+    globalThis.chrome = {
+      runtime: { connect: vi.fn(() => connectedPort) },
+    };
+  });
+
+  it('applies playback message with full c/d/b', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'playback', i: 'item_a', c: 1.0, d: 5.0, b: 4.0 });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBe('item_a');
+    expect(s.currentTime).toBe(1.0);
+    expect(s._raw).toEqual({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
+  });
+
+  it('applies playback message with c:null (pause) preserving derived', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'playback', i: 'item_a', c: 1.0, d: 5.0, b: 4.0 });
+    onMessage({ type: 'playback', i: 'item_a', c: null });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBe('item_a');
+    expect(s.currentTime).toBe(1.0);
+    expect(s._raw).toBeNull();
+  });
+
+  it('applies playback message with i:null (clear)', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'playback', i: 'item_a', c: 1.0, d: 5.0, b: 4.0 });
+    onMessage({ type: 'playback', i: null });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBeNull();
+    expect(s.currentTime).toBeNull();
+  });
+
+  it('state-init.payload.playback populates the store on connect', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({
+      type: 'state-init',
+      payload: { items: [], playback: { i: 'item_a', c: 0.5, d: 5, b: 4 } },
+    });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBe('item_a');
+    expect(s.currentTime).toBe(0.5);
+  });
+
+  it('state-init without playback leaves the playback store at defaults', () => {
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'state-init', payload: { items: [] } });
+    expect(usePlaybackStore.getState().playingItemId).toBeNull();
+  });
+
+  it('state-init with explicit playback:null clears stale playback state', () => {
+    // Simulates port reconnect: the iframe already had a prior playingItemId
+    // from a previous connection; the new state-init says the sidepanel is
+    // now idle. The mirror must clear, not silently leave stale state.
+    usePlaybackStore.getState().setPlayingItem('item_prior');
+    usePlaybackStore.getState().setProgress({
+      currentTime: 1.0,
+      duration: 5.0,
+      bufferedTime: 4.0,
+    });
+    expect(usePlaybackStore.getState().playingItemId).toBe('item_prior');
+
+    installSessionPortMirror();
+    const onMessage = connectedPort.onMessage.addListener.mock.calls[0][0];
+    onMessage({ type: 'state-init', payload: { items: [], playback: null } });
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBeNull();
+    expect(s.currentTime).toBeNull();
   });
 });
