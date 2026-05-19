@@ -197,18 +197,15 @@ const SubtitleStream: React.FC<Props> = ({
               className={`subtitle-stream__line subtitle-stream__line--${line.kind} subtitle-stream__line--${line.source}`}
             >
               <p>
-                {line.items.map((it, idx) => {
-                  const showHighlight =
-                    newItemHighlightEnabled && itemStateFor(it.id) === 'new';
-                  const className = showHighlight
-                    ? 'subtitle-stream__item subtitle-stream__item--new'
-                    : 'subtitle-stream__item';
-                  return (
-                    <span key={it.id} className={className}>
-                      {idx > 0 ? ' ' : ''}{it.text}
-                    </span>
-                  );
-                })}
+                {line.items.map((it, idx) => (
+                  <CompactSpan
+                    key={it.id}
+                    it={it}
+                    item={itemsById.get(it.id)}
+                    showNewHighlight={newItemHighlightEnabled && itemStateFor(it.id) === 'new'}
+                    leadingSpace={idx > 0}
+                  />
+                ))}
               </p>
             </div>
           ))
@@ -223,6 +220,37 @@ const SubtitleStream: React.FC<Props> = ({
           ))}
       <div ref={endRef} />
     </div>
+  );
+};
+
+interface CompactSpanProps {
+  it: SubtitleLineItem;
+  item: any | undefined;
+  showNewHighlight: boolean;
+  leadingSpace: boolean;
+}
+
+const CompactSpan: React.FC<CompactSpanProps> = ({
+  it,
+  item,
+  showNewHighlight,
+  leadingSpace,
+}) => {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+  const baseClass = showNewHighlight
+    ? 'subtitle-stream__item subtitle-stream__item--new'
+    : 'subtitle-stream__item';
+  const prefix = leadingSpace ? ' ' : '';
+
+  if (!isPlaying || highlightedChars <= 0 || highlightedChars >= it.text.length) {
+    return <span className={baseClass}>{prefix}{it.text}</span>;
+  }
+  return (
+    <span className={baseClass}>
+      {prefix}
+      <span className="karaoke-played">{it.text.slice(0, highlightedChars)}</span>
+      <span>{it.text.slice(highlightedChars)}</span>
+    </span>
   );
 };
 

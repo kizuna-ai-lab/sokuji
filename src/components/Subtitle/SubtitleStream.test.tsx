@@ -395,3 +395,102 @@ describe('SubtitleStream — expanded karaoke highlight', () => {
     expect(played?.textContent).toBe('Hello');
   });
 });
+
+describe('SubtitleStream — compact karaoke highlight', () => {
+  beforeEach(() => {
+    usePlaybackStore.setState({
+      playingItemId: null,
+      currentTime: null,
+      progressRatio: 0,
+      _cumOffset: 0,
+      _lastBt: 0,
+      _lastCt: 0,
+      _maxProgress: 0,
+      _raw: null,
+    });
+  });
+
+  it('compact band splits the playing assistant item into played/unplayed spans', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello');
+  });
+
+  it('compact band does not split spans for non-playing items', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        source: 'speaker',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    // playingItemId is null in the beforeEach reset
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelector('.karaoke-played')).toBeNull();
+  });
+
+  it('compact band renders plain text when item is missing from items[]', () => {
+    // line bucket has an id that isn't in items (rare timing race)
+    const items: any[] = [];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    // We can't simulate "in lines but not in items" directly without
+    // restructuring the test; assert at minimum that an empty items
+    // array doesn't crash and renders no .karaoke-played.
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={true}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    expect(container.querySelector('.karaoke-played')).toBeNull();
+  });
+});
