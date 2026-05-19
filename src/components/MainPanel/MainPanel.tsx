@@ -2947,40 +2947,43 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
           ) : (
             <div className="conversation-list">
-              {filteredItems.map((item, i) => {
+              {(() => {
                 // prevItem must be the previous *rendered-as-row* item (other
                 // types — tool calls, audio-only, errors — would incorrectly
                 // collapse the header because they default source='speaker').
-                let prevItem: (ConversationItem & { source?: string }) | null = null;
-                for (let p = i - 1; p >= 0; p -= 1) {
-                  const cand = filteredItems[p] as ConversationItem & { source?: string };
-                  if (cand.type !== 'message') continue;
-                  const candText = cand.formatted?.transcript || cand.formatted?.text;
-                  if (candText) { prevItem = cand; break; }
-                }
+                // Single forward pass tracking the last text-bearing message
+                // avoids an O(N²) backward scan per render.
+                let lastTextMsg: (ConversationItem & { source?: string }) | null = null;
+                return filteredItems.map((item, i) => {
+                  const prevItem = lastTextMsg;
+                  const hasText = !!(item.formatted?.transcript || item.formatted?.text);
+                  if (item.type === 'message' && hasText) {
+                    lastTextMsg = item as ConversationItem & { source?: string };
+                  }
 
-                const audio = item.formatted?.audio as any;
-                const audioSize = audio?.length ?? audio?.byteLength ?? 0;
-                const canPlay =
-                  ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
-                  audioSize > 0;
+                  const audio = item.formatted?.audio as any;
+                  const audioSize = audio?.length ?? audio?.byteLength ?? 0;
+                  const canPlay =
+                    ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
+                    audioSize > 0;
 
-                return (
-                  <ConversationBubble
-                    key={`${(item as any).source || 'speaker'}_${item.id || i}`}
-                    item={item}
-                    index={i}
-                    prevItem={prevItem}
-                    sourceLanguage={sourceLanguage}
-                    targetLanguage={targetLanguage}
-                    canPlay={canPlay}
-                    onPlay={() => handlePlayAudio(item)}
-                    someItemPlaying={playingItemId !== null}
-                    uiMode={uiMode}
-                    compact={conversationCompactMode}
-                  />
-                );
-              })}
+                  return (
+                    <ConversationBubble
+                      key={`${(item as any).source || 'speaker'}_${item.id || i}`}
+                      item={item}
+                      index={i}
+                      prevItem={prevItem}
+                      sourceLanguage={sourceLanguage}
+                      targetLanguage={targetLanguage}
+                      canPlay={canPlay}
+                      onPlay={() => handlePlayAudio(item)}
+                      someItemPlaying={playingItemId !== null}
+                      uiMode={uiMode}
+                      compact={conversationCompactMode}
+                    />
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
