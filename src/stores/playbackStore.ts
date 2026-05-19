@@ -128,3 +128,20 @@ function rawEqual(a: RawProgress | null, b: RawProgress | null): boolean {
 
 /** Internal exports for unit tests only. Do not consume from app code. */
 export const __internal__ = { encodePlaybackForWire, rawEqual };
+
+export function getRawSnapshot(): RawProgress | null {
+  return usePlaybackStore.getState()._raw;
+}
+
+export type PlaybackWire = { i: string | null; c?: number | null; d?: number; b?: number };
+
+export function subscribePlaybackForPort(callback: (encoded: PlaybackWire) => void): () => void {
+  return usePlaybackStore.subscribe(
+    (s) => ({ playingItemId: s.playingItemId, _raw: s._raw }),
+    (next) => callback(encodePlaybackForWire(next)),
+    {
+      equalityFn: (a, b) =>
+        a.playingItemId === b.playingItemId && rawEqual(a._raw, b._raw),
+    },
+  );
+}

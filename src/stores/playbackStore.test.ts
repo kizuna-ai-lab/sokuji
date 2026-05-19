@@ -166,7 +166,7 @@ describe('playbackStore — setProgress(null)', () => {
   });
 });
 
-import { __internal__ } from './playbackStore';
+import { __internal__, getRawSnapshot, subscribePlaybackForPort } from './playbackStore';
 
 describe('playbackStore wire helpers', () => {
   const { encodePlaybackForWire, rawEqual } = __internal__;
@@ -219,5 +219,60 @@ describe('playbackStore wire helpers', () => {
         ),
       ).toBe(false);
     });
+  });
+});
+
+describe('getRawSnapshot', () => {
+  beforeEach(resetStore);
+
+  it('returns null when no progress has been written', () => {
+    expect(getRawSnapshot()).toBeNull();
+  });
+
+  it('returns the latest raw input', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.234, duration: 5, bufferedTime: 4 });
+    expect(getRawSnapshot()).toEqual({ currentTime: 1.234, duration: 5, bufferedTime: 4 });
+  });
+});
+
+describe('subscribePlaybackForPort', () => {
+  beforeEach(resetStore);
+
+  it('fires callback when playingItemId changes', () => {
+    const calls: any[] = [];
+    const unsub = subscribePlaybackForPort((encoded) => calls.push(encoded));
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    expect(calls.length).toBe(1);
+    expect(calls[0]).toEqual({ i: 'item_a', c: null });
+    unsub();
+  });
+
+  it('fires callback when _raw changes (compared by rounded values)', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    const calls: any[] = [];
+    const unsub = subscribePlaybackForPort((encoded) => calls.push(encoded));
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 5, bufferedTime: 4 });
+    expect(calls.length).toBe(1);
+    expect(calls[0]).toEqual({ i: 'item_a', c: 1.0, d: 5, b: 4 });
+    unsub();
+  });
+
+  it('does NOT fire callback when round-equal raw is re-written', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.2345, duration: 5, bufferedTime: 4 });
+    const calls: any[] = [];
+    const unsub = subscribePlaybackForPort((encoded) => calls.push(encoded));
+    usePlaybackStore.getState().setProgress({ currentTime: 1.2347, duration: 5, bufferedTime: 4 });
+    expect(calls.length).toBe(0);
+    unsub();
+  });
+
+  it('unsub() detaches the listener', () => {
+    const calls: any[] = [];
+    const unsub = subscribePlaybackForPort((encoded) => calls.push(encoded));
+    unsub();
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    expect(calls.length).toBe(0);
   });
 });
