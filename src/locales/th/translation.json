@@ -780,7 +780,8 @@
       "bgOpacity": "ความโปร่งใสของพื้นหลัง",
       "bgColor": "สีพื้นหลัง",
       "sourceColor": "สีข้อความต้นฉบับ",
-      "translationColor": "สีคำแปล"
+      "translationColor": "สีคำแปล",
+      "newItemHighlight": "เน้นข้อความที่เพิ่งมาถึง"
     },
     "pttHint": "กด Space ค้างเพื่อพูด"
   },

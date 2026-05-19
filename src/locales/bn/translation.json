@@ -866,7 +866,8 @@
       "bgOpacity": "পটভূমির অস্বচ্ছতা",
       "bgColor": "পটভূমির রঙ",
       "sourceColor": "মূল টেক্সটের রঙ",
-      "translationColor": "অনুবাদের রঙ"
+      "translationColor": "অনুবাদের রঙ",
+      "newItemHighlight": "নতুন আসা পাঠ্য হাইলাইট করুন"
     },
     "pttHint": "কথা বলতে Space চাপুন"
   },

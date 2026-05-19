@@ -859,7 +859,8 @@
       "bgOpacity": "Hintergrund-Transparenz",
       "bgColor": "Hintergrundfarbe",
       "sourceColor": "Quelltextfarbe",
-      "translationColor": "Übersetzungsfarbe"
+      "translationColor": "Übersetzungsfarbe",
+      "newItemHighlight": "Neu eingetroffenen Text hervorheben"
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },

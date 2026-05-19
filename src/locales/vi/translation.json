@@ -809,7 +809,8 @@
       "bgOpacity": "Độ trong suốt nền",
       "bgColor": "Màu nền",
       "sourceColor": "Màu văn bản gốc",
-      "translationColor": "Màu bản dịch"
+      "translationColor": "Màu bản dịch",
+      "newItemHighlight": "Tô sáng văn bản vừa đến"
     },
     "pttHint": "Nhấn Phím cách để nói"
   },

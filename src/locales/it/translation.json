@@ -858,7 +858,8 @@
       "bgOpacity": "Opacità dello sfondo",
       "bgColor": "Colore dello sfondo",
       "sourceColor": "Colore testo originale",
-      "translationColor": "Colore traduzione"
+      "translationColor": "Colore traduzione",
+      "newItemHighlight": "Evidenzia il testo appena arrivato"
     },
     "pttHint": "Premi Spazio per parlare"
   },

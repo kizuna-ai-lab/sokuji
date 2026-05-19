@@ -828,7 +828,8 @@
       "bgOpacity": "背景透明度",
       "bgColor": "背景顏色",
       "sourceColor": "原文顏色",
-      "translationColor": "譯文顏色"
+      "translationColor": "譯文顏色",
+      "newItemHighlight": "醒目顯示新到達的文字"
     },
     "pttHint": "按住空白鍵說話"
   },

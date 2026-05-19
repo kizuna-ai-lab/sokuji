@@ -870,7 +870,8 @@
       "bgOpacity": "背景の透明度",
       "bgColor": "背景色",
       "sourceColor": "原文の色",
-      "translationColor": "訳文の色"
+      "translationColor": "訳文の色",
+      "newItemHighlight": "新しく届いたテキストをハイライトする"
     },
     "pttHint": "スペースキーを押して話す"
   },

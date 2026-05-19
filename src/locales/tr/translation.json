@@ -816,7 +816,8 @@
       "bgOpacity": "Arka plan opaklığı",
       "bgColor": "Arka plan rengi",
       "sourceColor": "Kaynak metin rengi",
-      "translationColor": "Çeviri rengi"
+      "translationColor": "Çeviri rengi",
+      "newItemHighlight": "Yeni gelen metni vurgula"
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },

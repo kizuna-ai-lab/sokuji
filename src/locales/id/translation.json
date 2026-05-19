@@ -858,7 +858,8 @@
       "bgOpacity": "Opasitas latar",
       "bgColor": "Warna latar",
       "sourceColor": "Warna teks asli",
-      "translationColor": "Warna terjemahan"
+      "translationColor": "Warna terjemahan",
+      "newItemHighlight": "Sorot teks yang baru tiba"
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },

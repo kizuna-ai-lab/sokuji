@@ -810,7 +810,8 @@
       "bgOpacity": "पृष्ठभूमि अस्पष्टता",
       "bgColor": "पृष्ठभूमि रंग",
       "sourceColor": "मूल पाठ रंग",
-      "translationColor": "अनुवाद रंग"
+      "translationColor": "अनुवाद रंग",
+      "newItemHighlight": "नए आए हुए पाठ को हाइलाइट करें"
     },
     "pttHint": "बोलने के लिए स्पेस दबाएँ"
   },

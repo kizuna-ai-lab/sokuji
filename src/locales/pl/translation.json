@@ -857,7 +857,8 @@
       "bgOpacity": "Przezroczystość tła",
       "bgColor": "Kolor tła",
       "sourceColor": "Kolor tekstu źródłowego",
-      "translationColor": "Kolor tłumaczenia"
+      "translationColor": "Kolor tłumaczenia",
+      "newItemHighlight": "Wyróżnij nowo otrzymany tekst"
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },

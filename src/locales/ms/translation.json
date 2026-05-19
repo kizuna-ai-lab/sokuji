@@ -857,7 +857,8 @@
       "bgOpacity": "Kelegapan latar",
       "bgColor": "Warna latar",
       "sourceColor": "Warna teks sumber",
-      "translationColor": "Warna terjemahan"
+      "translationColor": "Warna terjemahan",
+      "newItemHighlight": "Serlahkan teks yang baru tiba"
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },

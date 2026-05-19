@@ -816,7 +816,8 @@
       "bgOpacity": "Taustan läpinäkyvyys",
       "bgColor": "Taustaväri",
       "sourceColor": "Lähdetekstin väri",
-      "translationColor": "Käännöksen väri"
+      "translationColor": "Käännöksen väri",
+      "newItemHighlight": "Korosta vasta saapunutta tekstiä"
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },

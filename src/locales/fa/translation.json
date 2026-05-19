@@ -866,7 +866,8 @@
       "bgOpacity": "شفافیت پس‌زمینه",
       "bgColor": "رنگ پس‌زمینه",
       "sourceColor": "رنگ متن اصلی",
-      "translationColor": "رنگ ترجمه"
+      "translationColor": "رنگ ترجمه",
+      "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده"
     },
     "pttHint": "برای صحبت، Space را نگه دارید"
   },

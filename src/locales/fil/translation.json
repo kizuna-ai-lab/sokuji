@@ -816,7 +816,8 @@
       "bgOpacity": "Opacity ng background",
       "bgColor": "Kulay ng background",
       "sourceColor": "Kulay ng orihinal na teksto",
-      "translationColor": "Kulay ng salin"
+      "translationColor": "Kulay ng salin",
+      "newItemHighlight": "I-highlight ang bagong dating na teksto"
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },

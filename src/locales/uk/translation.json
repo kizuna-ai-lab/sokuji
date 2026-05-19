@@ -778,7 +778,8 @@
       "bgOpacity": "Прозорість тла",
       "bgColor": "Колір тла",
       "sourceColor": "Колір вихідного тексту",
-      "translationColor": "Колір перекладу"
+      "translationColor": "Колір перекладу",
+      "newItemHighlight": "Підсвічувати щойно отриманий текст"
     },
     "pttHint": "Натисніть пробіл, щоб говорити"
   },

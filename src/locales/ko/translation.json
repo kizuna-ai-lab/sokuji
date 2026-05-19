@@ -858,7 +858,8 @@
       "bgOpacity": "배경 투명도",
       "bgColor": "배경색",
       "sourceColor": "원문 색상",
-      "translationColor": "번역 색상"
+      "translationColor": "번역 색상",
+      "newItemHighlight": "새로 도착한 텍스트 강조 표시"
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },

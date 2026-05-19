@@ -864,7 +864,8 @@
       "bgOpacity": "אטימות רקע",
       "bgColor": "צבע רקע",
       "sourceColor": "צבע טקסט מקור",
-      "translationColor": "צבע תרגום"
+      "translationColor": "צבע תרגום",
+      "newItemHighlight": "הדגשת טקסט שהגיע זה עתה"
     },
     "pttHint": "לחץ על רווח כדי לדבר"
   },

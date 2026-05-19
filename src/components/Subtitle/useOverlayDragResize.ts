@@ -51,14 +51,26 @@ export function useOverlayDragResize({ surface }: UseOverlayDragResizeArgs) {
   const isInteractiveTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false;
     return !!target.closest(
-      'button, input, select, textarea, a, [role="button"], .subtitle-app__resize',
+      'button, input, select, textarea, a, [role="button"], [role="switch"], [role="slider"], label, .subtitle-app__resize',
     );
   };
 
   const startDrag = useCallback(
     (kind: DragKind) => (e: React.MouseEvent) => {
       if (!isActive || positionLocked) return;
-      if (kind === 'move' && isInteractiveTarget(e.target)) return;
+      if (kind === 'move') {
+        // React portals (e.g. the settings popover via FloatingPortal) bubble
+        // mousedown through the React tree, but the portaled DOM lives outside
+        // the bar's DOM subtree. Treat those events as "not on the bar" so
+        // clicks inside the popover (toggle, color picker, slider) don't get
+        // hijacked into a drag — which silently swallows the subsequent click
+        // because the content script installs a viewport-wide drag overlay
+        // that captures mouseup.
+        const currentTarget = e.currentTarget as Node;
+        const target = e.target as Node | null;
+        if (!target || !currentTarget.contains(target)) return;
+        if (isInteractiveTarget(e.target)) return;
+      }
       e.preventDefault();
       window.parent.postMessage(
         {

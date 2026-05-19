@@ -791,7 +791,8 @@
       "bgOpacity": "பின்னணி ஒளிபுகாமை",
       "bgColor": "பின்னணி நிறம்",
       "sourceColor": "மூல உரை நிறம்",
-      "translationColor": "மொழிபெயர்ப்பு நிறம்"
+      "translationColor": "மொழிபெயர்ப்பு நிறம்",
+      "newItemHighlight": "புதிதாக வந்த உரையை முன்னிலைப்படுத்து"
     },
     "pttHint": "பேச Space அழுத்தவும்"
   },

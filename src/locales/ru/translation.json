@@ -865,7 +865,8 @@
       "bgOpacity": "Прозрачность фона",
       "bgColor": "Цвет фона",
       "sourceColor": "Цвет исходного текста",
-      "translationColor": "Цвет перевода"
+      "translationColor": "Цвет перевода",
+      "newItemHighlight": "Подсвечивать только что поступивший текст"
     },
     "pttHint": "Удерживайте пробел для речи"
   },

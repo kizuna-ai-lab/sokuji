@@ -859,7 +859,8 @@
       "bgOpacity": "Opacité du fond",
       "bgColor": "Couleur du fond",
       "sourceColor": "Couleur du texte source",
-      "translationColor": "Couleur de la traduction"
+      "translationColor": "Couleur de la traduction",
+      "newItemHighlight": "Surligner le texte nouvellement arrivé"
     },
     "pttHint": "Appuyez sur Espace pour parler"
   },

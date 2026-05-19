@@ -860,7 +860,8 @@
       "bgOpacity": "شفافية الخلفية",
       "bgColor": "لون الخلفية",
       "sourceColor": "لون النص الأصلي",
-      "translationColor": "لون الترجمة"
+      "translationColor": "لون الترجمة",
+      "newItemHighlight": "تمييز النص الذي وصل حديثًا"
     },
     "pttHint": "اضغط مفتاح المسافة للتحدث"
   },

@@ -858,7 +858,8 @@
       "bgOpacity": "Achtergrondtransparantie",
       "bgColor": "Achtergrondkleur",
       "sourceColor": "Kleur brontekst",
-      "translationColor": "Vertaalkleur"
+      "translationColor": "Vertaalkleur",
+      "newItemHighlight": "Markeer nieuw binnengekomen tekst"
     },
     "pttHint": "Druk op Spatie om te spreken"
   },

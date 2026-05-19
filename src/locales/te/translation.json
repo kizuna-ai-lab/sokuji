@@ -773,7 +773,8 @@
       "bgOpacity": "నేపథ్యం పారదర్శకత",
       "bgColor": "నేపథ్యం రంగు",
       "sourceColor": "మూల వచనం రంగు",
-      "translationColor": "అనువాదం రంగు"
+      "translationColor": "అనువాదం రంగు",
+      "newItemHighlight": "కొత్తగా వచ్చిన టెక్స్ట్‌ను హైలైట్ చేయండి"
     },
     "pttHint": "మాట్లాడడానికి Space నొక్కండి"
   },

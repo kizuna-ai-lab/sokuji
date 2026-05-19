@@ -814,7 +814,8 @@
       "bgOpacity": "Bakgrundsopacitet",
       "bgColor": "Bakgrundsfärg",
       "sourceColor": "Källtextfärg",
-      "translationColor": "Översättningsfärg"
+      "translationColor": "Översättningsfärg",
+      "newItemHighlight": "Markera nyligen ankommen text"
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },
