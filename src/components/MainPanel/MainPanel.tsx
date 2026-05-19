@@ -72,7 +72,7 @@ import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
-import { getHighlightedChars } from '../../lib/playback/highlight';
+import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
 
 
 /**
@@ -99,11 +99,10 @@ interface ConversationBubbleProps {
   prevItem: (ConversationItem & { source?: string }) | null;
   sourceLanguage: string;
   targetLanguage: string;
-  isPlaying: boolean;
-  highlightedChars: number;
   canPlay: boolean;
   onPlay?: () => void;
-  playDisabled: boolean;
+  /** True when some other item (not this one) is playing; disables the play button. */
+  someItemPlaying: boolean;
   uiMode: string;
   compact: boolean;
 }
@@ -114,14 +113,14 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
   prevItem,
   sourceLanguage,
   targetLanguage,
-  isPlaying,
-  highlightedChars,
   canPlay,
   onPlay,
-  playDisabled,
+  someItemPlaying,
   uiMode,
   compact,
 }) => {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+  const playDisabled = someItemPlaying && !isPlaying;
   const { t } = useTranslation();
 
   // Error bubble
@@ -350,12 +349,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
-  const [playingItemId, setPlayingItemId] = useState<string | null>(null);
-  const [playbackProgress, setPlaybackProgress] = useState<{
-    currentTime: number;
-    duration: number;
-    bufferedTime: number;
-  } | null>(null);
+
+  // Playback state is now managed by playbackStore
+  const setPlayingItem = usePlaybackStore((s) => s.setPlayingItem);
+  const setProgress = usePlaybackStore((s) => s.setProgress);
+  const playingItemId = usePlaybackStore((s) => s.playingItemId);
   
   // Audio feedback warning state
   const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
@@ -870,25 +868,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const UPDATE_THROTTLE_MS = 50; // Throttle UI updates to max 20Hz
   
-  // Reference to track the maximum progress ratio to prevent backwards movement
-  const lastMaxProgressRef = useRef<number>(0);
-
-  // Cumulative played-time tracking across player-entry boundaries within the
-  // same item (issue #216). The ModernAudioPlayer evicts an itemQueue entry as
-  // soon as its samples are consumed; if the next chunk for the same itemId
-  // arrives after eviction, a fresh entry is created with its own startSample,
-  // so getCurrentPlaybackStatus()'s currentTime/bufferedTime restart from
-  // ~zero. This wrecks the karaoke math, which needs item-level cumulative
-  // time. We reconstruct it on the consumer side by detecting currentTime
-  // regressions and adding the previous entry's last-seen bufferedTime to an
-  // offset.
-  const cumulativeAudioRef = useRef<{
-    itemId: string;
-    offset: number;       // seconds accumulated from prior evicted entries
-    lastBt: number;       // last bufferedTime seen for current entry
-    lastCt: number;       // last currentTime seen for current entry
-  } | null>(null);
-
   // Debounce timer for clearing playingItemId on the player's 'ended' callback.
   // The player fires 'ended' on every itemQueue entry eviction (chunk
   // boundary), not just on true item end. Without debouncing, playingItemId
@@ -899,7 +878,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Constants for karaoke progress tracking
   const PROGRESS_UPDATE_INTERVAL = 100; // ms
-  const ENTRY_RESET_THRESHOLD = 0.05; // ct drop > 50ms = entry was evicted and re-created
   // Longest observed intra-item content gap on translate is ~2s; debounce
   // longer than that to avoid prematurely clearing playingItemId during a
   // natural pause between sentences within a single response.
@@ -1967,7 +1945,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If already playing something, interrupt it first
       if (playingItemId) {
         await audioService.interruptAudio();
-        setPlayingItemId(null);
+        setPlayingItem(null);
       }
 
       // If this is the same item that was playing, just stop it
@@ -2011,7 +1989,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Store the current item ID to use in the timeout
       const currentItemId = item.id;
-      setPlayingItemId(currentItemId);
+      setPlayingItem(currentItemId);
       
       // Calculate audio duration based on the audio data
       let audioLength = 0;
@@ -2048,15 +2026,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Set a timeout to clear the playing state
       setTimeout(() => {
-        setPlayingItemId(prevId => prevId === currentItemId ? null : prevId);
+        // Use getState() for a fresh read inside the async timeout callback
+        if (usePlaybackStore.getState().playingItemId === currentItemId) {
+          setPlayingItem(null);
+        }
       }, actualDurationMs + 50); // Add 50ms buffer
-      
+
       console.info('[Sokuji] [MainPanel] Playing audio from item ' + item.id);
     } catch (error) {
       console.error('[Sokuji] [MainPanel] Error playing audio:', error);
-      setPlayingItemId(null);
+      setPlayingItem(null);
     }
-  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId]);
+  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId, setPlayingItem]);
 
   /**
    * Play or stop test tone for debugging
@@ -2191,89 +2172,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
 
-  // Item-level cumulative playback time. Reconstructs continuous progress
-  // across ModernAudioPlayer entry boundaries (see cumulativeAudioRef comment).
-  // Returns null when nothing is playing. Mutates cumulativeAudioRef as a side
-  // effect — same pattern as the lastMaxProgressRef updates below.
-  const cumulativeProgress = useMemo(() => {
-    if (!playbackProgress || !playingItemId) return null;
-
-    const tracker = cumulativeAudioRef.current;
-    let offset = 0;
-    if (tracker && tracker.itemId === playingItemId) {
-      offset = tracker.offset;
-      // Detect entry eviction + re-creation: currentTime regressed substantially
-      // (within an entry, ct is monotonic). The previous entry was played to
-      // completion (eviction only happens after read head passes its end), so
-      // its full last-seen bufferedTime contributes to the offset.
-      if (
-        playbackProgress.currentTime < tracker.lastCt - ENTRY_RESET_THRESHOLD &&
-        tracker.lastBt > 0
-      ) {
-        offset += tracker.lastBt;
-      }
-    }
-
-    cumulativeAudioRef.current = {
-      itemId: playingItemId,
-      offset,
-      lastBt: playbackProgress.bufferedTime,
-      lastCt: playbackProgress.currentTime,
-    };
-
-    return {
-      currentTime: offset + playbackProgress.currentTime,
-      bufferedTime: offset + playbackProgress.bufferedTime,
-      duration: offset + playbackProgress.duration,
-      offset,
-    };
-  }, [playbackProgress, playingItemId]);
-
-  // Memoize progress calculation to reduce re-renders.
-  // Monotonic-within-item via max clamp; reset only on playingItemId change
-  // (effect below). The raw cumulative ratio can still dip mid-item — when a
-  // new chunk extends cumBt faster than cumCt advances — so the clamp is
-  // load-bearing. The previous BACKWARD_TIMEOUT and diff>0.5 escape paths
-  // existed to recover from per-chunk player resets that we now handle via
-  // cumulative tracking, and they were causing spurious mid-item snap-backs
-  // on natural pauses (issue #216).
-  const progressRatio = useMemo(() => {
-    // Hold the last max during transient gaps where the player has no audible
-    // entry (e.g., one chunk drained, next not arrived). Otherwise the
-    // highlight would briefly snap to 0 between chunks.
-    if (!cumulativeProgress) return lastMaxProgressRef.current;
-
-    const divisor = cumulativeProgress.bufferedTime || cumulativeProgress.duration || 1;
-    const calculatedRatio = Math.min(cumulativeProgress.currentTime / divisor, 1);
-
-    if (calculatedRatio < lastMaxProgressRef.current) {
-      return lastMaxProgressRef.current;
-    }
-    return calculatedRatio;
-  }, [cumulativeProgress]);
-
-  /**
-   * Reset max progress and cumulative tracker when playing a new item.
-   * Note: there is intentionally no playback-stopped reset effect — between
-   * translate audio chunks `playbackProgress` momentarily becomes null while
-   * the player is buffering, and resetting max on those transitions caused
-   * the karaoke highlight to repeatedly snap back to zero (issue #216).
-   */
-  useEffect(() => {
-    lastMaxProgressRef.current = 0;
-    cumulativeAudioRef.current = null;
-  }, [playingItemId]);
-
-  /**
-   * Update max progress ref after calculation
-   */
-  useEffect(() => {
-    // Update the ref after the render to avoid side effects in useMemo
-    if (progressRatio > lastMaxProgressRef.current) {
-      lastMaxProgressRef.current = progressRatio;
-    }
-  }, [progressRatio]);
-
   /**
    * Set up playback status tracking
    */
@@ -2293,7 +2191,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           clearTimeout(itemEndDebounceRef.current);
           itemEndDebounceRef.current = null;
         }
-        setPlayingItemId(status.itemId);
+        setPlayingItem(status.itemId);
         return;
       }
 
@@ -2306,8 +2204,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           clearTimeout(itemEndDebounceRef.current);
           itemEndDebounceRef.current = null;
         }
-        setPlayingItemId(null);
-        setPlaybackProgress(null);
+        setPlayingItem(null);
+        setProgress(null);
         return;
       }
 
@@ -2318,28 +2216,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // from a real end. Debounce: only clear if no new chunk arrives.
         if (itemEndDebounceRef.current) clearTimeout(itemEndDebounceRef.current);
         itemEndDebounceRef.current = setTimeout(() => {
-          setPlayingItemId(null);
-          setPlaybackProgress(null);
+          setPlayingItem(null);
+          setProgress(null);
           itemEndDebounceRef.current = null;
         }, ITEM_END_DEBOUNCE_MS);
       }
       // currentStatus.itemId === status.itemId means another entry for the
       // same item is already audible (rare); leave state alone.
     });
-    
+
     // Set up progress tracking
     const progressInterval = setInterval(() => {
       const status = player.getCurrentPlaybackStatus();
-      
+
       if (status && status.isPlaying) {
-        setPlaybackProgress({
+        setProgress({
           currentTime: status.currentTime,
           duration: status.duration,
-          bufferedTime: status.bufferedTime
+          bufferedTime: status.bufferedTime,
         });
       } else {
         // Clear progress when nothing is playing to prevent stale data
-        setPlaybackProgress(null);
+        setProgress(null);
       }
     }, PROGRESS_UPDATE_INTERVAL);
     
@@ -3061,21 +2959,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   if (candText) { prevItem = cand; break; }
                 }
 
-                const text = item.formatted?.transcript || item.formatted?.text || '';
-                const isItemPlaying = playingItemId === item.id;
-                // Karaoke highlight calculation. Uses cumulativeProgress.currentTime so
-                // segment-based providers see continuous time across player-entry resets
-                // (issue #216). Falls back to raw playbackProgress when cumulative is not
-                // tracked yet (e.g., very first frame).
-                const highlightedChars = isItemPlaying
-                  ? getHighlightedChars(
-                      cumulativeProgress?.currentTime ?? playbackProgress?.currentTime ?? 0,
-                      item.formatted?.audioSegments,
-                      text.length,
-                      progressRatio,
-                    )
-                  : 0;
-
                 const audio = item.formatted?.audio as any;
                 const audioSize = audio?.length ?? audio?.byteLength ?? 0;
                 const canPlay =
@@ -3090,11 +2973,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     prevItem={prevItem}
                     sourceLanguage={sourceLanguage}
                     targetLanguage={targetLanguage}
-                    isPlaying={isItemPlaying}
-                    highlightedChars={highlightedChars}
                     canPlay={canPlay}
                     onPlay={() => handlePlayAudio(item)}
-                    playDisabled={playingItemId !== null && !isItemPlaying}
+                    someItemPlaying={playingItemId !== null}
                     uiMode={uiMode}
                     compact={conversationCompactMode}
                   />
