@@ -135,6 +135,17 @@ export function getRawSnapshot(): RawProgress | null {
   return usePlaybackStore.getState()._raw;
 }
 
+/**
+ * Wire-encoded snapshot of the current playback state, suitable for
+ * forwarding over chrome.runtime.Port as the initial state-init payload.
+ * Returns null when nothing is playing.
+ */
+export function getWirePlaybackSnapshot(): PlaybackWire | null {
+  const state = usePlaybackStore.getState();
+  if (state.playingItemId === null) return null;
+  return encodePlaybackForWire(state);
+}
+
 export type PlaybackWire = { i: string | null; c?: number | null; d?: number; b?: number };
 
 export function subscribePlaybackForPort(callback: (encoded: PlaybackWire) => void): () => void {

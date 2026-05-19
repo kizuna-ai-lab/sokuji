@@ -166,7 +166,7 @@ describe('playbackStore — setProgress(null)', () => {
   });
 });
 
-import { __internal__, getRawSnapshot, subscribePlaybackForPort } from './playbackStore';
+import { __internal__, getRawSnapshot, getWirePlaybackSnapshot, subscribePlaybackForPort } from './playbackStore';
 
 describe('playbackStore wire helpers', () => {
   const { encodePlaybackForWire, rawEqual } = __internal__;
@@ -274,5 +274,29 @@ describe('subscribePlaybackForPort', () => {
     unsub();
     usePlaybackStore.getState().setPlayingItem('item_a');
     expect(calls.length).toBe(0);
+  });
+});
+
+describe('getWirePlaybackSnapshot', () => {
+  beforeEach(resetStore);
+
+  it('returns null when nothing is playing', () => {
+    expect(getWirePlaybackSnapshot()).toBeNull();
+  });
+
+  it('returns { i, c: null } when item is set but no progress yet', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    expect(getWirePlaybackSnapshot()).toEqual({ i: 'item_a', c: null });
+  });
+
+  it('returns full wire shape with 3-decimal rounding when playing', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.2347, duration: 5.6789, bufferedTime: 4.1234 });
+    expect(getWirePlaybackSnapshot()).toEqual({
+      i: 'item_a',
+      c: 1.235,
+      d: 5.679,
+      b: 4.123,
+    });
   });
 });

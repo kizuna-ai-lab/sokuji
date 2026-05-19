@@ -140,8 +140,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     // until the surface is actually used.
     const { default: useSessionStore } = await import('../../../stores/sessionStore');
     const {
-      usePlaybackStore,
-      getRawSnapshot,
+      getWirePlaybackSnapshot,
       subscribePlaybackForPort,
     } = await import('../../../stores/playbackStore');
     // If the port was torn down while we awaited the import, bail out.
@@ -171,14 +170,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       turnDetectionMode,
     };
 
-    const playbackSnapshot = (() => {
-      const playingItemId = usePlaybackStore.getState().playingItemId;
-      const raw = getRawSnapshot();
-      if (playingItemId === null) return null;
-      if (raw === null) return { i: playingItemId, c: null };
-      const r3 = (x: number) => Math.round(x * 1000) / 1000;
-      return { i: playingItemId, c: r3(raw.currentTime), d: r3(raw.duration), b: r3(raw.bufferedTime) };
-    })();
+    const playbackSnapshot = getWirePlaybackSnapshot();
 
     this.port.postMessage({
       type: 'state-init',
