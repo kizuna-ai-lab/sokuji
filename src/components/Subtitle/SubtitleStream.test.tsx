@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, act } from '@testing-library/react';
 import SubtitleStream from './SubtitleStream';
+import { usePlaybackStore } from '../../stores/playbackStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -345,5 +346,52 @@ describe('SubtitleStream — expanded mode (per-item rows)', () => {
     );
     expect(container.querySelectorAll('.conversation-row').length).toBe(4);
     expect(container.querySelector('.subtitle-stream__line')).toBeNull();
+  });
+});
+
+describe('SubtitleStream — expanded karaoke highlight', () => {
+  beforeEach(() => {
+    usePlaybackStore.setState({
+      playingItemId: null,
+      currentTime: null,
+      progressRatio: 0,
+      _cumOffset: 0,
+      _lastBt: 0,
+      _lastCt: 0,
+      _maxProgress: 0,
+      _raw: null,
+    });
+  });
+
+  it('renders karaoke split on the playing assistant item', () => {
+    const items = [
+      {
+        id: 'item_a',
+        role: 'assistant',
+        type: 'message',
+        formatted: { transcript: 'Hello world' },
+      },
+    ];
+    act(() => {
+      usePlaybackStore.setState({
+        playingItemId: 'item_a',
+        currentTime: 0,
+        progressRatio: 0.5,
+      });
+    });
+    const { container } = render(
+      <SubtitleStream
+        items={items as any}
+        compact={false}
+        fontSize={24}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+      />,
+    );
+    // floor(11 * 0.5) = 5 → "Hello"
+    const played = container.querySelector('.karaoke-played');
+    expect(played?.textContent).toBe('Hello');
   });
 });

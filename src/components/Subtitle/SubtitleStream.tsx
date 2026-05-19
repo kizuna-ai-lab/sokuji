@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
 import type { DisplayMode } from '../../stores/subtitleStore';
+import { usePlaybackHighlight } from '../../stores/playbackStore';
 import './SubtitleStream.scss';
 import '../../styles/karaoke.scss';
 
@@ -127,6 +128,11 @@ const SubtitleStream: React.FC<Props> = ({
       .filter((l) => l.items.length > 0);
   }, [filtered]);
 
+  const itemsById = useMemo(
+    () => new Map<string, any>(items.map((it) => [it.id, it])),
+    [items],
+  );
+
   // Stick to bottom only in expanded mode, where ConversationRow rows pile
   // up in a scrollable column and need to follow the latest content. In
   // compact mode each band is a fixed flex slot with internal overflow:
@@ -207,20 +213,37 @@ const SubtitleStream: React.FC<Props> = ({
             </div>
           ))
         : filtered.map((item, i) => (
-            <ConversationRow
+            <SubtitleConversationRow
               key={item.id}
               item={item}
               prevItem={filtered[i - 1] ?? null}
-              compact={false}
               sourceLanguage={sourceLanguage}
               targetLanguage={targetLanguage}
-              isPlaying={false}
-              highlightedChars={0}
-              canPlay={false}
             />
           ))}
       <div ref={endRef} />
     </div>
+  );
+};
+
+const SubtitleConversationRow: React.FC<{
+  item: any;
+  prevItem: any;
+  sourceLanguage: string;
+  targetLanguage: string;
+}> = ({ item, prevItem, sourceLanguage, targetLanguage }) => {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+  return (
+    <ConversationRow
+      item={item}
+      prevItem={prevItem}
+      compact={false}
+      sourceLanguage={sourceLanguage}
+      targetLanguage={targetLanguage}
+      isPlaying={isPlaying}
+      highlightedChars={highlightedChars}
+      canPlay={false}
+    />
   );
 };
 
