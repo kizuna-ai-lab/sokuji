@@ -72,6 +72,7 @@ import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
+import { getHighlightedChars } from '../../lib/playback/highlight';
 
 
 /**
@@ -84,34 +85,131 @@ function isPttLikeMode(mode: string): boolean {
 }
 
 
-/**
- * Given per-sentence audio segments and the current playback time,
- * return the number of characters that should be highlighted.
- * Falls back to linear interpolation when segments are not available.
- */
-function getHighlightedChars(
-  currentTime: number,
-  segments: Array<{ textEnd: number; audioEnd: number }> | undefined,
-  textLength: number,
-  progressRatio: number,
-): number {
-  if (!segments || segments.length === 0) {
-    return Math.floor(textLength * progressRatio);
+// ---------------------------------------------------------------------------
+// ConversationBubble – row renderer extracted from MainPanel.renderConversationItem
+// so that Task 11 can call hooks (usePlaybackHighlight) per row without
+// violating the rules-of-hooks (hooks cannot be called inside non-component
+// functions / plain map callbacks).
+// ---------------------------------------------------------------------------
+
+interface ConversationBubbleProps {
+  item: ConversationItem & { source?: string };
+  index: number;
+  /** Previous item that was rendered as a message row (used for header collapsing). */
+  prevItem: (ConversationItem & { source?: string }) | null;
+  sourceLanguage: string;
+  targetLanguage: string;
+  isPlaying: boolean;
+  highlightedChars: number;
+  canPlay: boolean;
+  onPlay?: () => void;
+  playDisabled: boolean;
+  uiMode: string;
+  compact: boolean;
+}
+
+const ConversationBubble: React.FC<ConversationBubbleProps> = ({
+  item,
+  index,
+  prevItem,
+  sourceLanguage,
+  targetLanguage,
+  isPlaying,
+  highlightedChars,
+  canPlay,
+  onPlay,
+  playDisabled,
+  uiMode,
+  compact,
+}) => {
+  const { t } = useTranslation();
+
+  // Error bubble
+  if (item.type === 'error') {
+    return (
+      <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className="message-bubble error">
+        <div className="message-header">
+          <AlertCircle size={12} />
+          {t('mainPanel.error', 'Error')}
+        </div>
+        <div className="message-content error-content">
+          {item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}
+        </div>
+      </div>
+    );
   }
 
-  let prevTextEnd = 0;
-  let prevAudioEnd = 0;
-  for (const seg of segments) {
-    if (currentTime < seg.audioEnd) {
-      const segDuration = seg.audioEnd - prevAudioEnd;
-      const segProgress = segDuration > 0 ? (currentTime - prevAudioEnd) / segDuration : 1;
-      return prevTextEnd + Math.floor((seg.textEnd - prevTextEnd) * segProgress);
-    }
-    prevTextEnd = seg.textEnd;
-    prevAudioEnd = seg.audioEnd;
+  const text = item.formatted?.transcript || item.formatted?.text || '';
+
+  // Text / transcript bubble (common for both modes)
+  if (text) {
+    return (
+      <ConversationRow
+        key={`${(item as any).source || 'speaker'}_${item.id || index}`}
+        item={item}
+        prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
+        sourceLanguage={sourceLanguage}
+        targetLanguage={targetLanguage}
+        isPlaying={isPlaying}
+        highlightedChars={highlightedChars}
+        canPlay={canPlay}
+        onPlay={onPlay}
+        playDisabled={playDisabled}
+        compact={compact}
+      />
+    );
   }
-  return prevTextEnd;
-}
+
+  // Advanced-only content types
+  if (uiMode === 'advanced') {
+    // Audio without transcript: audio still plays through the audio
+    // service; we deliberately render no bubble. This used to render an
+    // "Audio content" placeholder, but that fallback had no production
+    // utility (no info beyond an icon, play button only in dev) and
+    // produced ghost bubbles for translate sessions when the auto-create
+    // recovery path kicked in (e.g. when output_transcript wasn't sent).
+
+    // Tool calls
+    if (item.formatted?.tool) {
+      const toolArgs = item.formatted.tool.arguments;
+      let formattedArgs = toolArgs;
+      try {
+        formattedArgs = JSON.stringify(JSON.parse(toolArgs), null, 2);
+      } catch (e) { /* keep original */ }
+
+      return (
+        <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
+          <div className="message-content">
+            <div className="content-item tool-call">
+              <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
+              <div className="tool-args"><pre>{formattedArgs}</pre></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Tool outputs
+    if (item.formatted?.output) {
+      let formattedOutput = item.formatted.output;
+      try {
+        formattedOutput = JSON.stringify(JSON.parse(item.formatted.output), null, 2);
+      } catch (e) { /* keep original */ }
+
+      return (
+        <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
+          <div className="message-content">
+            <div className="content-item tool-output">
+              <div className="output-content"><pre>{formattedOutput}</pre></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  return null;
+};
 
 interface MainPanelProps {}
 
@@ -2821,125 +2919,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const sourceLanguage = currentSettings.sourceLanguage ?? 'EN';
   const targetLanguage = currentSettings.targetLanguage ?? 'EN';
 
-  // Helper: render a single conversation item as a bubble
-  const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
-    const isItemPlaying = playingItemId === item.id;
-    const text = item.formatted?.transcript || item.formatted?.text || '';
-
-    // Karaoke highlight calculation. Uses cumulativeProgress.currentTime so
-    // segment-based providers see continuous time across player-entry resets
-    // (issue #216). Falls back to raw playbackProgress when cumulative is not
-    // tracked yet (e.g., very first frame).
-    const highlightedChars = isItemPlaying
-      ? getHighlightedChars(
-          cumulativeProgress?.currentTime ?? playbackProgress?.currentTime ?? 0,
-          item.formatted?.audioSegments,
-          text.length,
-          progressRatio,
-        )
-      : 0;
-
-    // Error bubble
-    if (item.type === 'error') {
-      return (
-        <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className="message-bubble error">
-          <div className="message-header">
-            <AlertCircle size={12} />
-            {t('mainPanel.error', 'Error')}
-          </div>
-          <div className="message-content error-content">
-            {item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}
-          </div>
-        </div>
-      );
-    }
-
-    // Text / transcript bubble (common for both modes)
-    if (text) {
-      // prevItem must be the previous *rendered-as-row* item (other
-      // types — tool calls, audio-only, errors — would incorrectly
-      // collapse the header because they default source='speaker').
-      let prevItem: (ConversationItem & { source?: string }) | null = null;
-      for (let i = index - 1; i >= 0; i -= 1) {
-        const cand = filteredItems[i] as ConversationItem & { source?: string };
-        if (cand.type !== 'message') continue;
-        const candText = cand.formatted?.transcript || cand.formatted?.text;
-        if (candText) { prevItem = cand; break; }
-      }
-
-      const audio = item.formatted?.audio as any;
-      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
-      const canPlay =
-        ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
-        audioSize > 0;
-
-      return (
-        <ConversationRow
-          key={`${(item as any).source || 'speaker'}_${item.id || index}`}
-          item={item}
-          prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
-          sourceLanguage={sourceLanguage}
-          targetLanguage={targetLanguage}
-          isPlaying={isItemPlaying}
-          highlightedChars={highlightedChars}
-          canPlay={canPlay}
-          onPlay={() => handlePlayAudio(item)}
-          playDisabled={playingItemId !== null && !isItemPlaying}
-          compact={conversationCompactMode}
-        />
-      );
-    }
-
-    // Advanced-only content types
-    if (uiMode === 'advanced') {
-      // Audio without transcript: audio still plays through the audio
-      // service; we deliberately render no bubble. This used to render an
-      // "Audio content" placeholder, but that fallback had no production
-      // utility (no info beyond an icon, play button only in dev) and
-      // produced ghost bubbles for translate sessions when the auto-create
-      // recovery path kicked in (e.g. when output_transcript wasn't sent).
-
-      // Tool calls
-      if (item.formatted?.tool) {
-        const toolArgs = item.formatted.tool.arguments;
-        let formattedArgs = toolArgs;
-        try {
-          formattedArgs = JSON.stringify(JSON.parse(toolArgs), null, 2);
-        } catch (e) { /* keep original */ }
-
-        return (
-          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
-            <div className="message-content">
-              <div className="content-item tool-call">
-                <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
-                <div className="tool-args"><pre>{formattedArgs}</pre></div>
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      // Tool outputs
-      if (item.formatted?.output) {
-        let formattedOutput = item.formatted.output;
-        try {
-          formattedOutput = JSON.stringify(JSON.parse(item.formatted.output), null, 2);
-        } catch (e) { /* keep original */ }
-
-        return (
-          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
-            <div className="message-content">
-              <div className="content-item tool-output">
-                <div className="output-content"><pre>{formattedOutput}</pre></div>
-              </div>
-            </div>
-          </div>
-        );
-      }
-    }
-
-    return null;
-  };
+  // (renderConversationItem has been extracted to ConversationBubble above the component.)
 
   // Unified render for both modes
   return (
@@ -3069,7 +3049,57 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
           ) : (
             <div className="conversation-list">
-              {filteredItems.map((item, index) => renderConversationItem(item, index))}
+              {filteredItems.map((item, i) => {
+                // prevItem must be the previous *rendered-as-row* item (other
+                // types — tool calls, audio-only, errors — would incorrectly
+                // collapse the header because they default source='speaker').
+                let prevItem: (ConversationItem & { source?: string }) | null = null;
+                for (let p = i - 1; p >= 0; p -= 1) {
+                  const cand = filteredItems[p] as ConversationItem & { source?: string };
+                  if (cand.type !== 'message') continue;
+                  const candText = cand.formatted?.transcript || cand.formatted?.text;
+                  if (candText) { prevItem = cand; break; }
+                }
+
+                const text = item.formatted?.transcript || item.formatted?.text || '';
+                const isItemPlaying = playingItemId === item.id;
+                // Karaoke highlight calculation. Uses cumulativeProgress.currentTime so
+                // segment-based providers see continuous time across player-entry resets
+                // (issue #216). Falls back to raw playbackProgress when cumulative is not
+                // tracked yet (e.g., very first frame).
+                const highlightedChars = isItemPlaying
+                  ? getHighlightedChars(
+                      cumulativeProgress?.currentTime ?? playbackProgress?.currentTime ?? 0,
+                      item.formatted?.audioSegments,
+                      text.length,
+                      progressRatio,
+                    )
+                  : 0;
+
+                const audio = item.formatted?.audio as any;
+                const audioSize = audio?.length ?? audio?.byteLength ?? 0;
+                const canPlay =
+                  ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
+                  audioSize > 0;
+
+                return (
+                  <ConversationBubble
+                    key={`${(item as any).source || 'speaker'}_${item.id || i}`}
+                    item={item}
+                    index={i}
+                    prevItem={prevItem}
+                    sourceLanguage={sourceLanguage}
+                    targetLanguage={targetLanguage}
+                    isPlaying={isItemPlaying}
+                    highlightedChars={highlightedChars}
+                    canPlay={canPlay}
+                    onPlay={() => handlePlayAudio(item)}
+                    playDisabled={playingItemId !== null && !isItemPlaying}
+                    uiMode={uiMode}
+                    compact={conversationCompactMode}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
