@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
 import './MainPanel.scss';
+import '../../styles/karaoke.scss';
 import {
   useProvider,
   useUIMode,

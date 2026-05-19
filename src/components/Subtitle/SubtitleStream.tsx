@@ -3,6 +3,7 @@ import ConversationRow from '../MainPanel/ConversationRow';
 import { shouldShowItem } from '../MainPanel/conversationFilter';
 import type { DisplayMode } from '../../stores/subtitleStore';
 import './SubtitleStream.scss';
+import '../../styles/karaoke.scss';
 
 interface Props {
   items: any[];

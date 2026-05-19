@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Play, User, Users } from 'lucide-react';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './ConversationRow.scss';
+import '../../styles/karaoke.scss';
 
 interface ConversationRowProps {
   item: ConversationItem & {
@@ -85,7 +86,7 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
     }
     return (
       <>
-        <span className="row-text-played">{text.slice(0, highlightedChars)}</span>
+        <span className="karaoke-played">{text.slice(0, highlightedChars)}</span>
         <span>{text.slice(highlightedChars)}</span>
       </>
     );
