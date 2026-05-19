@@ -16,8 +16,8 @@ function resetStore() {
   });
 }
 
-function Probe({ item }: { item: any }) {
-  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+function Probe({ item, textOverride }: { item: any; textOverride?: string }) {
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item, textOverride);
   const renders = useRef(0);
   renders.current += 1;
   return (
@@ -87,5 +87,21 @@ describe('usePlaybackHighlight', () => {
 
     const finalRenders = Number(screen.getByTestId('renders').textContent);
     expect(finalRenders).toBe(initialRenders);
+  });
+
+  it('uses textOverride length for indexing when provided', () => {
+    // Provider has leading whitespace in transcript; SubtitleStream renders
+    // a trimmed copy. The hook must index against what the caller renders.
+    const item = {
+      id: 'item_a',
+      formatted: { text: '  Hello' }, // 7 chars including 2 leading spaces
+    };
+    act(() => {
+      usePlaybackStore.getState().setPlayingItem('item_a');
+      usePlaybackStore.setState({ progressRatio: 1.0, currentTime: 0 });
+    });
+    // With override 'Hello' (5 chars), full progress → 5
+    render(<Probe item={item as any} textOverride="Hello" />);
+    expect(screen.getByTestId('chars').textContent).toBe('5');
   });
 });

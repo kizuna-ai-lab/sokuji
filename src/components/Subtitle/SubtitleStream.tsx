@@ -236,7 +236,7 @@ const CompactSpan: React.FC<CompactSpanProps> = ({
   showNewHighlight,
   leadingSpace,
 }) => {
-  const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
+  const { isPlaying, highlightedChars } = usePlaybackHighlight(item, it.text);
   const baseClass = showNewHighlight
     ? 'subtitle-stream__item subtitle-stream__item--new'
     : 'subtitle-stream__item';

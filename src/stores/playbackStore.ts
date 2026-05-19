@@ -167,11 +167,12 @@ export function usePlaybackHighlight(
       }
     | null
     | undefined,
+  textOverride?: string,
 ): PlaybackHighlight {
   return usePlaybackStore(
     useShallow((s): PlaybackHighlight => {
       if (!item || s.playingItemId !== item.id) return EMPTY_HIGHLIGHT;
-      const text = item.formatted?.transcript || item.formatted?.text || '';
+      const text = textOverride ?? (item.formatted?.transcript || item.formatted?.text || '');
       const segments = item.formatted?.audioSegments;
       return {
         isPlaying: true,
