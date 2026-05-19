@@ -98,3 +98,34 @@ export const usePlaybackStore = create<PlaybackState>()(
     },
   })),
 );
+
+const r3 = (x: number) => Math.round(x * 1000) / 1000;
+const t3 = (x: number) => Math.trunc(x * 1000) / 1000;
+
+type RawProgress = { currentTime: number; duration: number; bufferedTime: number };
+
+function encodePlaybackForWire(s: {
+  playingItemId: string | null;
+  _raw: RawProgress | null;
+}): { i: string | null; c?: number | null; d?: number; b?: number } {
+  if (s.playingItemId === null) return { i: null };
+  if (s._raw === null) return { i: s.playingItemId, c: null };
+  return {
+    i: s.playingItemId,
+    c: r3(s._raw.currentTime),
+    d: r3(s._raw.duration),
+    b: r3(s._raw.bufferedTime),
+  };
+}
+
+function rawEqual(a: RawProgress | null, b: RawProgress | null): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    t3(a.currentTime) === t3(b.currentTime) &&
+    t3(a.duration) === t3(b.duration) &&
+    t3(a.bufferedTime) === t3(b.bufferedTime)
+  );
+}
+
+/** Internal exports for unit tests only. Do not consume from app code. */
+export const __internal__ = { encodePlaybackForWire, rawEqual };

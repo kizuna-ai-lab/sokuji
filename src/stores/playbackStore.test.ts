@@ -165,3 +165,59 @@ describe('playbackStore — setProgress(null)', () => {
     expect(s.currentTime).toBeNull();
   });
 });
+
+import { __internal__ } from './playbackStore';
+
+describe('playbackStore wire helpers', () => {
+  const { encodePlaybackForWire, rawEqual } = __internal__;
+
+  describe('encodePlaybackForWire', () => {
+    it('returns { i: null } when no item is playing', () => {
+      expect(encodePlaybackForWire({ playingItemId: null, _raw: null })).toEqual({ i: null });
+    });
+
+    it('returns { i, c: null } when item is set but _raw is null (paused)', () => {
+      expect(
+        encodePlaybackForWire({ playingItemId: 'item_a', _raw: null }),
+      ).toEqual({ i: 'item_a', c: null });
+    });
+
+    it('returns full shape and rounds c/d/b to 3 decimals', () => {
+      expect(
+        encodePlaybackForWire({
+          playingItemId: 'item_a',
+          _raw: { currentTime: 1.2345678, duration: 5.6789012, bufferedTime: 6.7890123 },
+        }),
+      ).toEqual({ i: 'item_a', c: 1.235, d: 5.679, b: 6.789 });
+    });
+  });
+
+  describe('rawEqual', () => {
+    it('returns true when both are null', () => {
+      expect(rawEqual(null, null)).toBe(true);
+    });
+
+    it('returns false when one side is null', () => {
+      expect(rawEqual(null, { currentTime: 0, duration: 0, bufferedTime: 0 })).toBe(false);
+      expect(rawEqual({ currentTime: 0, duration: 0, bufferedTime: 0 }, null)).toBe(false);
+    });
+
+    it('returns true when fields differ only beyond 3 decimals', () => {
+      expect(
+        rawEqual(
+          { currentTime: 1.2345, duration: 2.3455, bufferedTime: 3.4566 },
+          { currentTime: 1.2347, duration: 2.3459, bufferedTime: 3.4561 },
+        ),
+      ).toBe(true);
+    });
+
+    it('returns false when fields differ within 3 decimals', () => {
+      expect(
+        rawEqual(
+          { currentTime: 1.234, duration: 2.345, bufferedTime: 3.456 },
+          { currentTime: 1.235, duration: 2.345, bufferedTime: 3.456 },
+        ),
+      ).toBe(false);
+    });
+  });
+});
