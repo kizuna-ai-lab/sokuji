@@ -206,7 +206,7 @@ describe('playbackStore wire helpers', () => {
       expect(
         rawEqual(
           { currentTime: 1.2345, duration: 2.3455, bufferedTime: 3.4566 },
-          { currentTime: 1.2347, duration: 2.3459, bufferedTime: 3.4561 },
+          { currentTime: 1.2347, duration: 2.3459, bufferedTime: 3.4569 },
         ),
       ).toBe(true);
     });

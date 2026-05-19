@@ -100,7 +100,6 @@ export const usePlaybackStore = create<PlaybackState>()(
 );
 
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
-const t3 = (x: number) => Math.trunc(x * 1000) / 1000;
 
 type RawProgress = { currentTime: number; duration: number; bufferedTime: number };
 
@@ -121,9 +120,9 @@ function encodePlaybackForWire(s: {
 function rawEqual(a: RawProgress | null, b: RawProgress | null): boolean {
   if (a === null || b === null) return a === b;
   return (
-    t3(a.currentTime) === t3(b.currentTime) &&
-    t3(a.duration) === t3(b.duration) &&
-    t3(a.bufferedTime) === t3(b.bufferedTime)
+    r3(a.currentTime) === r3(b.currentTime) &&
+    r3(a.duration) === r3(b.duration) &&
+    r3(a.bufferedTime) === r3(b.bufferedTime)
   );
 }
 
