@@ -56,7 +56,13 @@ export const usePlaybackStore = create<PlaybackState>()(
     setProgress(raw) {
       const s = get();
       if (raw === null) {
-        // Implemented in Task 5.
+        // Preserve all derived trackers; only flip _raw to null so the port
+        // surface observes the pause transition. Avoids segment-based-provider
+        // chunk-gap flicker that currently affects MainPanel (improvement
+        // documented in the design spec).
+        if (s._raw !== null) {
+          set({ _raw: null });
+        }
         return;
       }
       if (s.playingItemId === null) return;

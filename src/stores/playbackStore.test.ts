@@ -131,3 +131,37 @@ describe('playbackStore — setProgress entry eviction', () => {
     expect(usePlaybackStore.getState()._cumOffset).toBe(0);
   });
 });
+
+describe('playbackStore — setProgress(null)', () => {
+  beforeEach(resetStore);
+
+  it('preserves currentTime, progressRatio, and trackers; flips _raw to null', () => {
+    usePlaybackStore.getState().setPlayingItem('item_a');
+    usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
+    const before = usePlaybackStore.getState();
+    const beforeSnap = {
+      currentTime: before.currentTime,
+      progressRatio: before.progressRatio,
+      _cumOffset: before._cumOffset,
+      _lastBt: before._lastBt,
+      _lastCt: before._lastCt,
+      _maxProgress: before._maxProgress,
+    };
+    usePlaybackStore.getState().setProgress(null);
+    const after = usePlaybackStore.getState();
+    expect(after.currentTime).toBe(beforeSnap.currentTime);
+    expect(after.progressRatio).toBe(beforeSnap.progressRatio);
+    expect(after._cumOffset).toBe(beforeSnap._cumOffset);
+    expect(after._lastBt).toBe(beforeSnap._lastBt);
+    expect(after._lastCt).toBe(beforeSnap._lastCt);
+    expect(after._maxProgress).toBe(beforeSnap._maxProgress);
+    expect(after._raw).toBeNull();
+  });
+
+  it('setProgress(null) when no item is playing is a no-op', () => {
+    usePlaybackStore.getState().setProgress(null);
+    const s = usePlaybackStore.getState();
+    expect(s.playingItemId).toBeNull();
+    expect(s.currentTime).toBeNull();
+  });
+});
