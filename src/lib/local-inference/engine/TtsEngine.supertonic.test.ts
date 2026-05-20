@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TtsEngine } from './TtsEngine';
 import { ModelManager } from '../ModelManager';
+import * as voiceStorage from '../voiceStorage';
 
 class MockWorker {
   static instances: MockWorker[] = [];
@@ -48,6 +49,8 @@ describe('TtsEngine — supertonic branch', () => {
       'voice_styles/M4.json': 'blob:m4',
       'voice_styles/M5.json': 'blob:m5',
     });
+    // Default: no imported voices (avoids hitting real IndexedDB in jsdom)
+    vi.spyOn(voiceStorage, 'listVoices').mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -61,6 +64,7 @@ describe('TtsEngine — supertonic branch', () => {
     const engine = new TtsEngine();
     const initPromise = engine.init('supertonic-3');
     await Promise.resolve();
+    await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
     expect(String(w.url)).toMatch(/supertonic-tts\.worker\.js$/);
     expect(w.opts?.type).toBe('module');
@@ -77,6 +81,7 @@ describe('TtsEngine — supertonic branch', () => {
     const engine = new TtsEngine();
     void engine.init('supertonic-3');
     await Promise.resolve();
+    await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
     const initMsg = w.postMessage.mock.calls.find(c => c[0].type === 'init')![0];
     expect(initMsg.voiceList).toHaveLength(10);
@@ -92,6 +97,7 @@ describe('TtsEngine — supertonic branch', () => {
     const engine = new TtsEngine();
     const initPromise = engine.init('supertonic-3');
     await Promise.resolve();
+    await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
     const voices = [{sid: 0, name: 'Sarah', source: 'preset' as const, gender: 'F' as const}];
     w.emit({ type: 'ready', loadTimeMs: 50, numSpeakers: 1, sampleRate: 44100,
@@ -105,6 +111,7 @@ describe('TtsEngine — supertonic branch', () => {
     const engine = new TtsEngine();
     const initPromise = engine.init('supertonic-3');
     await Promise.resolve();
+    await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
     w.emit({ type: 'ready', loadTimeMs: 50, numSpeakers: 10, sampleRate: 44100,
              voices: [], backend: 'wasm' });
@@ -117,6 +124,7 @@ describe('TtsEngine — supertonic branch', () => {
     const engine = new TtsEngine();
     const initPromise = engine.init('supertonic-3');
     await Promise.resolve();
+    await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
     w.emit({ type: 'ready', loadTimeMs: 50, numSpeakers: 10, sampleRate: 44100,
              voices: [], backend: 'wasm' });
@@ -124,5 +132,64 @@ describe('TtsEngine — supertonic branch', () => {
     void engine.generate('hello', 7, 1.0, 'en');
     const genMsg = w.postMessage.mock.calls.find(c => c[0].type === 'generate')![0];
     expect(genMsg).toMatchObject({ type: 'generate', text: 'hello', sid: 7, speed: 1.0, lang: 'en' });
+  });
+});
+
+describe('TtsEngine — supertonic with imported voices', () => {
+  beforeEach(() => {
+    MockWorker.instances = [];
+    (globalThis as any).Worker = MockWorker;
+    URL.createObjectURL = vi.fn((_blob: Blob) => `blob:i-${Math.random()}`);
+    URL.revokeObjectURL = vi.fn();
+
+    vi.spyOn(ModelManager.prototype, 'isModelReady').mockResolvedValue(true);
+    vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({
+      'onnx/duration_predictor.onnx': 'blob:dp',
+      'onnx/text_encoder.onnx': 'blob:te',
+      'onnx/vector_estimator.onnx': 'blob:ve',
+      'onnx/vocoder.onnx': 'blob:vc',
+      'onnx/tts.json': 'blob:tts',
+      'onnx/unicode_indexer.json': 'blob:idx',
+      'voice_styles/F1.json': 'blob:f1',
+      'voice_styles/F2.json': 'blob:f2',
+      'voice_styles/F3.json': 'blob:f3',
+      'voice_styles/F4.json': 'blob:f4',
+      'voice_styles/F5.json': 'blob:f5',
+      'voice_styles/M1.json': 'blob:m1',
+      'voice_styles/M2.json': 'blob:m2',
+      'voice_styles/M3.json': 'blob:m3',
+      'voice_styles/M4.json': 'blob:m4',
+      'voice_styles/M5.json': 'blob:m5',
+    });
+
+    vi.spyOn(voiceStorage, 'listVoices').mockResolvedValue([
+      { id: 1, engine: 'supertonic-3', name: 'Imported A',
+        jsonData: new Blob(['{}']), importedAt: 1 },
+      { id: 5, engine: 'supertonic-3', name: 'Imported B',
+        jsonData: new Blob(['{}']), importedAt: 2 },
+    ]);
+  });
+
+  afterEach(() => {
+    (globalThis as any).Worker = originalWorker;
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    vi.restoreAllMocks();
+  });
+
+  it('merges imported voices with presets, sid = dbKey + 10', async () => {
+    const engine = new TtsEngine();
+    void engine.init('supertonic-3');
+    await Promise.resolve();
+    await Promise.resolve();  // extra microtask for the voiceStorage.listVoices await
+    const w = MockWorker.instances.at(-1)!;
+    const initMsg = w.postMessage.mock.calls.find(c => c[0].type === 'init')![0];
+    expect(initMsg.voiceList).toHaveLength(12);
+    expect(initMsg.voiceList.find((v: any) => v.sid === 11)).toMatchObject({
+      sid: 11, name: 'Imported A', source: 'imported',
+    });
+    expect(initMsg.voiceList.find((v: any) => v.sid === 15)).toMatchObject({
+      sid: 15, name: 'Imported B', source: 'imported',
+    });
   });
 });

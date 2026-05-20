@@ -16,6 +16,7 @@ import {
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
 import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
+import { listVoices } from '../voiceStorage';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -121,6 +122,26 @@ export class TtsEngine {
             dataFileUrls[name] = url;
           }
         }
+      }
+    }
+
+    // For supertonic: load imported voices from IndexedDB before creating the worker.
+    // sid = dbKey + 10 (IMPORTED_SID_OFFSET).
+    let supertonicImportedEntries: Array<{
+      sid: number; name: string; source: 'imported'; gender: undefined; blobUrl: string;
+    }> = [];
+    if (isSupertonic) {
+      const imported = await listVoices('supertonic-3');
+      supertonicImportedEntries = imported.map(v => ({
+        sid: v.id + 10,
+        name: v.name,
+        source: 'imported' as const,
+        gender: undefined,
+        blobUrl: URL.createObjectURL(v.jsonData),
+      }));
+      // Track imported blob URLs alongside fileUrls so revokeBlobUrls cleans them up
+      for (const e of supertonicImportedEntries) {
+        fileUrls[`__imported_${e.sid}`] = e.blobUrl;
       }
     }
 
@@ -245,13 +266,16 @@ export class TtsEngine {
         });
       } else if (isSupertonic) {
         const presets = model.ttsConfig?.presetVoices ?? [];
-        const voiceList = presets.map(p => ({
+        const presetEntries = presets.map(p => ({
           sid: p.sid,
           name: p.name,
           source: 'preset' as const,
           gender: p.gender,
           blobUrl: fileUrls[p.file],
         })).filter(v => v.blobUrl);
+
+        // Merge preset + imported voices (imported loaded before Promise, sid = dbKey + 10)
+        const voiceList = [...presetEntries, ...supertonicImportedEntries];
 
         this.worker.postMessage({
           type: 'init',
