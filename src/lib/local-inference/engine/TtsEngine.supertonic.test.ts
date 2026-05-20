@@ -192,4 +192,45 @@ describe('TtsEngine — supertonic with imported voices', () => {
       sid: 15, name: 'Imported B', source: 'imported',
     });
   });
+
+  it('reloadVoices disposes + re-inits the worker and picks up new voices', async () => {
+    const engine = new TtsEngine();
+    const initPromise = engine.init('supertonic-3');
+    await Promise.resolve();
+    await Promise.resolve();
+    let w = MockWorker.instances.at(-1)!;
+    w.emit({ type: 'ready', loadTimeMs: 1, numSpeakers: 12, sampleRate: 44100,
+             voices: [], backend: 'wasm' });
+    await initPromise;
+    expect(MockWorker.instances).toHaveLength(1);
+
+    // Simulate a new imported voice
+    (voiceStorage.listVoices as any).mockResolvedValue([
+      { id: 1, engine: 'supertonic-3', name: 'Imported A',
+        jsonData: new Blob(['{}']), importedAt: 1 },
+      { id: 5, engine: 'supertonic-3', name: 'Imported B',
+        jsonData: new Blob(['{}']), importedAt: 2 },
+      { id: 9, engine: 'supertonic-3', name: 'Newly Added',
+        jsonData: new Blob(['{}']), importedAt: 3 },
+    ]);
+
+    const reloadPromise = engine.reloadVoices();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(MockWorker.instances).toHaveLength(2);  // new worker spawned
+    w = MockWorker.instances.at(-1)!;
+    w.emit({ type: 'ready', loadTimeMs: 1, numSpeakers: 13, sampleRate: 44100,
+             voices: [], backend: 'wasm' });
+    await reloadPromise;
+    const initMsg = w.postMessage.mock.calls.find(c => c[0].type === 'init')![0];
+    expect(initMsg.voiceList).toHaveLength(13);
+    expect(initMsg.voiceList.find((v: any) => v.sid === 19)?.name).toBe('Newly Added');
+  });
+
+  it('reloadVoices is a no-op when no supertonic model is active', async () => {
+    const engine = new TtsEngine();
+    // Engine never initialized, no current model
+    await engine.reloadVoices();
+    expect(MockWorker.instances).toHaveLength(0);
+  });
 });

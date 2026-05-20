@@ -476,6 +476,24 @@ export class TtsEngine {
       .trim();
   }
 
+  /**
+   * Dispose the current Supertonic worker and re-init with a fresh voice list
+   * (presets + imported voices from IndexedDB). No-op for non-Supertonic engines
+   * or when no model is active.
+   *
+   * Use this after the user imports, renames, or deletes a voice — the worker
+   * needs to rebuild its voice tensor map. The new worker reads the latest
+   * voiceStorage state during init.
+   */
+  async reloadVoices(): Promise<void> {
+    if (!this.currentModel || this.currentModel.engine !== 'supertonic') {
+      return;
+    }
+    const modelId = this.currentModel.id;
+    this.dispose();
+    await this.init(modelId);
+  }
+
   dispose(): void {
     if (this.edgeTtsConnection) {
       this.edgeTtsConnection.dispose();
