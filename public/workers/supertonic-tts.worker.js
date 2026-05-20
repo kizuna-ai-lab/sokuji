@@ -37,6 +37,44 @@ const MODEL_KEYS = [
   { key: 'vocoderOrt',    file: 'onnx/vocoder.onnx' },
 ];
 
+function jsonToFloat32Tensor(voiceField) {
+  // voiceField shape: { data: nested arrays, dims: [d1, d2, d3] }
+  const dims = voiceField.dims;
+  if (!Array.isArray(dims)) throw new Error('voice JSON missing dims array');
+  const flat = Array.isArray(voiceField.data) ? voiceField.data.flat(Infinity) : null;
+  if (!flat) throw new Error('voice JSON data must be a (nested) array');
+  return new ort.Tensor('float32', Float32Array.from(flat), dims);
+}
+
+async function loadVoiceTensorMap(voiceList) {
+  const map = new Map();
+  for (const v of voiceList || []) {
+    try {
+      const json = await fetchBlobAsJson(v.blobUrl);
+      if (!json.style_ttl || !json.style_dp) {
+        self.postMessage({
+          type: 'status',
+          message: `Skipping voice ${v.name} (sid ${v.sid}): missing style_ttl/style_dp`,
+        });
+        continue;
+      }
+      map.set(v.sid, {
+        styleTtl: jsonToFloat32Tensor(json.style_ttl),
+        styleDp: jsonToFloat32Tensor(json.style_dp),
+        name: v.name,
+        source: v.source,
+        gender: v.gender,
+      });
+    } catch (err) {
+      self.postMessage({
+        type: 'status',
+        message: `Skipping voice ${v.name} (sid ${v.sid}): ${err.message || err}`,
+      });
+    }
+  }
+  return map;
+}
+
 async function loadAllSessions(fileUrls, executionProvider) {
   const opts = {
     executionProviders: [executionProvider],
@@ -148,16 +186,25 @@ async function handleInit({ fileUrls, voiceList, ortBaseUrl, ttsConfig }) {
   indexer = await fetchBlobAsJson(fileUrls['onnx/unicode_indexer.json']);
   sampleRate = cfgs.ae.sample_rate;
 
-  // (Task 9 inserts voice tensor parsing here)
+  voiceTensors = await loadVoiceTensorMap(voiceList || []);
+
+  // Recompute voices payload from the actually-loaded tensors so the UI
+  // sees only voices that initialized successfully.
+  const loadedVoices = [];
+  for (const v of voiceList || []) {
+    if (voiceTensors.has(v.sid)) {
+      loadedVoices.push({
+        sid: v.sid, name: v.name, source: v.source, gender: v.gender,
+      });
+    }
+  }
 
   self.postMessage({
     type: 'ready',
     loadTimeMs: Math.round(performance.now() - startTime),
-    numSpeakers: voiceList ? voiceList.length : 0,
+    numSpeakers: loadedVoices.length,
     sampleRate,
-    voices: (voiceList || []).map(v => ({
-      sid: v.sid, name: v.name, source: v.source, gender: v.gender,
-    })),
+    voices: loadedVoices,
     backend,
   });
 }
