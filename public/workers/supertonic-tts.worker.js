@@ -50,6 +50,10 @@ self.onmessage = async (event) => {
 async function handleInit({ fileUrls, voiceList, ortBaseUrl, ttsConfig }) {
   const startTime = performance.now();
 
+  // Normalize: strip trailing slash so concatenations like `+ '/ort.webgpu.min.mjs'`
+  // don't produce a double slash if caller passes a trailing slash.
+  if (ortBaseUrl.endsWith('/')) ortBaseUrl = ortBaseUrl.slice(0, -1);
+
   if (ttsConfig) {
     if (typeof ttsConfig.totalStep === 'number') totalStep = ttsConfig.totalStep;
     if (typeof ttsConfig.defaultSid === 'number') defaultSid = ttsConfig.defaultSid;
@@ -96,7 +100,11 @@ async function handleGenerate(_msg) {
 async function handleDispose() {
   if (sessions) {
     for (const key of Object.keys(sessions)) {
-      try { await sessions[key].release(); } catch { /* ignore */ }
+      try {
+        await sessions[key].release();
+      } catch (e) {
+        console.warn(`Supertonic worker: failed to release ${key}:`, e);
+      }
     }
     sessions = null;
   }
