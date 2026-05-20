@@ -62,7 +62,10 @@ export interface ModelManifestEntry {
   languages: string[];
   /** True for models supporting any pair of their listed languages */
   multilingual?: boolean;
-  /** Highlighted in UI as a recommended pick */
+  /**
+   * When true, the UI surfaces this entry with a "Recommended" badge and sorts
+   * it before non-recommended entries within its `type` group. Default `false`.
+   */
   recommended?: boolean;
   /** Manual sort order within its group (lower = higher in list). Defaults to 0. */
   sortOrder?: number;
