@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
@@ -52,6 +52,8 @@ import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
+import VoiceLibrarySection from './VoiceLibrarySection';
+import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
@@ -219,6 +221,83 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     () => filterVoicesByLanguage(edgeTtsVoices, localInferenceSettings.targetLanguage),
     [edgeTtsVoices, localInferenceSettings.targetLanguage],
   );
+
+  // Supertonic imported voice state
+  const [importedVoices, setImportedVoices] = useState<voiceStorage.StoredVoice[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  const isSupertonicTts = getManifestEntry(localInferenceSettings.ttsModel)?.engine === 'supertonic';
+
+  const refreshImportedVoices = useCallback(async () => {
+    if (!isSupertonicTts) return;
+    try {
+      const list = await voiceStorage.listVoices('supertonic-3');
+      setImportedVoices(list);
+    } catch (err) {
+      console.warn('Failed to list imported voices:', err);
+    }
+  }, [isSupertonicTts]);
+
+  useEffect(() => {
+    void refreshImportedVoices();
+  }, [refreshImportedVoices]);
+
+  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(localInferenceSettings.ttsModel) : undefined;
+
+  const supertonicVoices = useMemo(() => {
+    if (!isSupertonicTts || !supertonicTtsEntry) return [];
+    const presets = supertonicTtsEntry.ttsConfig?.presetVoices ?? [];
+    const presetVoices = presets.map(p => ({
+      sid: p.sid,
+      name: p.name,
+      source: 'preset' as const,
+      gender: p.gender as 'M' | 'F',
+    }));
+    const importedAsVoices = importedVoices.map(v => ({
+      sid: v.id + 10,
+      name: v.name,
+      source: 'imported' as const,
+      gender: undefined,
+    }));
+    return [...presetVoices, ...importedAsVoices];
+  }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
+
+  const handleImportVoice = useCallback(async (file: File) => {
+    try {
+      const fallbackName = file.name.replace(/\.json$/i, '');
+      await voiceStorage.addVoice('supertonic-3', fallbackName, file);
+      setImportError(null);
+      await refreshImportedVoices();
+      setHasPendingChanges(true);
+    } catch (err) {
+      const msg = err instanceof voiceStorage.VoiceImportError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error ? err.message : String(err);
+      setImportError(msg);
+      throw err;
+    }
+  }, [refreshImportedVoices]);
+
+  const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
+    const dbKey = sid - 10;
+    if (dbKey < 0) return;
+    await voiceStorage.renameVoice(dbKey, newName);
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [refreshImportedVoices]);
+
+  const handleDeleteVoice = useCallback(async (sid: number) => {
+    const dbKey = sid - 10;
+    if (dbKey < 0) return;
+    await voiceStorage.deleteVoice(dbKey);
+    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
+    if (localInferenceSettings.ttsSpeakerId === sid) {
+      updateLocalInferenceSettings({ ttsSpeakerId: defaultSid });
+    }
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [supertonicTtsEntry, localInferenceSettings.ttsSpeakerId, updateLocalInferenceSettings, refreshImportedVoices]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. Participant's worker type is derived via
@@ -1873,7 +1952,32 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </div>
               );
             }
-            // Speaker ID slider for local models
+            // Speaker selection: VoiceLibrarySection for Supertonic, slider for other local models
+            if (isSupertonicTts) {
+              return (
+                <>
+                  <VoiceLibrarySection
+                    voices={supertonicVoices}
+                    selectedSid={localInferenceSettings.ttsSpeakerId}
+                    onSelect={(sid) => updateLocalInferenceSettings({ ttsSpeakerId: sid })}
+                    onImport={handleImportVoice}
+                    onRename={handleRenameVoice}
+                    onDelete={handleDeleteVoice}
+                    isReloading={false}
+                  />
+                  {importError && (
+                    <div className="setting-item error">
+                      {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
+                    </div>
+                  )}
+                  {hasPendingChanges && (
+                    <div className="setting-item info">
+                      {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
+                    </div>
+                  )}
+                </>
+              );
+            }
             const numSpeakers = ttsEntry?.numSpeakers ?? 1;
             return numSpeakers > 1 ? (
           <div className="setting-item">
