@@ -56,7 +56,13 @@ export class TtsEngine {
    * @param modelId - Model identifier (e.g. 'piper-en', 'piper-de')
    * @returns Promise that resolves with load info when ready
    */
-  async init(modelId: string): Promise<{ loadTimeMs: number; numSpeakers: number; sampleRate: number }> {
+  async init(modelId: string): Promise<{
+    loadTimeMs: number;
+    numSpeakers: number;
+    sampleRate: number;
+    voices?: Array<{ sid: number; name: string; source: 'preset' | 'imported'; gender?: 'M' | 'F' }>;
+    backend?: 'webgpu' | 'wasm';
+  }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'tts') {
       const available = getManifestByType('tts').map(m => m.id).join(', ');
@@ -75,6 +81,7 @@ export class TtsEngine {
 
     const isPiperPlus = model.engine === 'piper-plus';
     const isEdgeTts = model.engine === 'edge-tts';
+    const isSupertonic = model.engine === 'supertonic';
 
     // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
     // Edge TTS skips the download check — it uses the network directly
@@ -84,14 +91,23 @@ export class TtsEngine {
 
     if (!isEdgeTts) {
       const manager = ModelManager.getInstance();
-      if (!await manager.isModelReady(modelId)) {
-        throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+      // For supertonic (and future plain-blob engines), skip the isModelReady pre-check
+      // and load URLs in a single await so the Worker can be created within one microtask
+      // after init() is called. For sherpa-onnx / piper-plus, keep the sequential check
+      // to give a clear error before attempting to fetch package metadata.
+      if (!isSupertonic) {
+        if (!await manager.isModelReady(modelId)) {
+          throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+        }
       }
       fileUrls = await manager.getModelBlobUrls(modelId);
+      if (isSupertonic && Object.keys(fileUrls).length === 0) {
+        throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+      }
       dataFileUrls = fileUrls;
 
       // Sherpa-onnx path: read Emscripten loadPackage metadata
-      if (!isPiperPlus) {
+      if (!isPiperPlus && !isSupertonic) {
         const metadataBlobUrl = fileUrls['package-metadata.json'];
         if (!metadataBlobUrl) {
           throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
@@ -114,8 +130,13 @@ export class TtsEngine {
         ? './workers/edge-tts.worker.js'
         : isPiperPlus
           ? './workers/piper-plus-tts.worker.js'
-          : './workers/sherpa-onnx-tts.worker.js';
-      this.worker = new Worker(workerUrl);
+          : isSupertonic
+            ? './workers/supertonic-tts.worker.js'
+            : './workers/sherpa-onnx-tts.worker.js';
+      this.worker = new Worker(
+        workerUrl,
+        isSupertonic ? { type: 'module' } : undefined,
+      );
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
         const msg = event.data;
@@ -133,6 +154,8 @@ export class TtsEngine {
               loadTimeMs: msg.loadTimeMs,
               numSpeakers: msg.numSpeakers,
               sampleRate: msg.sampleRate,
+              voices: msg.voices,
+              backend: msg.backend,
             });
             break;
 
@@ -218,6 +241,23 @@ export class TtsEngine {
           runtimeBaseUrl: new URL(PIPER_PLUS_BUNDLED_RUNTIME_PATH, window.location.href).href,
           ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
           engine: 'piper-plus',
+          ttsConfig: model.ttsConfig || {},
+        });
+      } else if (isSupertonic) {
+        const presets = model.ttsConfig?.presetVoices ?? [];
+        const voiceList = presets.map(p => ({
+          sid: p.sid,
+          name: p.name,
+          source: 'preset' as const,
+          gender: p.gender,
+          blobUrl: fileUrls[p.file],
+        })).filter(v => v.blobUrl);
+
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls: dataFileUrls,
+          voiceList,
+          ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
           ttsConfig: model.ttsConfig || {},
         });
       } else {
