@@ -18,6 +18,55 @@
  *   { type: 'disposed' }
  */
 
+async function fetchBlobAsJson(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
+  return await resp.json();
+}
+
+async function fetchBlobAsArrayBuffer(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
+  return await resp.arrayBuffer();
+}
+
+const MODEL_KEYS = [
+  { key: 'dpOrt',         file: 'onnx/duration_predictor.onnx' },
+  { key: 'textEncOrt',    file: 'onnx/text_encoder.onnx' },
+  { key: 'vectorEstOrt',  file: 'onnx/vector_estimator.onnx' },
+  { key: 'vocoderOrt',    file: 'onnx/vocoder.onnx' },
+];
+
+async function loadAllSessions(fileUrls, executionProvider) {
+  const opts = {
+    executionProviders: [executionProvider],
+    graphOptimizationLevel: 'all',
+  };
+  const out = {};
+  for (const { key, file } of MODEL_KEYS) {
+    const url = fileUrls[file];
+    if (!url) throw new Error(`Missing model file: ${file}`);
+    const bytes = await fetchBlobAsArrayBuffer(url);
+    out[key] = await ort.InferenceSession.create(bytes, opts);
+    self.postMessage({
+      type: 'status',
+      message: `Loaded ${file} (${executionProvider})`,
+    });
+  }
+  return out;
+}
+
+async function releaseSessions(sessionMap) {
+  if (!sessionMap) return;
+  for (const key of Object.keys(sessionMap)) {
+    try {
+      await sessionMap[key].release();
+    } catch (e) {
+      console.warn(`Supertonic worker: failed to release ${key}:`, e);
+    }
+  }
+}
+
 let ort = null;
 let sessions = null;      // { dpOrt, textEncOrt, vectorEstOrt, vocoderOrt }
 let voiceTensors = null;  // Map<sid, { styleTtl, styleDp, name, source, gender }>
@@ -74,13 +123,33 @@ async function handleInit({ fileUrls, voiceList, ortBaseUrl, ttsConfig }) {
     message: `Initializing Supertonic 3 (backend: ${backend})`,
   });
 
-  // ... ONNX session loading happens in Task 8
-  // ... voice tensor parsing happens in Task 9
-  // ... ready message posting happens in Task 9
+  // Load 4 ONNX sessions with WebGPU→WASM auto-fallback
+  let ep = backend;
+  try {
+    sessions = await loadAllSessions(fileUrls, ep);
+  } catch (err) {
+    if (ep === 'webgpu') {
+      self.postMessage({
+        type: 'status',
+        message: `WebGPU init failed (${err.message || err}), falling back to WASM`,
+      });
+      await releaseSessions(sessions);
+      sessions = null;
+      ep = 'wasm';
+      backend = 'wasm';
+      sessions = await loadAllSessions(fileUrls, ep);
+    } else {
+      throw err;
+    }
+  }
 
-  // PLACEHOLDER FOR SCAFFOLD: report a partial ready so we can wire up
-  // main↔worker before the model loading is complete. Will be replaced
-  // in Task 9.
+  // Load tts.json and unicode_indexer.json
+  cfgs = await fetchBlobAsJson(fileUrls['onnx/tts.json']);
+  indexer = await fetchBlobAsJson(fileUrls['onnx/unicode_indexer.json']);
+  sampleRate = cfgs.ae.sample_rate;
+
+  // (Task 9 inserts voice tensor parsing here)
+
   self.postMessage({
     type: 'ready',
     loadTimeMs: Math.round(performance.now() - startTime),
