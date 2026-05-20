@@ -110,6 +110,26 @@ export class LocalInferenceClient implements IClient {
     }
   }
 
+  /**
+   * If the active TTS engine is Supertonic and the configured sid isn't in the
+   * actually-loaded voices, emit a warning. The worker has its own fallback
+   * (substituting defaultSid at generate time), so this is purely diagnostic —
+   * we don't mutate any state here. The UI layer reconciles the user setting
+   * separately (see VoiceLibrarySection).
+   */
+  private reconcileSupertonicSidIfNeeded(
+    config: { ttsModelId?: string; ttsSpeakerId?: number },
+    ready: { voices?: Array<{ sid: number }>; sampleRate: number } | null | undefined,
+  ): void {
+    if (!ready?.voices || ready.voices.length === 0) return;
+    if (typeof config.ttsSpeakerId !== 'number') return;
+    const sids = new Set(ready.voices.map(v => v.sid));
+    if (sids.has(config.ttsSpeakerId)) return;
+    const msg = `[LocalInference] Configured ttsSpeakerId=${config.ttsSpeakerId} is not in the loaded Supertonic voices; worker will fall back to default sid. Update your selection in settings.`;
+    console.warn(msg);
+    this.handlers.onError?.(new Error(msg));
+  }
+
   async connect(config: SessionConfig): Promise<void> {
     if (!isLocalInferenceSessionConfig(config)) {
       throw new Error('LocalInferenceClient requires LocalInferenceSessionConfig');
@@ -243,7 +263,11 @@ export class LocalInferenceClient implements IClient {
 
       // TTS catches its own errors for graceful degradation
       const ttsPromise = this.ttsEngine
-        ? this.trackInit('tts', config.ttsModelId!, () => this.ttsEngine!.init(config.ttsModelId!)).catch((error) => {
+        ? this.trackInit('tts', config.ttsModelId!, async () => {
+            const ready = await this.ttsEngine!.init(config.ttsModelId!);
+            this.reconcileSupertonicSidIfNeeded(config, ready);
+            return ready;
+          }).catch((error) => {
             console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
             this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
             this.ttsEngine?.dispose();
