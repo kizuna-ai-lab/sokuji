@@ -281,6 +281,20 @@ export interface TtsReadyMessage {
   loadTimeMs: number;
   numSpeakers: number;
   sampleRate: number;
+  /**
+   * Optional named voice list. When present, the UI renders a labeled
+   * dropdown using these names instead of falling back to "Speaker 0..N-1"
+   * derived from `numSpeakers`. Supertonic populates this; other engines
+   * leave it undefined.
+   */
+  voices?: Array<{
+    sid: number;
+    name: string;
+    source: 'preset' | 'imported';
+    gender?: 'M' | 'F';
+  }>;
+  /** Optional backend hint for UI/debug. Supertonic sets this. */
+  backend?: 'webgpu' | 'wasm';
 }
 
 export interface TtsStatusMessage {
