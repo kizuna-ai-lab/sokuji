@@ -62,6 +62,27 @@
     background: rgba(16, 163, 127, 0.18);
     color: #ffffff;
   }
+
+  .voice-row-btn {
+    visibility: hidden;
+    margin-left: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    background: transparent;
+    color: #b0b0b0;
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { color: #fff; border-color: #888; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    &.voice-row-btn-danger {
+      &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
+    }
+  }
+
+  &:hover .voice-row-btn { visibility: visible; }
 }
 
 .voice-name { flex: 1; }
@@ -109,4 +130,14 @@
     border: 1px dashed #10a37f;
     border-radius: 4px;
   }
+}
+
+.voice-name-edit {
+  flex: 1;
+  padding: 2px 6px;
+  font-size: 13px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #10a37f;
+  border-radius: 3px;
 }
