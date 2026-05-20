@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink, Plus, Upload } from 'lucide-react';
 import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { isElectron } from '../../../utils/environment';
 import './VoiceLibrarySection.scss';
 
 interface SupertonicVoice {
@@ -29,6 +30,14 @@ interface VoiceLibrarySectionProps {
   /** Called when the user confirms deletion of an imported voice. */
   onDelete: (sid: number) => Promise<void>;
 }
+
+const openExternalUrl = (url: string) => {
+  if (isElectron() && (window as any).electron?.invoke) {
+    (window as any).electron.invoke('open-external', url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
 
 const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   voices,
@@ -112,12 +121,43 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
   return (
     <div className="voice-library-section">
+      <div className="setting-item">
+        <div className="setting-label">
+          <span>{t('voiceLibrary.voice', 'Voice')}</span>
+        </div>
+        <select
+          className="select-dropdown"
+          value={selectedSid}
+          onChange={(e) => onSelect(Number(e.target.value))}
+          disabled={isReloading}
+        >
+          <optgroup label={t('voiceLibrary.presets', 'Presets')}>
+            {presets.map((v) => (
+              <option key={v.sid} value={v.sid}>
+                {v.gender ? `${v.name} (${v.gender})` : v.name}
+              </option>
+            ))}
+          </optgroup>
+          {imported.length > 0 && (
+            <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
+              {imported.map((v) => (
+                <option key={v.sid} value={v.sid}>
+                  {v.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </div>
+
       <div className="voice-library-info">
         {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
         <a
           href="https://supertonic.supertone.ai/voice-builder"
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.preventDefault();
+            openExternalUrl('https://supertonic.supertone.ai/voice-builder');
+          }}
         >
           {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
           <ExternalLink size={14} />
@@ -130,100 +170,89 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         </div>
       </div>
 
-      <h4>{t('voiceLibrary.presets', 'Presets')}</h4>
-      <ul className="voice-list">
-        {presets.map((v) => (
-          <li
-            key={v.sid}
-            className={v.sid === selectedSid ? 'voice-row selected' : 'voice-row'}
-            onClick={() => onSelect(v.sid)}
-          >
-            <span className="voice-name">{v.name}</span>
-            {v.gender && <span className="voice-meta">({v.gender})</span>}
-          </li>
-        ))}
-      </ul>
+      <details className="voice-library-manage">
+        <summary>
+          {t('voiceLibrary.manageImported', 'Manage imported voices')}
+          {imported.length > 0 && (
+            <span className="voice-library-manage-count"> ({imported.length})</span>
+          )}
+        </summary>
 
-      <div className="voice-library-my-header">
-        <h4>{t('voiceLibrary.myVoices', 'My Voices')}</h4>
-        <button
-          type="button"
-          className="voice-import-btn"
-          disabled={isReloading}
-          onClick={() => fileInputRef.current?.click()}
+        <div
+          className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
         >
-          <Plus size={14} />
-          {t('voiceLibrary.importVoice', 'Import voice…')}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json,.json"
-          style={{ display: 'none' }}
-          multiple
-          onChange={(e) => void handleFiles(e.target.files)}
-        />
-      </div>
-
-      <div
-        className={`voice-dropzone${isDragging ? ' dragging' : ''}`}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-      >
-        {imported.length === 0 ? (
-          <div className="voice-library-empty">
-            <Upload size={16} />{' '}
-            {t('voiceLibrary.emptyHint', 'Drop a voice_style.json here, or click Import.')}
+          <div className="voice-library-manage-toolbar">
+            <button
+              type="button"
+              className="voice-import-btn"
+              disabled={isReloading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Plus size={14} />
+              {t('voiceLibrary.importVoice', 'Import voice…')}
+            </button>
+            <span className="voice-library-drop-hint">
+              <Upload size={12} />
+              {t('voiceLibrary.dropHint', 'or drop a voice_style.json here')}
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              style={{ display: 'none' }}
+              multiple
+              onChange={(e) => void handleFiles(e.target.files)}
+            />
           </div>
-        ) : (
-          <ul className="voice-list">
-            {imported.map((v) => (
-              <li
-                key={v.sid}
-                className={v.sid === selectedSid ? 'voice-row selected' : 'voice-row'}
-              >
-                {editingSid === v.sid ? (
-                  <input
-                    autoFocus
-                    className="voice-name-edit"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onBlur={() => void commitEdit(v.sid)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void commitEdit(v.sid);
-                      if (e.key === 'Escape') setEditingSid(null);
-                    }}
-                  />
-                ) : (
-                  <span
-                    className="voice-name"
-                    onClick={() => onSelect(v.sid)}
+
+          {imported.length === 0 ? (
+            <div className="voice-library-empty">
+              {t('voiceLibrary.emptyHint', 'No imported voices yet.')}
+            </div>
+          ) : (
+            <ul className="voice-manage-list">
+              {imported.map((v) => (
+                <li key={v.sid} className="voice-manage-row">
+                  {editingSid === v.sid ? (
+                    <input
+                      autoFocus
+                      className="voice-name-edit"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onBlur={() => void commitEdit(v.sid)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void commitEdit(v.sid);
+                        if (e.key === 'Escape') setEditingSid(null);
+                      }}
+                    />
+                  ) : (
+                    <span className="voice-name">{v.name}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="voice-row-btn"
+                    disabled={isReloading || editingSid === v.sid}
+                    onClick={() => startEdit(v.sid, v.name)}
                   >
-                    {v.name}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="voice-row-btn"
-                  disabled={isReloading || editingSid === v.sid}
-                  onClick={() => startEdit(v.sid, v.name)}
-                >
-                  {t('voiceLibrary.rename', 'Rename')}
-                </button>
-                <button
-                  type="button"
-                  className="voice-row-btn voice-row-btn-danger"
-                  disabled={isReloading}
-                  onClick={() => void confirmAndDelete(v.sid, v.name)}
-                >
-                  {t('voiceLibrary.delete', 'Delete')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                    {t('voiceLibrary.rename', 'Rename')}
+                  </button>
+                  <button
+                    type="button"
+                    className="voice-row-btn voice-row-btn-danger"
+                    disabled={isReloading}
+                    onClick={() => void confirmAndDelete(v.sid, v.name)}
+                  >
+                    {t('voiceLibrary.delete', 'Delete')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
     </div>
   );
 };

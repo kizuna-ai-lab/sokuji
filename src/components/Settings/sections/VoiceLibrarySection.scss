@@ -2,16 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-
-  h4 {
-    margin: 8px 0 4px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #b0b0b0;
-  }
 }
 
 .voice-library-info {
@@ -28,6 +18,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    cursor: pointer;
     &:hover { text-decoration: underline; }
   }
 }
@@ -38,74 +29,61 @@
   opacity: 0.7;
 }
 
-.voice-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.voice-library-manage {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
 
-.voice-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #d0d0d0;
-
-  &:hover { background: rgba(255, 255, 255, 0.05); }
-  &.selected {
-    background: rgba(16, 163, 127, 0.18);
-    color: #ffffff;
-  }
-
-  .voice-row-btn {
-    visibility: hidden;
-    margin-left: 6px;
-    padding: 2px 8px;
-    font-size: 11px;
-    background: transparent;
-    color: #b0b0b0;
-    border: 1px solid #555;
-    border-radius: 3px;
+  > summary {
+    list-style: none;
     cursor: pointer;
+    font-size: 12px;
+    color: #b0b0b0;
+    padding: 2px 0;
 
-    &:hover:not(:disabled) { color: #fff; border-color: #888; }
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    &.voice-row-btn-danger {
-      &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
+    &::-webkit-details-marker { display: none; }
+    &::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      transition: transform 0.15s ease;
     }
+    &:hover { color: #ffffff; }
   }
 
-  &:hover .voice-row-btn { visibility: visible; }
+  &[open] > summary::before { transform: rotate(90deg); }
 }
 
-.voice-name { flex: 1; }
-.voice-meta {
-  font-size: 11px;
+.voice-library-manage-count {
   color: #888;
 }
 
-.voice-library-empty {
-  padding: 16px;
-  text-align: center;
-  font-size: 12px;
-  color: #808080;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+.voice-library-manage-body {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
   border-radius: 4px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &.dragging {
+    background: rgba(16, 163, 127, 0.12);
+    border: 1px dashed #10a37f;
+  }
 }
 
-.voice-library-my-header {
+.voice-library-manage-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
 
-  h4 { margin: 0; }
+.voice-library-drop-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #808080;
 }
 
 .voice-import-btn {
@@ -123,12 +101,52 @@
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
-.voice-dropzone {
-  transition: background 0.15s ease;
-  &.dragging {
-    background: rgba(16, 163, 127, 0.12);
-    border: 1px dashed #10a37f;
-    border-radius: 4px;
+.voice-library-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #808080;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.voice-manage-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #d0d0d0;
+
+  &:hover { background: rgba(255, 255, 255, 0.04); }
+
+  .voice-name { flex: 1; }
+}
+
+.voice-row-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  background: transparent;
+  color: #b0b0b0;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: #fff; border-color: #888; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &.voice-row-btn-danger {
+    &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
   }
 }
 
