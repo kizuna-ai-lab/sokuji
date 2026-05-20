@@ -215,6 +215,54 @@ async function handleInit({ fileUrls, voiceList, ortBaseUrl, ttsConfig }) {
   });
 }
 
+function intArrayToTensor(rows, shape) {
+  const flat = rows.flat(Infinity).map(x => BigInt(x));
+  return new ort.Tensor('int64', BigInt64Array.from(flat), shape);
+}
+
+function floatArrayToTensor(rows, shape) {
+  const flat = rows.flat(Infinity);
+  return new ort.Tensor('float32', Float32Array.from(flat), shape);
+}
+
+function sampleNoisyLatent(durationReshaped) {
+  const baseChunkSize = cfgs.ae.base_chunk_size;
+  const chunkCompressFactor = cfgs.ttl.chunk_compress_factor;
+  const ldim = cfgs.ttl.latent_dim;
+
+  const bsz = durationReshaped.length;
+  const wavLenMax = Math.max(...durationReshaped.map(d => d[0][0])) * sampleRate;
+  const wavLengths = durationReshaped.map(d => Math.floor(d[0][0] * sampleRate));
+  const chunkSize = baseChunkSize * chunkCompressFactor;
+  const latentLen = Math.floor((wavLenMax + chunkSize - 1) / chunkSize);
+  const latentDim = ldim * chunkCompressFactor;
+
+  const latentBuffer = new Float32Array(bsz * latentDim * latentLen);
+  let idx = 0;
+  for (let b = 0; b < bsz; b++) {
+    const validLen = Math.floor((wavLengths[b] + chunkSize - 1) / chunkSize);
+    for (let d = 0; d < latentDim; d++) {
+      for (let t = 0; t < latentLen; t++) {
+        if (t < validLen) {
+          const u1 = Math.random(), u2 = Math.random();
+          latentBuffer[idx++] = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        } else {
+          latentBuffer[idx++] = 0;
+        }
+      }
+    }
+  }
+
+  const latentMask = wavLengths.map(len => {
+    const validLen = Math.floor((len + chunkSize - 1) / chunkSize);
+    const row = new Array(latentLen);
+    for (let t = 0; t < latentLen; t++) row[t] = t < validLen ? 1.0 : 0.0;
+    return [row];
+  });
+
+  return { latentBuffer, latentDim, latentLen, latentMask };
+}
+
 function preprocessText(text, lang) {
   text = text.normalize('NFKD');
 
@@ -303,8 +351,97 @@ function applyIndexer(processedTexts) {
   return { textIds, textMask: getTextMask(lengths), unsupportedChars: Array.from(unsupportedChars) };
 }
 
-async function handleGenerate(_msg) {
-  throw new Error('handleGenerate not implemented yet');
+async function handleGenerate({ text, sid, speed, lang }) {
+  if (!sessions) throw new Error('Engine not initialized');
+
+  const startTime = performance.now();
+
+  // Look up voice tensors with sid fallback
+  let voice = voiceTensors.get(sid);
+  if (!voice) {
+    self.postMessage({
+      type: 'status',
+      message: `sid ${sid} not loaded; falling back to default sid ${defaultSid}`,
+    });
+    voice = voiceTensors.get(defaultSid);
+    if (!voice) {
+      throw new Error('Default voice not available — engine misconfigured');
+    }
+  }
+
+  const processed = preprocessText(text, lang);
+  const { textIds, textMask, unsupportedChars } = applyIndexer([processed]);
+  if (unsupportedChars.length > 0) {
+    self.postMessage({
+      type: 'status',
+      message: `Unsupported characters skipped: ${unsupportedChars.map(c => `"${c}"`).join(', ')}`,
+    });
+  }
+
+  const bsz = 1;
+  const textIdsShape = [bsz, textIds[0].length];
+  const textMaskShape = [bsz, 1, textMask[0][0].length];
+  const textMaskTensor = floatArrayToTensor(textMask, textMaskShape);
+
+  // Stage 1: duration predictor
+  const dpResult = await sessions.dpOrt.run({
+    text_ids:  intArrayToTensor(textIds, textIdsShape),
+    style_dp:  voice.styleDp,
+    text_mask: textMaskTensor,
+  });
+  const durOnnx = Array.from(dpResult.duration.data);
+  const durationFactor = speed && speed > 0 ? 1.0 / speed : 1.0;
+  for (let i = 0; i < durOnnx.length; i++) durOnnx[i] *= durationFactor;
+  const durReshaped = [];
+  for (let b = 0; b < bsz; b++) durReshaped.push([[durOnnx[b]]]);
+
+  // Stage 2: text encoder
+  const textEncResult = await sessions.textEncOrt.run({
+    text_ids:  intArrayToTensor(textIds, textIdsShape),
+    style_ttl: voice.styleTtl,
+    text_mask: textMaskTensor,
+  });
+  const textEmbTensor = textEncResult.text_emb;
+
+  // Stage 3: diffusion (totalStep iterations of vector_estimator)
+  const { latentBuffer, latentDim, latentLen, latentMask } = sampleNoisyLatent(durReshaped);
+  const latentShape = [bsz, latentDim, latentLen];
+  const latentMaskShape = [bsz, 1, latentMask[0][0].length];
+  const latentMaskTensor = floatArrayToTensor(latentMask, latentMaskShape);
+
+  const scalarShape = [bsz];
+  const totalStepTensor = floatArrayToTensor([new Array(bsz).fill(totalStep)], scalarShape);
+  const stepTensors = [];
+  for (let step = 0; step < totalStep; step++) {
+    stepTensors.push(floatArrayToTensor([new Array(bsz).fill(step)], scalarShape));
+  }
+
+  for (let step = 0; step < totalStep; step++) {
+    const noisyLatentTensor = new ort.Tensor('float32', latentBuffer, latentShape);
+    const r = await sessions.vectorEstOrt.run({
+      noisy_latent:  noisyLatentTensor,
+      text_emb:      textEmbTensor,
+      style_ttl:     voice.styleTtl,
+      text_mask:     textMaskTensor,
+      latent_mask:   latentMaskTensor,
+      total_step:    totalStepTensor,
+      current_step:  stepTensors[step],
+    });
+    latentBuffer.set(r.denoised_latent.data);
+  }
+
+  // Stage 4: vocoder
+  const vocoderResult = await sessions.vocoderOrt.run({
+    latent: new ort.Tensor('float32', latentBuffer, latentShape),
+  });
+  const wavBatch = vocoderResult.wav_tts.data;
+  const wavLen = Math.floor(sampleRate * durOnnx[0]);
+  const samples = wavBatch.slice(0, wavLen);
+
+  self.postMessage(
+    { type: 'result', samples, sampleRate, generationTimeMs: Math.round(performance.now() - startTime) },
+    [samples.buffer],
+  );
 }
 
 async function handleDispose() {
