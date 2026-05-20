@@ -47,7 +47,7 @@ const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<SokujiModelsDB>> | null = null;
 
-function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
   if (!dbPromise) {
     dbPromise = openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
