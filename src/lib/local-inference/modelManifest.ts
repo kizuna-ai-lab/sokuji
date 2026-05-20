@@ -49,6 +49,20 @@ export interface TtsModelConfig {
   ruleFars?: string;       // comma-separated FAR paths
   /** Language-to-phonemizer routing map for piper-plus multilingual models */
   languageIdMap?: Record<string, number>;
+  /** Supertonic: list of 31 supported language codes ('na' added at runtime for fallback). */
+  supportedLanguages?: readonly string[];
+  /** Supertonic: preset voice metadata, ordered by sid. */
+  presetVoices?: Array<{
+    sid: number;
+    name: string;
+    gender: 'M' | 'F';
+    /** Relative file path within the model bundle, e.g. 'voice_styles/F1.json'. */
+    file: string;
+  }>;
+  /** Supertonic: default sid when settings.sid is unset or invalid. */
+  defaultSid?: number;
+  /** Supertonic: diffusion iteration count. Hardcoded to 16. */
+  totalStep?: number;
 }
 
 export interface ModelManifestEntry {
@@ -2832,6 +2846,66 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     isCloudModel: true,
     sortOrder: 0,  // show first in TTS list
     variants: {},   // no files to download
+  },
+
+  // ── Supertonic 3 ──────────────────────────────────────────────────────
+  {
+    id: 'supertonic-3',
+    type: 'tts',
+    engine: 'supertonic',
+    recommended: true,
+    hfModelId: 'Supertone/supertonic-3',
+    name: 'Supertonic 3',
+    languages: [
+      'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
+      'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
+      'sl','sv','tr','uk','vi',
+    ],
+    numSpeakers: 10,
+    ttsConfig: {
+      supportedLanguages: [
+        'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
+        'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
+        'sl','sv','tr','uk','vi',
+      ],
+      presetVoices: [
+        { sid: 0, name: 'Sarah',   gender: 'F', file: 'voice_styles/F1.json' },
+        { sid: 1, name: 'Lily',    gender: 'F', file: 'voice_styles/F2.json' },
+        { sid: 2, name: 'Jessica', gender: 'F', file: 'voice_styles/F3.json' },
+        { sid: 3, name: 'Olivia',  gender: 'F', file: 'voice_styles/F4.json' },
+        { sid: 4, name: 'Emily',   gender: 'F', file: 'voice_styles/F5.json' },
+        { sid: 5, name: 'Alex',    gender: 'M', file: 'voice_styles/M1.json' },
+        { sid: 6, name: 'James',   gender: 'M', file: 'voice_styles/M2.json' },
+        { sid: 7, name: 'Robert',  gender: 'M', file: 'voice_styles/M3.json' },
+        { sid: 8, name: 'Sam',     gender: 'M', file: 'voice_styles/M4.json' },
+        { sid: 9, name: 'Daniel',  gender: 'M', file: 'voice_styles/M5.json' },
+      ],
+      defaultSid: 7,
+      totalStep: 16,
+    },
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [
+          { filename: 'onnx/duration_predictor.onnx', sizeBytes: 3_700_147 },
+          { filename: 'onnx/text_encoder.onnx',       sizeBytes: 36_416_150 },
+          { filename: 'onnx/vector_estimator.onnx',   sizeBytes: 256_534_781 },
+          { filename: 'onnx/vocoder.onnx',            sizeBytes: 101_424_195 },
+          { filename: 'onnx/tts.json',                sizeBytes: 8_253 },
+          { filename: 'onnx/unicode_indexer.json',    sizeBytes: 277_676 },
+          { filename: 'voice_styles/F1.json',         sizeBytes: 292_046 },
+          { filename: 'voice_styles/F2.json',         sizeBytes: 292_423 },
+          { filename: 'voice_styles/F3.json',         sizeBytes: 290_794 },
+          { filename: 'voice_styles/F4.json',         sizeBytes: 291_808 },
+          { filename: 'voice_styles/F5.json',         sizeBytes: 291_479 },
+          { filename: 'voice_styles/M1.json',         sizeBytes: 291_748 },
+          { filename: 'voice_styles/M2.json',         sizeBytes: 292_055 },
+          { filename: 'voice_styles/M3.json',         sizeBytes: 290_198 },
+          { filename: 'voice_styles/M4.json',         sizeBytes: 291_522 },
+          { filename: 'voice_styles/M5.json',         sizeBytes: 291_469 },
+        ],
+      },
+    },
   },
 
   // ── Translation Models — third-party HF Hub ─────────────────────────────
