@@ -15,6 +15,61 @@
 
 import { getDb } from './modelStorage';
 
+export type VoiceImportErrorCode =
+  | 'too_large' | 'not_json' | 'missing_field' | 'invalid_shape';
+
+export class VoiceImportError extends Error {
+  constructor(public code: VoiceImportErrorCode, message: string) {
+    super(message);
+    this.name = 'VoiceImportError';
+  }
+}
+
+const MAX_VOICE_BYTES = 1 * 1024 * 1024;
+
+async function validateVoiceFile(file: File): Promise<void> {
+  if (file.size > MAX_VOICE_BYTES) {
+    throw new VoiceImportError(
+      'too_large',
+      `Voice file too large (${file.size} bytes, max ${MAX_VOICE_BYTES})`,
+    );
+  }
+  let parsed: any;
+  try {
+    const text = await readFileAsText(file);
+    parsed = JSON.parse(text);
+  } catch {
+    throw new VoiceImportError('not_json', 'Not a valid JSON file');
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new VoiceImportError('not_json', 'JSON root must be an object');
+  }
+  if (!parsed.style_ttl || !parsed.style_dp) {
+    throw new VoiceImportError(
+      'missing_field',
+      'Missing style_ttl or style_dp (not a Supertonic voice file)',
+    );
+  }
+  if (!Array.isArray(parsed.style_ttl.dims) || !Array.isArray(parsed.style_dp.dims)) {
+    throw new VoiceImportError(
+      'invalid_shape',
+      'style_ttl.dims and style_dp.dims must be arrays',
+    );
+  }
+}
+
+function readFileAsText(file: File): Promise<string> {
+  if (typeof file.text === 'function') {
+    return file.text();
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 export interface StoredVoice {
   id: number;
   engine: 'supertonic-3';
@@ -41,6 +96,7 @@ export async function getVoice(id: number): Promise<StoredVoice | undefined> {
 export async function addVoice(
   engine: Engine, name: string, file: File,
 ): Promise<StoredVoice> {
+  await validateVoiceFile(file);
   const existing = await listVoices(engine);
   const finalName = uniquifyName(name, existing.map(v => v.name));
   const jsonData = new Blob([await readFileAsArrayBuffer(file)], { type: 'application/json' });

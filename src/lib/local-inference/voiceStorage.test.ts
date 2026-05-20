@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
   addVoice, listVoices, getVoice, renameVoice, deleteVoice, resetVoiceStorageForTesting,
+  VoiceImportError,
 } from './voiceStorage';
 
 function makeFile(name: string, contents: object): File {
@@ -58,5 +59,52 @@ describe('voiceStorage', () => {
     expect(await getVoice(b.id)).toBeDefined();
     const c = await addVoice('supertonic-3', 'C', makeFile('c.json', VALID_JSON));
     expect(c.id).toBeGreaterThan(b.id);  // autoincrement does not reuse a.id
+  });
+});
+
+describe('voiceStorage validation', () => {
+  beforeEach(async () => { await resetVoiceStorageForTesting(); });
+
+  it('rejects files larger than 1 MB', async () => {
+    const big = new File([new Uint8Array(2 * 1024 * 1024)], 'big.json', { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', big))
+      .rejects.toMatchObject({ code: 'too_large' });
+  });
+
+  it('rejects non-JSON content', async () => {
+    const f = new File(['this is not json'], 'bad.json', { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', f))
+      .rejects.toMatchObject({ code: 'not_json' });
+  });
+
+  it('rejects JSON missing style_ttl', async () => {
+    const f = new File([JSON.stringify({ style_dp: { data: [], dims: [] } })], 'x.json',
+                       { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', f))
+      .rejects.toMatchObject({ code: 'missing_field' });
+  });
+
+  it('rejects JSON missing style_dp', async () => {
+    const f = new File([JSON.stringify({ style_ttl: { data: [], dims: [] } })], 'x.json',
+                       { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', f))
+      .rejects.toMatchObject({ code: 'missing_field' });
+  });
+
+  it('rejects JSON without dims arrays', async () => {
+    const f = new File([JSON.stringify({
+      style_ttl: { data: [] }, style_dp: { data: [] },
+    })], 'x.json', { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', f))
+      .rejects.toMatchObject({ code: 'invalid_shape' });
+  });
+
+  it('VoiceImportError is a class with a code', async () => {
+    try {
+      const f = new File(['nope'], 'x.json', { type: 'application/json' });
+      await addVoice('supertonic-3', 'X', f);
+    } catch (err) {
+      expect(err).toBeInstanceOf(VoiceImportError);
+    }
   });
 });
