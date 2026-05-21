@@ -252,6 +252,18 @@ export const ASR_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr';
  */
 export const ASR_STREAM_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr-stream';
 
+/**
+ * The 31 BCP 47 language codes Supertonic 3 supports natively. Used as the
+ * single source of truth for both the entry-level `languages` field and the
+ * engine-level `ttsConfig.supportedLanguages` field on the supertonic-3
+ * manifest entry — keeps them from drifting.
+ */
+export const SUPERTONIC_LANGUAGES = [
+  'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
+  'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
+  'sl','sv','tr','uk','vi',
+] as const;
+
 // ─── Shared File Lists ───────────────────────────────────────────────────────
 // ASR runtime JS/WASM are bundled with the app (identical across all models).
 // Only model-specific .data + package-metadata.json need downloading.
@@ -2856,18 +2868,10 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     recommended: true,
     hfModelId: 'Supertone/supertonic-3',
     name: 'Supertonic 3',
-    languages: [
-      'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
-      'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
-      'sl','sv','tr','uk','vi',
-    ],
+    languages: [...SUPERTONIC_LANGUAGES],
     numSpeakers: 10,
     ttsConfig: {
-      supportedLanguages: [
-        'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
-        'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
-        'sl','sv','tr','uk','vi',
-      ],
+      supportedLanguages: SUPERTONIC_LANGUAGES,
       presetVoices: [
         { sid: 0, name: 'Sarah',   gender: 'F', file: 'voice_styles/F1.json' },
         { sid: 1, name: 'Lily',    gender: 'F', file: 'voice_styles/F2.json' },

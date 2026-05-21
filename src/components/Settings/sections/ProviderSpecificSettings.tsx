@@ -55,6 +55,7 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
+import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
@@ -264,7 +265,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       gender: p.gender as 'M' | 'F',
     }));
     const importedAsVoices = importedVoices.map(v => ({
-      sid: v.id + 10,
+      sid: importedSidFromDbKey(v.id),
       name: v.name,
       source: 'imported' as const,
       gender: undefined,
@@ -292,8 +293,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   }, [refreshImportedVoices, reloadTtsVoicesAction]);
 
   const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
-    const dbKey = sid - 10;
-    if (dbKey < 0) return;
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
     setIsVoiceMutationPending(true);
     try {
       await voiceStorage.renameVoice(dbKey, newName);
@@ -305,8 +306,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   }, [refreshImportedVoices, reloadTtsVoicesAction]);
 
   const handleDeleteVoice = useCallback(async (sid: number) => {
-    const dbKey = sid - 10;
-    if (dbKey < 0) return;
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
     setIsVoiceMutationPending(true);
     try {
       await voiceStorage.deleteVoice(dbKey);

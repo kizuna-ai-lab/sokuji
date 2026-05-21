@@ -74,8 +74,8 @@ This spec covers two phases shipped together:
 - License: model **OpenRAIL-M**, code MIT
 - 31 supported languages: en, ko, ja, ar, bg, cs, da, de, el, es, et, fi, fr,
   hi, hr, hu, id, it, lt, lv, nl, pl, pt, ro, ru, sk, sl, sv, tr, uk, vi
-- **Notably absent**: zh, th, vi extended. Chinese users continue on
-  matcha-zh-en / piper-plus.
+- **Notably absent**: Chinese (`zh`) and Thai (`th`). Chinese users continue
+  on matcha-zh-en / piper-plus.
 
 ### Voice Builder (external, optional)
 

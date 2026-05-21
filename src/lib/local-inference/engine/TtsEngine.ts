@@ -17,6 +17,7 @@ import {
 import { ModelManager } from '../ModelManager';
 import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
 import { listVoices } from '../voiceStorage';
+import { importedSidFromDbKey } from '../sidMapping';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -133,7 +134,7 @@ export class TtsEngine {
     if (isSupertonic) {
       const imported = await listVoices('supertonic-3');
       supertonicImportedEntries = imported.map(v => ({
-        sid: v.id + 10,
+        sid: importedSidFromDbKey(v.id),
         name: v.name,
         source: 'imported' as const,
         gender: undefined,
