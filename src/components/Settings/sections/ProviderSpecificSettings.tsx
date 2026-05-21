@@ -49,6 +49,7 @@ import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
+import { useReloadTtsVoicesAction } from '../../../stores/sessionStore';
 import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
@@ -225,7 +226,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // Supertonic imported voice state
   const [importedVoices, setImportedVoices] = useState<voiceStorage.StoredVoice[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  // True while a voice import/rename/delete is in flight (including the
+  // worker-side reloadVoices restart). Locks the section UI to prevent
+  // overlapping mutations.
+  const [isVoiceMutationPending, setIsVoiceMutationPending] = useState(false);
+
+  // Pulled from sessionStore — set by MainPanel while a LocalInferenceClient
+  // session is active. When null, voice mutations land in IndexedDB but the
+  // worker only picks them up on next session start.
+  const reloadTtsVoicesAction = useReloadTtsVoicesAction();
 
   const isSupertonicTts = getManifestEntry(localInferenceSettings.ttsModel)?.engine === 'supertonic';
 
@@ -264,40 +273,53 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
 
   const handleImportVoice = useCallback(async (file: File) => {
+    setIsVoiceMutationPending(true);
     try {
       const fallbackName = file.name.replace(/\.json$/i, '');
       await voiceStorage.addVoice('supertonic-3', fallbackName, file);
       setImportError(null);
       await refreshImportedVoices();
-      setHasPendingChanges(true);
+      if (reloadTtsVoicesAction) await reloadTtsVoicesAction();
     } catch (err) {
       const msg = err instanceof voiceStorage.VoiceImportError
         ? `${err.code}: ${err.message}`
         : err instanceof Error ? err.message : String(err);
       setImportError(msg);
       throw err;
+    } finally {
+      setIsVoiceMutationPending(false);
     }
-  }, [refreshImportedVoices]);
+  }, [refreshImportedVoices, reloadTtsVoicesAction]);
 
   const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
     const dbKey = sid - 10;
     if (dbKey < 0) return;
-    await voiceStorage.renameVoice(dbKey, newName);
-    await refreshImportedVoices();
-    setHasPendingChanges(true);
-  }, [refreshImportedVoices]);
+    setIsVoiceMutationPending(true);
+    try {
+      await voiceStorage.renameVoice(dbKey, newName);
+      await refreshImportedVoices();
+      if (reloadTtsVoicesAction) await reloadTtsVoicesAction();
+    } finally {
+      setIsVoiceMutationPending(false);
+    }
+  }, [refreshImportedVoices, reloadTtsVoicesAction]);
 
   const handleDeleteVoice = useCallback(async (sid: number) => {
     const dbKey = sid - 10;
     if (dbKey < 0) return;
-    await voiceStorage.deleteVoice(dbKey);
-    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
-    if (localInferenceSettings.ttsSpeakerId === sid) {
-      updateLocalInferenceSettings({ ttsSpeakerId: defaultSid });
+    setIsVoiceMutationPending(true);
+    try {
+      await voiceStorage.deleteVoice(dbKey);
+      const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
+      if (localInferenceSettings.ttsSpeakerId === sid) {
+        updateLocalInferenceSettings({ ttsSpeakerId: defaultSid });
+      }
+      await refreshImportedVoices();
+      if (reloadTtsVoicesAction) await reloadTtsVoicesAction();
+    } finally {
+      setIsVoiceMutationPending(false);
     }
-    await refreshImportedVoices();
-    setHasPendingChanges(true);
-  }, [supertonicTtsEntry, localInferenceSettings.ttsSpeakerId, updateLocalInferenceSettings, refreshImportedVoices]);
+  }, [supertonicTtsEntry, localInferenceSettings.ttsSpeakerId, updateLocalInferenceSettings, refreshImportedVoices, reloadTtsVoicesAction]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. Participant's worker type is derived via
@@ -1963,16 +1985,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     onImport={handleImportVoice}
                     onRename={handleRenameVoice}
                     onDelete={handleDeleteVoice}
-                    isReloading={false}
+                    isReloading={isVoiceMutationPending}
                   />
                   {importError && (
                     <div className="setting-item error">
                       {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
-                    </div>
-                  )}
-                  {hasPendingChanges && (
-                    <div className="setting-item info">
-                      {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
                     </div>
                   )}
                 </>

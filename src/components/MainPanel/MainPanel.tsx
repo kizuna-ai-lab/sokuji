@@ -42,7 +42,8 @@ import {
   CONVERSATION_FONT_SIZE_MIN,
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation, useSetReloadTtsVoicesAction } from '../../stores/sessionStore';
+import { LocalInferenceClient } from '../../services/clients/LocalInferenceClient';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -283,6 +284,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const setStoreSystemAudioItems = useSetStoreSystemAudioItems();
   const clearConversationVersion = useClearConversationVersion();
   const requestClearConversation = useRequestClearConversation();
+  const setReloadTtsVoicesAction = useSetReloadTtsVoicesAction();
 
   // Get log functions from store
   const { addRealtimeEvent } = useLogActions();
@@ -1198,6 +1200,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         setItems(client.getConversationItems());
         client.reset();
+        // Clear the voice library reload action — the TTS engine is gone.
+        setReloadTtsVoicesAction(null);
       }
 
       // Disconnect system audio client
@@ -1398,6 +1402,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Connect to the AI service
         await client.connect(sessionConfig);
 
+        // Register the in-session voice library reload action so
+        // VoiceLibrarySection can rebuild the worker's voice tensors after
+        // an import/rename/delete without restarting the session.
+        if (client instanceof LocalInferenceClient) {
+          setReloadTtsVoicesAction(() => client.reloadTtsVoices());
+        }
+
         // Track successful connection with latency
         const connectionLatency = Date.now() - connectionStartTime;
         trackEvent('latency_measurement', {
@@ -1428,6 +1439,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           try {
             await fallbackClient.connect(sessionConfig);
+
+            // Re-register reload action on the new (fallback) client.
+            if (fallbackClient instanceof LocalInferenceClient) {
+              setReloadTtsVoicesAction(() => fallbackClient.reloadTtsVoices());
+            }
 
             // Track successful fallback connection
             const connectionLatency = Date.now() - connectionStartTime;
