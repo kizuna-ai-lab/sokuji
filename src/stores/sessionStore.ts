@@ -17,10 +17,6 @@ interface SessionStore {
   // routine when it changes, so any consumer (subtitle bar, main toolbar)
   // can trigger a clear without holding a direct reference to MainPanel.
   clearConversationVersion: number;
-  // Set by MainPanel while a Supertonic local-inference session is active.
-  // ProviderSpecificSettings invokes it after voice import/rename/delete so
-  // the worker rebuilds its voice list in place. Null when no such session.
-  reloadTtsVoicesAction: (() => Promise<void>) | null;
 
   // Actions
   setIsSessionActive: (active: boolean) => void;
@@ -32,7 +28,6 @@ interface SessionStore {
   setItems: (items: ConversationItem[]) => void;
   setSystemAudioItems: (items: ConversationItem[]) => void;
   requestClearConversation: () => void;
-  setReloadTtsVoicesAction: (action: (() => Promise<void>) | null) => void;
 
   // Compound actions
   startSession: (sessionId: string) => void;
@@ -51,7 +46,6 @@ const useSessionStore = create<SessionStore>()(
     items: [],
     systemAudioItems: [],
     clearConversationVersion: 0,
-    reloadTtsVoicesAction: null,
 
     // Basic setters
     setIsSessionActive: (active) => set({ isSessionActive: active }),
@@ -64,7 +58,6 @@ const useSessionStore = create<SessionStore>()(
     requestClearConversation: () => set((state) => ({
       clearConversationVersion: state.clearConversationVersion + 1,
     })),
-    setReloadTtsVoicesAction: (action) => set({ reloadTtsVoicesAction: action }),
 
     // Increment translation count
     incrementTranslationCount: () => set((state) => ({ 
@@ -87,7 +80,6 @@ const useSessionStore = create<SessionStore>()(
       isReconnecting: false,
       items: [],
       systemAudioItems: [],
-      reloadTtsVoicesAction: null,
       // Keep translation count for reference
     }),
 
@@ -100,7 +92,6 @@ const useSessionStore = create<SessionStore>()(
       isReconnecting: false,
       items: [],
       systemAudioItems: [],
-      reloadTtsVoicesAction: null,
     }),
   }))
 );
@@ -128,8 +119,6 @@ export const useSetItems = () => useSessionStore((state) => state.setItems);
 export const useSetSystemAudioItems = () => useSessionStore((state) => state.setSystemAudioItems);
 export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
 export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
-export const useReloadTtsVoicesAction = () => useSessionStore((state) => state.reloadTtsVoicesAction);
-export const useSetReloadTtsVoicesAction = () => useSessionStore((state) => state.setReloadTtsVoicesAction);
 
 // Export actions - use individual hooks and memoize to prevent recreating objects
 export const useSessionActions = () => {

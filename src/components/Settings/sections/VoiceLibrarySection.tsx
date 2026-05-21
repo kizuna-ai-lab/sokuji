@@ -66,7 +66,6 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   );
 
   const handleFiles = React.useCallback(async (files: FileList | null) => {
-    if (isReloading) return;
     if (!files || files.length === 0) return;
     for (const file of Array.from(files)) {
       try {
@@ -78,18 +77,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [isReloading, onImport]);
+  }, [onImport]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
-    if (isReloading) return;
     setIsDragging(false);
     void handleFiles(e.dataTransfer.files);
   };
 
   const onDragOver: React.DragEventHandler = (e) => {
     e.preventDefault();
-    if (isReloading) return;
     setIsDragging(true);
   };
 
