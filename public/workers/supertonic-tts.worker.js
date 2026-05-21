@@ -275,7 +275,10 @@ function preprocessText(text, lang) {
 
   const replacements = {
     '–': '-', '‑': '-', '—': '-', '_': ' ',
-    '"': '"', '"': '"', '‘': "'", '’': "'",
+    // Smart quotes → ASCII. Written as \u escapes because the literal
+    // smart-quote chars can be collapsed to ASCII by some editors/clipboards
+    // (which silently breaks this map: ASCII " → ASCII " is a no-op).
+    '“': '"', '”': '"', '‘': "'", '’': "'",
     '´': "'", '`': "'",
     '[': ' ', ']': ' ', '|': ' ', '/': ' ', '#': ' ',
     '→': ' ', '←': ' ',
@@ -299,7 +302,7 @@ function preprocessText(text, lang) {
   while (text.includes('``')) text = text.replace(/``/g, '`');
   text = text.replace(/\s+/g, ' ').trim();
 
-  if (!/[.!?;:,'"')\]}…。」』】〉》›»]$/.test(text)) {
+  if (!/[.!?;:,'")\]}…。」』】〉》›»]$/.test(text)) {
     text += '.';
   }
 
