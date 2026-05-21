@@ -18,8 +18,8 @@ import {
   env,
   type AutomaticSpeechRecognitionPipeline,
   type ProgressInfo,
-} from '@huggingface/transformers';
-import { InferenceSession, Tensor, env as ortEnv } from 'onnxruntime-web';
+} from './_shared/transformers-all';
+import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 

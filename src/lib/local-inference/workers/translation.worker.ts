@@ -7,8 +7,7 @@
  * network requests to HuggingFace Hub.
  */
 
-import { pipeline, env } from '@huggingface/transformers';
-import type { TranslationPipeline } from '@huggingface/transformers';
+import { pipeline, env, type TranslationPipeline } from './_shared/transformers-all';
 
 // Disable WASM proxy (we're already in a worker).
 // wasmPaths is set in the init handler from the main thread's resolved URL.

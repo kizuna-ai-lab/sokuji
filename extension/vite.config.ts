@@ -126,6 +126,24 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/@huggingface/transformers')) {
+              return 'hf-transformers'
+            }
+            if (id.includes('node_modules/onnxruntime-web')) {
+              return 'onnxruntime-web'
+            }
+            if (id.includes('node_modules/@ricky0123/vad-web')) {
+              return 'vad-web'
+            }
+          },
+        },
+      },
+    },
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
       alias: {
