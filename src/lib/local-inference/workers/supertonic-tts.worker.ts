@@ -174,6 +174,10 @@ async function loadAllSessions(
   const opts: InferenceSession.SessionOptions = {
     executionProviders: [executionProvider],
     graphOptimizationLevel: 'all',
+    // Silence ORT's per-session "VerifyEachNodeIsAssignedToAnEp" warning that
+    // fires whenever some ops fall back to CPU (always happens with WebGPU
+    // models — shape ops etc.). 0=verbose, 1=info, 2=warning(default), 3=error.
+    logSeverityLevel: 3,
   };
   const out: Partial<SessionMap> = {};
   try {
