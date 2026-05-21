@@ -4,6 +4,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
+import { workerManualChunks } from '../vite.worker-chunks'
 
 /**
  * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
@@ -129,19 +130,7 @@ export default defineConfig(({ mode }) => {
     worker: {
       format: 'es',
       rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules/@huggingface/transformers')) {
-              return 'hf-transformers'
-            }
-            if (id.includes('node_modules/onnxruntime-web')) {
-              return 'onnxruntime-web'
-            }
-            if (id.includes('node_modules/@ricky0123/vad-web')) {
-              return 'vad-web'
-            }
-          },
-        },
+        output: { manualChunks: workerManualChunks },
       },
     },
     resolve: {
