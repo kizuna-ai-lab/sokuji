@@ -163,9 +163,10 @@ export async function deleteModel(modelId: string): Promise<void> {
 /** Clear all data from both files and metadata stores */
 export async function clearAll(): Promise<void> {
   const db = await getDb();
-  const tx = db.transaction(['files', 'metadata'], 'readwrite');
+  const tx = db.transaction(['files', 'metadata', 'voice_styles'], 'readwrite');
   await tx.objectStore('files').clear();
   await tx.objectStore('metadata').clear();
+  await tx.objectStore('voice_styles').clear();
   await tx.done;
 }
 

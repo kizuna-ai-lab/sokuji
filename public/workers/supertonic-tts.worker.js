@@ -87,17 +87,24 @@ async function loadAllSessions(fileUrls, executionProvider) {
     graphOptimizationLevel: 'all',
   };
   const out = {};
-  for (const { key, file } of MODEL_KEYS) {
-    const url = fileUrls[file];
-    if (!url) throw new Error(`Missing model file: ${file}`);
-    const bytes = await fetchBlobAsArrayBuffer(url);
-    out[key] = await ort.InferenceSession.create(bytes, opts);
-    self.postMessage({
-      type: 'status',
-      message: `Loaded ${file} (${executionProvider})`,
-    });
+  try {
+    for (const { key, file } of MODEL_KEYS) {
+      const url = fileUrls[file];
+      if (!url) throw new Error(`Missing model file: ${file}`);
+      const bytes = await fetchBlobAsArrayBuffer(url);
+      out[key] = await ort.InferenceSession.create(bytes, opts);
+      self.postMessage({
+        type: 'status',
+        message: `Loaded ${file} (${executionProvider})`,
+      });
+    }
+    return out;
+  } catch (err) {
+    // Release any sessions that succeeded before the failure so we don't
+    // pin GPU/WASM resources during the WebGPU→WASM fallback retry.
+    await releaseSessions(out);
+    throw err;
   }
-  return out;
 }
 
 async function releaseSessions(sessionMap) {

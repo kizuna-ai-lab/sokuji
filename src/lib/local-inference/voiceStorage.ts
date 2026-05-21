@@ -56,6 +56,12 @@ async function validateVoiceFile(file: File): Promise<void> {
       'style_ttl.dims and style_dp.dims must be arrays',
     );
   }
+  if (!Array.isArray(parsed.style_ttl.data) || !Array.isArray(parsed.style_dp.data)) {
+    throw new VoiceImportError(
+      'invalid_shape',
+      'style_ttl.data and style_dp.data must be arrays',
+    );
+  }
 }
 
 function readFileAsText(file: File): Promise<string> {

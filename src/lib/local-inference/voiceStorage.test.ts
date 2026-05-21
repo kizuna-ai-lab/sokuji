@@ -99,6 +99,14 @@ describe('voiceStorage validation', () => {
       .rejects.toMatchObject({ code: 'invalid_shape' });
   });
 
+  it('rejects JSON without data arrays', async () => {
+    const f = new File([JSON.stringify({
+      style_ttl: { dims: [1, 1, 2] }, style_dp: { dims: [1, 1, 2] },
+    })], 'x.json', { type: 'application/json' });
+    await expect(addVoice('supertonic-3', 'X', f))
+      .rejects.toMatchObject({ code: 'invalid_shape' });
+  });
+
   it('VoiceImportError is a class with a code', async () => {
     try {
       const f = new File(['nope'], 'x.json', { type: 'application/json' });
