@@ -153,7 +153,14 @@ export class ModelManager {
           );
         }
 
-        // 4. JSON structure check — must be parseable JSON
+        // 4. ONNX magic check — protobuf field 1 begins with 0x08
+        if (ext === 'onnx' && header[0] !== 0x08) {
+          throw new Error(
+            `Invalid ONNX file ${file.filename}: missing protobuf prefix`
+          );
+        }
+
+        // 5. JSON structure check — must be parseable JSON
         if (ext === 'json') {
           try {
             const text = await blob.text();

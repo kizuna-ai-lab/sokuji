@@ -13,8 +13,11 @@ DEST="public/wasm/ort"
 #   asyncify  — default (non-Safari browsers)
 #   plain     — Safari fallback (no asyncify support)
 #   jsep      — WebGPU/WebNN backend (used by Whisper-WebGPU, Qwen workers)
-# UMD entry point:
-#   ort.wasm.min.js — for classic workers using importScripts() (piper-plus-tts)
+# JS entry point:
+#   ort.wasm.min.js — UMD, for classic workers using importScripts() (piper-plus-tts)
+# Note: TS workers (Whisper, Voxtral, Cohere, Granite, Supertonic) import
+# `onnxruntime-web` directly and let Vite bundle the ESM API surface into
+# each worker chunk — so no standalone ESM entry needs to live here.
 FILES=(
   "ort-wasm-simd-threaded.asyncify.mjs"
   "ort-wasm-simd-threaded.asyncify.wasm"

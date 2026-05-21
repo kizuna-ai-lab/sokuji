@@ -274,6 +274,45 @@ export interface TtsDisposeMessage {
 
 export type TtsWorkerInMessage = TtsInitMessage | TtsGenerateMessage | TtsDisposeMessage;
 
+// ─── Supertonic 3 worker — separate init shape ───────────────────────────────
+// Supertonic has its own init contract (multi-onnx + voice list) and doesn't
+// fit the legacy `modelFile: string` shape. The worker also responds to
+// `generate` / `dispose` with the standard shapes above.
+
+/** Voice metadata passed from main thread to worker at init time. */
+export interface SupertonicVoiceListEntry {
+  sid: number;
+  name: string;
+  source: 'preset' | 'imported';
+  gender?: 'M' | 'F';
+  /** Blob URL for the voice_style JSON file (revoked by main thread after `ready`). */
+  blobUrl: string;
+}
+
+export interface SupertonicTtsConfig {
+  /** Diffusion iteration count (defaults to 16). */
+  totalStep?: number;
+  /** Sid to fall back to when the requested one isn't loaded. */
+  defaultSid?: number;
+}
+
+export interface SupertonicTtsInitMessage {
+  type: 'init';
+  /** Map of filename → blob URL for the 4 ONNX + tts.json + unicode_indexer.json. */
+  fileUrls: Record<string, string>;
+  /** Preset + imported voices to build tensors for. */
+  voiceList: SupertonicVoiceListEntry[];
+  /** Absolute URL to /wasm/ort/ — used as `ort.env.wasm.wasmPaths`. */
+  ortWasmBaseUrl: string;
+  /** Subset of the manifest's `ttsConfig` field. */
+  ttsConfig: SupertonicTtsConfig;
+}
+
+export type SupertonicTtsWorkerInMessage =
+  | SupertonicTtsInitMessage
+  | TtsGenerateMessage
+  | TtsDisposeMessage;
+
 // ─── TTS Worker Messages (Worker → Main) ─────────────────────────────────────
 
 export interface TtsReadyMessage {
@@ -281,6 +320,20 @@ export interface TtsReadyMessage {
   loadTimeMs: number;
   numSpeakers: number;
   sampleRate: number;
+  /**
+   * Optional named voice list. When present, the UI renders a labeled
+   * dropdown using these names instead of falling back to "Speaker 0..N-1"
+   * derived from `numSpeakers`. Supertonic populates this; other engines
+   * leave it undefined.
+   */
+  voices?: Array<{
+    sid: number;
+    name: string;
+    source: 'preset' | 'imported';
+    gender?: 'M' | 'F';
+  }>;
+  /** Optional backend hint for UI/debug. Supertonic sets this. */
+  backend?: 'webgpu' | 'wasm';
 }
 
 export interface TtsStatusMessage {

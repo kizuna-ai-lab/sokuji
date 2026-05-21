@@ -16,6 +16,8 @@ import {
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
 import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
+import { listVoices } from '../voiceStorage';
+import { importedSidFromDbKey } from '../sidMapping';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -56,7 +58,13 @@ export class TtsEngine {
    * @param modelId - Model identifier (e.g. 'piper-en', 'piper-de')
    * @returns Promise that resolves with load info when ready
    */
-  async init(modelId: string): Promise<{ loadTimeMs: number; numSpeakers: number; sampleRate: number }> {
+  async init(modelId: string): Promise<{
+    loadTimeMs: number;
+    numSpeakers: number;
+    sampleRate: number;
+    voices?: Array<{ sid: number; name: string; source: 'preset' | 'imported'; gender?: 'M' | 'F' }>;
+    backend?: 'webgpu' | 'wasm';
+  }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'tts') {
       const available = getManifestByType('tts').map(m => m.id).join(', ');
@@ -75,6 +83,7 @@ export class TtsEngine {
 
     const isPiperPlus = model.engine === 'piper-plus';
     const isEdgeTts = model.engine === 'edge-tts';
+    const isSupertonic = model.engine === 'supertonic';
 
     // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
     // Edge TTS skips the download check — it uses the network directly
@@ -84,14 +93,23 @@ export class TtsEngine {
 
     if (!isEdgeTts) {
       const manager = ModelManager.getInstance();
-      if (!await manager.isModelReady(modelId)) {
-        throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+      // For supertonic (and future plain-blob engines), skip the isModelReady pre-check
+      // and load URLs in a single await so the Worker can be created within one microtask
+      // after init() is called. For sherpa-onnx / piper-plus, keep the sequential check
+      // to give a clear error before attempting to fetch package metadata.
+      if (!isSupertonic) {
+        if (!await manager.isModelReady(modelId)) {
+          throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+        }
       }
       fileUrls = await manager.getModelBlobUrls(modelId);
+      if (isSupertonic && Object.keys(fileUrls).length === 0) {
+        throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+      }
       dataFileUrls = fileUrls;
 
       // Sherpa-onnx path: read Emscripten loadPackage metadata
-      if (!isPiperPlus) {
+      if (!isPiperPlus && !isSupertonic) {
         const metadataBlobUrl = fileUrls['package-metadata.json'];
         if (!metadataBlobUrl) {
           throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
@@ -108,14 +126,43 @@ export class TtsEngine {
       }
     }
 
+    // For supertonic: load imported voices from IndexedDB before creating the worker.
+    // sid = dbKey + 10 (IMPORTED_SID_OFFSET).
+    let supertonicImportedEntries: Array<{
+      sid: number; name: string; source: 'imported'; gender: undefined; blobUrl: string;
+    }> = [];
+    if (isSupertonic) {
+      const imported = await listVoices('supertonic-3');
+      supertonicImportedEntries = imported.map(v => ({
+        sid: importedSidFromDbKey(v.id),
+        name: v.name,
+        source: 'imported' as const,
+        gender: undefined,
+        blobUrl: URL.createObjectURL(v.jsonData),
+      }));
+      // Track imported blob URLs alongside fileUrls so revokeBlobUrls cleans them up
+      for (const e of supertonicImportedEntries) {
+        fileUrls[`__imported_${e.sid}`] = e.blobUrl;
+      }
+    }
+
     return new Promise((resolve, reject) => {
-      // Select worker based on engine type
-      const workerUrl = isEdgeTts
-        ? './workers/edge-tts.worker.js'
-        : isPiperPlus
-          ? './workers/piper-plus-tts.worker.js'
-          : './workers/sherpa-onnx-tts.worker.js';
-      this.worker = new Worker(workerUrl);
+      // Select worker based on engine type. Supertonic uses Vite's bundled
+      // module-worker pattern (TypeScript source, ORT compiled into bundle).
+      // The other workers are hand-written JS served from public/.
+      if (isSupertonic) {
+        this.worker = new Worker(
+          new URL('../workers/supertonic-tts.worker.ts', import.meta.url),
+          { type: 'module' },
+        );
+      } else {
+        const workerUrl = isEdgeTts
+          ? './workers/edge-tts.worker.js'
+          : isPiperPlus
+            ? './workers/piper-plus-tts.worker.js'
+            : './workers/sherpa-onnx-tts.worker.js';
+        this.worker = new Worker(workerUrl);
+      }
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
         const msg = event.data;
@@ -133,6 +180,8 @@ export class TtsEngine {
               loadTimeMs: msg.loadTimeMs,
               numSpeakers: msg.numSpeakers,
               sampleRate: msg.sampleRate,
+              voices: msg.voices,
+              backend: msg.backend,
             });
             break;
 
@@ -218,6 +267,28 @@ export class TtsEngine {
           runtimeBaseUrl: new URL(PIPER_PLUS_BUNDLED_RUNTIME_PATH, window.location.href).href,
           ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
           engine: 'piper-plus',
+          ttsConfig: model.ttsConfig || {},
+        });
+      } else if (isSupertonic) {
+        const presets = model.ttsConfig?.presetVoices ?? [];
+        const presetEntries = presets.map(p => ({
+          sid: p.sid,
+          name: p.name,
+          source: 'preset' as const,
+          gender: p.gender,
+          blobUrl: fileUrls[p.file],
+        })).filter(v => v.blobUrl);
+
+        // Merge preset + imported voices (imported loaded before Promise, sid = dbKey + 10)
+        const voiceList = [...presetEntries, ...supertonicImportedEntries];
+
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls: dataFileUrls,
+          voiceList,
+          // Trailing slash matches whisper-webgpu / voxtral-webgpu workers;
+          // ORT uses this as `ort.env.wasm.wasmPaths` to find jsep wasm files.
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
           ttsConfig: model.ttsConfig || {},
         });
       } else {
@@ -410,6 +481,24 @@ export class TtsEngine {
       .replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  /**
+   * Dispose the current Supertonic worker and re-init with a fresh voice list
+   * (presets + imported voices from IndexedDB). No-op for non-Supertonic engines
+   * or when no model is active.
+   *
+   * Use this after the user imports, renames, or deletes a voice — the worker
+   * needs to rebuild its voice tensor map. The new worker reads the latest
+   * voiceStorage state during init.
+   */
+  async reloadVoices(): Promise<void> {
+    if (!this.currentModel || this.currentModel.engine !== 'supertonic') {
+      return;
+    }
+    const modelId = this.currentModel.id;
+    this.dispose();
+    await this.init(modelId);
   }
 
   dispose(): void {

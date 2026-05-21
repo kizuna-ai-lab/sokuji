@@ -1,9 +1,10 @@
 /**
  * Model Storage — IndexedDB wrapper for persisting model files as Blobs.
  *
- * Database: 'sokuji-models', version 1
- *   Store 'files':    key = '{modelId}/{filename}' → Blob
- *   Store 'metadata': key = modelId → ModelMetadata
+ * Database: 'sokuji-models', version 2
+ *   Store 'files':        key = '{modelId}/{filename}' → Blob
+ *   Store 'metadata':     key = modelId → ModelMetadata
+ *   Store 'voice_styles': key = auto-increment id → StoredVoice (Task 17)
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
@@ -30,24 +31,38 @@ interface SokujiModelsDB {
     key: string;
     value: ModelMetadata;
   };
+  voice_styles: {
+    // Auto-increment primary key. Voice records are owned by voiceStorage.ts;
+    // schema kept loose here so modelStorage stays agnostic.
+    key: number;
+    value: unknown;
+    indexes: { engine: string };
+  };
 }
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
 const DB_NAME = 'sokuji-models';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<SokujiModelsDB>> | null = null;
 
-function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
   if (!dbPromise) {
     dbPromise = openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('files')) {
           db.createObjectStore('files');
         }
         if (!db.objectStoreNames.contains('metadata')) {
           db.createObjectStore('metadata');
+        }
+        if (oldVersion < 2) {
+          const store = db.createObjectStore('voice_styles', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          store.createIndex('engine', 'engine', { unique: false });
         }
       },
     });
@@ -148,9 +163,10 @@ export async function deleteModel(modelId: string): Promise<void> {
 /** Clear all data from both files and metadata stores */
 export async function clearAll(): Promise<void> {
   const db = await getDb();
-  const tx = db.transaction(['files', 'metadata'], 'readwrite');
+  const tx = db.transaction(['files', 'metadata', 'voice_styles'], 'readwrite');
   await tx.objectStore('files').clear();
   await tx.objectStore('metadata').clear();
+  await tx.objectStore('voice_styles').clear();
   await tx.done;
 }
 

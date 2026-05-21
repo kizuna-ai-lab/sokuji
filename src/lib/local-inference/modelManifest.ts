@@ -49,6 +49,20 @@ export interface TtsModelConfig {
   ruleFars?: string;       // comma-separated FAR paths
   /** Language-to-phonemizer routing map for piper-plus multilingual models */
   languageIdMap?: Record<string, number>;
+  /** Supertonic: list of 31 supported language codes ('na' added at runtime for fallback). */
+  supportedLanguages?: readonly string[];
+  /** Supertonic: preset voice metadata, ordered by sid. */
+  presetVoices?: Array<{
+    sid: number;
+    name: string;
+    gender: 'M' | 'F';
+    /** Relative file path within the model bundle, e.g. 'voice_styles/F1.json'. */
+    file: string;
+  }>;
+  /** Supertonic: default sid when settings.sid is unset or invalid. */
+  defaultSid?: number;
+  /** Supertonic: diffusion iteration count. Hardcoded to 16. */
+  totalStep?: number;
 }
 
 export interface ModelManifestEntry {
@@ -62,7 +76,10 @@ export interface ModelManifestEntry {
   languages: string[];
   /** True for models supporting any pair of their listed languages */
   multilingual?: boolean;
-  /** Highlighted in UI as a recommended pick */
+  /**
+   * When true, the UI surfaces this entry with a "Recommended" badge and sorts
+   * it before non-recommended entries within its `type` group. Default `false`.
+   */
   recommended?: boolean;
   /** Manual sort order within its group (lower = higher in list). Defaults to 0. */
   sortOrder?: number;
@@ -234,6 +251,18 @@ export const ASR_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr';
  * Streaming ASR uses OnlineRecognizer (no VAD).
  */
 export const ASR_STREAM_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr-stream';
+
+/**
+ * The 31 BCP 47 language codes Supertonic 3 supports natively. Used as the
+ * single source of truth for both the entry-level `languages` field and the
+ * engine-level `ttsConfig.supportedLanguages` field on the supertonic-3
+ * manifest entry — keeps them from drifting.
+ */
+export const SUPERTONIC_LANGUAGES = [
+  'en','ko','ja','ar','bg','cs','da','de','el','es','et','fi','fr',
+  'hi','hr','hu','id','it','lt','lv','nl','pl','pt','ro','ru','sk',
+  'sl','sv','tr','uk','vi',
+] as const;
 
 // ─── Shared File Lists ───────────────────────────────────────────────────────
 // ASR runtime JS/WASM are bundled with the app (identical across all models).
@@ -2829,6 +2858,58 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     isCloudModel: true,
     sortOrder: 0,  // show first in TTS list
     variants: {},   // no files to download
+  },
+
+  // ── Supertonic 3 ──────────────────────────────────────────────────────
+  {
+    id: 'supertonic-3',
+    type: 'tts',
+    engine: 'supertonic',
+    recommended: true,
+    hfModelId: 'Supertone/supertonic-3',
+    name: 'Supertonic 3',
+    languages: [...SUPERTONIC_LANGUAGES],
+    numSpeakers: 10,
+    ttsConfig: {
+      supportedLanguages: SUPERTONIC_LANGUAGES,
+      presetVoices: [
+        { sid: 0, name: 'Sarah',   gender: 'F', file: 'voice_styles/F1.json' },
+        { sid: 1, name: 'Lily',    gender: 'F', file: 'voice_styles/F2.json' },
+        { sid: 2, name: 'Jessica', gender: 'F', file: 'voice_styles/F3.json' },
+        { sid: 3, name: 'Olivia',  gender: 'F', file: 'voice_styles/F4.json' },
+        { sid: 4, name: 'Emily',   gender: 'F', file: 'voice_styles/F5.json' },
+        { sid: 5, name: 'Alex',    gender: 'M', file: 'voice_styles/M1.json' },
+        { sid: 6, name: 'James',   gender: 'M', file: 'voice_styles/M2.json' },
+        { sid: 7, name: 'Robert',  gender: 'M', file: 'voice_styles/M3.json' },
+        { sid: 8, name: 'Sam',     gender: 'M', file: 'voice_styles/M4.json' },
+        { sid: 9, name: 'Daniel',  gender: 'M', file: 'voice_styles/M5.json' },
+      ],
+      defaultSid: 7,
+      totalStep: 16,
+    },
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [
+          { filename: 'onnx/duration_predictor.onnx', sizeBytes: 3_700_147 },
+          { filename: 'onnx/text_encoder.onnx',       sizeBytes: 36_416_150 },
+          { filename: 'onnx/vector_estimator.onnx',   sizeBytes: 256_534_781 },
+          { filename: 'onnx/vocoder.onnx',            sizeBytes: 101_424_195 },
+          { filename: 'onnx/tts.json',                sizeBytes: 8_253 },
+          { filename: 'onnx/unicode_indexer.json',    sizeBytes: 277_676 },
+          { filename: 'voice_styles/F1.json',         sizeBytes: 292_046 },
+          { filename: 'voice_styles/F2.json',         sizeBytes: 292_423 },
+          { filename: 'voice_styles/F3.json',         sizeBytes: 290_794 },
+          { filename: 'voice_styles/F4.json',         sizeBytes: 291_808 },
+          { filename: 'voice_styles/F5.json',         sizeBytes: 291_479 },
+          { filename: 'voice_styles/M1.json',         sizeBytes: 291_748 },
+          { filename: 'voice_styles/M2.json',         sizeBytes: 292_055 },
+          { filename: 'voice_styles/M3.json',         sizeBytes: 290_198 },
+          { filename: 'voice_styles/M4.json',         sizeBytes: 291_522 },
+          { filename: 'voice_styles/M5.json',         sizeBytes: 291_469 },
+        ],
+      },
+    },
   },
 
   // ── Translation Models — third-party HF Hub ─────────────────────────────
