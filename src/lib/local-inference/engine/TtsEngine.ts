@@ -147,18 +147,22 @@ export class TtsEngine {
     }
 
     return new Promise((resolve, reject) => {
-      // Select worker based on engine type
-      const workerUrl = isEdgeTts
-        ? './workers/edge-tts.worker.js'
-        : isPiperPlus
-          ? './workers/piper-plus-tts.worker.js'
-          : isSupertonic
-            ? './workers/supertonic-tts.worker.js'
+      // Select worker based on engine type. Supertonic uses Vite's bundled
+      // module-worker pattern (TypeScript source, ORT compiled into bundle).
+      // The other workers are hand-written JS served from public/.
+      if (isSupertonic) {
+        this.worker = new Worker(
+          new URL('../workers/supertonic-tts.worker.ts', import.meta.url),
+          { type: 'module' },
+        );
+      } else {
+        const workerUrl = isEdgeTts
+          ? './workers/edge-tts.worker.js'
+          : isPiperPlus
+            ? './workers/piper-plus-tts.worker.js'
             : './workers/sherpa-onnx-tts.worker.js';
-      this.worker = new Worker(
-        workerUrl,
-        isSupertonic ? { type: 'module' } : undefined,
-      );
+        this.worker = new Worker(workerUrl);
+      }
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
         const msg = event.data;
@@ -282,7 +286,9 @@ export class TtsEngine {
           type: 'init',
           fileUrls: dataFileUrls,
           voiceList,
-          ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
+          // Trailing slash matches whisper-webgpu / voxtral-webgpu workers;
+          // ORT uses this as `ort.env.wasm.wasmPaths` to find jsep wasm files.
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
           ttsConfig: model.ttsConfig || {},
         });
       } else {

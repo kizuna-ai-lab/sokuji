@@ -66,7 +66,8 @@ describe('TtsEngine — supertonic branch', () => {
     await Promise.resolve();
     await Promise.resolve(); // extra flush: listVoices await
     const w = MockWorker.instances.at(-1)!;
-    expect(String(w.url)).toMatch(/supertonic-tts\.worker\.js$/);
+    // Match anywhere in URL because Vite appends `?worker_file&type=module`.
+    expect(String(w.url)).toMatch(/supertonic-tts\.worker\.(ts|js)(\?|$)/);
     expect(w.opts?.type).toBe('module');
 
     w.emit({ type: 'ready', loadTimeMs: 100, numSpeakers: 10, sampleRate: 44100,
