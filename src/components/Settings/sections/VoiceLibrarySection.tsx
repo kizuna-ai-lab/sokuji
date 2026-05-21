@@ -20,11 +20,20 @@ interface VoiceLibrarySectionProps {
   /** Callback when the user picks a different voice. */
   onSelect: (sid: number) => void;
   /** Called after a valid voice file has been picked. Implementation
-   *  in the parent: calls `voiceStorage.addVoice` and `engine.reloadVoices`.
+   *  in the parent calls `voiceStorage.addVoice`. The change applies on the
+   *  next session start (we don't hot-swap voices mid-session); the parent
+   *  shows a "restart session" hint.
    *  Should throw on validation errors so the UI can surface them via toast. */
   onImport: (file: File) => Promise<void>;
-  /** True while a worker reload is in flight (disables interaction). */
+  /** True while a worker reload is in flight (disables interaction). Unused
+   *  in the current build (no hot reload) but kept for future use. */
   isReloading: boolean;
+  /** True while a session is active. Disables the voice picker so users
+   *  can't try to switch voices mid-session (the worker is already
+   *  initialized with the previously-selected voice — changes won't take
+   *  effect until the next session). Import / rename / delete remain
+   *  available so users can stage voices for their next session. */
+  isSessionActive?: boolean;
   /** Called when the user renames an imported voice. */
   onRename: (sid: number, newName: string) => Promise<void>;
   /** Called when the user confirms deletion of an imported voice. */
@@ -45,6 +54,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onSelect,
   onImport,
   isReloading,
+  isSessionActive = false,
   onRename,
   onDelete,
 }) => {
@@ -129,7 +139,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           className="select-dropdown"
           value={selectedSid}
           onChange={(e) => onSelect(Number(e.target.value))}
-          disabled={isReloading}
+          disabled={isReloading || isSessionActive}
         >
           <optgroup label={t('voiceLibrary.presets', 'Presets')}>
             {presets.map((v) => (

@@ -1965,6 +1965,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     onRename={handleRenameVoice}
                     onDelete={handleDeleteVoice}
                     isReloading={false}
+                    isSessionActive={isSessionActive}
                   />
                   {importError && (
                     <div className="setting-item error">
