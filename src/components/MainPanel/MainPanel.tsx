@@ -347,6 +347,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
 
+  // Mirror of `items` accessible from the player status callback, which is
+  // registered in a []-dep effect and would otherwise see a stale snapshot.
+  const itemsRef = useRef<ConversationItem[]>(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
 
@@ -878,10 +885,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Constants for karaoke progress tracking
   const PROGRESS_UPDATE_INTERVAL = 100; // ms
-  // Longest observed intra-item content gap on translate is ~2s; debounce
-  // longer than that to avoid prematurely clearing playingItemId during a
-  // natural pause between sentences within a single response.
+  // Fallback wait for the 'in_progress' case: the player can't distinguish a
+  // true item end from a mid-stream chunk gap (translate streams 200-400ms
+  // chunks with up to ~2s silence between them), so we wait long enough for
+  // a follow-up chunk to arrive before clearing the karaoke layer.
   const ITEM_END_DEBOUNCE_MS = 2500;
+  // Fast path for the 'completed' case: once the producing client has
+  // flipped item.status to 'completed', no more chunks are coming for this
+  // item, so the chunk-gap ambiguity is gone and we clear immediately.
+  // Paired with the worklet's starving-transition readPosition flush
+  // (playback-ring-processor.js), which lets _checkAudibleItemChange fire
+  // 'ended' the instant the buffer empties instead of after a 2s fallback.
+  const ITEM_END_DEBOUNCE_COMPLETED_MS = 0;
 
   /**
    * References for rendering audio visualization (canvas)
@@ -2210,16 +2225,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       if (!currentStatus) {
-        // Could be true end OR a chunk gap. The translate API streams audio
-        // in 200-400ms chunks separated by gaps up to ~2s; the player evicts
-        // the itemQueue entry on each gap and fires 'ended' indistinguishably
-        // from a real end. Debounce: only clear if no new chunk arrives.
+        // 'ended' fired with no follow-up entry audible. Two cases:
+        //  - true item end → clear the karaoke layer
+        //  - mid-stream chunk gap → wait for the next chunk, don't clear
+        // The player itself can't tell them apart (it sees one entry get
+        // evicted in both cases). The producing client can: it flips
+        // item.status to 'completed' only when no more audio is coming.
+        const endedItem = itemsRef.current.find((i) => i.id === status.itemId);
+        const isItemCompleted = endedItem?.status === 'completed';
+        const delay = isItemCompleted
+          ? ITEM_END_DEBOUNCE_COMPLETED_MS
+          : ITEM_END_DEBOUNCE_MS;
         if (itemEndDebounceRef.current) clearTimeout(itemEndDebounceRef.current);
         itemEndDebounceRef.current = setTimeout(() => {
           setPlayingItem(null);
           setProgress(null);
           itemEndDebounceRef.current = null;
-        }, ITEM_END_DEBOUNCE_MS);
+        }, delay);
       }
       // currentStatus.itemId === status.itemId means another entry for the
       // same item is already audible (rare); leave state alone.

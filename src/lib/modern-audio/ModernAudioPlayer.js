@@ -810,7 +810,15 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Schedule an 'ended' notification after buffer goes empty.
+   * Safety-net 'ended' notification, armed when the worklet enters 'starving'.
+   *
+   * Under normal operation the worklet also flushes a final readPosition on
+   * the same transition (see playback-ring-processor.js), which makes
+   * _checkAudibleItemChange evict the entry and fire 'ended' immediately —
+   * by the time this 2s timer runs, _audibleItemId is already null and the
+   * inner conditional becomes a no-op. We keep the timer as a fallback in
+   * case the flush is ever lost or the playhead never quite crosses the
+   * entry boundary.
    */
   _scheduleEndNotification(itemId) {
     this._cancelEndNotification();

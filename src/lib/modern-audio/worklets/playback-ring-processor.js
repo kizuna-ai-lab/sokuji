@@ -137,6 +137,16 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
       this._samplesPlayed += mainSamples;
     } else if (this._state === 'playing') {
       this._setState('starving');
+      // Flush the final position now that the main buffer just emptied.
+      // Periodic reports only fire when _samplesPlayed grows by an interval,
+      // so without this flush the last partial interval (up to ~50ms) is
+      // never delivered — leaving the main thread's totalPlayedSamples
+      // short of the actual end, which (a) freezes the karaoke highlight
+      // a character or two from the end and (b) prevents
+      // _checkAudibleItemChange from observing the playhead cross the last
+      // entry, forcing the 2s _scheduleEndNotification fallback path.
+      this.port.postMessage({ type: 'readPosition', samplesPlayed: this._samplesPlayed });
+      this._lastPositionReport = this._samplesPlayed;
     }
 
     // Periodic position report (low frequency — for UI progress tracking)
