@@ -88,7 +88,14 @@ export class ModernAudioPlayer {
     this._ptSamplesWritten = 0;
     this._ptSamplesDropped = 0;
     this._ptDropEvents = 0;
+    this._ptSamplesSkippedSilent = 0;
     this._lastPtDropLogTs = 0;
+    // Silence threshold for producer-side skip (issue #246).
+    // Mean absolute amplitude normalized to [0,1]. 0.003 ≈ -50 dBFS, below
+    // typical room noise but well below normal speech (-25 to -35 dBFS).
+    // Skipping silent chunks lets the ring drain naturally during quiet
+    // moments, bounding backlog without an audible drop.
+    this._ptSilenceThreshold = 0.003;
 
     // Issue #246: pending auto-resume timer for when the player AudioContext
     // gets stuck in 'suspended' (e.g. Bluetooth hiccup, WebAudio render error).
@@ -313,6 +320,14 @@ export class ModernAudioPlayer {
       console.warn(
         `[Sokuji] [PtDiag] passthrough trim: skipped=${msg.skipped} samples (${ms}ms) ` +
         `totalTrimmed=${this._ptSamplesTrimmedByWorklet}`
+      );
+    } else if (msg.type === 'ptAdaptive') {
+      // Issue #246: worklet is in adaptive catch-up zone (250–800ms backlog).
+      // Throttled to ≤1/sec from the worklet side. Info level — useful for
+      // verifying the soft catch-up is engaged.
+      console.info(
+        `[Sokuji] [PtDiag] passthrough adaptive: ratio=${msg.ratio.toFixed(3)}x ` +
+        `backlog=${msg.backlogMs}ms`
       );
     }
   }
@@ -573,6 +588,33 @@ export class ModernAudioPlayer {
     if (!this._ptIndices || !this._ptData) return;
 
     const count = int16Buffer.length;
+
+    // Issue #246: silence skip. Mean absolute amplitude (cheap; close to RMS
+    // for typical audio). Early-exit once a single loud sample is seen.
+    // Skipping silent chunks lets the ring drain during quiet moments, so
+    // backlog can't ratchet up unbounded without ever hitting the worklet's
+    // adaptive/trim path.
+    if (count > 0) {
+      const threshold16 = this._ptSilenceThreshold * 32768;
+      let sumAbs = 0;
+      let isSilent = true;
+      for (let i = 0; i < count; i++) {
+        const s = int16Buffer[i];
+        const a = s < 0 ? -s : s;
+        sumAbs += a;
+        // Cheap short-circuit: if any single sample is far above threshold,
+        // the chunk is definitely not silent.
+        if (a > threshold16 * 4) {
+          isSilent = false;
+          break;
+        }
+      }
+      if (isSilent && (sumAbs / count) < threshold16) {
+        this._ptSamplesSkippedSilent += count;
+        return;
+      }
+    }
+
     const cap = this._ptCapacity;
 
     const writeIdx = Atomics.load(this._ptIndices, 0);
@@ -1312,6 +1354,7 @@ export class ModernAudioPlayer {
       ptSamplesWritten: this._ptSamplesWritten,
       ptSamplesDropped: this._ptSamplesDropped,
       ptDropEvents: this._ptDropEvents,
+      ptSamplesSkippedSilent: this._ptSamplesSkippedSilent,
       workletState: this._workletState,
       contextState: this.context ? this.context.state : '(no-context)',
       contextSinkId: ctxSinkId,

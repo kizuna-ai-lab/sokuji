@@ -176,6 +176,7 @@ export class ModernBrowserAudioService implements IAudioService {
           ptSamplesWritten: number;
           ptSamplesDropped: number;
           ptDropEvents: number;
+          ptSamplesSkippedSilent: number;
           workletState: string;
           contextState: string;
           contextSinkId: string;
@@ -216,14 +217,17 @@ export class ModernBrowserAudioService implements IAudioService {
     // Recorder context info (producer-side clock)
     const recDiag = this.recorder.getRecorderContextDiagnostics();
 
-    // Compact one-liner — designed to be eyeballed across 5s ticks
-    console.info(
+    // Compact one-liner — designed to be eyeballed across 5s ticks. Debug
+    // level so production console isn't spammed; critical events (trim /
+    // suspend / drop FULL / recreate) stay at warn and surface anyway.
+    console.debug(
       `[Sokuji] [PtDiag] ` +
       `pt=${playerDiag.ptUsed}/${playerDiag.ptCapacity} ` +
       `(${playerDiag.ptUsedMs}/${playerDiag.ptCapacityMs}ms) ` +
       `rate(w/r)=${writeSps}/${readSps} sps ` +
       `(target=${sr}) ` +
       `wrote=${playerDiag.ptSamplesWritten} dropped=${playerDiag.ptSamplesDropped}(${playerDiag.ptDropEvents}ev) ` +
+      `silentSkipped=${playerDiag.ptSamplesSkippedSilent} ` +
       `worklet=${playerDiag.workletState} ctxState=${playerDiag.contextState} ` +
       `playerCtxSink=${playerDiag.contextSinkId} ` +
       `playerElemSink=${playerDiag.audioElementSinkId} ` +
@@ -249,6 +253,7 @@ export class ModernBrowserAudioService implements IAudioService {
             ptSamplesWritten: number;
             ptSamplesDropped: number;
             ptDropEvents: number;
+            ptSamplesSkippedSilent: number;
             workletState: string;
             contextSinkId: string;
             audioElementSinkId: string;
@@ -274,7 +279,7 @@ export class ModernBrowserAudioService implements IAudioService {
           readIdx: vDiag.ptReadIdx,
         };
 
-        console.info(
+        console.debug(
           `[Sokuji] [PtDiag-VirtSpkr] ` +
           `pt=${vDiag.ptUsed}/${vDiag.ptCapacity} ` +
           `(${vDiag.ptUsedMs}/${vDiag.ptCapacityMs}ms) ` +
