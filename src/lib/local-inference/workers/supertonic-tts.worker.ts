@@ -12,7 +12,7 @@
  * Output messages: TtsWorkerOutMessage (ready | status | result | error | disposed)
  */
 
-import { InferenceSession, Tensor, env as ortEnv } from 'onnxruntime-web';
+import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 
 import type {
   SupertonicTtsInitMessage,

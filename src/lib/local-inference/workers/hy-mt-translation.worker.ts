@@ -12,7 +12,7 @@
  * filler/native-name reinforcement designed for general-purpose LLMs.
  */
 
-import { pipeline, env } from '@huggingface/transformers';
+import { pipeline, env } from './_shared/transformers-all';
 
 // Disable WASM proxy (we're already in a worker).
 // wasmPaths is set in the init handler from the main thread's resolved URL.

@@ -6,7 +6,7 @@
  * (same pattern as the Opus-MT translation worker).
  */
 
-import { pipeline, env } from '@huggingface/transformers';
+import { pipeline, env } from './_shared/transformers-all';
 import { buildDefaultLocalPrompt } from '../prompts';
 
 // Disable WASM proxy (we're already in a worker).

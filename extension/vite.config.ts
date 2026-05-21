@@ -4,6 +4,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
+import { workerManualChunks } from '../vite.worker-chunks'
 
 /**
  * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
@@ -124,6 +125,12 @@ export default defineConfig(({ mode }) => {
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash][extname]',
         },
+      },
+    },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: { manualChunks: workerManualChunks },
       },
     },
     resolve: {

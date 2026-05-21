@@ -4,6 +4,7 @@ import electron from 'vite-plugin-electron/simple'
 import path from 'path'
 import fs from 'fs'
 import pkg from './package.json' with { type: 'json' }
+import { workerManualChunks } from './vite.worker-chunks'
 
 /**
  * Dev-only plugin: serve model-packs/tts/ files at /model-packs/tts/ URLs.
@@ -153,6 +154,12 @@ export default defineConfig(({ command, mode }) => {
       outDir: 'build',
       assetsDir: 'static',
       sourcemap: true
+    },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: { manualChunks: workerManualChunks },
+      },
     },
     base: './',
     define: {

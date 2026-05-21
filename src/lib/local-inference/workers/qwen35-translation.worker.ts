@@ -11,7 +11,7 @@ import {
   Qwen3_5ForConditionalGeneration,
   TextStreamer,
   env,
-} from '@huggingface/transformers';
+} from './_shared/transformers-all';
 import { buildDefaultLocalPrompt } from '../prompts';
 
 // Disable WASM proxy (we're already in a worker).

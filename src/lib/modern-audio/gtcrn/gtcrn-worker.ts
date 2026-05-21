@@ -1,4 +1,4 @@
-import * as ort from 'onnxruntime-web';
+import { InferenceSession, Tensor, env as ortEnv } from '../../local-inference/workers/_shared/onnxruntime-all';
 import {
   GTCRN_SAMPLE_RATE,
   GTCRN_N_FFT,
@@ -16,13 +16,13 @@ import {
 // ORT WASM paths — set from main thread during init (relative paths don't work in workers)
 const INPUT_SAMPLE_RATE = 48000;
 
-let session: ort.InferenceSession | null = null;
+let session: InferenceSession | null = null;
 let win: Float32Array;
 
 // RNN state tensors (persist across frames)
-let convCache: ort.Tensor;
-let traCache: ort.Tensor;
-let interCache: ort.Tensor;
+let convCache: Tensor;
+let traCache: Tensor;
+let interCache: Tensor;
 
 // Ring buffer for accumulating input samples at 16kHz
 let inputBuffer: Float32Array = new Float32Array(0);
@@ -31,19 +31,19 @@ let inputBuffer: Float32Array = new Float32Array(0);
 let prevFrame: Float32Array = new Float32Array(GTCRN_N_FFT);
 
 function initStates(): void {
-  convCache = new ort.Tensor('float32', new Float32Array(2 * 1 * 16 * 16 * 33), [2, 1, 16, 16, 33]);
-  traCache = new ort.Tensor('float32', new Float32Array(2 * 3 * 1 * 1 * 16), [2, 3, 1, 1, 16]);
-  interCache = new ort.Tensor('float32', new Float32Array(2 * 1 * 33 * 16), [2, 1, 33, 16]);
+  convCache = new Tensor('float32', new Float32Array(2 * 1 * 16 * 16 * 33), [2, 1, 16, 16, 33]);
+  traCache = new Tensor('float32', new Float32Array(2 * 3 * 1 * 1 * 16), [2, 3, 1, 1, 16]);
+  interCache = new Tensor('float32', new Float32Array(2 * 1 * 33 * 16), [2, 1, 33, 16]);
   prevFrame = new Float32Array(GTCRN_N_FFT);
 }
 
 async function init(ortWasmBaseUrl: string, modelUrl: string): Promise<void> {
   try {
     // Set ORT WASM paths from main thread's resolved URL
-    ort.env.wasm.wasmPaths = ortWasmBaseUrl;
-    ort.env.wasm.proxy = false; // Already in a worker
+    ortEnv.wasm.wasmPaths = ortWasmBaseUrl;
+    ortEnv.wasm.proxy = false; // Already in a worker
 
-    session = await ort.InferenceSession.create(modelUrl, {
+    session = await InferenceSession.create(modelUrl, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     });
@@ -66,9 +66,9 @@ async function processFrame(frameRe: Float32Array, frameIm: Float32Array): Promi
     mixData[i * 2] = frameRe[i];
     mixData[i * 2 + 1] = frameIm[i];
   }
-  const mixTensor = new ort.Tensor('float32', mixData, [1, GTCRN_FREQ_BINS, 1, 2]);
+  const mixTensor = new Tensor('float32', mixData, [1, GTCRN_FREQ_BINS, 1, 2]);
 
-  const feeds: Record<string, ort.Tensor> = {
+  const feeds: Record<string, Tensor> = {
     mix: mixTensor,
     conv_cache: convCache,
     tra_cache: traCache,
