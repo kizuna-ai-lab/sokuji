@@ -546,6 +546,7 @@
     "function": "Function",
     "input": "Input",
     "output": "Output",
+    "participantAudio": "Participant audio",
     "release": "release",
     "pushToTalk": "Push-to-Talk (Space)",
     "inputDeviceOff": "input device off",

@@ -3204,6 +3204,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <canvas ref={clientCanvasRef} className="visualization-canvas" />
             </div>
 
+            <div className="participant-viz">
+              <span
+                className={`device-icon ${(isSessionActive ? participantChannelActive : participantWillStart) ? 'active' : ''} clickable`}
+                onClick={() => navigateToSettings('participant')}
+                title={t('mainPanel.participantAudio', 'Participant audio')}
+              >
+                <AudioLines size={14} />
+              </span>
+            </div>
+
             <div className="center-controls">
               {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button

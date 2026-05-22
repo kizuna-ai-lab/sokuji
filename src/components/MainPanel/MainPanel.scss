@@ -386,12 +386,11 @@
     gap: 8px;
 
     .input-viz,
+    .participant-viz,
     .output-viz {
       display: flex;
       align-items: center;
       gap: 6px;
-      flex: 1 1 0;
-      min-width: 80px;
 
       .device-icon {
         display: flex;
@@ -415,8 +414,21 @@
       }
     }
 
+    .input-viz,
+    .output-viz {
+      flex: 1 1 0;
+      min-width: 80px;
+    }
+
     .input-viz .visualization-canvas {
       background: rgba(0, 153, 255, 0.1);
+    }
+
+    .participant-viz {
+      // Compact: just the icon, no waveform. Sits between input-viz and
+      // center-controls without claiming a flex slot.
+      flex: 0 0 auto;
+      margin: 0 4px;
     }
 
     .output-viz {
