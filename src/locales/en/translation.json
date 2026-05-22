@@ -548,6 +548,7 @@
     "input": "Input",
     "output": "Output",
     "participantAudio": "Participant audio",
+    "noChannelConfigured": "Enable microphone or participant audio before starting.",
     "release": "release",
     "pushToTalk": "Push-to-Talk (Space)",
     "inputDeviceOff": "input device off",

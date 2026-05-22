@@ -3161,9 +3161,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
-                title={!canStartSession && !isSessionActive && provider === Provider.LOCAL_INFERENCE
-                  ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                  : undefined}
+                title={
+                  !canStartSession && !isSessionActive
+                    ? !anyChannelWillStart
+                      ? t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.')
+                      : provider === Provider.LOCAL_INFERENCE
+                        ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                        : undefined
+                    : undefined
+                }
               >
                 {isInitializing ? (
                   <>
@@ -3262,7 +3268,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
-                    {!isApiKeyValid && (
+                    {!anyChannelWillStart && (
+                      <span className="tooltip">
+                        {t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.')}
+                      </span>
+                    )}
+                    {anyChannelWillStart && !isApiKeyValid && (
                       <span className="tooltip">
                         {provider === Provider.LOCAL_INFERENCE
                           ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
