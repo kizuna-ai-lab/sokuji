@@ -309,6 +309,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Track if current session is using WebRTC transport
   const [isUsingWebRTC, setIsUsingWebRTC] = useState(false);
 
+  // Per-channel active flags. Distinct from `isSessionActive` (which is true
+  // when at least one channel is up) so the UI can render channel-specific
+  // affordances (PTT button for speaker only, etc.).
+  const [speakerChannelActive, setSpeakerChannelActive] = useState(false);
+  const [participantChannelActive, setParticipantChannelActive] = useState(false);
+
   // supportsTextInput is true for providers that support text input
   const supportsTextInput = useMemo(() => {
     return provider === Provider.OPENAI ||
@@ -340,8 +346,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
     (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
 
+  // Channel start predicates — evaluated pre-start. Used by canStartSession
+  // and by connectConversation to decide which clients to create. Locked
+  // after Start (settings disable on isSessionActive).
+  const speakerWillStart = useMemo(
+    () => isInputDeviceOn && !!selectedInputDevice,
+    [isInputDeviceOn, selectedInputDevice]
+  );
+
+  const participantWillStart = useMemo(() => {
+    if (!isSystemAudioCaptureEnabled) return false;
+    if (isExtension()) return true;  // extension: tab capture, no device gate
+    return !!selectedSystemAudioSource && isSystemAudioSourceReady;
+  }, [isSystemAudioCaptureEnabled, selectedSystemAudioSource, isSystemAudioSourceReady]);
+
+  const anyChannelWillStart = speakerWillStart || participantWillStart;
+
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
-    !loadingModels && !isInitializing && hasValidBalance;
+    !loadingModels && !isInitializing && hasValidBalance && anyChannelWillStart;
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
