@@ -44,8 +44,11 @@ export interface AnalyticsEvents {
     platform?: string;
     input_device_on?: boolean;
     monitor_device_on?: boolean;
+    /** Symmetric channel composition — which clients actually started.
+     *  ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3. */
+    channels?: string[];
   };
-  'translation_session_end': { 
+  'translation_session_end': {
     session_id: string;
     duration: number;
     translation_count: number;
