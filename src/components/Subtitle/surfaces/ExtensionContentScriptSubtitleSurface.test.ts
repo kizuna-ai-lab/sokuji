@@ -96,7 +96,7 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     // without unsubscribing the prior ones, leaving old listeners alive on
     // the Zustand stores. Each store change would then fan out to N copies.
     const { default: useSessionStore } = await import('../../../stores/sessionStore');
-    useSessionStore.setState({ items: [], systemAudioItems: [], isSessionActive: false } as any);
+    useSessionStore.setState({ items: [], participantItems: [], isSessionActive: false } as any);
 
     const surface = new ExtensionContentScriptSubtitleSurface();
     await surface.enter();

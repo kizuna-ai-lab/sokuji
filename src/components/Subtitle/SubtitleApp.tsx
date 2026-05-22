@@ -24,7 +24,7 @@ import {
   useIsSessionActive,
   useSessionStartTime,
   useItems,
-  useSystemAudioItems,
+  useParticipantItems,
   useRequestClearConversation,
 } from '../../stores/sessionStore';
 import type { ConversationItem } from '../../services/interfaces/IClient';
@@ -80,7 +80,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const exitSubtitleMode = useExitSubtitleMode();
   const saveBounds = useSaveSubtitleWindowBounds();
   const items = useItems();
-  const systemAudioItems = useSystemAudioItems();
+  const participantItems = useParticipantItems();
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
   const newItemHighlightEnabled = useSubtitleNewItemHighlightEnabled();
@@ -135,10 +135,10 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     });
     const all = [
       ...items.map(tagSpeaker),
-      ...systemAudioItems.map(tagParticipant),
+      ...participantItems.map(tagParticipant),
     ];
     return all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  }, [items, systemAudioItems, sourceLanguage, targetLanguage]);
+  }, [items, participantItems, sourceLanguage, targetLanguage]);
 
   // Session timer
   const [now, setNow] = useState(Date.now());
@@ -211,7 +211,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   }, [saveBounds, surface]);
 
   // Detect whether participant has produced any items
-  const participantHasAudio = systemAudioItems.length > 0;
+  const participantHasAudio = participantItems.length > 0;
 
   // Resize handles (extension-overlay only). Lock state from subtitleStore
   // gates rendering — locked = no handles, no cursor change.

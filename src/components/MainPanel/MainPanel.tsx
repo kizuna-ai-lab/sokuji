@@ -42,7 +42,7 @@ import {
   CONVERSATION_FONT_SIZE_MIN,
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -280,7 +280,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Store setters for mirroring local items state into sessionStore
   const setStoreItems = useSetStoreItems();
-  const setStoreSystemAudioItems = useSetStoreSystemAudioItems();
+  const setStoreParticipantItems = useSetStoreParticipantItems();
   const clearConversationVersion = useClearConversationVersion();
   const requestClearConversation = useRequestClearConversation();
 
@@ -469,7 +469,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Update participant items state
-      setSystemAudioItems(client.getConversationItems());
+      setParticipantItems(client.getConversationItems());
     },
     onClose: async () => {
       // Bail out if the session is already inactive. This handler can be invoked
@@ -721,7 +721,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // whether the cleanup succeeded or threw.
   const disconnectInProgressRef = useRef<boolean>(false);
 
-  const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+  const [participantItems, setParticipantItems] = useState<ConversationItem[]>([]);
 
   // Mirror items into sessionStore so SubtitleApp can read them
   // after MainPanel unmounts (e.g. when entering subtitle mode).
@@ -730,8 +730,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [items, setStoreItems]);
 
   useEffect(() => {
-    setStoreSystemAudioItems(systemAudioItems);
-  }, [systemAudioItems, setStoreSystemAudioItems]);
+    setStoreParticipantItems(participantItems);
+  }, [participantItems, setStoreParticipantItems]);
 
   const clearConversation = useCallback(() => {
     // Cancel pending throttled update that would re-populate items
@@ -744,7 +744,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     systemAudioClientRef.current?.clearConversationItems();
     // Clear React state
     setItems([]);
-    setSystemAudioItems([]);
+    setParticipantItems([]);
   }, []);
 
   // Watch for clear-conversation requests from anywhere in the app
@@ -787,24 +787,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     const speakerItems = items.map(item => tag(item, 'speaker'));
-    const participantItems = systemAudioItems.map(item => tag(item, 'participant'));
+    const participantTagged = participantItems.map(item => tag(item, 'participant'));
 
     // Prune snapshots for items that no longer exist (handles clearConversation
     // and session restart, which empty both arrays).
     const liveIds = new Set<string>();
     for (const it of speakerItems) liveIds.add(it.id);
-    for (const it of participantItems) liveIds.add(it.id);
+    for (const it of participantTagged) liveIds.add(it.id);
     for (const id of Array.from(itemLanguagesRef.current.keys())) {
       if (!liveIds.has(id)) itemLanguagesRef.current.delete(id);
     }
 
     // Merge and sort by createdAt timestamp for accurate ordering
-    return [...speakerItems, ...participantItems].sort((a, b) => {
+    return [...speakerItems, ...participantTagged].sort((a, b) => {
       const aTime = a.createdAt || 0;
       const bTime = b.createdAt || 0;
       return aTime - bTime;
     });
-  }, [items, systemAudioItems, getCurrentProviderSettings]);
+  }, [items, participantItems, getCurrentProviderSettings]);
 
   // Filter items based on UI mode and display mode
   const filteredItems = useMemo(() => {
@@ -1292,7 +1292,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Clear previous session's conversation items
       setItems([]);
-      setSystemAudioItems([]);
+      setParticipantItems([]);
 
       // Initialize the audio service if not already done
       if (!audioServiceRef.current) {
@@ -2397,7 +2397,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }, 100);
       });
     }
-  }, [items, systemAudioItems]);
+  }, [items, participantItems]);
 
   /**
    * Watch for changes to isInputDeviceOn and update recording state accordingly
@@ -2709,14 +2709,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     sendAnchorIfNeeded(
       participantClient,
-      systemAudioItems,
+      participantItems,
       isParticipantActive,
       'participant',
       () => getProcessedSystemInstructions(true), // Swapped languages for participant
       participantAnchorCountRef,
       5
     );
-  }, [systemAudioItems, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
+  }, [participantItems, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
 
   /**
    * Handle input device changes during active session
@@ -2863,7 +2863,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               value={speakerDisplayMode}
               onChange={setSpeakerDisplayMode}
             />
-            {systemAudioItems.length > 0 && (
+            {participantItems.length > 0 && (
               <DisplayModeButton
                 scope="participant"
                 value={participantDisplayMode}

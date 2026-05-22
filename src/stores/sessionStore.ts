@@ -11,7 +11,7 @@ interface SessionStore {
   translationCount: number;
   isReconnecting: boolean;
   items: ConversationItem[];
-  systemAudioItems: ConversationItem[];
+  participantItems: ConversationItem[];
   // Monotonic counter — every call to requestClearConversation bumps it.
   // MainPanel watches this version and runs its local clearConversation
   // routine when it changes, so any consumer (subtitle bar, main toolbar)
@@ -26,7 +26,7 @@ interface SessionStore {
   incrementTranslationCount: () => void;
   setIsReconnecting: (reconnecting: boolean) => void;
   setItems: (items: ConversationItem[]) => void;
-  setSystemAudioItems: (items: ConversationItem[]) => void;
+  setParticipantItems: (items: ConversationItem[]) => void;
   requestClearConversation: () => void;
 
   // Compound actions
@@ -44,7 +44,7 @@ const useSessionStore = create<SessionStore>()(
     translationCount: 0,
     isReconnecting: false,
     items: [],
-    systemAudioItems: [],
+    participantItems: [],
     clearConversationVersion: 0,
 
     // Basic setters
@@ -54,7 +54,7 @@ const useSessionStore = create<SessionStore>()(
     setTranslationCount: (count) => set({ translationCount: count }),
     setIsReconnecting: (reconnecting) => set({ isReconnecting: reconnecting }),
     setItems: (items) => set({ items }),
-    setSystemAudioItems: (systemAudioItems) => set({ systemAudioItems }),
+    setParticipantItems: (participantItems) => set({ participantItems }),
     requestClearConversation: () => set((state) => ({
       clearConversationVersion: state.clearConversationVersion + 1,
     })),
@@ -79,7 +79,7 @@ const useSessionStore = create<SessionStore>()(
       sessionStartTime: null,
       isReconnecting: false,
       items: [],
-      systemAudioItems: [],
+      participantItems: [],
       // Keep translation count for reference
     }),
 
@@ -91,7 +91,7 @@ const useSessionStore = create<SessionStore>()(
       translationCount: 0,
       isReconnecting: false,
       items: [],
-      systemAudioItems: [],
+      participantItems: [],
     }),
   }))
 );
@@ -114,9 +114,9 @@ export const useStartSession = () => useSessionStore((state) => state.startSessi
 export const useEndSession = () => useSessionStore((state) => state.endSession);
 export const useResetSession = () => useSessionStore((state) => state.resetSession);
 export const useItems = () => useSessionStore((state) => state.items);
-export const useSystemAudioItems = () => useSessionStore((state) => state.systemAudioItems);
+export const useParticipantItems = () => useSessionStore((state) => state.participantItems);
 export const useSetItems = () => useSessionStore((state) => state.setItems);
-export const useSetSystemAudioItems = () => useSessionStore((state) => state.setSystemAudioItems);
+export const useSetParticipantItems = () => useSessionStore((state) => state.setParticipantItems);
 export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
 export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
 

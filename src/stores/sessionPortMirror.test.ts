@@ -24,7 +24,7 @@ describe('sessionPortMirror', () => {
     // Reset session store to known baseline before each test.
     useSessionStore.setState({
       items: [],
-      systemAudioItems: [],
+      participantItems: [],
       isSessionActive: false,
       sessionStartTime: null,
     } as any);
@@ -144,7 +144,7 @@ describe('sessionPortMirror — playback inbound', () => {
     });
     useSessionStore.setState({
       items: [],
-      systemAudioItems: [],
+      participantItems: [],
       isSessionActive: false,
       sessionStartTime: null,
     } as any);
