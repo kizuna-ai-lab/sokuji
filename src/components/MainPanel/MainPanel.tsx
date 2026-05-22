@@ -702,10 +702,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * - Audio service reference (handles recording)
    */
 
-  const clientRef = useRef<IClient | null>(null);
+  const speakerClientRef = useRef<IClient | null>(null);
 
   // System audio client ref (for translating other participants)
-  const systemAudioClientRef = useRef<IClient | null>(null);
+  const participantClientRef = useRef<IClient | null>(null);
 
   // Ref to disconnectConversation — used by client onClose handlers, which are
   // captured inside setupClientListeners (a useCallback that runs before
@@ -740,8 +740,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       throttleTimerRef.current = null;
     }
     // Clear client internal conversation data (if session active)
-    clientRef.current?.clearConversationItems();
-    systemAudioClientRef.current?.clearConversationItems();
+    speakerClientRef.current?.clearConversationItems();
+    participantClientRef.current?.clearConversationItems();
     // Clear React state
     setItems([]);
     setParticipantItems([]);
@@ -908,7 +908,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Set up event listeners for the AI Client
    */
   const setupClientListeners = useCallback(async () => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!client || !audioService) return;
@@ -945,7 +945,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             pendingTextRef.current = null;
             // Small delay to ensure response is fully processed
             setTimeout(() => {
-              clientRef.current?.appendInputText(text);
+              speakerClientRef.current?.appendInputText(text);
             }, 100);
           }
         }
@@ -1192,7 +1192,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Small delay to ensure any in-flight audio processing completes
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const client = clientRef.current;
+      const client = speakerClientRef.current;
       if (client) {
         // disconnect() emits final completion deltas via the throttle path,
         // which schedules a trailing setItems(client.getConversationItems())
@@ -1216,12 +1216,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Disconnect system audio client
-      const systemClient = systemAudioClientRef.current;
-      if (systemClient) {
+      const participantClient = participantClientRef.current;
+      if (participantClient) {
         try {
-          await systemClient.disconnect();
-          systemClient.reset();
-          systemAudioClientRef.current = null;
+          await participantClient.disconnect();
+          participantClient.reset();
+          participantClientRef.current = null;
           console.info('[Sokuji] [MainPanel] Disconnected system audio client');
         } catch (error) {
           console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
@@ -1368,12 +1368,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
 
       // Create speaker client using helper
-      clientRef.current = createAIClient(modelName, apiKey, useWebRTC);
+      speakerClientRef.current = createAIClient(modelName, apiKey, useWebRTC);
 
       // Setup listeners for the new client instance
       await setupClientListeners();
 
-      const client = clientRef.current;
+      const client = speakerClientRef.current;
 
       // Note: canHoldToSpeak is now derived via useMemo from currentTurnDetectionMode
       // at component scope — no imperative setter needed here.
@@ -1434,12 +1434,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           // Create a new client with WebSocket transport
           useWebRTC = false;
-          clientRef.current = createAIClient(modelName, apiKey, false);
+          speakerClientRef.current = createAIClient(modelName, apiKey, false);
 
           // Re-setup listeners for the new client instance
           await setupClientListeners();
 
-          const fallbackClient = clientRef.current;
+          const fallbackClient = speakerClientRef.current;
 
           try {
             await fallbackClient.connect(sessionConfig);
@@ -1512,7 +1512,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (isPushToTranslateMode) {
           let p2tCallbackCount = 0;
           await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-            if (!clientRef.current) return;
+            if (!speakerClientRef.current) return;
             if (data.isPassthrough) {
               return;  // IDLE: route to passthrough only, don't send to AI
             }
@@ -1526,19 +1526,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               pttVoiceChunkCountRef.current++;
             }
 
-            clientRef.current.appendInputAudio(data.mono);
+            speakerClientRef.current.appendInputAudio(data.mono);
           });
         } else if (!isPureManualMode) {
           // VAD: always-forward callback
           let audioCallbackCount = 0;
           await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-            if (clientRef.current) {
+            if (speakerClientRef.current) {
               // Debug logging every 100 calls to verify AI client receives data
               if (audioCallbackCount % 100 === 0) {
                 console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
               }
               audioCallbackCount++;
-              clientRef.current.appendInputAudio(data.mono);
+              speakerClientRef.current.appendInputAudio(data.mono);
             }
           });
         }
@@ -1547,8 +1547,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
         // Apply initial mute state based on isMonitorDeviceOn (WebRTC only, not PalabraAI)
-        if (useWebRTC && typeof clientRef.current?.setOutputMuted === 'function') {
-          clientRef.current.setOutputMuted(!isMonitorDeviceOn);
+        if (useWebRTC && typeof speakerClientRef.current?.setOutputMuted === 'function') {
+          speakerClientRef.current.setOutputMuted(!isMonitorDeviceOn);
           console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
         }
       }
@@ -1570,17 +1570,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.info(`[Sokuji] [MainPanel] Starting participant audio client (${captureMode} capture)...`);
 
           // Create participant client using helper
-          systemAudioClientRef.current = createAIClient(modelName, apiKey);
+          participantClientRef.current = createAIClient(modelName, apiKey);
 
           // Setup event handlers using helper
-          const participantClient = systemAudioClientRef.current;
+          const participantClient = participantClientRef.current;
           participantClient.setEventHandlers(createParticipantEventHandlers(participantClient));
 
           // Create and connect with participant session config
           const participantSessionConfig = createParticipantSessionConfig();
           if (!participantSessionConfig) {
             console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
-            systemAudioClientRef.current = null;
+            participantClientRef.current = null;
           } else {
             await participantClient.connect(participantSessionConfig);
             console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
@@ -1625,9 +1625,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Set state variables after successful initialization
-      // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
+      // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
       setIsSessionActive(true);
-      setItems(clientRef.current?.getConversationItems() || []);
+      setItems(speakerClientRef.current?.getConversationItems() || []);
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
@@ -1732,7 +1732,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Track push-to-talk start time
     pushToTalkStartTimeRef.current = Date.now();
     
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!audioService) {
@@ -1812,7 +1812,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       pushToTalkStartTimeRef.current = null;
     }
     
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!audioService) {
@@ -1881,7 +1881,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Send text input for translation
    */
   const handleSendText = useCallback((text: string) => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!client || !isSessionActive) {
       console.warn('[MainPanel] Cannot send text: no active session');
       return;
@@ -2407,7 +2407,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (!isSessionActive) return;
 
     const audioService = audioServiceRef.current;
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
 
     if (!audioService) {
       return;
@@ -2691,7 +2691,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Speaker session anchor mechanism
   useEffect(() => {
     sendAnchorIfNeeded(
-      clientRef.current,
+      speakerClientRef.current,
       items,
       isSessionActive,
       'speaker',
@@ -2703,8 +2703,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Participant session anchor mechanism
   useEffect(() => {
-    // Only activate when participant session exists (systemAudioClientRef is set)
-    const participantClient = systemAudioClientRef.current;
+    // Only activate when participant session exists (participantClientRef is set)
+    const participantClient = participantClientRef.current;
     const isParticipantActive = isSessionActive && participantClient !== null;
 
     sendAnchorIfNeeded(
@@ -2785,7 +2785,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle monitor device on/off state for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Check if client supports muting
@@ -2799,7 +2799,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle input device switching for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Don't switch on initial mount (already set during connect)
@@ -2819,7 +2819,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle output device switching for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Switch output device if supported
