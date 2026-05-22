@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings, AudioLines} from 'lucide-react';
 import './MainPanel.scss';
 import '../../styles/karaoke.scss';
 import {
@@ -3125,6 +3125,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   title={t('simplePanel.clickToConfigMicrophone', 'Click to configure microphone')}
                 >
                   {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
+                </span>
+                <span
+                  className={`device-icon ${(isSessionActive ? participantChannelActive : participantWillStart) ? 'active' : ''} clickable`}
+                  onClick={() => navigateToSettings('participant')}
+                  title={t('simplePanel.clickToConfigParticipant', 'Click to configure participant audio')}
+                >
+                  <AudioLines size={14} />
                 </span>
                 <span
                   className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}

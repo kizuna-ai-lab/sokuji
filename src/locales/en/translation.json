@@ -609,6 +609,7 @@
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
     "clickToConfigMicrophone": "Click to configure microphone",
+    "clickToConfigParticipant": "Click to configure participant audio",
     "clickToConfigSpeaker": "Click to configure speaker",
     "translationActive": "Translation Active",
     "translationInactive": "Translation Inactive",
