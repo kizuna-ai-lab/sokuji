@@ -2585,7 +2585,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     // Enable space hold-to-speak when session is active and we're in a PTT-like mode
     // (Push-to-Talk, Push-to-Translate, or OpenAI's Disabled mode)
-    const isHoldToSpeakEnabled = isSessionActive && canHoldToSpeak;
+    const isHoldToSpeakEnabled = isSessionActive && speakerChannelActive && canHoldToSpeak;
 
     // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2634,7 +2634,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [isSessionActive, canHoldToSpeak, startRecording, stopRecording, isRecording]);
+  }, [isSessionActive, speakerChannelActive, canHoldToSpeak, startRecording, stopRecording, isRecording]);
 
   // Session tracking for analytics
   useEffect(() => {
@@ -3137,7 +3137,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
 
             <div className="main-controls">
-              {isSessionActive && canHoldToSpeak && (
+              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
@@ -3198,7 +3198,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </div>
 
             <div className="center-controls">
-              {isSessionActive && canHoldToSpeak && (
+              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
