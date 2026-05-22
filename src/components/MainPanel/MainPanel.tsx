@@ -351,14 +351,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // after Start (settings disable on isSessionActive).
   const speakerWillStart = useMemo(
     () => isInputDeviceOn && !!selectedInputDevice,
-    [isInputDeviceOn, selectedInputDevice]
+    // Depend on deviceId, not the device object — device-enumeration refreshes
+    // recreate the object identity even when the selection hasn't changed.
+    [isInputDeviceOn, selectedInputDevice?.deviceId]
   );
 
   const participantWillStart = useMemo(() => {
     if (!isSystemAudioCaptureEnabled) return false;
     if (isExtension()) return true;  // extension: tab capture, no device gate
     return !!selectedSystemAudioSource && isSystemAudioSourceReady;
-  }, [isSystemAudioCaptureEnabled, selectedSystemAudioSource, isSystemAudioSourceReady]);
+  }, [isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
 
   const anyChannelWillStart = speakerWillStart || participantWillStart;
 
