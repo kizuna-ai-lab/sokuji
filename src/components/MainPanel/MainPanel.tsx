@@ -1635,7 +1635,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             participantClientRef.current = null;
           } else {
             await participantClient.connect(participantSessionConfig);
-            setParticipantChannelActive(true);
             console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
             // Start recording from appropriate source based on environment
@@ -1666,6 +1665,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
 
             console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+            // Set the active flag only after recording wiring succeeds — mirrors
+            // the speaker block, where the flag means "channel is end-to-end
+            // active" not "connect resolved". If startTab/SystemAudioRecording
+            // throws (non-OOM, caught below as non-fatal), the flag stays false.
+            setParticipantChannelActive(true);
           }
         } catch (error: any) {
           console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
