@@ -40,6 +40,14 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     this._lastPositionReport = 0;
     this._positionReportInterval = Math.floor(sampleRate * 0.05); // ~50ms
 
+    // Passthrough latency cap (issue #246). When upstream stalls (BT hiccup,
+    // brief AudioContext suspend) the producer keeps filling the ring while
+    // process() is paused. On resume we drop oldest samples so the audible
+    // latency snaps back to this target rather than playing 10s of stale
+    // audio.
+    this._ptMaxLatencySamples = Math.floor(sampleRate * 0.3); // 300ms
+    this._lastPtTrimReportedAt = 0;
+
     this.port.onmessage = (e) => {
       const msg = e.data;
       if (msg.type === 'init') {
@@ -69,6 +77,7 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     // The producer (main thread) handles index reset by setting writeIdx = readIdx.
     this._samplesPlayed = 0;
     this._lastPositionReport = 0;
+    this._lastPtTrimReportedAt = 0;
     this._setState('stopped');
   }
 
@@ -114,8 +123,24 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     // --- Mix in passthrough ring buffer (additive) ---
     if (this._ptIndices) {
       const ptWriteIdx = Atomics.load(this._ptIndices, 0);
-      const ptReadIdx = Atomics.load(this._ptIndices, 1);
-      const ptAvailable = ptWriteIdx - ptReadIdx;
+      let ptReadIdx = Atomics.load(this._ptIndices, 1);
+      let ptAvailable = ptWriteIdx - ptReadIdx;
+
+      // Issue #246: bound passthrough latency. When upstream stalled and the
+      // producer filled the ring, advance readIdx so we re-sync to ~300ms
+      // instead of replaying 10s of stale audio. Worklet owns readIdx, so
+      // this is SPSC-safe.
+      if (ptAvailable > this._ptMaxLatencySamples) {
+        const skip = ptAvailable - this._ptMaxLatencySamples;
+        ptReadIdx += skip;
+        Atomics.store(this._ptIndices, 1, ptReadIdx);
+        ptAvailable = this._ptMaxLatencySamples;
+        // Throttle reports to ≤1/sec — process() runs ~187x/sec at 24kHz.
+        if (this._samplesPlayed - this._lastPtTrimReportedAt >= sampleRate) {
+          this._lastPtTrimReportedAt = this._samplesPlayed;
+          this.port.postMessage({ type: 'ptTrim', skipped: skip });
+        }
+      }
 
       if (ptAvailable > 0) {
         const ptSamples = Math.min(frameSize, ptAvailable);

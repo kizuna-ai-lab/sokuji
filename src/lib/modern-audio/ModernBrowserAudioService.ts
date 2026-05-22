@@ -106,6 +106,21 @@ export class ModernBrowserAudioService implements IAudioService {
     this.startDiagnosticsMonitoring();
   }
   
+  // Issue #246 — previous passthrough snapshot, used to compute write/read rates
+  // (samples-per-second) between 5s diagnostic ticks.
+  private prevPtSnapshot: {
+    ts: number;
+    written: number;
+    writeIdx: number;
+    readIdx: number;
+  } | null = null;
+  private prevPtVirtualSnapshot: {
+    ts: number;
+    written: number;
+    writeIdx: number;
+    readIdx: number;
+  } | null = null;
+
   /**
    * Start periodic diagnostics monitoring
    */
@@ -114,14 +129,162 @@ export class ModernBrowserAudioService implements IAudioService {
     if (this.diagnosticsInterval) {
       clearInterval(this.diagnosticsInterval);
     }
-    
+
     // Log diagnostics every 5 seconds
     this.diagnosticsInterval = setInterval(() => {
-      const diagnostics = (this.player as any).getSequenceDiagnostics?.();
-      if (diagnostics && (diagnostics.outOfOrderCount > 0 || diagnostics.gaps.length > 0)) {
-        console.warn('[AudioSequence] Diagnostics:', diagnostics);
+      // Existing sequencing diagnostics — unchanged
+      const seqDiag = (this.player as any).getSequenceDiagnostics?.();
+      if (seqDiag && (seqDiag.outOfOrderCount > 0 || seqDiag.gaps.length > 0)) {
+        console.warn('[AudioSequence] Diagnostics:', seqDiag);
       }
+
+      // Issue #246: passthrough-buffer + sinkId diagnostics. Always logs at
+      // info level while a recorder is active with passthrough on, so we can
+      // observe whether ptUsed monotonically grows (clock drift) and whether
+      // chunks are being dropped.
+      this.logPassthroughDiagnostics();
     }, 5000);
+  }
+
+  /**
+   * Issue #246 — emit one compact line per tick describing passthrough state.
+   *
+   * Reads:
+   *   - producer (recorder) side: AudioContext sinkId + sample rate (the clock
+   *     pacing the passthrough writes)
+   *   - consumer (player) side:   AudioContext sinkId + worklet state
+   *                               (the clock pacing the passthrough reads)
+   *   - ring buffer:              used samples + capacity + write/read rates
+   *
+   * If the two sinkIds resolve to different physical devices, drift between
+   * them shows up as `ptUsed` climbing monotonically until it hits capacity,
+   * after which `_writeToPassthroughRing` starts dropping chunks (separate
+   * throttled warn in ModernAudioPlayer).
+   */
+  private logPassthroughDiagnostics(): void {
+    const player = this.player as unknown as {
+      getPassthroughDiagnostics?: () => Record<string, unknown> | null;
+    };
+    const playerDiag = player.getPassthroughDiagnostics?.() as
+      | (Record<string, unknown> & {
+          ptUsed: number;
+          ptUsedMs: number;
+          ptCapacity: number;
+          ptCapacityMs: number;
+          ptWriteIdx: number;
+          ptReadIdx: number;
+          ptSamplesWritten: number;
+          ptSamplesDropped: number;
+          ptDropEvents: number;
+          workletState: string;
+          contextState: string;
+          contextSinkId: string;
+          audioElementSinkId: string;
+          sampleRate: number;
+        })
+      | null
+      | undefined;
+
+    if (!playerDiag) return;
+
+    // Skip noise: don't log when nothing has ever been written and worklet
+    // is idle — typical pre-session state.
+    if (playerDiag.ptSamplesWritten === 0 && playerDiag.ptUsed === 0 && playerDiag.workletState === 'stopped') {
+      return;
+    }
+
+    const now = Date.now();
+    const sr = playerDiag.sampleRate;
+    let writeSps = 0;
+    let readSps = 0;
+    if (this.prevPtSnapshot) {
+      const dt = (now - this.prevPtSnapshot.ts) / 1000;
+      if (dt > 0) {
+        writeSps = Math.round((playerDiag.ptSamplesWritten - this.prevPtSnapshot.written) / dt);
+        const prevConsumed = this.prevPtSnapshot.readIdx;
+        const curConsumed = playerDiag.ptReadIdx;
+        readSps = Math.round((curConsumed - prevConsumed) / dt);
+      }
+    }
+    this.prevPtSnapshot = {
+      ts: now,
+      written: playerDiag.ptSamplesWritten,
+      writeIdx: playerDiag.ptWriteIdx,
+      readIdx: playerDiag.ptReadIdx,
+    };
+
+    // Recorder context info (producer-side clock)
+    const recDiag = this.recorder.getRecorderContextDiagnostics();
+
+    // Compact one-liner — designed to be eyeballed across 5s ticks
+    console.info(
+      `[Sokuji] [PtDiag] ` +
+      `pt=${playerDiag.ptUsed}/${playerDiag.ptCapacity} ` +
+      `(${playerDiag.ptUsedMs}/${playerDiag.ptCapacityMs}ms) ` +
+      `rate(w/r)=${writeSps}/${readSps} sps ` +
+      `(target=${sr}) ` +
+      `wrote=${playerDiag.ptSamplesWritten} dropped=${playerDiag.ptSamplesDropped}(${playerDiag.ptDropEvents}ev) ` +
+      `worklet=${playerDiag.workletState} ctxState=${playerDiag.contextState} ` +
+      `playerCtxSink=${playerDiag.contextSinkId} ` +
+      `playerElemSink=${playerDiag.audioElementSinkId} ` +
+      `recCtxSink=${recDiag.contextSinkId} ` +
+      `recCtxState=${recDiag.contextState} ` +
+      `recCtxSR=${recDiag.contextSampleRate} ` +
+      `recInputSR=${recDiag.inputSampleRate ?? 'n/a'} ` +
+      `ptOn=${recDiag.passthroughEnabled} ptVol=${recDiag.passthroughVolume.toFixed(2)}`
+    );
+
+    if (this.virtualSpeakerPlayer) {
+      const vp = this.virtualSpeakerPlayer as unknown as {
+        getPassthroughDiagnostics?: () => Record<string, unknown> | null;
+      };
+      const vDiag = vp.getPassthroughDiagnostics?.() as
+        | (Record<string, unknown> & {
+            ptUsed: number;
+            ptUsedMs: number;
+            ptCapacity: number;
+            ptCapacityMs: number;
+            ptWriteIdx: number;
+            ptReadIdx: number;
+            ptSamplesWritten: number;
+            ptSamplesDropped: number;
+            ptDropEvents: number;
+            workletState: string;
+            contextSinkId: string;
+            audioElementSinkId: string;
+            sampleRate: number;
+          })
+        | null
+        | undefined;
+
+      if (vDiag && (vDiag.ptSamplesWritten !== 0 || vDiag.ptUsed !== 0 || vDiag.workletState !== 'stopped')) {
+        let vWriteSps = 0;
+        let vReadSps = 0;
+        if (this.prevPtVirtualSnapshot) {
+          const dt = (now - this.prevPtVirtualSnapshot.ts) / 1000;
+          if (dt > 0) {
+            vWriteSps = Math.round((vDiag.ptSamplesWritten - this.prevPtVirtualSnapshot.written) / dt);
+            vReadSps = Math.round((vDiag.ptReadIdx - this.prevPtVirtualSnapshot.readIdx) / dt);
+          }
+        }
+        this.prevPtVirtualSnapshot = {
+          ts: now,
+          written: vDiag.ptSamplesWritten,
+          writeIdx: vDiag.ptWriteIdx,
+          readIdx: vDiag.ptReadIdx,
+        };
+
+        console.info(
+          `[Sokuji] [PtDiag-VirtSpkr] ` +
+          `pt=${vDiag.ptUsed}/${vDiag.ptCapacity} ` +
+          `(${vDiag.ptUsedMs}/${vDiag.ptCapacityMs}ms) ` +
+          `rate(w/r)=${vWriteSps}/${vReadSps} sps ` +
+          `wrote=${vDiag.ptSamplesWritten} dropped=${vDiag.ptSamplesDropped}(${vDiag.ptDropEvents}ev) ` +
+          `worklet=${vDiag.workletState} ` +
+          `ctxSink=${vDiag.contextSinkId} elemSink=${vDiag.audioElementSinkId}`
+        );
+      }
+    }
   }
 
 
@@ -616,7 +779,44 @@ export class ModernBrowserAudioService implements IAudioService {
       await this.recorder.begin(deviceId);
       this.currentRecordingDeviceId = deviceId;
     }
-    
+
+    // Issue #246: snapshot both producer and consumer audio-graph state at
+    // session start. Comparing recCtxSink vs playerCtxSink reveals whether the
+    // two AudioContexts are pinned to the same physical output device — a
+    // necessary precondition for clock-drift accumulation in the passthrough
+    // ring buffer.
+    try {
+      const recDiag = this.recorder.getRecorderContextDiagnostics();
+      const playerDiag = (this.player as unknown as {
+        getPassthroughDiagnostics?: () => Record<string, unknown> | null;
+      }).getPassthroughDiagnostics?.() as
+        | (Record<string, unknown> & {
+            sampleRate: number;
+            ptCapacity: number;
+            ptCapacityMs: number;
+            contextSinkId: string;
+            audioElementSinkId: string;
+            configuredOutputDeviceId: string;
+            contextState: string;
+          })
+        | null
+        | undefined;
+      console.info(
+        `[Sokuji] [PtDiag] session-start snapshot: ` +
+        `recDeviceId=${deviceId ?? '(undefined)'} ` +
+        `recCtxSR=${recDiag.contextSampleRate} recCtxState=${recDiag.contextState} recCtxSink=${recDiag.contextSinkId} ` +
+        `recInputSR=${recDiag.inputSampleRate ?? 'n/a'} ` +
+        (playerDiag
+          ? `playerCtxSR=${playerDiag.sampleRate} playerCtxState=${playerDiag.contextState} ` +
+            `playerCtxSink=${playerDiag.contextSinkId} playerElemSink=${playerDiag.audioElementSinkId} ` +
+            `playerOutputDeviceId=${playerDiag.configuredOutputDeviceId} ` +
+            `ptCap=${playerDiag.ptCapacity}(${playerDiag.ptCapacityMs}ms)`
+          : 'player=(no-diag)')
+      );
+    } catch (e) {
+      console.warn('[Sokuji] [PtDiag] session-start snapshot failed:', e);
+    }
+
     // Start recording with callback that handles both AI and passthrough
     await this.recorder.record((data) => {
       // Handle passthrough BEFORE the external callback, because some clients
