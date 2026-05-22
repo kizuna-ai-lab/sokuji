@@ -90,27 +90,27 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isSessionActive={isSessionActive}
         />
 
-        {/* Microphone Selection */}
+        {/* Microphone Selection — input 1 */}
         <AudioDeviceSection
           isSessionActive={isSessionActive}
           showMicrophone={true}
           showSpeaker={false}
         />
 
-        {/* Speaker Selection */}
+        {/* Participant Audio — input 2 (system audio capture) */}
+        <SystemAudioSection
+          isSessionActive={isSessionActive}
+          isMonitorDeviceOn={isMonitorDeviceOn}
+          onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+        />
+
+        {/* Speaker Selection — output */}
         <AudioDeviceSection
           isSessionActive={isSessionActive}
           showMicrophone={false}
           showSpeaker={true}
           isSystemAudioEnabled={isSystemAudioCaptureEnabled}
           onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
-        />
-
-        {/* System Audio / Participant Audio */}
-        <SystemAudioSection
-          isSessionActive={isSessionActive}
-          isMonitorDeviceOn={isMonitorDeviceOn}
-          onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
         />
 
         {/* Help & Updates */}
