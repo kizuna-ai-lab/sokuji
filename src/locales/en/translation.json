@@ -112,6 +112,7 @@
     "systemInstructions": "System Instructions",
     "automaticTurnDetection": "Automatic turn detection",
     "speechMode": "Speech Mode",
+    "speechModeAppliesTo": "Applies to your voice. Participant audio always uses semantic VAD.",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
     "noiseSuppression": "Noise Suppression",
