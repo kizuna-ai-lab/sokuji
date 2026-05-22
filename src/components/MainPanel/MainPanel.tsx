@@ -2650,6 +2650,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const currentSettings = getCurrentProviderSettings();
         const sessionConfig = getSessionConfig();
         const localConfig = sessionConfig.provider === 'local_inference' ? sessionConfig : null;
+        // Symmetric channel composition — which clients actually started.
+        // ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3.
+        const channels: string[] = [];
+        if (speakerChannelActive) channels.push('speaker');
+        if (participantChannelActive) channels.push('participant');
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
@@ -2668,6 +2673,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           platform: getEnvironment(),
           input_device_on: isInputDeviceOn,
           monitor_device_on: isMonitorDeviceOn,
+          channels,
         });
       }
     } else {
@@ -2686,7 +2692,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setTranslationCount(0);
       }
     }
-  }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
+  }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent, speakerChannelActive, participantChannelActive]);
 
   /**
    * Send anchor message if needed to prevent model drift
