@@ -704,7 +704,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   const speakerClientRef = useRef<IClient | null>(null);
 
-  // System audio client ref (for translating other participants)
+  // Participant client ref (for translating other participants)
   const participantClientRef = useRef<IClient | null>(null);
 
   // Ref to disconnectConversation — used by client onClose handlers, which are
@@ -1215,16 +1215,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         client.reset();
       }
 
-      // Disconnect system audio client
+      // Disconnect participant client
       const participantClient = participantClientRef.current;
       if (participantClient) {
         try {
           await participantClient.disconnect();
           participantClient.reset();
           participantClientRef.current = null;
-          console.info('[Sokuji] [MainPanel] Disconnected system audio client');
+          console.info('[Sokuji] [MainPanel] Disconnected participant client');
         } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
+          console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
         }
       }
 
