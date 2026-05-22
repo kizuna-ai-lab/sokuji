@@ -103,7 +103,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     placement: 'left',
   },
   {
-    target: '#system-audio-section',
+    target: '#participant-section',
     content: t('onboarding.basic.steps.systemAudio.content', 'Enable participant audio capture to translate other speakers\' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation.'),
     title: t('onboarding.basic.steps.systemAudio.title', 'Step 7: Participant Audio'),
     placement: 'left',
@@ -184,7 +184,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
       placement: 'left',
     },
     {
-      target: '#system-audio-section',
+      target: '#participant-section',
       content: t('onboarding.steps.systemAudio.content', 'Enable participant audio capture to translate other speakers\' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation.'),
       title: t('onboarding.steps.systemAudio.title', 'Step 8: Participant Audio'),
       placement: 'left',

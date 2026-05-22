@@ -193,7 +193,11 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         type={warningType}
       />
 
-      <div className={`config-section ${className}`} id="system-audio-section">
+      <div
+        className={`config-section ${className}`}
+        id="participant-section"
+        data-section-aliases="system-audio-section"
+      >
         <h3>
           <AudioLines size={18} />
           <span>{t('simpleConfig.systemAudio', 'Participant Audio')}</span>
