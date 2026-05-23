@@ -611,7 +611,7 @@
   },
   "modePicker": {
     "modeYou": "You",
-    "modeParticipants": "Participants",
+    "modeParticipants": "Others",
     "modeBoth": "Both",
     "groupLabel": "Translation mode",
     "switchTo": "Switch to {{label}}",
