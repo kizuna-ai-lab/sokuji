@@ -150,6 +150,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleInputVirtualDeviceClick}
+            toggleAriaLabel={isMicMuted
+              ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
+              : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
           />
 
           {/* Noise Suppression Mode */}
@@ -222,6 +225,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleOutputVirtualDeviceClick}
+            toggleAriaLabel={isMonitorMuted
+              ? t('audioPanel.turnOnMonitor', 'Turn on speaker monitor')
+              : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
           />
         </div>
       )}
