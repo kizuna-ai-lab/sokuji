@@ -43,7 +43,7 @@ import {
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
-import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode } from '../../stores/audioStore';
+import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -373,6 +373,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Reads directly from audioStore — setMode is the single source of truth.
   const currentMode = useMode();
   const setMode = useSetMode();
+
+  // Mute flags — canonical new state that mid-session effects and the
+  // participant waveform render gate read from.
+  const isMicMuted = useIsMicMuted();
+  const isMonitorMuted = useIsMonitorMuted();
+  const isParticipantMuted = useIsParticipantMuted();
 
   // Mode snapshot captured at session start. While non-null the picker
   // and any consumer of "effective mode" reads from this so mid-session
@@ -2475,7 +2481,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             systemCtx.clearRect(0, 0, systemCanvas.width, systemCanvas.height);
             const participantAnalyser = audioService.getParticipantAnalyser?.() ?? null;
             let values: Float32Array;
-            if (participantAnalyser) {
+            if (participantAnalyser && !isParticipantMuted) {
               const bins = participantAnalyser.frequencyBinCount;
               if (!systemByteBuffer || systemByteBuffer.length !== bins) {
                 systemByteBuffer = new Uint8Array(bins);
@@ -2589,7 +2595,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [items, participantItems]);
 
   /**
-   * Watch for changes to isInputDeviceOn and update recording state accordingly
+   * Watch for changes to isMicMuted and update recording state accordingly
    */
   useEffect(() => {
     // Only take action if session is active
@@ -2605,16 +2611,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const updateRecordingState = async () => {
       try {
         const recorder = audioService.getRecorder();
-        
-        // If input device is turned off, pause recording
-        if (!isInputDeviceOn) {
-          console.info('[Sokuji] [MainPanel] Input device turned off - pausing recording');
+
+        // If mic is muted, pause recording
+        if (isMicMuted) {
+          console.info('[Sokuji] [MainPanel] Mic muted - pausing recording');
           if (recorder.isRecording()) {
             await audioService.pauseRecording();
             setIsRecording(false);
           }
         }
-        // If input device is turned on
+        // If mic is unmuted
         else {
           // Mode-derived flags (same classification as session-start branch).
           const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
@@ -2622,7 +2628,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
 
           if (isPushToTranslateMode) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in Push-to-translate mode');
+            console.info('[Sokuji] [MainPanel] Mic unmuted - starting recording in Push-to-translate mode');
             if (!recorder.isRecording()) {
               let p2tCallbackCount = 0;
               await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
@@ -2642,7 +2648,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               });
             }
           } else if (!isPureManualMode) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
+            console.info('[Sokuji] [MainPanel] Mic unmuted - starting recording in automatic mode');
             if (!recorder.isRecording()) {
               let autoAudioCallbackCount = 0;
               await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
@@ -2666,10 +2672,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
+  }, [isMicMuted, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
-   * Watch for changes to isSystemAudioCaptureEnabled mid-session — toggle
+   * Watch for changes to isParticipantMuted mid-session — toggle
    * acts as mute for the participant channel. Pauses/resumes the
    * participant recorder without disconnecting the participant client.
    * Only fires when participant channel is actually active (so toggling
@@ -2679,14 +2685,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     if (!isSessionActive || !participantChannelActive || !audioServiceRef.current) return;
     const audioService = audioServiceRef.current;
-    if (isSystemAudioCaptureEnabled) {
+    if (!isParticipantMuted) {
       void audioService.resumeParticipantAudioRecording?.()
         .catch(err => console.warn('[Sokuji] [MainPanel] Failed to resume participant audio:', err));
     } else {
       void audioService.pauseParticipantAudioRecording?.()
         .catch(err => console.warn('[Sokuji] [MainPanel] Failed to pause participant audio:', err));
     }
-  }, [isSystemAudioCaptureEnabled, isSessionActive, participantChannelActive]);
+  }, [isParticipantMuted, isSessionActive, participantChannelActive]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn
@@ -2997,7 +3003,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
 
   /**
-   * Handle monitor device on/off state for WebRTC clients
+   * Handle monitor mute state for WebRTC clients
    */
   useEffect(() => {
     const client = speakerClientRef.current;
@@ -3005,10 +3011,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Check if client supports muting
     if (typeof client.setOutputMuted === 'function') {
-      client.setOutputMuted(!isMonitorDeviceOn);
-      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', !isMonitorDeviceOn);
+      client.setOutputMuted(isMonitorMuted);
+      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', isMonitorMuted);
     }
-  }, [isMonitorDeviceOn, isSessionActive, isUsingWebRTC]);
+  }, [isMonitorMuted, isSessionActive, isUsingWebRTC]);
 
   /**
    * Handle input device switching for WebRTC clients
