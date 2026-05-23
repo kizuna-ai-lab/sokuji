@@ -16,7 +16,7 @@
   align-items: stretch;
   height: 28px;
   box-sizing: border-box;
-  border: 1px solid var(--border-color, #333);
+  border: 1px solid var(--border-color, #444);
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
@@ -29,7 +29,7 @@
     padding: 0 12px;
     font-size: 12px;
     color: var(--text-secondary, #aaa);
-    background: var(--bg-secondary, #1a1a1a);
+    background: var(--bg-secondary, #333);
     border: 0;
     line-height: 1;
     cursor: pointer;
@@ -39,11 +39,11 @@
     svg { flex-shrink: 0; }
 
     &:not(:last-child) {
-      border-right: 1px solid var(--border-color, #333);
+      border-right: 1px solid var(--border-color, #444);
     }
 
     &:hover:not(.mode-picker__segment--active):not(:disabled) {
-      background: var(--bg-hover, #252525);
+      background: var(--bg-hover, #3a3a3a);
     }
 
     &--active {
