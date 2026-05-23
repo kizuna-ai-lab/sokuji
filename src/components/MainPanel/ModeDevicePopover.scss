@@ -1,6 +1,6 @@
 // Mode device popover — collapsible summary rows that expand to inline
-// DeviceList-style options (Off + devices at the same level), matching the
-// settings panel's existing DeviceList pattern.
+// DeviceList-style options, matching the settings panel's existing DeviceList
+// pattern. Each row has a dedicated mute toggle button.
 .mode-device-popover {
   background: #2a2a2a;
   border: 1px solid #444;
@@ -43,13 +43,30 @@
     }
   }
 
-  // Collapsible channel summary row (the always-visible header per channel)
+  // Collapsible channel row wrapper — now a <div> containing two <button>s
+  // (HTML spec forbids button-in-button).
   &__row {
     width: 100%;
-    padding: 8px 14px;
+    border-top: 1px solid #3a3a3a;
+    display: flex;
+    align-items: stretch;
+
+    &--expanded {
+      background: #1f1f1f;
+
+      .mode-device-popover__row-main:hover {
+        background: #1f1f1f;
+      }
+    }
+  }
+
+  // The expand/collapse region — takes remaining horizontal space.
+  &__row-main {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 6px 8px 14px;
     background: transparent;
     border: 0;
-    border-top: 1px solid #3a3a3a;
     color: inherit;
     text-align: left;
     cursor: pointer;
@@ -60,10 +77,6 @@
     transition: background 0.15s ease;
 
     &:hover { background: #333; }
-    &--expanded {
-      background: #1f1f1f;
-      &:hover { background: #1f1f1f; }
-    }
   }
 
   &__row-icon { color: #aaa; flex-shrink: 0; }
@@ -74,7 +87,7 @@
   }
 
   // Right-aligned summary text — fills the available space between label
-  // and chevron with the current device name (or "Off" / "Not selected").
+  // and chevron with the current device name (or "Muted" / "Not selected").
   &__summary {
     flex: 1;
     text-align: right;
@@ -86,7 +99,37 @@
 
     &--off { color: #888; font-style: italic; }
     &--missing { color: #f59e0b; font-style: italic; }
-    &--default { color: #888; font-style: italic; }
+  }
+
+  // Per-row mute toggle button — sits to the right of the expand region.
+  &__mute-btn {
+    flex-shrink: 0;
+    width: 32px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-left: 1px solid #3a3a3a;
+    color: #aaa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: #333;
+      color: #ddd;
+    }
+
+    // Muted state: icon turns red to signal the channel is silent.
+    &--muted {
+      color: #e74c3c;
+
+      &:hover {
+        background: rgba(231, 76, 60, 0.12);
+        color: #e74c3c;
+      }
+    }
   }
 
   // Expanded inline DeviceList — mirrors the settings .device-list pattern
@@ -116,12 +159,6 @@
       background: rgba(16, 163, 127, 0.12);
       color: #fff;
       &:hover { background: rgba(16, 163, 127, 0.18); }
-    }
-
-    &--off {
-      color: #888;
-      font-style: italic;
-      &.mode-device-popover__device-row--selected { color: #aaa; }
     }
   }
 

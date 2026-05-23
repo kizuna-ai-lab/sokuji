@@ -627,7 +627,11 @@
     "devicePassthrough": "Original audio passthrough",
     "deviceSpeakerMonitor": "Speaker monitor",
     "notSelected": "Not selected",
-    "useDefault": "Default output"
+    "useDefault": "Default output",
+    "mute": "Mute {{label}}",
+    "unmute": "Unmute {{label}}",
+    "muted": "Muted",
+    "deviceParticipantOutput": "Participant output"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

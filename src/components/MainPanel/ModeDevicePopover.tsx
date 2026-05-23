@@ -10,10 +10,14 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Headphones, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, MicOff, AudioLines, Volume2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
-import { useAudioContext } from '../../stores/audioStore';
+import {
+  useAudioContext,
+  useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted,
+  useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
+} from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
 import type { AudioDevice } from '../Settings/shared/hooks';
@@ -26,7 +30,7 @@ interface ModeDevicePopoverProps {
   onClose: () => void;
 }
 
-type ChannelKey = 'mic' | 'participant' | 'monitor' | 'passthrough';
+type ChannelKey = 'mic' | 'participant' | 'monitor';
 
 interface ChannelRowSpec {
   key: ChannelKey;
@@ -34,17 +38,11 @@ interface ChannelRowSpec {
   label: string;
   devices: AudioDevice[];
   selectedDevice: AudioDevice | null;
-  /**
-   * For the 3 main channels: whether the channel is unmuted.
-   * For passthrough (extension): always treated as "on" because it has
-   * no mute toggle — it's optional and defaults to the default output.
-   */
-  isOn: boolean;
-  /** Mute the channel (preserves device selection). */
-  onMute?: () => void;
-  /** Pick a device. For the 3 main channels also unmutes. */
+  isMuted: boolean;
+  onMuteToggle: () => void;
+  /** Pick a device — also unmutes the channel. */
   onSelectDevice: (d: AudioDevice) => void;
-  /** True when no device is selected AND channel is unmuted — show warning. */
+  /** True when row is in scope and has no device picked. */
   isMissing: boolean;
 }
 
@@ -59,18 +57,19 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     selectedMonitorDevice,
     selectInputDevice,
     selectMonitorDevice,
-    isInputDeviceOn,
-    isMonitorDeviceOn,
-    setInputDeviceOn,
-    setMonitorDeviceOn,
     systemAudioSources,
     selectedParticipantSource,
     selectSystemAudioSource,
-    isSystemAudioCaptureEnabled,
-    setSystemAudioCaptureEnabled,
     selectedParticipantOutput,
     selectParticipantOutput,
   } = useAudioContext();
+
+  const isMicMuted = useIsMicMuted();
+  const isMonitorMuted = useIsMonitorMuted();
+  const isParticipantMuted = useIsParticipantMuted();
+  const setMicMuted = useSetMicMuted();
+  const setMonitorMuted = useSetMonitorMuted();
+  const setParticipantMuted = useSetParticipantMuted();
 
   // Only one row expanded at a time. Default: none expanded.
   const [expanded, setExpanded] = useState<ChannelKey | null>(null);
@@ -114,9 +113,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const { getFloatingProps } = useInteractions([dismiss]);
 
   // Build the list of rows the popover should render based on mode.
-  // Channel order: mic → monitor → participant source → (extension) passthrough
-  // Rationale: the user's own I/O (mic + monitor) groups first, then the
-  // participant-side I/O (capture source + optional original passthrough).
+  // Channel order: mic → monitor → participant
   const rows = useMemo<ChannelRowSpec[]>(() => {
     const list: ChannelRowSpec[] = [];
 
@@ -124,10 +121,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // Speaker monitor is mutually exclusive with participant capture
     // (enforced in audioStore). In Both mode participant is always on,
     // so monitor cannot be on — hide the row entirely to avoid showing
-    // a permanently-Off control.
+    // a permanently-muted control.
     const showMonitor = mode === 'speaker';
-    const showParticipantSource = !isExtension() && (mode === 'participant' || mode === 'both');
-    const showPassthrough = isExtension() && (mode === 'participant' || mode === 'both');
+    const showParticipant = mode === 'participant' || mode === 'both';
 
     if (showMic) {
       list.push({
@@ -136,13 +132,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         label: t('modePicker.deviceMic', 'Microphone'),
         devices: audioInputDevices,
         selectedDevice: selectedInputDevice,
-        isOn: isInputDeviceOn,
-        onMute: () => setInputDeviceOn(false),
-        onSelectDevice: (d) => {
-          selectInputDevice(d);
-          if (!isInputDeviceOn) setInputDeviceOn(true);
-        },
-        isMissing: isInputDeviceOn && !selectedInputDevice,
+        isMuted: isMicMuted,
+        onMuteToggle: () => setMicMuted(!isMicMuted),
+        onSelectDevice: (d) => { selectInputDevice(d); setMicMuted(false); },
+        isMissing: !selectedInputDevice,
       });
     }
 
@@ -153,57 +146,52 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
         devices: audioMonitorDevices,
         selectedDevice: selectedMonitorDevice,
-        isOn: isMonitorDeviceOn,
-        onMute: () => setMonitorDeviceOn(false),
-        onSelectDevice: (d) => {
-          selectMonitorDevice(d);
-          setMonitorDeviceOn(true);
-        },
-        isMissing: false, // monitor is never required
+        isMuted: isMonitorMuted,
+        onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
+        onSelectDevice: (d) => { selectMonitorDevice(d); setMonitorMuted(false); },
+        isMissing: false, // monitor is optional
       });
     }
 
-    if (showParticipantSource) {
+    if (showParticipant) {
+      // Platform-conditional secondary control:
+      //   - electron: pick the system audio source to capture
+      //   - extension: pick the passthrough output device (tab capture is implicit)
+      const devices = isExtension() ? audioMonitorDevices : (systemAudioSources ?? []) as AudioDevice[];
+      const selectedDevice = isExtension()
+        ? selectedParticipantOutput
+        : ((selectedParticipantSource ?? null) as AudioDevice | null);
+      const onSelectDevice = (d: AudioDevice) => {
+        if (isExtension()) {
+          selectParticipantOutput(d);
+        } else {
+          selectSystemAudioSource(d as any);
+        }
+        setParticipantMuted(false);
+      };
       list.push({
         key: 'participant',
         icon: AudioLines,
-        label: t('modePicker.deviceParticipantSource', 'Participant source'),
-        devices: (systemAudioSources ?? []) as AudioDevice[],
-        selectedDevice: (selectedParticipantSource ?? null) as AudioDevice | null,
-        isOn: isSystemAudioCaptureEnabled,
-        onMute: () => setSystemAudioCaptureEnabled(false),
-        onSelectDevice: (d) => {
-          selectSystemAudioSource(d as any);
-          if (!isSystemAudioCaptureEnabled) setSystemAudioCaptureEnabled(true);
-        },
-        isMissing: isSystemAudioCaptureEnabled && !selectedParticipantSource,
-      });
-    }
-
-    if (showPassthrough) {
-      // Extension-only optional row, grouped with participant source.
-      // No mute toggle — "Off" means use the default output.
-      list.push({
-        key: 'passthrough',
-        icon: Headphones,
-        label: t('modePicker.devicePassthrough', 'Original audio passthrough'),
-        devices: audioMonitorDevices,
-        selectedDevice: selectedParticipantOutput,
-        isOn: true,
-        onSelectDevice: (d) => selectParticipantOutput(d),
-        isMissing: false,
+        label: isExtension()
+          ? t('modePicker.deviceParticipantOutput', 'Participant output')
+          : t('modePicker.deviceParticipantSource', 'Participant source'),
+        devices,
+        selectedDevice,
+        isMuted: isParticipantMuted,
+        onMuteToggle: () => setParticipantMuted(!isParticipantMuted),
+        onSelectDevice,
+        isMissing: !isExtension() && !selectedDevice,
       });
     }
 
     return list;
   }, [
     mode,
-    audioInputDevices, selectedInputDevice, isInputDeviceOn,
-    audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
-    systemAudioSources, selectedParticipantSource, isSystemAudioCaptureEnabled,
-    selectedParticipantOutput,
+    audioInputDevices, selectedInputDevice, isMicMuted,
+    audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
+    systemAudioSources, selectedParticipantSource, selectedParticipantOutput, isParticipantMuted,
     selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantOutput,
-    setInputDeviceOn, setSystemAudioCaptureEnabled, setMonitorDeviceOn,
+    setMicMuted, setMonitorMuted, setParticipantMuted,
     t,
   ]);
 
@@ -216,13 +204,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       : t('modePicker.popoverHeaderBoth', 'Both — devices');
 
   const summaryText = (row: ChannelRowSpec): { text: string; cls: string } => {
-    if (row.key === 'passthrough') {
-      return row.selectedDevice
-        ? { text: row.selectedDevice.label || row.selectedDevice.deviceId, cls: '' }
-        : { text: t('modePicker.useDefault', 'Default output'), cls: 'mode-device-popover__summary--default' };
-    }
-    if (!row.isOn) {
-      return { text: t('common.off', 'Off'), cls: 'mode-device-popover__summary--off' };
+    if (row.isMuted) {
+      return { text: t('modePicker.muted', 'Muted'), cls: 'mode-device-popover__summary--off' };
     }
     if (!row.selectedDevice) {
       return { text: t('modePicker.notSelected', 'Not selected'), cls: 'mode-device-popover__summary--missing' };
@@ -245,50 +228,41 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
           const Icon = row.icon;
           const summary = summaryText(row);
           const isExpanded = expanded === row.key;
-          // For passthrough: "off" in the device list represents the null
-          // (default output) state. For the 3 main channels: "off" represents
-          // the muted state.
-          const offSelected = row.key === 'passthrough'
-            ? !row.selectedDevice
-            : !row.isOn;
 
           return (
             <React.Fragment key={row.key}>
-              <button
-                type="button"
-                className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}`}
-                onClick={() => setExpanded(isExpanded ? null : row.key)}
-                aria-expanded={isExpanded}
-              >
-                <Icon size={14} className="mode-device-popover__row-icon" />
-                <span className="mode-device-popover__row-label">{row.label}</span>
-                <span className={`mode-device-popover__summary ${summary.cls}`}>{summary.text}</span>
-                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
+              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}`}>
+                <button
+                  type="button"
+                  className="mode-device-popover__row-main"
+                  onClick={() => setExpanded(isExpanded ? null : row.key)}
+                  aria-expanded={isExpanded}
+                >
+                  <Icon size={14} className="mode-device-popover__row-icon" />
+                  <span className="mode-device-popover__row-label">{row.label}</span>
+                  <span className={`mode-device-popover__summary ${summary.cls}`}>{summary.text}</span>
+                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                <button
+                  type="button"
+                  className={`mode-device-popover__mute-btn${row.isMuted ? ' mode-device-popover__mute-btn--muted' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); row.onMuteToggle(); }}
+                  aria-pressed={row.isMuted}
+                  aria-label={row.isMuted
+                    ? t('modePicker.unmute', 'Unmute {{label}}', { label: row.label })
+                    : t('modePicker.mute', 'Mute {{label}}', { label: row.label })}
+                  title={row.isMuted
+                    ? t('modePicker.unmute', 'Unmute {{label}}', { label: row.label })
+                    : t('modePicker.mute', 'Mute {{label}}', { label: row.label })}
+                >
+                  {row.isMuted ? <MicOff size={14} /> : <Mic size={14} />}
+                </button>
+              </div>
 
               {isExpanded && (
                 <div className="mode-device-popover__device-list" role="listbox" aria-label={row.label}>
-                  <button
-                    type="button"
-                    className={`mode-device-popover__device-row mode-device-popover__device-row--off${offSelected ? ' mode-device-popover__device-row--selected' : ''}`}
-                    onClick={() => {
-                      if (row.key === 'passthrough') {
-                        // Extension passthrough: "Off" = pick the default output
-                        // by passing null. (The action signature accepts null
-                        // to clear the selection.)
-                        selectParticipantOutput(null as any);
-                      } else if (row.onMute) {
-                        row.onMute();
-                      }
-                    }}
-                  >
-                    <span>{row.key === 'passthrough'
-                      ? t('modePicker.useDefault', 'Default output')
-                      : t('common.off', 'Off')}</span>
-                    {offSelected && <span className="mode-device-popover__indicator" />}
-                  </button>
                   {row.devices.map((d) => {
-                    const selected = !offSelected && row.selectedDevice?.deviceId === d.deviceId;
+                    const selected = row.selectedDevice?.deviceId === d.deviceId;
                     return (
                       <button
                         key={d.deviceId}
