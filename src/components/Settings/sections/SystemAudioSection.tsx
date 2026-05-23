@@ -14,18 +14,12 @@ import { useAnalytics } from '../../../lib/analytics';
 
 interface SystemAudioSectionProps {
   isSessionActive: boolean;
-  /** If monitor device is enabled (for mutual exclusivity check) */
-  isMonitorDeviceOn?: boolean;
-  /** Callback when participant audio is clicked while speaker is on */
-  onMutualExclusivity?: () => void;
   /** Additional class name */
   className?: string;
 }
 
 const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   isSessionActive,
-  isMonitorDeviceOn = false,
-  onMutualExclusivity,
   className = ''
 }) => {
   const { t } = useTranslation();
@@ -150,16 +144,6 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
   const handleDeviceClick = (device: AudioDevice | null, isSource: boolean) => {
     if (isSessionActive) return;
-
-    // Check mutual exclusivity with speaker
-    if (device && isMonitorDeviceOn) {
-      if (onMutualExclusivity) {
-        onMutualExclusivity();
-      } else {
-        setWarningType('mutual-exclusivity-participant');
-      }
-      return;
-    }
 
     if (isSource) {
       // Electron: source selection
