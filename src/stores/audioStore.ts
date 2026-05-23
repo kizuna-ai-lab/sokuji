@@ -61,6 +61,7 @@ interface AudioStore {
   toggleInputDeviceState: () => void;
   setInputDeviceOn: (on: boolean) => void;
   toggleMonitorDeviceState: () => void;
+  setMonitorDeviceOn: (on: boolean) => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setNoiseSuppressionMode: (mode: NoiseSuppressionMode) => void;
@@ -168,26 +169,26 @@ const useAudioStore = create<AudioStore>()(
     },
 
     toggleMonitorDeviceState: () => {
-      console.info('[Sokuji] [AudioStore] Toggling monitor device state');
+      const next = !get().isMonitorDeviceOn;
+      console.info('[Sokuji] [AudioStore] Toggling monitor device state to', next);
+      get().setMonitorDeviceOn(next);
+    },
+
+    setMonitorDeviceOn: (on) => {
+      // Persist + audio service side effect + auto-mutex with participant
+      // (feedback risk). All call paths funnel through here so the toggle
+      // wrapper is just a thin convenience.
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, on)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
       set((state) => {
-        const newState = !state.isMonitorDeviceOn;
-
-        // Persist the state
-        const settingsService = ServiceFactory.getSettingsService();
-        settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
-
-        // Set monitor volume based on state
         const { audioService } = get();
         if (audioService) {
-          audioService.setMonitorVolume(newState);
-          console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
+          audioService.setMonitorVolume(on);
+          console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${on ? 'ON' : 'OFF'}`);
         }
-
-        // Mutual exclusivity: monitor and participant capture cannot both
-        // be on (feedback risk). Auto-disable participant if turning monitor on.
-        const patch: Partial<AudioStore> = { isMonitorDeviceOn: newState };
-        if (newState && state.isSystemAudioCaptureEnabled) {
+        const patch: Partial<AudioStore> = { isMonitorDeviceOn: on };
+        if (on && state.isSystemAudioCaptureEnabled) {
           console.info('[Sokuji] [AudioStore] Mutex: auto-disabling participant capture');
           settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false)
             .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
@@ -636,6 +637,7 @@ export const useSelectMonitorDevice = () => useAudioStore((state) => state.selec
 export const useToggleInputDeviceState = () => useAudioStore((state) => state.toggleInputDeviceState);
 export const useSetInputDeviceOn = () => useAudioStore((state) => state.setInputDeviceOn);
 export const useToggleMonitorDeviceState = () => useAudioStore((state) => state.toggleMonitorDeviceState);
+export const useSetMonitorDeviceOn = () => useAudioStore((state) => state.setMonitorDeviceOn);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);
@@ -650,125 +652,126 @@ export const useSetSystemAudioSourceReady = () => useAudioStore((state) => state
 export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
 export const useSelectParticipantAudioOutputDevice = () => useAudioStore((state) => state.selectParticipantAudioOutputDevice);
 
-// Export actions with memoization to prevent recreating objects
+// Export actions with memoization to prevent recreating objects.
+// Grouped by channel (matches useAudioContext ordering).
 export const useAudioActions = () => {
+  // Mic
   const selectInputDevice = useSelectInputDevice();
-  const selectMonitorDevice = useSelectMonitorDevice();
   const toggleInputDeviceState = useToggleInputDeviceState();
   const setInputDeviceOn = useSetInputDeviceOn();
+  // Monitor
+  const selectMonitorDevice = useSelectMonitorDevice();
   const toggleMonitorDeviceState = useToggleMonitorDeviceState();
-  const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
-  const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
-  const setNoiseSuppressionMode = useSetNoiseSuppressionMode();
-  const refreshDevices = useRefreshDevices();
-  const initializeAudioService = useInitializeAudioService();
+  const setMonitorDeviceOn = useSetMonitorDeviceOn();
+  // Participant source
   const selectSystemAudioSource = useSelectSystemAudioSource();
   const toggleSystemAudioCapture = useToggleSystemAudioCapture();
   const setSystemAudioCaptureEnabled = useSetSystemAudioCaptureEnabled();
   const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
   const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
   const refreshSystemAudioSources = useRefreshSystemAudioSources();
+  // Extension passthrough
   const selectParticipantAudioOutputDevice = useSelectParticipantAudioOutputDevice();
+  // Ancillary
+  const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
+  const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
+  const setNoiseSuppressionMode = useSetNoiseSuppressionMode();
+  // Globals
+  const refreshDevices = useRefreshDevices();
+  const initializeAudioService = useInitializeAudioService();
 
   return useMemo(
     () => ({
-      selectInputDevice,
-      selectMonitorDevice,
-      toggleInputDeviceState,
-      setInputDeviceOn,
-      toggleMonitorDeviceState,
-      toggleRealVoicePassthrough,
-      setRealVoicePassthroughVolume,
-      setNoiseSuppressionMode,
-      refreshDevices,
-      initializeAudioService,
-      selectSystemAudioSource,
-      toggleSystemAudioCapture,
-      setSystemAudioCaptureEnabled,
-      setSystemAudioCaptureActive,
-      setSystemAudioSourceReady,
-      refreshSystemAudioSources,
+      // Mic
+      selectInputDevice, toggleInputDeviceState, setInputDeviceOn,
+      // Monitor
+      selectMonitorDevice, toggleMonitorDeviceState, setMonitorDeviceOn,
+      // Participant source
+      selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureEnabled,
+      setSystemAudioCaptureActive, setSystemAudioSourceReady, refreshSystemAudioSources,
+      // Extension passthrough
       selectParticipantAudioOutputDevice,
+      // Ancillary
+      toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
+      // Globals
+      refreshDevices, initializeAudioService,
     }),
     [
-      selectInputDevice,
-      selectMonitorDevice,
-      toggleInputDeviceState,
-      setInputDeviceOn,
-      toggleMonitorDeviceState,
-      toggleRealVoicePassthrough,
-      setRealVoicePassthroughVolume,
-      setNoiseSuppressionMode,
-      refreshDevices,
-      initializeAudioService,
-      selectSystemAudioSource,
-      toggleSystemAudioCapture,
-      setSystemAudioCaptureEnabled,
-      setSystemAudioCaptureActive,
-      setSystemAudioSourceReady,
-      refreshSystemAudioSources,
+      selectInputDevice, toggleInputDeviceState, setInputDeviceOn,
+      selectMonitorDevice, toggleMonitorDeviceState, setMonitorDeviceOn,
+      selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureEnabled,
+      setSystemAudioCaptureActive, setSystemAudioSourceReady, refreshSystemAudioSources,
       selectParticipantAudioOutputDevice,
+      toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
+      refreshDevices, initializeAudioService,
     ]
   );
 };
 
-// For backward compatibility with useAudioContext hook
+// Compound hook returning every audio-store field consumers need —
+// kept flat for backwards compatibility with existing destructures.
+// Grouped logically below: 4 channels (mic, monitor, participant source,
+// extension passthrough) each expose (devices list)? + selected + on/off?
+// + actions. Then ancillary streams (voice passthrough, noise suppression)
+// and globals.
 export const useAudioContext = () => {
+  // --- Channel: Mic ---
   const audioInputDevices = useAudioInputDevices();
-  const audioMonitorDevices = useAudioMonitorDevices();
   const selectedInputDevice = useSelectedInputDevice();
-  const selectedMonitorDevice = useSelectedMonitorDevice();
   const isInputDeviceOn = useIsInputDeviceOn();
+
+  // --- Channel: Monitor ---
+  const audioMonitorDevices = useAudioMonitorDevices();
+  const selectedMonitorDevice = useSelectedMonitorDevice();
   const isMonitorDeviceOn = useIsMonitorDeviceOn();
-  const isLoading = useIsAudioLoading();
-  const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
-  const realVoicePassthroughVolume = useRealVoicePassthroughVolume();
-  const noiseSuppressionMode = useNoiseSuppressionMode();
+
+  // --- Channel: Participant source (system / tab audio) ---
   const systemAudioSources = useSystemAudioSources();
   const selectedSystemAudioSource = useSelectedSystemAudioSource();
   const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
   const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
   const isSystemAudioSourceReady = useIsSystemAudioSourceReady();
+
+  // --- Channel: Extension passthrough (no on/off; null = use default) ---
   const participantAudioOutputDevice = useParticipantAudioOutputDevice();
+
+  // --- Ancillary: real-voice passthrough + noise suppression ---
+  const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
+  const realVoicePassthroughVolume = useRealVoicePassthroughVolume();
+  const noiseSuppressionMode = useNoiseSuppressionMode();
+
+  // --- Globals ---
+  const isLoading = useIsAudioLoading();
+
+  // Actions bundle (memoized in useAudioActions; spread below)
   const actions = useAudioActions();
 
   return useMemo(
     () => ({
-      audioInputDevices,
-      audioMonitorDevices,
-      selectedInputDevice,
-      selectedMonitorDevice,
-      isInputDeviceOn,
-      isMonitorDeviceOn,
-      isLoading,
-      isRealVoicePassthroughEnabled,
-      realVoicePassthroughVolume,
-      noiseSuppressionMode,
-      systemAudioSources,
-      selectedSystemAudioSource,
-      isSystemAudioCaptureEnabled,
-      isSystemAudioCaptureActive,
-      isSystemAudioSourceReady,
+      // Mic
+      audioInputDevices, selectedInputDevice, isInputDeviceOn,
+      // Monitor
+      audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
+      // Participant source
+      systemAudioSources, selectedSystemAudioSource,
+      isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
+      // Extension passthrough
       participantAudioOutputDevice,
+      // Ancillary
+      isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
+      // Globals
+      isLoading,
+      // All actions (mic / monitor / participant / passthrough / ancillary)
       ...actions,
     }),
     [
-      audioInputDevices,
-      audioMonitorDevices,
-      selectedInputDevice,
-      selectedMonitorDevice,
-      isInputDeviceOn,
-      isMonitorDeviceOn,
-      isLoading,
-      isRealVoicePassthroughEnabled,
-      realVoicePassthroughVolume,
-      noiseSuppressionMode,
-      systemAudioSources,
-      selectedSystemAudioSource,
-      isSystemAudioCaptureEnabled,
-      isSystemAudioCaptureActive,
-      isSystemAudioSourceReady,
+      audioInputDevices, selectedInputDevice, isInputDeviceOn,
+      audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
+      systemAudioSources, selectedSystemAudioSource,
+      isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
       participantAudioOutputDevice,
+      isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
+      isLoading,
       actions,
     ]
   );
