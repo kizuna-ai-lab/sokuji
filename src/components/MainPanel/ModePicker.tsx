@@ -34,11 +34,19 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   };
 
   const titleFor = (seg: 'speaker' | 'participant' | 'both') => {
-    if (locked) return t('modePicker.switchDisabled', 'Mode is locked during a session.');
+    const isActive = seg === mode;
+    if (locked) {
+      // In-session: only the active segment is clickable (to open the
+      // device popover for the currently-running channels). Inactive
+      // segments are visually locked.
+      return isActive
+        ? t('modePicker.configureDevices', 'Click to configure devices.')
+        : t('modePicker.switchDisabled', 'Mode is locked during a session.');
+    }
     if (missingDeviceForMode === seg || (missingDeviceForMode === 'both' && (seg === 'speaker' || seg === 'participant'))) {
       return t('modePicker.missingDevice', 'Configure devices for this mode to start.');
     }
-    if (seg === mode) return t('modePicker.configureDevices', 'Click to configure devices.');
+    if (isActive) return t('modePicker.configureDevices', 'Click to configure devices.');
     return t('modePicker.switchTo', 'Switch to {{label}}', { label: labelFor(seg) });
   };
 
@@ -56,6 +64,10 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
         ].filter(Boolean).join(' ');
         const Icon = SEGMENT_ICONS[seg];
         const label = labelFor(seg);
+        // When locked, only the active segment stays clickable (opens
+        // the device popover). Inactive segments are disabled so the
+        // user can't accidentally try to switch mid-session.
+        const isDisabled = locked && !isActive;
         return (
           <button
             key={seg}
@@ -64,10 +76,10 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             className={classes}
             aria-pressed={isActive}
             aria-label={label}
-            disabled={locked}
+            disabled={isDisabled}
             title={titleFor(seg)}
             onClick={() => {
-              if (locked) return;
+              if (isDisabled) return;
               const el = refs.current[seg];
               if (el) onSegmentClick(seg, el);
             }}
