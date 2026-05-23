@@ -184,7 +184,16 @@ const useAudioStore = create<AudioStore>()(
           console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
         }
 
-        return { isMonitorDeviceOn: newState };
+        // Mutual exclusivity: monitor and participant capture cannot both
+        // be on (feedback risk). Auto-disable participant if turning monitor on.
+        const patch: Partial<AudioStore> = { isMonitorDeviceOn: newState };
+        if (newState && state.isSystemAudioCaptureEnabled) {
+          console.info('[Sokuji] [AudioStore] Mutex: auto-disabling participant capture');
+          settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
+          patch.isSystemAudioCaptureEnabled = false;
+        }
+        return patch;
       });
     },
     
@@ -235,7 +244,18 @@ const useAudioStore = create<AudioStore>()(
         const settingsService = ServiceFactory.getSettingsService();
         settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, newState)
           .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
-        return { isSystemAudioCaptureEnabled: newState };
+
+        // Mutex: auto-disable monitor if turning participant on.
+        const patch: Partial<AudioStore> = { isSystemAudioCaptureEnabled: newState };
+        if (newState && state.isMonitorDeviceOn) {
+          console.info('[Sokuji] [AudioStore] Mutex: auto-disabling monitor');
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, false)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
+          const { audioService } = get();
+          if (audioService) audioService.setMonitorVolume(false);
+          patch.isMonitorDeviceOn = false;
+        }
+        return patch;
       });
     },
 
@@ -245,7 +265,19 @@ const useAudioStore = create<AudioStore>()(
       const settingsService = ServiceFactory.getSettingsService();
       settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, enabled)
         .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
-      set({ isSystemAudioCaptureEnabled: enabled });
+      // Mutex: auto-disable monitor if enabling participant capture.
+      set((state) => {
+        const patch: Partial<AudioStore> = { isSystemAudioCaptureEnabled: enabled };
+        if (enabled && state.isMonitorDeviceOn) {
+          console.info('[Sokuji] [AudioStore] Mutex: auto-disabling monitor (setSystemAudioCaptureEnabled)');
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, false)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
+          const { audioService } = get();
+          if (audioService) audioService.setMonitorVolume(false);
+          patch.isMonitorDeviceOn = false;
+        }
+        return patch;
+      });
     },
 
     setSystemAudioCaptureActive: (active) => {
