@@ -456,21 +456,30 @@ const useAudioStore = create<AudioStore>()(
         if (typeof savedIsMicMuted === 'boolean') {
           set({ isMicMuted: savedIsMicMuted });
         } else {
-          set({ isMicMuted: savedInputDeviceOn === false });
+          const derivedMicMuted = savedInputDeviceOn === false;
+          set({ isMicMuted: derivedMicMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, derivedMicMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMicMuted:', error));
         }
 
         const savedIsMonitorMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_MUTED, null);
         if (typeof savedIsMonitorMuted === 'boolean') {
           set({ isMonitorMuted: savedIsMonitorMuted });
         } else {
-          set({ isMonitorMuted: savedMonitorDeviceOn !== true });
+          const derivedMonitorMuted = savedMonitorDeviceOn !== true;
+          set({ isMonitorMuted: derivedMonitorMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, derivedMonitorMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMonitorMuted:', error));
         }
 
         const savedIsParticipantMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_PARTICIPANT_MUTED, null);
         if (typeof savedIsParticipantMuted === 'boolean') {
           set({ isParticipantMuted: savedIsParticipantMuted });
         } else {
-          set({ isParticipantMuted: savedSystemAudioCaptureEnabled === false });
+          const derivedParticipantMuted = savedSystemAudioCaptureEnabled === false;
+          set({ isParticipantMuted: derivedParticipantMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, derivedParticipantMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isParticipantMuted:', error));
         }
 
         // Try to restore saved input device, or select default
