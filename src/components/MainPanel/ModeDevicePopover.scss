@@ -121,15 +121,23 @@
       color: #ddd;
     }
 
-    // Muted state: icon turns red to signal the channel is silent.
-    &--muted {
-      color: #e74c3c;
+    // Off state: icon is dimmed to signal the channel is silent.
+    &--off {
+      color: #666;
+      opacity: 0.6;
 
       &:hover {
-        background: rgba(231, 76, 60, 0.12);
-        color: #e74c3c;
+        background: #333;
+        color: #999;
+        opacity: 1;
       }
     }
+  }
+
+  // Participant row has no expand action — remove pointer cursor and hover background.
+  &__row--participant &__row-main {
+    cursor: default;
+    &:hover { background: transparent; }
   }
 
   // Expanded inline DeviceList — mirrors the settings .device-list pattern

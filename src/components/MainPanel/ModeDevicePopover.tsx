@@ -10,7 +10,7 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, MicOff, AudioLines, Volume2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Power, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -36,12 +36,15 @@ interface ChannelRowSpec {
   key: ChannelKey;
   icon: LucideIcon;
   label: string;
+  // Mic + monitor: device list + selected device. Participant: empty list, null device, subtitle text instead.
   devices: AudioDevice[];
   selectedDevice: AudioDevice | null;
+  /** Participant only: descriptive subtitle in place of a device name. */
+  subtitle?: string;
   isMuted: boolean;
   onMuteToggle: () => void;
-  /** Pick a device — also unmutes the channel. */
-  onSelectDevice: (d: AudioDevice) => void;
+  /** Mic + monitor only — participant has no device picker. */
+  onSelectDevice?: (d: AudioDevice) => void;
   /** True when row is in scope and has no device picked. */
   isMissing: boolean;
 }
@@ -57,11 +60,6 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     selectedMonitorDevice,
     selectInputDevice,
     selectMonitorDevice,
-    systemAudioSources,
-    selectedParticipantSource,
-    selectSystemAudioSource,
-    selectedParticipantOutput,
-    selectParticipantOutput,
   } = useAudioContext();
 
   const isMicMuted = useIsMicMuted();
@@ -154,33 +152,18 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (showParticipant) {
-      // Platform-conditional secondary control:
-      //   - electron: pick the system audio source to capture
-      //   - extension: pick the passthrough output device (tab capture is implicit)
-      const devices = isExtension() ? audioMonitorDevices : (systemAudioSources ?? []) as AudioDevice[];
-      const selectedDevice = isExtension()
-        ? selectedParticipantOutput
-        : ((selectedParticipantSource ?? null) as AudioDevice | null);
-      const onSelectDevice = (d: AudioDevice) => {
-        if (isExtension()) {
-          selectParticipantOutput(d);
-        } else {
-          selectSystemAudioSource(d as any);
-        }
-        setParticipantMuted(false);
-      };
       list.push({
         key: 'participant',
         icon: AudioLines,
-        label: isExtension()
-          ? t('modePicker.deviceParticipantOutput', 'Participant output')
-          : t('modePicker.deviceParticipantSource', 'Participant source'),
-        devices,
-        selectedDevice,
+        label: t('modePicker.deviceParticipantAudio', 'Participant audio'),
+        devices: [],
+        selectedDevice: null,
+        subtitle: isExtension()
+          ? t('popover.participantSubtitleExtension', 'Plays via system default')
+          : t('popover.participantSubtitleElectron', 'All system audio'),
         isMuted: isParticipantMuted,
         onMuteToggle: () => setParticipantMuted(!isParticipantMuted),
-        onSelectDevice,
-        isMissing: !isExtension() && !selectedDevice,
+        isMissing: false,
       });
     }
 
@@ -189,8 +172,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     mode,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
-    systemAudioSources, selectedParticipantSource, selectedParticipantOutput, isParticipantMuted,
-    selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantOutput,
+    isParticipantMuted,
+    selectInputDevice, selectMonitorDevice,
     setMicMuted, setMonitorMuted, setParticipantMuted,
     t,
   ]);
@@ -204,12 +187,14 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       : t('modePicker.popoverHeaderBoth', 'Both — devices');
 
   const summaryText = (row: ChannelRowSpec): { text: string; cls: string } => {
+    // Participant: always show subtitle; status indicated by toggle icon
+    if (row.subtitle) {
+      return { text: row.subtitle, cls: row.isMuted ? 'mode-device-popover__summary--off' : '' };
+    }
     if (row.isMuted) {
-      return { text: t('modePicker.muted', 'Muted'), cls: 'mode-device-popover__summary--off' };
+      return { text: t('popover.statusOff', 'Off'), cls: 'mode-device-popover__summary--off' };
     }
     if (!row.selectedDevice) {
-      // Required channels (isMissing=true): amber "Not selected" prompt.
-      // Optional channels (isMissing=false, e.g. monitor): neutral styling.
       if (row.isMissing) {
         return { text: t('modePicker.notSelected', 'Not selected'), cls: 'mode-device-popover__summary--missing' };
       }
@@ -236,35 +221,35 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
           return (
             <React.Fragment key={row.key}>
-              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}`}>
+              <div className={`mode-device-popover__row${isExpanded ? ' mode-device-popover__row--expanded' : ''}${row.key === 'participant' ? ' mode-device-popover__row--participant' : ''}`}>
                 <button
                   type="button"
                   className="mode-device-popover__row-main"
-                  onClick={() => setExpanded(isExpanded ? null : row.key)}
-                  aria-expanded={isExpanded}
+                  onClick={row.key === 'participant' ? undefined : () => setExpanded(isExpanded ? null : row.key)}
+                  aria-expanded={row.key === 'participant' ? undefined : isExpanded}
                 >
                   <Icon size={14} className="mode-device-popover__row-icon" />
                   <span className="mode-device-popover__row-label">{row.label}</span>
                   <span className={`mode-device-popover__summary ${summary.cls}`}>{summary.text}</span>
-                  {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {row.key === 'participant' ? null : (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </button>
                 <button
                   type="button"
-                  className={`mode-device-popover__mute-btn${row.isMuted ? ' mode-device-popover__mute-btn--muted' : ''}`}
+                  className={`mode-device-popover__mute-btn${row.isMuted ? ' mode-device-popover__mute-btn--off' : ''}`}
                   onClick={(e) => { e.stopPropagation(); row.onMuteToggle(); }}
-                  aria-pressed={row.isMuted}
+                  aria-pressed={!row.isMuted}
                   aria-label={row.isMuted
-                    ? t('modePicker.unmute', 'Unmute {{label}}', { label: row.label })
-                    : t('modePicker.mute', 'Mute {{label}}', { label: row.label })}
+                    ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
+                    : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label })}
                   title={row.isMuted
-                    ? t('modePicker.unmute', 'Unmute {{label}}', { label: row.label })
-                    : t('modePicker.mute', 'Mute {{label}}', { label: row.label })}
+                    ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
+                    : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label })}
                 >
-                  {row.isMuted ? <MicOff size={14} /> : <Mic size={14} />}
+                  <Power size={14} />
                 </button>
               </div>
 
-              {isExpanded && (
+              {isExpanded && row.key !== 'participant' && (
                 <div className="mode-device-popover__device-list" role="listbox" aria-label={row.label}>
                   {row.devices.map((d) => {
                     const selected = row.selectedDevice?.deviceId === d.deviceId;
@@ -273,7 +258,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                         key={d.deviceId}
                         type="button"
                         className={`mode-device-popover__device-row${selected ? ' mode-device-popover__device-row--selected' : ''}`}
-                        onClick={() => row.onSelectDevice(d)}
+                        onClick={() => row.onSelectDevice!(d)}
                       >
                         <span>{d.label || d.deviceId}</span>
                         {selected && <span className="mode-device-popover__indicator" />}
