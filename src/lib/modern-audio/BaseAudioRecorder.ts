@@ -11,6 +11,7 @@ export abstract class BaseAudioRecorder {
   protected stream: MediaStream | null = null;
   protected audioContext: AudioContext | null = null;
   protected mediaStreamSource: MediaStreamAudioSourceNode | null = null;
+  protected analyserNode: AnalyserNode | null = null;
   protected audioWorkletNode: AudioWorkletNode | null = null;
   protected scriptProcessor: ScriptProcessorNode | null = null;
   protected dummyGain: GainNode | null = null;
@@ -98,6 +99,14 @@ export abstract class BaseAudioRecorder {
 
     // Create MediaStreamSource
     this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
+
+    // Side-branch analyser tap for waveform visualization.
+    // AnalyserNode is pull-based — consumers read getByteTimeDomainData()
+    // from a requestAnimationFrame loop. It does NOT need to connect to a
+    // destination, and does NOT affect the existing downstream audio path.
+    this.analyserNode = this.audioContext.createAnalyser();
+    this.analyserNode.fftSize = 2048;
+    this.mediaStreamSource.connect(this.analyserNode);
 
     // Check if AudioWorklet is supported
     this.useAudioWorklet = this.isAudioWorkletSupported();
@@ -285,6 +294,11 @@ export abstract class BaseAudioRecorder {
     if (this.dummyGain) {
       this.dummyGain.disconnect();
       this.dummyGain = null;
+    }
+
+    if (this.analyserNode) {
+      this.analyserNode.disconnect();
+      this.analyserNode = null;
     }
 
     if (this.mediaStreamSource) {
