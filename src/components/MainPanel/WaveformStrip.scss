@@ -1,0 +1,33 @@
+.waveform-strip {
+  height: 28px;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--full { width: 110px; max-width: 140px; }
+  &--half { width: 50px; }
+
+  &__label {
+    position: absolute;
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    pointer-events: none;
+    text-transform: uppercase;
+    z-index: 1;
+  }
+
+  &__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  &--mic { background: linear-gradient(90deg, rgba(0,153,255,0.15), rgba(0,153,255,0.30), rgba(0,153,255,0.15)); }
+  &--system { background: linear-gradient(90deg, rgba(245,158,11,0.15), rgba(245,158,11,0.30), rgba(245,158,11,0.15)); }
+  &--output { background: linear-gradient(90deg, rgba(16,163,127,0.15), rgba(16,163,127,0.30), rgba(16,163,127,0.15)); }
+}
