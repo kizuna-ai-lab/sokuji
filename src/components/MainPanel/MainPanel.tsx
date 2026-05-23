@@ -297,8 +297,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Monitor
     selectedMonitorDevice,
     selectMonitorDevice,
-    // Extension passthrough output device (still used for tab audio recording)
-    selectedParticipantOutput,
     // Ancillary
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
@@ -945,6 +943,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
 
+  // Tracks whether connectSystemAudioSource succeeded in the current session.
+  // Guards the session-end disconnectSystemAudioSource call so it only fires
+  // when a source was actually acquired (avoids spurious calls on speaker-only
+  // sessions or when loopback permission was denied).
+  const systemAudioAcquiredRef = useRef<boolean>(false);
+
   // Reference to track push-to-talk duration
   const pushToTalkStartTimeRef = useRef<number | null>(null);
 
@@ -1275,9 +1279,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
           }
         }
-        if (isElectron() && !isExtension()) {
+        if (isElectron() && !isExtension() && systemAudioAcquiredRef.current) {
           try {
             await audioService.disconnectSystemAudioSource();
+            systemAudioAcquiredRef.current = false;
           } catch (error) {
             console.warn('[Sokuji] [MainPanel] Failed to disconnect system audio source:', error);
           }
@@ -1711,19 +1716,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
                   addRealtimeEvent(
                     {
-                      type: 'session.init_error',
+                      type: 'participant.warning',
                       data: {
                         message: t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.')
                       }
                     },
-                    'client', 'session.init_error'
+                    'client', 'participant.warning'
                   );
                   electronAcquireOk = false;
                 } else {
                   await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                  systemAudioAcquiredRef.current = true;
                 }
               } else {
                 await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                systemAudioAcquiredRef.current = true;
               }
             } catch (error) {
               console.error('[Sokuji] [MainPanel] Failed to acquire participant audio:', error);
@@ -1761,8 +1768,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               };
 
               if (isExtension()) {
-                // Extension: start tab audio recording with optional output device for passthrough
-                const outputDeviceId = selectedParticipantOutput?.deviceId;
+                // Extension: start tab audio recording with optional output device for passthrough.
+                // Read once at session start via getState() to avoid a stale closure — consistent
+                // with how sessionMode (line ~1413) and isParticipantMuted (line ~1788) are read.
+                const outputDeviceId = useAudioStore.getState().selectedParticipantOutput?.deviceId;
                 console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
                 await audioServiceRef.current!.startTabAudioRecording(
                   createAudioDataCallback(participantClient),
