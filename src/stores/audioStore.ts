@@ -338,17 +338,7 @@ const useAudioStore = create<AudioStore>()(
       set((state) => {
         const { audioService } = state;
         if (audioService) audioService.setMonitorVolume(!muted);
-        const patch: Partial<AudioStore> = { isMonitorMuted: muted };
-        // Mutex: unmuting monitor while participant is in scope & unmuted
-        // would cause feedback. Auto-mute participant.
-        if (!muted && !state.isParticipantMuted
-            && (state.mode === 'participant' || state.mode === 'both')) {
-          console.info('[Sokuji] [AudioStore] Mutex: auto-muting participant (setMonitorMuted)');
-          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, true)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
-          patch.isParticipantMuted = true;
-        }
-        return patch;
+        return { isMonitorMuted: muted };
       });
     },
 
@@ -356,21 +346,7 @@ const useAudioStore = create<AudioStore>()(
       const settingsService = ServiceFactory.getSettingsService();
       settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, muted)
         .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
-      set((state) => {
-        const patch: Partial<AudioStore> = { isParticipantMuted: muted };
-        // Mutex: unmuting participant while monitor is in scope & unmuted
-        // would cause feedback. Auto-mute monitor.
-        if (!muted && !state.isMonitorMuted
-            && state.mode === 'speaker') {
-          console.info('[Sokuji] [AudioStore] Mutex: auto-muting monitor (setParticipantMuted)');
-          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, true)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMonitorMuted:', error));
-          const { audioService } = state;
-          if (audioService) audioService.setMonitorVolume(false);
-          patch.isMonitorMuted = true;
-        }
-        return patch;
-      });
+      set({ isParticipantMuted: muted });
     },
 
     // Complex actions

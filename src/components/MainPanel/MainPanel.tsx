@@ -389,17 +389,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Which segment should show an amber warning (mode targeted but the
   // required device isn't actually selected/ready). Mirrors what the
   // existing canStartSession gate checks but at per-segment granularity.
+  // Per spec: "canStartSession: True iff every in-scope channel has a device
+  // selected. Mute state does not block start." Scope comes from mode, not
+  // from mute flags.
   const missingDeviceForMode = useMemo<'speaker' | 'participant' | 'both' | null>(() => {
-    const needSpeaker = currentMode === 'speaker' || currentMode === 'both';
-    const needParticipant = currentMode === 'participant' || currentMode === 'both';
-    const hasSpeaker = !isMicMuted && !!selectedInputDevice;
-    const hasParticipant = !isParticipantMuted && (
+    const speakerInScope = currentMode === 'speaker' || currentMode === 'both';
+    const participantInScope = currentMode === 'participant' || currentMode === 'both';
+    const hasSpeaker = speakerInScope && !!selectedInputDevice;
+    const hasParticipant = participantInScope && (
       isExtension() || (!!selectedParticipantSource && isSystemAudioSourceReady)
     );
-    if (needSpeaker && !hasSpeaker) return needParticipant && !hasParticipant ? 'both' : 'speaker';
-    if (needParticipant && !hasParticipant) return 'participant';
+    if (speakerInScope && !hasSpeaker) return participantInScope && !hasParticipant ? 'both' : 'speaker';
+    if (participantInScope && !hasParticipant) return 'participant';
     return null;
-  }, [currentMode, isMicMuted, selectedInputDevice?.deviceId, isParticipantMuted, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
+  }, [currentMode, selectedInputDevice?.deviceId, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
@@ -2939,7 +2942,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle input device changes during active session
    */
   useEffect(() => {
-    // Only handle device changes if session is active and mic is not muted
+    // Only handle device changes if session is active and mic is not muted.
+    // Skip in-flight device switch while muted: the recorder is paused,
+    // so any device change waits until the next unmute, when
+    // resumeRecording / startRecording picks up the current selectedInputDevice.
     if (!isSessionActive || isMicMuted) {
       // Reset initialized flag when session ends
       if (!isSessionActive) {

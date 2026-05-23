@@ -63,65 +63,33 @@ describe('audioStore — mode + mute flags', () => {
     expect(s.isMonitorMuted).toBe(false);
   });
 
-  // ── Mutex tests ──────────────────────────────────────────────────────────
+  // ── No-mutex tests: setters have no cross-channel side effects ──────────
+  // The spec states: "Mutex (monitor ↔ participant): Enforced via mode only."
+  // Monitor is in scope only when mode === 'speaker'; participant is in scope
+  // only when mode === 'participant' || 'both'. They can never both be in
+  // scope simultaneously, so a runtime mutex is unreachable from any UI path.
 
-  it('setMonitorMuted(false) while participant unmuted in Both mode auto-mutes participant', () => {
+  it('setMonitorMuted(false) does not change isParticipantMuted (mutex is mode-enforced, not runtime)', () => {
     useAudioStore.setState({
-      mode: 'both',
+      mode: 'speaker',
       isMonitorMuted: true,
       isParticipantMuted: false,
     } as any);
     useAudioStore.getState().setMonitorMuted(false);
     const s = useAudioStore.getState();
     expect(s.isMonitorMuted).toBe(false);
-    expect(s.isParticipantMuted).toBe(true);
+    expect(s.isParticipantMuted).toBe(false); // unchanged
   });
 
-  it('setMonitorMuted(false) while participant unmuted in Participant mode auto-mutes participant', () => {
+  it('setParticipantMuted(false) does not change isMonitorMuted (mutex is mode-enforced, not runtime)', () => {
     useAudioStore.setState({
       mode: 'participant',
       isMonitorMuted: true,
-      isParticipantMuted: false,
-    } as any);
-    useAudioStore.getState().setMonitorMuted(false);
-    const s = useAudioStore.getState();
-    expect(s.isMonitorMuted).toBe(false);
-    expect(s.isParticipantMuted).toBe(true);
-  });
-
-  it('setMonitorMuted(false) in Speaker mode does NOT auto-mute participant', () => {
-    useAudioStore.setState({
-      mode: 'speaker',
-      isMonitorMuted: true,
-      isParticipantMuted: false,
-    } as any);
-    useAudioStore.getState().setMonitorMuted(false);
-    const s = useAudioStore.getState();
-    expect(s.isMonitorMuted).toBe(false);
-    expect(s.isParticipantMuted).toBe(false); // no mutex in speaker-only mode
-  });
-
-  it('setParticipantMuted(false) while monitor unmuted in Speaker mode auto-mutes monitor', () => {
-    useAudioStore.setState({
-      mode: 'speaker',
-      isMonitorMuted: false,
       isParticipantMuted: true,
     } as any);
     useAudioStore.getState().setParticipantMuted(false);
     const s = useAudioStore.getState();
     expect(s.isParticipantMuted).toBe(false);
-    expect(s.isMonitorMuted).toBe(true);
-  });
-
-  it('setParticipantMuted(false) in Both mode does NOT auto-mute monitor', () => {
-    useAudioStore.setState({
-      mode: 'both',
-      isMonitorMuted: false,
-      isParticipantMuted: true,
-    } as any);
-    useAudioStore.getState().setParticipantMuted(false);
-    const s = useAudioStore.getState();
-    expect(s.isParticipantMuted).toBe(false);
-    expect(s.isMonitorMuted).toBe(false); // monitor mutex only fires in pure speaker mode
+    expect(s.isMonitorMuted).toBe(true); // unchanged
   });
 });
