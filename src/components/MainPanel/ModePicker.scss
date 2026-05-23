@@ -71,10 +71,12 @@
 }
 
 // Narrow-container fallback — hide segment labels, keep icons only.
-// .main-panel-wrapper provides `container-type: inline-size` so this
-// query resolves to the main panel width (extension side panel, narrow
-// Electron windows, etc.).
-@container (max-width: 540px) {
+// Threshold matched to .main-action-btn / .session-button / .push-to-talk*
+// (defined in MainPanel.scss at the same 768px container breakpoint) so
+// the picker collapses to icons-only at the same time the Start/PTT
+// buttons collapse to icon-only. Keeps the whole footer's "compact"
+// transition synchronized.
+@container (max-width: 768px) {
   .mode-picker__label { display: none; }
   .mode-picker__segment {
     padding: 0 10px;
