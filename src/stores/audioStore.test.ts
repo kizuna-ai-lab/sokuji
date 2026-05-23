@@ -109,4 +109,20 @@ describe('audioStore — mode + mute flags', () => {
     expect(s.isSystemAudioCaptureEnabled).toBe(false);
     expect(s.isParticipantMuted).toBe(true);
   });
+
+  it('setMonitorMuted(false) bridges to isMonitorDeviceOn=true', () => {
+    useAudioStore.setState({ isMonitorMuted: true, isMonitorDeviceOn: false } as any);
+    useAudioStore.getState().setMonitorMuted(false);
+    const s = useAudioStore.getState();
+    expect(s.isMonitorMuted).toBe(false);
+    expect(s.isMonitorDeviceOn).toBe(true);
+  });
+
+  it('setMonitorDeviceOn(true) bridges to isMonitorMuted=false', () => {
+    useAudioStore.setState({ isMonitorMuted: true, isMonitorDeviceOn: false } as any);
+    useAudioStore.getState().setMonitorDeviceOn(true);
+    const s = useAudioStore.getState();
+    expect(s.isMonitorDeviceOn).toBe(true);
+    expect(s.isMonitorMuted).toBe(false);
+  });
 });

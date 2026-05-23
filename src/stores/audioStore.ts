@@ -398,7 +398,12 @@ const useAudioStore = create<AudioStore>()(
         patch.isSystemAudioCaptureEnabled = nextParticipantInScope;
         // isMonitorDeviceOn unchanged — monitor is a sub-preference of speaker.
 
-        // Reset mute flags for newly-in-scope channels (monitor mute is sticky).
+        // Reset mute flags for newly-in-scope channels (monitor is sticky).
+        // The plan's "Mode-Switch Behavior" section narrows the spec's
+        // "reset all three" rule: only channels newly coming into scope
+        // reset their mute flag. Monitor stays sticky because its default
+        // is muted and historical behavior is opt-in audio — auto-unmuting
+        // it on every mode change would blast users.
         if (nextSpeakerInScope && !prevSpeakerInScope) {
           patch.isMicMuted = false;
         }
@@ -576,6 +581,19 @@ const useAudioStore = create<AudioStore>()(
           set({ mode: derived });
           settingsService.setSetting(STORAGE_KEYS.MODE, derived)
             .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist initial mode:', error));
+
+          // Once new keys are written, set the legacy on-disk keys to null
+          // so a future cleanup pass can grep for residue. We don't delete
+          // them now because (a) ISettingsService has no removeSetting method,
+          // and (b) leaving them as null preserves rollback recoverability
+          // if the new model is ever reverted. Final deletion happens in
+          // Task 10 of the uniform-mute-semantics plan.
+          settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isInputDeviceOn key:', error));
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isMonitorDeviceOn key:', error));
+          settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isSystemAudioCaptureEnabled key:', error));
         }
 
         const savedIsMicMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MIC_MUTED, null);
