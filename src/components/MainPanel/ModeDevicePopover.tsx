@@ -208,7 +208,12 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       return { text: t('modePicker.muted', 'Muted'), cls: 'mode-device-popover__summary--off' };
     }
     if (!row.selectedDevice) {
-      return { text: t('modePicker.notSelected', 'Not selected'), cls: 'mode-device-popover__summary--missing' };
+      // Required channels (isMissing=true): amber "Not selected" prompt.
+      // Optional channels (isMissing=false, e.g. monitor): neutral styling.
+      if (row.isMissing) {
+        return { text: t('modePicker.notSelected', 'Not selected'), cls: 'mode-device-popover__summary--missing' };
+      }
+      return { text: t('modePicker.notSelected', 'Not selected'), cls: '' };
     }
     return { text: row.selectedDevice.label || row.selectedDevice.deviceId, cls: '' };
   };
