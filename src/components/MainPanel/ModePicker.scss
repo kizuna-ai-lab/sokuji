@@ -21,7 +21,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 12px;
+    gap: 5px;
+    padding: 0 10px;
     font-size: 12px;
     color: #888;
     border-radius: 0;
@@ -31,6 +32,8 @@
     border: 0;
     line-height: 1;
     transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+
+    svg { flex-shrink: 0; }
 
     &:hover:not(:disabled) {
       color: #ccc;
@@ -62,5 +65,17 @@
       background: #555;
       color: #fff;
     }
+  }
+}
+
+// Narrow-container fallback — hide segment labels, keep icons only.
+// .main-panel-wrapper provides `container-type: inline-size` so this
+// query resolves to the main panel width (extension side panel, narrow
+// Electron windows, etc.).
+@container (max-width: 540px) {
+  .mode-picker__label { display: none; }
+  .mode-picker__segment {
+    padding: 0 9px;
+    gap: 0;
   }
 }

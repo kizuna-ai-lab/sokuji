@@ -3314,19 +3314,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               }}
             />
 
-            {(currentMode === 'speaker' || currentMode === 'both') && (
-              <WaveformStrip
-                kind="mic"
-                canvasRef={clientCanvasRef}
-                width={currentMode === 'both' ? 'half' : 'full'}
-              />
-            )}
-            {(currentMode === 'participant' || currentMode === 'both') && (
-              <WaveformStrip
-                kind="system"
-                canvasRef={systemCanvasRef}
-                width={currentMode === 'both' ? 'half' : 'full'}
-              />
+            {/* Input waveforms (mic + system) grouped with a tight gap so
+                they read as a pair, distinct from the wider footer rhythm. */}
+            {(currentMode === 'speaker' || currentMode === 'participant' || currentMode === 'both') && (
+              <div className="waveform-input-group">
+                {(currentMode === 'speaker' || currentMode === 'both') && (
+                  <WaveformStrip
+                    kind="mic"
+                    canvasRef={clientCanvasRef}
+                    width={currentMode === 'both' ? 'half' : 'full'}
+                  />
+                )}
+                {(currentMode === 'participant' || currentMode === 'both') && (
+                  <WaveformStrip
+                    kind="system"
+                    canvasRef={systemCanvasRef}
+                    width={currentMode === 'both' ? 'half' : 'full'}
+                  />
+                )}
+              </div>
             )}
 
             <span className="footer-spacer" />

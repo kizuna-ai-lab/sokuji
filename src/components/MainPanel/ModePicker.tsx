@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { User, Users, ArrowLeftRight } from 'lucide-react';
 import './ModePicker.scss';
 
 export type FooterMode = 'speaker' | 'participant' | 'both' | 'none';
@@ -12,6 +13,15 @@ interface ModePickerProps {
 }
 
 const SEGMENTS: Array<'speaker' | 'participant' | 'both'> = ['speaker', 'participant', 'both'];
+
+// Reuse the User / Users icons from DisplayModeButton for visual consistency
+// with the subtitle display toggles. ArrowLeftRight for 'both' conveys
+// bidirectional translation.
+const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', React.ComponentType<{ size?: number }>> = {
+  speaker: User,
+  participant: Users,
+  both: ArrowLeftRight,
+};
 
 const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForMode, onSegmentClick }) => {
   const { t } = useTranslation();
@@ -44,6 +54,8 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
           isActive ? 'mode-picker__segment--active' : '',
           isWarn ? 'mode-picker__segment--warn' : '',
         ].filter(Boolean).join(' ');
+        const Icon = SEGMENT_ICONS[seg];
+        const label = labelFor(seg);
         return (
           <button
             key={seg}
@@ -51,6 +63,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
             type="button"
             className={classes}
             aria-pressed={isActive}
+            aria-label={label}
             disabled={locked}
             title={titleFor(seg)}
             onClick={() => {
@@ -59,7 +72,8 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
               if (el) onSegmentClick(seg, el);
             }}
           >
-            {labelFor(seg)}
+            <Icon size={14} />
+            <span className="mode-picker__label">{label}</span>
           </button>
         );
       })}
