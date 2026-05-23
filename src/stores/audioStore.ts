@@ -830,6 +830,10 @@ export const useIsParticipantChannelInScope = () =>
   useAudioStore((state) => state.mode === 'participant' || state.mode === 'both');
 export const useIsSpeakerChannelInScope = () =>
   useAudioStore((state) => state.mode === 'speaker' || state.mode === 'both');
+// Monitor channel is in scope only in pure 'speaker' mode.
+// In 'both' mode it's mutex-excluded from participant to prevent
+// audio feedback (the popover hides the monitor row entirely).
+// This is intentional asymmetry with useIsSpeakerChannelInScope.
 export const useIsMonitorChannelInScope = () =>
   useAudioStore((state) => state.mode === 'speaker');
 
