@@ -42,7 +42,7 @@ import {
   CONVERSATION_FONT_SIZE_MIN,
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -381,11 +381,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return 'none';
   }, [speakerWillStart, participantWillStart]);
 
-  // Mode snapshot captured at session start. While session is active, the
-  // picker reads from this so that mid-session mute toggles (which flip
-  // the underlying isInputDeviceOn / isSystemAudioCaptureEnabled state)
-  // don't visually change the locked mode. Cleared on disconnect.
-  const [lockedMode, setLockedMode] = useState<'speaker' | 'participant' | 'both' | 'none' | null>(null);
+  // Mode snapshot captured at session start. While non-null the picker
+  // and any consumer of "effective mode" reads from this so mid-session
+  // mute toggles (which flip the underlying isInputDeviceOn /
+  // isSystemAudioCaptureEnabled state) don't visually change the locked
+  // mode. Stored in sessionStore so the settings panel (a sibling render
+  // tree) can read it too. Cleared on disconnect.
+  const lockedMode = useLockedMode();
+  const setLockedMode = useSetLockedMode();
   const effectiveMode = lockedMode ?? currentMode;
 
   // Which segment should show an amber warning (mode targeted but the

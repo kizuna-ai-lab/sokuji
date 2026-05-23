@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useIsSessionActive } from '../../../stores/sessionStore';
+import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
 import {
   useProvider,
   useAvailableModels,
@@ -12,7 +12,6 @@ import {
   useNavigateToSettings,
   useCurrentTurnDetectionMode,
 } from '../../../stores/settingsStore';
-import { useAudioContext } from '../../../stores/audioStore';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
@@ -67,8 +66,13 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   const fetchAvailableModels = useFetchAvailableModels();
   const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
 
-  // Audio context
-  const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
+  // Locked mode (sessionStore) — drives which audio channel sections are
+  // editable in-session. Pre-session: all 3 editable. In-session: the
+  // irrelevant channels are visible but disabled (greyed).
+  const lockedMode = useLockedMode();
+  const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  const lockParticipant = isSessionActive && lockedMode !== 'participant' && lockedMode !== 'both';
+  const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
 
   // Current Speech Mode for active provider — used to disable VoicePassthroughSection
   // when Push-to-Translate is in effect (mutual exclusion).
@@ -175,23 +179,19 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
             <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
 
             <AudioDeviceSection
-              isSessionActive={isSessionActive}
+              isSessionActive={lockMic}
               showMicrophone={true}
               showSpeaker={false}
             />
 
-            <AudioDeviceSection
-              isSessionActive={isSessionActive}
-              showMicrophone={false}
-              showSpeaker={true}
-              isSystemAudioEnabled={isSystemAudioCaptureEnabled}
-              onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
+            <SystemAudioSection
+              isSessionActive={lockParticipant}
             />
 
-            <SystemAudioSection
-              isSessionActive={isSessionActive}
-              isMonitorDeviceOn={isMonitorDeviceOn}
-              onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+            <AudioDeviceSection
+              isSessionActive={lockMonitor}
+              showMicrophone={false}
+              showSpeaker={true}
             />
 
             <VoicePassthroughSection

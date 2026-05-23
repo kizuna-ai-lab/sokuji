@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useIsSessionActive } from '../../../stores/sessionStore';
+import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
 import { useNavigateToSettings, useSettingsNavigationTarget } from '../../../stores/settingsStore';
-import { useAudioContext } from '../../../stores/audioStore';
-import WarningModal from '../shared/WarningModal';
-import { WarningType } from '../shared/hooks';
 import {
   AccountSection,
   ProviderSection,
@@ -24,13 +21,20 @@ interface SimpleSettingsProps {
 const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => {
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
+  const lockedMode = useLockedMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const navigateToSettings = useNavigateToSettings();
 
-  const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
-
-  // Warning modal state for mutual exclusivity
-  const [warningType, setWarningType] = useState<WarningType | null>(null);
+  // Per-channel lock derivation. A section is locked (greyed/disabled) when:
+  //   - the session is active, AND
+  //   - the channel isn't part of the locked mode
+  // Pre-session every channel is editable (lock = false). In-session,
+  // irrelevant channels are still visible but disabled. The mutual
+  // exclusivity between monitor and participant is enforced inside
+  // audioStore.toggle*; no warning callbacks needed at this layer.
+  const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  const lockParticipant = isSessionActive && lockedMode !== 'participant' && lockedMode !== 'both';
+  const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
 
   // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
   useEffect(() => {
@@ -53,12 +57,6 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
   return (
     <div className="simple-settings">
-      <WarningModal
-        isOpen={warningType !== null}
-        onClose={() => setWarningType(null)}
-        type={warningType}
-      />
-
       <div className="settings-content">
         {isSessionActive && (
           <div className="session-warning">
@@ -92,25 +90,21 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
         {/* Microphone Selection — input 1 */}
         <AudioDeviceSection
-          isSessionActive={isSessionActive}
+          isSessionActive={lockMic}
           showMicrophone={true}
           showSpeaker={false}
         />
 
         {/* Participant Audio — input 2 (system audio capture) */}
         <SystemAudioSection
-          isSessionActive={isSessionActive}
-          isMonitorDeviceOn={isMonitorDeviceOn}
-          onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+          isSessionActive={lockParticipant}
         />
 
         {/* Speaker Selection — output */}
         <AudioDeviceSection
-          isSessionActive={isSessionActive}
+          isSessionActive={lockMonitor}
           showMicrophone={false}
           showSpeaker={true}
-          isSystemAudioEnabled={isSystemAudioCaptureEnabled}
-          onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
         />
 
         {/* Help & Updates */}
