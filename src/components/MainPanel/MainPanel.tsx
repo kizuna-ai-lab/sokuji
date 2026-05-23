@@ -292,21 +292,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Get audio context from context
   const {
+    // Mic
+    audioInputDevices,
     selectedInputDevice,
-    selectedMonitorDevice,
     isInputDeviceOn,
+    selectInputDevice,
+    // Monitor
+    selectedMonitorDevice,
     isMonitorDeviceOn,
-    isRealVoicePassthroughEnabled,
-    realVoicePassthroughVolume,
-    selectMonitorDevice, // Import the selectMonitorDevice function from context
-    // System audio capture
+    selectMonitorDevice,
+    // Participant source
+    systemAudioSources,
     selectedSystemAudioSource,
     isSystemAudioSourceReady,
     isSystemAudioCaptureEnabled,
+    selectSystemAudioSource,
+    // Extension passthrough
     participantAudioOutputDevice,
+    // Ancillary
+    isRealVoicePassthroughEnabled,
+    realVoicePassthroughVolume,
     // Mode-picker setters (write both channel toggles in one call)
     setInputDeviceOn,
-    setSystemAudioCaptureEnabled
+    setSystemAudioCaptureEnabled,
   } = useAudioContext();
 
   // Noise suppression
@@ -368,18 +376,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return !!selectedSystemAudioSource && isSystemAudioSourceReady;
   }, [isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
 
-  const anyChannelWillStart = speakerWillStart || participantWillStart;
-
-  // Footer-level mode derived from channel will-start predicates.
-  // Picker uses this to highlight the active segment.
-  // The 'FooterMode' type is exported from ./ModePicker (added in Task 5);
-  // for now use the inline union — Task 8 will switch to the import.
+  // Footer-level mode reflects user INTENT (which channels are toggled on),
+  // not device readiness. A channel toggled on without a selected device
+  // still counts toward the intended mode; missingDeviceForMode separately
+  // surfaces what's missing, and canStartSession gates the Start button.
+  // This decoupling is what makes "Switch to Others/Both" actually land on
+  // the new mode even when the target channel has no pre-picked device.
   const currentMode = useMemo<'speaker' | 'participant' | 'both' | 'none'>(() => {
-    if (speakerWillStart && participantWillStart) return 'both';
-    if (speakerWillStart) return 'speaker';
-    if (participantWillStart) return 'participant';
+    if (isInputDeviceOn && isSystemAudioCaptureEnabled) return 'both';
+    if (isInputDeviceOn) return 'speaker';
+    if (isSystemAudioCaptureEnabled) return 'participant';
     return 'none';
-  }, [speakerWillStart, participantWillStart]);
+  }, [isInputDeviceOn, isSystemAudioCaptureEnabled]);
 
   // Mode snapshot captured at session start. While non-null the picker
   // and any consumer of "effective mode" reads from this so mid-session
@@ -407,15 +415,49 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return null;
   }, [currentMode, isInputDeviceOn, selectedInputDevice?.deviceId, isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
 
+  // canStartSession requires the *intended* mode to have all its devices
+  // ready (missingDeviceForMode === null + mode !== 'none'). This is
+  // stricter than the old anyChannelWillStart (which allowed a partial
+  // start when one channel was missing a device in 'both' mode).
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
-    !loadingModels && !isInitializing && hasValidBalance && anyChannelWillStart;
+    !loadingModels && !isInitializing && hasValidBalance &&
+    currentMode !== 'none' && missingDeviceForMode === null;
 
-  // Footer mode picker — pre-session, click a segment to write both channels.
+  // Footer mode picker — pre-session, click a segment to:
+  //   1. Write the channel toggles to match the target mode (auto-mutes
+  //      irrelevant channels via the per-channel setters).
+  //   2. Auto-pick the first available device for any newly-enabled
+  //      channel that has no device yet. So switching to Others/Both
+  //      "just works" if devices have been enumerated, instead of
+  //      landing in a half-configured state the user has to dig out of.
+  //   3. Monitor is NOT touched — it's optional in You/Both modes and
+  //      auto-mutex'd off when participant turns on.
   const handleModeSwitch = useCallback((target: 'speaker' | 'participant' | 'both') => {
     if (isSessionActive) return;  // locked during session
-    setInputDeviceOn(target === 'speaker' || target === 'both');
-    setSystemAudioCaptureEnabled(target === 'participant' || target === 'both');
-  }, [isSessionActive, setInputDeviceOn, setSystemAudioCaptureEnabled]);
+
+    const wantSpeaker = target === 'speaker' || target === 'both';
+    const wantParticipant = target === 'participant' || target === 'both';
+
+    // Toggle channels first (audioStore enforces mutex with monitor)
+    setInputDeviceOn(wantSpeaker);
+    setSystemAudioCaptureEnabled(wantParticipant);
+
+    // Auto-pick first available device for newly-enabled channels that
+    // don't already have one selected.
+    if (wantSpeaker && !selectedInputDevice && audioInputDevices.length > 0) {
+      selectInputDevice(audioInputDevices[0]);
+    }
+    // Participant source picker only applies on Electron — on Extension
+    // tab capture has no per-source pick step.
+    if (wantParticipant && !isExtension() && !selectedSystemAudioSource
+        && systemAudioSources && systemAudioSources.length > 0) {
+      selectSystemAudioSource(systemAudioSources[0]);
+    }
+  }, [
+    isSessionActive, setInputDeviceOn, setSystemAudioCaptureEnabled,
+    selectedInputDevice, audioInputDevices, selectInputDevice,
+    selectedSystemAudioSource, systemAudioSources, selectSystemAudioSource,
+  ]);
 
   // Popover (re-click active segment) — anchored to the active segment ref
   // supplied by ModePicker via callback.
@@ -3283,11 +3325,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 disabled={!canStartSession && !isSessionActive}
                 title={
                   !canStartSession && !isSessionActive
-                    ? !anyChannelWillStart
+                    ? currentMode === 'none'
                       ? t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.')
-                      : provider === Provider.LOCAL_INFERENCE
-                        ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                        : undefined
+                      : missingDeviceForMode !== null
+                        ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
+                        : provider === Provider.LOCAL_INFERENCE
+                          ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                          : undefined
                     : undefined
                 }
               >
@@ -3426,28 +3470,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
-                    {!anyChannelWillStart && (
+                    {currentMode === 'none' && (
                       <span className="tooltip">
                         {t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.')}
                       </span>
                     )}
-                    {anyChannelWillStart && !isApiKeyValid && (
+                    {currentMode !== 'none' && missingDeviceForMode !== null && (
+                      <span className="tooltip">
+                        {t('modePicker.missingDevice', 'Configure devices for this mode to start.')}
+                      </span>
+                    )}
+                    {currentMode !== 'none' && missingDeviceForMode === null && !isApiKeyValid && (
                       <span className="tooltip">
                         {provider === Provider.LOCAL_INFERENCE
                           ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
                           : t('mainPanel.apiKeyRequired')}
                       </span>
                     )}
-                    {anyChannelWillStart && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
+                    {currentMode !== 'none' && missingDeviceForMode === null && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
                     )}
-                    {anyChannelWillStart && isApiKeyValid && loadingModels && (
+                    {currentMode !== 'none' && missingDeviceForMode === null && isApiKeyValid && loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                     )}
-                    {anyChannelWillStart && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                    {currentMode !== 'none' && missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {anyChannelWillStart && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {currentMode !== 'none' && missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>

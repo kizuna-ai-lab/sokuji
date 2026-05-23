@@ -62,7 +62,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     isInputDeviceOn,
     isMonitorDeviceOn,
     setInputDeviceOn,
-    toggleMonitorDeviceState,
+    setMonitorDeviceOn,
     systemAudioSources,
     selectedSystemAudioSource,
     selectSystemAudioSource,
@@ -154,10 +154,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         devices: audioMonitorDevices,
         selectedDevice: selectedMonitorDevice,
         isOn: isMonitorDeviceOn,
-        onMute: () => { if (isMonitorDeviceOn) toggleMonitorDeviceState(); },
+        onMute: () => setMonitorDeviceOn(false),
         onSelectDevice: (d) => {
           selectMonitorDevice(d);
-          if (!isMonitorDeviceOn) toggleMonitorDeviceState();
+          setMonitorDeviceOn(true);
         },
         isMissing: false, // monitor is never required
       });
@@ -203,7 +203,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     systemAudioSources, selectedSystemAudioSource, isSystemAudioCaptureEnabled,
     participantAudioOutputDevice,
     selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantAudioOutputDevice,
-    setInputDeviceOn, setSystemAudioCaptureEnabled, toggleMonitorDeviceState,
+    setInputDeviceOn, setSystemAudioCaptureEnabled, setMonitorDeviceOn,
     t,
   ]);
 
