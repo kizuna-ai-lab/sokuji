@@ -40,13 +40,13 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
     audioMonitorDevices,
     selectedInputDevice,
     selectedMonitorDevice,
-    isInputDeviceOn,
-    isMonitorDeviceOn,
+    isMicMuted,
+    isMonitorMuted,
     isLoading,
     selectInputDevice,
     selectMonitorDevice,
-    toggleInputDeviceState,
-    toggleMonitorDeviceState,
+    setMicMuted,
+    setMonitorMuted,
     refreshDevices
   } = useAudioContext();
 
@@ -58,8 +58,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
   const handleInputDeviceSelect = (device: AudioDevice) => {
-    if (!isInputDeviceOn) {
-      toggleInputDeviceState();
+    if (isMicMuted) {
+      setMicMuted(false);
     }
     selectInputDevice(device);
     trackEvent('audio_device_changed', {
@@ -81,8 +81,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
       return;
     }
 
-    if (!isMonitorDeviceOn) {
-      toggleMonitorDeviceState();
+    if (isMonitorMuted) {
+      setMonitorMuted(false);
     }
     selectMonitorDevice(device);
     trackEvent('audio_device_changed', {
@@ -142,9 +142,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredInputDevices}
             selectedDevice={selectedInputDevice}
-            isDeviceOn={isInputDeviceOn}
+            isDeviceOn={!isMicMuted}
             onSelect={handleInputDeviceSelect}
-            onToggleOff={toggleInputDeviceState}
+            onToggleOff={() => setMicMuted(!isMicMuted)}
             disabled={isSessionActive}
             deviceType="input"
             filterVirtual={false}
@@ -214,9 +214,9 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedMonitorDevice}
-            isDeviceOn={isMonitorDeviceOn}
+            isDeviceOn={!isMonitorMuted}
             onSelect={handleMonitorDeviceSelect}
-            onToggleOff={toggleMonitorDeviceState}
+            onToggleOff={() => setMonitorMuted(!isMonitorMuted)}
             disabled={isSessionActive}
             deviceType="output"
             filterVirtual={false}

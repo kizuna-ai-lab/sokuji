@@ -36,11 +36,11 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     audioMonitorDevices,
     systemAudioSources,
     selectedParticipantSource,
-    isSystemAudioCaptureEnabled,
+    isParticipantMuted,
     selectedParticipantOutput,
     isLoading,
     selectSystemAudioSource,
-    toggleSystemAudioCapture,
+    setParticipantMuted,
     setSystemAudioCaptureActive,
     selectParticipantOutput,
     refreshSystemAudioSources,
@@ -97,8 +97,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
         setSystemAudioSourceReady(true);
         selectSystemAudioSource(source);
-        if (!isSystemAudioCaptureEnabled) {
-          toggleSystemAudioCapture();
+        if (isParticipantMuted) {
+          setParticipantMuted(false);
         }
         setSystemAudioCaptureActive(true);
         trackEvent('audio_device_changed', {
@@ -115,8 +115,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
         setSystemAudioSourceReady(false);
         selectSystemAudioSource(null);
-        if (isSystemAudioCaptureEnabled) {
-          toggleSystemAudioCapture();
+        if (!isParticipantMuted) {
+          setParticipantMuted(true);
         }
         setSystemAudioCaptureActive(false);
         trackEvent('audio_device_changed', {
@@ -132,7 +132,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     } finally {
       setIsSystemAudioLoading(false);
     }
-  }, [isSystemAudioLoading, isSystemAudioCaptureEnabled, selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureActive, setSystemAudioSourceReady, trackEvent, isSessionActive]);
+  }, [isSystemAudioLoading, isParticipantMuted, selectSystemAudioSource, setParticipantMuted, setSystemAudioCaptureActive, setSystemAudioSourceReady, trackEvent, isSessionActive]);
 
   // Check if we should show this section
   const shouldShow = isElectron()
@@ -167,8 +167,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     } else {
       // Extension: output device selection
       if (device) {
-        if (!isSystemAudioCaptureEnabled) {
-          toggleSystemAudioCapture();
+        if (isParticipantMuted) {
+          setParticipantMuted(false);
         }
         selectParticipantOutput(device);
         trackEvent('audio_device_changed', {
@@ -178,8 +178,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           during_session: isSessionActive
         });
       } else {
-        if (isSystemAudioCaptureEnabled) {
-          toggleSystemAudioCapture();
+        if (!isParticipantMuted) {
+          setParticipantMuted(true);
         }
       }
     }
@@ -210,7 +210,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
             icon="help"
             maxWidth={300}
           />
-          {provider === Provider.GEMINI && isSystemAudioCaptureEnabled && (
+          {provider === Provider.GEMINI && !isParticipantMuted && (
             <Tooltip
               content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
               position="top"
@@ -244,15 +244,15 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedParticipantOutput}
-            isDeviceOn={isSystemAudioCaptureEnabled}
+            isDeviceOn={!isParticipantMuted}
             onSelect={(device) => handleDeviceClick(device, false)}
             onToggleOff={() => {
               if (isSessionActive) return;
-              if (isSystemAudioCaptureEnabled) {
-                toggleSystemAudioCapture();
+              if (!isParticipantMuted) {
+                setParticipantMuted(true);
               }
             }}
-            disabled={isSessionActive || isMonitorDeviceOn}
+            disabled={isSessionActive}
             deviceType="output"
           />
         ) : (
@@ -260,13 +260,13 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           <DeviceList
             devices={systemAudioSources as AudioDevice[]}
             selectedDevice={selectedParticipantSource as AudioDevice | null}
-            isDeviceOn={isSystemAudioCaptureEnabled}
+            isDeviceOn={!isParticipantMuted}
             onSelect={(device) => handleDeviceClick(device, true)}
             onToggleOff={() => {
               if (isSessionActive) return;
               handleSystemAudioSourceSelect(null);
             }}
-            disabled={isMonitorDeviceOn || isSessionActive || isSystemAudioLoading}
+            disabled={isSessionActive || isSystemAudioLoading}
             deviceType="input"
           />
         )}
