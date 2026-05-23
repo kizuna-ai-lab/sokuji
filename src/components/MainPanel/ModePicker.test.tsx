@@ -6,13 +6,13 @@ describe('ModePicker', () => {
   it('renders three segments labeled by i18n keys (fallback to defaults)', () => {
     render(<ModePicker mode="speaker" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
     expect(screen.getByRole('button', { name: /You|我/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Participants|参会者/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Others|参会者/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Both|双向/ })).toBeInTheDocument();
   });
 
   it('marks the active segment with aria-pressed', () => {
     render(<ModePicker mode="participant" locked={false} missingDeviceForMode={null} onSegmentClick={() => {}} />);
-    const active = screen.getByRole('button', { name: /Participants|参会者/ });
+    const active = screen.getByRole('button', { name: /Others|参会者/ });
     expect(active).toHaveAttribute('aria-pressed', 'true');
   });
 
