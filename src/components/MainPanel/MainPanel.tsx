@@ -364,18 +364,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Channel start predicates — evaluated pre-start. Used by canStartSession
   // and by connectConversation to decide which clients to create. Locked
   // after Start (settings disable on isSessionActive).
+  //
+  // Intent question: drives CLIENT CREATION on scope (mode), not mute state.
+  // Mute is independent and only affects whether the recorder actually runs —
+  // handled inside the session-start block (lines ~1497 mic, ~1510 monitor)
+  // and via the mid-session mute effects. This matches spec: "connect client
+  // … if muted at start, recorder is record() then immediately pause() so
+  // unmute mid-session works trivially."
   const speakerWillStart = useMemo(
-    () => !isMicMuted && !!selectedInputDevice,
+    () => (currentMode === 'speaker' || currentMode === 'both') && !!selectedInputDevice,
     // Depend on deviceId, not the device object — device-enumeration refreshes
     // recreate the object identity even when the selection hasn't changed.
-    [isMicMuted, selectedInputDevice?.deviceId]
+    [currentMode, selectedInputDevice?.deviceId]
   );
 
   const participantWillStart = useMemo(() => {
-    if (isParticipantMuted) return false;
+    const inScope = currentMode === 'participant' || currentMode === 'both';
+    if (!inScope) return false;
     if (isExtension()) return true;  // extension: tab capture, no device gate
     return !!selectedParticipantSource && isSystemAudioSourceReady;
-  }, [isParticipantMuted, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
+  }, [currentMode, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
 
   // Mode snapshot captured at session start. While non-null the picker
   // and any consumer of "effective mode" reads from this so mid-session
