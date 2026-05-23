@@ -48,7 +48,18 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     elements: { reference: anchorEl ?? undefined },
   });
 
-  const dismiss = useDismiss(context);
+  // Exclude clicks on the anchor (the active mode-picker segment) from
+  // triggering dismiss. The segment's own onClick handler in MainPanel
+  // toggles the popover open/closed — without this exclusion, clicking
+  // the active segment would race against useDismiss's outsidePress
+  // close, making the toggle behavior unpredictable.
+  const dismiss = useDismiss(context, {
+    outsidePress: (event) => {
+      const target = event.target as Node | null;
+      if (anchorEl && target && anchorEl.contains(target)) return false;
+      return true;
+    },
+  });
   const { getFloatingProps } = useInteractions([dismiss]);
 
   if (!open || !anchorEl) return null;

@@ -3216,8 +3216,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               missingDeviceForMode={missingDeviceForMode}
               onSegmentClick={(target, el) => {
                 if (target === currentMode) {
-                  setModePopoverAnchor(el);
-                  setModePopoverOpen(true);
+                  // Toggle: clicking the active segment again closes the popover.
+                  if (modePopoverOpen) {
+                    setModePopoverOpen(false);
+                  } else {
+                    setModePopoverAnchor(el);
+                    setModePopoverOpen(true);
+                  }
                 } else {
                   handleModeSwitch(target);
                   setModePopoverOpen(false);
@@ -3305,8 +3310,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               missingDeviceForMode={missingDeviceForMode}
               onSegmentClick={(target, el) => {
                 if (target === currentMode) {
-                  setModePopoverAnchor(el);
-                  setModePopoverOpen(true);
+                  // Toggle: clicking the active segment again closes the popover.
+                  if (modePopoverOpen) {
+                    setModePopoverOpen(false);
+                  } else {
+                    setModePopoverAnchor(el);
+                    setModePopoverOpen(true);
+                  }
                 } else {
                   handleModeSwitch(target);
                   setModePopoverOpen(false);
