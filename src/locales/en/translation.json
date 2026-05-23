@@ -609,6 +609,26 @@
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
     }
   },
+  "modePicker": {
+    "modeYou": "You",
+    "modeParticipants": "Participants",
+    "modeBoth": "Both",
+    "groupLabel": "Translation mode",
+    "switchTo": "Switch to {{label}}",
+    "switchDisabled": "Mode is locked during a session.",
+    "configureDevices": "Click to configure devices.",
+    "missingDevice": "Configure devices for this mode to start.",
+    "popoverHeaderYou": "You — devices",
+    "popoverHeaderParticipants": "Participants — devices",
+    "popoverHeaderBoth": "Both — devices",
+    "popoverFooter": "Full settings →",
+    "deviceMic": "Microphone",
+    "deviceParticipantSource": "Participant source",
+    "devicePassthrough": "Original audio passthrough",
+    "deviceSpeakerMonitor": "Speaker monitor",
+    "notSelected": "Not selected",
+    "useDefault": "Default output"
+  },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
     "clickToConfigMicrophone": "Click to configure microphone",
