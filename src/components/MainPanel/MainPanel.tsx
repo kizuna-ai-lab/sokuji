@@ -2394,6 +2394,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const audioService = audioServiceRef.current;
     const serverCanvas = serverCanvasRef.current;
     let serverCtx: CanvasRenderingContext2D | null = null;
+    const systemCanvas = systemCanvasRef.current;
+    let systemCtx: CanvasRenderingContext2D | null = null;
+    // Pre-allocate the byte buffer once — the analyser node's frequencyBinCount
+    // doesn't change across frames, so we reuse the same array.
+    let systemByteBuffer: Uint8Array | null = null;
+    let systemFloatBuffer: Float32Array | null = null;
 
     const render = () => {
       if (isLoaded) {
@@ -2421,6 +2427,53 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
         
+        // Participant audio waveform (system audio capture) — gated on mode.
+        // In-session: draw when participant channel is actually active.
+        // Pre-session: draw an empty visualization for layout stability when mode
+        // includes participant (the canvas is only rendered then anyway).
+        const showSystemWaveform = isSessionActive
+          ? participantChannelActive
+          : currentMode === 'participant' || currentMode === 'both';
+
+        if (showSystemWaveform && systemCanvas && audioService) {
+          if (!systemCanvas.width || !systemCanvas.height) {
+            systemCanvas.width = systemCanvas.offsetWidth;
+            systemCanvas.height = systemCanvas.offsetHeight;
+          }
+          systemCtx = systemCtx || systemCanvas.getContext('2d');
+          if (systemCtx) {
+            systemCtx.clearRect(0, 0, systemCanvas.width, systemCanvas.height);
+            const participantAnalyser = audioService.getParticipantAnalyser?.() ?? null;
+            let values: Float32Array;
+            if (participantAnalyser) {
+              const bins = participantAnalyser.frequencyBinCount;
+              if (!systemByteBuffer || systemByteBuffer.length !== bins) {
+                systemByteBuffer = new Uint8Array(bins);
+                systemFloatBuffer = new Float32Array(bins);
+              }
+              // Cast: TypeScript 5.7+ narrows TypedArray generic to ArrayBuffer
+              // exactly; `new Uint8Array(n)` produces Uint8Array<ArrayBufferLike>.
+              // Both shapes are safe for getByteFrequencyData at runtime.
+              participantAnalyser.getByteFrequencyData(systemByteBuffer as Uint8Array<ArrayBuffer>);
+              for (let i = 0; i < bins; i++) {
+                systemFloatBuffer![i] = systemByteBuffer[i] / 255;
+              }
+              values = systemFloatBuffer!;
+            } else {
+              values = new Float32Array([0]);
+            }
+            WavRenderer.drawBars(
+              systemCanvas,
+              systemCtx,
+              values,
+              '#f59e0b',
+              10,
+              0,
+              8
+            );
+          }
+        }
+
         if (serverCanvas && audioService) {
           if (!serverCanvas.width || !serverCanvas.height) {
             serverCanvas.width = serverCanvas.offsetWidth;
@@ -2484,7 +2537,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, [uiMode]);
+  }, [uiMode, currentMode, isSessionActive, participantChannelActive]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
