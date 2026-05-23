@@ -276,4 +276,11 @@ export interface IAudioService {
    * Returns true if either system audio (Electron) or tab audio (Extension) is available
    */
   supportsParticipantAudioCapture(): boolean;
+
+  /**
+   * AnalyserNode for the participant audio capture stream. Returns null
+   * when participant capture is not active. Used by MainPanel to drive
+   * the participant waveform visualization.
+   */
+  getParticipantAnalyser(): AnalyserNode | null;
 }

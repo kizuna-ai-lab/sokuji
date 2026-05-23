@@ -1199,4 +1199,19 @@ export class ModernBrowserAudioService implements IAudioService {
   public isParticipantAudioRecordingActive(): boolean {
     return this.tabAudioRecordingActive || this.systemAudioRecordingActive;
   }
+
+  /**
+   * AnalyserNode for the participant audio capture stream. Returns null
+   * when participant capture is not active. Used by MainPanel to drive
+   * the participant waveform visualization.
+   */
+  public getParticipantAnalyser(): AnalyserNode | null {
+    if (this.tabAudioRecordingActive) {
+      return this.tabAudioRecorder?.getAnalyser() ?? null;
+    }
+    if (this.systemAudioRecordingActive) {
+      return this.systemAudioRecorder?.getAnalyser() ?? null;
+    }
+    return null;
+  }
 }
