@@ -1771,14 +1771,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               };
 
               if (isExtension()) {
-                // Extension: start tab audio recording with optional output device for passthrough.
-                // Read once at session start via getState() to avoid a stale closure — consistent
-                // with how sessionMode (line ~1413) and isParticipantMuted (line ~1788) are read.
-                const outputDeviceId = useAudioStore.getState().selectedParticipantOutput?.deviceId;
-                console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
+                // Extension: start tab audio recording. Passthrough always uses
+                // the system default output device (selectedParticipantOutput removed
+                // per on/off pipeline-gate spec — D-Task 6).
+                console.info('[Sokuji] [MainPanel] Starting tab audio recording');
                 await audioServiceRef.current!.startTabAudioRecording(
-                  createAudioDataCallback(participantClient),
-                  outputDeviceId
+                  createAudioDataCallback(participantClient)
                 );
               } else {
                 // Electron: start system audio recording from virtual mic

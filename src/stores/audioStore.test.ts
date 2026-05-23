@@ -10,9 +10,7 @@ describe('audioStore — mode + mute flags', () => {
       isMonitorMuted: true,
       isParticipantMuted: false,
       audioInputDevices: [],
-      systemAudioSources: [],
       selectedInputDevice: null,
-      selectedParticipantSource: null,
     } as any);
   });
 
