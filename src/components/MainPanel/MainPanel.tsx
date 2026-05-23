@@ -2648,7 +2648,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isInputDeviceOn, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
-   * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
+   * Watch for changes to isSystemAudioCaptureEnabled mid-session — toggle
+   * acts as mute for the participant channel. Pauses/resumes the
+   * participant recorder without disconnecting the participant client.
+   * Only fires when participant channel is actually active (so toggling
+   * an irrelevant channel — which the UI prevents anyway — is also a
+   * runtime no-op as defense in depth).
+   */
+  useEffect(() => {
+    if (!isSessionActive || !participantChannelActive || !audioServiceRef.current) return;
+    const audioService = audioServiceRef.current;
+    if (isSystemAudioCaptureEnabled) {
+      void audioService.resumeParticipantAudioRecording?.()
+        .catch(err => console.warn('[Sokuji] [MainPanel] Failed to resume participant audio:', err));
+    } else {
+      void audioService.pauseParticipantAudioRecording?.()
+        .catch(err => console.warn('[Sokuji] [MainPanel] Failed to pause participant audio:', err));
+    }
+  }, [isSystemAudioCaptureEnabled, isSessionActive, participantChannelActive]);
+
+  /**
+   * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn
    * and update the audio monitoring accordingly
    */
   useEffect(() => {

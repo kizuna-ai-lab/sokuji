@@ -283,4 +283,18 @@ export interface IAudioService {
    * the participant waveform visualization.
    */
   getParticipantAnalyser(): AnalyserNode | null;
+
+  /**
+   * Pause participant audio recording — stops audio data flowing to the
+   * participant client without disconnecting it. The underlying stream
+   * and AnalyserNode stay alive so the visualization keeps showing input.
+   * Used by the mid-session mute toggle.
+   */
+  pauseParticipantAudioRecording(): Promise<void>;
+
+  /**
+   * Resume participant audio recording after a pause. Re-attaches the
+   * stored callback to the active participant recorder.
+   */
+  resumeParticipantAudioRecording(): Promise<void>;
 }
