@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Users, ArrowLeftRight } from 'lucide-react';
+import { User, Users, ArrowLeftRight, type LucideIcon } from 'lucide-react';
 import './ModePicker.scss';
 
 export type FooterMode = 'speaker' | 'participant' | 'both' | 'none';
@@ -17,7 +17,7 @@ const SEGMENTS: Array<'speaker' | 'participant' | 'both'> = ['speaker', 'partici
 // Reuse the User / Users icons from DisplayModeButton for visual consistency
 // with the subtitle display toggles. ArrowLeftRight for 'both' conveys
 // bidirectional translation.
-const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', React.ComponentType<{ size?: number }>> = {
+const SEGMENT_ICONS: Record<'speaker' | 'participant' | 'both', LucideIcon> = {
   speaker: User,
   participant: Users,
   both: ArrowLeftRight,

@@ -385,6 +385,15 @@
 
     .footer-spacer { flex: 1; min-width: 12px; }
 
+    // Tight-gap wrapper for the input waveforms (mic + sys) so they read
+    // as a pair, distinct from the wider 10px gap between other footer items.
+    .waveform-input-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
     .action-cluster {
       display: inline-flex;
       align-items: center;
