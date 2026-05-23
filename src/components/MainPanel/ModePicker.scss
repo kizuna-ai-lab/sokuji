@@ -1,25 +1,29 @@
+// Segmented control. Container uses a darker inset look so the 3 segments
+// read as one connected group against the footer's #2a2a2a surface.
 .mode-picker {
   display: inline-flex;
-  background: #2a2a2a;
+  background: #1a1a1a;
+  border: 1px solid #333;
   border-radius: 6px;
   padding: 2px;
   flex-shrink: 0;
-  gap: 0;
+  gap: 2px;
 
   &__segment {
     padding: 4px 10px;
     font-size: 12px;
     color: #888;
-    border-radius: 4px;
+    border-radius: 3px;
     user-select: none;
     cursor: pointer;
     background: transparent;
     border: 0;
+    line-height: 1.2;
     transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 
     &:hover:not(:disabled) {
       color: #ccc;
-      background: #333;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     &--active {
@@ -36,9 +40,10 @@
   }
 
   &--locked {
+    opacity: 0.85;
     .mode-picker__segment {
       cursor: not-allowed;
-      opacity: 0.6;
+      opacity: 0.55;
     }
     .mode-picker__segment--active {
       opacity: 1;
