@@ -163,7 +163,17 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">
-          <a onClick={() => { navigateToSettings(null); onClose(); }}>
+          <a onClick={() => {
+            // navigateToSettings(null) is a no-op — MainLayout opens the
+            // panel only on a truthy target. Pass the popover's current
+            // mode as the section anchor so the user lands on the most
+            // relevant section.
+            const target = mode === 'speaker' ? 'microphone'
+              : mode === 'participant' ? 'participant'
+              : 'microphone';
+            navigateToSettings(target);
+            onClose();
+          }}>
             {t('modePicker.popoverFooter', 'Full settings →')}
           </a>
         </div>

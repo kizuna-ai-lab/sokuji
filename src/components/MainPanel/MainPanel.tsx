@@ -381,6 +381,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return 'none';
   }, [speakerWillStart, participantWillStart]);
 
+  // Mode snapshot captured at session start. While session is active, the
+  // picker reads from this so that mid-session mute toggles (which flip
+  // the underlying isInputDeviceOn / isSystemAudioCaptureEnabled state)
+  // don't visually change the locked mode. Cleared on disconnect.
+  const [lockedMode, setLockedMode] = useState<'speaker' | 'participant' | 'both' | 'none' | null>(null);
+  const effectiveMode = lockedMode ?? currentMode;
+
   // Which segment should show an amber warning (mode targeted but the
   // required device isn't actually selected/ready). Mirrors what the
   // existing canStartSession gate checks but at per-segment granularity.
@@ -1221,6 +1228,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsUsingWebRTC(false);
       setSpeakerChannelActive(false);
       setParticipantChannelActive(false);
+      setLockedMode(null);
       pendingTextRef.current = null;
 
       // Clear audio quality tracking interval
@@ -1729,6 +1737,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set state variables after successful initialization
       // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
+      setLockedMode(currentMode);
       setIsSessionActive(true);
       setItems(speakerClientRef.current?.getConversationItems() || []);
 
@@ -2433,7 +2442,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // includes participant (the canvas is only rendered then anyway).
         const showSystemWaveform = isSessionActive
           ? participantChannelActive
-          : currentMode === 'participant' || currentMode === 'both';
+          : effectiveMode === 'participant' || effectiveMode === 'both';
 
         if (showSystemWaveform && systemCanvas && audioService) {
           if (!systemCanvas.width || !systemCanvas.height) {
@@ -2537,7 +2546,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, [uiMode, currentMode, isSessionActive, participantChannelActive]);
+  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
@@ -3211,11 +3220,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </span>
             )}
             <ModePicker
-              mode={currentMode}
+              mode={effectiveMode}
               locked={isSessionActive || isInitializing}
               missingDeviceForMode={missingDeviceForMode}
               onSegmentClick={(target, el) => {
-                if (target === currentMode) {
+                if (target === effectiveMode) {
                   // Toggle: clicking the active segment again closes the popover.
                   if (modePopoverOpen) {
                     setModePopoverOpen(false);
@@ -3305,11 +3314,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
 
             <ModePicker
-              mode={currentMode}
+              mode={effectiveMode}
               locked={isSessionActive || isInitializing}
               missingDeviceForMode={missingDeviceForMode}
               onSegmentClick={(target, el) => {
-                if (target === currentMode) {
+                if (target === effectiveMode) {
                   // Toggle: clicking the active segment again closes the popover.
                   if (modePopoverOpen) {
                     setModePopoverOpen(false);
@@ -3326,20 +3335,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             {/* Input waveforms (mic + system) grouped with a tight gap so
                 they read as a pair, distinct from the wider footer rhythm. */}
-            {(currentMode === 'speaker' || currentMode === 'participant' || currentMode === 'both') && (
+            {(effectiveMode === 'speaker' || effectiveMode === 'participant' || effectiveMode === 'both') && (
               <div className="waveform-input-group">
-                {(currentMode === 'speaker' || currentMode === 'both') && (
+                {(effectiveMode === 'speaker' || effectiveMode === 'both') && (
                   <WaveformStrip
                     kind="mic"
                     canvasRef={clientCanvasRef}
-                    width={currentMode === 'both' ? 'half' : 'full'}
+                    width={effectiveMode === 'both' ? 'half' : 'full'}
                   />
                 )}
-                {(currentMode === 'participant' || currentMode === 'both') && (
+                {(effectiveMode === 'participant' || effectiveMode === 'both') && (
                   <WaveformStrip
                     kind="system"
                     canvasRef={systemCanvasRef}
-                    width={currentMode === 'both' ? 'half' : 'full'}
+                    width={effectiveMode === 'both' ? 'half' : 'full'}
                   />
                 )}
               </div>
@@ -3435,7 +3444,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             <span className="footer-spacer" />
 
-            {currentMode !== 'none' && (
+            {effectiveMode !== 'none' && (
               <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
             )}
 
@@ -3478,9 +3487,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
-      {modePopoverOpen && currentMode !== 'none' && (
+      {modePopoverOpen && effectiveMode !== 'none' && (
         <ModeDevicePopover
-          mode={currentMode}
+          mode={effectiveMode}
           open={modePopoverOpen}
           anchorEl={modePopoverAnchor}
           onClose={() => setModePopoverOpen(false)}
