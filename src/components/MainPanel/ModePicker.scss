@@ -1,27 +1,30 @@
-// Segmented control. Container uses a darker inset look so the 3 segments
-// read as one connected group against the footer's #2a2a2a surface.
-// Fixed 28px height matches WaveformStrip and the PTT/Start buttons so
-// the entire footer row aligns on a common baseline.
+// Segmented control. Fills its 28px height edge-to-edge so the active
+// segment renders as a solid color block matching the WaveformStrip
+// height next to it. The "group" effect comes from:
+//   1. The darker container background (#1a1a1a) contrasting with the
+//      footer surface (#2a2a2a)
+//   2. A 1px gap between segments that lets the dark container bg
+//      show through as a divider — visually connecting the 3 segments
+//      into one control without any internal padding/border
 .mode-picker {
   display: inline-flex;
   align-items: stretch;
   height: 28px;
   box-sizing: border-box;
   background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: 4px;
+  overflow: hidden;
   flex-shrink: 0;
-  gap: 2px;
+  gap: 1px;
 
   &__segment {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 10px;
+    padding: 0 12px;
     font-size: 12px;
     color: #888;
-    border-radius: 3px;
+    border-radius: 0;
     user-select: none;
     cursor: pointer;
     background: transparent;
@@ -31,7 +34,7 @@
 
     &:hover:not(:disabled) {
       color: #ccc;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     &--active {
