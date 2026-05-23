@@ -7,6 +7,8 @@ import {
   offset,
   flip,
   shift,
+  size,
+  autoUpdate,
 } from '@floating-ui/react';
 import { Mic, AudioLines, Volume2, Headphones, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +79,25 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     open,
     onOpenChange: (next) => { if (!next) onClose(); },
     placement: 'top',
-    middleware: [offset(8), flip(), shift({ padding: 8 })],
+    // autoUpdate watches anchor/floating size changes so expanding a row
+    // (which grows the popover) triggers a re-position and re-clamp.
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      flip(),
+      shift({ padding: 8 }),
+      // size clamps the popover's max-height to the available space so a
+      // tall expansion can't push the bottom off-screen. The popover's
+      // scrollable middle section handles overflow internally.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(availableHeight, 200)}px`,
+          });
+        },
+      }),
+    ],
     elements: { reference: anchorEl ?? undefined },
   });
 
@@ -214,6 +234,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       >
         <div className="mode-device-popover__header">{headerLabel}</div>
 
+        <div className="mode-device-popover__scroll">
         {rows.map((row) => {
           const Icon = row.icon;
           const summary = summaryText(row);
@@ -279,6 +300,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
             </React.Fragment>
           );
         })}
+        </div>
 
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">
