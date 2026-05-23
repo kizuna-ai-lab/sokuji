@@ -34,7 +34,7 @@ import { ProviderConfigFactory } from '../../../services/providers/ProviderConfi
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
-import { useIsSystemAudioCaptureEnabled } from '../../../stores/audioStore';
+import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
@@ -74,7 +74,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
 
-  const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
+  const isParticipantChannelInScope = useIsParticipantChannelInScope();
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
@@ -310,10 +310,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // target would fail the API call. Informational only (no auto-toggle).
   const showTranslateParticipantWarning = useMemo(() => {
     if (provider !== Provider.OPENAI_TRANSLATE) return false;
-    if (!isSystemAudioCaptureEnabled) return false;
+    if (!isParticipantChannelInScope) return false;
     const supportedTargets = OpenAITranslateProviderConfig.getTargetLanguages();
     return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
-  }, [provider, isSystemAudioCaptureEnabled, currentProviderSettings.sourceLanguage]);
+  }, [provider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [

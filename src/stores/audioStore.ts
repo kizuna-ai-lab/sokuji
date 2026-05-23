@@ -824,6 +824,15 @@ export const useSetMicMuted = () => useAudioStore((state) => state.setMicMuted);
 export const useSetMonitorMuted = () => useAudioStore((state) => state.setMonitorMuted);
 export const useSetParticipantMuted = () => useAudioStore((state) => state.setParticipantMuted);
 
+// Scope-derivation selectors (Task 9): pure derivations from mode.
+// "In scope" means the channel is active for the current AudioMode.
+export const useIsParticipantChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'participant' || state.mode === 'both');
+export const useIsSpeakerChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'speaker' || state.mode === 'both');
+export const useIsMonitorChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'speaker');
+
 // Export actions with memoization to prevent recreating objects.
 // Grouped by channel (matches useAudioContext ordering).
 export const useAudioActions = () => {
