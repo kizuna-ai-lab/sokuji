@@ -1391,6 +1391,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         return;
       }
 
+      // Read mode once at session start. Mode can't change mid-session
+      // (the picker is locked), so a one-shot read avoids re-subscribing
+      // the entire callback to mode changes.
+      const sessionMode = useAudioStore.getState().mode;
+
       // Clear previous session's conversation items
       setItems([]);
       setParticipantItems([]);
@@ -1671,7 +1676,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation
-      const participantInScope = currentMode === 'participant' || currentMode === 'both';
+      const participantInScope = sessionMode === 'participant' || sessionMode === 'both';
       const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current && (
         isExtension() || // Extension: use tab capture
         (selectedParticipantSource && isSystemAudioSourceReady) // Electron: use system audio loopback
@@ -1753,7 +1758,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set state variables after successful initialization
       // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
-      setLockedMode(currentMode);
+      setLockedMode(sessionMode);
       setIsSessionActive(true);
       setItems(speakerClientRef.current?.getConversationItems() || []);
 
