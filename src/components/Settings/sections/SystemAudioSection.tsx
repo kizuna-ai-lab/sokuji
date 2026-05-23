@@ -37,12 +37,12 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     systemAudioSources,
     selectedParticipantSource,
     isSystemAudioCaptureEnabled,
-    participantAudioOutputDevice,
+    selectedParticipantOutput,
     isLoading,
     selectSystemAudioSource,
     toggleSystemAudioCapture,
     setSystemAudioCaptureActive,
-    selectParticipantAudioOutputDevice,
+    selectParticipantOutput,
     refreshSystemAudioSources,
     refreshDevices,
   } = useAudioContext();
@@ -170,7 +170,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         if (!isSystemAudioCaptureEnabled) {
           toggleSystemAudioCapture();
         }
-        selectParticipantAudioOutputDevice(device);
+        selectParticipantOutput(device);
         trackEvent('audio_device_changed', {
           device_type: 'participant_output',
           device_name: device.label,
@@ -243,7 +243,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           // Extension: Toggle with output device selection
           <DeviceList
             devices={filteredMonitorDevices}
-            selectedDevice={participantAudioOutputDevice}
+            selectedDevice={selectedParticipantOutput}
             isDeviceOn={isSystemAudioCaptureEnabled}
             onSelect={(device) => handleDeviceClick(device, false)}
             onToggleOff={() => {

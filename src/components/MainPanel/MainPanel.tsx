@@ -308,7 +308,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isSystemAudioCaptureEnabled,
     selectSystemAudioSource,
     // Extension passthrough
-    participantAudioOutputDevice,
+    selectedParticipantOutput,
     // Ancillary
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
@@ -1750,7 +1750,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             if (isExtension()) {
               // Extension: start tab audio recording with optional output device for passthrough
-              const outputDeviceId = participantAudioOutputDevice?.deviceId;
+              const outputDeviceId = selectedParticipantOutput?.deviceId;
               console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
               await audioServiceRef.current.startTabAudioRecording(
                 createAudioDataCallback(participantClient),

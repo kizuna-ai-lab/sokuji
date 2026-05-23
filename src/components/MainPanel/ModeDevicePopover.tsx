@@ -68,8 +68,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     selectSystemAudioSource,
     isSystemAudioCaptureEnabled,
     setSystemAudioCaptureEnabled,
-    participantAudioOutputDevice,
-    selectParticipantAudioOutputDevice,
+    selectedParticipantOutput,
+    selectParticipantOutput,
   } = useAudioContext();
 
   // Only one row expanded at a time. Default: none expanded.
@@ -188,9 +188,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         icon: Headphones,
         label: t('modePicker.devicePassthrough', 'Original audio passthrough'),
         devices: audioMonitorDevices,
-        selectedDevice: participantAudioOutputDevice,
+        selectedDevice: selectedParticipantOutput,
         isOn: true,
-        onSelectDevice: (d) => selectParticipantAudioOutputDevice(d),
+        onSelectDevice: (d) => selectParticipantOutput(d),
         isMissing: false,
       });
     }
@@ -201,8 +201,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     audioInputDevices, selectedInputDevice, isInputDeviceOn,
     audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
     systemAudioSources, selectedParticipantSource, isSystemAudioCaptureEnabled,
-    participantAudioOutputDevice,
-    selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantAudioOutputDevice,
+    selectedParticipantOutput,
+    selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantOutput,
     setInputDeviceOn, setSystemAudioCaptureEnabled, setMonitorDeviceOn,
     t,
   ]);
@@ -276,7 +276,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                         // Extension passthrough: "Off" = pick the default output
                         // by passing null. (The action signature accepts null
                         // to clear the selection.)
-                        selectParticipantAudioOutputDevice(null as any);
+                        selectParticipantOutput(null as any);
                       } else if (row.onMute) {
                         row.onMute();
                       }

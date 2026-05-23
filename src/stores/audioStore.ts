@@ -47,7 +47,7 @@ interface AudioStore {
   isSystemAudioCaptureEnabled: boolean;
   isSystemAudioCaptureActive: boolean;
   isSystemAudioSourceReady: boolean;
-  participantAudioOutputDevice: AudioDevice | null; // Output device for participant audio (Extension only)
+  selectedParticipantOutput: AudioDevice | null; // Output device for participant audio (Extension only)
 
   // Audio service reference
   audioService: IAudioService | null;
@@ -75,7 +75,7 @@ interface AudioStore {
   setSystemAudioCaptureActive: (active: boolean) => void;
   setSystemAudioSourceReady: (ready: boolean) => void;
   refreshSystemAudioSources: () => Promise<void>;
-  selectParticipantAudioOutputDevice: (device: AudioDevice | null) => void;
+  selectParticipantOutput: (device: AudioDevice | null) => void;
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
@@ -103,7 +103,7 @@ const useAudioStore = create<AudioStore>()(
     isSystemAudioCaptureEnabled: false,
     isSystemAudioCaptureActive: false,
     isSystemAudioSourceReady: false,
-    participantAudioOutputDevice: null,
+    selectedParticipantOutput: null,
 
     audioService: null,
     
@@ -352,9 +352,9 @@ const useAudioStore = create<AudioStore>()(
       }
     },
 
-    selectParticipantAudioOutputDevice: (device) => {
+    selectParticipantOutput: (device) => {
       console.info('[Sokuji] [AudioStore] Selected participant audio output device:', device?.label || 'None');
-      set({ participantAudioOutputDevice: device });
+      set({ selectedParticipantOutput: device });
       const settingsService = ServiceFactory.getSettingsService();
       settingsService.setSetting(STORAGE_KEYS.SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID, device?.deviceId || '')
         .catch(error => console.error('[Sokuji] [AudioStore] Failed to save participant audio output device:', error));
@@ -433,7 +433,7 @@ const useAudioStore = create<AudioStore>()(
           const savedDevice = devices.outputs.find(d => d.deviceId === savedParticipantOutputId);
           if (savedDevice) {
             console.info('[Sokuji] [AudioStore] Restored participant audio output device:', savedDevice.label);
-            set({ participantAudioOutputDevice: savedDevice });
+            set({ selectedParticipantOutput: savedDevice });
           }
         }
 
@@ -629,7 +629,7 @@ export const useSelectedParticipantSource = () => useAudioStore((state) => state
 export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
 export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
 export const useIsSystemAudioSourceReady = () => useAudioStore((state) => state.isSystemAudioSourceReady);
-export const useParticipantAudioOutputDevice = () => useAudioStore((state) => state.participantAudioOutputDevice);
+export const useSelectedParticipantOutput = () => useAudioStore((state) => state.selectedParticipantOutput);
 
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
@@ -650,7 +650,7 @@ export const useSetSystemAudioCaptureEnabled = () => useAudioStore((state) => st
 export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
 export const useSetSystemAudioSourceReady = () => useAudioStore((state) => state.setSystemAudioSourceReady);
 export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
-export const useSelectParticipantAudioOutputDevice = () => useAudioStore((state) => state.selectParticipantAudioOutputDevice);
+export const useSelectParticipantOutput = () => useAudioStore((state) => state.selectParticipantOutput);
 
 // Export actions with memoization to prevent recreating objects.
 // Grouped by channel (matches useAudioContext ordering).
@@ -671,7 +671,7 @@ export const useAudioActions = () => {
   const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
   const refreshSystemAudioSources = useRefreshSystemAudioSources();
   // Extension passthrough
-  const selectParticipantAudioOutputDevice = useSelectParticipantAudioOutputDevice();
+  const selectParticipantOutput = useSelectParticipantOutput();
   // Ancillary
   const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
   const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
@@ -690,7 +690,7 @@ export const useAudioActions = () => {
       selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureEnabled,
       setSystemAudioCaptureActive, setSystemAudioSourceReady, refreshSystemAudioSources,
       // Extension passthrough
-      selectParticipantAudioOutputDevice,
+      selectParticipantOutput,
       // Ancillary
       toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
       // Globals
@@ -701,7 +701,7 @@ export const useAudioActions = () => {
       selectMonitorDevice, toggleMonitorDeviceState, setMonitorDeviceOn,
       selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureEnabled,
       setSystemAudioCaptureActive, setSystemAudioSourceReady, refreshSystemAudioSources,
-      selectParticipantAudioOutputDevice,
+      selectParticipantOutput,
       toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
       refreshDevices, initializeAudioService,
     ]
@@ -733,7 +733,7 @@ export const useAudioContext = () => {
   const isSystemAudioSourceReady = useIsSystemAudioSourceReady();
 
   // --- Channel: Extension passthrough (no on/off; null = use default) ---
-  const participantAudioOutputDevice = useParticipantAudioOutputDevice();
+  const selectedParticipantOutput = useSelectedParticipantOutput();
 
   // --- Ancillary: real-voice passthrough + noise suppression ---
   const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
@@ -756,7 +756,7 @@ export const useAudioContext = () => {
       systemAudioSources, selectedParticipantSource,
       isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
       // Extension passthrough
-      participantAudioOutputDevice,
+      selectedParticipantOutput,
       // Ancillary
       isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
       // Globals
@@ -769,7 +769,7 @@ export const useAudioContext = () => {
       audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
       systemAudioSources, selectedParticipantSource,
       isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
-      participantAudioOutputDevice,
+      selectedParticipantOutput,
       isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
       isLoading,
       actions,
