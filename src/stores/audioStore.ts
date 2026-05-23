@@ -59,6 +59,7 @@ interface AudioStore {
   selectInputDevice: (device: AudioDevice) => void;
   selectMonitorDevice: (device: AudioDevice) => void;
   toggleInputDeviceState: () => void;
+  setInputDeviceOn: (on: boolean) => void;
   toggleMonitorDeviceState: () => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
@@ -69,6 +70,7 @@ interface AudioStore {
   setSystemAudioSources: (sources: AudioDevice[]) => void;
   selectSystemAudioSource: (source: AudioDevice | null) => void;
   toggleSystemAudioCapture: () => void;
+  setSystemAudioCaptureEnabled: (enabled: boolean) => void;
   setSystemAudioCaptureActive: (active: boolean) => void;
   setSystemAudioSourceReady: (ready: boolean) => void;
   refreshSystemAudioSources: () => Promise<void>;
@@ -155,7 +157,9 @@ const useAudioStore = create<AudioStore>()(
         return { isInputDeviceOn: newState };
       });
     },
-    
+
+    setInputDeviceOn: (on) => set({ isInputDeviceOn: on }),
+
     toggleMonitorDeviceState: () => {
       console.info('[Sokuji] [AudioStore] Toggling monitor device state');
       set((state) => {
@@ -227,6 +231,8 @@ const useAudioStore = create<AudioStore>()(
         return { isSystemAudioCaptureEnabled: newState };
       });
     },
+
+    setSystemAudioCaptureEnabled: (enabled) => set({ isSystemAudioCaptureEnabled: enabled }),
 
     setSystemAudioCaptureActive: (active) => {
       console.info('[Sokuji] [AudioStore] Setting system audio capture active:', active);
@@ -582,6 +588,7 @@ export const useParticipantAudioOutputDevice = () => useAudioStore((state) => st
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
 export const useToggleInputDeviceState = () => useAudioStore((state) => state.toggleInputDeviceState);
+export const useSetInputDeviceOn = () => useAudioStore((state) => state.setInputDeviceOn);
 export const useToggleMonitorDeviceState = () => useAudioStore((state) => state.toggleMonitorDeviceState);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
@@ -591,6 +598,7 @@ export const useInitializeAudioService = () => useAudioStore((state) => state.in
 // System audio capture action selectors
 export const useSelectSystemAudioSource = () => useAudioStore((state) => state.selectSystemAudioSource);
 export const useToggleSystemAudioCapture = () => useAudioStore((state) => state.toggleSystemAudioCapture);
+export const useSetSystemAudioCaptureEnabled = () => useAudioStore((state) => state.setSystemAudioCaptureEnabled);
 export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
 export const useSetSystemAudioSourceReady = () => useAudioStore((state) => state.setSystemAudioSourceReady);
 export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
@@ -601,6 +609,7 @@ export const useAudioActions = () => {
   const selectInputDevice = useSelectInputDevice();
   const selectMonitorDevice = useSelectMonitorDevice();
   const toggleInputDeviceState = useToggleInputDeviceState();
+  const setInputDeviceOn = useSetInputDeviceOn();
   const toggleMonitorDeviceState = useToggleMonitorDeviceState();
   const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
   const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
@@ -609,6 +618,7 @@ export const useAudioActions = () => {
   const initializeAudioService = useInitializeAudioService();
   const selectSystemAudioSource = useSelectSystemAudioSource();
   const toggleSystemAudioCapture = useToggleSystemAudioCapture();
+  const setSystemAudioCaptureEnabled = useSetSystemAudioCaptureEnabled();
   const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
   const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
   const refreshSystemAudioSources = useRefreshSystemAudioSources();
@@ -619,6 +629,7 @@ export const useAudioActions = () => {
       selectInputDevice,
       selectMonitorDevice,
       toggleInputDeviceState,
+      setInputDeviceOn,
       toggleMonitorDeviceState,
       toggleRealVoicePassthrough,
       setRealVoicePassthroughVolume,
@@ -627,6 +638,7 @@ export const useAudioActions = () => {
       initializeAudioService,
       selectSystemAudioSource,
       toggleSystemAudioCapture,
+      setSystemAudioCaptureEnabled,
       setSystemAudioCaptureActive,
       setSystemAudioSourceReady,
       refreshSystemAudioSources,
@@ -636,6 +648,7 @@ export const useAudioActions = () => {
       selectInputDevice,
       selectMonitorDevice,
       toggleInputDeviceState,
+      setInputDeviceOn,
       toggleMonitorDeviceState,
       toggleRealVoicePassthrough,
       setRealVoicePassthroughVolume,
@@ -644,6 +657,7 @@ export const useAudioActions = () => {
       initializeAudioService,
       selectSystemAudioSource,
       toggleSystemAudioCapture,
+      setSystemAudioCaptureEnabled,
       setSystemAudioCaptureActive,
       setSystemAudioSourceReady,
       refreshSystemAudioSources,
