@@ -308,75 +308,63 @@
   // ── Basic mode ──
 
   &.basic {
-    .status-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: #888;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #666;
-        transition: background 0.3s ease;
-        &.active { background: #10a37f; }
-        &.reconnecting {
-          background: #f39c12;
-          animation: pulse 1s ease-in-out infinite;
-        }
-      }
-
-      .reconnecting-label {
-        color: #f39c12;
-        font-size: 12px;
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #666;
+      transition: background 0.3s ease;
+      flex-shrink: 0;
+      &.active { background: #10a37f; }
+      &.reconnecting {
+        background: #f39c12;
         animation: pulse 1s ease-in-out infinite;
-      }
-
-      .language-pair {
-        font-weight: 500;
-        color: #aaa;
-        &.clickable {
-          cursor: default;
-          transition: color 0.2s ease;
-          &:hover { color: #fff; text-decoration: underline; }
-        }
-      }
-
-      .session-duration {
-        font-weight: 500;
-        color: #aaa;
-        padding-left: 12px;
-        border-left: 1px solid #444;
-      }
-
-      .device-status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: 8px;
-        padding-left: 12px;
-        border-left: 1px solid #444;
-
-        .device-icon {
-          display: flex;
-          align-items: center;
-          color: #666;
-          transition: color 0.2s ease;
-          &.active { color: #10a37f; }
-          &.clickable {
-            cursor: default;
-            &:hover { color: #aaa; transform: scale(1.1); }
-          }
-        }
       }
     }
 
-    .main-controls {
-      display: flex;
-      gap: 10px;
+    .reconnecting-label {
+      color: #f39c12;
+      font-size: 12px;
+      animation: pulse 1s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .footer-spacer { flex: 1; min-width: 12px; }
+
+    .action-cluster {
+      display: inline-flex;
       align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .footer-metadata {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+
+      .language-pair {
+        color: #ccc;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 3px;
+        white-space: nowrap;
+
+        &:hover { color: #fff; background: rgba(255,255,255,0.05); }
+      }
+
+      .session-duration {
+        color: #888;
+        font-size: 11px;
+        white-space: nowrap;
+      }
     }
   }
 

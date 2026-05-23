@@ -73,6 +73,8 @@ import {
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
+import ModePicker from './ModePicker';
+import ModeDevicePopover from './ModeDevicePopover';
 
 
 /**
@@ -3147,51 +3149,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {/* Control Footer — Basic Mode */}
         {uiMode === 'basic' && (
           <div className="control-footer basic">
-            <div className="status-info">
-              <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
-              {isReconnecting && (
-                <span className="reconnecting-label">
-                  {t('connectionStatus.reconnecting', 'Reconnecting...')}
-                </span>
-              )}
-              <span
-                className="language-pair clickable"
-                onClick={() => navigateToSettings('languages')}
-                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
-              >
-                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+            <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
+            {isReconnecting && (
+              <span className="reconnecting-label">
+                {t('connectionStatus.reconnecting', 'Reconnecting...')}
               </span>
-              {isSessionActive && (
-                <span className="session-duration">
-                  {t('simplePanel.sessionDuration', 'Duration')}: {sessionDuration}
-                </span>
-              )}
-              <span className="device-status">
-                <span
-                  className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
-                  onClick={() => navigateToSettings('microphone')}
-                  title={t('simplePanel.clickToConfigMicrophone', 'Click to configure microphone')}
-                >
-                  {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
-                </span>
-                <span
-                  className={`device-icon ${(isSessionActive ? participantChannelActive : participantWillStart) ? 'active' : ''} clickable`}
-                  onClick={() => navigateToSettings('participant')}
-                  title={t('simplePanel.clickToConfigParticipant', 'Click to configure participant audio')}
-                >
-                  <AudioLines size={14} />
-                </span>
-                <span
-                  className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
-                  onClick={() => navigateToSettings('speaker')}
-                  title={t('simplePanel.clickToConfigSpeaker', 'Click to configure speaker')}
-                >
-                  {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                </span>
-              </span>
-            </div>
+            )}
+            <ModePicker
+              mode={currentMode}
+              locked={isSessionActive || isInitializing}
+              missingDeviceForMode={missingDeviceForMode}
+              onSegmentClick={(target, el) => {
+                if (target === currentMode) {
+                  setModePopoverAnchor(el);
+                  setModePopoverOpen(true);
+                } else {
+                  handleModeSwitch(target);
+                  setModePopoverOpen(false);
+                }
+              }}
+            />
 
-            <div className="main-controls">
+            <span className="footer-spacer" />
+
+            <div className="action-cluster">
               {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
@@ -3204,7 +3185,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <span className="btn-text">{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
                 </button>
               )}
-
               <button
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
@@ -3240,6 +3220,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   </>
                 )}
               </button>
+            </div>
+
+            <span className="footer-spacer" />
+
+            <div className="footer-metadata">
+              <span
+                className="language-pair clickable"
+                onClick={() => navigateToSettings('languages')}
+                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+              >
+                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+              </span>
+              {isSessionActive && (
+                <span className="session-duration">{sessionDuration}</span>
+              )}
             </div>
           </div>
         )}
@@ -3400,6 +3395,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
+      {modePopoverOpen && currentMode !== 'none' && (
+        <ModeDevicePopover
+          mode={currentMode}
+          open={modePopoverOpen}
+          anchorEl={modePopoverAnchor}
+          onClose={() => setModePopoverOpen(false)}
+        />
+      )}
     </div>
   );
 };
