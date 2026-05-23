@@ -158,7 +158,14 @@ const useAudioStore = create<AudioStore>()(
       });
     },
 
-    setInputDeviceOn: (on) => set({ isInputDeviceOn: on }),
+    setInputDeviceOn: (on) => {
+      // Persist the state (mirrors toggleInputDeviceState so callers can use
+      // either action interchangeably without losing persistence).
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, on)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device on state:', error));
+      set({ isInputDeviceOn: on });
+    },
 
     toggleMonitorDeviceState: () => {
       console.info('[Sokuji] [AudioStore] Toggling monitor device state');
@@ -232,7 +239,14 @@ const useAudioStore = create<AudioStore>()(
       });
     },
 
-    setSystemAudioCaptureEnabled: (enabled) => set({ isSystemAudioCaptureEnabled: enabled }),
+    setSystemAudioCaptureEnabled: (enabled) => {
+      // Persist the state (mirrors toggleSystemAudioCapture so callers can use
+      // either action interchangeably without losing persistence).
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, enabled)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
+      set({ isSystemAudioCaptureEnabled: enabled });
+    },
 
     setSystemAudioCaptureActive: (active) => {
       console.info('[Sokuji] [AudioStore] Setting system audio capture active:', active);
