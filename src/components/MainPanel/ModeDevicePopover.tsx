@@ -121,7 +121,11 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     const list: ChannelRowSpec[] = [];
 
     const showMic = mode === 'speaker' || mode === 'both';
-    const showMonitor = mode === 'speaker' || mode === 'both';
+    // Speaker monitor is mutually exclusive with participant capture
+    // (enforced in audioStore). In Both mode participant is always on,
+    // so monitor cannot be on — hide the row entirely to avoid showing
+    // a permanently-Off control.
+    const showMonitor = mode === 'speaker';
     const showParticipantSource = !isExtension() && (mode === 'participant' || mode === 'both');
     const showPassthrough = isExtension() && (mode === 'participant' || mode === 'both');
 

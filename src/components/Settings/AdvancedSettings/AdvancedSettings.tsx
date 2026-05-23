@@ -184,14 +184,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
               showSpeaker={false}
             />
 
-            <SystemAudioSection
-              isSessionActive={lockParticipant}
-            />
-
             <AudioDeviceSection
               isSessionActive={lockMonitor}
               showMicrophone={false}
               showSpeaker={true}
+            />
+
+            <SystemAudioSection
+              isSessionActive={lockParticipant}
             />
 
             <VoicePassthroughSection

@@ -88,23 +88,23 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isSessionActive={isSessionActive}
         />
 
-        {/* Microphone Selection — input 1 */}
+        {/* Microphone */}
         <AudioDeviceSection
           isSessionActive={lockMic}
           showMicrophone={true}
           showSpeaker={false}
         />
 
-        {/* Participant Audio — input 2 (system audio capture) */}
-        <SystemAudioSection
-          isSessionActive={lockParticipant}
-        />
-
-        {/* Speaker Selection — output */}
+        {/* Speaker monitor */}
         <AudioDeviceSection
           isSessionActive={lockMonitor}
           showMicrophone={false}
           showSpeaker={true}
+        />
+
+        {/* Participant audio (system audio capture) */}
+        <SystemAudioSection
+          isSessionActive={lockParticipant}
         />
 
         {/* Help & Updates */}
