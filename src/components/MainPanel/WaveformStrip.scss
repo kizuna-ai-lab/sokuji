@@ -9,7 +9,14 @@
   flex-shrink: 0;
 
   &--full { width: 110px; max-width: 140px; }
-  &--half { width: 50px; }
+  // Half-width strips live inside .waveform-input-group (fixed 110px wide).
+  // `flex: 1` lets the two halves share that 110px minus the wrapper's gap,
+  // so the combined width of two halves equals one full strip exactly.
+  &--half {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
 
   &__label {
     // Reserved for future tooltip; not rendered inside the canvas to avoid

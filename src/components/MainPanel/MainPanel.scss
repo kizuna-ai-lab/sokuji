@@ -387,10 +387,14 @@
 
     // Tight-gap wrapper for the input waveforms (mic + sys) so they read
     // as a pair, distinct from the wider 10px gap between other footer items.
+    // Fixed 110px width matches a single .waveform-strip--full — so a
+    // single-input mode (one full child) and a both-mode (two halves + gap)
+    // occupy the same total width.
     .waveform-input-group {
       display: inline-flex;
       align-items: center;
       gap: 3px;
+      width: 110px;
       flex-shrink: 0;
     }
 
