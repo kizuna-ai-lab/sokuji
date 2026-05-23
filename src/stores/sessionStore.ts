@@ -3,7 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import type { ConversationItem } from '../services/interfaces/IClient';
 
-export type LockedFooterMode = 'speaker' | 'participant' | 'both' | 'none';
+export type LockedFooterMode = 'speaker' | 'participant' | 'both';
 
 interface SessionStore {
   // State

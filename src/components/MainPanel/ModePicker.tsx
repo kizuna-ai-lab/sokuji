@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User, Users, ArrowLeftRight, type LucideIcon } from 'lucide-react';
 import './ModePicker.scss';
 
-export type FooterMode = 'speaker' | 'participant' | 'both' | 'none';
+export type FooterMode = 'speaker' | 'participant' | 'both';
 
 interface ModePickerProps {
   mode: FooterMode;

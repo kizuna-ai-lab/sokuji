@@ -407,7 +407,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
-  // active values — 'none' no longer exists.
+  // values: 'speaker', 'participant', or 'both'.
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
     !loadingModels && !isInitializing && hasValidBalance &&
     missingDeviceForMode === null;
@@ -3491,9 +3491,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             <span className="footer-spacer" />
 
-            {effectiveMode !== 'none' && (
-              <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
-            )}
+            <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
 
             <div className="footer-metadata">
               <span
@@ -3534,7 +3532,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
-      {modePopoverOpen && effectiveMode !== 'none' && (
+      {modePopoverOpen && (
         <ModeDevicePopover
           mode={effectiveMode}
           open={modePopoverOpen}
