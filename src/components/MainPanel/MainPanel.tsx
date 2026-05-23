@@ -300,7 +300,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectedSystemAudioSource,
     isSystemAudioSourceReady,
     isSystemAudioCaptureEnabled,
-    participantAudioOutputDevice
+    participantAudioOutputDevice,
+    // Mode-picker setters (write both channel toggles in one call)
+    setInputDeviceOn,
+    setSystemAudioCaptureEnabled
   } = useAudioContext();
 
   // Noise suppression
@@ -364,8 +367,47 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   const anyChannelWillStart = speakerWillStart || participantWillStart;
 
+  // Footer-level mode derived from channel will-start predicates.
+  // Picker uses this to highlight the active segment.
+  // The 'FooterMode' type is exported from ./ModePicker (added in Task 5);
+  // for now use the inline union — Task 8 will switch to the import.
+  const currentMode = useMemo<'speaker' | 'participant' | 'both' | 'none'>(() => {
+    if (speakerWillStart && participantWillStart) return 'both';
+    if (speakerWillStart) return 'speaker';
+    if (participantWillStart) return 'participant';
+    return 'none';
+  }, [speakerWillStart, participantWillStart]);
+
+  // Which segment should show an amber warning (mode targeted but the
+  // required device isn't actually selected/ready). Mirrors what the
+  // existing canStartSession gate checks but at per-segment granularity.
+  const missingDeviceForMode = useMemo<'speaker' | 'participant' | 'both' | null>(() => {
+    if (currentMode === 'none') return null;
+    const needSpeaker = currentMode === 'speaker' || currentMode === 'both';
+    const needParticipant = currentMode === 'participant' || currentMode === 'both';
+    const hasSpeaker = isInputDeviceOn && !!selectedInputDevice;
+    const hasParticipant = isSystemAudioCaptureEnabled && (
+      isExtension() || (!!selectedSystemAudioSource && isSystemAudioSourceReady)
+    );
+    if (needSpeaker && !hasSpeaker) return needParticipant && !hasParticipant ? 'both' : 'speaker';
+    if (needParticipant && !hasParticipant) return 'participant';
+    return null;
+  }, [currentMode, isInputDeviceOn, selectedInputDevice?.deviceId, isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
+
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
     !loadingModels && !isInitializing && hasValidBalance && anyChannelWillStart;
+
+  // Footer mode picker — pre-session, click a segment to write both channels.
+  const handleModeSwitch = useCallback((target: 'speaker' | 'participant' | 'both') => {
+    if (isSessionActive) return;  // locked during session
+    setInputDeviceOn(target === 'speaker' || target === 'both');
+    setSystemAudioCaptureEnabled(target === 'participant' || target === 'both');
+  }, [isSessionActive, setInputDeviceOn, setSystemAudioCaptureEnabled]);
+
+  // Popover (re-click active segment) — anchored to the active segment ref
+  // supplied by ModePicker via callback.
+  const [modePopoverOpen, setModePopoverOpen] = useState(false);
+  const [modePopoverAnchor, setModePopoverAnchor] = useState<HTMLElement | null>(null);
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
