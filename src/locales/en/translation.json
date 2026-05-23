@@ -13,6 +13,7 @@
     "info": "Information",
     "logs": "Logs",
     "clear": "Clear",
+    "on": "On",
     "off": "Off",
     "autoDetect": "Auto Detect",
     "signIn": "Sign In",
@@ -292,7 +293,10 @@
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
     "transcriptModelTooltipTranslate": "Source-language captions. Currently only gpt-realtime-whisper is supported.",
     "modelTooltipTranslate": "OpenAI's dedicated speech-to-speech translation model. Voice automatically adapts to the source speaker.",
-    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages."
+    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages.",
+    "participantSectionHeader": "Participant audio",
+    "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
+    "participantSectionDescriptionExtension": "Translate audio from the active browser tab. The original audio plays through your system default output."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -370,7 +374,11 @@
     "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.",
     "screenRecordingDeniedText3": "After enabling the permission, please restart the app.",
     "availableSystemAudioSources": "Capturable System Audio Devices",
-    "refreshSystemAudioSources": "Refresh device list"
+    "refreshSystemAudioSources": "Refresh device list",
+    "turnOnMicrophone": "Turn on microphone",
+    "turnOffMicrophone": "Turn off microphone",
+    "turnOnMonitor": "Turn on speaker monitor",
+    "turnOffMonitor": "Turn off speaker monitor"
   },
   "auth": {
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",
@@ -623,13 +631,16 @@
     "popoverHeaderBoth": "Both — devices",
     "popoverFooter": "Full settings →",
     "deviceMic": "Microphone",
-    "deviceParticipantSource": "Participant source",
     "deviceSpeakerMonitor": "Speaker monitor",
     "notSelected": "Not selected",
-    "mute": "Mute {{label}}",
-    "unmute": "Unmute {{label}}",
-    "muted": "Muted",
-    "deviceParticipantOutput": "Participant output"
+    "deviceParticipantAudio": "Participant audio"
+  },
+  "popover": {
+    "statusOff": "Off",
+    "toggleOn": "Turn on {{label}}",
+    "toggleOff": "Turn off {{label}}",
+    "participantSubtitleElectron": "All system audio",
+    "participantSubtitleExtension": "Plays via system default"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
