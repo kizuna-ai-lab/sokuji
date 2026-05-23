@@ -1509,17 +1509,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: canHoldToSpeak is now derived via useMemo from currentTurnDetectionMode
         // at component scope — no imperative setter needed here.
 
-        // Connect to microphone only if mic is not muted
-        if (!isMicMuted) {
-          if (selectedInputDevice) {
-            // Note: Don't start recording yet, just prepare the device
-            // Recording will be started below based on turn detection mode
-            // Passthrough is already configured via the useEffect hook
-          } else {
-            console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
-          }
+        if (selectedInputDevice) {
+          // Note: Don't start recording yet, just prepare the device
+          // Recording will be started below based on turn detection mode
+          // Passthrough is already configured via the useEffect hook
         } else {
-          console.debug('[Sokuji] [MainPanel] Mic is muted, not connecting to microphone');
+          console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
 
         // If monitor is not muted, ensure monitor device is connected immediately
@@ -1636,14 +1631,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
 
         // Recorder lifecycle (skip entirely for native MediaStreamTrack capture):
-        //  - Push-to-Translate: start now, gated callback (skip AI forwarding when isPassthrough)
+        //  - Push-to-Translate: start now, gated callback (skip AI forwarding when isPassthrough or mic off)
         //  - Pure PTT (Disabled/Push-to-Talk): defer recorder start to space keydown
-        //  - Otherwise (VAD modes — Auto/Normal/Semantic): start now, always-forward callback
-        if (!usesNativeCapture && !isMicMuted && audioServiceRef.current) {
+        //  - Otherwise (VAD modes — Auto/Normal/Semantic): start now, pipeline-gated callback
+        // Recorder always starts when in scope + device selected, regardless of mute state.
+        // Per-frame callback gates on isMicMuted to implement mute without stopping the recorder.
+        if (!usesNativeCapture && audioServiceRef.current) {
           if (isPushToTranslateMode) {
             let p2tCallbackCount = 0;
             await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
               if (!speakerClientRef.current) return;
+              // Pipeline gate: skip sending to AI client when mic is off.
+              if (useAudioStore.getState().isMicMuted) return;
               if (data.isPassthrough) {
                 return;  // IDLE: route to passthrough only, don't send to AI
               }
@@ -1660,17 +1659,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               speakerClientRef.current.appendInputAudio(data.mono);
             });
           } else if (!isPureManualMode) {
-            // VAD: always-forward callback
+            // VAD: pipeline-gated callback
             let audioCallbackCount = 0;
             await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-              if (speakerClientRef.current) {
-                // Debug logging every 100 calls to verify AI client receives data
-                if (audioCallbackCount % 100 === 0) {
-                  console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
-                }
-                audioCallbackCount++;
-                speakerClientRef.current.appendInputAudio(data.mono);
+              if (!speakerClientRef.current) return;
+              // Pipeline gate: skip sending to AI client when mic is off.
+              if (useAudioStore.getState().isMicMuted) return;
+              // Debug logging every 100 calls to verify AI client receives data
+              if (audioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
               }
+              audioCallbackCount++;
+              speakerClientRef.current.appendInputAudio(data.mono);
             });
           }
           // else: pure PTT — recorder stays idle until space keydown.
@@ -1758,13 +1758,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // Start recording from appropriate source based on environment
               let participantAudioCallbackCount = 0;
               const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
-                if (client) {
-                  if (participantAudioCallbackCount % 100 === 0) {
-                    console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
-                  }
-                  participantAudioCallbackCount++;
-                  client.appendInputAudio(data.mono);
+                if (!client) return;
+                // Pipeline gate: skip sending to AI client when participant is off.
+                // Read state per invocation to avoid stale closures. Extension passthrough
+                // continues — handlePassthroughAudio fires inside the recorder before this.
+                if (useAudioStore.getState().isParticipantMuted) return;
+                if (participantAudioCallbackCount % 100 === 0) {
+                  console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
                 }
+                participantAudioCallbackCount++;
+                client.appendInputAudio(data.mono);
               };
 
               if (isExtension()) {
@@ -1790,15 +1793,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // active" not "connect resolved". If startTab/SystemAudioRecording
               // throws (non-OOM, caught below as non-fatal), the flag stays false.
               setParticipantChannelActive(true);
-
-              // If the user started the session with participant muted, pause the
-              // recorder immediately so the analyser is wired (mid-session unmute
-              // resumes via the useEffect) but no audio flows to the AI client.
-              const startMuted = useAudioStore.getState().isParticipantMuted;
-              if (startMuted) {
-                await audioServiceRef.current!.pauseParticipantAudioRecording?.()
-                  .catch(err => console.warn('[Sokuji] [MainPanel] Failed to apply initial participant mute:', err));
-              }
             }
           }
         } catch (error: any) {
@@ -1893,8 +1887,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectMonitorDevice,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
-    // System audio capture
-    isParticipantMuted,
     // Channel-start predicates control which clients are created
     speakerWillStart,
     participantWillStart
@@ -2642,106 +2634,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [items, participantItems]);
 
   /**
-   * Watch for changes to isMicMuted and update recording state accordingly
-   */
-  useEffect(() => {
-    // Only take action if session is active
-    if (!isSessionActive) return;
-
-    const audioService = audioServiceRef.current;
-    const client = speakerClientRef.current;
-
-    if (!audioService) {
-      return;
-    }
-
-    const updateRecordingState = async () => {
-      try {
-        const recorder = audioService.getRecorder();
-
-        // If mic is muted, pause recording
-        if (isMicMuted) {
-          console.info('[Sokuji] [MainPanel] Mic muted - pausing recording');
-          if (recorder.isRecording()) {
-            await audioService.pauseRecording();
-            setIsRecording(false);
-          }
-        }
-        // If mic is unmuted
-        else {
-          // Mode-derived flags (same classification as session-start branch).
-          const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
-          const isPureManualMode =
-            currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
-
-          if (isPushToTranslateMode) {
-            console.info('[Sokuji] [MainPanel] Mic unmuted - starting recording in Push-to-translate mode');
-            if (!recorder.isRecording()) {
-              let p2tCallbackCount = 0;
-              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
-                if (!client) return;
-                if (data.isPassthrough) return;
-                if (p2tCallbackCount % 100 === 0) {
-                  console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
-                }
-                p2tCallbackCount++;
-
-                // Track non-silent audio chunks for empty-request detection (mirrors pure PTT)
-                if (!isSilentAudio(data.mono)) {
-                  pttVoiceChunkCountRef.current++;
-                }
-
-                client.appendInputAudio(data.mono);
-              });
-            }
-          } else if (!isPureManualMode) {
-            console.info('[Sokuji] [MainPanel] Mic unmuted - starting recording in automatic mode');
-            if (!recorder.isRecording()) {
-              let autoAudioCallbackCount = 0;
-              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
-                if (client) {
-                  // Debug logging for automatic mode (every 100 chunks)
-                  if (autoAudioCallbackCount % 100 === 0) {
-                    console.debug(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
-                  }
-                  autoAudioCallbackCount++;
-                  client.appendInputAudio(data.mono);
-                }
-              });
-            }
-          }
-          // For pure push-to-talk (Disabled/Push-to-Talk), don't resume — user
-          // needs to press the button or Space key.
-        }
-      } catch (error) {
-        console.error('[Sokuji] [MainPanel] Error updating recording state:', error);
-      }
-    };
-
-    updateRecordingState();
-  }, [isMicMuted, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
-
-  /**
-   * Watch for changes to isParticipantMuted mid-session — toggle
-   * acts as mute for the participant channel. Pauses/resumes the
-   * participant recorder without disconnecting the participant client.
-   * Only fires when participant channel is actually active (so toggling
-   * an irrelevant channel — which the UI prevents anyway — is also a
-   * runtime no-op as defense in depth).
-   */
-  useEffect(() => {
-    if (!isSessionActive || !participantChannelActive || !audioServiceRef.current) return;
-    const audioService = audioServiceRef.current;
-    if (!isParticipantMuted) {
-      void audioService.resumeParticipantAudioRecording?.()
-        .catch(err => console.warn('[Sokuji] [MainPanel] Failed to resume participant audio:', err));
-    } else {
-      void audioService.pauseParticipantAudioRecording?.()
-        .catch(err => console.warn('[Sokuji] [MainPanel] Failed to pause participant audio:', err));
-    }
-  }, [isParticipantMuted, isSessionActive, participantChannelActive]);
-
-  /**
    * Watch for changes to selectedMonitorDevice or isMonitorMuted
    * and update the audio monitoring accordingly
    */
@@ -2990,15 +2882,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle input device changes during active session
    */
   useEffect(() => {
-    // Only handle device changes if session is active and mic is not muted.
-    // Skip in-flight device switch while muted: the recorder is paused,
-    // so any device change waits until the next unmute, when
-    // resumeRecording / startRecording picks up the current selectedInputDevice.
-    if (!isSessionActive || isMicMuted) {
+    // Only handle device changes if session is active.
+    // Under callback-level pipeline gating the recorder runs continuously (even when
+    // mic is muted), so device switches should be applied immediately regardless of
+    // mute state — the gated callback already prevents sending audio to the AI client.
+    if (!isSessionActive) {
       // Reset initialized flag when session ends
-      if (!isSessionActive) {
-        isInitializedRef.current = false;
-      }
+      isInitializedRef.current = false;
       return;
     }
 
@@ -3050,7 +2940,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     handleDeviceSwitch();
-  }, [selectedInputDevice?.deviceId, isSessionActive, isMicMuted]);
+  }, [selectedInputDevice?.deviceId, isSessionActive]);
 
   /**
    * Handle monitor mute state for WebRTC clients
