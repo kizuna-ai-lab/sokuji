@@ -114,14 +114,16 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const { getFloatingProps } = useInteractions([dismiss]);
 
   // Build the list of rows the popover should render based on mode.
-  // Channel order: mic → participant source → (extension) passthrough → monitor
+  // Channel order: mic → monitor → participant source → (extension) passthrough
+  // Rationale: the user's own I/O (mic + monitor) groups first, then the
+  // participant-side I/O (capture source + optional original passthrough).
   const rows = useMemo<ChannelRowSpec[]>(() => {
     const list: ChannelRowSpec[] = [];
 
     const showMic = mode === 'speaker' || mode === 'both';
+    const showMonitor = mode === 'speaker' || mode === 'both';
     const showParticipantSource = !isExtension() && (mode === 'participant' || mode === 'both');
     const showPassthrough = isExtension() && (mode === 'participant' || mode === 'both');
-    const showMonitor = mode === 'speaker' || mode === 'both';
 
     if (showMic) {
       list.push({
@@ -137,6 +139,23 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
           if (!isInputDeviceOn) setInputDeviceOn(true);
         },
         isMissing: isInputDeviceOn && !selectedInputDevice,
+      });
+    }
+
+    if (showMonitor) {
+      list.push({
+        key: 'monitor',
+        icon: Volume2,
+        label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
+        devices: audioMonitorDevices,
+        selectedDevice: selectedMonitorDevice,
+        isOn: isMonitorDeviceOn,
+        onMute: () => { if (isMonitorDeviceOn) toggleMonitorDeviceState(); },
+        onSelectDevice: (d) => {
+          selectMonitorDevice(d);
+          if (!isMonitorDeviceOn) toggleMonitorDeviceState();
+        },
+        isMissing: false, // monitor is never required
       });
     }
 
@@ -158,34 +177,17 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (showPassthrough) {
-      // Extension-only optional row. No mute toggle — "Off" means use the
-      // default output (treat null device as the implicit off state).
+      // Extension-only optional row, grouped with participant source.
+      // No mute toggle — "Off" means use the default output.
       list.push({
         key: 'passthrough',
         icon: Headphones,
         label: t('modePicker.devicePassthrough', 'Original audio passthrough'),
         devices: audioMonitorDevices,
         selectedDevice: participantAudioOutputDevice,
-        isOn: true, // always "on"; user just picks device or "default"
+        isOn: true,
         onSelectDevice: (d) => selectParticipantAudioOutputDevice(d),
-        isMissing: false, // never required
-      });
-    }
-
-    if (showMonitor) {
-      list.push({
-        key: 'monitor',
-        icon: Volume2,
-        label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
-        devices: audioMonitorDevices,
-        selectedDevice: selectedMonitorDevice,
-        isOn: isMonitorDeviceOn,
-        onMute: () => { if (isMonitorDeviceOn) toggleMonitorDeviceState(); },
-        onSelectDevice: (d) => {
-          selectMonitorDevice(d);
-          if (!isMonitorDeviceOn) toggleMonitorDeviceState();
-        },
-        isMissing: false, // monitor is never required
+        isMissing: false,
       });
     }
 
