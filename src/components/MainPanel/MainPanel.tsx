@@ -60,7 +60,7 @@ import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
-import { isExtension, getEnvironment } from '../../utils/environment';
+import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -297,10 +297,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Monitor
     selectedMonitorDevice,
     selectMonitorDevice,
-    // Participant source
-    selectedParticipantSource,
-    isSystemAudioSourceReady,
-    // Extension passthrough
+    // Extension passthrough output device (still used for tab audio recording)
     selectedParticipantOutput,
     // Ancillary
     isRealVoicePassthroughEnabled,
@@ -378,12 +375,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     [currentMode, selectedInputDevice?.deviceId]
   );
 
-  const participantWillStart = useMemo(() => {
-    const inScope = currentMode === 'participant' || currentMode === 'both';
-    if (!inScope) return false;
-    if (isExtension()) return true;  // extension: tab capture, no device gate
-    return !!selectedParticipantSource && isSystemAudioSourceReady;
-  }, [currentMode, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
+  const participantWillStart = useMemo(
+    () => currentMode === 'participant' || currentMode === 'both',
+    [currentMode]
+  );
 
   // Mode snapshot captured at session start. While non-null the picker
   // and any consumer of "effective mode" reads from this so mid-session
@@ -404,13 +399,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const speakerInScope = currentMode === 'speaker' || currentMode === 'both';
     const participantInScope = currentMode === 'participant' || currentMode === 'both';
     const hasSpeaker = speakerInScope && !!selectedInputDevice;
-    const hasParticipant = participantInScope && (
-      isExtension() || (!!selectedParticipantSource && isSystemAudioSourceReady)
-    );
+    // Under the on/off pipeline-gate model, participant has no pre-session
+    // device requirement. Electron acquires the single hardcoded loopback
+    // source at session start; Extension uses tab capture (implicit).
+    const hasParticipant = participantInScope;
     if (speakerInScope && !hasSpeaker) return participantInScope && !hasParticipant ? 'both' : 'speaker';
     if (participantInScope && !hasParticipant) return 'participant';
     return null;
-  }, [currentMode, selectedInputDevice?.deviceId, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
+  }, [currentMode, selectedInputDevice?.deviceId]);
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
@@ -1270,13 +1266,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
 
-        // Stop system audio recording (but keep loopback for next session)
+        // Stop system audio recording and release the loopback stream on Electron.
         if (audioService.isSystemAudioRecordingActive()) {
           try {
             await audioService.stopSystemAudioRecording();
             console.info('[Sokuji] [MainPanel] Stopped system audio recording');
           } catch (error) {
             console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+          }
+        }
+        if (isElectron() && !isExtension()) {
+          try {
+            await audioService.disconnectSystemAudioSource();
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Failed to disconnect system audio source:', error);
           }
         }
 
@@ -1690,73 +1693,103 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation
       const participantInScope = sessionMode === 'participant' || sessionMode === 'both';
-      const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current && (
-        isExtension() || // Extension: use tab capture
-        (selectedParticipantSource && isSystemAudioSourceReady) // Electron: use system audio loopback
-      );
+      const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current !== null;
 
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
           console.info(`[Sokuji] [MainPanel] Starting participant audio client (${captureMode} capture)...`);
 
-          // Create participant client using helper
-          participantClientRef.current = createAIClient(modelName, apiKey);
-
-          // Setup event handlers using helper
-          const participantClient = participantClientRef.current;
-          participantClient.setEventHandlers(createParticipantEventHandlers(participantClient));
-
-          // Create and connect with participant session config
-          const participantSessionConfig = createParticipantSessionConfig();
-          if (!participantSessionConfig) {
-            console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
-            participantClientRef.current = null;
-          } else {
-            await participantClient.connect(participantSessionConfig);
-            console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
-
-            // Start recording from appropriate source based on environment
-            let participantAudioCallbackCount = 0;
-            const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
-              if (client) {
-                if (participantAudioCallbackCount % 100 === 0) {
-                  console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
+          // Electron: lazy-acquire the loopback stream at session start.
+          // (Extension uses tab capture via the existing tabAudioRecorder path.)
+          let electronAcquireOk = true;
+          if (isElectron() && !isExtension()) {
+            try {
+              if (isLoopbackPlatform()) {
+                const granted = await audioServiceRef.current!.requestLoopbackAudioStream();
+                if (!granted) {
+                  console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
+                  addRealtimeEvent(
+                    {
+                      type: 'session.init_error',
+                      data: {
+                        message: t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.')
+                      }
+                    },
+                    'client', 'session.init_error'
+                  );
+                  electronAcquireOk = false;
+                } else {
+                  await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
                 }
-                participantAudioCallbackCount++;
-                client.appendInputAudio(data.mono);
+              } else {
+                await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
               }
-            };
-
-            if (isExtension()) {
-              // Extension: start tab audio recording with optional output device for passthrough
-              const outputDeviceId = selectedParticipantOutput?.deviceId;
-              console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
-              await audioServiceRef.current.startTabAudioRecording(
-                createAudioDataCallback(participantClient),
-                outputDeviceId
-              );
-            } else {
-              // Electron: start system audio recording from virtual mic
-              await audioServiceRef.current.startSystemAudioRecording(
-                createAudioDataCallback(participantClient)
-              );
+            } catch (error) {
+              console.error('[Sokuji] [MainPanel] Failed to acquire participant audio:', error);
+              electronAcquireOk = false;
             }
+          }
 
-            console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
-            // Set the active flag only after recording wiring succeeds — mirrors
-            // the speaker block, where the flag means "channel is end-to-end
-            // active" not "connect resolved". If startTab/SystemAudioRecording
-            // throws (non-OOM, caught below as non-fatal), the flag stays false.
-            setParticipantChannelActive(true);
+          if (electronAcquireOk) {
+            // Create participant client using helper
+            participantClientRef.current = createAIClient(modelName, apiKey);
 
-            // If the user started the session with participant muted, pause the
-            // recorder immediately so the analyser is wired (mid-session unmute
-            // resumes via the useEffect) but no audio flows to the AI client.
-            const startMuted = useAudioStore.getState().isParticipantMuted;
-            if (startMuted) {
-              await audioServiceRef.current.pauseParticipantAudioRecording?.()
-                .catch(err => console.warn('[Sokuji] [MainPanel] Failed to apply initial participant mute:', err));
+            // Setup event handlers using helper
+            const participantClient = participantClientRef.current;
+            participantClient.setEventHandlers(createParticipantEventHandlers(participantClient));
+
+            // Create and connect with participant session config
+            const participantSessionConfig = createParticipantSessionConfig();
+            if (!participantSessionConfig) {
+              console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
+              participantClientRef.current = null;
+            } else {
+              await participantClient.connect(participantSessionConfig);
+              console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
+
+              // Start recording from appropriate source based on environment
+              let participantAudioCallbackCount = 0;
+              const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
+                if (client) {
+                  if (participantAudioCallbackCount % 100 === 0) {
+                    console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                  }
+                  participantAudioCallbackCount++;
+                  client.appendInputAudio(data.mono);
+                }
+              };
+
+              if (isExtension()) {
+                // Extension: start tab audio recording with optional output device for passthrough
+                const outputDeviceId = selectedParticipantOutput?.deviceId;
+                console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
+                await audioServiceRef.current!.startTabAudioRecording(
+                  createAudioDataCallback(participantClient),
+                  outputDeviceId
+                );
+              } else {
+                // Electron: start system audio recording from virtual mic
+                await audioServiceRef.current!.startSystemAudioRecording(
+                  createAudioDataCallback(participantClient)
+                );
+              }
+
+              console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+              // Set the active flag only after recording wiring succeeds — mirrors
+              // the speaker block, where the flag means "channel is end-to-end
+              // active" not "connect resolved". If startTab/SystemAudioRecording
+              // throws (non-OOM, caught below as non-fatal), the flag stays false.
+              setParticipantChannelActive(true);
+
+              // If the user started the session with participant muted, pause the
+              // recorder immediately so the analyser is wired (mid-session unmute
+              // resumes via the useEffect) but no audio flows to the AI client.
+              const startMuted = useAudioStore.getState().isParticipantMuted;
+              if (startMuted) {
+                await audioServiceRef.current!.pauseParticipantAudioRecording?.()
+                  .catch(err => console.warn('[Sokuji] [MainPanel] Failed to apply initial participant mute:', err));
+              }
             }
           }
         } catch (error: any) {
@@ -1853,8 +1886,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     realVoicePassthroughVolume,
     // System audio capture
     isParticipantMuted,
-    selectedParticipantSource,
-    isSystemAudioSourceReady,
     // Channel-start predicates control which clients are created
     speakerWillStart,
     participantWillStart
