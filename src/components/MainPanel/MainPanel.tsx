@@ -303,7 +303,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectMonitorDevice,
     // Participant source
     systemAudioSources,
-    selectedSystemAudioSource,
+    selectedParticipantSource,
     isSystemAudioSourceReady,
     isSystemAudioCaptureEnabled,
     selectSystemAudioSource,
@@ -373,8 +373,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const participantWillStart = useMemo(() => {
     if (!isSystemAudioCaptureEnabled) return false;
     if (isExtension()) return true;  // extension: tab capture, no device gate
-    return !!selectedSystemAudioSource && isSystemAudioSourceReady;
-  }, [isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
+    return !!selectedParticipantSource && isSystemAudioSourceReady;
+  }, [isSystemAudioCaptureEnabled, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on),
   // not device readiness. A channel toggled on without a selected device
@@ -408,12 +408,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const needParticipant = currentMode === 'participant' || currentMode === 'both';
     const hasSpeaker = isInputDeviceOn && !!selectedInputDevice;
     const hasParticipant = isSystemAudioCaptureEnabled && (
-      isExtension() || (!!selectedSystemAudioSource && isSystemAudioSourceReady)
+      isExtension() || (!!selectedParticipantSource && isSystemAudioSourceReady)
     );
     if (needSpeaker && !hasSpeaker) return needParticipant && !hasParticipant ? 'both' : 'speaker';
     if (needParticipant && !hasParticipant) return 'participant';
     return null;
-  }, [currentMode, isInputDeviceOn, selectedInputDevice?.deviceId, isSystemAudioCaptureEnabled, selectedSystemAudioSource?.deviceId, isSystemAudioSourceReady]);
+  }, [currentMode, isInputDeviceOn, selectedInputDevice?.deviceId, isSystemAudioCaptureEnabled, selectedParticipantSource?.deviceId, isSystemAudioSourceReady]);
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null + mode !== 'none'). This is
@@ -449,14 +449,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     // Participant source picker only applies on Electron — on Extension
     // tab capture has no per-source pick step.
-    if (wantParticipant && !isExtension() && !selectedSystemAudioSource
+    if (wantParticipant && !isExtension() && !selectedParticipantSource
         && systemAudioSources && systemAudioSources.length > 0) {
       selectSystemAudioSource(systemAudioSources[0]);
     }
   }, [
     isSessionActive, setInputDeviceOn, setSystemAudioCaptureEnabled,
     selectedInputDevice, audioInputDevices, selectInputDevice,
-    selectedSystemAudioSource, systemAudioSources, selectSystemAudioSource,
+    selectedParticipantSource, systemAudioSources, selectSystemAudioSource,
   ]);
 
   // Popover (re-click active segment) — anchored to the active segment ref
@@ -1712,7 +1712,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Both capture "other participant" audio and send to AI for translation
       const shouldCaptureParticipantAudio = isSystemAudioCaptureEnabled && audioServiceRef.current && (
         isExtension() || // Extension: use tab capture
-        (selectedSystemAudioSource && isSystemAudioSourceReady) // Electron: use system audio loopback
+        (selectedParticipantSource && isSystemAudioSourceReady) // Electron: use system audio loopback
       );
 
       if (shouldCaptureParticipantAudio) {
@@ -1864,7 +1864,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     realVoicePassthroughVolume,
     // System audio capture
     isSystemAudioCaptureEnabled,
-    selectedSystemAudioSource,
+    selectedParticipantSource,
     isSystemAudioSourceReady,
     // Channel-start predicates control which clients are created
     speakerWillStart,

@@ -35,7 +35,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const {
     audioMonitorDevices,
     systemAudioSources,
-    selectedSystemAudioSource,
+    selectedParticipantSource,
     isSystemAudioCaptureEnabled,
     participantAudioOutputDevice,
     isLoading,
@@ -259,7 +259,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           // Electron: Show source selection
           <DeviceList
             devices={systemAudioSources as AudioDevice[]}
-            selectedDevice={selectedSystemAudioSource as AudioDevice | null}
+            selectedDevice={selectedParticipantSource as AudioDevice | null}
             isDeviceOn={isSystemAudioCaptureEnabled}
             onSelect={(device) => handleDeviceClick(device, true)}
             onToggleOff={() => {

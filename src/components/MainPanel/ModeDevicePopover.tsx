@@ -64,7 +64,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     setInputDeviceOn,
     setMonitorDeviceOn,
     systemAudioSources,
-    selectedSystemAudioSource,
+    selectedParticipantSource,
     selectSystemAudioSource,
     isSystemAudioCaptureEnabled,
     setSystemAudioCaptureEnabled,
@@ -169,14 +169,14 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         icon: AudioLines,
         label: t('modePicker.deviceParticipantSource', 'Participant source'),
         devices: (systemAudioSources ?? []) as AudioDevice[],
-        selectedDevice: (selectedSystemAudioSource ?? null) as AudioDevice | null,
+        selectedDevice: (selectedParticipantSource ?? null) as AudioDevice | null,
         isOn: isSystemAudioCaptureEnabled,
         onMute: () => setSystemAudioCaptureEnabled(false),
         onSelectDevice: (d) => {
           selectSystemAudioSource(d as any);
           if (!isSystemAudioCaptureEnabled) setSystemAudioCaptureEnabled(true);
         },
-        isMissing: isSystemAudioCaptureEnabled && !selectedSystemAudioSource,
+        isMissing: isSystemAudioCaptureEnabled && !selectedParticipantSource,
       });
     }
 
@@ -200,7 +200,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     mode,
     audioInputDevices, selectedInputDevice, isInputDeviceOn,
     audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
-    systemAudioSources, selectedSystemAudioSource, isSystemAudioCaptureEnabled,
+    systemAudioSources, selectedParticipantSource, isSystemAudioCaptureEnabled,
     participantAudioOutputDevice,
     selectInputDevice, selectMonitorDevice, selectSystemAudioSource, selectParticipantAudioOutputDevice,
     setInputDeviceOn, setSystemAudioCaptureEnabled, setMonitorDeviceOn,

@@ -43,7 +43,7 @@ interface AudioStore {
 
   // System audio capture state (for translating other participants)
   systemAudioSources: AudioDevice[];
-  selectedSystemAudioSource: AudioDevice | null;
+  selectedParticipantSource: AudioDevice | null;
   isSystemAudioCaptureEnabled: boolean;
   isSystemAudioCaptureActive: boolean;
   isSystemAudioSourceReady: boolean;
@@ -99,7 +99,7 @@ const useAudioStore = create<AudioStore>()(
 
     // System audio capture state
     systemAudioSources: [],
-    selectedSystemAudioSource: null,
+    selectedParticipantSource: null,
     isSystemAudioCaptureEnabled: false,
     isSystemAudioCaptureActive: false,
     isSystemAudioSourceReady: false,
@@ -232,7 +232,7 @@ const useAudioStore = create<AudioStore>()(
 
     selectSystemAudioSource: (source) => {
       console.info('[Sokuji] [AudioStore] Selected system audio source:', source?.label || 'None');
-      set({ selectedSystemAudioSource: source });
+      set({ selectedParticipantSource: source });
       const settingsService = ServiceFactory.getSettingsService();
       settingsService.setSetting(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, source?.deviceId || '')
         .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio source preference:', error));
@@ -303,7 +303,7 @@ const useAudioStore = create<AudioStore>()(
           console.info('[Sokuji] [AudioStore] Refreshed system audio sources:', sources.length);
 
           // Select saved or first source if none selected
-          const currentSource = get().selectedSystemAudioSource;
+          const currentSource = get().selectedParticipantSource;
           let restoredSource: AudioDevice | null = null;
           if (!currentSource && sources.length > 0) {
             const settingsService = ServiceFactory.getSettingsService();
@@ -312,18 +312,18 @@ const useAudioStore = create<AudioStore>()(
               const savedSource = sources.find(s => s.deviceId === savedSourceId);
               if (savedSource) {
                 console.info('[Sokuji] [AudioStore] Restored saved system audio source:', savedSource.label);
-                set({ selectedSystemAudioSource: savedSource });
+                set({ selectedParticipantSource: savedSource });
                 restoredSource = savedSource;
               } else {
-                set({ selectedSystemAudioSource: sources[0] });
+                set({ selectedParticipantSource: sources[0] });
               }
             } else {
-              set({ selectedSystemAudioSource: sources[0] });
+              set({ selectedParticipantSource: sources[0] });
             }
           }
 
           // Re-establish system audio connection if capture was enabled and a source is available
-          const selectedSource = restoredSource || get().selectedSystemAudioSource;
+          const selectedSource = restoredSource || get().selectedParticipantSource;
           if (get().isSystemAudioCaptureEnabled && selectedSource) {
             try {
               if (isElectron() && !isExtension() && isLoopbackPlatform()) {
@@ -625,7 +625,7 @@ export const useToggleNoiseSuppression = () => {
 
 // System audio capture selectors
 export const useSystemAudioSources = () => useAudioStore((state) => state.systemAudioSources);
-export const useSelectedSystemAudioSource = () => useAudioStore((state) => state.selectedSystemAudioSource);
+export const useSelectedParticipantSource = () => useAudioStore((state) => state.selectedParticipantSource);
 export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
 export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
 export const useIsSystemAudioSourceReady = () => useAudioStore((state) => state.isSystemAudioSourceReady);
@@ -727,7 +727,7 @@ export const useAudioContext = () => {
 
   // --- Channel: Participant source (system / tab audio) ---
   const systemAudioSources = useSystemAudioSources();
-  const selectedSystemAudioSource = useSelectedSystemAudioSource();
+  const selectedParticipantSource = useSelectedParticipantSource();
   const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
   const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
   const isSystemAudioSourceReady = useIsSystemAudioSourceReady();
@@ -753,7 +753,7 @@ export const useAudioContext = () => {
       // Monitor
       audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
       // Participant source
-      systemAudioSources, selectedSystemAudioSource,
+      systemAudioSources, selectedParticipantSource,
       isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
       // Extension passthrough
       participantAudioOutputDevice,
@@ -767,7 +767,7 @@ export const useAudioContext = () => {
     [
       audioInputDevices, selectedInputDevice, isInputDeviceOn,
       audioMonitorDevices, selectedMonitorDevice, isMonitorDeviceOn,
-      systemAudioSources, selectedSystemAudioSource,
+      systemAudioSources, selectedParticipantSource,
       isSystemAudioCaptureEnabled, isSystemAudioCaptureActive, isSystemAudioSourceReady,
       participantAudioOutputDevice,
       isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
