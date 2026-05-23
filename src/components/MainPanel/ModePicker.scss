@@ -1,7 +1,12 @@
 // Segmented control. Container uses a darker inset look so the 3 segments
 // read as one connected group against the footer's #2a2a2a surface.
+// Fixed 28px height matches WaveformStrip and the PTT/Start buttons so
+// the entire footer row aligns on a common baseline.
 .mode-picker {
   display: inline-flex;
+  align-items: stretch;
+  height: 28px;
+  box-sizing: border-box;
   background: #1a1a1a;
   border: 1px solid #333;
   border-radius: 6px;
@@ -10,7 +15,10 @@
   gap: 2px;
 
   &__segment {
-    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
     font-size: 12px;
     color: #888;
     border-radius: 3px;
@@ -18,7 +26,7 @@
     cursor: pointer;
     background: transparent;
     border: 0;
-    line-height: 1.2;
+    line-height: 1;
     transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 
     &:hover:not(:disabled) {
