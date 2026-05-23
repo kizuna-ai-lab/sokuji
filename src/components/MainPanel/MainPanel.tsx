@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings, AudioLines} from 'lucide-react';
+import {X, Zap, Mic, Loader, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
 import './MainPanel.scss';
 import '../../styles/karaoke.scss';
 import {
@@ -75,6 +75,7 @@ import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
 import ModePicker from './ModePicker';
 import ModeDevicePopover from './ModeDevicePopover';
+import WaveformStrip from './WaveformStrip';
 
 
 /**
@@ -974,6 +975,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const clientCanvasRef = useRef<HTMLCanvasElement>(null);
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
+  const systemCanvasRef = useRef<HTMLCanvasElement>(null);
 
   /**
    * Set up event listeners for the AI Client
@@ -3242,28 +3244,41 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {/* Control Footer — Advanced Mode */}
         {uiMode === 'advanced' && (
           <div className="control-footer advanced">
-            <div className="input-viz">
-              <span
-                className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
-                onClick={() => navigateToSettings('microphone')}
-                title={selectedInputDevice?.label || t('mainPanel.input')}
-              >
-                {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
-              </span>
-              <canvas ref={clientCanvasRef} className="visualization-canvas" />
-            </div>
+            <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
 
-            <div className="participant-viz">
-              <span
-                className={`device-icon ${(isSessionActive ? participantChannelActive : participantWillStart) ? 'active' : ''} clickable`}
-                onClick={() => navigateToSettings('participant')}
-                title={t('mainPanel.participantAudio', 'Participant audio')}
-              >
-                <AudioLines size={14} />
-              </span>
-            </div>
+            <ModePicker
+              mode={currentMode}
+              locked={isSessionActive || isInitializing}
+              missingDeviceForMode={missingDeviceForMode}
+              onSegmentClick={(target, el) => {
+                if (target === currentMode) {
+                  setModePopoverAnchor(el);
+                  setModePopoverOpen(true);
+                } else {
+                  handleModeSwitch(target);
+                  setModePopoverOpen(false);
+                }
+              }}
+            />
 
-            <div className="center-controls">
+            {(currentMode === 'speaker' || currentMode === 'both') && (
+              <WaveformStrip
+                kind="mic"
+                canvasRef={clientCanvasRef}
+                width={currentMode === 'both' ? 'half' : 'full'}
+              />
+            )}
+            {(currentMode === 'participant' || currentMode === 'both') && (
+              <WaveformStrip
+                kind="system"
+                canvasRef={systemCanvasRef}
+                width={currentMode === 'both' ? 'half' : 'full'}
+              />
+            )}
+
+            <span className="footer-spacer" />
+
+            <div className="action-cluster">
               {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
@@ -3277,7 +3292,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   </span>
                 </button>
               )}
-
               <button
                 className={`session-button ${isSessionActive ? 'active' : ''}`}
                 onClick={() => {
@@ -3323,16 +3337,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                           : t('mainPanel.apiKeyRequired')}
                       </span>
                     )}
-                    {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
+                    {anyChannelWillStart && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
                     )}
-                    {isApiKeyValid && loadingModels && (
+                    {anyChannelWillStart && isApiKeyValid && loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                     )}
-                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                    {anyChannelWillStart && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {anyChannelWillStart && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>
@@ -3348,25 +3362,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
                 </button>
               )}
+            </div>
 
-              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
-              <span className="language-pair">
+            <span className="footer-spacer" />
+
+            {currentMode !== 'none' && (
+              <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
+            )}
+
+            <div className="footer-metadata">
+              <span
+                className="language-pair clickable"
+                onClick={() => navigateToSettings('languages')}
+                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+              >
                 {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
               </span>
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
               )}
-            </div>
-
-            <div className="output-viz">
-              <canvas ref={serverCanvasRef} className="visualization-canvas" />
-              <span
-                className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
-                onClick={() => navigateToSettings('speaker')}
-                title={selectedMonitorDevice?.label || t('mainPanel.output')}
-              >
-                {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              </span>
             </div>
           </div>
         )}
