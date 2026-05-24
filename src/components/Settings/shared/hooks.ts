@@ -16,6 +16,7 @@ export const isVirtualDevice = (device: AudioDevice): boolean => {
   const label = device.label.toLowerCase();
   return label.includes('sokuji_virtual_mic') ||
          label.includes('sokuji_virtual_speaker') ||
+         label.includes('sokuji virtual output') || // Windows display name
          label.includes('sokujivirtualaudio') || // Mac virtual device
          label.includes('cable');
 };

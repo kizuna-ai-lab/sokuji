@@ -76,6 +76,7 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
+import { isVirtualDevice } from '../Settings/shared/hooks';
 
 
 /**
@@ -1518,10 +1519,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
 
         // If monitor is not muted, ensure monitor device is connected immediately
-        if (!isMonitorMuted && selectedMonitorDevice &&
-          !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-          !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-          !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+        if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
           console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor
@@ -2160,10 +2158,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // No need for additional manual clearing
 
       // If monitor is not muted, ensure monitor device is connected
-      if (!isMonitorMuted && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+      if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
         selectMonitorDevice(selectedMonitorDevice);
       }
 
@@ -2348,10 +2343,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsTestTonePlaying(true);
 
       // If monitor is not muted, ensure monitor device is connected immediately
-      if (!isMonitorMuted && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+      if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
         console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
@@ -2653,11 +2645,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const updateMonitorDevice = async () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
-        const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-          selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
-          selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
-
-        if (isVirtualDevice) {
+        if (selectedMonitorDevice && isVirtualDevice(selectedMonitorDevice as any)) {
           console.info('[Sokuji] [MainPanel] Selected monitor device is a virtual device - not using as monitor');
           return;
         }
