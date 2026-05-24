@@ -25,7 +25,6 @@ export class ModernBrowserAudioService implements IAudioService {
   private recordingCallback: AudioRecordingCallback | null = null;
   private currentRecordingDeviceId: string | undefined = undefined;
   private diagnosticsInterval: NodeJS.Timeout | null = null;
-  private deviceChangeHandler: (() => void) | null = null;
 
   // System audio capture state (Electron - uses PipeWire/PulseAudio on Linux, electron-audio-loopback on Windows/macOS)
   // Connection state (switched via pw-link when user selects device on Linux, state flags on Windows)
@@ -103,51 +102,8 @@ export class ModernBrowserAudioService implements IAudioService {
     this.initialized = true;
     console.info('[Sokuji] [ModernBrowserAudio] Audio service initialized');
 
-    // Register Extension passthrough devicechange listener
-    this.setupExtensionPassthroughListener();
-
     // Start diagnostics monitoring in development
     this.startDiagnosticsMonitoring();
-  }
-
-  /**
-   * Register a devicechange listener so that Extension passthrough output
-   * re-binds to the new OS default when the user plugs in headphones or
-   * changes the default output device in OS settings.
-   *
-   * Extension passthrough always uses the system default (no user-selectable
-   * sink), so we must re-apply setSinkId('default') on the underlying
-   * HTMLAudioElement whenever the device list changes.
-   */
-  private setupExtensionPassthroughListener(): void {
-    if (!isExtension() || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
-
-    this.deviceChangeHandler = () => {
-      // Access the HTMLAudioElement directly to bypass the dedup guard in
-      // ModernAudioPlayer.setSinkId() — 'default' would never change as a
-      // stored deviceId string, but the underlying hardware binding must be
-      // refreshed each time the OS default changes.
-      const audioElement = (this.player as any).audioElement as HTMLAudioElement | null;
-      if (audioElement && typeof (audioElement as any).setSinkId === 'function') {
-        (audioElement as any).setSinkId('default').catch((err: unknown) => {
-          console.warn('[Sokuji] [ModernBrowserAudio] Failed to re-apply default sink on devicechange:', err);
-        });
-      }
-    };
-
-    navigator.mediaDevices.addEventListener('devicechange', this.deviceChangeHandler);
-    console.debug('[Sokuji] [ModernBrowserAudio] Extension passthrough devicechange listener registered');
-  }
-
-  /**
-   * Remove the Extension passthrough devicechange listener.
-   */
-  private teardownExtensionPassthroughListener(): void {
-    if (this.deviceChangeHandler && navigator?.mediaDevices) {
-      navigator.mediaDevices.removeEventListener('devicechange', this.deviceChangeHandler);
-      this.deviceChangeHandler = null;
-      console.debug('[Sokuji] [ModernBrowserAudio] Extension passthrough devicechange listener removed');
-    }
   }
 
   /**
@@ -1264,8 +1220,6 @@ export class ModernBrowserAudioService implements IAudioService {
    * Safe to call multiple times.
    */
   public destroy(): void {
-    this.teardownExtensionPassthroughListener();
-
     if (this.diagnosticsInterval) {
       clearInterval(this.diagnosticsInterval);
       this.diagnosticsInterval = null;
