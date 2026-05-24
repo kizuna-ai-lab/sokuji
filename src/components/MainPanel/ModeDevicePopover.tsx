@@ -10,7 +10,7 @@ import {
   size,
   autoUpdate,
 } from '@floating-ui/react';
-import { Mic, AudioLines, Volume2, Power, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, AudioLines, Volume2, Power, PowerOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -20,7 +20,7 @@ import {
 } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
-import type { AudioDevice } from '../Settings/shared/hooks';
+import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
 import './ModeDevicePopover.scss';
 
 interface ModeDevicePopoverProps {
@@ -123,12 +123,18 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     const showMonitor = mode === 'speaker';
     const showParticipant = mode === 'participant' || mode === 'both';
 
+    // Hide Sokuji virtual devices from the device lists — they're not
+    // user-selectable (they're internal routing). Mirrors what
+    // AudioDeviceSection's DeviceList does in Settings.
+    const filteredInputDevices = audioInputDevices.filter(d => !isVirtualDevice(d as any));
+    const filteredMonitorDevices = audioMonitorDevices.filter(d => !isVirtualDevice(d as any));
+
     if (showMic) {
       list.push({
         key: 'mic',
         icon: Mic,
         label: t('modePicker.deviceMic', 'Microphone'),
-        devices: audioInputDevices,
+        devices: filteredInputDevices,
         selectedDevice: selectedInputDevice,
         isMuted: isMicMuted,
         onMuteToggle: () => setMicMuted(!isMicMuted),
@@ -142,7 +148,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
         key: 'monitor',
         icon: Volume2,
         label: t('modePicker.deviceSpeakerMonitor', 'Speaker monitor'),
-        devices: audioMonitorDevices,
+        devices: filteredMonitorDevices,
         selectedDevice: selectedMonitorDevice,
         isMuted: isMonitorMuted,
         onMuteToggle: () => setMonitorMuted(!isMonitorMuted),
@@ -245,7 +251,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                     ? t('popover.toggleOn', 'Turn on {{label}}', { label: row.label })
                     : t('popover.toggleOff', 'Turn off {{label}}', { label: row.label })}
                 >
-                  <Power size={14} />
+                  {row.isMuted ? <PowerOff size={14} /> : <Power size={14} />}
                 </button>
               </div>
 

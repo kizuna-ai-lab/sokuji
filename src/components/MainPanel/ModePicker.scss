@@ -62,10 +62,13 @@
       cursor: not-allowed;
       opacity: 0.55;
     }
+    // Active segment stays clickable in-session (opens the device popover),
+    // so override the locked-cursor to signal it's interactive.
     .mode-picker__segment--active {
       opacity: 1;
       background: #555;
       color: #fff;
+      cursor: pointer;
     }
   }
 }
