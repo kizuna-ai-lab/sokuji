@@ -477,15 +477,21 @@ const useAudioStore = create<AudioStore>()(
         }
         
         await audioService.initialize();
-        
-        // Set initial monitor volume based on current state
+
+        // Refresh devices FIRST — its migration block reads persisted
+        // isMonitorMuted and may overwrite the store's default. We must
+        // read the post-migration value before calling setMonitorVolume,
+        // otherwise the player's global volume stays at the pre-migration
+        // default and ignores the user's saved preference. Bug it fixes:
+        // monitor silent at session start for users with saved monitor-on
+        // state, fixed only by an off→on toggle.
+        const devices = await get().refreshDevices();
+
+        // Set initial monitor volume based on the (possibly migrated) state
         const { isMonitorMuted } = get();
         audioService.setMonitorVolume(!isMonitorMuted);
         console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${isMonitorMuted ? '0.0' : '1.0'}`);
-        
-        // Refresh devices after initialization
-        const devices = await get().refreshDevices();
-        
+
         // Connect monitor device if available
         const deviceToConnect = get().selectedMonitorDevice || devices?.defaultMonitorDevice;
         if (deviceToConnect) {
