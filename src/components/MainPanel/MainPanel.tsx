@@ -2485,7 +2485,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (clientCtx) {
             clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
             const recorder = audioService.getRecorder();
-            const result = recorder.isRecording()
+            // Under callback-level pipeline gating, the recorder runs continuously
+            // while the session is active — so the mute flag must gate the waveform
+            // independently. Without this, mic waveform would animate even when
+            // muted, contradicting the spec's "muted = flat waveform" rule.
+            const result = recorder.isRecording() && !isMicMuted
               ? recorder.getFrequencies('voice')
               : { values: new Float32Array([0]) };
             WavRenderer.drawBars(
@@ -2610,7 +2614,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive]);
+    // isMicMuted / isParticipantMuted in deps so the render-loop closure
+    // re-initializes when mute toggles — without them, the rAF callback
+    // captures a stale mute value and the waveform gate never updates.
+  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive, isMicMuted, isParticipantMuted]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
