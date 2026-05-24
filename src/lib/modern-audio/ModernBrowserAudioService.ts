@@ -1260,36 +1260,6 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
-   * Pause participant audio recording — stops data flowing to the client
-   * but keeps the recorder/stream/AnalyserNode alive. Used for mid-session
-   * mute. The stored callback (this.tabAudioCallback / .systemAudioCallback)
-   * is preserved so resume can re-attach it.
-   *
-   * Recorder lifecycle is unchanged — `*RecordingActive` flags stay true
-   * because the recorder is still "active" in the sense of holding a
-   * connection; it's just paused.
-   */
-  public async pauseParticipantAudioRecording(): Promise<void> {
-    if (this.tabAudioRecorder) {
-      try {
-        await this.tabAudioRecorder.pause();
-        console.info('[Sokuji] [ModernBrowserAudio] Paused tab audio recording (mute)');
-      } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error pausing tab audio:', error);
-      }
-      return;
-    }
-    if (this.systemAudioRecorder) {
-      try {
-        await this.systemAudioRecorder.pause();
-        console.info('[Sokuji] [ModernBrowserAudio] Paused system audio recording (mute)');
-      } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error pausing system audio:', error);
-      }
-    }
-  }
-
-  /**
    * Tear down the audio service and release all resources.
    * Safe to call multiple times.
    */
@@ -1299,45 +1269,6 @@ export class ModernBrowserAudioService implements IAudioService {
     if (this.diagnosticsInterval) {
       clearInterval(this.diagnosticsInterval);
       this.diagnosticsInterval = null;
-    }
-  }
-
-  /**
-   * Resume participant audio recording after a pause. Re-attaches the
-   * stored callback to the still-alive recorder.
-   */
-  public async resumeParticipantAudioRecording(): Promise<void> {
-    if (this.tabAudioRecorder && this.tabAudioCallback) {
-      try {
-        const callback = this.tabAudioCallback;
-        await this.tabAudioRecorder.record((data) => {
-          if (this.tabAudioCallback) {
-            this.tabAudioCallback(data);
-          } else {
-            // Fallback for the captured reference if cleared mid-resume
-            callback(data);
-          }
-        });
-        console.info('[Sokuji] [ModernBrowserAudio] Resumed tab audio recording (unmute)');
-      } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error resuming tab audio:', error);
-      }
-      return;
-    }
-    if (this.systemAudioRecorder && this.systemAudioCallback) {
-      try {
-        const callback = this.systemAudioCallback;
-        await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
-          if (this.systemAudioCallback) {
-            this.systemAudioCallback(data);
-          } else {
-            callback(data);
-          }
-        });
-        console.info('[Sokuji] [ModernBrowserAudio] Resumed system audio recording (unmute)');
-      } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error resuming system audio:', error);
-      }
     }
   }
 }
