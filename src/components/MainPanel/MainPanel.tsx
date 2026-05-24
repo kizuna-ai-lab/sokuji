@@ -3027,12 +3027,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {(isSessionActive || combinedItems.length > 0) && (
           <>
           <div className="conversation-toolbar">
-            <DisplayModeButton
-              scope="speaker"
-              value={speakerDisplayMode}
-              onChange={setSpeakerDisplayMode}
-            />
-            {participantItems.length > 0 && (
+            {/*
+              Show each display-mode button when its channel is intent-active for
+              the (current or locked) session, OR when items already exist for that
+              channel — the items fallback keeps the buttons available after the
+              session ends so users can still reconfigure display of historical
+              conversation. Previously: speaker button always showed (wrong in
+              participant-only mode) and participant button was late-binding on
+              items (no preconfig before the first translation arrived).
+            */}
+            {(effectiveMode === 'speaker' || effectiveMode === 'both' || items.length > 0) && (
+              <DisplayModeButton
+                scope="speaker"
+                value={speakerDisplayMode}
+                onChange={setSpeakerDisplayMode}
+              />
+            )}
+            {(effectiveMode === 'participant' || effectiveMode === 'both' || participantItems.length > 0) && (
               <DisplayModeButton
                 scope="participant"
                 value={participantDisplayMode}
