@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
+import { isVirtualDevice } from '../components/Settings/shared/hooks';
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
 export type AudioMode = 'speaker' | 'participant' | 'both';
@@ -190,8 +191,16 @@ const useAudioStore = create<AudioStore>()(
         }
 
         // Auto-pick first device for channels newly in scope without a selection.
+        // Prefer non-virtual devices so we don't accidentally pick a Sokuji
+        // loopback as the user's mic. Persist the selection so it survives
+        // restart (otherwise setting would only live in memory until the user
+        // explicitly picks a device via the popover or settings).
         if (nextSpeakerInScope && !state.selectedInputDevice && state.audioInputDevices.length > 0) {
-          patch.selectedInputDevice = state.audioInputDevices[0];
+          const nonVirtual = state.audioInputDevices.find(d => !isVirtualDevice(d as any));
+          const picked = nonVirtual ?? state.audioInputDevices[0];
+          patch.selectedInputDevice = picked;
+          settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, picked.deviceId)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-picked input device:', error));
         }
 
         settingsService.setSetting(STORAGE_KEYS.MODE, target)

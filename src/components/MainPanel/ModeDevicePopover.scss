@@ -190,10 +190,18 @@
     font-size: 11px;
     flex-shrink: 0;
 
-    a {
+    // Real <button> styled to look like a link so it's keyboard-focusable
+    // and screen-reader friendly. Previously used <a> without href, which
+    // breaks Tab focus + Enter activation.
+    &-link {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font: inherit;
       color: #10a37f;
       cursor: pointer;
       &:hover { text-decoration: underline; }
+      &:focus-visible { outline: 2px solid #10a37f; outline-offset: 2px; }
     }
   }
 }

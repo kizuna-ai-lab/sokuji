@@ -6,25 +6,34 @@ import { useIsParticipantMuted, useSetParticipantMuted } from '../../../stores/a
 import { isExtension } from '../../../utils/environment';
 
 interface SystemAudioSectionProps {
+  /** Real session-active state — reserved for analytics-style consumers. */
   isSessionActive: boolean;
+  /**
+   * Lock the toggle. Defaults to isSessionActive for backward compatibility.
+   * Callers that need per-channel locking (lock participant but not others)
+   * pass this explicitly.
+   */
+  isLocked?: boolean;
   /** Additional class name */
   className?: string;
 }
 
 const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   isSessionActive,
+  isLocked,
   className = ''
 }) => {
   const { t } = useTranslation();
   const isParticipantMuted = useIsParticipantMuted();
   const setParticipantMuted = useSetParticipantMuted();
+  const locked = isLocked ?? isSessionActive;
 
   const description = isExtension()
     ? t('settings.participantSectionDescriptionExtension', 'Translate audio from the active browser tab. The original audio plays through your system default output.')
     : t('settings.participantSectionDescriptionElectron', 'Translate audio from any application playing on this system.');
 
   const handleToggle = () => {
-    if (isSessionActive) return;
+    if (locked) return;
     setParticipantMuted(!isParticipantMuted);
   };
 
@@ -43,7 +52,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         checked={!isParticipantMuted}
         onChange={handleToggle}
         label={!isParticipantMuted ? t('common.on', 'On') : t('common.off', 'Off')}
-        disabled={isSessionActive}
+        disabled={locked}
       />
     </div>
   );

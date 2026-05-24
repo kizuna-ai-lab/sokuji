@@ -89,8 +89,11 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       size({
         padding: 8,
         apply({ availableHeight, elements }) {
+          // Clamp to availableHeight so the popover never exceeds the viewport
+          // (an internal scroll handles overflow). The Math.max with 0 guards
+          // against floating-ui handing us a transient negative value.
           Object.assign(elements.floating.style, {
-            maxHeight: `${Math.max(availableHeight, 200)}px`,
+            maxHeight: `${Math.max(0, availableHeight)}px`,
           });
         },
       }),
@@ -280,19 +283,23 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
         <div className="mode-device-popover__divider" />
         <div className="mode-device-popover__footer">
-          <a onClick={() => {
-            // navigateToSettings(null) is a no-op — MainLayout opens the
-            // panel only on a truthy target. Pass the popover's current
-            // mode as the section anchor so the user lands on the most
-            // relevant section.
-            const target = mode === 'speaker' ? 'microphone'
-              : mode === 'participant' ? 'participant'
-              : 'microphone';
-            navigateToSettings(target);
-            onClose();
-          }}>
+          <button
+            type="button"
+            className="mode-device-popover__footer-link"
+            onClick={() => {
+              // navigateToSettings(null) is a no-op — MainLayout opens the
+              // panel only on a truthy target. Pass the popover's current
+              // mode as the section anchor so the user lands on the most
+              // relevant section.
+              const target = mode === 'speaker' ? 'microphone'
+                : mode === 'participant' ? 'participant'
+                : 'microphone';
+              navigateToSettings(target);
+              onClose();
+            }}
+          >
             {t('modePicker.popoverFooter', 'Full settings →')}
-          </a>
+          </button>
         </div>
       </div>
     </FloatingPortal>

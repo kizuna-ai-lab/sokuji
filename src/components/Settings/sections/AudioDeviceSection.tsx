@@ -9,7 +9,15 @@ import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, N
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
+  /** Real session-active state — used for analytics (during_session) only. */
   isSessionActive: boolean;
+  /**
+   * Per-channel lock — when true, disable interactive controls.
+   * Defaults to isSessionActive for backward compatibility.
+   * Callers that need finer-grained control (locking specific channels
+   * while a session is active) should pass this explicitly.
+   */
+  isLocked?: boolean;
   /** Show microphone section */
   showMicrophone?: boolean;
   /** Show speaker section */
@@ -24,12 +32,14 @@ interface AudioDeviceSectionProps {
 
 const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   isSessionActive,
+  isLocked,
   showMicrophone = true,
   showSpeaker = true,
   isSystemAudioEnabled = false,
   onSpeakerMutualExclusivity,
   className = ''
 }) => {
+  const locked = isLocked ?? isSessionActive;
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
@@ -145,7 +155,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             isDeviceOn={!isMicMuted}
             onSelect={handleInputDeviceSelect}
             onToggleOff={() => setMicMuted(!isMicMuted)}
-            disabled={isSessionActive}
+            disabled={locked}
             deviceType="input"
             filterVirtual={false}
             showVirtualIndicators={true}
@@ -220,7 +230,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             isDeviceOn={!isMonitorMuted}
             onSelect={handleMonitorDeviceSelect}
             onToggleOff={() => setMonitorMuted(!isMonitorMuted)}
-            disabled={isSessionActive}
+            disabled={locked}
             deviceType="output"
             filterVirtual={false}
             showVirtualIndicators={true}

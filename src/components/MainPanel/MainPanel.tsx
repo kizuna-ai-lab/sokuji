@@ -1801,6 +1801,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
+      // Post-init guard: if BOTH channels failed to come up (e.g., speaker
+      // WebRTC fallback failed AND participant loopback permission was denied),
+      // bail instead of entering a fake "active" UI state with no translation
+      // happening. Errors above were caught non-fatally and continued; this
+      // is where we detect total failure.
+      if (!speakerClientRef.current && !participantClientRef.current) {
+        console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
+        setIsInitializing(false);
+        addRealtimeEvent(
+          { type: 'session.init_error', data: { message: t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.') } },
+          'client', 'session.init_error'
+        );
+        return;
+      }
+
       // Set state variables after successful initialization
       // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
       setLockedMode(sessionMode);
@@ -3342,7 +3357,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
                   onMouseUp={stopRecording}
-                  disabled={!isSessionActive || !canHoldToSpeak || isMicMuted}
+                  disabled={isMicMuted}
                 >
                   <Mic size={14} />
                   <span>

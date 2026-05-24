@@ -30,8 +30,9 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   //   - the channel isn't part of the locked mode
   // Pre-session every channel is editable (lock = false). In-session,
   // irrelevant channels are still visible but disabled. The mutual
-  // exclusivity between monitor and participant is enforced inside
-  // audioStore.toggle*; no warning callbacks needed at this layer.
+  // exclusivity between monitor and participant is enforced by the mode
+  // itself (monitor is out-of-scope in participant/both modes) — no
+  // runtime toggle interception needed.
   const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
   const lockParticipant = isSessionActive && lockedMode !== 'participant' && lockedMode !== 'both';
   const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
@@ -90,21 +91,24 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
         {/* Microphone */}
         <AudioDeviceSection
-          isSessionActive={lockMic}
+          isSessionActive={isSessionActive}
+          isLocked={lockMic}
           showMicrophone={true}
           showSpeaker={false}
         />
 
         {/* Speaker monitor */}
         <AudioDeviceSection
-          isSessionActive={lockMonitor}
+          isSessionActive={isSessionActive}
+          isLocked={lockMonitor}
           showMicrophone={false}
           showSpeaker={true}
         />
 
         {/* Participant audio (system audio capture) */}
         <SystemAudioSection
-          isSessionActive={lockParticipant}
+          isSessionActive={isSessionActive}
+          isLocked={lockParticipant}
         />
 
         {/* Help & Updates */}

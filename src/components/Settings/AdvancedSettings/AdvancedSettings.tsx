@@ -41,6 +41,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'microphone': 'audio',
   'speaker': 'audio',
   'system-audio': 'audio',
+  'participant': 'audio', // renamed section target — popover footer navigates here
   'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
@@ -179,19 +180,22 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
             <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
 
             <AudioDeviceSection
-              isSessionActive={lockMic}
+              isSessionActive={isSessionActive}
+              isLocked={lockMic}
               showMicrophone={true}
               showSpeaker={false}
             />
 
             <AudioDeviceSection
-              isSessionActive={lockMonitor}
+              isSessionActive={isSessionActive}
+              isLocked={lockMonitor}
               showMicrophone={false}
               showSpeaker={true}
             />
 
             <SystemAudioSection
-              isSessionActive={lockParticipant}
+              isSessionActive={isSessionActive}
+              isLocked={lockParticipant}
             />
 
             <VoicePassthroughSection
