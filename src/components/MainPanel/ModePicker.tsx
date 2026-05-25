@@ -33,21 +33,33 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
     return t('modePicker.modeBoth', 'Both');
   };
 
+  // Plain-language description of what each mode translates and in which
+  // direction. Leads every tooltip so the mode's *meaning* is always
+  // available on hover (the bare "You / Others / Both" labels don't convey it).
+  const descFor = (seg: 'speaker' | 'participant' | 'both') => {
+    if (seg === 'speaker') return t('modePicker.descYou', 'Your voice → translated for others. Translate what you say so others understand you.');
+    if (seg === 'participant') return t('modePicker.descOthers', "Others' voices → translated for you. Translate what participants say so you understand them.");
+    return t('modePicker.descBoth', "Two-way. Translate your voice and others' at the same time.");
+  };
+
   const titleFor = (seg: 'speaker' | 'participant' | 'both') => {
     const isActive = seg === mode;
+    const desc = descFor(seg);
     if (locked) {
       // In-session: only the active segment is clickable (to open the
       // device popover for the currently-running channels). Inactive
       // segments are visually locked.
       return isActive
-        ? t('modePicker.configureDevices', 'Click to configure devices.')
-        : t('modePicker.switchDisabled', 'Mode is locked during a session.');
+        ? `${desc}\n${t('modePicker.configureDevices', 'Click to configure devices.')}`
+        : `${desc}\n${t('modePicker.switchDisabled', 'Mode is locked during a session.')}`;
     }
     if (missingDeviceForMode === seg || (missingDeviceForMode === 'both' && (seg === 'speaker' || seg === 'participant'))) {
-      return t('modePicker.missingDevice', 'Configure devices for this mode to start.');
+      return `${desc}\n${t('modePicker.missingDevice', 'Configure devices for this mode to start.')}`;
     }
-    if (isActive) return t('modePicker.configureDevices', 'Click to configure devices.');
-    return t('modePicker.switchTo', 'Switch to {{label}}', { label: labelFor(seg) });
+    if (isActive) return `${desc}\n${t('modePicker.configureDevices', 'Click to configure devices.')}`;
+    // Inactive + switchable: the description alone tells the user what they'd
+    // get; the unselected segment already signals it's clickable.
+    return desc;
   };
 
   return (
