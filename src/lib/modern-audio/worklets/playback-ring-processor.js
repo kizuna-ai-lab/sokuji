@@ -40,6 +40,19 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     this._lastPositionReport = 0;
     this._positionReportInterval = Math.floor(sampleRate * 0.05); // ~50ms
 
+    // Passthrough latency control (issue #246).
+    //   0 ............ 250ms  → 1.00x normal read (no pitch change)
+    //   250ms ........ 800ms  → 1.01x..1.06x adaptive catch-up via fractional
+    //                            read + linear interpolation. Slight pitch
+    //                            rise (≤ 1 semitone) but no drops or gaps.
+    //   > 800ms              → hard trim (drop oldest). Adaptive would take
+    //                            >50s to recover a 10s backlog, unacceptable.
+    this._ptAdaptiveStartSamples = Math.floor(sampleRate * 0.25); // 250ms
+    this._ptMaxLatencySamples = Math.floor(sampleRate * 0.8);     // 800ms
+    this._ptFracReadOffset = 0;  // sub-sample fractional position carry
+    this._lastPtTrimReportedAt = 0;
+    this._lastPtAdaptiveReportedAt = 0;
+
     this.port.onmessage = (e) => {
       const msg = e.data;
       if (msg.type === 'init') {
@@ -69,6 +82,9 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     // The producer (main thread) handles index reset by setting writeIdx = readIdx.
     this._samplesPlayed = 0;
     this._lastPositionReport = 0;
+    this._lastPtTrimReportedAt = 0;
+    this._lastPtAdaptiveReportedAt = 0;
+    this._ptFracReadOffset = 0;
     this._setState('stopped');
   }
 
@@ -114,16 +130,85 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     // --- Mix in passthrough ring buffer (additive) ---
     if (this._ptIndices) {
       const ptWriteIdx = Atomics.load(this._ptIndices, 0);
-      const ptReadIdx = Atomics.load(this._ptIndices, 1);
-      const ptAvailable = ptWriteIdx - ptReadIdx;
+      let ptReadIdx = Atomics.load(this._ptIndices, 1);
+      let ptAvailable = ptWriteIdx - ptReadIdx;
+
+      // Hard trim above 800ms — adaptive catch-up (≤1.06x) would take
+      // >50s to recover a 10s backlog after a hard stall. Worklet owns
+      // readIdx, so jumping it forward is SPSC-safe.
+      if (ptAvailable > this._ptMaxLatencySamples) {
+        const skip = ptAvailable - this._ptMaxLatencySamples;
+        ptReadIdx += skip;
+        Atomics.store(this._ptIndices, 1, ptReadIdx);
+        ptAvailable = this._ptMaxLatencySamples;
+        this._ptFracReadOffset = 0;
+        // Throttle reports to ≤1/sec — process() runs ~187x/sec at 24kHz.
+        if (this._samplesPlayed - this._lastPtTrimReportedAt >= sampleRate) {
+          this._lastPtTrimReportedAt = this._samplesPlayed;
+          this.port.postMessage({ type: 'ptTrim', skipped: skip });
+        }
+      }
 
       if (ptAvailable > 0) {
-        const ptSamples = Math.min(frameSize, ptAvailable);
         const ptCap = this._ptCapacity;
-        for (let i = 0; i < ptSamples; i++) {
-          channel[i] += this._ptData[(ptReadIdx + i) % ptCap];
+
+        // Map backlog [250ms..800ms] → ratio [1.00x..1.06x].
+        // Below 250ms: 1.00x (no interpolation needed).
+        // Above 800ms: hard trim already applied above, so backlog now caps
+        // at 800ms and ratio caps at 1.06x.
+        let ratio = 1.0;
+        if (ptAvailable > this._ptAdaptiveStartSamples) {
+          const adaptiveSpan = this._ptMaxLatencySamples - this._ptAdaptiveStartSamples;
+          const overshoot = ptAvailable - this._ptAdaptiveStartSamples;
+          const t = overshoot < adaptiveSpan ? overshoot / adaptiveSpan : 1;
+          ratio = 1.0 + t * 0.06;
+          // Throttled report (≤1/sec) so we can see when adaptive catch-up
+          // kicks in. Same throttle as trim.
+          if (this._samplesPlayed - this._lastPtAdaptiveReportedAt >= sampleRate) {
+            this._lastPtAdaptiveReportedAt = this._samplesPlayed;
+            this.port.postMessage({
+              type: 'ptAdaptive',
+              ratio,
+              backlogMs: ((ptAvailable / sampleRate) * 1000) | 0,
+            });
+          }
         }
-        Atomics.store(this._ptIndices, 1, ptReadIdx + ptSamples);
+
+        if (ratio === 1.0) {
+          // Fast path — integer step, no interpolation.
+          const ptSamples = Math.min(frameSize, ptAvailable);
+          for (let i = 0; i < ptSamples; i++) {
+            channel[i] += this._ptData[(ptReadIdx + i) % ptCap];
+          }
+          Atomics.store(this._ptIndices, 1, ptReadIdx + ptSamples);
+          this._ptFracReadOffset = 0;
+        } else {
+          // Adaptive — fractional step with linear interpolation between
+          // adjacent ring samples. Produces frameSize output samples while
+          // consuming frameSize*ratio input samples.
+          // Need 1 extra sample for interpolating the last frame; otherwise
+          // fall back to whatever we can read this quantum.
+          const frac = this._ptFracReadOffset;
+          const usable = ptAvailable - 1;
+          const inputBudget = frameSize * ratio + frac;
+          const ptSamples = inputBudget <= usable
+            ? frameSize
+            : Math.max(0, Math.floor((usable - frac) / ratio));
+
+          for (let i = 0; i < ptSamples; i++) {
+            const srcPos = frac + i * ratio;
+            const srcIdx = srcPos | 0;
+            const f = srcPos - srcIdx;
+            const s0 = this._ptData[(ptReadIdx + srcIdx) % ptCap];
+            const s1 = this._ptData[(ptReadIdx + srcIdx + 1) % ptCap];
+            channel[i] += s0 + (s1 - s0) * f;
+          }
+
+          const totalAdvance = frac + ptSamples * ratio;
+          const intAdvance = totalAdvance | 0;
+          this._ptFracReadOffset = totalAdvance - intAdvance;
+          Atomics.store(this._ptIndices, 1, ptReadIdx + intAdvance);
+        }
       }
     }
 

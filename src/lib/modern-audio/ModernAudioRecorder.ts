@@ -199,10 +199,55 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    * Setup passthrough functionality
    */
   setupPassthrough(enabled = false, volume = 0.3): boolean {
+    const prevEnabled = this._passthroughEnabled;
     this._passthroughEnabled = enabled;
     this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    console.debug(`${this.getLogPrefix()} Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
+    // Issue #246: surface passthrough enable/disable transitions at info level
+    // so they're visible without enabling verbose audio-chunk logging.
+    if (prevEnabled !== enabled) {
+      console.info(`${this.getLogPrefix()} [PtDiag] Passthrough -> ${enabled ? 'ON' : 'OFF'} (vol=${this._passthroughVolume.toFixed(2)})`);
+    } else {
+      console.debug(`${this.getLogPrefix()} Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
+    }
     return true;
+  }
+
+  /**
+   * Diagnostic snapshot of the recorder's internal AudioContext (issue #246).
+   * The recorder context's sinkId is the *producer-side* clock domain for the
+   * passthrough pipeline; comparing it with the player's sinkId reveals
+   * cross-device clock drift.
+   */
+  getRecorderContextDiagnostics(): {
+    contextSampleRate: number | null;
+    contextState: string;
+    contextSinkId: string;
+    inputSampleRate: number | null;
+    targetSampleRate: number;
+    passthroughEnabled: boolean;
+    passthroughVolume: number;
+  } {
+    const ctx = this.audioContext as (AudioContext & { sinkId?: string }) | null;
+    let inputSampleRate: number | null = null;
+    try {
+      const track = this.stream?.getAudioTracks?.()[0];
+      const settings = track?.getSettings?.();
+      if (settings && typeof settings.sampleRate === 'number') {
+        inputSampleRate = settings.sampleRate;
+      }
+    } catch { /* ignore */ }
+
+    return {
+      contextSampleRate: ctx ? ctx.sampleRate : null,
+      contextState: ctx ? ctx.state : '(no-context)',
+      contextSinkId: ctx
+        ? (typeof ctx.sinkId !== 'undefined' ? (ctx.sinkId || '(default)') : '(unsupported)')
+        : '(no-context)',
+      inputSampleRate,
+      targetSampleRate: this.sampleRate,
+      passthroughEnabled: this._passthroughEnabled,
+      passthroughVolume: this._passthroughVolume,
+    };
   }
 
   // ==================== Recording Lifecycle ====================
@@ -227,6 +272,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
       // Create AudioContext at 48kHz for RNNoise compatibility
       this.audioContext = new AudioContext({ sampleRate: this.internalSampleRate });
+
+      // Issue #246: log state transitions. If the recorder ctx suspends, the
+      // producer-side worklet halts and pt would stop *growing* (different
+      // signature than consumer-side stall, but worth distinguishing).
+      this.audioContext.addEventListener('statechange', () => {
+        const ts = (typeof performance !== 'undefined' ? performance.now() : Date.now()).toFixed(0);
+        console.warn(`${this.getLogPrefix()} [PtDiag] recorder AudioContext.state -> ${this.audioContext && this.audioContext.state} (t=${ts}ms)`);
+      });
+
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
