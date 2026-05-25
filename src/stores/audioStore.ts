@@ -171,7 +171,6 @@ const useAudioStore = create<AudioStore>()(
       set((state) => {
         const prev = state.mode;
         const prevSpeakerInScope = prev === 'speaker' || prev === 'both';
-        const prevParticipantInScope = prev === 'participant' || prev === 'both';
         const nextSpeakerInScope = target === 'speaker' || target === 'both';
         const nextParticipantInScope = target === 'participant' || target === 'both';
 
@@ -186,9 +185,11 @@ const useAudioStore = create<AudioStore>()(
         if (nextSpeakerInScope && !prevSpeakerInScope) {
           patch.isMicMuted = false;
         }
-        if (nextParticipantInScope && !prevParticipantInScope) {
-          patch.isParticipantMuted = false;
-        }
+        // Participant mute tracks mode scope (one-directional): auto-unmute
+        // when participant is in scope (Participant/Both), auto-mute when it
+        // leaves (Speaker). Manual setParticipantMuted toggles never touch
+        // mode, so the binding only flows mode -> participant, never reverse.
+        patch.isParticipantMuted = !nextParticipantInScope;
 
         // Auto-pick first device for channels newly in scope without a selection.
         // Prefer non-virtual devices so we don't accidentally pick a Sokuji

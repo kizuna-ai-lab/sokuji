@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
+import { useMode } from '../../../stores/audioStore';
 import { useNavigateToSettings, useSettingsNavigationTarget } from '../../../stores/settingsStore';
 import {
   AccountSection,
@@ -22,6 +23,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
   const lockedMode = useLockedMode();
+  const mode = useMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const navigateToSettings = useNavigateToSettings();
 
@@ -34,8 +36,12 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   // itself (monitor is out-of-scope in participant/both modes) — no
   // runtime toggle interception needed.
   const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
-  const lockParticipant = isSessionActive && lockedMode !== 'participant' && lockedMode !== 'both';
   const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  // Participant toggle is disabled whenever participant is out of the effective
+  // mode scope, so the mode picker is the master control. Pre-session this means
+  // Speaker mode disables it; in-session the locked mode governs.
+  const effectiveMode = lockedMode ?? mode;
+  const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
   // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
   useEffect(() => {

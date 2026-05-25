@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
+import { useMode } from '../../../stores/audioStore';
 import {
   useProvider,
   useAvailableModels,
@@ -71,9 +72,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   // editable in-session. Pre-session: all 3 editable. In-session: the
   // irrelevant channels are visible but disabled (greyed).
   const lockedMode = useLockedMode();
+  const mode = useMode();
   const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
-  const lockParticipant = isSessionActive && lockedMode !== 'participant' && lockedMode !== 'both';
   const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  // Participant toggle is disabled whenever participant is out of the effective
+  // mode scope, so the mode picker is the master control. Pre-session this means
+  // Speaker mode disables it; in-session the locked mode governs.
+  const effectiveMode = lockedMode ?? mode;
+  const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
   // Current Speech Mode for active provider — used to disable VoicePassthroughSection
   // when Push-to-Translate is in effect (mutual exclusion).

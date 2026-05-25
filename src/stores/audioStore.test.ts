@@ -42,6 +42,27 @@ describe('audioStore — mode + mute flags', () => {
     expect(s.isMonitorMuted).toBe(true);      // sticky
   });
 
+  // Participant mute tracks mode scope bidirectionally: unmute on entering
+  // scope (Participant/Both), mute on leaving (Speaker). One-directional —
+  // setParticipantMuted never changes mode.
+  it('setMode("speaker") auto-mutes participant (leaves scope)', () => {
+    useAudioStore.setState({ mode: 'both', isParticipantMuted: false } as any);
+    useAudioStore.getState().setMode('speaker');
+    expect(useAudioStore.getState().isParticipantMuted).toBe(true);
+  });
+
+  it('setMode("participant") auto-unmutes participant (enters scope)', () => {
+    useAudioStore.setState({ mode: 'speaker', isParticipantMuted: true } as any);
+    useAudioStore.getState().setMode('participant');
+    expect(useAudioStore.getState().isParticipantMuted).toBe(false);
+  });
+
+  it('setMode("both") auto-unmutes participant (in scope)', () => {
+    useAudioStore.setState({ mode: 'speaker', isParticipantMuted: true } as any);
+    useAudioStore.getState().setMode('both');
+    expect(useAudioStore.getState().isParticipantMuted).toBe(false);
+  });
+
   it('setMicMuted(true) sets isMicMuted', () => {
     useAudioStore.getState().setMicMuted(true);
     const s = useAudioStore.getState();
