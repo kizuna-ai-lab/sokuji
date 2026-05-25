@@ -4,8 +4,11 @@
  *
  * Architecture:
  *   PCM chunks → SharedArrayBuffer (lock-free SPSC ring buffer) → AudioWorkletNode
- *     → GainNode → AnalyserNode → MediaStreamDestinationNode
+ *     → AnalyserNode → GainNode → MediaStreamDestinationNode
  *       → HTMLAudioElement.srcObject → Speakers (AEC-visible)
+ *
+ * The analyser sits before the gain so the output meter reflects the signal
+ * sent to the virtual microphone, independent of the monitor volume.
  *
  * The main thread writes directly to shared memory. The worklet reads directly.
  * No postMessage for audio data — only for low-frequency control signals.
@@ -133,7 +136,9 @@ export class ModernAudioPlayer {
         this._autoResumeTimer = setTimeout(() => {
           this._autoResumeTimer = null;
           if (!this.context || this.context.state !== 'suspended') return;
-          this.context.resume().catch(() => {});
+          // Recovery attempt, not fatal: the recreate deadline below is the
+          // backstop if resume() rejects or the context stays suspended.
+          this.context.resume().catch((e) => console.warn('[Sokuji] ctx auto-resume failed:', e));
           // Recreate deadline: if state didn't go back to running by then,
           // resume() is silently stuck and we need to rebuild the context.
           if (this._recreateDeadlineTimer) clearTimeout(this._recreateDeadlineTimer);
@@ -869,7 +874,8 @@ export class ModernAudioPlayer {
         } catch (e) { /* ignore */ }
       }
     } catch (e) {
-      /* connect() during recreate failed — leave context null for next attempt */
+      // Last-ditch recovery failed; leave context null so the next op retries.
+      console.error('[Sokuji] AudioContext recreation failed:', e);
     } finally {
       this._recreatingContext = false;
     }
