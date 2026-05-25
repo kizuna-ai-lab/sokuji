@@ -17,12 +17,15 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   '.speaker-section': 'speaker',
   '.main-action-btn': 'close-settings',
   '.session-button': 'close-settings',
+  // Mode picker lives in the footer — keep settings closed so it's visible.
+  '.mode-picker': 'close-settings',
   // Basic mode (ID selectors)
   '#user-account-section': 'user-account',
   '#provider-section': 'provider',
   '#languages-section': 'languages',
   '#microphone-section': 'microphone',
   '#speaker-section': 'speaker',
+  '#participant-section': 'participant',
 };
 
 const Onboarding: React.FC = () => {
@@ -81,8 +84,9 @@ const Onboarding: React.FC = () => {
     const handleElementClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
 
-      // Check if we're on step 1 and user clicked the spotlight over settings button
-      if (currentStepIndex === 1) {
+      // Check if we're on the settings-button step (index 2, after the
+      // mode-picker step at index 1) and user clicked the spotlight over it
+      if (currentStepIndex === 2) {
         const isSpotlightClick = target.classList.contains('react-joyride__spotlight') ||
                                 target.closest('.react-joyride__spotlight');
         const isSettingsButtonClick = target.closest('.settings-button');
@@ -139,8 +143,8 @@ const Onboarding: React.FC = () => {
       markOnboardingComplete();
     } else if (type === EVENTS.STEP_AFTER) {
       if (action === ACTIONS.NEXT) {
-        // Step 1: Auto-click settings button if user clicked Next
-        if (currentStepIndex === 1) {
+        // Settings-button step (index 2): auto-click settings button on Next
+        if (currentStepIndex === 2) {
           const settingsButton = document.querySelector('.settings-button') as HTMLElement;
           if (settingsButton) {
             settingsButton.click();

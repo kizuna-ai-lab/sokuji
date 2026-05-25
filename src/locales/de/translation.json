@@ -440,6 +440,10 @@
           "title": "Willkommen bei Sokuji",
           "content": "Willkommen bei Sokuji! Diese einfache Anleitung hilft Ihnen dabei, die Echtzeit-Übersetzung in nur wenigen Schritten zu nutzen."
         },
+        "mode": {
+          "content": "Wählen Sie, was Sokuji übersetzt: Sie — Ihre eigene Stimme (damit andere Sie verstehen); Andere — was andere Teilnehmer sagen (damit Sie sie verstehen); oder Beides für zweisprachige Übersetzung. Dies legt fest, welches Audio erfasst wird — wählen Sie Andere oder Beides, um Teilnehmer-Audio einzuschalten.",
+          "title": "Übersetzungsmodus"
+        },
         "settings": {
           "title": "Schritt 1: Einstellungen öffnen",
           "content": "Klicken Sie hier, um die Einstellungen zu öffnen, wo Sie Ihre Sprachen und Audiogeräte konfigurieren können."
@@ -462,7 +466,7 @@
         },
         "systemAudio": {
           "title": "Schritt 7: Teilnehmer-Audio",
-          "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
+          "content": "Dies ist der Teilnehmer-Kanal — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Andere oder Beides wählen (im Modus Sie bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Teilnehmer in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Teilnehmer-Sprache wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
         },
         "start": {
           "title": "Schritt 8: Übersetzen starten",
@@ -490,6 +494,10 @@
       "welcome": {
         "title": "Willkommen bei Sokuji",
         "content": "Willkommen bei Sokuji! Diese Anleitung hilft Ihnen dabei, die Erweiterung für Live-Sprachübersetzung einzurichten. Lassen Sie uns beginnen!"
+      },
+      "mode": {
+        "content": "Wählen Sie, was Sokuji übersetzt: Sie — Ihre eigene Stimme (damit andere Sie verstehen); Andere — was andere Teilnehmer sagen (damit Sie sie verstehen); oder Beides für zweisprachige Übersetzung. Dies legt fest, welches Audio erfasst wird — wählen Sie Andere oder Beides, um Teilnehmer-Audio einzuschalten.",
+        "title": "Übersetzungsmodus"
       },
       "settings": {
         "title": "Schritt 1: Einstellungen öffnen",
@@ -525,7 +533,7 @@
       },
       "systemAudio": {
         "title": "Schritt 8: Teilnehmer-Audio",
-        "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
+        "content": "Dies ist der Teilnehmer-Kanal — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Andere oder Beides wählen (im Modus Sie bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Teilnehmer in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Teilnehmer-Sprache wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
       },
       "startSession": {
         "title": "Schritt 9: Sitzung starten",

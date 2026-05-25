@@ -440,6 +440,10 @@
           "title": "Bienvenido a Sokuji",
           "content": "¡Bienvenido a Sokuji! Esta guía simple te ayudará a comenzar a usar la traducción en tiempo real en solo unos pasos."
         },
+        "mode": {
+          "content": "Elige qué traduce Sokuji: Tú — tu propia voz (para que otros te entiendan); Otros — lo que dicen los demás participantes (para que los entiendas); o Ambos para traducción bidireccional. Esto decide qué audio se captura — elige Otros o Ambos para activar el audio de participantes.",
+          "title": "Modo de traducción"
+        },
         "settings": {
           "title": "Paso 1: Abrir Configuración",
           "content": "Haz clic aquí para abrir la Configuración donde puedes configurar tus idiomas y dispositivos de audio."
@@ -462,7 +466,7 @@
         },
         "systemAudio": {
           "title": "Paso 7: Audio de Participantes",
-          "content": "Active la captura de audio de los participantes para traducir en tiempo real lo que dicen otros hablantes. En la extensión del navegador, esta función captura el audio de la pestaña actual y puede traducir las voces de otros participantes en videoconferencias como Google Meet, Teams, Zoom y otras. En la aplicación de escritorio, esta función captura todo el audio que reproduce el ordenador y puede traducir vídeos de YouTube, transmisiones de Twitch, contenido de Netflix y cualquier otra fuente de audio. El audio de los participantes solo realiza reconocimiento de voz y traducción a texto, sin síntesis de voz. Sokuji captura y traduce lo que usted dice a través del micrófono, y captura y traduce lo que dice la otra persona a través de esta función. Juntos, permiten una traducción bidireccional completa."
+          "content": "Este es el canal de participantes — lo que dicen los demás, traducido para ti. Actívalo eligiendo Otros o Ambos en el modo de traducción (permanece apagado en el modo Tú). En la extensión del navegador, captura la pestaña actual para que puedas traducir a los participantes en Google Meet, Teams o Zoom. En la aplicación de escritorio, captura todo el audio del sistema, para que puedas traducir YouTube, Twitch, Netflix o cualquier fuente. El habla de los participantes solo se traduce a texto — sin síntesis de voz. Junto con tu micrófono, esto te da una traducción bidireccional completa."
         },
         "start": {
           "title": "Paso 8: Comenzar a Traducir",
@@ -490,6 +494,10 @@
       "welcome": {
         "title": "Bienvenido a Sokuji",
         "content": "¡Bienvenido a Sokuji! Esta guía te ayudará a configurar la extensión para traducción de voz en tiempo real. ¡Comencemos!"
+      },
+      "mode": {
+        "content": "Elige qué traduce Sokuji: Tú — tu propia voz (para que otros te entiendan); Otros — lo que dicen los demás participantes (para que los entiendas); o Ambos para traducción bidireccional. Esto decide qué audio se captura — elige Otros o Ambos para activar el audio de participantes.",
+        "title": "Modo de traducción"
       },
       "settings": {
         "title": "Paso 1: Abrir configuración",
@@ -525,7 +533,7 @@
       },
       "systemAudio": {
         "title": "Paso 8: Audio de Participantes",
-        "content": "Active la captura de audio de los participantes para traducir en tiempo real lo que dicen otros hablantes. En la extensión del navegador, esta función captura el audio de la pestaña actual y puede traducir las voces de otros participantes en videoconferencias como Google Meet, Teams, Zoom y otras. En la aplicación de escritorio, esta función captura todo el audio que reproduce el ordenador y puede traducir vídeos de YouTube, transmisiones de Twitch, contenido de Netflix y cualquier otra fuente de audio. El audio de los participantes solo realiza reconocimiento de voz y traducción a texto, sin síntesis de voz. Sokuji captura y traduce lo que usted dice a través del micrófono, y captura y traduce lo que dice la otra persona a través de esta función. Juntos, permiten una traducción bidireccional completa."
+        "content": "Este es el canal de participantes — lo que dicen los demás, traducido para ti. Actívalo eligiendo Otros o Ambos en el modo de traducción (permanece apagado en el modo Tú). En la extensión del navegador, captura la pestaña actual para que puedas traducir a los participantes en Google Meet, Teams o Zoom. En la aplicación de escritorio, captura todo el audio del sistema, para que puedas traducir YouTube, Twitch, Netflix o cualquier fuente. El habla de los participantes solo se traduce a texto — sin síntesis de voz. Junto con tu micrófono, esto te da una traducción bidireccional completa."
       },
       "startSession": {
         "title": "Paso 9: Iniciar sesión",
