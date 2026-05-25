@@ -17,7 +17,8 @@
     "autoDetect": "स्वचालित पहचान",
     "signIn": "साइन इन",
     "signUp": "साइन अप",
-    "signInRequired": "कृपया Kizuna AI को अपने प्रदाता के रूप में उपयोग करने के लिए साइन इन करें"
+    "signInRequired": "कृपया Kizuna AI को अपने प्रदाता के रूप में उपयोग करने के लिए साइन इन करें",
+    "on": "चालू"
   },
   "app": {
     "title": "Sokuji",
@@ -278,7 +279,11 @@
     "translateModelNotAvailable": "API कुंजी काम करती है, लेकिन इस कुंजी से gpt-realtime-translate तक पहुँच नहीं है।",
     "transcriptModelTooltipTranslate": "स्रोत भाषा कैप्शन। वर्तमान में केवल gpt-realtime-whisper समर्थित है।",
     "modelTooltipTranslate": "OpenAI का समर्पित वॉयस अनुवाद मॉडल। आवाज़ स्वचालित रूप से स्रोत वक्ता के अनुकूल हो जाती है।",
-    "translateSourceParticipantWarning": "Participant अनुवाद काम नहीं कर सकता — आपकी चुनी हुई स्रोत भाषा 13 समर्थित लक्ष्य भाषाओं में नहीं है।"
+    "translateSourceParticipantWarning": "Participant अनुवाद काम नहीं कर सकता — आपकी चुनी हुई स्रोत भाषा 13 समर्थित लक्ष्य भाषाओं में नहीं है।",
+    "speechModeAppliesTo": "आपकी आवाज़ पर लागू होता है। प्रतिभागी ऑडियो हमेशा सिमेंटिक VAD का उपयोग करता है।",
+    "participantSectionHeader": "प्रतिभागी ऑडियो",
+    "participantSectionDescriptionElectron": "इस सिस्टम पर चल रहे किसी भी एप्लिकेशन के ऑडियो का अनुवाद करें।",
+    "participantSectionDescriptionExtension": "सक्रिय ब्राउज़र टैब के ऑडियो का अनुवाद करें। मूल ऑडियो आपके सिस्टम के डिफ़ॉल्ट आउटपुट के माध्यम से चलता है।"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",
@@ -424,7 +429,8 @@
     "loadingModels": "मॉडल लोड हो रहे हैं...",
     "noModelsAvailable": "कोई मॉडल उपलब्ध नहीं",
     "insufficientBalance": "अपर्याप्त टोकन शेष: {{balance}} टोकन",
-    "walletFrozen": "वॉलेट फ्रीज है। कृपया सहायता से संपर्क करें।"
+    "walletFrozen": "वॉलेट फ्रीज है। कृपया सहायता से संपर्क करें।",
+    "clickToConfigParticipant": "प्रतिभागी ऑडियो कॉन्फ़िगर करने के लिए क्लिक करें"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",
@@ -484,7 +490,9 @@
       "headerSource": "स्रोत",
       "headerTarget": "लक्ष्य",
       "headerNote": "नोट: सेटिंग्स निर्यात के समय की वर्तमान स्थिति दर्शाती हैं, सत्र के दौरान के बदलाव नहीं।"
-    }
+    },
+    "participantAudio": "प्रतिभागी ऑडियो",
+    "noChannelConfigured": "शुरू करने से पहले माइक्रोफ़ोन या प्रतिभागी ऑडियो सक्षम करें।"
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",
@@ -499,7 +507,11 @@
     "mutualExclusivitySpeakerText": "स्पीकर सक्षम करने से पहले कृपया प्रतिभागी ऑडियो बंद करें।",
     "mutualExclusivityParticipantText": "प्रतिभागी ऑडियो सक्षम करने से पहले कृपया स्पीकर बंद करें।",
     "availableSystemAudioSources": "कैप्चर करने योग्य सिस्टम ऑडियो डिवाइस",
-    "refreshSystemAudioSources": "डिवाइस सूची रिफ्रेश करें"
+    "refreshSystemAudioSources": "डिवाइस सूची रिफ्रेश करें",
+    "turnOnMicrophone": "माइक्रोफ़ोन चालू करें",
+    "turnOffMicrophone": "माइक्रोफ़ोन बंद करें",
+    "turnOnMonitor": "स्पीकर मॉनिटर चालू करें",
+    "turnOffMonitor": "स्पीकर मॉनिटर बंद करें"
   },
   "logsPanel": {
     "title": "लॉग्स",
@@ -819,5 +831,30 @@
     "minimize": "छोटा करें",
     "maximize": "बड़ा करें",
     "close": "बंद करें"
+  },
+  "modePicker": {
+    "modeYou": "आप",
+    "modeParticipants": "अन्य",
+    "modeBoth": "दोनों",
+    "groupLabel": "अनुवाद मोड",
+    "switchTo": "{{label}} पर स्विच करें",
+    "switchDisabled": "सत्र के दौरान मोड लॉक रहता है।",
+    "configureDevices": "डिवाइस कॉन्फ़िगर करने के लिए क्लिक करें।",
+    "missingDevice": "शुरू करने के लिए इस मोड के डिवाइस कॉन्फ़िगर करें।",
+    "popoverHeaderYou": "आप — डिवाइस",
+    "popoverHeaderParticipants": "प्रतिभागी — डिवाइस",
+    "popoverHeaderBoth": "दोनों — डिवाइस",
+    "popoverFooter": "पूर्ण सेटिंग्स →",
+    "deviceMic": "माइक्रोफ़ोन",
+    "deviceSpeakerMonitor": "स्पीकर मॉनिटर",
+    "notSelected": "चयनित नहीं",
+    "deviceParticipantAudio": "प्रतिभागी ऑडियो"
+  },
+  "popover": {
+    "statusOff": "बंद",
+    "toggleOn": "{{label}} चालू करें",
+    "toggleOff": "{{label}} बंद करें",
+    "participantSubtitleElectron": "सभी सिस्टम ऑडियो",
+    "participantSubtitleExtension": "सिस्टम डिफ़ॉल्ट के माध्यम से चलता है"
   }
 }

@@ -16,7 +16,8 @@
     "off": "Desligado",
     "autoDetect": "Detecção Automática",
     "signIn": "Iniciar Sessão",
-    "signUp": "Registar"
+    "signUp": "Registar",
+    "on": "Ligado"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com esta chave.",
     "transcriptModelTooltipTranslate": "Legendas no idioma de origem. Atualmente apenas gpt-realtime-whisper é suportado.",
     "modelTooltipTranslate": "Modelo dedicado de tradução de voz da OpenAI. A voz adapta-se automaticamente ao orador de origem.",
-    "translateSourceParticipantWarning": "A tradução Participant pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados."
+    "translateSourceParticipantWarning": "A tradução Participant pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados.",
+    "speechModeAppliesTo": "Aplica-se à sua voz. O áudio dos participantes utiliza sempre VAD semântico.",
+    "participantSectionHeader": "Áudio de Participantes",
+    "participantSectionDescriptionElectron": "Traduza o áudio de qualquer aplicação a reproduzir neste sistema.",
+    "participantSectionDescriptionExtension": "Traduza o áudio do separador ativo do navegador. O áudio original é reproduzido na saída predefinida do seu sistema."
   },
   "simpleSettings": {
     "quickSetup": "Configuração Rápida",
@@ -432,7 +437,8 @@
     "loadingModels": "A carregar modelos...",
     "noModelsAvailable": "Nenhum modelo disponível",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
-    "walletFrozen": "Carteira congelada. Contacte o suporte."
+    "walletFrozen": "Carteira congelada. Contacte o suporte.",
+    "clickToConfigParticipant": "Clique para configurar o áudio de participantes"
   },
   "connectionStatus": {
     "disconnected": "Desligado",
@@ -479,7 +485,11 @@
     "mutualExclusivitySpeakerText": "Por favor, desligue o Áudio de Participantes antes de activar o Altifalante.",
     "mutualExclusivityParticipantText": "Por favor, desligue o Altifalante antes de activar o Áudio de Participantes.",
     "availableSystemAudioSources": "Dispositivos de áudio do sistema capturáveis",
-    "refreshSystemAudioSources": "Atualizar lista de dispositivos"
+    "refreshSystemAudioSources": "Atualizar lista de dispositivos",
+    "turnOnMicrophone": "Ligar microfone",
+    "turnOffMicrophone": "Desligar microfone",
+    "turnOnMonitor": "Ligar monitor de altifalante",
+    "turnOffMonitor": "Desligar monitor de altifalante"
   },
   "logsPanel": {
     "title": "Registos",
@@ -558,7 +568,9 @@
       "headerSource": "Origem",
       "headerTarget": "Destino",
       "headerNote": "Nota: as definições refletem o estado atual no momento da exportação, não as alterações efetuadas durante a sessão."
-    }
+    },
+    "participantAudio": "Áudio de Participantes",
+    "noChannelConfigured": "Ative o microfone ou o áudio de participantes antes de começar."
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",
@@ -870,5 +882,30 @@
     "minimize": "Minimizar",
     "maximize": "Maximizar",
     "close": "Fechar"
+  },
+  "modePicker": {
+    "modeYou": "Você",
+    "modeParticipants": "Outros",
+    "modeBoth": "Ambos",
+    "groupLabel": "Modo de tradução",
+    "switchTo": "Mudar para {{label}}",
+    "switchDisabled": "O modo está bloqueado durante uma sessão.",
+    "configureDevices": "Clique para configurar dispositivos.",
+    "missingDevice": "Configure os dispositivos para este modo para começar.",
+    "popoverHeaderYou": "Você — dispositivos",
+    "popoverHeaderParticipants": "Participantes — dispositivos",
+    "popoverHeaderBoth": "Ambos — dispositivos",
+    "popoverFooter": "Definições completas →",
+    "deviceMic": "Microfone",
+    "deviceSpeakerMonitor": "Monitor de altifalante",
+    "notSelected": "Não selecionado",
+    "deviceParticipantAudio": "Áudio de Participantes"
+  },
+  "popover": {
+    "statusOff": "Desligado",
+    "toggleOn": "Ligar {{label}}",
+    "toggleOff": "Desligar {{label}}",
+    "participantSubtitleElectron": "Todo o áudio do sistema",
+    "participantSubtitleExtension": "Reproduz na saída predefinida do sistema"
   }
 }

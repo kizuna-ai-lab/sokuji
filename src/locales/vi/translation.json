@@ -16,7 +16,8 @@
     "off": "Tắt",
     "autoDetect": "Tự Động Phát Hiện",
     "signIn": "Đăng nhập",
-    "signUp": "Đăng ký"
+    "signUp": "Đăng ký",
+    "on": "Bật"
   },
   "app": {
     "title": "Sokuji",
@@ -277,7 +278,11 @@
     "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
     "transcriptModelTooltipTranslate": "Phụ đề ngôn ngữ nguồn. Hiện chỉ hỗ trợ gpt-realtime-whisper.",
     "modelTooltipTranslate": "Mô hình dịch giọng nói chuyên dụng của OpenAI. Giọng nói tự động thích ứng với người nói nguồn.",
-    "translateSourceParticipantWarning": "Bản dịch Participant có thể không hoạt động — ngôn ngữ nguồn bạn chọn không thuộc 13 ngôn ngữ đích được hỗ trợ."
+    "translateSourceParticipantWarning": "Bản dịch Participant có thể không hoạt động — ngôn ngữ nguồn bạn chọn không thuộc 13 ngôn ngữ đích được hỗ trợ.",
+    "speechModeAppliesTo": "Áp dụng cho giọng nói của bạn. Âm thanh người tham gia luôn sử dụng VAD ngữ nghĩa.",
+    "participantSectionHeader": "Âm thanh người tham gia",
+    "participantSectionDescriptionElectron": "Dịch âm thanh từ bất kỳ ứng dụng nào đang phát trên hệ thống này.",
+    "participantSectionDescriptionExtension": "Dịch âm thanh từ tab trình duyệt đang hoạt động. Âm thanh gốc phát qua đầu ra mặc định của hệ thống."
   },
   "mainPanel": {
     "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
@@ -330,7 +335,9 @@
       "headerSource": "Nguồn",
       "headerTarget": "Đích",
       "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên."
-    }
+    },
+    "participantAudio": "Âm thanh người tham gia",
+    "noChannelConfigured": "Bật micro hoặc âm thanh người tham gia trước khi bắt đầu."
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -345,7 +352,11 @@
     "mutualExclusivitySpeakerText": "Vui lòng tắt Âm Thanh Người Tham Gia trước khi bật Loa.",
     "mutualExclusivityParticipantText": "Vui lòng tắt Loa trước khi bật Âm Thanh Người Tham Gia.",
     "availableSystemAudioSources": "Thiết bị âm thanh hệ thống có thể ghi",
-    "refreshSystemAudioSources": "Làm mới danh sách thiết bị"
+    "refreshSystemAudioSources": "Làm mới danh sách thiết bị",
+    "turnOnMicrophone": "Bật micro",
+    "turnOffMicrophone": "Tắt micro",
+    "turnOnMonitor": "Bật giám sát loa",
+    "turnOffMonitor": "Tắt giám sát loa"
   },
   "logsPanel": {
     "title": "Nhật ký",
@@ -619,7 +630,8 @@
     "loadingModels": "Đang tải mô hình...",
     "noModelsAvailable": "Không có mô hình nào",
     "insufficientBalance": "Số dư token không đủ: {{balance}} token",
-    "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ."
+    "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
+    "clickToConfigParticipant": "Nhấp để cấu hình âm thanh người tham gia"
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",
@@ -818,5 +830,30 @@
     "minimize": "Thu nhỏ",
     "maximize": "Phóng to",
     "close": "Đóng"
+  },
+  "modePicker": {
+    "modeYou": "Bạn",
+    "modeParticipants": "Người khác",
+    "modeBoth": "Cả hai",
+    "groupLabel": "Chế độ dịch",
+    "switchTo": "Chuyển sang {{label}}",
+    "switchDisabled": "Chế độ bị khóa trong phiên.",
+    "configureDevices": "Nhấp để cấu hình thiết bị.",
+    "missingDevice": "Cấu hình thiết bị cho chế độ này để bắt đầu.",
+    "popoverHeaderYou": "Bạn — thiết bị",
+    "popoverHeaderParticipants": "Người tham gia — thiết bị",
+    "popoverHeaderBoth": "Cả hai — thiết bị",
+    "popoverFooter": "Toàn bộ cài đặt →",
+    "deviceMic": "Micro",
+    "deviceSpeakerMonitor": "Giám sát loa",
+    "notSelected": "Chưa chọn",
+    "deviceParticipantAudio": "Âm thanh người tham gia"
+  },
+  "popover": {
+    "statusOff": "Tắt",
+    "toggleOn": "Bật {{label}}",
+    "toggleOff": "Tắt {{label}}",
+    "participantSubtitleElectron": "Toàn bộ âm thanh hệ thống",
+    "participantSubtitleExtension": "Phát qua đầu ra mặc định của hệ thống"
   }
 }

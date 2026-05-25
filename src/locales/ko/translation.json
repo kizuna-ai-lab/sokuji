@@ -17,7 +17,8 @@
     "autoDetect": "자동 감지",
     "signIn": "로그인",
     "signUp": "가입",
-    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요"
+    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요",
+    "on": "켜기"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
     "transcriptModelTooltipTranslate": "원본 언어 자막. 현재 gpt-realtime-whisper만 지원됩니다.",
     "modelTooltipTranslate": "OpenAI 전용 음성 번역 모델. 출력 음성이 화자 음색에 자동으로 적응합니다.",
-    "translateSourceParticipantWarning": "Participant 번역이 작동하지 않을 수 있습니다 — 선택한 소스 언어가 13개 지원 대상 언어에 없습니다."
+    "translateSourceParticipantWarning": "Participant 번역이 작동하지 않을 수 있습니다 — 선택한 소스 언어가 13개 지원 대상 언어에 없습니다.",
+    "speechModeAppliesTo": "당신의 음성에 적용됩니다. 참가자 오디오는 항상 의미론적 VAD를 사용합니다.",
+    "participantSectionHeader": "참가자 오디오",
+    "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
+    "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 시스템 기본 출력으로 재생됩니다."
   },
   "audioPanel": {
     "title": "오디오 설정",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "스피커를 활성화하기 전에 참가자 오디오를 끄세요.",
     "mutualExclusivityParticipantText": "참가자 오디오를 활성화하기 전에 스피커를 끄세요.",
     "availableSystemAudioSources": "캡처 가능한 시스템 오디오 장치",
-    "refreshSystemAudioSources": "장치 목록 새로고침"
+    "refreshSystemAudioSources": "장치 목록 새로고침",
+    "turnOnMicrophone": "마이크 켜기",
+    "turnOffMicrophone": "마이크 끄기",
+    "turnOnMonitor": "스피커 모니터 켜기",
+    "turnOffMonitor": "스피커 모니터 끄기"
   },
   "logsPanel": {
     "title": "로그",
@@ -402,7 +411,9 @@
       "headerSource": "소스",
       "headerTarget": "대상",
       "headerNote": "참고: 설정은 내보내기 시점의 현재 상태를 반영하며, 세션 중 변경 사항은 포함되지 않습니다."
-    }
+    },
+    "participantAudio": "참가자 오디오",
+    "noChannelConfigured": "시작하기 전에 마이크 또는 참가자 오디오를 활성화하세요."
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",
@@ -668,7 +679,8 @@
     "loadingModels": "모델 로딩 중...",
     "noModelsAvailable": "사용 가능한 모델 없음",
     "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
-    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요."
+    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
+    "clickToConfigParticipant": "참가자 오디오를 구성하려면 클릭"
   },
   "connectionStatus": {
     "disconnected": "연결 해제됨",
@@ -867,5 +879,30 @@
     "minimize": "최소화",
     "maximize": "최대화",
     "close": "닫기"
+  },
+  "modePicker": {
+    "modeYou": "당신",
+    "modeParticipants": "상대방",
+    "modeBoth": "모두",
+    "groupLabel": "번역 모드",
+    "switchTo": "{{label}}(으)로 전환",
+    "switchDisabled": "세션 중에는 모드가 잠겨 있습니다.",
+    "configureDevices": "클릭하여 장치를 구성하세요.",
+    "missingDevice": "이 모드를 시작하려면 장치를 구성하세요.",
+    "popoverHeaderYou": "당신 — 장치",
+    "popoverHeaderParticipants": "상대방 — 장치",
+    "popoverHeaderBoth": "모두 — 장치",
+    "popoverFooter": "전체 설정 →",
+    "deviceMic": "마이크",
+    "deviceSpeakerMonitor": "스피커 모니터",
+    "notSelected": "선택 안 됨",
+    "deviceParticipantAudio": "참가자 오디오"
+  },
+  "popover": {
+    "statusOff": "끄기",
+    "toggleOn": "{{label}} 켜기",
+    "toggleOff": "{{label}} 끄기",
+    "participantSubtitleElectron": "모든 시스템 오디오",
+    "participantSubtitleExtension": "시스템 기본 출력으로 재생"
   }
 }

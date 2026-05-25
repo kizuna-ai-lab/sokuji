@@ -16,7 +16,8 @@
     "off": "ఆఫ్",
     "autoDetect": "ఆటో డిటెక్ట్",
     "signIn": "సైన్ ఇన్",
-    "signUp": "సైన్ అప్"
+    "signUp": "సైన్ అప్",
+    "on": "ఆన్"
   },
   "app": {
     "title": "Sokuji",
@@ -131,7 +132,8 @@
     "loadingModels": "మోడల్‌లు లోడ్ అవుతున్నాయి...",
     "noModelsAvailable": "మోడల్‌లు అందుబాటులో లేవు",
     "insufficientBalance": "తగినంత టోకెన్ బ్యాలెన్స్ లేదు: {{balance}} టోకెన్‌లు",
-    "walletFrozen": "వాలెట్ ఫ్రీజ్ చేయబడింది. దయచేసి సపోర్ట్‌ను సంప్రదించండి."
+    "walletFrozen": "వాలెట్ ఫ్రీజ్ చేయబడింది. దయచేసి సపోర్ట్‌ను సంప్రదించండి.",
+    "clickToConfigParticipant": "పార్టిసిపెంట్ ఆడియోను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి"
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
@@ -394,7 +396,11 @@
     "translateModelNotAvailable": "API కీ పని చేస్తుంది, కానీ ఈ కీతో gpt-realtime-translate యాక్సెస్ చేయబడదు.",
     "transcriptModelTooltipTranslate": "మూల భాష ఉపశీర్షికలు. ప్రస్తుతం gpt-realtime-whisper మాత్రమే మద్దతు ఉంది.",
     "modelTooltipTranslate": "OpenAI యొక్క ప్రత్యేక వాయిస్ అనువాద మోడల్. వాయిస్ స్వయంచాలకంగా మూల వక్తకు అనుగుణంగా ఉంటుంది.",
-    "translateSourceParticipantWarning": "Participant అనువాదం పని చేయకపోవచ్చు — మీరు ఎంచుకున్న మూల భాష 13 మద్దతు ఉన్న లక్ష్య భాషలలో లేదు."
+    "translateSourceParticipantWarning": "Participant అనువాదం పని చేయకపోవచ్చు — మీరు ఎంచుకున్న మూల భాష 13 మద్దతు ఉన్న లక్ష్య భాషలలో లేదు.",
+    "speechModeAppliesTo": "మీ వాయిస్‌కు వర్తిస్తుంది. పార్టిసిపెంట్ ఆడియో ఎల్లప్పుడూ సెమాంటిక్ VADను ఉపయోగిస్తుంది.",
+    "participantSectionHeader": "పార్టిసిపెంట్ ఆడియో",
+    "participantSectionDescriptionElectron": "ఈ సిస్టమ్‌లో ప్లే అవుతున్న ఏ అప్లికేషన్ ఆడియోనైనా అనువదించండి.",
+    "participantSectionDescriptionExtension": "సక్రియ బ్రౌజర్ ట్యాబ్ ఆడియోను అనువదించండి. అసలు ఆడియో మీ సిస్టమ్ డిఫాల్ట్ అవుట్‌పుట్ ద్వారా ప్లే అవుతుంది."
   },
   "mainPanel": {
     "subtitleTakeover": "అనువాదాలు సబ్‌టైటిల్ ఓవర్‌లేలో ప్రదర్శించబడుతున్నాయి",
@@ -447,7 +453,9 @@
       "headerSource": "మూలం",
       "headerTarget": "లక్ష్యం",
       "headerNote": "గమనిక: సెట్టింగులు ఎగుమతి సమయంలో ప్రస్తుత స్థితిని ప్రతిబింబిస్తాయి, సెషన్ మధ్యలో జరిగిన మార్పులు కాదు."
-    }
+    },
+    "participantAudio": "పార్టిసిపెంట్ ఆడియో",
+    "noChannelConfigured": "ప్రారంభించే ముందు మైక్రోఫోన్ లేదా పార్టిసిపెంట్ ఆడియోను ప్రారంభించండి."
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",
@@ -462,7 +470,11 @@
     "mutualExclusivitySpeakerText": "స్పీకర్‌ను ప్రారంభించే ముందు దయచేసి పార్టిసిపెంట్ ఆడియోను ఆఫ్ చేయండి.",
     "mutualExclusivityParticipantText": "పార్టిసిపెంట్ ఆడియోను ప్రారంభించే ముందు దయచేసి స్పీకర్‌ను ఆఫ్ చేయండి.",
     "availableSystemAudioSources": "క్యాప్చర్ చేయగల సిస్టమ్ ఆడియో పరికరాలు",
-    "refreshSystemAudioSources": "పరికర జాబితాను రిఫ్రెష్ చేయండి"
+    "refreshSystemAudioSources": "పరికర జాబితాను రిఫ్రెష్ చేయండి",
+    "turnOnMicrophone": "మైక్రోఫోన్ ఆన్ చేయండి",
+    "turnOffMicrophone": "మైక్రోఫోన్ ఆఫ్ చేయండి",
+    "turnOnMonitor": "స్పీకర్ మానిటర్ ఆన్ చేయండి",
+    "turnOffMonitor": "స్పీకర్ మానిటర్ ఆఫ్ చేయండి"
   },
   "logsPanel": {
     "title": "లాగ్స్",
@@ -782,5 +794,30 @@
     "minimize": "చిన్నదిచేయి",
     "maximize": "పెద్దదిచేయి",
     "close": "మూసివేయి"
+  },
+  "modePicker": {
+    "modeYou": "మీరు",
+    "modeParticipants": "ఇతరులు",
+    "modeBoth": "రెండూ",
+    "groupLabel": "అనువాద మోడ్",
+    "switchTo": "{{label}}కి మారండి",
+    "switchDisabled": "సెషన్ సమయంలో మోడ్ లాక్ చేయబడింది.",
+    "configureDevices": "పరికరాలను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి.",
+    "missingDevice": "ప్రారంభించడానికి ఈ మోడ్ కోసం పరికరాలను కాన్ఫిగర్ చేయండి.",
+    "popoverHeaderYou": "మీరు — పరికరాలు",
+    "popoverHeaderParticipants": "పార్టిసిపెంట్లు — పరికరాలు",
+    "popoverHeaderBoth": "రెండూ — పరికరాలు",
+    "popoverFooter": "పూర్తి సెట్టింగ్‌లు →",
+    "deviceMic": "మైక్రోఫోన్",
+    "deviceSpeakerMonitor": "స్పీకర్ మానిటర్",
+    "notSelected": "ఎంచుకోబడలేదు",
+    "deviceParticipantAudio": "పార్టిసిపెంట్ ఆడియో"
+  },
+  "popover": {
+    "statusOff": "ఆఫ్",
+    "toggleOn": "{{label}} ఆన్ చేయండి",
+    "toggleOff": "{{label}} ఆఫ్ చేయండి",
+    "participantSubtitleElectron": "మొత్తం సిస్టమ్ ఆడియో",
+    "participantSubtitleExtension": "సిస్టమ్ డిఫాల్ట్ అవుట్‌పుట్ ద్వారా ప్లే అవుతుంది"
   }
 }

@@ -16,7 +16,8 @@
     "off": "Av",
     "autoDetect": "Automatisk Detektion",
     "signIn": "Logga in",
-    "signUp": "Registrera"
+    "signUp": "Registrera",
+    "on": "På"
   },
   "app": {
     "title": "Sokuji",
@@ -277,7 +278,11 @@
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
     "transcriptModelTooltipTranslate": "Källspråksundertexter. För närvarande stöds endast gpt-realtime-whisper.",
     "modelTooltipTranslate": "OpenAIs särskilda röstöversättningsmodell. Rösten anpassas automatiskt till källtalaren.",
-    "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds."
+    "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds.",
+    "speechModeAppliesTo": "Gäller din röst. Deltagarljud använder alltid semantisk VAD.",
+    "participantSectionHeader": "Deltagarljud",
+    "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
+    "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång."
   },
   "mainPanel": {
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
@@ -330,7 +335,9 @@
       "headerSource": "Källa",
       "headerTarget": "Mål",
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
-    }
+    },
+    "participantAudio": "Deltagarljud",
+    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar."
   },
   "audioPanel": {
     "title": "Ljudinställningar",
@@ -345,7 +352,11 @@
     "mutualExclusivitySpeakerText": "Stäng av Deltagarljud innan du aktiverar Högtalare.",
     "mutualExclusivityParticipantText": "Stäng av Högtalare innan du aktiverar Deltagarljud.",
     "availableSystemAudioSources": "Fångningsbara systemaudioenheter",
-    "refreshSystemAudioSources": "Uppdatera enhetslista"
+    "refreshSystemAudioSources": "Uppdatera enhetslista",
+    "turnOnMicrophone": "Slå på mikrofon",
+    "turnOffMicrophone": "Stäng av mikrofon",
+    "turnOnMonitor": "Slå på högtalarmonitor",
+    "turnOffMonitor": "Stäng av högtalarmonitor"
   },
   "logsPanel": {
     "title": "Loggar",
@@ -624,7 +635,8 @@
     "loadingModels": "Laddar modeller...",
     "noModelsAvailable": "Inga modeller tillgängliga",
     "insufficientBalance": "Otillräckligt tokensaldo: {{balance}} tokens",
-    "walletFrozen": "Plånboken är frusen. Kontakta supporten."
+    "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
+    "clickToConfigParticipant": "Klicka för att konfigurera deltagarljud"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",
@@ -823,5 +835,30 @@
     "minimize": "Minimera",
     "maximize": "Maximera",
     "close": "Stäng"
+  },
+  "modePicker": {
+    "modeYou": "Du",
+    "modeParticipants": "Andra",
+    "modeBoth": "Båda",
+    "groupLabel": "Översättningsläge",
+    "switchTo": "Byt till {{label}}",
+    "switchDisabled": "Läget är låst under en session.",
+    "configureDevices": "Klicka för att konfigurera enheter.",
+    "missingDevice": "Konfigurera enheter för detta läge för att börja.",
+    "popoverHeaderYou": "Du — enheter",
+    "popoverHeaderParticipants": "Deltagare — enheter",
+    "popoverHeaderBoth": "Båda — enheter",
+    "popoverFooter": "Fullständiga inställningar →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Högtalarmonitor",
+    "notSelected": "Inte vald",
+    "deviceParticipantAudio": "Deltagarljud"
+  },
+  "popover": {
+    "statusOff": "Av",
+    "toggleOn": "Slå på {{label}}",
+    "toggleOff": "Stäng av {{label}}",
+    "participantSubtitleElectron": "Allt systemljud",
+    "participantSubtitleExtension": "Spelas upp via systemets standardutgång"
   }
 }

@@ -17,7 +17,8 @@
     "autoDetect": "Automatische Erkennung",
     "signIn": "Anmelden",
     "signUp": "Registrieren",
-    "signInRequired": "Bitte melden Sie sich an, um Kizuna AI als Anbieter zu verwenden"
+    "signInRequired": "Bitte melden Sie sich an, um Kizuna AI als Anbieter zu verwenden",
+    "on": "Ein"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "Der API-Schlüssel funktioniert, aber gpt-realtime-translate ist mit diesem Schlüssel nicht zugänglich.",
     "transcriptModelTooltipTranslate": "Untertitel in Ausgangssprache. Derzeit wird nur gpt-realtime-whisper unterstützt.",
     "modelTooltipTranslate": "OpenAIs spezielles Sprachübersetzungsmodell. Die Stimme passt sich automatisch an den Originalsprecher an.",
-    "translateSourceParticipantWarning": "Die Participant-Übersetzung funktioniert möglicherweise nicht — Ihre gewählte Ausgangssprache ist nicht in den 13 unterstützten Zielsprachen."
+    "translateSourceParticipantWarning": "Die Participant-Übersetzung funktioniert möglicherweise nicht — Ihre gewählte Ausgangssprache ist nicht in den 13 unterstützten Zielsprachen.",
+    "speechModeAppliesTo": "Gilt für Ihre Stimme. Teilnehmer-Audio verwendet immer semantische VAD.",
+    "participantSectionHeader": "Teilnehmer-Audio",
+    "participantSectionDescriptionElectron": "Audio von jeder auf diesem System laufenden Anwendung übersetzen.",
+    "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über die Standardausgabe Ihres Systems wiedergegeben."
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Bitte schalten Sie Teilnehmer-Audio aus, bevor Sie den Lautsprecher aktivieren.",
     "mutualExclusivityParticipantText": "Bitte schalten Sie den Lautsprecher aus, bevor Sie Teilnehmer-Audio aktivieren.",
     "availableSystemAudioSources": "Erfassbare Systemaudiogeräte",
-    "refreshSystemAudioSources": "Geräteliste aktualisieren"
+    "refreshSystemAudioSources": "Geräteliste aktualisieren",
+    "turnOnMicrophone": "Mikrofon einschalten",
+    "turnOffMicrophone": "Mikrofon ausschalten",
+    "turnOnMonitor": "Lautsprecher-Überwachung einschalten",
+    "turnOffMonitor": "Lautsprecher-Überwachung ausschalten"
   },
   "logsPanel": {
     "title": "Protokolle",
@@ -402,7 +411,9 @@
       "headerSource": "Quelle",
       "headerTarget": "Ziel",
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
-    }
+    },
+    "participantAudio": "Teilnehmer-Audio",
+    "noChannelConfigured": "Aktivieren Sie das Mikrofon oder Teilnehmer-Audio, bevor Sie starten."
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -669,7 +680,8 @@
     "loadingModels": "Modelle werden geladen...",
     "noModelsAvailable": "Keine Modelle verfügbar",
     "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
-    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support."
+    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
+    "clickToConfigParticipant": "Klicken Sie, um Teilnehmer-Audio zu konfigurieren"
   },
   "connectionStatus": {
     "disconnected": "Getrennt",
@@ -868,5 +880,30 @@
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "close": "Schließen"
+  },
+  "modePicker": {
+    "modeYou": "Sie",
+    "modeParticipants": "Andere",
+    "modeBoth": "Beides",
+    "groupLabel": "Übersetzungsmodus",
+    "switchTo": "Zu {{label}} wechseln",
+    "switchDisabled": "Der Modus ist während einer Sitzung gesperrt.",
+    "configureDevices": "Klicken Sie, um Geräte zu konfigurieren.",
+    "missingDevice": "Konfigurieren Sie die Geräte für diesen Modus, um zu starten.",
+    "popoverHeaderYou": "Sie — Geräte",
+    "popoverHeaderParticipants": "Teilnehmer — Geräte",
+    "popoverHeaderBoth": "Beides — Geräte",
+    "popoverFooter": "Vollständige Einstellungen →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Lautsprecher-Überwachung",
+    "notSelected": "Nicht ausgewählt",
+    "deviceParticipantAudio": "Teilnehmer-Audio"
+  },
+  "popover": {
+    "statusOff": "Aus",
+    "toggleOn": "{{label}} einschalten",
+    "toggleOff": "{{label}} ausschalten",
+    "participantSubtitleElectron": "Gesamtes Systemaudio",
+    "participantSubtitleExtension": "Wiedergabe über Systemstandard"
   }
 }

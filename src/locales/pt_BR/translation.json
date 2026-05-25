@@ -17,7 +17,8 @@
     "autoDetect": "Detecção Automática",
     "signIn": "Entrar",
     "signUp": "Cadastrar",
-    "signInRequired": "Por favor, faça login para usar Kizuna AI como seu provedor"
+    "signInRequired": "Por favor, faça login para usar Kizuna AI como seu provedor",
+    "on": "Ligado"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com essa chave.",
     "transcriptModelTooltipTranslate": "Legendas no idioma de origem. Atualmente apenas gpt-realtime-whisper é suportado.",
     "modelTooltipTranslate": "Modelo dedicado de tradução de voz da OpenAI. A voz se adapta automaticamente ao falante de origem.",
-    "translateSourceParticipantWarning": "A tradução Participant pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados."
+    "translateSourceParticipantWarning": "A tradução Participant pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados.",
+    "speechModeAppliesTo": "Aplica-se à sua voz. O Áudio de Participantes sempre usa VAD semântico.",
+    "participantSectionHeader": "Áudio de Participantes",
+    "participantSectionDescriptionElectron": "Traduza o áudio de qualquer aplicativo reproduzido neste sistema.",
+    "participantSectionDescriptionExtension": "Traduza o áudio da aba ativa do navegador. O áudio original é reproduzido pela saída padrão do seu sistema."
   },
   "audioPanel": {
     "title": "Configurações de áudio",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Por favor, desligue o Áudio de Participantes antes de ativar o Alto-falante.",
     "mutualExclusivityParticipantText": "Por favor, desligue o Alto-falante antes de ativar o Áudio de Participantes.",
     "availableSystemAudioSources": "Dispositivos de áudio do sistema capturáveis",
-    "refreshSystemAudioSources": "Atualizar lista de dispositivos"
+    "refreshSystemAudioSources": "Atualizar lista de dispositivos",
+    "turnOnMicrophone": "Ligar microfone",
+    "turnOffMicrophone": "Desligar microfone",
+    "turnOnMonitor": "Ligar monitor de alto-falante",
+    "turnOffMonitor": "Desligar monitor de alto-falante"
   },
   "logsPanel": {
     "title": "Logs",
@@ -402,7 +411,9 @@
       "headerSource": "Origem",
       "headerTarget": "Destino",
       "headerNote": "Nota: as configurações refletem o estado atual no momento da exportação, não alterações feitas durante a sessão."
-    }
+    },
+    "participantAudio": "Áudio de Participantes",
+    "noChannelConfigured": "Ative o microfone ou o Áudio de Participantes antes de iniciar."
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",
@@ -668,7 +679,8 @@
     "loadingModels": "Carregando modelos...",
     "noModelsAvailable": "Nenhum modelo disponível",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
-    "walletFrozen": "Carteira congelada. Entre em contato com o suporte."
+    "walletFrozen": "Carteira congelada. Entre em contato com o suporte.",
+    "clickToConfigParticipant": "Clique para configurar o Áudio de Participantes"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",
@@ -867,5 +879,30 @@
     "minimize": "Minimizar",
     "maximize": "Maximizar",
     "close": "Fechar"
+  },
+  "modePicker": {
+    "modeYou": "Você",
+    "modeParticipants": "Outros",
+    "modeBoth": "Ambos",
+    "groupLabel": "Modo de tradução",
+    "switchTo": "Mudar para {{label}}",
+    "switchDisabled": "O modo fica bloqueado durante uma sessão.",
+    "configureDevices": "Clique para configurar os dispositivos.",
+    "missingDevice": "Configure os dispositivos para este modo para iniciar.",
+    "popoverHeaderYou": "Você — dispositivos",
+    "popoverHeaderParticipants": "Participantes — dispositivos",
+    "popoverHeaderBoth": "Ambos — dispositivos",
+    "popoverFooter": "Configurações completas →",
+    "deviceMic": "Microfone",
+    "deviceSpeakerMonitor": "Monitor de alto-falante",
+    "notSelected": "Não selecionado",
+    "deviceParticipantAudio": "Áudio de Participantes"
+  },
+  "popover": {
+    "statusOff": "Desligado",
+    "toggleOn": "Ligar {{label}}",
+    "toggleOff": "Desligar {{label}}",
+    "participantSubtitleElectron": "Todo o áudio do sistema",
+    "participantSubtitleExtension": "Reproduz pela saída padrão do sistema"
   }
 }

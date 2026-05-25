@@ -16,7 +16,8 @@
     "off": "خاموش",
     "autoDetect": "تشخیص خودکار",
     "signIn": "ورود",
-    "signUp": "ثبت‌نام"
+    "signUp": "ثبت‌نام",
+    "on": "روشن"
   },
   "app": {
     "title": "Sokuji",
@@ -291,7 +292,11 @@
     "translateModelNotAvailable": "کلید API کار می‌کند، اما با این کلید gpt-realtime-translate در دسترس نیست.",
     "transcriptModelTooltipTranslate": "زیرنویس زبان مبدأ. در حال حاضر فقط gpt-realtime-whisper پشتیبانی می‌شود.",
     "modelTooltipTranslate": "مدل ترجمه صوتی اختصاصی OpenAI. صدا به طور خودکار با گوینده مبدأ تطبیق می‌یابد.",
-    "translateSourceParticipantWarning": "ترجمه Participant ممکن است کار نکند — زبان مبدأ انتخابی شما در 13 زبان مقصد پشتیبانی‌شده نیست."
+    "translateSourceParticipantWarning": "ترجمه Participant ممکن است کار نکند — زبان مبدأ انتخابی شما در 13 زبان مقصد پشتیبانی‌شده نیست.",
+    "speechModeAppliesTo": "برای صدای شما اعمال می‌شود. صدای شرکت‌کنندگان همیشه از VAD معنایی استفاده می‌کند.",
+    "participantSectionHeader": "صدای شرکت‌کنندگان",
+    "participantSectionDescriptionElectron": "صدای هر برنامه‌ای را که روی این سیستم پخش می‌شود ترجمه کنید.",
+    "participantSectionDescriptionExtension": "صدای زبانه فعال مرورگر را ترجمه کنید. صدای اصلی از طریق خروجی پیش‌فرض سیستم شما پخش می‌شود."
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",
@@ -436,7 +441,11 @@
     "mutualExclusivitySpeakerText": "لطفاً قبل از فعال‌سازی بلندگو، صدای شرکت‌کنندگان را خاموش کنید.",
     "mutualExclusivityParticipantText": "لطفاً قبل از فعال‌سازی صدای شرکت‌کنندگان، بلندگو را خاموش کنید.",
     "availableSystemAudioSources": "دستگاه‌های صوتی سیستم قابل ضبط",
-    "refreshSystemAudioSources": "بازخوانی لیست دستگاه‌ها"
+    "refreshSystemAudioSources": "بازخوانی لیست دستگاه‌ها",
+    "turnOnMicrophone": "روشن کردن میکروفون",
+    "turnOffMicrophone": "خاموش کردن میکروفون",
+    "turnOnMonitor": "روشن کردن نظارت بلندگو",
+    "turnOffMonitor": "خاموش کردن نظارت بلندگو"
   },
   "logsPanel": {
     "title": "گزارش‌ها",
@@ -517,7 +526,9 @@
       "headerSource": "مبدأ",
       "headerTarget": "مقصد",
       "headerNote": "توجه: تنظیمات وضعیت فعلی هنگام خروجی را نشان می‌دهند، نه تغییرات میانی جلسه."
-    }
+    },
+    "participantAudio": "صدای شرکت‌کنندگان",
+    "noChannelConfigured": "قبل از شروع، میکروفون یا صدای شرکت‌کنندگان را فعال کنید."
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",
@@ -554,7 +565,8 @@
     "loadingModels": "در حال بارگذاری مدل‌ها...",
     "noModelsAvailable": "مدلی در دسترس نیست",
     "insufficientBalance": "موجودی توکن ناکافی: {{balance}} توکن",
-    "walletFrozen": "کیف پول مسدود شده است. لطفاً با پشتیبانی تماس بگیرید."
+    "walletFrozen": "کیف پول مسدود شده است. لطفاً با پشتیبانی تماس بگیرید.",
+    "clickToConfigParticipant": "برای پیکربندی صدای شرکت‌کنندگان کلیک کنید"
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",
@@ -875,5 +887,30 @@
     "minimize": "کوچک کردن",
     "maximize": "بزرگ کردن",
     "close": "بستن"
+  },
+  "modePicker": {
+    "modeYou": "شما",
+    "modeParticipants": "دیگران",
+    "modeBoth": "هر دو",
+    "groupLabel": "حالت ترجمه",
+    "switchTo": "تغییر به {{label}}",
+    "switchDisabled": "حالت در طول جلسه قفل است.",
+    "configureDevices": "برای پیکربندی دستگاه‌ها کلیک کنید.",
+    "missingDevice": "برای شروع، دستگاه‌های این حالت را پیکربندی کنید.",
+    "popoverHeaderYou": "شما — دستگاه‌ها",
+    "popoverHeaderParticipants": "شرکت‌کنندگان — دستگاه‌ها",
+    "popoverHeaderBoth": "هر دو — دستگاه‌ها",
+    "popoverFooter": "تنظیمات کامل ←",
+    "deviceMic": "میکروفون",
+    "deviceSpeakerMonitor": "نظارت بلندگو",
+    "notSelected": "انتخاب نشده",
+    "deviceParticipantAudio": "صدای شرکت‌کنندگان"
+  },
+  "popover": {
+    "statusOff": "خاموش",
+    "toggleOn": "روشن کردن {{label}}",
+    "toggleOff": "خاموش کردن {{label}}",
+    "participantSubtitleElectron": "تمام صدای سیستم",
+    "participantSubtitleExtension": "از طریق پیش‌فرض سیستم پخش می‌شود"
   }
 }

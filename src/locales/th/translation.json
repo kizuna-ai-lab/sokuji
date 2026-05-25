@@ -16,7 +16,8 @@
     "off": "ปิด",
     "autoDetect": "ตรวจสอบอัตโนมัติ",
     "signIn": "เข้าสู่ระบบ",
-    "signUp": "ลงทะเบียน"
+    "signUp": "ลงทะเบียน",
+    "on": "เปิด"
   },
   "app": {
     "title": "Sokuji",
@@ -131,7 +132,8 @@
     "loadingModels": "กำลังโหลดโมเดล...",
     "noModelsAvailable": "ไม่มีโมเดลที่ใช้ได้",
     "insufficientBalance": "ยอดโทเค็นไม่เพียงพอ: {{balance}} โทเค็น",
-    "walletFrozen": "กระเป๋าเงินถูกระงับ กรุณาติดต่อฝ่ายสนับสนุน"
+    "walletFrozen": "กระเป๋าเงินถูกระงับ กรุณาติดต่อฝ่ายสนับสนุน",
+    "clickToConfigParticipant": "คลิกเพื่อกำหนดค่าเสียงผู้เข้าร่วม"
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
@@ -401,7 +403,11 @@
     "translateModelNotAvailable": "API key ใช้งานได้ แต่ไม่สามารถเข้าถึง gpt-realtime-translate ด้วย key นี้",
     "transcriptModelTooltipTranslate": "คำบรรยายภาษาต้นทาง ปัจจุบันรองรับเฉพาะ gpt-realtime-whisper",
     "modelTooltipTranslate": "โมเดลการแปลเสียงเฉพาะของ OpenAI เสียงจะปรับให้เข้ากับผู้พูดต้นทางโดยอัตโนมัติ",
-    "translateSourceParticipantWarning": "การแปล Participant อาจใช้งานไม่ได้ — ภาษาต้นทางที่คุณเลือกไม่อยู่ใน 13 ภาษาปลายทางที่รองรับ"
+    "translateSourceParticipantWarning": "การแปล Participant อาจใช้งานไม่ได้ — ภาษาต้นทางที่คุณเลือกไม่อยู่ใน 13 ภาษาปลายทางที่รองรับ",
+    "speechModeAppliesTo": "ใช้กับเสียงของคุณ เสียงผู้เข้าร่วมจะใช้ VAD เชิงความหมายเสมอ",
+    "participantSectionHeader": "เสียงผู้เข้าร่วม",
+    "participantSectionDescriptionElectron": "แปลเสียงจากแอปพลิเคชันใดก็ตามที่กำลังเล่นบนระบบนี้",
+    "participantSectionDescriptionExtension": "แปลเสียงจากแท็บเบราว์เซอร์ที่ใช้งานอยู่ เสียงต้นฉบับจะเล่นผ่านเอาต์พุตเริ่มต้นของระบบ"
   },
   "mainPanel": {
     "subtitleTakeover": "คำแปลกำลังแสดงในชั้นคำบรรยาย",
@@ -454,7 +460,9 @@
       "headerSource": "ต้นทาง",
       "headerTarget": "ปลายทาง",
       "headerNote": "หมายเหตุ: การตั้งค่าสะท้อนถึงสถานะปัจจุบัน ณ เวลาที่ส่งออก ไม่ใช่การเปลี่ยนแปลงระหว่างเซสชัน"
-    }
+    },
+    "participantAudio": "เสียงผู้เข้าร่วม",
+    "noChannelConfigured": "เปิดไมโครโฟนหรือเสียงผู้เข้าร่วมก่อนเริ่ม"
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",
@@ -469,7 +477,11 @@
     "mutualExclusivitySpeakerText": "กรุณาปิดเสียงผู้เข้าร่วมก่อนเปิดใช้งานลำโพง",
     "mutualExclusivityParticipantText": "กรุณาปิดลำโพงก่อนเปิดใช้งานเสียงผู้เข้าร่วม",
     "availableSystemAudioSources": "อุปกรณ์เสียงระบบที่สามารถจับได้",
-    "refreshSystemAudioSources": "รีเฟรชรายการอุปกรณ์"
+    "refreshSystemAudioSources": "รีเฟรชรายการอุปกรณ์",
+    "turnOnMicrophone": "เปิดไมโครโฟน",
+    "turnOffMicrophone": "ปิดไมโครโฟน",
+    "turnOnMonitor": "เปิดมอนิเตอร์ลำโพง",
+    "turnOffMonitor": "ปิดมอนิเตอร์ลำโพง"
   },
   "logsPanel": {
     "title": "บันทึก",
@@ -789,5 +801,30 @@
     "minimize": "ย่อ",
     "maximize": "ขยาย",
     "close": "ปิด"
+  },
+  "modePicker": {
+    "modeYou": "คุณ",
+    "modeParticipants": "ผู้อื่น",
+    "modeBoth": "ทั้งคู่",
+    "groupLabel": "โหมดการแปล",
+    "switchTo": "สลับไปยัง {{label}}",
+    "switchDisabled": "โหมดถูกล็อกระหว่างเซสชัน",
+    "configureDevices": "คลิกเพื่อกำหนดค่าอุปกรณ์",
+    "missingDevice": "กำหนดค่าอุปกรณ์สำหรับโหมดนี้เพื่อเริ่ม",
+    "popoverHeaderYou": "คุณ — อุปกรณ์",
+    "popoverHeaderParticipants": "ผู้เข้าร่วม — อุปกรณ์",
+    "popoverHeaderBoth": "ทั้งคู่ — อุปกรณ์",
+    "popoverFooter": "การตั้งค่าทั้งหมด →",
+    "deviceMic": "ไมโครโฟน",
+    "deviceSpeakerMonitor": "มอนิเตอร์ลำโพง",
+    "notSelected": "ไม่ได้เลือก",
+    "deviceParticipantAudio": "เสียงผู้เข้าร่วม"
+  },
+  "popover": {
+    "statusOff": "ปิด",
+    "toggleOn": "เปิด {{label}}",
+    "toggleOff": "ปิด {{label}}",
+    "participantSubtitleElectron": "เสียงระบบทั้งหมด",
+    "participantSubtitleExtension": "เล่นผ่านเอาต์พุตเริ่มต้นของระบบ"
   }
 }

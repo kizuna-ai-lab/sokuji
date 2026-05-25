@@ -16,7 +16,8 @@
     "off": "Patay",
     "autoDetect": "Awtomatikong Detekta",
     "signIn": "Mag-sign In",
-    "signUp": "Mag-sign Up"
+    "signUp": "Mag-sign Up",
+    "on": "Bukas"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
     "transcriptModelTooltipTranslate": "Mga subtitle sa source language. Sa kasalukuyan ay gpt-realtime-whisper lang ang suportado.",
     "modelTooltipTranslate": "Dedicated voice translation model ng OpenAI. Awtomatikong nag-a-adjust ang boses sa source speaker.",
-    "translateSourceParticipantWarning": "Maaaring hindi gumana ang Participant translation — ang piniling source language mo ay wala sa 13 sinusuportahang target language."
+    "translateSourceParticipantWarning": "Maaaring hindi gumana ang Participant translation — ang piniling source language mo ay wala sa 13 sinusuportahang target language.",
+    "speechModeAppliesTo": "Naaangkop sa iyong boses. Ang audio ng kalahok ay laging gumagamit ng semantic VAD.",
+    "participantSectionHeader": "Audio ng Kalahok",
+    "participantSectionDescriptionElectron": "Isalin ang audio mula sa anumang application na tumutugtog sa system na ito.",
+    "participantSectionDescriptionExtension": "Isalin ang audio mula sa aktibong browser tab. Ang orihinal na audio ay tumutugtog sa default na output ng iyong system."
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",
@@ -430,7 +435,8 @@
     "loadingModels": "Naglo-load ng mga model...",
     "noModelsAvailable": "Walang available na model",
     "insufficientBalance": "Hindi sapat ang token balance: {{balance}} token",
-    "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support."
+    "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
+    "clickToConfigParticipant": "I-click upang i-configure ang audio ng kalahok"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",
@@ -490,7 +496,9 @@
       "headerSource": "Pinagmulan",
       "headerTarget": "Target",
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
-    }
+    },
+    "participantAudio": "Audio ng Kalahok",
+    "noChannelConfigured": "I-enable ang mikropono o audio ng kalahok bago magsimula."
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",
@@ -505,7 +513,11 @@
     "mutualExclusivitySpeakerText": "Pakiusap na i-off muna ang Audio ng Kalahok bago i-enable ang Speaker.",
     "mutualExclusivityParticipantText": "Pakiusap na i-off muna ang Speaker bago i-enable ang Audio ng Kalahok.",
     "availableSystemAudioSources": "Mga Nakukuhang Device ng Audio ng Sistema",
-    "refreshSystemAudioSources": "I-refresh ang listahan ng device"
+    "refreshSystemAudioSources": "I-refresh ang listahan ng device",
+    "turnOnMicrophone": "I-on ang mikropono",
+    "turnOffMicrophone": "I-off ang mikropono",
+    "turnOnMonitor": "I-on ang monitor ng speaker",
+    "turnOffMonitor": "I-off ang monitor ng speaker"
   },
   "logsPanel": {
     "title": "Mga Log",
@@ -825,5 +837,30 @@
     "minimize": "I-minimize",
     "maximize": "I-maximize",
     "close": "Isara"
+  },
+  "modePicker": {
+    "modeYou": "Ikaw",
+    "modeParticipants": "Iba",
+    "modeBoth": "Pareho",
+    "groupLabel": "Mode ng pagsasalin",
+    "switchTo": "Lumipat sa {{label}}",
+    "switchDisabled": "Naka-lock ang mode habang may session.",
+    "configureDevices": "I-click upang i-configure ang mga device.",
+    "missingDevice": "I-configure ang mga device para sa mode na ito upang magsimula.",
+    "popoverHeaderYou": "Ikaw — mga device",
+    "popoverHeaderParticipants": "Mga Kalahok — mga device",
+    "popoverHeaderBoth": "Pareho — mga device",
+    "popoverFooter": "Buong mga setting →",
+    "deviceMic": "Mikropono",
+    "deviceSpeakerMonitor": "Monitor ng speaker",
+    "notSelected": "Hindi napili",
+    "deviceParticipantAudio": "Audio ng Kalahok"
+  },
+  "popover": {
+    "statusOff": "Patay",
+    "toggleOn": "I-on ang {{label}}",
+    "toggleOff": "I-off ang {{label}}",
+    "participantSubtitleElectron": "Lahat ng audio ng system",
+    "participantSubtitleExtension": "Tumutugtog sa default ng system"
   }
 }

@@ -17,7 +17,8 @@
     "autoDetect": "自動辨識",
     "signIn": "登入",
     "signUp": "註冊",
-    "signInRequired": "請登入以使用Kizuna AI作為您的提供商"
+    "signInRequired": "請登入以使用Kizuna AI作為您的提供商",
+    "on": "開啟"
   },
   "app": {
     "title": "Sokuji",
@@ -144,7 +145,8 @@
     "loadingModels": "正在載入模型...",
     "noModelsAvailable": "沒有可用的模型",
     "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
-    "walletFrozen": "錢包已凍結。請聯繫客服。"
+    "walletFrozen": "錢包已凍結。請聯繫客服。",
+    "clickToConfigParticipant": "點擊配置參與者音訊"
   },
   "connectionStatus": {
     "disconnected": "已斷線",
@@ -407,7 +409,11 @@
     "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
     "transcriptModelTooltipTranslate": "來源語言字幕。目前僅支援 gpt-realtime-whisper。",
     "modelTooltipTranslate": "OpenAI 專用的語音轉語音翻譯模型。譯音會自動匹配來源說話人音色。",
-    "translateSourceParticipantWarning": "Participant 翻譯可能無法工作——你選的來源語言不在 13 個支援的目標語言裡。"
+    "translateSourceParticipantWarning": "Participant 翻譯可能無法工作——你選的來源語言不在 13 個支援的目標語言裡。",
+    "speechModeAppliesTo": "適用於您的語音。參與者音訊始終使用語意 VAD。",
+    "participantSectionHeader": "參與者音訊",
+    "participantSectionDescriptionElectron": "翻譯此系統上任何正在播放的應用程式的音訊。",
+    "participantSectionDescriptionExtension": "翻譯當前瀏覽器分頁的音訊。原始音訊透過系統預設輸出播放。"
   },
   "audioPanel": {
     "title": "音訊設定",
@@ -445,7 +451,11 @@
     "mutualExclusivitySpeakerText": "啟用揚聲器之前，請先關閉參與者音訊。",
     "mutualExclusivityParticipantText": "啟用參與者音訊之前，請先關閉揚聲器。",
     "availableSystemAudioSources": "可捕獲的系統音訊裝置",
-    "refreshSystemAudioSources": "重新整理裝置列表"
+    "refreshSystemAudioSources": "重新整理裝置列表",
+    "turnOnMicrophone": "開啟麥克風",
+    "turnOffMicrophone": "關閉麥克風",
+    "turnOnMonitor": "開啟揚聲器監聽",
+    "turnOffMonitor": "關閉揚聲器監聽"
   },
   "logsPanel": {
     "title": "日誌",
@@ -524,7 +534,9 @@
       "headerSource": "來源語言",
       "headerTarget": "目標語言",
       "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。"
-    }
+    },
+    "participantAudio": "參與者音訊",
+    "noChannelConfigured": "開始前請啟用麥克風或參與者音訊。"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",
@@ -837,5 +849,30 @@
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "關閉"
+  },
+  "modePicker": {
+    "modeYou": "您",
+    "modeParticipants": "其他人",
+    "modeBoth": "兩者",
+    "groupLabel": "翻譯模式",
+    "switchTo": "切換到{{label}}",
+    "switchDisabled": "工作階段期間模式已鎖定。",
+    "configureDevices": "點擊配置裝置。",
+    "missingDevice": "請為此模式配置裝置以開始。",
+    "popoverHeaderYou": "您 — 裝置",
+    "popoverHeaderParticipants": "參與者 — 裝置",
+    "popoverHeaderBoth": "兩者 — 裝置",
+    "popoverFooter": "完整設定 →",
+    "deviceMic": "麥克風",
+    "deviceSpeakerMonitor": "揚聲器監聽",
+    "notSelected": "未選擇",
+    "deviceParticipantAudio": "參與者音訊"
+  },
+  "popover": {
+    "statusOff": "關閉",
+    "toggleOn": "開啟{{label}}",
+    "toggleOff": "關閉{{label}}",
+    "participantSubtitleElectron": "所有系統音訊",
+    "participantSubtitleExtension": "透過系統預設輸出播放"
   }
 }

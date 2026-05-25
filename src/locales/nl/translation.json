@@ -17,7 +17,8 @@
     "autoDetect": "Automatische Detectie",
     "signIn": "Inloggen",
     "signUp": "Aanmelden",
-    "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken"
+    "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken",
+    "on": "Aan"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
     "transcriptModelTooltipTranslate": "Bron-taal ondertitels. Momenteel wordt alleen gpt-realtime-whisper ondersteund.",
     "modelTooltipTranslate": "OpenAI's speciale spraakvertalingsmodel. De stem past zich automatisch aan de bronspreker aan.",
-    "translateSourceParticipantWarning": "Participant-vertaling werkt mogelijk niet — uw geselecteerde brontaal staat niet in de 13 ondersteunde doeltalen."
+    "translateSourceParticipantWarning": "Participant-vertaling werkt mogelijk niet — uw geselecteerde brontaal staat niet in de 13 ondersteunde doeltalen.",
+    "speechModeAppliesTo": "Van toepassing op uw stem. Deelnemer Audio gebruikt altijd semantische VAD.",
+    "participantSectionHeader": "Deelnemer Audio",
+    "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
+    "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via de standaarduitvoer van uw systeem."
   },
   "audioPanel": {
     "title": "Audio instellingen",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Schakel eerst Deelnemer Audio uit voordat u Luidspreker inschakelt.",
     "mutualExclusivityParticipantText": "Schakel eerst Luidspreker uit voordat u Deelnemer Audio inschakelt.",
     "availableSystemAudioSources": "Opneembare systeemaudioapparaten",
-    "refreshSystemAudioSources": "Apparatenlijst vernieuwen"
+    "refreshSystemAudioSources": "Apparatenlijst vernieuwen",
+    "turnOnMicrophone": "Microfoon inschakelen",
+    "turnOffMicrophone": "Microfoon uitschakelen",
+    "turnOnMonitor": "Luidsprekermonitor inschakelen",
+    "turnOffMonitor": "Luidsprekermonitor uitschakelen"
   },
   "logsPanel": {
     "title": "Logs",
@@ -402,7 +411,9 @@
       "headerSource": "Bron",
       "headerTarget": "Doel",
       "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie."
-    }
+    },
+    "participantAudio": "Deelnemer Audio",
+    "noChannelConfigured": "Schakel de microfoon of Deelnemer Audio in voordat u begint."
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",
@@ -668,7 +679,8 @@
     "loadingModels": "Modellen laden...",
     "noModelsAvailable": "Geen modellen beschikbaar",
     "insufficientBalance": "Onvoldoende tokensaldo: {{balance}} tokens",
-    "walletFrozen": "Wallet is bevroren. Neem contact op met support."
+    "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
+    "clickToConfigParticipant": "Klik om Deelnemer Audio te configureren"
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",
@@ -867,5 +879,30 @@
     "minimize": "Minimaliseren",
     "maximize": "Maximaliseren",
     "close": "Sluiten"
+  },
+  "modePicker": {
+    "modeYou": "Jij",
+    "modeParticipants": "Anderen",
+    "modeBoth": "Beide",
+    "groupLabel": "Vertaalmodus",
+    "switchTo": "Schakel naar {{label}}",
+    "switchDisabled": "De modus is vergrendeld tijdens een sessie.",
+    "configureDevices": "Klik om apparaten te configureren.",
+    "missingDevice": "Configureer apparaten voor deze modus om te starten.",
+    "popoverHeaderYou": "Jij — apparaten",
+    "popoverHeaderParticipants": "Deelnemers — apparaten",
+    "popoverHeaderBoth": "Beide — apparaten",
+    "popoverFooter": "Alle instellingen →",
+    "deviceMic": "Microfoon",
+    "deviceSpeakerMonitor": "Luidsprekermonitor",
+    "notSelected": "Niet geselecteerd",
+    "deviceParticipantAudio": "Deelnemer Audio"
+  },
+  "popover": {
+    "statusOff": "Uit",
+    "toggleOn": "{{label}} inschakelen",
+    "toggleOff": "{{label}} uitschakelen",
+    "participantSubtitleElectron": "Alle systeemaudio",
+    "participantSubtitleExtension": "Speelt af via systeemstandaard"
   }
 }

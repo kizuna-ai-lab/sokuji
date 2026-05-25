@@ -17,7 +17,8 @@
     "autoDetect": "自动检测",
     "signIn": "登录",
     "signUp": "注册",
-    "signInRequired": "请登录以使用Kizuna AI作为您的提供商"
+    "signInRequired": "请登录以使用Kizuna AI作为您的提供商",
+    "on": "开启"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
     "transcriptModelTooltipTranslate": "源语言字幕。目前仅支持 gpt-realtime-whisper。",
     "modelTooltipTranslate": "OpenAI 专用的语音转语音翻译模型。译音会自动匹配源说话人音色。",
-    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。"
+    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。",
+    "speechModeAppliesTo": "适用于您的语音。参会者音频始终使用语义 VAD。",
+    "participantSectionHeader": "参会者音频",
+    "participantSectionDescriptionElectron": "翻译此系统上任何正在播放的应用程序的音频。",
+    "participantSectionDescriptionExtension": "翻译当前浏览器标签页的音频。原始音频通过系统默认输出播放。"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",
@@ -376,7 +381,8 @@
     "loadingModels": "正在加载模型...",
     "noModelsAvailable": "没有可用的模型",
     "insufficientBalance": "代币余额不足：{{balance}} 个代币",
-    "walletFrozen": "钱包已冻结。请联系客服。"
+    "walletFrozen": "钱包已冻结。请联系客服。",
+    "clickToConfigParticipant": "点击配置参会者音频"
   },
   "providers": {
     "openai": {
@@ -477,7 +483,11 @@
     "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Sokuji。",
     "screenRecordingDeniedText3": "启用权限后，请重新启动应用。",
     "availableSystemAudioSources": "可捕获的系统音频设备",
-    "refreshSystemAudioSources": "刷新设备列表"
+    "refreshSystemAudioSources": "刷新设备列表",
+    "turnOnMicrophone": "打开麦克风",
+    "turnOffMicrophone": "关闭麦克风",
+    "turnOnMonitor": "打开扬声器监听",
+    "turnOffMonitor": "关闭扬声器监听"
   },
   "logsPanel": {
     "title": "日志",
@@ -556,7 +566,9 @@
       "headerSource": "源语言",
       "headerTarget": "目标语言",
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
-    }
+    },
+    "participantAudio": "参会者音频",
+    "noChannelConfigured": "开始前请启用麦克风或参会者音频。"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",
@@ -879,5 +891,30 @@
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "关闭"
+  },
+  "modePicker": {
+    "modeYou": "您",
+    "modeParticipants": "其他人",
+    "modeBoth": "两者",
+    "groupLabel": "翻译模式",
+    "switchTo": "切换到{{label}}",
+    "switchDisabled": "会话期间模式已锁定。",
+    "configureDevices": "点击配置设备。",
+    "missingDevice": "请为此模式配置设备以开始。",
+    "popoverHeaderYou": "您 — 设备",
+    "popoverHeaderParticipants": "参会者 — 设备",
+    "popoverHeaderBoth": "两者 — 设备",
+    "popoverFooter": "完整设置 →",
+    "deviceMic": "麦克风",
+    "deviceSpeakerMonitor": "扬声器监听",
+    "notSelected": "未选择",
+    "deviceParticipantAudio": "参会者音频"
+  },
+  "popover": {
+    "statusOff": "关闭",
+    "toggleOn": "打开{{label}}",
+    "toggleOff": "关闭{{label}}",
+    "participantSubtitleElectron": "所有系统音频",
+    "participantSubtitleExtension": "通过系统默认输出播放"
   }
 }

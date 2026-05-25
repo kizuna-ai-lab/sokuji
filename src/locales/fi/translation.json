@@ -16,7 +16,8 @@
     "off": "Pois",
     "autoDetect": "Automaattinen tunnistus",
     "signIn": "Kirjaudu sisään",
-    "signUp": "Rekisteröidy"
+    "signUp": "Rekisteröidy",
+    "on": "Päällä"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
     "transcriptModelTooltipTranslate": "Lähdekielen tekstitykset. Tällä hetkellä tuetaan vain gpt-realtime-whisper.",
     "modelTooltipTranslate": "OpenAI:n erikoispuheenkääntömalli. Ääni mukautuu automaattisesti lähdepuhujaan.",
-    "translateSourceParticipantWarning": "Participant-käännös ei välttämättä toimi — valitsemasi lähdekieli ei ole 13 tuetun kohdekielen joukossa."
+    "translateSourceParticipantWarning": "Participant-käännös ei välttämättä toimi — valitsemasi lähdekieli ei ole 13 tuetun kohdekielen joukossa.",
+    "speechModeAppliesTo": "Koskee omaa ääntäsi. Osallistujan ääni käyttää aina semanttista VAD:ia.",
+    "participantSectionHeader": "Osallistujan ääni",
+    "participantSectionDescriptionElectron": "Käännä ääni mistä tahansa tässä järjestelmässä toistettavasta sovelluksesta.",
+    "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan järjestelmäsi oletuslähdön kautta."
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
@@ -430,7 +435,8 @@
     "loadingModels": "Ladataan malleja...",
     "noModelsAvailable": "Ei saatavilla olevia malleja",
     "insufficientBalance": "Riittämätön token-saldo: {{balance}} tokenia",
-    "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen."
+    "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
+    "clickToConfigParticipant": "Napsauta määrittääksesi osallistujan äänen"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",
@@ -490,7 +496,9 @@
       "headerSource": "Lähde",
       "headerTarget": "Kohde",
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
-    }
+    },
+    "participantAudio": "Osallistujan ääni",
+    "noChannelConfigured": "Ota mikrofoni tai osallistujan ääni käyttöön ennen aloittamista."
   },
   "audioPanel": {
     "title": "Ääniasetukset",
@@ -505,7 +513,11 @@
     "mutualExclusivitySpeakerText": "Ole hyvä ja sammuta Osallistujan ääni ennen Kaiuttimen käyttöönottoa.",
     "mutualExclusivityParticipantText": "Ole hyvä ja sammuta Kaiutin ennen Osallistujan äänen käyttöönottoa.",
     "availableSystemAudioSources": "Kaapattavat järjestelmän äänilaitteet",
-    "refreshSystemAudioSources": "Päivitä laiteluettelo"
+    "refreshSystemAudioSources": "Päivitä laiteluettelo",
+    "turnOnMicrophone": "Ota mikrofoni käyttöön",
+    "turnOffMicrophone": "Poista mikrofoni käytöstä",
+    "turnOnMonitor": "Ota kaiuttimen valvonta käyttöön",
+    "turnOffMonitor": "Poista kaiuttimen valvonta käytöstä"
   },
   "logsPanel": {
     "title": "Lokit",
@@ -825,5 +837,30 @@
     "minimize": "Pienennä",
     "maximize": "Suurenna",
     "close": "Sulje"
+  },
+  "modePicker": {
+    "modeYou": "Sinä",
+    "modeParticipants": "Muut",
+    "modeBoth": "Molemmat",
+    "groupLabel": "Käännöstila",
+    "switchTo": "Vaihda tilaan {{label}}",
+    "switchDisabled": "Tila on lukittu istunnon aikana.",
+    "configureDevices": "Napsauta määrittääksesi laitteet.",
+    "missingDevice": "Määritä tämän tilan laitteet aloittaaksesi.",
+    "popoverHeaderYou": "Sinä — laitteet",
+    "popoverHeaderParticipants": "Osallistujat — laitteet",
+    "popoverHeaderBoth": "Molemmat — laitteet",
+    "popoverFooter": "Kaikki asetukset →",
+    "deviceMic": "Mikrofoni",
+    "deviceSpeakerMonitor": "Kaiuttimen valvonta",
+    "notSelected": "Ei valittu",
+    "deviceParticipantAudio": "Osallistujan ääni"
+  },
+  "popover": {
+    "statusOff": "Pois",
+    "toggleOn": "Ota {{label}} käyttöön",
+    "toggleOff": "Poista {{label}} käytöstä",
+    "participantSubtitleElectron": "Kaikki järjestelmän ääni",
+    "participantSubtitleExtension": "Toistetaan järjestelmän oletuksen kautta"
   }
 }

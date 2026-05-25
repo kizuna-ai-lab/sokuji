@@ -17,7 +17,8 @@
     "autoDetect": "Deteksi Otomatis",
     "signIn": "Masuk",
     "signUp": "Daftar",
-    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda"
+    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda",
+    "on": "Aktif"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
     "transcriptModelTooltipTranslate": "Subtitle bahasa sumber. Saat ini hanya gpt-realtime-whisper yang didukung.",
     "modelTooltipTranslate": "Model terjemahan suara khusus dari OpenAI. Suara secara otomatis menyesuaikan dengan pembicara sumber.",
-    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang Anda pilih tidak ada di 13 bahasa target yang didukung."
+    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang Anda pilih tidak ada di 13 bahasa target yang didukung.",
+    "speechModeAppliesTo": "Berlaku untuk suara Anda. Audio peserta selalu menggunakan VAD semantik.",
+    "participantSectionHeader": "Audio Peserta",
+    "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
+    "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui output default sistem Anda."
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",
@@ -431,7 +436,8 @@
     "loadingModels": "Memuat model...",
     "noModelsAvailable": "Tidak ada model tersedia",
     "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
-    "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan."
+    "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
+    "clickToConfigParticipant": "Klik untuk mengonfigurasi audio peserta"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -478,7 +484,11 @@
     "mutualExclusivitySpeakerText": "Harap matikan Audio Peserta sebelum mengaktifkan Speaker.",
     "mutualExclusivityParticipantText": "Harap matikan Speaker sebelum mengaktifkan Audio Peserta.",
     "availableSystemAudioSources": "Perangkat Audio Sistem yang Dapat Ditangkap",
-    "refreshSystemAudioSources": "Segarkan daftar perangkat"
+    "refreshSystemAudioSources": "Segarkan daftar perangkat",
+    "turnOnMicrophone": "Nyalakan mikrofon",
+    "turnOffMicrophone": "Matikan mikrofon",
+    "turnOnMonitor": "Nyalakan monitor speaker",
+    "turnOffMonitor": "Matikan monitor speaker"
   },
   "logsPanel": {
     "title": "Log",
@@ -555,7 +565,9 @@
       "headerSource": "Sumber",
       "headerTarget": "Target",
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
-    }
+    },
+    "participantAudio": "Audio Peserta",
+    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai."
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
@@ -867,5 +879,30 @@
     "minimize": "Minimalkan",
     "maximize": "Maksimalkan",
     "close": "Tutup"
+  },
+  "modePicker": {
+    "modeYou": "Anda",
+    "modeParticipants": "Lainnya",
+    "modeBoth": "Keduanya",
+    "groupLabel": "Mode terjemahan",
+    "switchTo": "Beralih ke {{label}}",
+    "switchDisabled": "Mode terkunci selama sesi.",
+    "configureDevices": "Klik untuk mengonfigurasi perangkat.",
+    "missingDevice": "Konfigurasikan perangkat untuk mode ini untuk memulai.",
+    "popoverHeaderYou": "Anda — perangkat",
+    "popoverHeaderParticipants": "Peserta — perangkat",
+    "popoverHeaderBoth": "Keduanya — perangkat",
+    "popoverFooter": "Pengaturan lengkap →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Monitor speaker",
+    "notSelected": "Tidak dipilih",
+    "deviceParticipantAudio": "Audio Peserta"
+  },
+  "popover": {
+    "statusOff": "Mati",
+    "toggleOn": "Nyalakan {{label}}",
+    "toggleOff": "Matikan {{label}}",
+    "participantSubtitleElectron": "Semua audio sistem",
+    "participantSubtitleExtension": "Diputar melalui default sistem"
   }
 }

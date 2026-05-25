@@ -17,7 +17,8 @@
     "autoDetect": "Détection Automatique",
     "signIn": "Se Connecter",
     "signUp": "S'inscrire",
-    "signInRequired": "Veuillez vous connecter pour utiliser Kizuna AI comme fournisseur"
+    "signInRequired": "Veuillez vous connecter pour utiliser Kizuna AI comme fournisseur",
+    "on": "Activé"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "La clé API fonctionne, mais gpt-realtime-translate n'est pas accessible avec cette clé.",
     "transcriptModelTooltipTranslate": "Sous-titres en langue source. Seul gpt-realtime-whisper est actuellement pris en charge.",
     "modelTooltipTranslate": "Modèle de traduction vocale dédié d'OpenAI. La voix s'adapte automatiquement au locuteur source.",
-    "translateSourceParticipantWarning": "La traduction Participant peut ne pas fonctionner — votre langue source sélectionnée ne figure pas dans les 13 langues cibles prises en charge."
+    "translateSourceParticipantWarning": "La traduction Participant peut ne pas fonctionner — votre langue source sélectionnée ne figure pas dans les 13 langues cibles prises en charge.",
+    "speechModeAppliesTo": "S'applique à votre voix. L'audio des participants utilise toujours le VAD sémantique.",
+    "participantSectionHeader": "Audio des Participants",
+    "participantSectionDescriptionElectron": "Traduire l'audio de n'importe quelle application en lecture sur ce système.",
+    "participantSectionDescriptionExtension": "Traduire l'audio de l'onglet de navigateur actif. L'audio original est diffusé via la sortie par défaut de votre système."
   },
   "audioPanel": {
     "title": "Paramètres audio",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Veuillez désactiver l'Audio des Participants avant d'activer le Haut-parleur.",
     "mutualExclusivityParticipantText": "Veuillez désactiver le Haut-parleur avant d'activer l'Audio des Participants.",
     "availableSystemAudioSources": "Périphériques audio système capturables",
-    "refreshSystemAudioSources": "Actualiser la liste des périphériques"
+    "refreshSystemAudioSources": "Actualiser la liste des périphériques",
+    "turnOnMicrophone": "Activer le microphone",
+    "turnOffMicrophone": "Désactiver le microphone",
+    "turnOnMonitor": "Activer la surveillance du haut-parleur",
+    "turnOffMonitor": "Désactiver la surveillance du haut-parleur"
   },
   "logsPanel": {
     "title": "Journaux",
@@ -402,7 +411,9 @@
       "headerSource": "Source",
       "headerTarget": "Cible",
       "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session."
-    }
+    },
+    "participantAudio": "Audio des Participants",
+    "noChannelConfigured": "Activez le microphone ou l'audio des participants avant de démarrer."
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -669,7 +680,8 @@
     "loadingModels": "Chargement des modèles...",
     "noModelsAvailable": "Aucun modèle disponible",
     "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
-    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support."
+    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
+    "clickToConfigParticipant": "Cliquez pour configurer l'audio des participants"
   },
   "connectionStatus": {
     "disconnected": "Déconnecté",
@@ -868,5 +880,30 @@
     "minimize": "Réduire",
     "maximize": "Agrandir",
     "close": "Fermer"
+  },
+  "modePicker": {
+    "modeYou": "Vous",
+    "modeParticipants": "Autres",
+    "modeBoth": "Les deux",
+    "groupLabel": "Mode de traduction",
+    "switchTo": "Passer à {{label}}",
+    "switchDisabled": "Le mode est verrouillé pendant une session.",
+    "configureDevices": "Cliquez pour configurer les périphériques.",
+    "missingDevice": "Configurez les périphériques de ce mode pour démarrer.",
+    "popoverHeaderYou": "Vous — périphériques",
+    "popoverHeaderParticipants": "Participants — périphériques",
+    "popoverHeaderBoth": "Les deux — périphériques",
+    "popoverFooter": "Paramètres complets →",
+    "deviceMic": "Microphone",
+    "deviceSpeakerMonitor": "Surveillance du haut-parleur",
+    "notSelected": "Non sélectionné",
+    "deviceParticipantAudio": "Audio des Participants"
+  },
+  "popover": {
+    "statusOff": "Arrêt",
+    "toggleOn": "Activer {{label}}",
+    "toggleOff": "Désactiver {{label}}",
+    "participantSubtitleElectron": "Tout l'audio du système",
+    "participantSubtitleExtension": "Diffusé via la sortie par défaut du système"
   }
 }

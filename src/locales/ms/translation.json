@@ -16,7 +16,8 @@
     "off": "Mati",
     "autoDetect": "Kesan Automatik",
     "signIn": "Log Masuk",
-    "signUp": "Daftar"
+    "signUp": "Daftar",
+    "on": "Hidup"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
     "transcriptModelTooltipTranslate": "Sari kata bahasa sumber. Pada masa ini hanya gpt-realtime-whisper disokong.",
     "modelTooltipTranslate": "Model terjemahan suara khusus daripada OpenAI. Suara secara automatik menyesuaikan diri dengan penutur sumber.",
-    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang anda pilih tidak ada dalam 13 bahasa sasaran yang disokong."
+    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang anda pilih tidak ada dalam 13 bahasa sasaran yang disokong.",
+    "speechModeAppliesTo": "Digunakan untuk suara anda. Audio Peserta sentiasa menggunakan VAD semantik.",
+    "participantSectionHeader": "Audio Peserta",
+    "participantSectionDescriptionElectron": "Terjemahkan audio daripada mana-mana aplikasi yang dimainkan pada sistem ini.",
+    "participantSectionDescriptionExtension": "Terjemahkan audio daripada tab pelayar aktif. Audio asal dimainkan melalui output lalai sistem anda."
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",
@@ -428,7 +433,8 @@
     "loadingModels": "Memuatkan model...",
     "noModelsAvailable": "Tiada model tersedia",
     "insufficientBalance": "Baki token tidak mencukupi: {{balance}} token",
-    "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan."
+    "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
+    "clickToConfigParticipant": "Klik untuk mengkonfigurasi Audio Peserta"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -475,7 +481,11 @@
     "mutualExclusivitySpeakerText": "Sila matikan Audio Peserta sebelum mendayakan Pembesar Suara.",
     "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta.",
     "availableSystemAudioSources": "Peranti Audio Sistem Boleh Tangkap",
-    "refreshSystemAudioSources": "Muat semula senarai peranti"
+    "refreshSystemAudioSources": "Muat semula senarai peranti",
+    "turnOnMicrophone": "Hidupkan mikrofon",
+    "turnOffMicrophone": "Matikan mikrofon",
+    "turnOnMonitor": "Hidupkan pemantau pembesar suara",
+    "turnOffMonitor": "Matikan pemantau pembesar suara"
   },
   "logsPanel": {
     "title": "Log",
@@ -554,7 +564,9 @@
       "headerSource": "Sumber",
       "headerTarget": "Sasaran",
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi."
-    }
+    },
+    "participantAudio": "Audio Peserta",
+    "noChannelConfigured": "Aktifkan mikrofon atau Audio Peserta sebelum bermula."
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
@@ -866,5 +878,30 @@
     "minimize": "Minimumkan",
     "maximize": "Maksimumkan",
     "close": "Tutup"
+  },
+  "modePicker": {
+    "modeYou": "Anda",
+    "modeParticipants": "Lain",
+    "modeBoth": "Kedua-duanya",
+    "groupLabel": "Mod terjemahan",
+    "switchTo": "Tukar ke {{label}}",
+    "switchDisabled": "Mod dikunci semasa sesi.",
+    "configureDevices": "Klik untuk mengkonfigurasi peranti.",
+    "missingDevice": "Konfigurasikan peranti untuk mod ini bagi bermula.",
+    "popoverHeaderYou": "Anda — peranti",
+    "popoverHeaderParticipants": "Lain — peranti",
+    "popoverHeaderBoth": "Kedua-duanya — peranti",
+    "popoverFooter": "Tetapan penuh →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Pemantau pembesar suara",
+    "notSelected": "Tidak dipilih",
+    "deviceParticipantAudio": "Audio Peserta"
+  },
+  "popover": {
+    "statusOff": "Mati",
+    "toggleOn": "Hidupkan {{label}}",
+    "toggleOff": "Matikan {{label}}",
+    "participantSubtitleElectron": "Semua audio sistem",
+    "participantSubtitleExtension": "Dimainkan melalui output lalai sistem"
   }
 }

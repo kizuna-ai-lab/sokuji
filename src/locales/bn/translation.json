@@ -16,7 +16,8 @@
     "off": "বন্ধ",
     "autoDetect": "স্বয়ংক্রিয় সনাক্তকরণ",
     "signIn": "সাইন ইন",
-    "signUp": "সাইন আপ"
+    "signUp": "সাইন আপ",
+    "on": "চালু"
   },
   "app": {
     "title": "Sokuji",
@@ -291,7 +292,11 @@
     "translateModelNotAvailable": "API কী কাজ করে, কিন্তু এই কী দিয়ে gpt-realtime-translate অ্যাক্সেস করা যায় না।",
     "transcriptModelTooltipTranslate": "উৎস ভাষার সাবটাইটেল। বর্তমানে শুধু gpt-realtime-whisper সমর্থিত।",
     "modelTooltipTranslate": "OpenAI এর ডেডিকেটেড ভয়েস অনুবাদ মডেল। কণ্ঠস্বর স্বয়ংক্রিয়ভাবে উৎস বক্তার সাথে মানিয়ে নেয়।",
-    "translateSourceParticipantWarning": "Participant অনুবাদ কাজ নাও করতে পারে — আপনার নির্বাচিত উৎস ভাষা 13টি সমর্থিত লক্ষ্য ভাষার মধ্যে নেই।"
+    "translateSourceParticipantWarning": "Participant অনুবাদ কাজ নাও করতে পারে — আপনার নির্বাচিত উৎস ভাষা 13টি সমর্থিত লক্ষ্য ভাষার মধ্যে নেই।",
+    "speechModeAppliesTo": "আপনার কণ্ঠের জন্য প্রযোজ্য। অংশগ্রহণকারী অডিও সর্বদা সিম্যান্টিক VAD ব্যবহার করে।",
+    "participantSectionHeader": "অংশগ্রহণকারী অডিও",
+    "participantSectionDescriptionElectron": "এই সিস্টেমে চলমান যেকোনো অ্যাপ্লিকেশন থেকে অডিও অনুবাদ করুন।",
+    "participantSectionDescriptionExtension": "সক্রিয় ব্রাউজার ট্যাব থেকে অডিও অনুবাদ করুন। মূল অডিও আপনার সিস্টেমের ডিফল্ট আউটপুটের মাধ্যমে চলে।"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",
@@ -436,7 +441,11 @@
     "mutualExclusivitySpeakerText": "স্পীকার সক্রিয় করার আগে অনুগ্রহ করে অংশগ্রহণকারী অডিও বন্ধ করুন।",
     "mutualExclusivityParticipantText": "অংশগ্রহণকারী অডিও সক্রিয় করার আগে অনুগ্রহ করে স্পীকার বন্ধ করুন।",
     "availableSystemAudioSources": "ক্যাপচারযোগ্য সিস্টেম অডিও ডিভাইস",
-    "refreshSystemAudioSources": "ডিভাইস তালিকা রিফ্রেশ করুন"
+    "refreshSystemAudioSources": "ডিভাইস তালিকা রিফ্রেশ করুন",
+    "turnOnMicrophone": "মাইক্রোফোন চালু করুন",
+    "turnOffMicrophone": "মাইক্রোফোন বন্ধ করুন",
+    "turnOnMonitor": "স্পিকার মনিটর চালু করুন",
+    "turnOffMonitor": "স্পিকার মনিটর বন্ধ করুন"
   },
   "logsPanel": {
     "title": "লগ",
@@ -517,7 +526,9 @@
       "headerSource": "উৎস",
       "headerTarget": "লক্ষ্য",
       "headerNote": "দ্রষ্টব্য: সেটিংস রপ্তানির সময়ের বর্তমান অবস্থা প্রতিফলিত করে, মাঝ-সেশনের পরিবর্তন নয়।"
-    }
+    },
+    "participantAudio": "অংশগ্রহণকারী অডিও",
+    "noChannelConfigured": "শুরু করার আগে মাইক্রোফোন বা অংশগ্রহণকারী অডিও সক্রিয় করুন।"
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",
@@ -554,7 +565,8 @@
     "loadingModels": "মডেল লোড হচ্ছে...",
     "noModelsAvailable": "কোনো মডেল উপলব্ধ নেই",
     "insufficientBalance": "অপর্যাপ্ত টোকেন ব্যালেন্স: {{balance}} টোকেন",
-    "walletFrozen": "ওয়ালেট ফ্রিজ করা হয়েছে। অনুগ্রহ করে সহায়তায় যোগাযোগ করুন।"
+    "walletFrozen": "ওয়ালেট ফ্রিজ করা হয়েছে। অনুগ্রহ করে সহায়তায় যোগাযোগ করুন।",
+    "clickToConfigParticipant": "অংশগ্রহণকারী অডিও কনফিগার করতে ক্লিক করুন"
   },
   "errors": {
     "microphoneAccess": "মাইক্রোফোন অ্যাক্সেস অস্বীকৃত",
@@ -875,5 +887,30 @@
     "minimize": "ছোট করুন",
     "maximize": "বড় করুন",
     "close": "বন্ধ করুন"
+  },
+  "modePicker": {
+    "modeYou": "আপনি",
+    "modeParticipants": "অন্যরা",
+    "modeBoth": "উভয়",
+    "groupLabel": "অনুবাদ মোড",
+    "switchTo": "{{label}}-এ স্যুইচ করুন",
+    "switchDisabled": "সেশন চলাকালীন মোড লক থাকে।",
+    "configureDevices": "ডিভাইস কনফিগার করতে ক্লিক করুন।",
+    "missingDevice": "শুরু করতে এই মোডের জন্য ডিভাইস কনফিগার করুন।",
+    "popoverHeaderYou": "আপনি — ডিভাইস",
+    "popoverHeaderParticipants": "অংশগ্রহণকারী — ডিভাইস",
+    "popoverHeaderBoth": "উভয় — ডিভাইস",
+    "popoverFooter": "সম্পূর্ণ সেটিংস →",
+    "deviceMic": "মাইক্রোফোন",
+    "deviceSpeakerMonitor": "স্পিকার মনিটর",
+    "notSelected": "নির্বাচিত নয়",
+    "deviceParticipantAudio": "অংশগ্রহণকারী অডিও"
+  },
+  "popover": {
+    "statusOff": "বন্ধ",
+    "toggleOn": "{{label}} চালু করুন",
+    "toggleOff": "{{label}} বন্ধ করুন",
+    "participantSubtitleElectron": "সমস্ত সিস্টেম অডিও",
+    "participantSubtitleExtension": "সিস্টেম ডিফল্টের মাধ্যমে চলে"
   }
 }

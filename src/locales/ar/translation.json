@@ -17,7 +17,8 @@
     "autoDetect": "اكتشاف تلقائي",
     "signIn": "تسجيل الدخول",
     "signUp": "تسجيل",
-    "signInRequired": "يرجى تسجيل الدخول لاستخدام Kizuna AI كمزود لك"
+    "signInRequired": "يرجى تسجيل الدخول لاستخدام Kizuna AI كمزود لك",
+    "on": "تشغيل"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "مفتاح API يعمل، ولكن gpt-realtime-translate غير متاح مع هذا المفتاح.",
     "transcriptModelTooltipTranslate": "ترجمات اللغة المصدر. حالياً يتم دعم gpt-realtime-whisper فقط.",
     "modelTooltipTranslate": "نموذج OpenAI المخصص للترجمة الصوتية. يتكيف الصوت تلقائياً مع المتحدث المصدر.",
-    "translateSourceParticipantWarning": "قد لا تعمل ترجمة Participant — اللغة المصدر التي اخترتها ليست ضمن 13 لغة هدف مدعومة."
+    "translateSourceParticipantWarning": "قد لا تعمل ترجمة Participant — اللغة المصدر التي اخترتها ليست ضمن 13 لغة هدف مدعومة.",
+    "speechModeAppliesTo": "ينطبق على صوتك. صوت المشاركين يستخدم دائمًا كشف النشاط الصوتي الدلالي.",
+    "participantSectionHeader": "صوت المشاركين",
+    "participantSectionDescriptionElectron": "ترجمة الصوت من أي تطبيق يعمل على هذا النظام.",
+    "participantSectionDescriptionExtension": "ترجمة الصوت من علامة تبويب المتصفح النشطة. يُشغَّل الصوت الأصلي عبر مخرج النظام الافتراضي."
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",
@@ -430,7 +435,11 @@
     "mutualExclusivitySpeakerText": "يرجى إيقاف صوت المشاركين قبل تفعيل السماعة.",
     "mutualExclusivityParticipantText": "يرجى إيقاف السماعة قبل تفعيل صوت المشاركين.",
     "availableSystemAudioSources": "أجهزة صوت النظام القابلة للالتقاط",
-    "refreshSystemAudioSources": "تحديث قائمة الأجهزة"
+    "refreshSystemAudioSources": "تحديث قائمة الأجهزة",
+    "turnOnMicrophone": "تشغيل الميكروفون",
+    "turnOffMicrophone": "إيقاف الميكروفون",
+    "turnOnMonitor": "تشغيل مراقبة السماعة",
+    "turnOffMonitor": "إيقاف مراقبة السماعة"
   },
   "logsPanel": {
     "title": "السجلات",
@@ -511,7 +520,9 @@
       "headerSource": "المصدر",
       "headerTarget": "الهدف",
       "headerNote": "ملاحظة: تعكس الإعدادات الحالة عند التصدير، وليس التغييرات التي حدثت خلال الجلسة."
-    }
+    },
+    "participantAudio": "صوت المشاركين",
+    "noChannelConfigured": "فعّل الميكروفون أو صوت المشاركين قبل البدء."
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",
@@ -548,7 +559,8 @@
     "loadingModels": "جارٍ تحميل النماذج...",
     "noModelsAvailable": "لا توجد نماذج متاحة",
     "insufficientBalance": "رصيد الرموز غير كافٍ: {{balance}} رمز",
-    "walletFrozen": "المحفظة مجمدة. يرجى الاتصال بالدعم."
+    "walletFrozen": "المحفظة مجمدة. يرجى الاتصال بالدعم.",
+    "clickToConfigParticipant": "انقر لتكوين صوت المشاركين"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",
@@ -869,5 +881,30 @@
     "minimize": "تصغير",
     "maximize": "تكبير",
     "close": "إغلاق"
+  },
+  "modePicker": {
+    "modeYou": "أنت",
+    "modeParticipants": "الآخرون",
+    "modeBoth": "الكل",
+    "groupLabel": "وضع الترجمة",
+    "switchTo": "التبديل إلى {{label}}",
+    "switchDisabled": "الوضع مقفل أثناء الجلسة.",
+    "configureDevices": "انقر لتكوين الأجهزة.",
+    "missingDevice": "كوّن الأجهزة لهذا الوضع للبدء.",
+    "popoverHeaderYou": "أنت — الأجهزة",
+    "popoverHeaderParticipants": "المشاركون — الأجهزة",
+    "popoverHeaderBoth": "الكل — الأجهزة",
+    "popoverFooter": "الإعدادات الكاملة ←",
+    "deviceMic": "ميكروفون",
+    "deviceSpeakerMonitor": "مراقبة السماعة",
+    "notSelected": "غير محدد",
+    "deviceParticipantAudio": "صوت المشاركين"
+  },
+  "popover": {
+    "statusOff": "إيقاف",
+    "toggleOn": "تشغيل {{label}}",
+    "toggleOff": "إيقاف {{label}}",
+    "participantSubtitleElectron": "كل صوت النظام",
+    "participantSubtitleExtension": "يُشغَّل عبر مخرج النظام الافتراضي"
   }
 }

@@ -16,7 +16,8 @@
     "off": "Kapalı",
     "autoDetect": "Otomatik Algılama",
     "signIn": "Giriş Yap",
-    "signUp": "Kayıt Ol"
+    "signUp": "Kayıt Ol",
+    "on": "Açık"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
     "transcriptModelTooltipTranslate": "Kaynak dil altyazıları. Şu anda yalnızca gpt-realtime-whisper destekleniyor.",
     "modelTooltipTranslate": "OpenAI'nin özel sesli çeviri modeli. Ses otomatik olarak kaynak konuşmacıya uyum sağlar.",
-    "translateSourceParticipantWarning": "Participant çevirisi çalışmayabilir — seçtiğiniz kaynak dil, desteklenen 13 hedef dil arasında değil."
+    "translateSourceParticipantWarning": "Participant çevirisi çalışmayabilir — seçtiğiniz kaynak dil, desteklenen 13 hedef dil arasında değil.",
+    "speechModeAppliesTo": "Sizin sesinize uygulanır. Katılımcı sesi her zaman anlamsal VAD kullanır.",
+    "participantSectionHeader": "Katılımcı sesi",
+    "participantSectionDescriptionElectron": "Bu sistemde çalan herhangi bir uygulamadan gelen sesi çevirin.",
+    "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, sistem varsayılan çıkışınızdan çalar."
   },
   "mainPanel": {
     "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
@@ -337,7 +342,9 @@
       "headerSource": "Kaynak",
       "headerTarget": "Hedef",
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
-    }
+    },
+    "participantAudio": "Katılımcı sesi",
+    "noChannelConfigured": "Başlamadan önce mikrofonu veya katılımcı sesini etkinleştirin."
   },
   "audioPanel": {
     "title": "Ses Ayarları",
@@ -352,7 +359,11 @@
     "mutualExclusivitySpeakerText": "Hoparlörü etkinleştirmeden önce lütfen Katılımcı Sesini kapatın.",
     "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın.",
     "availableSystemAudioSources": "Yakalanabilir Sistem Ses Cihazları",
-    "refreshSystemAudioSources": "Cihaz listesini yenile"
+    "refreshSystemAudioSources": "Cihaz listesini yenile",
+    "turnOnMicrophone": "Mikrofonu aç",
+    "turnOffMicrophone": "Mikrofonu kapat",
+    "turnOnMonitor": "Hoparlör izlemeyi aç",
+    "turnOffMonitor": "Hoparlör izlemeyi kapat"
   },
   "logsPanel": {
     "title": "Günlükler",
@@ -626,7 +637,8 @@
     "loadingModels": "Modeller yükleniyor...",
     "noModelsAvailable": "Kullanılabilir model yok",
     "insufficientBalance": "Yetersiz token bakiyesi: {{balance}} token",
-    "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin."
+    "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
+    "clickToConfigParticipant": "Katılımcı sesini yapılandırmak için tıklayın"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",
@@ -825,5 +837,30 @@
     "minimize": "Küçült",
     "maximize": "Büyüt",
     "close": "Kapat"
+  },
+  "modePicker": {
+    "modeYou": "Siz",
+    "modeParticipants": "Diğerleri",
+    "modeBoth": "Her ikisi",
+    "groupLabel": "Çeviri modu",
+    "switchTo": "{{label}} moduna geç",
+    "switchDisabled": "Mod, oturum sırasında kilitlidir.",
+    "configureDevices": "Cihazları yapılandırmak için tıklayın.",
+    "missingDevice": "Başlamak için bu mod için cihazları yapılandırın.",
+    "popoverHeaderYou": "Siz — cihazlar",
+    "popoverHeaderParticipants": "Katılımcılar — cihazlar",
+    "popoverHeaderBoth": "Her ikisi — cihazlar",
+    "popoverFooter": "Tüm ayarlar →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Hoparlör izleme",
+    "notSelected": "Seçilmedi",
+    "deviceParticipantAudio": "Katılımcı sesi"
+  },
+  "popover": {
+    "statusOff": "Kapalı",
+    "toggleOn": "{{label}} aç",
+    "toggleOff": "{{label}} kapat",
+    "participantSubtitleElectron": "Tüm sistem sesi",
+    "participantSubtitleExtension": "Sistem varsayılanı üzerinden çalar"
   }
 }

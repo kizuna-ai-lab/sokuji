@@ -16,7 +16,8 @@
     "off": "כבוי",
     "autoDetect": "זיהוי אוטומטי",
     "signIn": "התחבר",
-    "signUp": "הרשמה"
+    "signUp": "הרשמה",
+    "on": "פועל"
   },
   "app": {
     "title": "Sokuji",
@@ -291,7 +292,11 @@
     "translateModelNotAvailable": "מפתח API עובד, אך gpt-realtime-translate אינו נגיש עם מפתח זה.",
     "transcriptModelTooltipTranslate": "כתוביות בשפת המקור. כרגע נתמך רק gpt-realtime-whisper.",
     "modelTooltipTranslate": "מודל תרגום קולי ייעודי של OpenAI. הקול מסתגל אוטומטית לדובר המקור.",
-    "translateSourceParticipantWarning": "ייתכן שתרגום Participant לא יעבוד — שפת המקור שבחרת אינה נמצאת ב-13 שפות היעד הנתמכות."
+    "translateSourceParticipantWarning": "ייתכן שתרגום Participant לא יעבוד — שפת המקור שבחרת אינה נמצאת ב-13 שפות היעד הנתמכות.",
+    "speechModeAppliesTo": "חל על הקול שלך. שמע המשתתפים תמיד משתמש ב-VAD סמנטי.",
+    "participantSectionHeader": "שמע משתתפים",
+    "participantSectionDescriptionElectron": "תרגם שמע מכל יישום שמתנגן במערכת זו.",
+    "participantSectionDescriptionExtension": "תרגם שמע מלשונית הדפדפן הפעילה. השמע המקורי מתנגן דרך פלט ברירת המחדל של המערכת שלך."
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",
@@ -437,7 +442,8 @@
     "loadingModels": "טוען מודלים...",
     "noModelsAvailable": "אין מודלים זמינים",
     "insufficientBalance": "יתרת אסימונים לא מספקת: {{balance}} אסימונים",
-    "walletFrozen": "הארנק מוקפא. אנא צור קשר עם התמיכה."
+    "walletFrozen": "הארנק מוקפא. אנא צור קשר עם התמיכה.",
+    "clickToConfigParticipant": "לחץ כדי להגדיר שמע משתתפים"
   },
   "connectionStatus": {
     "disconnected": "מנותק",
@@ -484,7 +490,11 @@
     "mutualExclusivitySpeakerText": "אנא כבה את שמע המשתתפים לפני הפעלת הרמקול.",
     "mutualExclusivityParticipantText": "אנא כבה את הרמקול לפני הפעלת שמע המשתתפים.",
     "availableSystemAudioSources": "התקני שמע מערכת הניתנים ללכידה",
-    "refreshSystemAudioSources": "רענן רשימת התקנים"
+    "refreshSystemAudioSources": "רענן רשימת התקנים",
+    "turnOnMicrophone": "הפעל מיקרופון",
+    "turnOffMicrophone": "כבה מיקרופון",
+    "turnOnMonitor": "הפעל ניטור רמקול",
+    "turnOffMonitor": "כבה ניטור רמקול"
   },
   "logsPanel": {
     "title": "יומנים",
@@ -561,7 +571,9 @@
       "headerSource": "מקור",
       "headerTarget": "יעד",
       "headerNote": "הערה: ההגדרות משקפות את המצב הנוכחי בעת הייצוא, לא שינויים שבוצעו במהלך הסשן."
-    }
+    },
+    "participantAudio": "שמע משתתפים",
+    "noChannelConfigured": "הפעל מיקרופון או שמע משתתפים לפני ההתחלה."
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",
@@ -873,5 +885,30 @@
     "minimize": "מזעור",
     "maximize": "הגדלה",
     "close": "סגירה"
+  },
+  "modePicker": {
+    "modeYou": "אתה",
+    "modeParticipants": "אחרים",
+    "modeBoth": "שניהם",
+    "groupLabel": "מצב תרגום",
+    "switchTo": "עבור ל-{{label}}",
+    "switchDisabled": "המצב נעול במהלך סשן.",
+    "configureDevices": "לחץ כדי להגדיר התקנים.",
+    "missingDevice": "הגדר התקנים עבור מצב זה כדי להתחיל.",
+    "popoverHeaderYou": "אתה — התקנים",
+    "popoverHeaderParticipants": "משתתפים — התקנים",
+    "popoverHeaderBoth": "שניהם — התקנים",
+    "popoverFooter": "הגדרות מלאות →",
+    "deviceMic": "מיקרופון",
+    "deviceSpeakerMonitor": "ניטור רמקול",
+    "notSelected": "לא נבחר",
+    "deviceParticipantAudio": "שמע משתתפים"
+  },
+  "popover": {
+    "statusOff": "כבוי",
+    "toggleOn": "הפעל {{label}}",
+    "toggleOff": "כבה {{label}}",
+    "participantSubtitleElectron": "כל שמע המערכת",
+    "participantSubtitleExtension": "מתנגן דרך ברירת המחדל של המערכת"
   }
 }

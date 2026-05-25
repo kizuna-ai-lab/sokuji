@@ -16,7 +16,8 @@
     "off": "Wyłącz",
     "autoDetect": "Automatyczne Wykrywanie",
     "signIn": "Zaloguj się",
-    "signUp": "Zarejestruj się"
+    "signUp": "Zarejestruj się",
+    "on": "Włącz"
   },
   "app": {
     "title": "Sokuji",
@@ -284,7 +285,11 @@
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
     "transcriptModelTooltipTranslate": "Napisy w języku źródłowym. Obecnie obsługiwany jest tylko gpt-realtime-whisper.",
     "modelTooltipTranslate": "Dedykowany model tłumaczenia głosowego OpenAI. Głos automatycznie dopasowuje się do mówcy źródłowego.",
-    "translateSourceParticipantWarning": "Tłumaczenie Participant może nie działać — wybrany język źródłowy nie znajduje się wśród 13 obsługiwanych języków docelowych."
+    "translateSourceParticipantWarning": "Tłumaczenie Participant może nie działać — wybrany język źródłowy nie znajduje się wśród 13 obsługiwanych języków docelowych.",
+    "speechModeAppliesTo": "Dotyczy Twojego głosu. Dźwięk uczestnika zawsze używa semantycznego VAD.",
+    "participantSectionHeader": "Dźwięk uczestnika",
+    "participantSectionDescriptionElectron": "Tłumacz dźwięk z dowolnej aplikacji odtwarzanej w tym systemie.",
+    "participantSectionDescriptionExtension": "Tłumacz dźwięk z aktywnej karty przeglądarki. Oryginalny dźwięk jest odtwarzany przez domyślne wyjście systemu."
   },
   "audioPanel": {
     "title": "Ustawienia audio",
@@ -322,7 +327,11 @@
     "mutualExclusivitySpeakerText": "Proszę wyłączyć Dźwięk uczestnika przed włączeniem Głośnika.",
     "mutualExclusivityParticipantText": "Proszę wyłączyć Głośnik przed włączeniem Dźwięku uczestnika.",
     "availableSystemAudioSources": "Przechwytywalne systemowe urządzenia audio",
-    "refreshSystemAudioSources": "Odśwież listę urządzeń"
+    "refreshSystemAudioSources": "Odśwież listę urządzeń",
+    "turnOnMicrophone": "Włącz mikrofon",
+    "turnOffMicrophone": "Wyłącz mikrofon",
+    "turnOnMonitor": "Włącz monitor głośnika",
+    "turnOffMonitor": "Wyłącz monitor głośnika"
   },
   "logsPanel": {
     "title": "Logi",
@@ -401,7 +410,9 @@
       "headerSource": "Źródło",
       "headerTarget": "Cel",
       "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji."
-    }
+    },
+    "participantAudio": "Dźwięk uczestnika",
+    "noChannelConfigured": "Włącz mikrofon lub Dźwięk uczestnika przed rozpoczęciem."
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",
@@ -667,7 +678,8 @@
     "loadingModels": "Ładowanie modeli...",
     "noModelsAvailable": "Brak dostępnych modeli",
     "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
-    "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną."
+    "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
+    "clickToConfigParticipant": "Kliknij, aby skonfigurować Dźwięk uczestnika"
   },
   "connectionStatus": {
     "disconnected": "Rozłączony",
@@ -866,5 +878,30 @@
     "minimize": "Minimalizuj",
     "maximize": "Maksymalizuj",
     "close": "Zamknij"
+  },
+  "modePicker": {
+    "modeYou": "Ty",
+    "modeParticipants": "Inni",
+    "modeBoth": "Oba",
+    "groupLabel": "Tryb tłumaczenia",
+    "switchTo": "Przełącz na {{label}}",
+    "switchDisabled": "Tryb jest zablokowany podczas sesji.",
+    "configureDevices": "Kliknij, aby skonfigurować urządzenia.",
+    "missingDevice": "Skonfiguruj urządzenia dla tego trybu, aby rozpocząć.",
+    "popoverHeaderYou": "Ty — urządzenia",
+    "popoverHeaderParticipants": "Uczestnicy — urządzenia",
+    "popoverHeaderBoth": "Oba — urządzenia",
+    "popoverFooter": "Pełne ustawienia →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Monitor głośnika",
+    "notSelected": "Nie wybrano",
+    "deviceParticipantAudio": "Dźwięk uczestnika"
+  },
+  "popover": {
+    "statusOff": "Wyłącz",
+    "toggleOn": "Włącz {{label}}",
+    "toggleOff": "Wyłącz {{label}}",
+    "participantSubtitleElectron": "Cały dźwięk systemowy",
+    "participantSubtitleExtension": "Odtwarzane przez domyślne wyjście systemu"
   }
 }

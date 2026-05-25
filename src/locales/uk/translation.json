@@ -16,7 +16,8 @@
     "off": "Вимкнено",
     "autoDetect": "Автовиявлення",
     "signIn": "Увійти",
-    "signUp": "Реєстрація"
+    "signUp": "Реєстрація",
+    "on": "Увімкнено"
   },
   "app": {
     "title": "Sokuji",
@@ -131,7 +132,8 @@
     "loadingModels": "Завантаження моделей...",
     "noModelsAvailable": "Немає доступних моделей",
     "insufficientBalance": "Недостатній баланс токенів: {{balance}} токенів",
-    "walletFrozen": "Гаманець заморожено. Зверніться до підтримки."
+    "walletFrozen": "Гаманець заморожено. Зверніться до підтримки.",
+    "clickToConfigParticipant": "Натисніть для налаштування аудіо учасників"
   },
   "connectionStatus": {
     "disconnected": "Відключено",
@@ -394,7 +396,11 @@
     "translateModelNotAvailable": "API-ключ працює, але gpt-realtime-translate недоступний з цим ключем.",
     "transcriptModelTooltipTranslate": "Субтитри вихідною мовою. Зараз підтримується лише gpt-realtime-whisper.",
     "modelTooltipTranslate": "Спеціалізована модель мовного перекладу OpenAI. Голос автоматично адаптується до вихідного мовця.",
-    "translateSourceParticipantWarning": "Переклад Participant може не працювати — вибрана вихідна мова не входить у 13 підтримуваних цільових мов."
+    "translateSourceParticipantWarning": "Переклад Participant може не працювати — вибрана вихідна мова не входить у 13 підтримуваних цільових мов.",
+    "speechModeAppliesTo": "Застосовується до вашого голосу. Аудіо учасників завжди використовує семантичний VAD.",
+    "participantSectionHeader": "Аудіо учасників",
+    "participantSectionDescriptionElectron": "Перекладайте аудіо з будь-якого додатку, що відтворюється в цій системі.",
+    "participantSectionDescriptionExtension": "Перекладайте аудіо з активної вкладки браузера. Оригінальне аудіо відтворюється через системний вивід за замовчуванням."
   },
   "mainPanel": {
     "subtitleTakeover": "Переклади відображаються в накладці субтитрів",
@@ -447,7 +453,9 @@
       "headerSource": "Джерело",
       "headerTarget": "Ціль",
       "headerNote": "Примітка: налаштування відображають поточний стан на момент експорту, а не зміни під час сесії."
-    }
+    },
+    "participantAudio": "Аудіо учасників",
+    "noChannelConfigured": "Увімкніть мікрофон або аудіо учасників перед початком."
   },
   "audioPanel": {
     "title": "Налаштування аудіо",
@@ -462,7 +470,11 @@
     "mutualExclusivitySpeakerText": "Будь ласка, вимкніть Аудіо учасників перед увімкненням Динаміка.",
     "mutualExclusivityParticipantText": "Будь ласка, вимкніть Динамік перед увімкненням Аудіо учасників.",
     "availableSystemAudioSources": "Захоплювані системні аудіопристрої",
-    "refreshSystemAudioSources": "Оновити список пристроїв"
+    "refreshSystemAudioSources": "Оновити список пристроїв",
+    "turnOnMicrophone": "Увімкнути мікрофон",
+    "turnOffMicrophone": "Вимкнути мікрофон",
+    "turnOnMonitor": "Увімкнути моніторинг динаміка",
+    "turnOffMonitor": "Вимкнути моніторинг динаміка"
   },
   "logsPanel": {
     "title": "Логи",
@@ -787,5 +799,30 @@
     "minimize": "Згорнути",
     "maximize": "Розгорнути",
     "close": "Закрити"
+  },
+  "modePicker": {
+    "modeYou": "Ви",
+    "modeParticipants": "Інші",
+    "modeBoth": "Обидва",
+    "groupLabel": "Режим перекладу",
+    "switchTo": "Перемкнути на {{label}}",
+    "switchDisabled": "Режим заблоковано під час сесії.",
+    "configureDevices": "Натисніть для налаштування пристроїв.",
+    "missingDevice": "Налаштуйте пристрої для цього режиму, щоб почати.",
+    "popoverHeaderYou": "Ви — пристрої",
+    "popoverHeaderParticipants": "Учасники — пристрої",
+    "popoverHeaderBoth": "Обидва — пристрої",
+    "popoverFooter": "Усі налаштування →",
+    "deviceMic": "Мікрофон",
+    "deviceSpeakerMonitor": "Моніторинг динаміка",
+    "notSelected": "Не вибрано",
+    "deviceParticipantAudio": "Аудіо учасників"
+  },
+  "popover": {
+    "statusOff": "Вимкнено",
+    "toggleOn": "Увімкнути {{label}}",
+    "toggleOff": "Вимкнути {{label}}",
+    "participantSubtitleElectron": "Усе системне аудіо",
+    "participantSubtitleExtension": "Відтворюється через системний вивід за замовчуванням"
   }
 }

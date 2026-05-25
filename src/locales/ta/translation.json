@@ -16,7 +16,8 @@
     "off": "முட்டு",
     "autoDetect": "தானியங்கு கண்டறிதல்",
     "signIn": "உள்ளிட வருக",
-    "signUp": "பதிவு செய்யவும்"
+    "signUp": "பதிவு செய்யவும்",
+    "on": "இயக்கப்பட்டது"
   },
   "app": {
     "title": "Sokuji",
@@ -146,7 +147,8 @@
     "loadingModels": "மாடல்கள் ஏற்றப்படுகின்றன...",
     "noModelsAvailable": "மாடல்கள் எதுவும் இல்லை",
     "insufficientBalance": "போதிய டோக்கன் இருப்பு இல்லை: {{balance}} டோக்கன்கள்",
-    "walletFrozen": "வாலட் முடக்கப்பட்டுள்ளது. ஆதரவை தொடர்பு கொள்ளவும்."
+    "walletFrozen": "வாலட் முடக்கப்பட்டுள்ளது. ஆதரவை தொடர்பு கொள்ளவும்.",
+    "clickToConfigParticipant": "பங்கேற்பாளர் ஆடியோவை உள்ளமைக்க கிளிக் செய்யவும்"
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -412,7 +414,11 @@
     "translateModelNotAvailable": "API விசை செயல்படுகிறது, ஆனால் இந்த விசையால் gpt-realtime-translate ஐ அணுக முடியாது.",
     "transcriptModelTooltipTranslate": "மூல மொழி வசனங்கள். தற்போது gpt-realtime-whisper மட்டுமே ஆதரிக்கப்படுகிறது.",
     "modelTooltipTranslate": "OpenAI இன் சிறப்பு பேச்சு மொழிபெயர்ப்பு மாதிரி. குரல் தானாக மூல பேச்சாளரின் தொனியுடன் பொருந்துகிறது.",
-    "translateSourceParticipantWarning": "Participant மொழிபெயர்ப்பு வேலை செய்யாமல் இருக்கலாம் — நீங்கள் தேர்ந்தெடுத்த மூல மொழி 13 ஆதரிக்கப்படும் இலக்கு மொழிகளில் இல்லை."
+    "translateSourceParticipantWarning": "Participant மொழிபெயர்ப்பு வேலை செய்யாமல் இருக்கலாம் — நீங்கள் தேர்ந்தெடுத்த மூல மொழி 13 ஆதரிக்கப்படும் இலக்கு மொழிகளில் இல்லை.",
+    "speechModeAppliesTo": "உங்கள் குரலுக்குப் பொருந்தும். பங்கேற்பாளர் ஆடியோ எப்போதும் சொற்பொருள் VAD ஐப் பயன்படுத்துகிறது.",
+    "participantSectionHeader": "பங்கேற்பாளர் ஆடியோ",
+    "participantSectionDescriptionElectron": "இந்த கணினியில் இயங்கும் எந்த பயன்பாட்டின் ஆடியோவையும் மொழிபெயர்க்கவும்.",
+    "participantSectionDescriptionExtension": "செயலில் உள்ள உலாவி தாவலின் ஆடியோவை மொழிபெயர்க்கவும். அசல் ஆடியோ உங்கள் கணினியின் இயல்புநிலை வெளியீட்டின் மூலம் இயங்கும்."
   },
   "mainPanel": {
     "subtitleTakeover": "மொழிபெயர்ப்புகள் துணைத்தலைப்பு திரையில் காட்டப்படுகின்றன",
@@ -465,7 +471,9 @@
       "headerSource": "மூலம்",
       "headerTarget": "இலக்கு",
       "headerNote": "குறிப்பு: அமைப்புகள் ஏற்றுமதி நேரத்தில் உள்ள தற்போதைய நிலையை பிரதிபலிக்கின்றன, அமர்வின் போது செய்யப்பட்ட மாற்றங்களை அல்ல."
-    }
+    },
+    "participantAudio": "பங்கேற்பாளர் ஆடியோ",
+    "noChannelConfigured": "தொடங்குவதற்கு முன் மைக்ரோஃபோன் அல்லது பங்கேற்பாளர் ஆடியோவை இயக்கவும்."
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",
@@ -480,7 +488,11 @@
     "mutualExclusivitySpeakerText": "ஸ்பீக்கரை இயக்குவதற்கு முன் தயவுசெய்து பங்கேற்பாளர் ஆடியோவை அணைக்கவும்.",
     "mutualExclusivityParticipantText": "பங்கேற்பாளர் ஆடியோவை இயக்குவதற்கு முன் தயவுசெய்து ஸ்பீக்கரை அணைக்கவும்.",
     "availableSystemAudioSources": "பிடிக்கக்கூடிய கணினி ஆடியோ சாதனங்கள்",
-    "refreshSystemAudioSources": "சாதன பட்டியலைப் புதுப்பி"
+    "refreshSystemAudioSources": "சாதன பட்டியலைப் புதுப்பி",
+    "turnOnMicrophone": "மைக்ரோஃபோனை இயக்கு",
+    "turnOffMicrophone": "மைக்ரோஃபோனை அணை",
+    "turnOnMonitor": "ஸ்பீக்கர் கண்காணிப்பை இயக்கு",
+    "turnOffMonitor": "ஸ்பீக்கர் கண்காணிப்பை அணை"
   },
   "logsPanel": {
     "title": "பதிவுகள்",
@@ -800,5 +812,30 @@
     "minimize": "சிறிதாக்கு",
     "maximize": "பெரிதாக்கு",
     "close": "மூடு"
+  },
+  "modePicker": {
+    "modeYou": "நீங்கள்",
+    "modeParticipants": "மற்றவர்கள்",
+    "modeBoth": "இரண்டும்",
+    "groupLabel": "மொழிபெயர்ப்பு பயன்முறை",
+    "switchTo": "{{label}} க்கு மாறு",
+    "switchDisabled": "அமர்வின் போது பயன்முறை பூட்டப்பட்டுள்ளது.",
+    "configureDevices": "சாதனங்களை உள்ளமைக்க கிளிக் செய்யவும்.",
+    "missingDevice": "தொடங்க இந்த பயன்முறைக்கான சாதனங்களை உள்ளமைக்கவும்.",
+    "popoverHeaderYou": "நீங்கள் — சாதனங்கள்",
+    "popoverHeaderParticipants": "பங்கேற்பாளர்கள் — சாதனங்கள்",
+    "popoverHeaderBoth": "இரண்டும் — சாதனங்கள்",
+    "popoverFooter": "முழு அமைப்புகள் →",
+    "deviceMic": "மைக்ரோஃபோன்",
+    "deviceSpeakerMonitor": "ஸ்பீக்கர் கண்காணிப்பு",
+    "notSelected": "தேர்ந்தெடுக்கப்படவில்லை",
+    "deviceParticipantAudio": "பங்கேற்பாளர் ஆடியோ"
+  },
+  "popover": {
+    "statusOff": "முடக்கப்பட்டது",
+    "toggleOn": "{{label}} ஐ இயக்கு",
+    "toggleOff": "{{label}} ஐ அணை",
+    "participantSubtitleElectron": "அனைத்து கணினி ஆடியோ",
+    "participantSubtitleExtension": "கணினியின் இயல்புநிலை வெளியீட்டின் மூலம் இயங்கும்"
   }
 }
