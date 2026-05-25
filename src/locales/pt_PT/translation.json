@@ -570,7 +570,10 @@
       "headerNote": "Nota: as definições refletem o estado atual no momento da exportação, não as alterações efetuadas durante a sessão."
     },
     "participantAudio": "Áudio de Participantes",
-    "noChannelConfigured": "Ative o microfone ou o áudio de participantes antes de começar."
+    "noChannelConfigured": "Ative o microfone ou o áudio de participantes antes de começar.",
+    "waveformMicTooltip": "O seu microfone — a sua voz a ser captada para tradução",
+    "waveformSystemTooltip": "Áudio de participantes captado para tradução (separador do navegador / áudio do sistema)",
+    "waveformOutputTooltip": "Áudio enviado para o microfone virtual (tradução + passagem de áudio original)"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",

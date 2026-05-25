@@ -344,7 +344,10 @@
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
     },
     "participantAudio": "Katılımcı sesi",
-    "noChannelConfigured": "Başlamadan önce mikrofonu veya katılımcı sesini etkinleştirin."
+    "noChannelConfigured": "Başlamadan önce mikrofonu veya katılımcı sesini etkinleştirin.",
+    "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",
+    "waveformSystemTooltip": "Katılımcı sesi çeviri için yakalanıyor (tarayıcı sekmesi / sistem sesi)",
+    "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

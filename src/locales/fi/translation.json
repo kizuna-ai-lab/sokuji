@@ -498,7 +498,10 @@
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
     },
     "participantAudio": "Osallistujan ääni",
-    "noChannelConfigured": "Ota mikrofoni tai osallistujan ääni käyttöön ennen aloittamista."
+    "noChannelConfigured": "Ota mikrofoni tai osallistujan ääni käyttöön ennen aloittamista.",
+    "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
+    "waveformSystemTooltip": "Osallistujan ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
+    "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)"
   },
   "audioPanel": {
     "title": "Ääniasetukset",

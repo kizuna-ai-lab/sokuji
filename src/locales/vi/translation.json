@@ -337,7 +337,10 @@
       "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên."
     },
     "participantAudio": "Âm thanh người tham gia",
-    "noChannelConfigured": "Bật micro hoặc âm thanh người tham gia trước khi bắt đầu."
+    "noChannelConfigured": "Bật micro hoặc âm thanh người tham gia trước khi bắt đầu.",
+    "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",
+    "waveformSystemTooltip": "Âm thanh của người tham gia được thu để dịch (tab trình duyệt / âm thanh hệ thống)",
+    "waveformOutputTooltip": "Âm thanh gửi đến microphone ảo (bản dịch + truyền âm thanh gốc)"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

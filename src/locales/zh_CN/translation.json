@@ -568,7 +568,10 @@
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
     },
     "participantAudio": "参会者音频",
-    "noChannelConfigured": "开始前请启用麦克风或参会者音频。"
+    "noChannelConfigured": "开始前请启用麦克风或参会者音频。",
+    "waveformMicTooltip": "您的麦克风 —— 正在捕获您的声音用于翻译",
+    "waveformSystemTooltip": "捕获参与者音频用于翻译（浏览器标签页 / 系统音频）",
+    "waveformOutputTooltip": "发送到虚拟麦克风的音频（翻译 + 原声直通）"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

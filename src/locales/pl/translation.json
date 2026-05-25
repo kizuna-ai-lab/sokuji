@@ -412,7 +412,10 @@
       "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji."
     },
     "participantAudio": "Dźwięk uczestnika",
-    "noChannelConfigured": "Włącz mikrofon lub Dźwięk uczestnika przed rozpoczęciem."
+    "noChannelConfigured": "Włącz mikrofon lub Dźwięk uczestnika przed rozpoczęciem.",
+    "waveformMicTooltip": "Twój mikrofon — Twój głos przechwytywany do tłumaczenia",
+    "waveformSystemTooltip": "Dźwięk uczestnika przechwytywany do tłumaczenia (karta przeglądarki / dźwięk systemu)",
+    "waveformOutputTooltip": "Dźwięk wysyłany do wirtualnego mikrofonu (tłumaczenie + przepuszczanie)"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",

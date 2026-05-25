@@ -615,7 +615,10 @@
       "headerSource": "Source",
       "headerTarget": "Target",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
-    }
+    },
+    "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
+    "waveformMicTooltip": "Your microphone — your voice being captured for translation",
+    "waveformSystemTooltip": "Participant audio captured for translation (browser tab / system audio)"
   },
   "modePicker": {
     "modeYou": "You",

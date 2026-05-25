@@ -498,7 +498,10 @@
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
     },
     "participantAudio": "Audio ng Kalahok",
-    "noChannelConfigured": "I-enable ang mikropono o audio ng kalahok bago magsimula."
+    "noChannelConfigured": "I-enable ang mikropono o audio ng kalahok bago magsimula.",
+    "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",
+    "waveformSystemTooltip": "Audio ng kalahok na kinukuha para isalin (browser tab / system audio)",
+    "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",

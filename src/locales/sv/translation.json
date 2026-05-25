@@ -337,7 +337,10 @@
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
     },
     "participantAudio": "Deltagarljud",
-    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar."
+    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar.",
+    "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",
+    "waveformSystemTooltip": "Deltagarljud som fångas för översättning (webbläsarflik / systemljud)",
+    "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

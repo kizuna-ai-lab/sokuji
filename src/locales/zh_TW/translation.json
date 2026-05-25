@@ -536,7 +536,10 @@
       "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。"
     },
     "participantAudio": "參與者音訊",
-    "noChannelConfigured": "開始前請啟用麥克風或參與者音訊。"
+    "noChannelConfigured": "開始前請啟用麥克風或參與者音訊。",
+    "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",
+    "waveformSystemTooltip": "擷取參與者音訊用於翻譯（瀏覽器分頁 / 系統音訊）",
+    "waveformOutputTooltip": "傳送到虛擬麥克風的音訊（翻譯 + 原聲直通）"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

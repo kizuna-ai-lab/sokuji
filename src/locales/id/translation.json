@@ -567,7 +567,10 @@
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
     },
     "participantAudio": "Audio Peserta",
-    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai."
+    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai.",
+    "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",
+    "waveformSystemTooltip": "Audio peserta yang ditangkap untuk diterjemahkan (tab browser / audio sistem)",
+    "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

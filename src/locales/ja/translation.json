@@ -418,7 +418,10 @@
       "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。"
     },
     "participantAudio": "参加者の音声",
-    "noChannelConfigured": "開始する前にマイクまたは参加者の音声を有効にしてください。"
+    "noChannelConfigured": "開始する前にマイクまたは参加者の音声を有効にしてください。",
+    "waveformMicTooltip": "あなたのマイク — 翻訳のためにキャプチャされるあなたの声",
+    "waveformSystemTooltip": "翻訳のためにキャプチャされる参加者の音声（ブラウザタブ / システム音声）",
+    "waveformOutputTooltip": "仮想マイクへ送られる音声（翻訳 + パススルー）"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",

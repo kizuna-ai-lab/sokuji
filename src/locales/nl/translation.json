@@ -413,7 +413,10 @@
       "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie."
     },
     "participantAudio": "Deelnemer Audio",
-    "noChannelConfigured": "Schakel de microfoon of Deelnemer Audio in voordat u begint."
+    "noChannelConfigured": "Schakel de microfoon of Deelnemer Audio in voordat u begint.",
+    "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",
+    "waveformSystemTooltip": "Deelnemersaudio vastgelegd voor vertaling (browsertabblad / systeemaudio)",
+    "waveformOutputTooltip": "Audio die naar de virtuele microfoon wordt gestuurd (vertaling + doorvoer)"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",
