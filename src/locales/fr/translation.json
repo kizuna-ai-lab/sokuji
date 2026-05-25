@@ -320,7 +320,7 @@
     "realVoicePassthrough": "Passage Audio Original",
     "enableRealVoicePassthrough": "Activer le Passage Audio Original",
     "realVoicePassthroughDescription": "Transmettre votre audio original (voix du locuteur) directement au microphone virtuel pour que les auditeurs puissent entendre à la fois l'audio original et traduit",
-    "passthroughManagedByPushToTranslate": "Impossible à activer lorsque Appuyer pour traduire est actif",
+    "passthroughManagedByPushToTranslate": "En mode Appuyer pour traduire, le passthrough est automatique : il diffuse à 100 % du volume lorsque vous n'appuyez pas sur la touche et s'arrête (l'audio est envoyé à la traduction) tant que vous la maintenez.",
     "realVoiceVolume": "Volume Audio Original",
     "mutualExclusivityNotice": "Conflit Audio",
     "mutualExclusivitySpeakerTitle": "Impossible d'activer le Haut-parleur",
@@ -413,7 +413,10 @@
       "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session."
     },
     "participantAudio": "Audio des Participants",
-    "noChannelConfigured": "Activez le microphone ou l'audio des participants avant de démarrer."
+    "noChannelConfigured": "Activez le microphone ou l'audio des participants avant de démarrer.",
+    "waveformMicTooltip": "Votre microphone — votre voix captée pour la traduction",
+    "waveformSystemTooltip": "Audio des participants capté pour la traduction (onglet du navigateur / audio système)",
+    "waveformOutputTooltip": "Audio envoyé au microphone virtuel (traduction + passage audio original)"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",

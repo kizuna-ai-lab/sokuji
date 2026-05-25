@@ -320,7 +320,7 @@
     "realVoicePassthrough": "Original-Audio-Durchleitung",
     "enableRealVoicePassthrough": "Original-Audio-Durchleitung aktivieren",
     "realVoicePassthroughDescription": "Ihr Original-Audio (Sprecherstimme) direkt an das virtuelle Mikrofon weiterleiten, damit Zuhörer sowohl das Original- als auch das übersetzte Audio hören können",
-    "passthroughManagedByPushToTranslate": "Kann nicht aktiviert werden, solange Push-to-Translate aktiv ist",
+    "passthroughManagedByPushToTranslate": "Im Push-to-Translate-Modus wird die Sprachdurchleitung automatisch verwaltet: Wenn Sie die Taste nicht gedrückt halten, läuft sie mit 100 % Lautstärke; während Sie die Taste halten, wird stattdessen aufgenommen und übersetzt (keine Durchleitung).",
     "realVoiceVolume": "Original-Audio-Lautstärke",
     "mutualExclusivityNotice": "Audio-Konflikt",
     "mutualExclusivitySpeakerTitle": "Lautsprecher kann nicht aktiviert werden",
@@ -413,7 +413,10 @@
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
     },
     "participantAudio": "Teilnehmer-Audio",
-    "noChannelConfigured": "Aktivieren Sie das Mikrofon oder Teilnehmer-Audio, bevor Sie starten."
+    "noChannelConfigured": "Aktivieren Sie das Mikrofon oder Teilnehmer-Audio, bevor Sie starten.",
+    "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",
+    "waveformSystemTooltip": "Teilnehmer-Audio, das zur Übersetzung erfasst wird (Browser-Tab / System-Audio)",
+    "waveformOutputTooltip": "Audio, das an das virtuelle Mikrofon gesendet wird (Übersetzung + Durchleitung)"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",

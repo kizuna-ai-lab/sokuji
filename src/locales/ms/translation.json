@@ -473,7 +473,7 @@
     "realVoicePassthrough": "Laluan Audio Asal",
     "enableRealVoicePassthrough": "Dayakan Laluan Audio Asal",
     "realVoicePassthroughDescription": "Hantar audio asal anda (suara penutur) terus ke mikrofon maya supaya pendengar boleh mendengar kedua-dua audio asal dan terjemahan",
-    "passthroughManagedByPushToTranslate": "Tidak boleh diaktifkan semasa Tekan untuk Terjemah aktif",
+    "passthroughManagedByPushToTranslate": "Dalam mod Tekan untuk Terjemah, passthrough diurus secara automatik: dimainkan pada kelantangan 100% apabila anda tidak menahan kekunci, dan berhenti (audio dihantar ke terjemahan) semasa anda menahannya.",
     "realVoiceVolume": "Volum Audio Asal",
     "mutualExclusivityNotice": "Konflik Audio",
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Dayakan Pembesar Suara",
@@ -566,7 +566,10 @@
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi."
     },
     "participantAudio": "Audio Peserta",
-    "noChannelConfigured": "Aktifkan mikrofon atau Audio Peserta sebelum bermula."
+    "noChannelConfigured": "Aktifkan mikrofon atau Audio Peserta sebelum bermula.",
+    "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",
+    "waveformSystemTooltip": "Audio peserta yang ditangkap untuk terjemahan (tab pelayar / audio sistem)",
+    "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

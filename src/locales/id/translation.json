@@ -476,7 +476,7 @@
     "realVoicePassthrough": "Passthrough Audio Asli",
     "enableRealVoicePassthrough": "Aktifkan Passthrough Audio Asli",
     "realVoicePassthroughDescription": "Teruskan audio asli Anda (suara pembicara) langsung ke mikrofon virtual agar pendengar dapat mendengar audio asli dan terjemahan",
-    "passthroughManagedByPushToTranslate": "Tidak dapat diaktifkan saat Tekan untuk Terjemahkan aktif",
+    "passthroughManagedByPushToTranslate": "Dalam mode Tekan untuk Terjemahkan, passthrough dikelola otomatis: diputar pada volume 100% saat Anda tidak menahan tombol, dan berhenti (audio dikirim ke terjemahan) saat Anda menahan tombol.",
     "realVoiceVolume": "Volume Audio Asli",
     "mutualExclusivityNotice": "Konflik Audio",
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Mengaktifkan Speaker",
@@ -567,7 +567,10 @@
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
     },
     "participantAudio": "Audio Peserta",
-    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai."
+    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai.",
+    "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",
+    "waveformSystemTooltip": "Audio peserta yang ditangkap untuk diterjemahkan (tab browser / audio sistem)",
+    "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

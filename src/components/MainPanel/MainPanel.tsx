@@ -2572,8 +2572,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             serverCtx.clearRect(0, 0, serverCanvas.width, serverCanvas.height);
             
             try {
-              // Always show visualization regardless of Monitor state
-              // Get the WavStreamPlayer from the audio service to access its frequencies
+              // Output waveform = the signal sent to the virtual microphone
+              // (AI translation + passthrough). The player's analyser is
+              // pre-gain, so this reflects what the meeting receives regardless
+              // of the monitor volume.
               const wavStreamPlayer = audioService.getWavStreamPlayer();
               
               // Check if the WavStreamPlayer is properly connected before calling getFrequencies
@@ -3352,6 +3354,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     kind="mic"
                     canvasRef={clientCanvasRef}
                     width={effectiveMode === 'both' ? 'half' : 'full'}
+                    title={t('mainPanel.waveformMicTooltip', 'Your microphone — your voice being captured for translation')}
                   />
                 )}
                 {(effectiveMode === 'participant' || effectiveMode === 'both') && (
@@ -3359,6 +3362,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     kind="system"
                     canvasRef={systemCanvasRef}
                     width={effectiveMode === 'both' ? 'half' : 'full'}
+                    title={t('mainPanel.waveformSystemTooltip', 'Participant audio captured for translation (browser tab / system audio)')}
                   />
                 )}
               </div>
@@ -3454,7 +3458,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             <span className="footer-spacer" />
 
-            <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
+            <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" title={t('mainPanel.waveformOutputTooltip', 'Audio sent to the virtual microphone (translation + passthrough)')} />
 
             <div className="footer-metadata">
               <span

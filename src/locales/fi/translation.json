@@ -498,14 +498,17 @@
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
     },
     "participantAudio": "Osallistujan ääni",
-    "noChannelConfigured": "Ota mikrofoni tai osallistujan ääni käyttöön ennen aloittamista."
+    "noChannelConfigured": "Ota mikrofoni tai osallistujan ääni käyttöön ennen aloittamista.",
+    "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
+    "waveformSystemTooltip": "Osallistujan ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
+    "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)"
   },
   "audioPanel": {
     "title": "Ääniasetukset",
     "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
     "enableRealVoicePassthrough": "Ota alkuperäisen äänen läpiviennti käyttöön",
     "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
-    "passthroughManagedByPushToTranslate": "Ei voi ottaa käyttöön, kun Paina ja käännä on aktiivinen",
+    "passthroughManagedByPushToTranslate": "Paina ja käännä -tilassa läpisyöttö hallitaan automaattisesti: ääni kuuluu 100 %:n voimakkuudella, kun et pidä näppäintä pohjassa, ja pysähtyy (ääni ohjataan käännökseen), kun pidät näppäintä pohjassa.",
     "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus",
     "mutualExclusivityNotice": "Äänikonfliktit",
     "mutualExclusivitySpeakerTitle": "Kaiutinta ei voi ottaa käyttöön",

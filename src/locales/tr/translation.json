@@ -344,14 +344,17 @@
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
     },
     "participantAudio": "Katılımcı sesi",
-    "noChannelConfigured": "Başlamadan önce mikrofonu veya katılımcı sesini etkinleştirin."
+    "noChannelConfigured": "Başlamadan önce mikrofonu veya katılımcı sesini etkinleştirin.",
+    "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",
+    "waveformSystemTooltip": "Katılımcı sesi çeviri için yakalanıyor (tarayıcı sekmesi / sistem sesi)",
+    "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)"
   },
   "audioPanel": {
     "title": "Ses Ayarları",
     "realVoicePassthrough": "Orijinal Ses Geçişi",
     "enableRealVoicePassthrough": "Orijinal Ses Geçişini Etkinleştir",
     "realVoicePassthroughDescription": "Orijinal sesinizi (konuşmacının sesi) doğrudan sanal mikrofona iletin, böylece dinleyiciler hem orijinal hem de çevrilmiş sesi duyabilir",
-    "passthroughManagedByPushToTranslate": "Bas-Çevir etkinken etkinleştirilemez",
+    "passthroughManagedByPushToTranslate": "Bas-Çevir modunda ses geçişi otomatik yönetilir: tuşu basılı tutmadığınızda %100 ses düzeyinde geçer, tuşu basılı tuttuğunuzda ise kayıt ve çeviri yapılır (geçiş olmaz).",
     "realVoiceVolume": "Orijinal Ses Seviyesi",
     "mutualExclusivityNotice": "Ses Çakışması",
     "mutualExclusivitySpeakerTitle": "Hoparlör Etkinleştirilemiyor",

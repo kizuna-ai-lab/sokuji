@@ -498,14 +498,17 @@
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
     },
     "participantAudio": "Audio ng Kalahok",
-    "noChannelConfigured": "I-enable ang mikropono o audio ng kalahok bago magsimula."
+    "noChannelConfigured": "I-enable ang mikropono o audio ng kalahok bago magsimula.",
+    "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",
+    "waveformSystemTooltip": "Audio ng kalahok na kinukuha para isalin (browser tab / system audio)",
+    "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
     "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",
-    "passthroughManagedByPushToTranslate": "Hindi maaaring i-enable habang aktibo ang Push-to-Translate",
+    "passthroughManagedByPushToTranslate": "Sa Push-to-Translate mode, awtomatiko ang passthrough: tumutugtog ito sa 100% volume kapag hindi mo pinipindot nang matagal ang key, at humihinto (ipinapadala sa pagsasalin ang audio) habang pinipindot mo ito.",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Conflict sa Audio",
     "mutualExclusivitySpeakerTitle": "Hindi Makapag-enable ng Speaker",

@@ -4,8 +4,11 @@
  *
  * Architecture:
  *   PCM chunks → SharedArrayBuffer (lock-free SPSC ring buffer) → AudioWorkletNode
- *     → GainNode → AnalyserNode → MediaStreamDestinationNode
+ *     → AnalyserNode → GainNode → MediaStreamDestinationNode
  *       → HTMLAudioElement.srcObject → Speakers (AEC-visible)
+ *
+ * The analyser sits before the gain so the output meter reflects the signal
+ * sent to the virtual microphone, independent of the monitor volume.
  *
  * The main thread writes directly to shared memory. The worklet reads directly.
  * No postMessage for audio data — only for low-frequency control signals.
@@ -84,12 +87,6 @@ export class ModernAudioPlayer {
     this._ptData = null;
     this._ptCapacity = Math.floor(sampleRate * 10); // 10 seconds for passthrough
 
-    // Passthrough diagnostics counters (issue #246: observe clock-drift buildup)
-    this._ptSamplesWritten = 0;
-    this._ptSamplesDropped = 0;
-    this._ptDropEvents = 0;
-    this._ptSamplesSkippedSilent = 0;
-    this._lastPtDropLogTs = 0;
     // Silence threshold for producer-side skip (issue #246).
     // Mean absolute amplitude normalized to [0,1]. 0.003 ≈ -50 dBFS, below
     // typical room noise but well below normal speech (-25 to -35 dBFS).
@@ -107,7 +104,6 @@ export class ModernAudioPlayer {
     this._recreateDeadlineTimer = null;
     this._recreatingContext = false;
     this._recreateAttempts = 0;
-    this._ptSamplesTrimmedByWorklet = 0;
   }
 
   /**
@@ -131,8 +127,6 @@ export class ModernAudioPlayer {
     // producer keeps queueing audio.
     this.context.addEventListener('statechange', () => {
       const state = this.context && this.context.state;
-      const ts = (typeof performance !== 'undefined' ? performance.now() : Date.now()).toFixed(0);
-      console.warn(`[Sokuji] [PtDiag] player AudioContext.state -> ${state} (t=${ts}ms)`);
 
       if (state === 'suspended') {
         if (this._autoResumeTimer) clearTimeout(this._autoResumeTimer);
@@ -142,20 +136,16 @@ export class ModernAudioPlayer {
         this._autoResumeTimer = setTimeout(() => {
           this._autoResumeTimer = null;
           if (!this.context || this.context.state !== 'suspended') return;
-          console.warn('[Sokuji] [PtDiag] ctx still suspended after 250ms — attempting auto-resume');
-          this.context.resume()
-            .then(() => console.info('[Sokuji] [PtDiag] ctx auto-resume OK'))
-            .catch((e) => console.error('[Sokuji] [PtDiag] ctx auto-resume failed:', (e && (e.message || e.name)) || e));
+          // Recovery attempt, not fatal: the recreate deadline below is the
+          // backstop if resume() rejects or the context stays suspended.
+          this.context.resume().catch((e) => console.warn('[Sokuji] ctx auto-resume failed:', e));
           // Recreate deadline: if state didn't go back to running by then,
           // resume() is silently stuck and we need to rebuild the context.
           if (this._recreateDeadlineTimer) clearTimeout(this._recreateDeadlineTimer);
           this._recreateDeadlineTimer = setTimeout(() => {
             this._recreateDeadlineTimer = null;
             if (!this.context || this.context.state === 'running' || this.context.state === 'closed') return;
-            console.warn('[Sokuji] [PtDiag] resume() did not restore ctx after 1500ms — recreating context');
-            this._recreateContext().catch((err) => {
-              console.error('[Sokuji] [PtDiag] recreate threw:', (err && err.message) || err);
-            });
+            this._recreateContext().catch(() => {});
           }, 1500);
         }, 250);
       } else if (state === 'running') {
@@ -234,37 +224,18 @@ export class ModernAudioPlayer {
 
     this.destinationNode = this.context.createMediaStreamDestination();
 
-    // Connect: worklet → gain → analyser → mediaStreamDestination
-    this.workletNode.connect(this.gainNode);
-    this.gainNode.connect(this.analyser);
-    this.analyser.connect(this.destinationNode);
+    // Connect: worklet → analyser → gain → mediaStreamDestination.
+    // The analyser sits BEFORE the gain so the output waveform reflects the
+    // signal sent to the virtual microphone (AI translation + passthrough),
+    // independent of the monitor volume. The monitor device (destinationNode)
+    // still receives the gained signal, so muting the monitor stays silent.
+    this.workletNode.connect(this.analyser);
+    this.analyser.connect(this.gainNode);
+    this.gainNode.connect(this.destinationNode);
 
     // Single persistent HTMLAudioElement for AEC-visible output
     this.audioElement = new Audio();
     this.audioElement.srcObject = this.destinationNode.stream;
-
-    // Issue #246: HTMLAudioElement-side events. These fire on the sink that
-    // setSinkId points to (e.g., Bluetooth headphones). A `stalled` /
-    // `waiting` / `pause` burst correlated with a pt-buffer jump is the
-    // signature of the "consumer stall ratchet" hypothesis.
-    const logElemEvent = (kind) => {
-      const ts = (typeof performance !== 'undefined' ? performance.now() : Date.now()).toFixed(0);
-      const ptUsed = this._ptIndices
-        ? (Atomics.load(this._ptIndices, 0) - Atomics.load(this._ptIndices, 1))
-        : 'n/a';
-      const ptMs = (typeof ptUsed === 'number')
-        ? ((ptUsed / this.sampleRate * 1000) | 0)
-        : 'n/a';
-      console.warn(
-        `[Sokuji] [PtDiag] audioElement event=${kind} ` +
-        `paused=${this.audioElement && this.audioElement.paused} ` +
-        `readyState=${this.audioElement && this.audioElement.readyState} ` +
-        `pt=${ptUsed}(${ptMs}ms) t=${ts}ms`
-      );
-    };
-    ['stalled', 'waiting', 'pause', 'playing', 'suspend', 'error', 'ended', 'emptied'].forEach((evt) => {
-      this.audioElement.addEventListener(evt, () => logElemEvent(evt));
-    });
 
     // Apply output device if previously set
     if (this.outputDeviceId && typeof this.audioElement.setSinkId === 'function') {
@@ -313,22 +284,6 @@ export class ModernAudioPlayer {
       if (this._pendingWrites.length > 0) {
         this._drainPendingWrites();
       }
-    } else if (msg.type === 'ptTrim') {
-      // Issue #246: worklet trimmed passthrough backlog after a stall.
-      this._ptSamplesTrimmedByWorklet += msg.skipped;
-      const ms = (msg.skipped / this.sampleRate * 1000) | 0;
-      console.warn(
-        `[Sokuji] [PtDiag] passthrough trim: skipped=${msg.skipped} samples (${ms}ms) ` +
-        `totalTrimmed=${this._ptSamplesTrimmedByWorklet}`
-      );
-    } else if (msg.type === 'ptAdaptive') {
-      // Issue #246: worklet is in adaptive catch-up zone (250–800ms backlog).
-      // Throttled to ≤1/sec from the worklet side. Info level — useful for
-      // verifying the soft catch-up is engaged.
-      console.info(
-        `[Sokuji] [PtDiag] passthrough adaptive: ratio=${msg.ratio.toFixed(3)}x ` +
-        `backlog=${msg.backlogMs}ms`
-      );
     }
   }
 
@@ -558,7 +513,11 @@ export class ModernAudioPlayer {
    * Add audio to passthrough buffer — with optional delay for echo cancellation.
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
-    if (this.globalVolumeMultiplier === 0) return;
+    // NOT gated on globalVolumeMultiplier (monitor volume): passthrough is
+    // always sent to the virtual microphone regardless of the local monitor,
+    // so it must always be mixed into the ring too — that keeps the (pre-gain)
+    // output waveform faithful to what the meeting receives. The monitor stays
+    // silent when muted because the gain node (after the analyser) is 0.
     if (volume < 0.01) return;
 
     const buffer = this._normalizeAudioData(audioData);
@@ -568,9 +527,7 @@ export class ModernAudioPlayer {
       // Worker (e.g. AsrEngine.feedAudio) before this timeout fires.  (#177)
       const copy = new Int16Array(buffer);
       setTimeout(() => {
-        if (this.globalVolumeMultiplier > 0) {
-          this._writeToPassthroughRing(copy, volume);
-        }
+        this._writeToPassthroughRing(copy, volume);
       }, delay);
     } else {
       this._writeToPassthroughRing(buffer, volume);
@@ -610,7 +567,6 @@ export class ModernAudioPlayer {
         }
       }
       if (isSilent && (sumAbs / count) < threshold16) {
-        this._ptSamplesSkippedSilent += count;
         return;
       }
     }
@@ -624,22 +580,6 @@ export class ModernAudioPlayer {
 
     // Drop chunk if ring is full — passthrough is expendable
     if (free < count) {
-      // Diagnostic (issue #246): track drops + throttled warn so we can see
-      // when clock-drift buildup hits the buffer ceiling and chunks start
-      // being dropped (the audible "choppy" symptom).
-      this._ptSamplesDropped += count;
-      this._ptDropEvents += 1;
-      const now = Date.now();
-      if (now - this._lastPtDropLogTs >= 5000) {
-        this._lastPtDropLogTs = now;
-        const usedMs = (used / this.sampleRate * 1000) | 0;
-        const capMs = (cap / this.sampleRate * 1000) | 0;
-        console.warn(
-          `[Sokuji] [PtDiag] passthrough ring FULL — dropping chunks. ` +
-          `used=${used}/${cap} (${usedMs}/${capMs}ms) ` +
-          `totalDropped=${this._ptSamplesDropped}samples in ${this._ptDropEvents} events`
-        );
-      }
       return;
     }
 
@@ -649,7 +589,6 @@ export class ModernAudioPlayer {
       this._ptData[(writeIdx + i) % cap] = int16Buffer[i] * scale;
     }
     Atomics.store(this._ptIndices, 0, writeIdx + count);
-    this._ptSamplesWritten += count;
   }
 
   // =========================================================================
@@ -866,17 +805,13 @@ export class ModernAudioPlayer {
    */
   async _recreateContext() {
     if (this._recreatingContext) {
-      console.debug('[Sokuji] [PtDiag] recreate already in flight — skipping');
       return;
     }
     if (this._recreateAttempts >= 3) {
-      console.error(`[Sokuji] [PtDiag] recreate aborted — already attempted ${this._recreateAttempts} times, giving up to avoid loop`);
       return;
     }
     this._recreatingContext = true;
     this._recreateAttempts += 1;
-    const attempt = this._recreateAttempts;
-    console.warn(`[Sokuji] [PtDiag] recreating player AudioContext (attempt ${attempt}/3)`);
 
     // Preserve user-visible state across rebuild
     const savedSinkId = this.outputDeviceId;
@@ -901,9 +836,7 @@ export class ModernAudioPlayer {
       if (oldContext && oldContext.state !== 'closed') {
         try { await oldContext.close(); } catch (e) { /* ignore */ }
       }
-    } catch (e) {
-      console.warn('[Sokuji] [PtDiag] teardown during recreate threw:', (e && e.message) || e);
-    }
+    } catch (e) { /* ignore — best-effort teardown */ }
 
     // Null out every ref so connect() builds fresh state.
     this.context = null;
@@ -938,13 +871,11 @@ export class ModernAudioPlayer {
       if (savedSinkId && this.context && typeof this.context.setSinkId === 'function') {
         try {
           await this.context.setSinkId(savedSinkId);
-        } catch (e) {
-          console.warn('[Sokuji] [PtDiag] post-recreate ctx.setSinkId failed:', (e && (e.message || e.name)) || e);
-        }
+        } catch (e) { /* ignore */ }
       }
-      console.info(`[Sokuji] [PtDiag] context recreated successfully (attempt ${attempt})`);
     } catch (e) {
-      console.error('[Sokuji] [PtDiag] connect() during recreate failed:', (e && e.message) || e);
+      // Last-ditch recovery failed; leave context null so the next op retries.
+      console.error('[Sokuji] AudioContext recreation failed:', e);
     } finally {
       this._recreatingContext = false;
     }
@@ -961,46 +892,19 @@ export class ModernAudioPlayer {
     }
 
     try {
-      // Issue #246: surface setSinkId results for both the HTMLAudioElement and
-      // the AudioContext. Whether `context.setSinkId` succeeds determines which
-      // physical device drives the consumer-side clock of the passthrough ring.
-      let elemSinkOk = '(not-attempted)';
+      // Apply the requested sink to the HTMLAudioElement (failure propagates)
+      // and the AudioContext (failure swallowed — historical behavior). The
+      // ctx sink drives the consumer-side clock of the passthrough ring.
       if (this.audioElement && typeof this.audioElement.setSinkId === 'function') {
-        try {
-          await this.audioElement.setSinkId(deviceId);
-          elemSinkOk = 'ok';
-        } catch (e) {
-          elemSinkOk = `error:${e?.name || e?.message || e}`;
-          throw e;
-        }
-      } else {
-        elemSinkOk = '(unsupported)';
+        await this.audioElement.setSinkId(deviceId);
       }
-
-      let ctxSinkOk = '(not-attempted)';
       if (this.context && typeof this.context.setSinkId === 'function') {
         try {
           await this.context.setSinkId(deviceId);
-          ctxSinkOk = 'ok';
         } catch (e) {
           // Do not propagate — historical behavior swallows ctx setSinkId failures.
-          ctxSinkOk = `error:${e?.name || e?.message || e}`;
         }
-      } else {
-        ctxSinkOk = '(unsupported)';
       }
-
-      const resolvedCtxSink = (this.context && typeof this.context.sinkId !== 'undefined')
-        ? (this.context.sinkId || '(default)')
-        : '(unsupported)';
-      const resolvedElemSink = (this.audioElement && typeof this.audioElement.sinkId !== 'undefined')
-        ? (this.audioElement.sinkId || '(default)')
-        : '(unsupported)';
-      console.info(
-        `[Sokuji] [PtDiag] setSinkId requested deviceId=${deviceId} | ` +
-        `elemSetSinkId=${elemSinkOk} ctxSetSinkId=${ctxSinkOk} | ` +
-        `resolved playerElemSink=${resolvedElemSink} playerCtxSink=${resolvedCtxSink}`
-      );
 
       this.outputDeviceId = deviceId;
       return true;
@@ -1319,117 +1223,6 @@ export class ModernAudioPlayer {
     this._data = null;
     this._workletReady = false;
     this._workletState = 'stopped';
-  }
-
-  // =========================================================================
-  // Diagnostics
-  // =========================================================================
-
-  /**
-   * Get passthrough-buffer diagnostic snapshot (issue #246).
-   *
-   * Purpose: observe whether passthrough samples accumulate over time (clock
-   * drift between recorder AudioContext and player AudioContext) and whether
-   * the buffer is dropping chunks.
-   */
-  getPassthroughDiagnostics() {
-    if (!this._ptIndices) return null;
-    const w = Atomics.load(this._ptIndices, 0);
-    const r = Atomics.load(this._ptIndices, 1);
-    const used = w - r;
-    const ctxSinkId = (this.context && typeof this.context.sinkId !== 'undefined')
-      ? (this.context.sinkId || '(default)')
-      : '(unsupported)';
-    const elemSinkId = (this.audioElement && typeof this.audioElement.sinkId !== 'undefined')
-      ? (this.audioElement.sinkId || '(default)')
-      : '(unsupported)';
-    return {
-      sampleRate: this.sampleRate,
-      ptCapacity: this._ptCapacity,
-      ptCapacityMs: (this._ptCapacity / this.sampleRate * 1000) | 0,
-      ptUsed: used,
-      ptUsedMs: (used / this.sampleRate * 1000) | 0,
-      ptWriteIdx: w,
-      ptReadIdx: r,
-      ptSamplesWritten: this._ptSamplesWritten,
-      ptSamplesDropped: this._ptSamplesDropped,
-      ptDropEvents: this._ptDropEvents,
-      ptSamplesSkippedSilent: this._ptSamplesSkippedSilent,
-      workletState: this._workletState,
-      contextState: this.context ? this.context.state : '(no-context)',
-      contextSinkId: ctxSinkId,
-      audioElementSinkId: elemSinkId,
-      configuredOutputDeviceId: this.outputDeviceId || '(none)',
-    };
-  }
-
-  /**
-   * Get diagnostic information for audio sequencing.
-   */
-  getSequenceDiagnostics() {
-    const writeIdx = this._indices ? Atomics.load(this._indices, 0) : 0;
-    const readIdx = this._indices ? Atomics.load(this._indices, 1) : 0;
-
-    const diagnostics = {
-      tracks: {},
-      outOfOrderCount: 0,
-      totalBuffered: 0,
-      gaps: [],
-      workletState: this._workletState,
-      totalPlayedSamples: this.totalPlayedSamples,
-      ringBufferUsed: writeIdx - readIdx,
-      ringBufferCapacity: this._ringCapacity,
-      pendingWriteChunks: this._pendingWrites.length
-    };
-
-    for (const [trackId, lastSeq] of this.lastSequenceNumbers) {
-      const outOfOrder = this.outOfOrderBuffers.get(trackId);
-      const outOfOrderSeqs = outOfOrder
-        ? Array.from(outOfOrder.keys()).sort((a, b) => a - b)
-        : [];
-
-      diagnostics.tracks[trackId] = {
-        lastSequence: lastSeq,
-        outOfOrderSequences: outOfOrderSeqs,
-        gaps: this._findSequenceGaps(lastSeq, outOfOrderSeqs),
-        queueLength: this.trackQueues.get(trackId)?.length || 0
-      };
-
-      diagnostics.outOfOrderCount += outOfOrderSeqs.length;
-
-      if (diagnostics.tracks[trackId].gaps.length > 0) {
-        diagnostics.gaps.push(
-          ...diagnostics.tracks[trackId].gaps.map((g) => ({ trackId, ...g }))
-        );
-      }
-    }
-
-    return diagnostics;
-  }
-
-  _findSequenceGaps(lastSeq, outOfOrderSeqs) {
-    const gaps = [];
-    if (outOfOrderSeqs.length === 0) return gaps;
-
-    if (outOfOrderSeqs[0] > lastSeq + 1) {
-      gaps.push({
-        from: lastSeq + 1,
-        to: outOfOrderSeqs[0] - 1,
-        size: outOfOrderSeqs[0] - lastSeq - 1
-      });
-    }
-
-    for (let i = 1; i < outOfOrderSeqs.length; i++) {
-      if (outOfOrderSeqs[i] > outOfOrderSeqs[i - 1] + 1) {
-        gaps.push({
-          from: outOfOrderSeqs[i - 1] + 1,
-          to: outOfOrderSeqs[i] - 1,
-          size: outOfOrderSeqs[i] - outOfOrderSeqs[i - 1] - 1
-        });
-      }
-    }
-
-    return gaps;
   }
 }
 

@@ -8,7 +8,13 @@ import { useAnalytics } from '../../../lib/analytics';
 interface VoicePassthroughSectionProps {
   /** Additional class name */
   className?: string;
-  /** When true, the toggle and slider render disabled with a tooltip. */
+  /**
+   * When true, passthrough is externally managed (Push-to-Translate hijacks it
+   * to on @ 100% during idle): the toggle renders On + disabled and the volume
+   * slider is hidden, with a tooltip explaining why. Display-only — the saved
+   * `isRealVoicePassthroughEnabled`/volume are left untouched and restored when
+   * this turns false.
+   */
   disabled?: boolean;
   /** Tooltip text shown when disabled (i18n string). */
   disabledReason?: string;
@@ -28,6 +34,13 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
     toggleRealVoicePassthrough,
     setRealVoicePassthroughVolume
   } = useAudioContext();
+
+  // `disabled` means passthrough is externally managed (Push-to-Translate, on @
+  // 100% during idle). Reflect that on-state in the toggle without mutating the
+  // user's saved setting, and hide the 0-60% slider — it can't represent the
+  // fixed 100% and would mislead if it kept showing the saved percentage.
+  const displayChecked = isRealVoicePassthroughEnabled || disabled;
+  const showVolumeSlider = isRealVoicePassthroughEnabled && !disabled;
 
   const handleToggle = (enable: boolean) => {
     if (disabled) return;
@@ -56,13 +69,13 @@ const VoicePassthroughSection: React.FC<VoicePassthroughSectionProps> = ({
         />
       </h3>
       <ToggleSwitch
-        checked={isRealVoicePassthroughEnabled}
+        checked={displayChecked}
         onChange={() => handleToggle(!isRealVoicePassthroughEnabled)}
-        label={isRealVoicePassthroughEnabled ? t('common.on', 'On') : t('common.off', 'Off')}
+        label={displayChecked ? t('common.on', 'On') : t('common.off', 'Off')}
         disabled={disabled}
       />
-      {/* Volume slider - shown when enabled */}
-      {isRealVoicePassthroughEnabled && (
+      {/* Volume slider - shown only when the user controls passthrough */}
+      {showVolumeSlider && (
         <div className="volume-control">
           <div className="setting-label">
             <span>{t('audioPanel.realVoiceVolume')}</span>

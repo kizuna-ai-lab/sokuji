@@ -361,7 +361,7 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "Enable Original Audio Passthrough",
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
-    "passthroughManagedByPushToTranslate": "Cannot be enabled while Push-to-Translate is active",
+    "passthroughManagedByPushToTranslate": "In Push-to-Translate mode, passthrough is automatic — it plays at 100% volume when you're not holding the key, and stops (audio goes to translation) while you hold it.",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Audio Conflict",
     "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",
@@ -615,7 +615,10 @@
       "headerSource": "Source",
       "headerTarget": "Target",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
-    }
+    },
+    "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
+    "waveformMicTooltip": "Your microphone — your voice being captured for translation",
+    "waveformSystemTooltip": "Participant audio captured for translation (browser tab / system audio)"
   },
   "modePicker": {
     "modeYou": "You",

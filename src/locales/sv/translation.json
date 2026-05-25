@@ -337,14 +337,17 @@
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
     },
     "participantAudio": "Deltagarljud",
-    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar."
+    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar.",
+    "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",
+    "waveformSystemTooltip": "Deltagarljud som fångas för översättning (webbläsarflik / systemljud)",
+    "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)"
   },
   "audioPanel": {
     "title": "Ljudinställningar",
     "realVoicePassthrough": "Original Audio Genomströmning",
     "enableRealVoicePassthrough": "Aktivera Original Audio Genomströmning",
     "realVoicePassthroughDescription": "Skicka ditt ursprungliga ljud (talarens röst) direkt till den virtuella mikrofonen så att lyssnarna kan höra både det ursprungliga och översatta ljudet",
-    "passthroughManagedByPushToTranslate": "Kan inte aktiveras medan Push-to-Translate är aktivt",
+    "passthroughManagedByPushToTranslate": "I läget Push-to-Translate hanteras genomsläppet automatiskt: det spelas upp med 100 % volym när du inte håller ner tangenten och stoppas (ljudet skickas till översättning) medan du håller ner den.",
     "realVoiceVolume": "Original Audio Volym",
     "mutualExclusivityNotice": "Ljudkonflikt",
     "mutualExclusivitySpeakerTitle": "Kan inte aktivera Högtalare",
