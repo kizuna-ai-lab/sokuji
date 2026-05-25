@@ -75,6 +75,14 @@ export class LocalInferenceClient implements IClient {
   private connected = false;
   private disposed = false;
   private itemCounter = 0;
+  // Per-instance prefix so item IDs are globally unique across client
+  // instances. In "both" mode the speaker and participant channels each
+  // construct their own LocalInferenceClient; without this, both counters
+  // start at 0 and mint identical IDs (e.g. local_asst_2 on both), which
+  // collides downstream — notably the karaoke highlight, which keys on
+  // item.id alone and would light two conversation items at once. Mirrors
+  // the instanceId pattern already used by GeminiClient/VolcengineSTClient.
+  private readonly instanceId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Streaming ASR: in-progress partial result item
   private partialUserItem: ConversationItem | null = null;
@@ -443,7 +451,7 @@ export class LocalInferenceClient implements IClient {
     } else {
       // Create new in_progress item
       this.partialUserItem = {
-        id: `local_user_${++this.itemCounter}`,
+        id: `${this.instanceId}_user_${++this.itemCounter}`,
         role: 'user',
         type: 'message',
         status: 'in_progress',
@@ -472,7 +480,7 @@ export class LocalInferenceClient implements IClient {
     } else {
       // Create new completed user item (offline ASR path)
       const userItem: ConversationItem = {
-        id: `local_user_${++this.itemCounter}`,
+        id: `${this.instanceId}_user_${++this.itemCounter}`,
         role: 'user',
         type: 'message',
         status: 'completed',
@@ -511,7 +519,7 @@ export class LocalInferenceClient implements IClient {
   }
 
   private async processPipelineJob(job: PipelineJob): Promise<void> {
-    const itemId = `local_asst_${++this.itemCounter}`;
+    const itemId = `${this.instanceId}_asst_${++this.itemCounter}`;
 
     try {
       if (this.disposed) return;

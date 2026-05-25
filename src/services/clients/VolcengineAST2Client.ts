@@ -92,6 +92,13 @@ export class VolcengineAST2Client implements IClient {
   private connectionId: string = '';
   private sequence: number = 0;
   private itemCounter: number = 0;
+  // Per-instance prefix so item IDs are globally unique across client
+  // instances. In "both" mode the speaker and participant channels each
+  // construct their own client; without this, both counters start at 0 and
+  // mint identical IDs (e.g. volcengine_ast2_translation_1 on both), which
+  // collides downstream — notably the karaoke highlight, which keys on
+  // item.id alone and would light two conversation items at once.
+  private readonly instanceId: string = `volcengine_ast2_${uuidv4()}`;
   private sessionStartedResolve: (() => void) | null = null;
   private sessionStartedReject: ((error: Error) => void) | null = null;
 
@@ -123,7 +130,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   private generateItemId(prefix: string): string {
-    return `volcengine_ast2_${prefix}_${++this.itemCounter}`;
+    return `${this.instanceId}_${prefix}_${++this.itemCounter}`;
   }
 
   private sendData(data: Uint8Array): void {

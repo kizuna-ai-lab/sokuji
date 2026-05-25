@@ -6,7 +6,7 @@ vi.mock('../../locales', () => ({
 }));
 
 // Dynamic import after mocks
-const { buildCorpusFromConfig } = await import('./VolcengineAST2Client');
+const { buildCorpusFromConfig, VolcengineAST2Client } = await import('./VolcengineAST2Client');
 
 const baseConfig = {
   provider: 'volcengine_ast2' as const,
@@ -75,5 +75,32 @@ describe('buildCorpusFromConfig', () => {
       regexCorrectTableId: 'rep-2',
       glossaryTableId: 'gloss-3',
     });
+  });
+});
+
+// Two client instances (e.g. the speaker + participant channels in "both"
+// mode) must never mint the same item ID. The previous static
+// `volcengine_ast2_<prefix>_<counter>` scheme collided because both counters
+// started at 0; the per-instance `instanceId` prefix fixes it. A collision
+// here would re-introduce the karaoke double-highlight bug (two conversation
+// items keyed on the same item.id light up at once).
+describe('VolcengineAST2Client — item IDs are unique across instances', () => {
+  const genBatch = (client: any, prefix: string, n: number): string[] =>
+    Array.from({ length: n }, () => client.generateItemId(prefix));
+
+  it('two instances produce disjoint item IDs for the same prefix/counter', () => {
+    const a = new VolcengineAST2Client('app', 'token');
+    const b = new VolcengineAST2Client('app', 'token');
+
+    const idsA = genBatch(a, 'translation', 5);
+    const idsB = genBatch(b, 'translation', 5);
+
+    // Within an instance the counter still makes them unique.
+    expect(new Set(idsA).size).toBe(5);
+    expect(new Set(idsB).size).toBe(5);
+
+    // Across instances: no shared ID, even though both counters ran 1..5.
+    const overlap = idsA.filter((id) => idsB.includes(id));
+    expect(overlap).toEqual([]);
   });
 });
