@@ -212,44 +212,6 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     return true;
   }
 
-  /**
-   * Diagnostic snapshot of the recorder's internal AudioContext (issue #246).
-   * The recorder context's sinkId is the *producer-side* clock domain for the
-   * passthrough pipeline; comparing it with the player's sinkId reveals
-   * cross-device clock drift.
-   */
-  getRecorderContextDiagnostics(): {
-    contextSampleRate: number | null;
-    contextState: string;
-    contextSinkId: string;
-    inputSampleRate: number | null;
-    targetSampleRate: number;
-    passthroughEnabled: boolean;
-    passthroughVolume: number;
-  } {
-    const ctx = this.audioContext as (AudioContext & { sinkId?: string }) | null;
-    let inputSampleRate: number | null = null;
-    try {
-      const track = this.stream?.getAudioTracks?.()[0];
-      const settings = track?.getSettings?.();
-      if (settings && typeof settings.sampleRate === 'number') {
-        inputSampleRate = settings.sampleRate;
-      }
-    } catch { /* ignore */ }
-
-    return {
-      contextSampleRate: ctx ? ctx.sampleRate : null,
-      contextState: ctx ? ctx.state : '(no-context)',
-      contextSinkId: ctx
-        ? (typeof ctx.sinkId !== 'undefined' ? (ctx.sinkId || '(default)') : '(unsupported)')
-        : '(no-context)',
-      inputSampleRate,
-      targetSampleRate: this.sampleRate,
-      passthroughEnabled: this._passthroughEnabled,
-      passthroughVolume: this._passthroughVolume,
-    };
-  }
-
   // ==================== Recording Lifecycle ====================
 
   /**
