@@ -74,11 +74,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   const lockedMode = useLockedMode();
   const mode = useMode();
   const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
-  const lockMonitor = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
   // Participant toggle is disabled whenever participant is out of the effective
   // mode scope, so the mode picker is the master control. Pre-session this means
   // Speaker mode disables it; in-session the locked mode governs.
   const effectiveMode = lockedMode ?? mode;
+  // Monitor is in scope ONLY in pure speaker mode (mutex with participant) —
+  // locked in Both/Participant pre- and in-session so it can't be enabled
+  // where it would violate the mutex. Its playback is mode-gated in audioStore
+  // (setMode / initializeAudioService).
+  const lockMonitor = effectiveMode !== 'speaker';
   const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
   // Current Speech Mode for active provider — used to disable VoicePassthroughSection

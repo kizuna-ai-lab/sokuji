@@ -176,12 +176,9 @@ const useAudioStore = create<AudioStore>()(
 
         const patch: Partial<AudioStore> = { mode: target };
 
-        // Reset mute flags for newly-in-scope channels (monitor is sticky).
-        // The plan's "Mode-Switch Behavior" section narrows the spec's
-        // "reset all three" rule: only channels newly coming into scope
-        // reset their mute flag. Monitor stays sticky because its default
-        // is muted and historical behavior is opt-in audio — auto-unmuting
-        // it on every mode change would blast users.
+        // Reset mute flags for newly-in-scope channels. The plan's
+        // "Mode-Switch Behavior" section narrows the spec's "reset all three"
+        // rule: only channels newly coming into scope reset their mute flag.
         if (nextSpeakerInScope && !prevSpeakerInScope) {
           patch.isMicMuted = false;
         }
@@ -190,6 +187,19 @@ const useAudioStore = create<AudioStore>()(
         // leaves (Speaker). Manual setParticipantMuted toggles never touch
         // mode, so the binding only flows mode -> participant, never reverse.
         patch.isParticipantMuted = !nextParticipantInScope;
+
+        // Monitor <-> participant mutex: the monitor is audible ONLY in pure
+        // speaker mode. isMonitorMuted is left untouched (it's the user's
+        // opt-in preference — the *flag* stays sticky and is restored when we
+        // return to speaker), but the actual playback volume is re-gated on
+        // mode here so leaving speaker silences the monitor. Mirrors how
+        // setMonitorMuted drives the service. Pre-session audioService is null
+        // → no-op, which is fine: the monitor only plays AI output during a
+        // live session, and initializeAudioService re-applies this same gate
+        // at session start.
+        if (state.audioService) {
+          state.audioService.setMonitorVolume(target === 'speaker' && !state.isMonitorMuted);
+        }
 
         // Auto-pick first device for channels newly in scope without a selection.
         // Prefer non-virtual devices so we don't accidentally pick a Sokuji
@@ -497,13 +507,21 @@ const useAudioStore = create<AudioStore>()(
         // state, fixed only by an off→on toggle.
         const devices = await get().refreshDevices();
 
-        // Set initial monitor volume based on the (possibly migrated) state
-        const { isMonitorMuted } = get();
-        audioService.setMonitorVolume(!isMonitorMuted);
-        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${isMonitorMuted ? '0.0' : '1.0'}`);
+        // Set initial monitor volume based on the (possibly migrated) state,
+        // gated on mode scope: the monitor is audible only in pure speaker
+        // mode (mutex with participant). isMonitorMuted is the user's opt-in
+        // preference within speaker mode; mode scope is the mutex.
+        const { isMonitorMuted, mode } = get();
+        const monitorAudible = mode === 'speaker' && !isMonitorMuted;
+        audioService.setMonitorVolume(monitorAudible);
+        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${monitorAudible ? '1.0' : '0.0'} (mode=${mode}, muted=${isMonitorMuted})`);
 
-        // Connect monitor device if available
-        const deviceToConnect = get().selectedMonitorDevice || devices?.defaultMonitorDevice;
+        // Connect monitor device only when it's in scope (pure speaker mode).
+        // In participant/both mode the monitor is silenced above, so binding a
+        // device here would be pointless.
+        const deviceToConnect = mode === 'speaker'
+          ? (get().selectedMonitorDevice || devices?.defaultMonitorDevice)
+          : null;
         if (deviceToConnect) {
           console.info('[Sokuji] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
           await get().connectMonitorDevice(deviceToConnect.deviceId, deviceToConnect.label);

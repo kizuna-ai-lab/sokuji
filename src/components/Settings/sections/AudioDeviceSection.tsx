@@ -5,7 +5,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode } from '../../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
@@ -40,6 +40,12 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   className = ''
 }) => {
   const locked = isLocked ?? isSessionActive;
+  // Monitor is in scope only in pure speaker mode (mutex with participant).
+  // Out of scope the monitor toggle reads Off even though the user's saved
+  // preference (isMonitorMuted) is preserved underneath and restored when they
+  // return to speaker mode — keeps the displayed state honest (the monitor is
+  // silenced) without destroying the preference.
+  const monitorInScope = useIsMonitorChannelInScope();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
@@ -227,7 +233,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedMonitorDevice}
-            isDeviceOn={!isMonitorMuted}
+            isDeviceOn={!isMonitorMuted && monitorInScope}
             onSelect={handleMonitorDeviceSelect}
             onToggleOff={() => setMonitorMuted(!isMonitorMuted)}
             disabled={locked}

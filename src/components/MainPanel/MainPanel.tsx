@@ -1518,8 +1518,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
 
-        // If monitor is not muted, ensure monitor device is connected immediately
-        if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
+        // If monitor is in scope (pure speaker mode) and not muted, ensure the
+        // monitor device is connected immediately. The monitor <-> participant
+        // mutex means the monitor is never audible outside speaker mode, so we
+        // skip the reconnect in participant/both even if isMonitorMuted is false
+        // (a preserved opt-in preference).
+        if (currentMode === 'speaker' && !isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
           console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor

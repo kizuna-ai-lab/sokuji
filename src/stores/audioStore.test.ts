@@ -112,3 +112,70 @@ describe('audioStore — mode + mute flags', () => {
     expect(s.isMonitorMuted).toBe(true); // unchanged
   });
 });
+
+// ── Monitor <-> participant mutex enforced via mode-gated playback ──────────
+// The monitor is audible only in pure speaker mode. setMode re-gates the
+// actual playback volume (audioService.setMonitorVolume) on every mode change
+// WITHOUT mutating isMonitorMuted — the flag stays the user's sticky opt-in
+// preference, restored when returning to speaker. This closes the bug where
+// switching to Participant/Both auto-unmuted participant but left the monitor
+// playing (both active = mutex violation).
+describe('audioStore — monitor volume mode-gating', () => {
+  function withMockService(): boolean[] {
+    const calls: boolean[] = [];
+    useAudioStore.setState({
+      audioService: { setMonitorVolume: (v: boolean) => { calls.push(v); } },
+    } as any);
+    return calls;
+  }
+
+  beforeEach(() => {
+    useAudioStore.setState({
+      mode: 'speaker' as AudioMode,
+      isMicMuted: false,
+      isMonitorMuted: false,
+      isParticipantMuted: false,
+      audioInputDevices: [],
+      selectedInputDevice: null,
+      audioService: null,
+    } as any);
+  });
+
+  it('setMode("both") silences the monitor (leaves speaker scope) without touching the flag', () => {
+    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
+    const calls = withMockService();
+    useAudioStore.getState().setMode('both');
+    expect(calls[calls.length - 1]).toBe(false);
+    expect(useAudioStore.getState().isMonitorMuted).toBe(false); // preference preserved
+  });
+
+  it('setMode("participant") silences the monitor', () => {
+    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
+    const calls = withMockService();
+    useAudioStore.getState().setMode('participant');
+    expect(calls[calls.length - 1]).toBe(false);
+  });
+
+  it('setMode("speaker") restores the monitor to the saved preference (unmuted -> audible)', () => {
+    useAudioStore.setState({ mode: 'both', isMonitorMuted: false } as any);
+    const calls = withMockService();
+    useAudioStore.getState().setMode('speaker');
+    expect(calls[calls.length - 1]).toBe(true);
+  });
+
+  it('setMode("speaker") keeps the monitor silent when the saved preference is muted', () => {
+    useAudioStore.setState({ mode: 'both', isMonitorMuted: true } as any);
+    const calls = withMockService();
+    useAudioStore.getState().setMode('speaker');
+    expect(calls[calls.length - 1]).toBe(false);
+  });
+
+  it('setMode never mutates isMonitorMuted across a round trip', () => {
+    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
+    withMockService();
+    useAudioStore.getState().setMode('both');
+    expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+    useAudioStore.getState().setMode('speaker');
+    expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+  });
+});
