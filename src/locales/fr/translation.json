@@ -17,7 +17,8 @@
     "autoDetect": "Détection Automatique",
     "signIn": "Se Connecter",
     "signUp": "S'inscrire",
-    "signInRequired": "Veuillez vous connecter pour utiliser Kizuna AI comme fournisseur"
+    "signInRequired": "Veuillez vous connecter pour utiliser Kizuna AI comme fournisseur",
+    "on": "Activé"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "La clé API fonctionne, mais gpt-realtime-translate n'est pas accessible avec cette clé.",
     "transcriptModelTooltipTranslate": "Sous-titres en langue source. Seul gpt-realtime-whisper est actuellement pris en charge.",
     "modelTooltipTranslate": "Modèle de traduction vocale dédié d'OpenAI. La voix s'adapte automatiquement au locuteur source.",
-    "translateSourceParticipantWarning": "La traduction Participant peut ne pas fonctionner — votre langue source sélectionnée ne figure pas dans les 13 langues cibles prises en charge."
+    "translateSourceParticipantWarning": "La traduction Participant peut ne pas fonctionner — votre langue source sélectionnée ne figure pas dans les 13 langues cibles prises en charge.",
+    "speechModeAppliesTo": "S'applique à votre voix. L'audio des participants utilise toujours le VAD sémantique.",
+    "participantSectionHeader": "Audio des Participants",
+    "participantSectionDescriptionElectron": "Traduire l'audio de n'importe quelle application en lecture sur ce système.",
+    "participantSectionDescriptionExtension": "Traduire l'audio de l'onglet de navigateur actif. L'audio original est diffusé via la sortie par défaut de votre système."
   },
   "audioPanel": {
     "title": "Paramètres audio",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Veuillez désactiver l'Audio des Participants avant d'activer le Haut-parleur.",
     "mutualExclusivityParticipantText": "Veuillez désactiver le Haut-parleur avant d'activer l'Audio des Participants.",
     "availableSystemAudioSources": "Périphériques audio système capturables",
-    "refreshSystemAudioSources": "Actualiser la liste des périphériques"
+    "refreshSystemAudioSources": "Actualiser la liste des périphériques",
+    "turnOnMicrophone": "Activer le microphone",
+    "turnOffMicrophone": "Désactiver le microphone",
+    "turnOnMonitor": "Activer la surveillance du haut-parleur",
+    "turnOffMonitor": "Désactiver la surveillance du haut-parleur"
   },
   "logsPanel": {
     "title": "Journaux",
@@ -402,7 +411,9 @@
       "headerSource": "Source",
       "headerTarget": "Cible",
       "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session."
-    }
+    },
+    "participantAudio": "Audio des Participants",
+    "noChannelConfigured": "Activez le microphone ou l'audio des participants avant de démarrer."
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -429,6 +440,10 @@
           "title": "Bienvenue sur Sokuji",
           "content": "Bienvenue sur Sokuji ! Ce guide simple vous aidera à commencer à utiliser la traduction en temps réel en quelques étapes seulement."
         },
+        "mode": {
+          "content": "Choisissez ce que Sokuji traduit : Vous — votre propre voix (pour que les autres vous comprennent) ; Autres — ce que disent les autres participants (pour que vous les compreniez) ; ou Les deux pour une traduction bidirectionnelle. Ceci détermine quel audio est capturé — choisissez Autres ou Les deux pour activer l'audio des participants.",
+          "title": "Mode de traduction"
+        },
         "settings": {
           "title": "Étape 1: Ouvrir les Paramètres",
           "content": "Cliquez ici pour ouvrir les Paramètres où vous pouvez configurer vos langues et dispositifs audio."
@@ -451,7 +466,7 @@
         },
         "systemAudio": {
           "title": "Étape 7 : Audio des Participants",
-          "content": "Activez la capture audio des participants pour traduire en temps réel ce que disent les autres intervenants. Dans l'extension de navigateur, cette fonctionnalité capture l'audio de l'onglet actuel et peut traduire les voix des autres participants dans les visioconférences comme Google Meet, Teams, Zoom et autres. Dans l'application de bureau, cette fonctionnalité capture tous les sons diffusés par l'ordinateur et peut traduire les vidéos YouTube, les flux Twitch, le contenu Netflix et toute autre source audio. L'audio des participants effectue uniquement la reconnaissance vocale et la traduction en texte, sans synthèse vocale. Sokuji capture et traduit ce que vous dites via le microphone, et capture et traduit ce que dit l'autre personne via cette fonctionnalité. Ensemble, ils permettent une traduction bidirectionnelle complète."
+          "content": "Ceci est le canal des participants — ce que disent les autres, traduit pour vous. Activez-le en choisissant Autres ou Les deux dans le mode de traduction (il reste désactivé en mode Vous). Dans l'extension de navigateur, il capture l'onglet actuel afin que vous puissiez traduire les participants dans Google Meet, Teams ou Zoom. Dans l'application de bureau, il capture tout l'audio du système, vous permettant de traduire YouTube, Twitch, Netflix ou toute autre source. La parole des participants est traduite uniquement en texte — sans synthèse vocale. Avec votre microphone, cela offre une traduction bidirectionnelle complète."
         },
         "start": {
           "title": "Étape 8 : Commencer la Traduction",
@@ -479,6 +494,10 @@
       "welcome": {
         "title": "Bienvenue dans Sokuji",
         "content": "Bienvenue dans Sokuji ! Ce guide vous aidera à configurer l'extension pour la traduction vocale en temps réel. Commençons !"
+      },
+      "mode": {
+        "content": "Choisissez ce que Sokuji traduit : Vous — votre propre voix (pour que les autres vous comprennent) ; Autres — ce que disent les autres participants (pour que vous les compreniez) ; ou Les deux pour une traduction bidirectionnelle. Ceci détermine quel audio est capturé — choisissez Autres ou Les deux pour activer l'audio des participants.",
+        "title": "Mode de traduction"
       },
       "settings": {
         "title": "Étape 1 : Ouvrir les paramètres",
@@ -514,7 +533,7 @@
       },
       "systemAudio": {
         "title": "Étape 8 : Audio des Participants",
-        "content": "Activez la capture audio des participants pour traduire en temps réel ce que disent les autres intervenants. Dans l'extension de navigateur, cette fonctionnalité capture l'audio de l'onglet actuel et peut traduire les voix des autres participants dans les visioconférences comme Google Meet, Teams, Zoom et autres. Dans l'application de bureau, cette fonctionnalité capture tous les sons diffusés par l'ordinateur et peut traduire les vidéos YouTube, les flux Twitch, le contenu Netflix et toute autre source audio. L'audio des participants effectue uniquement la reconnaissance vocale et la traduction en texte, sans synthèse vocale. Sokuji capture et traduit ce que vous dites via le microphone, et capture et traduit ce que dit l'autre personne via cette fonctionnalité. Ensemble, ils permettent une traduction bidirectionnelle complète."
+        "content": "Ceci est le canal des participants — ce que disent les autres, traduit pour vous. Activez-le en choisissant Autres ou Les deux dans le mode de traduction (il reste désactivé en mode Vous). Dans l'extension de navigateur, il capture l'onglet actuel afin que vous puissiez traduire les participants dans Google Meet, Teams ou Zoom. Dans l'application de bureau, il capture tout l'audio du système, vous permettant de traduire YouTube, Twitch, Netflix ou toute autre source. La parole des participants est traduite uniquement en texte — sans synthèse vocale. Avec votre microphone, cela offre une traduction bidirectionnelle complète."
       },
       "startSession": {
         "title": "Étape 9 : Démarrer la session",
@@ -669,7 +688,8 @@
     "loadingModels": "Chargement des modèles...",
     "noModelsAvailable": "Aucun modèle disponible",
     "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
-    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support."
+    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
+    "clickToConfigParticipant": "Cliquez pour configurer l'audio des participants"
   },
   "connectionStatus": {
     "disconnected": "Déconnecté",
@@ -868,5 +888,32 @@
     "minimize": "Réduire",
     "maximize": "Agrandir",
     "close": "Fermer"
+  },
+  "modePicker": {
+    "modeYou": "Vous",
+    "modeParticipants": "Autres",
+    "modeBoth": "Les deux",
+    "groupLabel": "Mode de traduction",
+    "descYou": "Votre voix → traduite pour les autres. Traduit ce que vous dites pour que les autres vous comprennent.",
+    "descOthers": "Voix des autres → traduites pour vous. Traduit ce que disent les participants pour que vous les compreniez.",
+    "descBoth": "Bidirectionnel. Traduit votre voix et celle des autres en même temps.",
+    "switchDisabled": "Le mode est verrouillé pendant une session.",
+    "configureDevices": "Cliquez pour configurer les périphériques.",
+    "missingDevice": "Configurez les périphériques de ce mode pour démarrer.",
+    "popoverHeaderYou": "Vous — périphériques",
+    "popoverHeaderParticipants": "Participants — périphériques",
+    "popoverHeaderBoth": "Les deux — périphériques",
+    "popoverFooter": "Paramètres complets →",
+    "deviceMic": "Microphone",
+    "deviceSpeakerMonitor": "Surveillance du haut-parleur",
+    "notSelected": "Non sélectionné",
+    "deviceParticipantAudio": "Audio des Participants"
+  },
+  "popover": {
+    "statusOff": "Arrêt",
+    "toggleOn": "Activer {{label}}",
+    "toggleOff": "Désactiver {{label}}",
+    "participantSubtitleElectron": "Tout l'audio du système",
+    "participantSubtitleExtension": "Diffusé via la sortie par défaut du système"
   }
 }

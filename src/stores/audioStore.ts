@@ -3,9 +3,10 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
-import { isElectron, isExtension, isLoopbackPlatform } from '../utils/environment';
+import { isVirtualDevice } from '../components/Settings/shared/hooks';
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
+export type AudioMode = 'speaker' | 'participant' | 'both';
 
 // Storage keys for persisting audio device preferences
 const STORAGE_KEYS = {
@@ -18,8 +19,11 @@ const STORAGE_KEYS = {
   IS_REAL_VOICE_PASSTHROUGH_ENABLED: 'audio.isRealVoicePassthroughEnabled',
   REAL_VOICE_PASSTHROUGH_VOLUME: 'audio.realVoicePassthroughVolume',
   IS_SYSTEM_AUDIO_CAPTURE_ENABLED: 'audio.isSystemAudioCaptureEnabled',
-  SELECTED_SYSTEM_AUDIO_SOURCE_ID: 'audio.selectedSystemAudioSourceId',
-  SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID: 'audio.selectedParticipantAudioOutputDeviceId',
+  // New fields (Phase 2 additions)
+  MODE: 'audio.mode',
+  IS_MIC_MUTED: 'audio.isMicMuted',
+  IS_MONITOR_MUTED: 'audio.isMonitorMuted',
+  IS_PARTICIPANT_MUTED: 'audio.isParticipantMuted',
 };
 
 export interface AudioDevice {
@@ -34,20 +38,16 @@ interface AudioStore {
   audioMonitorDevices: AudioDevice[];
   selectedInputDevice: AudioDevice | null;
   selectedMonitorDevice: AudioDevice | null;
-  isInputDeviceOn: boolean;
-  isMonitorDeviceOn: boolean;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
   noiseSuppressionMode: NoiseSuppressionMode;
 
-  // System audio capture state (for translating other participants)
-  systemAudioSources: AudioDevice[];
-  selectedSystemAudioSource: AudioDevice | null;
-  isSystemAudioCaptureEnabled: boolean;
-  isSystemAudioCaptureActive: boolean;
-  isSystemAudioSourceReady: boolean;
-  participantAudioOutputDevice: AudioDevice | null; // Output device for participant audio (Extension only)
+  // Symmetric mode + per-channel mute flags
+  mode: AudioMode;
+  isMicMuted: boolean;
+  isMonitorMuted: boolean;
+  isParticipantMuted: boolean;
 
   // Audio service reference
   audioService: IAudioService | null;
@@ -58,21 +58,16 @@ interface AudioStore {
   setMonitorDevices: (devices: AudioDevice[]) => void;
   selectInputDevice: (device: AudioDevice) => void;
   selectMonitorDevice: (device: AudioDevice) => void;
-  toggleInputDeviceState: () => void;
-  toggleMonitorDeviceState: () => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setNoiseSuppressionMode: (mode: NoiseSuppressionMode) => void;
   setIsLoading: (loading: boolean) => void;
 
-  // System audio capture actions
-  setSystemAudioSources: (sources: AudioDevice[]) => void;
-  selectSystemAudioSource: (source: AudioDevice | null) => void;
-  toggleSystemAudioCapture: () => void;
-  setSystemAudioCaptureActive: (active: boolean) => void;
-  setSystemAudioSourceReady: (ready: boolean) => void;
-  refreshSystemAudioSources: () => Promise<void>;
-  selectParticipantAudioOutputDevice: (device: AudioDevice | null) => void;
+  // Mode + mute setters
+  setMode: (mode: AudioMode) => void;
+  setMicMuted: (muted: boolean) => void;
+  setMonitorMuted: (muted: boolean) => void;
+  setParticipantMuted: (muted: boolean) => void;
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
@@ -87,20 +82,16 @@ const useAudioStore = create<AudioStore>()(
     audioMonitorDevices: [],
     selectedInputDevice: null,
     selectedMonitorDevice: null,
-    isInputDeviceOn: true,
-    isMonitorDeviceOn: false,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
     noiseSuppressionMode: 'enhanced' as NoiseSuppressionMode,
 
-    // System audio capture state
-    systemAudioSources: [],
-    selectedSystemAudioSource: null,
-    isSystemAudioCaptureEnabled: false,
-    isSystemAudioCaptureActive: false,
-    isSystemAudioSourceReady: false,
-    participantAudioOutputDevice: null,
+    // Mode + per-channel mute flags
+    mode: 'speaker' as AudioMode,
+    isMicMuted: false,      // default: mic unmuted
+    isMonitorMuted: true,   // default: monitor off (opt-in audio)
+    isParticipantMuted: false, // default: participant unmuted
 
     audioService: null,
     
@@ -144,39 +135,6 @@ const useAudioStore = create<AudioStore>()(
     },
     setIsLoading: (loading) => set({ isLoading: loading }),
     
-    // Toggle functions with callbacks
-    toggleInputDeviceState: () => {
-      set((state) => {
-        const newState = !state.isInputDeviceOn;
-        // Persist the state
-        const settingsService = ServiceFactory.getSettingsService();
-        settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device on state:', error));
-        return { isInputDeviceOn: newState };
-      });
-    },
-    
-    toggleMonitorDeviceState: () => {
-      console.info('[Sokuji] [AudioStore] Toggling monitor device state');
-      set((state) => {
-        const newState = !state.isMonitorDeviceOn;
-
-        // Persist the state
-        const settingsService = ServiceFactory.getSettingsService();
-        settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
-
-        // Set monitor volume based on state
-        const { audioService } = get();
-        if (audioService) {
-          audioService.setMonitorVolume(newState);
-          console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
-        }
-
-        return { isMonitorDeviceOn: newState };
-      });
-    },
-    
     toggleRealVoicePassthrough: () => {
       set((state) => {
         const newState = !state.isRealVoicePassthroughEnabled;
@@ -206,105 +164,94 @@ const useAudioStore = create<AudioStore>()(
         .catch(error => console.error('[Sokuji] [AudioStore] Failed to save noise suppression mode:', error));
     },
 
-    // System audio capture actions
-    setSystemAudioSources: (sources) => set({ systemAudioSources: sources }),
+    // Mode + per-channel mute setters
 
-    selectSystemAudioSource: (source) => {
-      console.info('[Sokuji] [AudioStore] Selected system audio source:', source?.label || 'None');
-      set({ selectedSystemAudioSource: source });
+    setMode: (target) => {
       const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, source?.deviceId || '')
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio source preference:', error));
-    },
-
-    toggleSystemAudioCapture: () => {
       set((state) => {
-        const newState = !state.isSystemAudioCaptureEnabled;
-        console.info('[Sokuji] [AudioStore] Toggling system audio capture:', newState);
-        const settingsService = ServiceFactory.getSettingsService();
-        settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
-        return { isSystemAudioCaptureEnabled: newState };
+        const prev = state.mode;
+        const prevSpeakerInScope = prev === 'speaker' || prev === 'both';
+        const nextSpeakerInScope = target === 'speaker' || target === 'both';
+        const nextParticipantInScope = target === 'participant' || target === 'both';
+
+        const patch: Partial<AudioStore> = { mode: target };
+
+        // Reset mute flags for newly-in-scope channels. The plan's
+        // "Mode-Switch Behavior" section narrows the spec's "reset all three"
+        // rule: only channels newly coming into scope reset their mute flag.
+        if (nextSpeakerInScope && !prevSpeakerInScope) {
+          patch.isMicMuted = false;
+        }
+        // Participant mute tracks mode scope (one-directional): auto-unmute
+        // when participant is in scope (Participant/Both), auto-mute when it
+        // leaves (Speaker). Manual setParticipantMuted toggles never touch
+        // mode, so the binding only flows mode -> participant, never reverse.
+        patch.isParticipantMuted = !nextParticipantInScope;
+
+        // Monitor <-> participant mutex: the monitor is audible ONLY in pure
+        // speaker mode. isMonitorMuted is left untouched (it's the user's
+        // opt-in preference — the *flag* stays sticky and is restored when we
+        // return to speaker), but the actual playback volume is re-gated on
+        // mode here so leaving speaker silences the monitor. Mirrors how
+        // setMonitorMuted drives the service. Pre-session audioService is null
+        // → no-op, which is fine: the monitor only plays AI output during a
+        // live session, and initializeAudioService re-applies this same gate
+        // at session start.
+        if (state.audioService) {
+          state.audioService.setMonitorVolume(target === 'speaker' && !state.isMonitorMuted);
+        }
+
+        // Auto-pick first device for channels newly in scope without a selection.
+        // Prefer non-virtual devices so we don't accidentally pick a Sokuji
+        // loopback as the user's mic. Persist the selection so it survives
+        // restart (otherwise setting would only live in memory until the user
+        // explicitly picks a device via the popover or settings).
+        if (nextSpeakerInScope && !state.selectedInputDevice && state.audioInputDevices.length > 0) {
+          const nonVirtual = state.audioInputDevices.find(d => !isVirtualDevice(d as any));
+          const picked = nonVirtual ?? state.audioInputDevices[0];
+          patch.selectedInputDevice = picked;
+          settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, picked.deviceId)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-picked input device:', error));
+        }
+
+        settingsService.setSetting(STORAGE_KEYS.MODE, target)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist mode:', error));
+        if ('isMicMuted' in patch) {
+          settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, patch.isMicMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMicMuted:', error));
+        }
+        if ('isParticipantMuted' in patch) {
+          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, patch.isParticipantMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
+        }
+
+        return patch;
       });
     },
 
-    setSystemAudioCaptureActive: (active) => {
-      console.info('[Sokuji] [AudioStore] Setting system audio capture active:', active);
-      set({ isSystemAudioCaptureActive: active });
-    },
-
-    setSystemAudioSourceReady: (ready) => {
-      console.info('[Sokuji] [AudioStore] Setting system audio source ready:', ready);
-      set({ isSystemAudioSourceReady: ready });
-    },
-
-    refreshSystemAudioSources: async () => {
-      try {
-        const { audioService } = get();
-        if (!audioService) return;
-
-        // Get system audio sources from the audio service
-        const sources = await audioService.getSystemAudioSources?.();
-        if (sources) {
-          set({ systemAudioSources: sources });
-          console.info('[Sokuji] [AudioStore] Refreshed system audio sources:', sources.length);
-
-          // Select saved or first source if none selected
-          const currentSource = get().selectedSystemAudioSource;
-          let restoredSource: AudioDevice | null = null;
-          if (!currentSource && sources.length > 0) {
-            const settingsService = ServiceFactory.getSettingsService();
-            const savedSourceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, '');
-            if (savedSourceId) {
-              const savedSource = sources.find(s => s.deviceId === savedSourceId);
-              if (savedSource) {
-                console.info('[Sokuji] [AudioStore] Restored saved system audio source:', savedSource.label);
-                set({ selectedSystemAudioSource: savedSource });
-                restoredSource = savedSource;
-              } else {
-                set({ selectedSystemAudioSource: sources[0] });
-              }
-            } else {
-              set({ selectedSystemAudioSource: sources[0] });
-            }
-          }
-
-          // Re-establish system audio connection if capture was enabled and a source is available
-          const selectedSource = restoredSource || get().selectedSystemAudioSource;
-          if (get().isSystemAudioCaptureEnabled && selectedSource) {
-            try {
-              if (isElectron() && !isExtension() && isLoopbackPlatform()) {
-                const permissionGranted = await audioService.requestLoopbackAudioStream();
-                if (!permissionGranted) {
-                  console.warn('[Sokuji] [AudioStore] Loopback permission lost, disabling system audio capture');
-                  set({ isSystemAudioCaptureEnabled: false });
-                  const settingsService = ServiceFactory.getSettingsService();
-                  settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false).catch(() => {});
-                  return;
-                }
-              }
-              await audioService.connectSystemAudioSource(selectedSource.deviceId);
-              set({ isSystemAudioSourceReady: true });
-              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', selectedSource.label);
-            } catch (error) {
-              console.error('[Sokuji] [AudioStore] Failed to re-establish system audio connection:', error);
-              set({ isSystemAudioCaptureEnabled: false });
-              const settingsService = ServiceFactory.getSettingsService();
-              settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false).catch(() => {});
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error refreshing system audio sources:', error);
-      }
-    },
-
-    selectParticipantAudioOutputDevice: (device) => {
-      console.info('[Sokuji] [AudioStore] Selected participant audio output device:', device?.label || 'None');
-      set({ participantAudioOutputDevice: device });
+    setMicMuted: (muted) => {
       const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID, device?.deviceId || '')
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save participant audio output device:', error));
+      settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, muted)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMicMuted:', error));
+      set({ isMicMuted: muted });
+    },
+
+    setMonitorMuted: (muted) => {
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, muted)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMonitorMuted:', error));
+      set((state) => {
+        const { audioService } = state;
+        if (audioService) audioService.setMonitorVolume(!muted);
+        return { isMonitorMuted: muted };
+      });
+    },
+
+    setParticipantMuted: (muted) => {
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, muted)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
+      set({ isParticipantMuted: muted });
     },
 
     // Complex actions
@@ -368,38 +315,66 @@ const useAudioStore = create<AudioStore>()(
           set({ realVoicePassthroughVolume: savedPassthroughVolume });
         }
 
-        // Restore system audio capture state if saved
-        if (savedSystemAudioCaptureEnabled !== null) {
-          console.info('[Sokuji] [AudioStore] Restored system audio capture state:', savedSystemAudioCaptureEnabled);
-          set({ isSystemAudioCaptureEnabled: savedSystemAudioCaptureEnabled });
+        // Migration: derive new mode + mute fields from legacy flags (Phase 2).
+        // If the new keys were already persisted, use them directly; otherwise
+        // derive them from the legacy flags so upgrades are seamless.
+        const savedAudioMode = await settingsService.getSetting<AudioMode | null>(STORAGE_KEYS.MODE, null);
+        if (savedAudioMode === 'speaker' || savedAudioMode === 'participant' || savedAudioMode === 'both') {
+          set({ mode: savedAudioMode });
+        } else {
+          const micOn = savedInputDeviceOn === true;
+          const partOn = savedSystemAudioCaptureEnabled === true;
+          const derived: AudioMode =
+            micOn && partOn ? 'both' :
+            partOn ? 'participant' :
+            'speaker'; // includes "all off" — default to speaker per spec
+          set({ mode: derived });
+          settingsService.setSetting(STORAGE_KEYS.MODE, derived)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist initial mode:', error));
+
+          // Once new keys are written, set the legacy on-disk keys to null
+          // so a future cleanup pass can grep for residue. We don't delete
+          // them now because (a) ISettingsService has no removeSetting method,
+          // and (b) leaving them as null preserves rollback recoverability.
+          // The storage key constants are retained here for the null-out to
+          // compile; they will be removed in a future release once the
+          // adoption window has closed.
+          settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isInputDeviceOn key:', error));
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isMonitorDeviceOn key:', error));
+          settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null)
+            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isSystemAudioCaptureEnabled key:', error));
         }
 
-        // Restore participant audio output device if saved
-        const savedParticipantOutputId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID, '');
-        if (savedParticipantOutputId) {
-          const savedDevice = devices.outputs.find(d => d.deviceId === savedParticipantOutputId);
-          if (savedDevice) {
-            console.info('[Sokuji] [AudioStore] Restored participant audio output device:', savedDevice.label);
-            set({ participantAudioOutputDevice: savedDevice });
-          }
+        const savedIsMicMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MIC_MUTED, null);
+        if (typeof savedIsMicMuted === 'boolean') {
+          set({ isMicMuted: savedIsMicMuted });
+        } else {
+          const derivedMicMuted = savedInputDeviceOn === false;
+          set({ isMicMuted: derivedMicMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, derivedMicMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMicMuted:', error));
         }
 
-        // Restore input device on/off state if saved
-        if (savedInputDeviceOn !== null) {
-          console.info('[Sokuji] [AudioStore] Restored input device on state:', savedInputDeviceOn);
-          set({ isInputDeviceOn: savedInputDeviceOn });
+        const savedIsMonitorMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_MUTED, null);
+        if (typeof savedIsMonitorMuted === 'boolean') {
+          set({ isMonitorMuted: savedIsMonitorMuted });
+        } else {
+          const derivedMonitorMuted = savedMonitorDeviceOn !== true;
+          set({ isMonitorMuted: derivedMonitorMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, derivedMonitorMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMonitorMuted:', error));
         }
 
-        // Restore monitor device on/off state if saved
-        if (savedMonitorDeviceOn !== null) {
-          console.info('[Sokuji] [AudioStore] Restored monitor device on state:', savedMonitorDeviceOn);
-          set({ isMonitorDeviceOn: savedMonitorDeviceOn });
-
-          // Sync audioService volume to match restored state
-          const { audioService } = get();
-          if (audioService) {
-            audioService.setMonitorVolume(savedMonitorDeviceOn);
-          }
+        const savedIsParticipantMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_PARTICIPANT_MUTED, null);
+        if (typeof savedIsParticipantMuted === 'boolean') {
+          set({ isParticipantMuted: savedIsParticipantMuted });
+        } else {
+          const derivedParticipantMuted = savedSystemAudioCaptureEnabled === false;
+          set({ isParticipantMuted: derivedParticipantMuted });
+          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, derivedParticipantMuted)
+            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isParticipantMuted:', error));
         }
 
         // Try to restore saved input device, or select default
@@ -522,26 +497,36 @@ const useAudioStore = create<AudioStore>()(
         }
         
         await audioService.initialize();
-        
-        // Set initial monitor volume based on current state
-        const { isMonitorDeviceOn } = get();
-        audioService.setMonitorVolume(isMonitorDeviceOn);
-        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${isMonitorDeviceOn ? '1.0' : '0.0'}`);
-        
-        // Refresh devices after initialization
+
+        // Refresh devices FIRST — its migration block reads persisted
+        // isMonitorMuted and may overwrite the store's default. We must
+        // read the post-migration value before calling setMonitorVolume,
+        // otherwise the player's global volume stays at the pre-migration
+        // default and ignores the user's saved preference. Bug it fixes:
+        // monitor silent at session start for users with saved monitor-on
+        // state, fixed only by an off→on toggle.
         const devices = await get().refreshDevices();
-        
-        // Connect monitor device if available
-        const deviceToConnect = get().selectedMonitorDevice || devices?.defaultMonitorDevice;
+
+        // Set initial monitor volume based on the (possibly migrated) state,
+        // gated on mode scope: the monitor is audible only in pure speaker
+        // mode (mutex with participant). isMonitorMuted is the user's opt-in
+        // preference within speaker mode; mode scope is the mutex.
+        const { isMonitorMuted, mode } = get();
+        const monitorAudible = mode === 'speaker' && !isMonitorMuted;
+        audioService.setMonitorVolume(monitorAudible);
+        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${monitorAudible ? '1.0' : '0.0'} (mode=${mode}, muted=${isMonitorMuted})`);
+
+        // Connect monitor device only when it's in scope (pure speaker mode).
+        // In participant/both mode the monitor is silenced above, so binding a
+        // device here would be pointless.
+        const deviceToConnect = mode === 'speaker'
+          ? (get().selectedMonitorDevice || devices?.defaultMonitorDevice)
+          : null;
         if (deviceToConnect) {
           console.info('[Sokuji] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
           await get().connectMonitorDevice(deviceToConnect.deviceId, deviceToConnect.label);
         }
 
-        // Load system audio sources and re-establish connection if previously enabled
-        // This must run during initialization (not just when UI mounts) so participant
-        // audio works even if the user starts a session without opening Settings first
-        await get().refreshSystemAudioSources();
       } catch (error) {
         console.error('[Sokuji] [AudioStore] Error initializing audio service:', error);
       }
@@ -554,8 +539,6 @@ export const useAudioInputDevices = () => useAudioStore((state) => state.audioIn
 export const useAudioMonitorDevices = () => useAudioStore((state) => state.audioMonitorDevices);
 export const useSelectedInputDevice = () => useAudioStore((state) => state.selectedInputDevice);
 export const useSelectedMonitorDevice = () => useAudioStore((state) => state.selectedMonitorDevice);
-export const useIsInputDeviceOn = () => useAudioStore((state) => state.isInputDeviceOn);
-export const useIsMonitorDeviceOn = () => useAudioStore((state) => state.isMonitorDeviceOn);
 export const useIsAudioLoading = () => useAudioStore((state) => state.isLoading);
 export const useIsRealVoicePassthroughEnabled = () => useAudioStore((state) => state.isRealVoicePassthroughEnabled);
 export const useRealVoicePassthroughVolume = () => useAudioStore((state) => state.realVoicePassthroughVolume);
@@ -570,145 +553,140 @@ export const useToggleNoiseSuppression = () => {
   return () => setMode(mode === 'off' ? 'standard' : 'off');
 };
 
-// System audio capture selectors
-export const useSystemAudioSources = () => useAudioStore((state) => state.systemAudioSources);
-export const useSelectedSystemAudioSource = () => useAudioStore((state) => state.selectedSystemAudioSource);
-export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
-export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
-export const useIsSystemAudioSourceReady = () => useAudioStore((state) => state.isSystemAudioSourceReady);
-export const useParticipantAudioOutputDevice = () => useAudioStore((state) => state.participantAudioOutputDevice);
-
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
-export const useToggleInputDeviceState = () => useAudioStore((state) => state.toggleInputDeviceState);
-export const useToggleMonitorDeviceState = () => useAudioStore((state) => state.toggleMonitorDeviceState);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);
 export const useInitializeAudioService = () => useAudioStore((state) => state.initializeAudioService);
 
-// System audio capture action selectors
-export const useSelectSystemAudioSource = () => useAudioStore((state) => state.selectSystemAudioSource);
-export const useToggleSystemAudioCapture = () => useAudioStore((state) => state.toggleSystemAudioCapture);
-export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
-export const useSetSystemAudioSourceReady = () => useAudioStore((state) => state.setSystemAudioSourceReady);
-export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
-export const useSelectParticipantAudioOutputDevice = () => useAudioStore((state) => state.selectParticipantAudioOutputDevice);
+// Mode + per-channel mute flag selectors
+export const useMode = () => useAudioStore((state) => state.mode);
+export const useIsMicMuted = () => useAudioStore((state) => state.isMicMuted);
+export const useIsMonitorMuted = () => useAudioStore((state) => state.isMonitorMuted);
+export const useIsParticipantMuted = () => useAudioStore((state) => state.isParticipantMuted);
+export const useSetMode = () => useAudioStore((state) => state.setMode);
+export const useSetMicMuted = () => useAudioStore((state) => state.setMicMuted);
+export const useSetMonitorMuted = () => useAudioStore((state) => state.setMonitorMuted);
+export const useSetParticipantMuted = () => useAudioStore((state) => state.setParticipantMuted);
 
-// Export actions with memoization to prevent recreating objects
+// Scope-derivation selectors: pure derivations from mode.
+// "In scope" means the channel is active for the current AudioMode.
+export const useIsParticipantChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'participant' || state.mode === 'both');
+export const useIsSpeakerChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'speaker' || state.mode === 'both');
+// Monitor channel is in scope only in pure 'speaker' mode.
+// In 'both' mode it's mutex-excluded from participant to prevent
+// audio feedback (the popover hides the monitor row entirely).
+// This is intentional asymmetry with useIsSpeakerChannelInScope.
+export const useIsMonitorChannelInScope = () =>
+  useAudioStore((state) => state.mode === 'speaker');
+
+// Export actions with memoization to prevent recreating objects.
+// Grouped by channel (matches useAudioContext ordering).
 export const useAudioActions = () => {
+  // Mic
   const selectInputDevice = useSelectInputDevice();
+  const setMicMuted = useSetMicMuted();
+  // Monitor
   const selectMonitorDevice = useSelectMonitorDevice();
-  const toggleInputDeviceState = useToggleInputDeviceState();
-  const toggleMonitorDeviceState = useToggleMonitorDeviceState();
+  const setMonitorMuted = useSetMonitorMuted();
+  // Participant
+  const setParticipantMuted = useSetParticipantMuted();
+  // Ancillary
   const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
   const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
   const setNoiseSuppressionMode = useSetNoiseSuppressionMode();
+  // Mode
+  const setMode = useSetMode();
+  // Globals
   const refreshDevices = useRefreshDevices();
   const initializeAudioService = useInitializeAudioService();
-  const selectSystemAudioSource = useSelectSystemAudioSource();
-  const toggleSystemAudioCapture = useToggleSystemAudioCapture();
-  const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
-  const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
-  const refreshSystemAudioSources = useRefreshSystemAudioSources();
-  const selectParticipantAudioOutputDevice = useSelectParticipantAudioOutputDevice();
 
   return useMemo(
     () => ({
-      selectInputDevice,
-      selectMonitorDevice,
-      toggleInputDeviceState,
-      toggleMonitorDeviceState,
-      toggleRealVoicePassthrough,
-      setRealVoicePassthroughVolume,
-      setNoiseSuppressionMode,
-      refreshDevices,
-      initializeAudioService,
-      selectSystemAudioSource,
-      toggleSystemAudioCapture,
-      setSystemAudioCaptureActive,
-      setSystemAudioSourceReady,
-      refreshSystemAudioSources,
-      selectParticipantAudioOutputDevice,
+      // Mic
+      selectInputDevice, setMicMuted,
+      // Monitor
+      selectMonitorDevice, setMonitorMuted,
+      // Participant
+      setParticipantMuted,
+      // Ancillary
+      toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
+      // Mode
+      setMode,
+      // Globals
+      refreshDevices, initializeAudioService,
     }),
     [
-      selectInputDevice,
-      selectMonitorDevice,
-      toggleInputDeviceState,
-      toggleMonitorDeviceState,
-      toggleRealVoicePassthrough,
-      setRealVoicePassthroughVolume,
-      setNoiseSuppressionMode,
-      refreshDevices,
-      initializeAudioService,
-      selectSystemAudioSource,
-      toggleSystemAudioCapture,
-      setSystemAudioCaptureActive,
-      setSystemAudioSourceReady,
-      refreshSystemAudioSources,
-      selectParticipantAudioOutputDevice,
+      selectInputDevice, setMicMuted,
+      selectMonitorDevice, setMonitorMuted,
+      setParticipantMuted,
+      toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
+      setMode,
+      refreshDevices, initializeAudioService,
     ]
   );
 };
 
-// For backward compatibility with useAudioContext hook
+// Compound hook returning every audio-store field consumers need —
+// kept flat for backwards compatibility with existing destructures.
+// Grouped logically: 4 channels (mic, monitor, participant source,
+// extension passthrough) + ancillary streams + globals.
 export const useAudioContext = () => {
+  // --- Channel: Mic ---
   const audioInputDevices = useAudioInputDevices();
-  const audioMonitorDevices = useAudioMonitorDevices();
   const selectedInputDevice = useSelectedInputDevice();
+  const isMicMuted = useIsMicMuted();
+
+  // --- Channel: Monitor ---
+  const audioMonitorDevices = useAudioMonitorDevices();
   const selectedMonitorDevice = useSelectedMonitorDevice();
-  const isInputDeviceOn = useIsInputDeviceOn();
-  const isMonitorDeviceOn = useIsMonitorDeviceOn();
-  const isLoading = useIsAudioLoading();
+  const isMonitorMuted = useIsMonitorMuted();
+
+  // --- Channel: Participant ---
+  const isParticipantMuted = useIsParticipantMuted();
+
+  // --- Mode ---
+  const mode = useMode();
+
+  // --- Ancillary: real-voice passthrough + noise suppression ---
   const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
   const realVoicePassthroughVolume = useRealVoicePassthroughVolume();
   const noiseSuppressionMode = useNoiseSuppressionMode();
-  const systemAudioSources = useSystemAudioSources();
-  const selectedSystemAudioSource = useSelectedSystemAudioSource();
-  const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
-  const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
-  const isSystemAudioSourceReady = useIsSystemAudioSourceReady();
-  const participantAudioOutputDevice = useParticipantAudioOutputDevice();
+
+  // --- Globals ---
+  const isLoading = useIsAudioLoading();
+
+  // Actions bundle (memoized in useAudioActions; spread below)
   const actions = useAudioActions();
 
   return useMemo(
     () => ({
-      audioInputDevices,
-      audioMonitorDevices,
-      selectedInputDevice,
-      selectedMonitorDevice,
-      isInputDeviceOn,
-      isMonitorDeviceOn,
+      // Mic
+      audioInputDevices, selectedInputDevice, isMicMuted,
+      // Monitor
+      audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
+      // Participant
+      isParticipantMuted,
+      // Mode
+      mode,
+      // Ancillary
+      isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
+      // Globals
       isLoading,
-      isRealVoicePassthroughEnabled,
-      realVoicePassthroughVolume,
-      noiseSuppressionMode,
-      systemAudioSources,
-      selectedSystemAudioSource,
-      isSystemAudioCaptureEnabled,
-      isSystemAudioCaptureActive,
-      isSystemAudioSourceReady,
-      participantAudioOutputDevice,
+      // All actions (mic / monitor / participant / ancillary / mode)
       ...actions,
     }),
     [
-      audioInputDevices,
-      audioMonitorDevices,
-      selectedInputDevice,
-      selectedMonitorDevice,
-      isInputDeviceOn,
-      isMonitorDeviceOn,
+      audioInputDevices, selectedInputDevice, isMicMuted,
+      audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
+      isParticipantMuted,
+      mode,
+      isRealVoicePassthroughEnabled, realVoicePassthroughVolume, noiseSuppressionMode,
       isLoading,
-      isRealVoicePassthroughEnabled,
-      realVoicePassthroughVolume,
-      noiseSuppressionMode,
-      systemAudioSources,
-      selectedSystemAudioSource,
-      isSystemAudioCaptureEnabled,
-      isSystemAudioCaptureActive,
-      isSystemAudioSourceReady,
-      participantAudioOutputDevice,
       actions,
     ]
   );

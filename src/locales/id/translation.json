@@ -17,7 +17,8 @@
     "autoDetect": "Deteksi Otomatis",
     "signIn": "Masuk",
     "signUp": "Daftar",
-    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda"
+    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda",
+    "on": "Aktif"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
     "transcriptModelTooltipTranslate": "Subtitle bahasa sumber. Saat ini hanya gpt-realtime-whisper yang didukung.",
     "modelTooltipTranslate": "Model terjemahan suara khusus dari OpenAI. Suara secara otomatis menyesuaikan dengan pembicara sumber.",
-    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang Anda pilih tidak ada di 13 bahasa target yang didukung."
+    "translateSourceParticipantWarning": "Terjemahan Participant mungkin tidak berfungsi — bahasa sumber yang Anda pilih tidak ada di 13 bahasa target yang didukung.",
+    "speechModeAppliesTo": "Berlaku untuk suara Anda. Audio peserta selalu menggunakan VAD semantik.",
+    "participantSectionHeader": "Audio Peserta",
+    "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
+    "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui output default sistem Anda."
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",
@@ -431,7 +436,8 @@
     "loadingModels": "Memuat model...",
     "noModelsAvailable": "Tidak ada model tersedia",
     "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
-    "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan."
+    "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
+    "clickToConfigParticipant": "Klik untuk mengonfigurasi audio peserta"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -478,7 +484,11 @@
     "mutualExclusivitySpeakerText": "Harap matikan Audio Peserta sebelum mengaktifkan Speaker.",
     "mutualExclusivityParticipantText": "Harap matikan Speaker sebelum mengaktifkan Audio Peserta.",
     "availableSystemAudioSources": "Perangkat Audio Sistem yang Dapat Ditangkap",
-    "refreshSystemAudioSources": "Segarkan daftar perangkat"
+    "refreshSystemAudioSources": "Segarkan daftar perangkat",
+    "turnOnMicrophone": "Nyalakan mikrofon",
+    "turnOffMicrophone": "Matikan mikrofon",
+    "turnOnMonitor": "Nyalakan monitor speaker",
+    "turnOffMonitor": "Matikan monitor speaker"
   },
   "logsPanel": {
     "title": "Log",
@@ -555,7 +565,9 @@
       "headerSource": "Sumber",
       "headerTarget": "Target",
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
-    }
+    },
+    "participantAudio": "Audio Peserta",
+    "noChannelConfigured": "Aktifkan mikrofon atau audio peserta sebelum memulai."
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
@@ -582,6 +594,10 @@
           "title": "Welcome to Sokuji",
           "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
         },
+        "mode": {
+          "content": "Pilih apa yang diterjemahkan Sokuji: Anda — suara Anda sendiri (agar orang lain memahami Anda); Lainnya — apa yang dikatakan peserta lain (agar Anda memahami mereka); atau Keduanya untuk terjemahan dua arah. Ini menentukan audio mana yang ditangkap — pilih Lainnya atau Keduanya untuk mengaktifkan audio peserta.",
+          "title": "Mode terjemahan"
+        },
         "settings": {
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
@@ -604,7 +620,7 @@
         },
         "systemAudio": {
           "title": "Langkah 7: Audio Peserta",
-          "content": "Aktifkan penangkapan audio peserta untuk menerjemahkan ucapan pembicara lain secara real-time. Di ekstensi browser, fitur ini menangkap audio tab saat ini dan dapat menerjemahkan suara peserta lain di konferensi web seperti Google Meet, Teams, Zoom, dan lainnya. Di aplikasi desktop, fitur ini menangkap semua audio yang diputar komputer dan dapat menerjemahkan video YouTube, streaming Twitch, konten Netflix, dan sumber audio apa pun. Audio peserta hanya melakukan pengenalan suara dan terjemahan teks, tanpa sintesis suara. Sokuji menangkap dan menerjemahkan apa yang Anda katakan melalui mikrofon, dan menangkap serta menerjemahkan apa yang dikatakan pihak lain melalui fitur ini. Keduanya bersama-sama memungkinkan terjemahan dua arah yang lengkap."
+          "content": "Ini adalah saluran peserta — apa yang dikatakan orang lain, diterjemahkan untuk Anda. Aktifkan dengan memilih Lainnya atau Keduanya pada mode terjemahan (tetap nonaktif dalam mode Anda). Pada ekstensi browser, ini menangkap tab saat ini sehingga Anda dapat menerjemahkan peserta di Google Meet, Teams, atau Zoom. Pada aplikasi desktop, ini menangkap semua audio sistem, sehingga Anda dapat menerjemahkan YouTube, Twitch, Netflix, atau sumber apa pun. Ucapan peserta hanya diterjemahkan ke teks — tanpa sintesis suara. Bersama mikrofon Anda, ini memberikan terjemahan dua arah yang lengkap."
         },
         "start": {
           "title": "Langkah 8: Mulai Menerjemahkan",
@@ -632,6 +648,10 @@
       "welcome": {
         "title": "Selamat datang di Sokuji!",
         "content": "Selamat datang di aplikasi terjemahan suara real-time! Mari kita atur sistem Anda dengan cepat untuk pengalaman terbaik."
+      },
+      "mode": {
+        "content": "Pilih apa yang diterjemahkan Sokuji: Anda — suara Anda sendiri (agar orang lain memahami Anda); Lainnya — apa yang dikatakan peserta lain (agar Anda memahami mereka); atau Keduanya untuk terjemahan dua arah. Ini menentukan audio mana yang ditangkap — pilih Lainnya atau Keduanya untuk mengaktifkan audio peserta.",
+        "title": "Mode terjemahan"
       },
       "openSettings": {
         "title": "Buka panel pengaturan",
@@ -667,7 +687,7 @@
       },
       "systemAudio": {
         "title": "Langkah 8: Audio Peserta",
-        "content": "Aktifkan penangkapan audio peserta untuk menerjemahkan ucapan pembicara lain secara real-time. Di ekstensi browser, fitur ini menangkap audio tab saat ini dan dapat menerjemahkan suara peserta lain di konferensi web seperti Google Meet, Teams, Zoom, dan lainnya. Di aplikasi desktop, fitur ini menangkap semua audio yang diputar komputer dan dapat menerjemahkan video YouTube, streaming Twitch, konten Netflix, dan sumber audio apa pun. Audio peserta hanya melakukan pengenalan suara dan terjemahan teks, tanpa sintesis suara. Sokuji menangkap dan menerjemahkan apa yang Anda katakan melalui mikrofon, dan menangkap serta menerjemahkan apa yang dikatakan pihak lain melalui fitur ini. Keduanya bersama-sama memungkinkan terjemahan dua arah yang lengkap."
+        "content": "Ini adalah saluran peserta — apa yang dikatakan orang lain, diterjemahkan untuk Anda. Aktifkan dengan memilih Lainnya atau Keduanya pada mode terjemahan (tetap nonaktif dalam mode Anda). Pada ekstensi browser, ini menangkap tab saat ini sehingga Anda dapat menerjemahkan peserta di Google Meet, Teams, atau Zoom. Pada aplikasi desktop, ini menangkap semua audio sistem, sehingga Anda dapat menerjemahkan YouTube, Twitch, Netflix, atau sumber apa pun. Ucapan peserta hanya diterjemahkan ke teks — tanpa sintesis suara. Bersama mikrofon Anda, ini memberikan terjemahan dua arah yang lengkap."
       },
       "startSession": {
         "title": "Mulai sesi Anda",
@@ -867,5 +887,32 @@
     "minimize": "Minimalkan",
     "maximize": "Maksimalkan",
     "close": "Tutup"
+  },
+  "modePicker": {
+    "modeYou": "Anda",
+    "modeParticipants": "Lainnya",
+    "modeBoth": "Keduanya",
+    "groupLabel": "Mode terjemahan",
+    "descYou": "Suara Anda → diterjemahkan untuk orang lain. Terjemahkan apa yang Anda katakan agar orang lain memahami Anda.",
+    "descOthers": "Suara orang lain → diterjemahkan untuk Anda. Terjemahkan apa yang dikatakan peserta agar Anda memahami mereka.",
+    "descBoth": "Dua arah. Terjemahkan suara Anda dan suara orang lain secara bersamaan.",
+    "switchDisabled": "Mode terkunci selama sesi.",
+    "configureDevices": "Klik untuk mengonfigurasi perangkat.",
+    "missingDevice": "Konfigurasikan perangkat untuk mode ini untuk memulai.",
+    "popoverHeaderYou": "Anda — perangkat",
+    "popoverHeaderParticipants": "Peserta — perangkat",
+    "popoverHeaderBoth": "Keduanya — perangkat",
+    "popoverFooter": "Pengaturan lengkap →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Monitor speaker",
+    "notSelected": "Tidak dipilih",
+    "deviceParticipantAudio": "Audio Peserta"
+  },
+  "popover": {
+    "statusOff": "Mati",
+    "toggleOn": "Nyalakan {{label}}",
+    "toggleOff": "Matikan {{label}}",
+    "participantSubtitleElectron": "Semua audio sistem",
+    "participantSubtitleExtension": "Diputar melalui default sistem"
   }
 }

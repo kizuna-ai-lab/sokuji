@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useIsSessionActive } from '../../../stores/sessionStore';
+import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
+import { useMode } from '../../../stores/audioStore';
 import {
   useProvider,
   useAvailableModels,
@@ -12,7 +13,6 @@ import {
   useNavigateToSettings,
   useCurrentTurnDetectionMode,
 } from '../../../stores/settingsStore';
-import { useAudioContext } from '../../../stores/audioStore';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
@@ -42,6 +42,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'microphone': 'audio',
   'speaker': 'audio',
   'system-audio': 'audio',
+  'participant': 'audio', // renamed section target — popover footer navigates here
   'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
@@ -67,8 +68,22 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   const fetchAvailableModels = useFetchAvailableModels();
   const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
 
-  // Audio context
-  const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
+  // Locked mode (sessionStore) — drives which audio channel sections are
+  // editable in-session. Pre-session: all 3 editable. In-session: the
+  // irrelevant channels are visible but disabled (greyed).
+  const lockedMode = useLockedMode();
+  const mode = useMode();
+  const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  // Participant toggle is disabled whenever participant is out of the effective
+  // mode scope, so the mode picker is the master control. Pre-session this means
+  // Speaker mode disables it; in-session the locked mode governs.
+  const effectiveMode = lockedMode ?? mode;
+  // Monitor is in scope ONLY in pure speaker mode (mutex with participant) —
+  // locked in Both/Participant pre- and in-session so it can't be enabled
+  // where it would violate the mutex. Its playback is mode-gated in audioStore
+  // (setMode / initializeAudioService).
+  const lockMonitor = effectiveMode !== 'speaker';
+  const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
   // Current Speech Mode for active provider — used to disable VoicePassthroughSection
   // when Push-to-Translate is in effect (mutual exclusion).
@@ -176,22 +191,21 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
 
             <AudioDeviceSection
               isSessionActive={isSessionActive}
+              isLocked={lockMic}
               showMicrophone={true}
               showSpeaker={false}
             />
 
             <AudioDeviceSection
               isSessionActive={isSessionActive}
+              isLocked={lockMonitor}
               showMicrophone={false}
               showSpeaker={true}
-              isSystemAudioEnabled={isSystemAudioCaptureEnabled}
-              onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
             />
 
             <SystemAudioSection
               isSessionActive={isSessionActive}
-              isMonitorDeviceOn={isMonitorDeviceOn}
-              onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+              isLocked={lockParticipant}
             />
 
             <VoicePassthroughSection

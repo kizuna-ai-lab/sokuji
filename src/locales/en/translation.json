@@ -13,6 +13,7 @@
     "info": "Information",
     "logs": "Logs",
     "clear": "Clear",
+    "on": "On",
     "off": "Off",
     "autoDetect": "Auto Detect",
     "signIn": "Sign In",
@@ -112,6 +113,7 @@
     "systemInstructions": "System Instructions",
     "automaticTurnDetection": "Automatic turn detection",
     "speechMode": "Speech Mode",
+    "speechModeAppliesTo": "Applies to your voice. Participant audio always uses semantic VAD.",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
     "noiseSuppression": "Noise Suppression",
@@ -291,7 +293,10 @@
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
     "transcriptModelTooltipTranslate": "Source-language captions. Currently only gpt-realtime-whisper is supported.",
     "modelTooltipTranslate": "OpenAI's dedicated speech-to-speech translation model. Voice automatically adapts to the source speaker.",
-    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages."
+    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages.",
+    "participantSectionHeader": "Participant audio",
+    "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
+    "participantSectionDescriptionExtension": "Translate audio from the active browser tab. The original audio plays through your system default output."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -369,7 +374,11 @@
     "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.",
     "screenRecordingDeniedText3": "After enabling the permission, please restart the app.",
     "availableSystemAudioSources": "Capturable System Audio Devices",
-    "refreshSystemAudioSources": "Refresh device list"
+    "refreshSystemAudioSources": "Refresh device list",
+    "turnOnMicrophone": "Turn on microphone",
+    "turnOffMicrophone": "Turn off microphone",
+    "turnOnMonitor": "Turn on speaker monitor",
+    "turnOffMonitor": "Turn off speaker monitor"
   },
   "auth": {
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",
@@ -546,6 +555,8 @@
     "function": "Function",
     "input": "Input",
     "output": "Output",
+    "participantAudio": "Participant audio",
+    "noChannelConfigured": "Enable microphone or participant audio before starting.",
     "release": "release",
     "pushToTalk": "Push-to-Talk (Space)",
     "inputDeviceOff": "input device off",
@@ -606,9 +617,37 @@
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
     }
   },
+  "modePicker": {
+    "modeYou": "You",
+    "modeParticipants": "Others",
+    "modeBoth": "Both",
+    "groupLabel": "Translation mode",
+    "descYou": "Your voice → translated for others. Translate what you say so others understand you.",
+    "descOthers": "Others' voices → translated for you. Translate what participants say so you understand them.",
+    "descBoth": "Two-way. Translate your voice and others' at the same time.",
+    "switchDisabled": "Mode is locked during a session.",
+    "configureDevices": "Click to configure devices.",
+    "missingDevice": "Configure devices for this mode to start.",
+    "popoverHeaderYou": "You — devices",
+    "popoverHeaderParticipants": "Participants — devices",
+    "popoverHeaderBoth": "Both — devices",
+    "popoverFooter": "Full settings →",
+    "deviceMic": "Microphone",
+    "deviceSpeakerMonitor": "Speaker monitor",
+    "notSelected": "Not selected",
+    "deviceParticipantAudio": "Participant audio"
+  },
+  "popover": {
+    "statusOff": "Off",
+    "toggleOn": "Turn on {{label}}",
+    "toggleOff": "Turn off {{label}}",
+    "participantSubtitleElectron": "All system audio",
+    "participantSubtitleExtension": "Plays via system default"
+  },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
     "clickToConfigMicrophone": "Click to configure microphone",
+    "clickToConfigParticipant": "Click to configure participant audio",
     "clickToConfigSpeaker": "Click to configure speaker",
     "translationActive": "Translation Active",
     "translationInactive": "Translation Inactive",
@@ -697,6 +736,10 @@
           "title": "Welcome to Sokuji",
           "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
         },
+        "mode": {
+          "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+          "title": "Translation mode"
+        },
         "settings": {
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
@@ -719,7 +762,7 @@
         },
         "systemAudio": {
           "title": "Step 7: Participant Audio",
-          "content": "Enable participant audio capture to translate other speakers' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation."
+          "content": "This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
         },
         "start": {
           "title": "Step 8: Start Translating",
@@ -747,6 +790,10 @@
       "welcome": {
         "title": "Welcome to Sokuji",
         "content": "Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let's get started!"
+      },
+      "mode": {
+        "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+        "title": "Translation mode"
       },
       "settings": {
         "title": "Step 1: Open Settings",
@@ -782,7 +829,7 @@
       },
       "systemAudio": {
         "title": "Step 8: Participant Audio",
-        "content": "Enable participant audio capture to translate other speakers' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation."
+        "content": "This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
       },
       "startSession": {
         "title": "Step 9: Start Session",

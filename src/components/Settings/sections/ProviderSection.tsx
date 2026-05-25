@@ -37,7 +37,7 @@ import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
 import { useModelStore } from '../../../stores/modelStore';
-import { useAudioContext } from '../../../stores/audioStore';
+import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import {
   getManifestEntry,
   getTranslationModel,
@@ -100,7 +100,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
-  const { isSystemAudioCaptureEnabled } = useAudioContext();
+  const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
   const participantModelStatus = useMemo(() => {
@@ -126,12 +126,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const effectiveTtsId = ttsEntry?.isCloudModel ? undefined : ttsId;
 
     const mainIds = [localInferenceSettings.asrModel, translationId, effectiveTtsId];
-    const participantIds = isSystemAudioCaptureEnabled && participantModelStatus
+    const participantIds = isParticipantChannelInScope && participantModelStatus
       ? [participantModelStatus.asrModelId, participantModelStatus.translationModelId]
       : [];
     return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
   }, [
-    provider, deviceFeatures, modelStatuses, isSystemAudioCaptureEnabled, participantModelStatus,
+    provider, deviceFeatures, modelStatuses, isParticipantChannelInScope, participantModelStatus,
     localInferenceSettings.asrModel, localInferenceSettings.translationModel, localInferenceSettings.ttsModel,
     localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
   ]);
@@ -468,7 +468,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
-            {isSystemAudioCaptureEnabled && participantModelStatus && (
+            {isParticipantChannelInScope && participantModelStatus && (
               <div className="participant-inline">
                 <div className="participant-header">
                   <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>

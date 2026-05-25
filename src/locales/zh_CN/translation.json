@@ -17,7 +17,8 @@
     "autoDetect": "自动检测",
     "signIn": "登录",
     "signUp": "注册",
-    "signInRequired": "请登录以使用Kizuna AI作为您的提供商"
+    "signInRequired": "请登录以使用Kizuna AI作为您的提供商",
+    "on": "开启"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
     "transcriptModelTooltipTranslate": "源语言字幕。目前仅支持 gpt-realtime-whisper。",
     "modelTooltipTranslate": "OpenAI 专用的语音转语音翻译模型。译音会自动匹配源说话人音色。",
-    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。"
+    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。",
+    "speechModeAppliesTo": "适用于您的语音。参会者音频始终使用语义 VAD。",
+    "participantSectionHeader": "参会者音频",
+    "participantSectionDescriptionElectron": "翻译此系统上任何正在播放的应用程序的音频。",
+    "participantSectionDescriptionExtension": "翻译当前浏览器标签页的音频。原始音频通过系统默认输出播放。"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",
@@ -376,7 +381,8 @@
     "loadingModels": "正在加载模型...",
     "noModelsAvailable": "没有可用的模型",
     "insufficientBalance": "代币余额不足：{{balance}} 个代币",
-    "walletFrozen": "钱包已冻结。请联系客服。"
+    "walletFrozen": "钱包已冻结。请联系客服。",
+    "clickToConfigParticipant": "点击配置参会者音频"
   },
   "providers": {
     "openai": {
@@ -477,7 +483,11 @@
     "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Sokuji。",
     "screenRecordingDeniedText3": "启用权限后，请重新启动应用。",
     "availableSystemAudioSources": "可捕获的系统音频设备",
-    "refreshSystemAudioSources": "刷新设备列表"
+    "refreshSystemAudioSources": "刷新设备列表",
+    "turnOnMicrophone": "打开麦克风",
+    "turnOffMicrophone": "关闭麦克风",
+    "turnOnMonitor": "打开扬声器监听",
+    "turnOffMonitor": "关闭扬声器监听"
   },
   "logsPanel": {
     "title": "日志",
@@ -556,7 +566,9 @@
       "headerSource": "源语言",
       "headerTarget": "目标语言",
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
-    }
+    },
+    "participantAudio": "参会者音频",
+    "noChannelConfigured": "开始前请启用麦克风或参会者音频。"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",
@@ -584,6 +596,10 @@
           "title": "欢迎使用 Sokuji",
           "content": "欢迎使用 Sokuji！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
         },
+        "mode": {
+          "content": "选择 Sokuji 翻译什么：您 — 您自己的语音（让其他人听懂您）；其他人 — 其他参会者说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择其他人或两者即可开启参会者音频。",
+          "title": "翻译模式"
+        },
         "settings": {
           "title": "步骤 1：打开设置",
           "content": "点击这里打开设置，您可以配置语言和音频设备。"
@@ -610,7 +626,7 @@
         },
         "systemAudio": {
           "title": "步骤 7：参与者音频",
-          "content": "启用参与者音频捕获，实时翻译其他发言者的语音。在浏览器扩展中，此功能会捕获当前标签页的音频，可以翻译 Google Meet、Teams、Zoom 等网络会议中其他参与者的语音。在桌面应用中，此功能会捕获电脑播放的所有声音，可以翻译 YouTube 视频、Twitch 直播、Netflix 影片等任何音频来源。参与者音频仅进行语音识别和翻译为文字，不会进行语音合成播报。Sokuji 通过麦克风捕获您说的话并翻译，通过此功能捕获对方说的话并翻译，两者配合即可实现完整的双向翻译。"
+          "content": "这是参会者通道 — 其他人说的话，翻译给您看。在翻译模式中选择其他人或两者即可开启（在“您”模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中的参会者。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。参会者语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
         },
         "start": {
           "title": "步骤 8：开始翻译",
@@ -634,6 +650,10 @@
       "welcome": {
         "title": "欢迎使用Sokuji",
         "content": "欢迎使用Sokuji！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
+      },
+      "mode": {
+        "content": "选择 Sokuji 翻译什么：您 — 您自己的语音（让其他人听懂您）；其他人 — 其他参会者说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择其他人或两者即可开启参会者音频。",
+        "title": "翻译模式"
       },
       "settings": {
         "title": "步骤1：打开设置",
@@ -669,7 +689,7 @@
       },
       "systemAudio": {
         "title": "步骤 8：参与者音频",
-        "content": "启用参与者音频捕获，实时翻译其他发言者的语音。在浏览器扩展中，此功能会捕获当前标签页的音频，可以翻译 Google Meet、Teams、Zoom 等网络会议中其他参与者的语音。在桌面应用中，此功能会捕获电脑播放的所有声音，可以翻译 YouTube 视频、Twitch 直播、Netflix 影片等任何音频来源。参与者音频仅进行语音识别和翻译为文字，不会进行语音合成播报。Sokuji 通过麦克风捕获您说的话并翻译，通过此功能捕获对方说的话并翻译，两者配合即可实现完整的双向翻译。"
+        "content": "这是参会者通道 — 其他人说的话，翻译给您看。在翻译模式中选择其他人或两者即可开启（在“您”模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中的参会者。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。参会者语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
       },
       "startSession": {
         "title": "步骤9：开始会话",
@@ -879,5 +899,32 @@
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "关闭"
+  },
+  "modePicker": {
+    "modeYou": "您",
+    "modeParticipants": "其他人",
+    "modeBoth": "两者",
+    "groupLabel": "翻译模式",
+    "descYou": "您的语音 → 翻译给其他人。翻译您说的话，让其他人听懂您。",
+    "descOthers": "其他人的语音 → 翻译给您。翻译参会者说的话，让您看懂他们。",
+    "descBoth": "双向。同时翻译您和其他人的语音。",
+    "switchDisabled": "会话期间模式已锁定。",
+    "configureDevices": "点击配置设备。",
+    "missingDevice": "请为此模式配置设备以开始。",
+    "popoverHeaderYou": "您 — 设备",
+    "popoverHeaderParticipants": "参会者 — 设备",
+    "popoverHeaderBoth": "两者 — 设备",
+    "popoverFooter": "完整设置 →",
+    "deviceMic": "麦克风",
+    "deviceSpeakerMonitor": "扬声器监听",
+    "notSelected": "未选择",
+    "deviceParticipantAudio": "参会者音频"
+  },
+  "popover": {
+    "statusOff": "关闭",
+    "toggleOn": "打开{{label}}",
+    "toggleOff": "关闭{{label}}",
+    "participantSubtitleElectron": "所有系统音频",
+    "participantSubtitleExtension": "通过系统默认输出播放"
   }
 }

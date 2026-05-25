@@ -125,15 +125,18 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
           </span>
         )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>{renderText()}</span>
-        {!compact && onPlay && isTranslation && (
-          // Render the play button slot in expanded mode for translation
-          // rows regardless of canPlay. canPlay only flips true once the
-          // assistant item completes and audio is aggregated, so gating
-          // the button on it would cause the row to re-flow on completion
-          // (text wraps onto a second line because the button suddenly
-          // takes ~22 px). The button stays disabled until the item is
-          // actually playable. User rows (source transcripts) don't get a
-          // button slot since they have no audio to play.
+        {!compact && onPlay && isTranslation && source === 'speaker' && (
+          // Render the play button slot in expanded mode for speaker
+          // translation rows regardless of canPlay. canPlay only flips true
+          // once the assistant item completes and audio is aggregated, so
+          // gating the button on it would cause the row to re-flow on
+          // completion (text wraps onto a second line because the button
+          // suddenly takes ~22 px). The button stays disabled until the item
+          // is actually playable. User rows (source transcripts) get no button
+          // since they have no audio, and participant rows get none either:
+          // the participant channel is text-only (no speech synthesis), so its
+          // canPlay never becomes true and the button would sit permanently
+          // disabled. The reflow concern only applies to the speaker channel.
           <button
             type="button"
             className={`row-play-btn ${isPlaying ? 'playing' : ''}`}

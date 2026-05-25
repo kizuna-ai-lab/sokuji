@@ -1581,24 +1581,24 @@
     display: flex;
     border-radius: 6px;
     overflow: hidden;
-    border: 1px solid var(--border-color, #333);
+    border: 1px solid var(--border-color, #444);
 
     .segmented-option {
       flex: 1;
       padding: 6px 12px;
       font-size: 12px;
       border: none;
-      background: var(--bg-secondary, #1a1a1a);
+      background: var(--bg-secondary, #333);
       color: var(--text-secondary, #aaa);
       cursor: pointer;
       transition: all 0.15s ease;
 
       &:not(:last-child) {
-        border-right: 1px solid var(--border-color, #333);
+        border-right: 1px solid var(--border-color, #444);
       }
 
       &:hover:not(.active) {
-        background: var(--bg-hover, #252525);
+        background: var(--bg-hover, #3a3a3a);
       }
 
       &.active {

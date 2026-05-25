@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
+import {X, Zap, Mic, Loader, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
 import './MainPanel.scss';
 import '../../styles/karaoke.scss';
 import {
@@ -42,8 +42,8 @@ import {
   CONVERSATION_FONT_SIZE_MIN,
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
-import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetSystemAudioItems as useSetStoreSystemAudioItems, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
-import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
+import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -60,7 +60,7 @@ import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
-import { isExtension, getEnvironment } from '../../utils/environment';
+import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -73,6 +73,10 @@ import {
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
+import ModePicker from './ModePicker';
+import ModeDevicePopover from './ModeDevicePopover';
+import WaveformStrip from './WaveformStrip';
+import { isVirtualDevice } from '../Settings/shared/hooks';
 
 
 /**
@@ -280,7 +284,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Store setters for mirroring local items state into sessionStore
   const setStoreItems = useSetStoreItems();
-  const setStoreSystemAudioItems = useSetStoreSystemAudioItems();
+  const setStoreParticipantItems = useSetStoreParticipantItems();
   const clearConversationVersion = useClearConversationVersion();
   const requestClearConversation = useRequestClearConversation();
 
@@ -289,18 +293,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Get audio context from context
   const {
+    // Mic
     selectedInputDevice,
+    // Monitor
     selectedMonitorDevice,
-    isInputDeviceOn,
-    isMonitorDeviceOn,
+    selectMonitorDevice,
+    // Ancillary
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
-    selectMonitorDevice, // Import the selectMonitorDevice function from context
-    // System audio capture
-    selectedSystemAudioSource,
-    isSystemAudioSourceReady,
-    isSystemAudioCaptureEnabled,
-    participantAudioOutputDevice
   } = useAudioContext();
 
   // Noise suppression
@@ -308,6 +308,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Track if current session is using WebRTC transport
   const [isUsingWebRTC, setIsUsingWebRTC] = useState(false);
+
+  // Per-channel active flags. Distinct from `isSessionActive` (which is true
+  // when at least one channel is up) so the UI can render channel-specific
+  // affordances (PTT button for speaker only, etc.).
+  const [speakerChannelActive, setSpeakerChannelActive] = useState(false);
+  const [participantChannelActive, setParticipantChannelActive] = useState(false);
 
   // supportsTextInput is true for providers that support text input
   const supportsTextInput = useMemo(() => {
@@ -340,8 +346,92 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
     (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
 
+  // Footer-level mode reflects user INTENT (which channels are toggled on).
+  // Reads directly from audioStore — setMode is the single source of truth.
+  const currentMode = useMode();
+  const setMode = useSetMode();
+
+  // Mute flags — canonical new state that mid-session effects and the
+  // participant waveform render gate read from.
+  const isMicMuted = useIsMicMuted();
+  const isMonitorMuted = useIsMonitorMuted();
+  const isParticipantMuted = useIsParticipantMuted();
+
+  // Channel start predicates — evaluated pre-start. Used by canStartSession
+  // and by connectConversation to decide which clients to create. Locked
+  // after Start (settings disable on isSessionActive).
+  //
+  // Intent question: drives CLIENT CREATION on scope (mode), not mute state.
+  // Mute is independent and only affects whether the recorder actually runs —
+  // handled inside the session-start block (lines ~1497 mic, ~1510 monitor)
+  // and via the mid-session mute effects. This matches spec: "connect client
+  // … if muted at start, recorder is record() then immediately pause() so
+  // unmute mid-session works trivially."
+  const speakerWillStart = useMemo(
+    () => (currentMode === 'speaker' || currentMode === 'both') && !!selectedInputDevice,
+    // Depend on deviceId, not the device object — device-enumeration refreshes
+    // recreate the object identity even when the selection hasn't changed.
+    [currentMode, selectedInputDevice?.deviceId]
+  );
+
+  const participantWillStart = useMemo(
+    () => currentMode === 'participant' || currentMode === 'both',
+    [currentMode]
+  );
+
+  // Mode snapshot captured at session start. While non-null the picker
+  // and any consumer of "effective mode" reads from this so mid-session
+  // mute toggles don't visually change the locked mode. Stored in
+  // sessionStore so the settings panel (a sibling render tree) can read
+  // it too. Cleared on disconnect.
+  const lockedMode = useLockedMode();
+  const setLockedMode = useSetLockedMode();
+  const effectiveMode = lockedMode ?? currentMode;
+
+  // Which segment should show an amber warning (mode targeted but the
+  // required device isn't actually selected/ready). Mirrors what the
+  // existing canStartSession gate checks but at per-segment granularity.
+  // Per spec: "canStartSession: True iff every in-scope channel has a device
+  // selected. Mute state does not block start." Scope comes from mode, not
+  // from mute flags.
+  const missingDeviceForMode = useMemo<'speaker' | 'participant' | 'both' | null>(() => {
+    const speakerInScope = currentMode === 'speaker' || currentMode === 'both';
+    const participantInScope = currentMode === 'participant' || currentMode === 'both';
+    const hasSpeaker = speakerInScope && !!selectedInputDevice;
+    // Under the on/off pipeline-gate model, participant has no pre-session
+    // device requirement. Electron acquires the single hardcoded loopback
+    // source at session start; Extension uses tab capture (implicit).
+    const hasParticipant = participantInScope;
+    if (speakerInScope && !hasSpeaker) return participantInScope && !hasParticipant ? 'both' : 'speaker';
+    if (participantInScope && !hasParticipant) return 'participant';
+    return null;
+  }, [currentMode, selectedInputDevice?.deviceId]);
+
+  // canStartSession requires the *intended* mode to have all its devices
+  // ready (missingDeviceForMode === null). Mode is always one of the three
+  // values: 'speaker', 'participant', or 'both'.
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
-    !loadingModels && !isInitializing && hasValidBalance;
+    !loadingModels && !isInitializing && hasValidBalance &&
+    missingDeviceForMode === null;
+
+  // Footer mode picker — pre-session, click a segment to:
+  //   1. Write the channel toggles to match the target mode (auto-mutes
+  //      irrelevant channels via the per-channel setters).
+  //   2. Auto-pick the first available device for any newly-enabled
+  //      channel that has no device yet. So switching to Others/Both
+  //      "just works" if devices have been enumerated, instead of
+  //      landing in a half-configured state the user has to dig out of.
+  //   3. Monitor is NOT touched — it's optional in You/Both modes and
+  //      auto-mutex'd off when participant turns on.
+  const handleModeSwitch = useCallback((target: 'speaker' | 'participant' | 'both') => {
+    if (isSessionActive) return;
+    setMode(target);
+  }, [isSessionActive, setMode]);
+
+  // Popover (re-click active segment) — anchored to the active segment ref
+  // supplied by ModePicker via callback.
+  const [modePopoverOpen, setModePopoverOpen] = useState(false);
+  const [modePopoverAnchor, setModePopoverAnchor] = useState<HTMLElement | null>(null);
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -418,9 +508,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // WebRTC options for native audio capture (OpenAI WebRTC and PalabraAI/LiveKit)
     // The outputDeviceId enables direct audio playback through HTMLAudioElement, allowing
     // the browser's AEC to see the remote audio and cancel it from microphone input
-    // When isInputDeviceOn is false (input device "off"), don't pass inputDeviceId to prevent audio capture
+    // When mic is muted (input device "off"), don't pass inputDeviceId to prevent audio capture
     const webrtcOptions = usesNativeCapture ? {
-      inputDeviceId: isInputDeviceOn ? selectedInputDevice?.deviceId : undefined,
+      inputDeviceId: !isMicMuted ? selectedInputDevice?.deviceId : undefined,
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
@@ -443,7 +533,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -469,7 +559,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Update participant items state
-      setSystemAudioItems(client.getConversationItems());
+      setParticipantItems(client.getConversationItems());
     },
     onClose: async () => {
       // Bail out if the session is already inactive. This handler can be invoked
@@ -646,21 +736,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     realVoicePassthroughVolume,
     selectedInputDevice,
     selectedMonitorDevice,
-    isMonitorDeviceOn,
+    isMonitorMuted,
   ]);
 
   /**
-   * Handle noise suppression toggle during active session
+   * Handle noise suppression toggle during active session.
+   * Gated on speakerChannelActive: when only participant is active, the
+   * speaker recorder isn't started, so calling setNoiseSuppressionMode on
+   * it is at best a no-op and at worst an error.
    */
   useEffect(() => {
-    if (!isSessionActive || !audioServiceRef.current) return;
+    if (!isSessionActive || !speakerChannelActive || !audioServiceRef.current) return;
     void audioServiceRef.current
       .getRecorder()
       .setNoiseSuppressionMode(noiseSuppressionMode)
       .catch((error: unknown) => {
         console.error('[Sokuji] [MainPanel] Failed to set noise suppression mode:', error);
       });
-  }, [noiseSuppressionMode, isSessionActive]);
+  }, [noiseSuppressionMode, isSessionActive, speakerChannelActive]);
 
   /**
    * Check for potential audio feedback and show warning.
@@ -671,7 +764,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
     const effectivePassthroughEnabled = isPushToTranslate || isRealVoicePassthroughEnabled;
 
-    if (feedbackWarningDismissed || !effectivePassthroughEnabled || !isMonitorDeviceOn) {
+    if (feedbackWarningDismissed || !effectivePassthroughEnabled || isMonitorMuted) {
       setShowFeedbackWarning(false);
       return;
     }
@@ -693,7 +786,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectedInputDevice,
     selectedMonitorDevice,
     feedbackWarningDismissed,
-    isMonitorDeviceOn,
+    isMonitorMuted,
   ]);
 
   /**
@@ -702,10 +795,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * - Audio service reference (handles recording)
    */
 
-  const clientRef = useRef<IClient | null>(null);
+  const speakerClientRef = useRef<IClient | null>(null);
 
-  // System audio client ref (for translating other participants)
-  const systemAudioClientRef = useRef<IClient | null>(null);
+  // Participant client ref (for translating other participants)
+  const participantClientRef = useRef<IClient | null>(null);
 
   // Ref to disconnectConversation — used by client onClose handlers, which are
   // captured inside setupClientListeners (a useCallback that runs before
@@ -721,7 +814,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // whether the cleanup succeeded or threw.
   const disconnectInProgressRef = useRef<boolean>(false);
 
-  const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+  const [participantItems, setParticipantItems] = useState<ConversationItem[]>([]);
 
   // Mirror items into sessionStore so SubtitleApp can read them
   // after MainPanel unmounts (e.g. when entering subtitle mode).
@@ -730,8 +823,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [items, setStoreItems]);
 
   useEffect(() => {
-    setStoreSystemAudioItems(systemAudioItems);
-  }, [systemAudioItems, setStoreSystemAudioItems]);
+    setStoreParticipantItems(participantItems);
+  }, [participantItems, setStoreParticipantItems]);
 
   const clearConversation = useCallback(() => {
     // Cancel pending throttled update that would re-populate items
@@ -740,11 +833,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       throttleTimerRef.current = null;
     }
     // Clear client internal conversation data (if session active)
-    clientRef.current?.clearConversationItems();
-    systemAudioClientRef.current?.clearConversationItems();
+    speakerClientRef.current?.clearConversationItems();
+    participantClientRef.current?.clearConversationItems();
     // Clear React state
     setItems([]);
-    setSystemAudioItems([]);
+    setParticipantItems([]);
   }, []);
 
   // Watch for clear-conversation requests from anywhere in the app
@@ -787,24 +880,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     const speakerItems = items.map(item => tag(item, 'speaker'));
-    const participantItems = systemAudioItems.map(item => tag(item, 'participant'));
+    const participantTagged = participantItems.map(item => tag(item, 'participant'));
 
     // Prune snapshots for items that no longer exist (handles clearConversation
     // and session restart, which empty both arrays).
     const liveIds = new Set<string>();
     for (const it of speakerItems) liveIds.add(it.id);
-    for (const it of participantItems) liveIds.add(it.id);
+    for (const it of participantTagged) liveIds.add(it.id);
     for (const id of Array.from(itemLanguagesRef.current.keys())) {
       if (!liveIds.has(id)) itemLanguagesRef.current.delete(id);
     }
 
     // Merge and sort by createdAt timestamp for accurate ordering
-    return [...speakerItems, ...participantItems].sort((a, b) => {
+    return [...speakerItems, ...participantTagged].sort((a, b) => {
       const aTime = a.createdAt || 0;
       const bTime = b.createdAt || 0;
       return aTime - bTime;
     });
-  }, [items, systemAudioItems, getCurrentProviderSettings]);
+  }, [items, participantItems, getCurrentProviderSettings]);
 
   // Filter items based on UI mode and display mode
   const filteredItems = useMemo(() => {
@@ -850,6 +943,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
+
+  // Tracks whether connectSystemAudioSource succeeded in the current session.
+  // Guards the session-end disconnectSystemAudioSource call so it only fires
+  // when a source was actually acquired (avoids spurious calls on speaker-only
+  // sessions or when loopback permission was denied).
+  const systemAudioAcquiredRef = useRef<boolean>(false);
 
   // Reference to track push-to-talk duration
   const pushToTalkStartTimeRef = useRef<number | null>(null);
@@ -903,12 +1002,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const clientCanvasRef = useRef<HTMLCanvasElement>(null);
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
+  const systemCanvasRef = useRef<HTMLCanvasElement>(null);
 
   /**
    * Set up event listeners for the AI Client
    */
   const setupClientListeners = useCallback(async () => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!client || !audioService) return;
@@ -945,7 +1045,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             pendingTextRef.current = null;
             // Small delay to ensure response is fully processed
             setTimeout(() => {
-              clientRef.current?.appendInputText(text);
+              speakerClientRef.current?.appendInputText(text);
             }, 100);
           }
         }
@@ -1113,7 +1213,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     client.setEventHandlers(eventHandlers);
     setItems(client.getConversationItems());
   }, [
-    isMonitorDeviceOn,
+    isMonitorMuted,
     provider,
     sessionId,
     getCurrentProviderSettings,
@@ -1146,6 +1246,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsSessionActive(false);
       setIsAIResponding(false);
       setIsUsingWebRTC(false);
+      setSpeakerChannelActive(false);
+      setParticipantChannelActive(false);
+      setLockedMode(null);
       pendingTextRef.current = null;
 
       // Clear audio quality tracking interval
@@ -1168,13 +1271,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
 
-        // Stop system audio recording (but keep loopback for next session)
+        // Stop system audio recording and release the loopback stream on Electron.
         if (audioService.isSystemAudioRecordingActive()) {
           try {
             await audioService.stopSystemAudioRecording();
             console.info('[Sokuji] [MainPanel] Stopped system audio recording');
           } catch (error) {
             console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+          }
+        }
+        if (isElectron() && !isExtension() && systemAudioAcquiredRef.current) {
+          try {
+            await audioService.disconnectSystemAudioSource();
+            systemAudioAcquiredRef.current = false;
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Failed to disconnect system audio source:', error);
           }
         }
 
@@ -1192,7 +1303,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Small delay to ensure any in-flight audio processing completes
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const client = clientRef.current;
+      const client = speakerClientRef.current;
       if (client) {
         // disconnect() emits final completion deltas via the throttle path,
         // which schedules a trailing setItems(client.getConversationItems())
@@ -1215,16 +1326,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         client.reset();
       }
 
-      // Disconnect system audio client
-      const systemClient = systemAudioClientRef.current;
-      if (systemClient) {
+      // Disconnect participant client
+      const participantClient = participantClientRef.current;
+      if (participantClient) {
         try {
-          await systemClient.disconnect();
-          systemClient.reset();
-          systemAudioClientRef.current = null;
-          console.info('[Sokuji] [MainPanel] Disconnected system audio client');
+          await participantClient.disconnect();
+          participantClient.reset();
+          participantClientRef.current = null;
+          console.info('[Sokuji] [MainPanel] Disconnected participant client');
         } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
+          console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
         }
       }
 
@@ -1290,9 +1401,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
+      // No-channel guard: Start requires at least one channel configured.
+      // Without this, we'd silently proceed past speaker/participant blocks
+      // (both skipped) and end up in a half-initialized state with no clients.
+      if (!speakerWillStart && !participantWillStart) {
+        setIsInitializing(false);
+        addRealtimeEvent(
+          { type: 'session.init_error', data: { message: t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.') } },
+          'client', 'session.init_error'
+        );
+        return;
+      }
+
+      // Read mode once at session start. Mode can't change mid-session
+      // (the picker is locked), so a one-shot read avoids re-subscribing
+      // the entire callback to mode changes.
+      const sessionMode = useAudioStore.getState().mode;
+
       // Clear previous session's conversation items
       setItems([]);
-      setSystemAudioItems([]);
+      setParticipantItems([]);
 
       // Initialize the audio service if not already done
       if (!audioServiceRef.current) {
@@ -1364,22 +1492,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ? 'gpt-realtime-translate'
         : (currentProviderSettings as any).model;
 
-      // Determine if WebRTC transport should be used
-      let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
+      // Speaker channel: only initialize when mic is selected + enabled.
+      // When this whole block is skipped (participant-only session), no speaker
+      // client is created — saves a WebSocket and, for Kizuna AI, token cost.
+      if (speakerWillStart) {
+        // Determine if WebRTC transport should be used
+        let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
 
-      // Create speaker client using helper
-      clientRef.current = createAIClient(modelName, apiKey, useWebRTC);
+        // Create speaker client using helper
+        speakerClientRef.current = createAIClient(modelName, apiKey, useWebRTC);
 
-      // Setup listeners for the new client instance
-      await setupClientListeners();
+        // Setup listeners for the new client instance
+        await setupClientListeners();
 
-      const client = clientRef.current;
+        const client = speakerClientRef.current;
 
-      // Note: canHoldToSpeak is now derived via useMemo from currentTurnDetectionMode
-      // at component scope — no imperative setter needed here.
+        // Note: canHoldToSpeak is now derived via useMemo from currentTurnDetectionMode
+        // at component scope — no imperative setter needed here.
 
-      // Connect to microphone only if input device is turned on
-      if (isInputDeviceOn) {
         if (selectedInputDevice) {
           // Note: Don't start recording yet, just prepare the device
           // Recording will be started below based on turn detection mode
@@ -1387,232 +1517,283 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } else {
           console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
-      } else {
-        console.debug('[Sokuji] [MainPanel] Input device is turned off, not connecting to microphone');
-      }
 
-      // If output device is ON, ensure monitor device is connected immediately
-      if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
-        console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
+        // If monitor is in scope (pure speaker mode) and not muted, ensure the
+        // monitor device is connected immediately. The monitor <-> participant
+        // mutex means the monitor is never audible outside speaker mode, so we
+        // skip the reconnect in participant/both even if isMonitorMuted is false
+        // (a preserved opt-in preference).
+        if (currentMode === 'speaker' && !isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
+          console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
-        // Trigger the selectMonitorDevice function to reconnect the monitor
-        // This will use the audio service properly through the AudioContext
-        selectMonitorDevice(selectedMonitorDevice);
-      }
+          // Trigger the selectMonitorDevice function to reconnect the monitor
+          // This will use the audio service properly through the AudioContext
+          selectMonitorDevice(selectedMonitorDevice);
+        }
 
-      // Get session configuration
-      const sessionConfig = getSessionConfig();
+        // Get session configuration
+        const sessionConfig = getSessionConfig();
 
-      // Track connection attempt and measure latency
-      const connectionStartTime = Date.now();
+        // Track connection attempt and measure latency
+        const connectionStartTime = Date.now();
 
-      try {
-        // Connect to the AI service
-        await client.connect(sessionConfig);
+        try {
+          // Connect to the AI service
+          await client.connect(sessionConfig);
 
-        // Track successful connection with latency
-        const connectionLatency = Date.now() - connectionStartTime;
-        trackEvent('latency_measurement', {
-          operation: useWebRTC ? 'webrtc' : 'websocket',
-          latency_ms: connectionLatency,
-          provider: provider
-        });
+          // Track successful connection with latency
+          const connectionLatency = Date.now() - connectionStartTime;
+          trackEvent('latency_measurement', {
+            operation: useWebRTC ? 'webrtc' : 'websocket',
+            latency_ms: connectionLatency,
+            provider: provider
+          });
 
-        trackEvent('connection_status', {
-          status: 'connected',
-          provider: provider || Provider.OPENAI,
-          duration_ms: connectionLatency,
-          transport: useWebRTC ? 'webrtc' : 'websocket'
-        });
-      } catch (connectError: any) {
-        // If WebRTC connection failed, try fallback to WebSocket
-        if (useWebRTC) {
-          console.warn('[Sokuji] [MainPanel] WebRTC connection failed, falling back to WebSocket:', connectError);
+          trackEvent('connection_status', {
+            status: 'connected',
+            provider: provider || Provider.OPENAI,
+            duration_ms: connectionLatency,
+            transport: useWebRTC ? 'webrtc' : 'websocket'
+          });
+        } catch (connectError: any) {
+          // If WebRTC connection failed, try fallback to WebSocket
+          if (useWebRTC) {
+            console.warn('[Sokuji] [MainPanel] WebRTC connection failed, falling back to WebSocket:', connectError);
 
-          // Create a new client with WebSocket transport
-          useWebRTC = false;
-          clientRef.current = createAIClient(modelName, apiKey, false);
+            // Create a new client with WebSocket transport
+            useWebRTC = false;
+            speakerClientRef.current = createAIClient(modelName, apiKey, false);
 
-          // Re-setup listeners for the new client instance
-          await setupClientListeners();
+            // Re-setup listeners for the new client instance
+            await setupClientListeners();
 
-          const fallbackClient = clientRef.current;
+            const fallbackClient = speakerClientRef.current;
 
-          try {
-            await fallbackClient.connect(sessionConfig);
+            try {
+              await fallbackClient.connect(sessionConfig);
 
-            // Track successful fallback connection
-            const connectionLatency = Date.now() - connectionStartTime;
-            trackEvent('latency_measurement', {
-              operation: 'websocket_fallback',
-              latency_ms: connectionLatency,
-              provider: provider
-            });
+              // Track successful fallback connection
+              const connectionLatency = Date.now() - connectionStartTime;
+              trackEvent('latency_measurement', {
+                operation: 'websocket_fallback',
+                latency_ms: connectionLatency,
+                provider: provider
+              });
 
-            trackEvent('connection_status', {
-              status: 'connected',
-              provider: provider || Provider.OPENAI,
-              duration_ms: connectionLatency,
-              transport: 'websocket_fallback'
-            });
+              trackEvent('connection_status', {
+                status: 'connected',
+                provider: provider || Provider.OPENAI,
+                duration_ms: connectionLatency,
+                transport: 'websocket_fallback'
+              });
 
-            // Notify user about the fallback
-            addRealtimeEvent(
-              { type: 'session.webrtc_fallback', data: { message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead') } },
-              'client', 'session.webrtc_fallback'
-            );
+              // Notify user about the fallback
+              addRealtimeEvent(
+                { type: 'session.webrtc_fallback', data: { message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead') } },
+                'client', 'session.webrtc_fallback'
+              );
 
-            console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
-          } catch (fallbackError: any) {
-            // Track fallback connection failure
+              console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
+            } catch (fallbackError: any) {
+              // Track fallback connection failure
+              trackEvent('api_error', {
+                provider: provider || Provider.OPENAI,
+                error_message: fallbackError.message || 'Fallback connection failed',
+                error_type: 'network'
+              });
+              throw fallbackError;
+            }
+          } else {
+            // Track connection failure (no fallback available)
             trackEvent('api_error', {
               provider: provider || Provider.OPENAI,
-              error_message: fallbackError.message || 'Fallback connection failed',
+              error_message: connectError.message || 'Connection failed',
               error_type: 'network'
             });
-            throw fallbackError;
+            throw connectError;
           }
-        } else {
-          // Track connection failure (no fallback available)
-          trackEvent('api_error', {
-            provider: provider || Provider.OPENAI,
-            error_message: connectError.message || 'Connection failed',
-            error_type: 'network'
-          });
-          throw connectError;
         }
-      }
 
-      // Mode-derived flags for recorder lifecycle.
-      // Both 'Disabled' (OpenAI) and 'Push-to-Talk' (others) mean "key-hold-only mode";
-      // 'Push-to-Translate' is its own gated-callback mode (handled separately below).
-      const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
-      const isPureManualMode =
-        currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
+        // Mode-derived flags for recorder lifecycle.
+        // Both 'Disabled' (OpenAI) and 'Push-to-Talk' (others) mean "key-hold-only mode";
+        // 'Push-to-Translate' is its own gated-callback mode (handled separately below).
+        const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
+        const isPureManualMode =
+          currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
 
-      // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
-      // In native capture mode, audio is automatically captured via MediaStreamTrack
-      // No need to manually record and send audio chunks
-      const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
+        // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
+        // In native capture mode, audio is automatically captured via MediaStreamTrack
+        // No need to manually record and send audio chunks
+        const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
 
-      // Sync noise suppression state for the new session (ensures RNNoise is
-      // removed when disabled, not just added when enabled)
-      if (audioServiceRef.current) {
-        await audioServiceRef.current.getRecorder().setNoiseSuppressionMode(noiseSuppressionMode);
-      }
+        // Sync noise suppression state for the new session (ensures RNNoise is
+        // removed when disabled, not just added when enabled)
+        if (audioServiceRef.current) {
+          await audioServiceRef.current.getRecorder().setNoiseSuppressionMode(noiseSuppressionMode);
+        }
 
-      // Recorder lifecycle (skip entirely for native MediaStreamTrack capture):
-      //  - Push-to-Translate: start now, gated callback (skip AI forwarding when isPassthrough)
-      //  - Pure PTT (Disabled/Push-to-Talk): defer recorder start to space keydown
-      //  - Otherwise (VAD modes — Auto/Normal/Semantic): start now, always-forward callback
-      if (!usesNativeCapture && isInputDeviceOn && audioServiceRef.current) {
-        if (isPushToTranslateMode) {
-          let p2tCallbackCount = 0;
-          await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-            if (!clientRef.current) return;
-            if (data.isPassthrough) {
-              return;  // IDLE: route to passthrough only, don't send to AI
-            }
-            if (p2tCallbackCount % 100 === 0) {
-              console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
-            }
-            p2tCallbackCount++;
+        // Recorder lifecycle (skip entirely for native MediaStreamTrack capture):
+        //  - Push-to-Translate: start now, gated callback (skip AI forwarding when isPassthrough or mic off)
+        //  - Pure PTT (Disabled/Push-to-Talk): defer recorder start to space keydown
+        //  - Otherwise (VAD modes — Auto/Normal/Semantic): start now, pipeline-gated callback
+        // Recorder always starts when in scope + device selected, regardless of mute state.
+        // Per-frame callback gates on isMicMuted to implement mute without stopping the recorder.
+        if (!usesNativeCapture && audioServiceRef.current) {
+          if (isPushToTranslateMode) {
+            let p2tCallbackCount = 0;
+            await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
+              if (!speakerClientRef.current) return;
+              // Pipeline gate: skip sending to AI client when mic is off.
+              if (useAudioStore.getState().isMicMuted) return;
+              if (data.isPassthrough) {
+                return;  // IDLE: route to passthrough only, don't send to AI
+              }
+              if (p2tCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              p2tCallbackCount++;
 
-            // Track non-silent audio chunks for empty-request detection (mirrors pure PTT)
-            if (!isSilentAudio(data.mono)) {
-              pttVoiceChunkCountRef.current++;
-            }
+              // Track non-silent audio chunks for empty-request detection (mirrors pure PTT)
+              if (!isSilentAudio(data.mono)) {
+                pttVoiceChunkCountRef.current++;
+              }
 
-            clientRef.current.appendInputAudio(data.mono);
-          });
-        } else if (!isPureManualMode) {
-          // VAD: always-forward callback
-          let audioCallbackCount = 0;
-          await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-            if (clientRef.current) {
+              speakerClientRef.current.appendInputAudio(data.mono);
+            });
+          } else if (!isPureManualMode) {
+            // VAD: pipeline-gated callback
+            let audioCallbackCount = 0;
+            await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
+              if (!speakerClientRef.current) return;
+              // Pipeline gate: skip sending to AI client when mic is off.
+              if (useAudioStore.getState().isMicMuted) return;
               // Debug logging every 100 calls to verify AI client receives data
               if (audioCallbackCount % 100 === 0) {
                 console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
               }
               audioCallbackCount++;
-              clientRef.current.appendInputAudio(data.mono);
-            }
-          });
-        }
-        // else: pure PTT — recorder stays idle until space keydown.
-      } else if (usesNativeCapture) {
-        console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
+              speakerClientRef.current.appendInputAudio(data.mono);
+            });
+          }
+          // else: pure PTT — recorder stays idle until space keydown.
+        } else if (usesNativeCapture) {
+          console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
-        // Apply initial mute state based on isMonitorDeviceOn (WebRTC only, not PalabraAI)
-        if (useWebRTC && typeof clientRef.current?.setOutputMuted === 'function') {
-          clientRef.current.setOutputMuted(!isMonitorDeviceOn);
-          console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
+          // Apply initial mute state based on isMonitorMuted (WebRTC only, not PalabraAI)
+          if (useWebRTC && typeof speakerClientRef.current?.setOutputMuted === 'function') {
+            speakerClientRef.current.setOutputMuted(isMonitorMuted);
+            console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', isMonitorMuted);
+          }
         }
+
+        // Track if using WebRTC (after fallback logic is complete)
+        // Note: PalabraAI uses appendInputAudio pattern, not native WebRTC audio
+        setIsUsingWebRTC(useWebRTC);
+
+        // Mark speaker channel as fully active. Placed at the end of the
+        // speaker block so it only fires once connect + audio capture wiring
+        // have completed successfully (the catch block above re-throws on
+        // unrecoverable failures, which skips this).
+        setSpeakerChannelActive(true);
       }
-
-      // Track if using WebRTC (after fallback logic is complete)
-      // Note: PalabraAI uses appendInputAudio pattern, not native WebRTC audio
-      setIsUsingWebRTC(useWebRTC);
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation
-      const shouldCaptureParticipantAudio = isSystemAudioCaptureEnabled && audioServiceRef.current && (
-        isExtension() || // Extension: use tab capture
-        (selectedSystemAudioSource && isSystemAudioSourceReady) // Electron: use system audio loopback
-      );
+      const participantInScope = sessionMode === 'participant' || sessionMode === 'both';
+      const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current !== null;
 
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
           console.info(`[Sokuji] [MainPanel] Starting participant audio client (${captureMode} capture)...`);
 
-          // Create participant client using helper
-          systemAudioClientRef.current = createAIClient(modelName, apiKey);
+          // Electron: lazy-acquire the loopback stream at session start.
+          // (Extension uses tab capture via the existing tabAudioRecorder path.)
+          let electronAcquireOk = true;
+          if (isElectron() && !isExtension()) {
+            try {
+              if (isLoopbackPlatform()) {
+                const granted = await audioServiceRef.current!.requestLoopbackAudioStream();
+                if (!granted) {
+                  console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
+                  addRealtimeEvent(
+                    {
+                      type: 'participant.warning',
+                      data: {
+                        message: t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.')
+                      }
+                    },
+                    'client', 'participant.warning'
+                  );
+                  electronAcquireOk = false;
+                } else {
+                  await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                  systemAudioAcquiredRef.current = true;
+                }
+              } else {
+                await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                systemAudioAcquiredRef.current = true;
+              }
+            } catch (error) {
+              console.error('[Sokuji] [MainPanel] Failed to acquire participant audio:', error);
+              electronAcquireOk = false;
+            }
+          }
 
-          // Setup event handlers using helper
-          const participantClient = systemAudioClientRef.current;
-          participantClient.setEventHandlers(createParticipantEventHandlers(participantClient));
+          if (electronAcquireOk) {
+            // Create participant client using helper
+            participantClientRef.current = createAIClient(modelName, apiKey);
 
-          // Create and connect with participant session config
-          const participantSessionConfig = createParticipantSessionConfig();
-          if (!participantSessionConfig) {
-            console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
-            systemAudioClientRef.current = null;
-          } else {
-            await participantClient.connect(participantSessionConfig);
-            console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
+            // Setup event handlers using helper
+            const participantClient = participantClientRef.current;
+            participantClient.setEventHandlers(createParticipantEventHandlers(participantClient));
 
-            // Start recording from appropriate source based on environment
-            let participantAudioCallbackCount = 0;
-            const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
-              if (client) {
+            // Create and connect with participant session config
+            const participantSessionConfig = createParticipantSessionConfig();
+            if (!participantSessionConfig) {
+              console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
+              participantClientRef.current = null;
+            } else {
+              await participantClient.connect(participantSessionConfig);
+              console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
+
+              // Start recording from appropriate source based on environment
+              let participantAudioCallbackCount = 0;
+              const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
+                if (!client) return;
+                // Pipeline gate: skip sending to AI client when participant is off.
+                // Read state per invocation to avoid stale closures. Extension passthrough
+                // continues — handlePassthroughAudio fires inside the recorder before this.
+                if (useAudioStore.getState().isParticipantMuted) return;
                 if (participantAudioCallbackCount % 100 === 0) {
                   console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
                 }
                 participantAudioCallbackCount++;
                 client.appendInputAudio(data.mono);
+              };
+
+              if (isExtension()) {
+                // Extension: start tab audio recording. Passthrough always uses
+                // the system default output device (selectedParticipantOutput removed
+                // per on/off pipeline-gate spec — D-Task 6).
+                console.info('[Sokuji] [MainPanel] Starting tab audio recording');
+                await audioServiceRef.current!.startTabAudioRecording(
+                  createAudioDataCallback(participantClient)
+                );
+              } else {
+                // Electron: start system audio recording from virtual mic
+                await audioServiceRef.current!.startSystemAudioRecording(
+                  createAudioDataCallback(participantClient)
+                );
               }
-            };
 
-            if (isExtension()) {
-              // Extension: start tab audio recording with optional output device for passthrough
-              const outputDeviceId = participantAudioOutputDevice?.deviceId;
-              console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
-              await audioServiceRef.current.startTabAudioRecording(
-                createAudioDataCallback(participantClient),
-                outputDeviceId
-              );
-            } else {
-              // Electron: start system audio recording from virtual mic
-              await audioServiceRef.current.startSystemAudioRecording(
-                createAudioDataCallback(participantClient)
-              );
+              console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+              // Set the active flag only after recording wiring succeeds — mirrors
+              // the speaker block, where the flag means "channel is end-to-end
+              // active" not "connect resolved". If startTab/SystemAudioRecording
+              // throws (non-OOM, caught below as non-fatal), the flag stays false.
+              setParticipantChannelActive(true);
             }
-
-            console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
           }
         } catch (error: any) {
           console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
@@ -1624,10 +1805,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
+      // Post-init guard: if BOTH channels failed to come up (e.g., speaker
+      // WebRTC fallback failed AND participant loopback permission was denied),
+      // bail instead of entering a fake "active" UI state with no translation
+      // happening. Errors above were caught non-fatally and continued; this
+      // is where we detect total failure.
+      if (!speakerClientRef.current && !participantClientRef.current) {
+        console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
+        setIsInitializing(false);
+        addRealtimeEvent(
+          { type: 'session.init_error', data: { message: t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.') } },
+          'client', 'session.init_error'
+        );
+        return;
+      }
+
       // Set state variables after successful initialization
-      // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
+      // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
+      setLockedMode(sessionMode);
       setIsSessionActive(true);
-      setItems(clientRef.current?.getConversationItems() || []);
+      setItems(speakerClientRef.current?.getConversationItems() || []);
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
@@ -1699,16 +1896,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setupClientListeners,
     createAIClient,
     selectedInputDevice,
-    isInputDeviceOn,
-    isMonitorDeviceOn,
+    isMicMuted,
+    isMonitorMuted,
     selectedMonitorDevice,
     selectMonitorDevice,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
-    // System audio capture
-    isSystemAudioCaptureEnabled,
-    selectedSystemAudioSource,
-    isSystemAudioSourceReady
+    // Channel-start predicates control which clients are created
+    speakerWillStart,
+    participantWillStart
   ]);
 
   /**
@@ -1716,9 +1912,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * .appendInputAudio() for each sample
    */
   const startRecording = useCallback(async () => {
-    // Don't start recording if input device is turned off
-    if (!isInputDeviceOn) {
-      console.info('[Sokuji] [MainPanel] Input device is turned off, not starting recording');
+    // Don't start recording if mic is muted
+    if (isMicMuted) {
+      console.info('[Sokuji] [MainPanel] Mic is muted, not starting recording');
       return;
     }
 
@@ -1732,7 +1928,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Track push-to-talk start time
     pushToTalkStartTimeRef.current = Date.now();
     
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!audioService) {
@@ -1788,7 +1984,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('[Sokuji] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
     }
-  }, [isInputDeviceOn, isRecording, selectedInputDevice, currentTurnDetectionMode]);
+  }, [isMicMuted, isRecording, selectedInputDevice, currentTurnDetectionMode]);
 
   /**
    * In push-to-talk mode, stop recording
@@ -1812,7 +2008,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       pushToTalkStartTimeRef.current = null;
     }
     
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     const audioService = audioServiceRef.current;
 
     if (!audioService) {
@@ -1881,7 +2077,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Send text input for translation
    */
   const handleSendText = useCallback((text: string) => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!client || !isSessionActive) {
       console.warn('[MainPanel] Cannot send text: no active session');
       return;
@@ -1980,11 +2176,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // The clearInterruptedTracks above should have cleared all interrupted tracks
       // No need for additional manual clearing
 
-      // If output device is ON, ensure monitor device is connected
-      if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+      // If monitor is not muted, ensure monitor device is connected
+      if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
         selectMonitorDevice(selectedMonitorDevice);
       }
 
@@ -2052,7 +2245,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('[Sokuji] [MainPanel] Error playing audio:', error);
       setPlayingItem(null);
     }
-  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId, setPlayingItem]);
+  }, [isMonitorMuted, selectedMonitorDevice, selectMonitorDevice, playingItemId, setPlayingItem]);
 
   /**
    * Play or stop test tone for debugging
@@ -2168,11 +2361,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
 
-      // If output device is ON, ensure monitor device is connected immediately
-      if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+      // If monitor is not muted, ensure monitor device is connected immediately
+      if (!isMonitorMuted && selectedMonitorDevice && !isVirtualDevice(selectedMonitorDevice as any)) {
         console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
@@ -2185,7 +2375,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('[Sokuji] [MainPanel] Error playing test tone:', error);
       setIsTestTonePlaying(false);
     }
-  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
+  }, [isMonitorMuted, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
 
   /**
    * Set up playback status tracking
@@ -2288,6 +2478,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const audioService = audioServiceRef.current;
     const serverCanvas = serverCanvasRef.current;
     let serverCtx: CanvasRenderingContext2D | null = null;
+    const systemCanvas = systemCanvasRef.current;
+    let systemCtx: CanvasRenderingContext2D | null = null;
+    // Pre-allocate the byte buffer once — the analyser node's frequencyBinCount
+    // doesn't change across frames, so we reuse the same array.
+    let systemByteBuffer: Uint8Array | null = null;
+    let systemFloatBuffer: Float32Array | null = null;
 
     const render = () => {
       if (isLoaded) {
@@ -2300,7 +2496,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (clientCtx) {
             clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
             const recorder = audioService.getRecorder();
-            const result = recorder.isRecording()
+            // Under callback-level pipeline gating, the recorder runs continuously
+            // while the session is active — so the mute flag must gate the waveform
+            // independently. Without this, mic waveform would animate even when
+            // muted, contradicting the spec's "muted = flat waveform" rule.
+            const result = recorder.isRecording() && !isMicMuted
               ? recorder.getFrequencies('voice')
               : { values: new Float32Array([0]) };
             WavRenderer.drawBars(
@@ -2315,6 +2515,53 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
         
+        // Participant audio waveform (system audio capture) — gated on mode.
+        // In-session: draw when participant channel is actually active.
+        // Pre-session: draw an empty visualization for layout stability when mode
+        // includes participant (the canvas is only rendered then anyway).
+        const showSystemWaveform = isSessionActive
+          ? participantChannelActive
+          : effectiveMode === 'participant' || effectiveMode === 'both';
+
+        if (showSystemWaveform && systemCanvas && audioService) {
+          if (!systemCanvas.width || !systemCanvas.height) {
+            systemCanvas.width = systemCanvas.offsetWidth;
+            systemCanvas.height = systemCanvas.offsetHeight;
+          }
+          systemCtx = systemCtx || systemCanvas.getContext('2d');
+          if (systemCtx) {
+            systemCtx.clearRect(0, 0, systemCanvas.width, systemCanvas.height);
+            const participantAnalyser = audioService.getParticipantAnalyser?.() ?? null;
+            let values: Float32Array;
+            if (participantAnalyser && !isParticipantMuted) {
+              const bins = participantAnalyser.frequencyBinCount;
+              if (!systemByteBuffer || systemByteBuffer.length !== bins) {
+                systemByteBuffer = new Uint8Array(bins);
+                systemFloatBuffer = new Float32Array(bins);
+              }
+              // Cast: TypeScript 5.7+ narrows TypedArray generic to ArrayBuffer
+              // exactly; `new Uint8Array(n)` produces Uint8Array<ArrayBufferLike>.
+              // Both shapes are safe for getByteFrequencyData at runtime.
+              participantAnalyser.getByteFrequencyData(systemByteBuffer as Uint8Array<ArrayBuffer>);
+              for (let i = 0; i < bins; i++) {
+                systemFloatBuffer![i] = systemByteBuffer[i] / 255;
+              }
+              values = systemFloatBuffer!;
+            } else {
+              values = new Float32Array([0]);
+            }
+            WavRenderer.drawBars(
+              systemCanvas,
+              systemCtx,
+              values,
+              '#f59e0b',
+              10,
+              0,
+              8
+            );
+          }
+        }
+
         if (serverCanvas && audioService) {
           if (!serverCanvas.width || !serverCanvas.height) {
             serverCanvas.width = serverCanvas.offsetWidth;
@@ -2378,7 +2625,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, [uiMode]);
+    // isMicMuted / isParticipantMuted in deps so the render-loop closure
+    // re-initializes when mute toggles — without them, the rAF callback
+    // captures a stale mute value and the waveform gate never updates.
+  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive, isMicMuted, isParticipantMuted]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
@@ -2397,90 +2647,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }, 100);
       });
     }
-  }, [items, systemAudioItems]);
+  }, [items, participantItems]);
 
   /**
-   * Watch for changes to isInputDeviceOn and update recording state accordingly
-   */
-  useEffect(() => {
-    // Only take action if session is active
-    if (!isSessionActive) return;
-
-    const audioService = audioServiceRef.current;
-    const client = clientRef.current;
-
-    if (!audioService) {
-      return;
-    }
-
-    const updateRecordingState = async () => {
-      try {
-        const recorder = audioService.getRecorder();
-        
-        // If input device is turned off, pause recording
-        if (!isInputDeviceOn) {
-          console.info('[Sokuji] [MainPanel] Input device turned off - pausing recording');
-          if (recorder.isRecording()) {
-            await audioService.pauseRecording();
-            setIsRecording(false);
-          }
-        }
-        // If input device is turned on
-        else {
-          // Mode-derived flags (same classification as session-start branch).
-          const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
-          const isPureManualMode =
-            currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
-
-          if (isPushToTranslateMode) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in Push-to-translate mode');
-            if (!recorder.isRecording()) {
-              let p2tCallbackCount = 0;
-              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
-                if (!client) return;
-                if (data.isPassthrough) return;
-                if (p2tCallbackCount % 100 === 0) {
-                  console.debug(`[Sokuji] [MainPanel] P2T: Sending audio to client: chunk ${p2tCallbackCount}, PCM length: ${data.mono.length}`);
-                }
-                p2tCallbackCount++;
-
-                // Track non-silent audio chunks for empty-request detection (mirrors pure PTT)
-                if (!isSilentAudio(data.mono)) {
-                  pttVoiceChunkCountRef.current++;
-                }
-
-                client.appendInputAudio(data.mono);
-              });
-            }
-          } else if (!isPureManualMode) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
-            if (!recorder.isRecording()) {
-              let autoAudioCallbackCount = 0;
-              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
-                if (client) {
-                  // Debug logging for automatic mode (every 100 chunks)
-                  if (autoAudioCallbackCount % 100 === 0) {
-                    console.debug(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
-                  }
-                  autoAudioCallbackCount++;
-                  client.appendInputAudio(data.mono);
-                }
-              });
-            }
-          }
-          // For pure push-to-talk (Disabled/Push-to-Talk), don't resume — user
-          // needs to press the button or Space key.
-        }
-      } catch (error) {
-        console.error('[Sokuji] [MainPanel] Error updating recording state:', error);
-      }
-    };
-
-    updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, currentTurnDetectionMode, selectedInputDevice?.deviceId]);
-
-  /**
-   * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
+   * Watch for changes to selectedMonitorDevice or isMonitorMuted
    * and update the audio monitoring accordingly
    */
   useEffect(() => {
@@ -2494,17 +2664,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const updateMonitorDevice = async () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
-        const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-          selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
-          selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
-
-        if (isVirtualDevice) {
+        if (selectedMonitorDevice && isVirtualDevice(selectedMonitorDevice as any)) {
           console.info('[Sokuji] [MainPanel] Selected monitor device is a virtual device - not using as monitor');
           return;
         }
 
-        // If monitor device is turned on, connect the monitor
-        if (isMonitorDeviceOn && selectedMonitorDevice) {
+        // If monitor is not muted, connect the monitor
+        if (!isMonitorMuted && selectedMonitorDevice) {
           console.info(`[Sokuji] [MainPanel] Setting up monitor output to: ${selectedMonitorDevice.label}`);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor
@@ -2517,7 +2683,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateMonitorDevice();
-  }, [selectedMonitorDevice, isMonitorDeviceOn, isSessionActive, selectMonitorDevice]);
+  }, [selectedMonitorDevice, isMonitorMuted, isSessionActive, selectMonitorDevice]);
 
   /**
    * Set up push-to-talk keyboard shortcut
@@ -2525,7 +2691,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     // Enable space hold-to-speak when session is active and we're in a PTT-like mode
     // (Push-to-Talk, Push-to-Translate, or OpenAI's Disabled mode)
-    const isHoldToSpeakEnabled = isSessionActive && canHoldToSpeak;
+    const isHoldToSpeakEnabled = isSessionActive && speakerChannelActive && canHoldToSpeak;
 
     // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2574,7 +2740,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [isSessionActive, canHoldToSpeak, startRecording, stopRecording, isRecording]);
+  }, [isSessionActive, speakerChannelActive, canHoldToSpeak, startRecording, stopRecording, isRecording]);
 
   // Session tracking for analytics
   useEffect(() => {
@@ -2590,6 +2756,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const currentSettings = getCurrentProviderSettings();
         const sessionConfig = getSessionConfig();
         const localConfig = sessionConfig.provider === 'local_inference' ? sessionConfig : null;
+        // Symmetric channel composition — which clients actually started.
+        // ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3.
+        const channels: string[] = [];
+        if (speakerChannelActive) channels.push('speaker');
+        if (participantChannelActive) channels.push('participant');
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
@@ -2606,8 +2777,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
           transport: transportType,
           platform: getEnvironment(),
-          input_device_on: isInputDeviceOn,
-          monitor_device_on: isMonitorDeviceOn,
+          input_device_on: !isMicMuted,
+          monitor_device_on: !isMonitorMuted,
+          channels,
         });
       }
     } else {
@@ -2626,7 +2798,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setTranslationCount(0);
       }
     }
-  }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
+  }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent, speakerChannelActive, participantChannelActive]);
 
   /**
    * Send anchor message if needed to prevent model drift
@@ -2691,7 +2863,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Speaker session anchor mechanism
   useEffect(() => {
     sendAnchorIfNeeded(
-      clientRef.current,
+      speakerClientRef.current,
       items,
       isSessionActive,
       'speaker',
@@ -2703,31 +2875,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Participant session anchor mechanism
   useEffect(() => {
-    // Only activate when participant session exists (systemAudioClientRef is set)
-    const participantClient = systemAudioClientRef.current;
+    // Only activate when participant session exists (participantClientRef is set)
+    const participantClient = participantClientRef.current;
     const isParticipantActive = isSessionActive && participantClient !== null;
 
     sendAnchorIfNeeded(
       participantClient,
-      systemAudioItems,
+      participantItems,
       isParticipantActive,
       'participant',
       () => getProcessedSystemInstructions(true), // Swapped languages for participant
       participantAnchorCountRef,
       5
     );
-  }, [systemAudioItems, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
+  }, [participantItems, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
 
   /**
    * Handle input device changes during active session
    */
   useEffect(() => {
-    // Only handle device changes if session is active and recording
-    if (!isSessionActive || !isInputDeviceOn) {
+    // Only handle device changes if session is active.
+    // Under callback-level pipeline gating the recorder runs continuously (even when
+    // mic is muted), so device switches should be applied immediately regardless of
+    // mute state — the gated callback already prevents sending audio to the AI client.
+    if (!isSessionActive) {
       // Reset initialized flag when session ends
-      if (!isSessionActive) {
-        isInitializedRef.current = false;
-      }
+      isInitializedRef.current = false;
       return;
     }
 
@@ -2779,27 +2952,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     handleDeviceSwitch();
-  }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
+  }, [selectedInputDevice?.deviceId, isSessionActive]);
 
   /**
-   * Handle monitor device on/off state for WebRTC clients
+   * Handle monitor mute state for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Check if client supports muting
     if (typeof client.setOutputMuted === 'function') {
-      client.setOutputMuted(!isMonitorDeviceOn);
-      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', !isMonitorDeviceOn);
+      client.setOutputMuted(isMonitorMuted);
+      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', isMonitorMuted);
     }
-  }, [isMonitorDeviceOn, isSessionActive, isUsingWebRTC]);
+  }, [isMonitorMuted, isSessionActive, isUsingWebRTC]);
 
   /**
    * Handle input device switching for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Don't switch on initial mount (already set during connect)
@@ -2819,7 +2992,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Handle output device switching for WebRTC clients
    */
   useEffect(() => {
-    const client = clientRef.current;
+    const client = speakerClientRef.current;
     if (!isSessionActive || !isUsingWebRTC || !client) return;
 
     // Switch output device if supported
@@ -2858,12 +3031,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {(isSessionActive || combinedItems.length > 0) && (
           <>
           <div className="conversation-toolbar">
-            <DisplayModeButton
-              scope="speaker"
-              value={speakerDisplayMode}
-              onChange={setSpeakerDisplayMode}
-            />
-            {systemAudioItems.length > 0 && (
+            {/*
+              Show each display-mode button when its channel is intent-active for
+              the (current or locked) session, OR when items already exist for that
+              channel — the items fallback keeps the buttons available after the
+              session ends so users can still reconfigure display of historical
+              conversation. Previously: speaker button always showed (wrong in
+              participant-only mode) and participant button was late-binding on
+              items (no preconfig before the first translation arrived).
+            */}
+            {(effectiveMode === 'speaker' || effectiveMode === 'both' || items.length > 0) && (
+              <DisplayModeButton
+                scope="speaker"
+                value={speakerDisplayMode}
+                onChange={setSpeakerDisplayMode}
+              />
+            )}
+            {(effectiveMode === 'participant' || effectiveMode === 'both' || participantItems.length > 0) && (
               <DisplayModeButton
                 scope="participant"
                 value={participantDisplayMode}
@@ -3039,45 +3223,36 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {/* Control Footer — Basic Mode */}
         {uiMode === 'basic' && (
           <div className="control-footer basic">
-            <div className="status-info">
-              <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
-              {isReconnecting && (
-                <span className="reconnecting-label">
-                  {t('connectionStatus.reconnecting', 'Reconnecting...')}
-                </span>
-              )}
-              <span
-                className="language-pair clickable"
-                onClick={() => navigateToSettings('languages')}
-                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
-              >
-                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+            <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
+            {isReconnecting && (
+              <span className="reconnecting-label">
+                {t('connectionStatus.reconnecting', 'Reconnecting...')}
               </span>
-              {isSessionActive && (
-                <span className="session-duration">
-                  {t('simplePanel.sessionDuration', 'Duration')}: {sessionDuration}
-                </span>
-              )}
-              <span className="device-status">
-                <span
-                  className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
-                  onClick={() => navigateToSettings('microphone')}
-                  title={t('simplePanel.clickToConfigMicrophone', 'Click to configure microphone')}
-                >
-                  {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
-                </span>
-                <span
-                  className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
-                  onClick={() => navigateToSettings('speaker')}
-                  title={t('simplePanel.clickToConfigSpeaker', 'Click to configure speaker')}
-                >
-                  {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                </span>
-              </span>
-            </div>
+            )}
+            <ModePicker
+              mode={effectiveMode}
+              locked={isSessionActive || isInitializing}
+              missingDeviceForMode={missingDeviceForMode}
+              onSegmentClick={(target, el) => {
+                if (target === effectiveMode) {
+                  // Toggle: clicking the active segment again closes the popover.
+                  if (modePopoverOpen) {
+                    setModePopoverOpen(false);
+                  } else {
+                    setModePopoverAnchor(el);
+                    setModePopoverOpen(true);
+                  }
+                } else {
+                  handleModeSwitch(target);
+                  setModePopoverOpen(false);
+                }
+              }}
+            />
 
-            <div className="main-controls">
-              {isSessionActive && canHoldToSpeak && (
+            <span className="footer-spacer" />
+
+            <div className="action-cluster">
+              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
@@ -3089,14 +3264,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <span className="btn-text">{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
                 </button>
               )}
-
               <button
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
-                title={!canStartSession && !isSessionActive && provider === Provider.LOCAL_INFERENCE
-                  ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                  : undefined}
+                title={
+                  !canStartSession && !isSessionActive
+                    ? missingDeviceForMode !== null
+                      ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
+                      : provider === Provider.LOCAL_INFERENCE
+                        ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                        : undefined
+                    : undefined
+                }
               >
                 {isInitializing ? (
                   <>
@@ -3120,38 +3300,86 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 )}
               </button>
             </div>
+
+            <span className="footer-spacer" />
+
+            <div className="footer-metadata">
+              <span
+                className="language-pair clickable"
+                onClick={() => navigateToSettings('languages')}
+                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+              >
+                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+              </span>
+              {isSessionActive && (
+                <span className="session-duration">{sessionDuration}</span>
+              )}
+            </div>
           </div>
         )}
 
         {/* Control Footer — Advanced Mode */}
         {uiMode === 'advanced' && (
           <div className="control-footer advanced">
-            <div className="input-viz">
-              <span
-                className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
-                onClick={() => navigateToSettings('microphone')}
-                title={selectedInputDevice?.label || t('mainPanel.input')}
-              >
-                {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
-              </span>
-              <canvas ref={clientCanvasRef} className="visualization-canvas" />
-            </div>
+            <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
 
-            <div className="center-controls">
-              {isSessionActive && canHoldToSpeak && (
+            <ModePicker
+              mode={effectiveMode}
+              locked={isSessionActive || isInitializing}
+              missingDeviceForMode={missingDeviceForMode}
+              onSegmentClick={(target, el) => {
+                if (target === effectiveMode) {
+                  // Toggle: clicking the active segment again closes the popover.
+                  if (modePopoverOpen) {
+                    setModePopoverOpen(false);
+                  } else {
+                    setModePopoverAnchor(el);
+                    setModePopoverOpen(true);
+                  }
+                } else {
+                  handleModeSwitch(target);
+                  setModePopoverOpen(false);
+                }
+              }}
+            />
+
+            {/* Input waveforms (mic + system) grouped with a tight gap so
+                they read as a pair, distinct from the wider footer rhythm. */}
+            {(effectiveMode === 'speaker' || effectiveMode === 'participant' || effectiveMode === 'both') && (
+              <div className="waveform-input-group">
+                {(effectiveMode === 'speaker' || effectiveMode === 'both') && (
+                  <WaveformStrip
+                    kind="mic"
+                    canvasRef={clientCanvasRef}
+                    width={effectiveMode === 'both' ? 'half' : 'full'}
+                  />
+                )}
+                {(effectiveMode === 'participant' || effectiveMode === 'both') && (
+                  <WaveformStrip
+                    kind="system"
+                    canvasRef={systemCanvasRef}
+                    width={effectiveMode === 'both' ? 'half' : 'full'}
+                  />
+                )}
+              </div>
+            )}
+
+            <span className="footer-spacer" />
+
+            <div className="action-cluster">
+              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
                 <button
                   className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
                   onMouseDown={startRecording}
                   onMouseUp={stopRecording}
-                  disabled={!isSessionActive || !canHoldToSpeak || !isInputDeviceOn}
+                  disabled={isMicMuted}
                 >
                   <Mic size={14} />
                   <span>
-                    {isRecording ? t('mainPanel.release') : isInputDeviceOn ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
+                    {isRecording ? t('mainPanel.release') : !isMicMuted ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
                   </span>
                 </button>
               )}
-
               <button
                 className={`session-button ${isSessionActive ? 'active' : ''}`}
                 onClick={() => {
@@ -3185,23 +3413,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
-                    {!isApiKeyValid && (
+                    {missingDeviceForMode !== null && (
+                      <span className="tooltip">
+                        {t('modePicker.missingDevice', 'Configure devices for this mode to start.')}
+                      </span>
+                    )}
+                    {missingDeviceForMode === null && !isApiKeyValid && (
                       <span className="tooltip">
                         {provider === Provider.LOCAL_INFERENCE
                           ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
                           : t('mainPanel.apiKeyRequired')}
                       </span>
                     )}
-                    {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
+                    {missingDeviceForMode === null && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
                     )}
-                    {isApiKeyValid && loadingModels && (
+                    {missingDeviceForMode === null && isApiKeyValid && loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                     )}
-                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>
@@ -3217,25 +3450,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
                 </button>
               )}
+            </div>
 
-              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
-              <span className="language-pair">
+            <span className="footer-spacer" />
+
+            <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" />
+
+            <div className="footer-metadata">
+              <span
+                className="language-pair clickable"
+                onClick={() => navigateToSettings('languages')}
+                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+              >
                 {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
               </span>
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
               )}
-            </div>
-
-            <div className="output-viz">
-              <canvas ref={serverCanvasRef} className="visualization-canvas" />
-              <span
-                className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
-                onClick={() => navigateToSettings('speaker')}
-                title={selectedMonitorDevice?.label || t('mainPanel.output')}
-              >
-                {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              </span>
             </div>
           </div>
         )}
@@ -3264,6 +3495,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
+      {modePopoverOpen && (
+        <ModeDevicePopover
+          mode={effectiveMode}
+          open={modePopoverOpen}
+          anchorEl={modePopoverAnchor}
+          onClose={() => setModePopoverOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -17,7 +17,8 @@
     "autoDetect": "자동 감지",
     "signIn": "로그인",
     "signUp": "가입",
-    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요"
+    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요",
+    "on": "켜기"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
     "transcriptModelTooltipTranslate": "원본 언어 자막. 현재 gpt-realtime-whisper만 지원됩니다.",
     "modelTooltipTranslate": "OpenAI 전용 음성 번역 모델. 출력 음성이 화자 음색에 자동으로 적응합니다.",
-    "translateSourceParticipantWarning": "Participant 번역이 작동하지 않을 수 있습니다 — 선택한 소스 언어가 13개 지원 대상 언어에 없습니다."
+    "translateSourceParticipantWarning": "Participant 번역이 작동하지 않을 수 있습니다 — 선택한 소스 언어가 13개 지원 대상 언어에 없습니다.",
+    "speechModeAppliesTo": "당신의 음성에 적용됩니다. 참가자 오디오는 항상 의미론적 VAD를 사용합니다.",
+    "participantSectionHeader": "참가자 오디오",
+    "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
+    "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 시스템 기본 출력으로 재생됩니다."
   },
   "audioPanel": {
     "title": "오디오 설정",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "스피커를 활성화하기 전에 참가자 오디오를 끄세요.",
     "mutualExclusivityParticipantText": "참가자 오디오를 활성화하기 전에 스피커를 끄세요.",
     "availableSystemAudioSources": "캡처 가능한 시스템 오디오 장치",
-    "refreshSystemAudioSources": "장치 목록 새로고침"
+    "refreshSystemAudioSources": "장치 목록 새로고침",
+    "turnOnMicrophone": "마이크 켜기",
+    "turnOffMicrophone": "마이크 끄기",
+    "turnOnMonitor": "스피커 모니터 켜기",
+    "turnOffMonitor": "스피커 모니터 끄기"
   },
   "logsPanel": {
     "title": "로그",
@@ -402,7 +411,9 @@
       "headerSource": "소스",
       "headerTarget": "대상",
       "headerNote": "참고: 설정은 내보내기 시점의 현재 상태를 반영하며, 세션 중 변경 사항은 포함되지 않습니다."
-    }
+    },
+    "participantAudio": "참가자 오디오",
+    "noChannelConfigured": "시작하기 전에 마이크 또는 참가자 오디오를 활성화하세요."
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",
@@ -429,6 +440,10 @@
           "title": "Sokuji에 오신 것을 환영합니다",
           "content": "Sokuji에 오신 것을 환영합니다! 이 간단한 가이드는 몇 단계만으로 실시간 번역을 시작할 수 있도록 도와드립니다."
         },
+        "mode": {
+          "content": "Sokuji가 무엇을 번역할지 선택하세요: 당신 — 당신 자신의 음성(상대방이 당신을 이해하도록); 상대방 — 다른 참가자가 말하는 내용(당신이 그들을 이해하도록); 또는 모두로 양방향 번역. 이 설정이 어떤 오디오를 캡처할지 결정합니다. 참가자 오디오를 켜려면 상대방 또는 모두를 선택하세요.",
+          "title": "번역 모드"
+        },
         "settings": {
           "title": "1단계: 설정 열기",
           "content": "여기를 클릭하여 언어와 오디오 장치를 구성할 수 있는 설정을 여세요."
@@ -451,7 +466,7 @@
         },
         "systemAudio": {
           "title": "단계 7: 참가자 오디오",
-          "content": "참가자 오디오 캡처를 활성화하여 다른 발언자의 음성을 실시간으로 번역합니다. 브라우저 확장 프로그램에서는 현재 탭의 오디오를 캡처하여 Google Meet, Teams, Zoom 등 웹 회의에서 다른 참가자의 음성을 번역할 수 있습니다. 데스크톱 앱에서는 컴퓨터에서 재생되는 모든 오디오를 캡처하여 YouTube 동영상, Twitch 스트리밍, Netflix 콘텐츠 등 모든 오디오 소스를 번역할 수 있습니다. 참가자 오디오는 음성 인식과 텍스트 번역만 수행하며 음성 합성은 적용되지 않습니다. Sokuji는 마이크를 통해 당신이 말하는 것을 캡처하여 번역하고, 이 기능을 통해 상대방이 말하는 것을 캡처하여 번역합니다. 둘을 함께 사용하면 완전한 양방향 번역이 가능합니다."
+          "content": "이것은 참가자 채널입니다 — 다른 사람이 말하는 내용을 당신을 위해 번역합니다. 번역 모드에서 상대방 또는 모두를 선택하면 켜집니다(당신 모드에서는 꺼진 상태로 유지됩니다). 브라우저 확장 프로그램에서는 현재 탭을 캡처하여 Google Meet, Teams, Zoom의 참가자를 번역할 수 있습니다. 데스크톱 앱에서는 모든 시스템 오디오를 캡처하여 YouTube, Twitch, Netflix 등 모든 소스를 번역할 수 있습니다. 참가자의 음성은 텍스트로만 번역되며 음성 합성은 적용되지 않습니다. 마이크와 함께 사용하면 완전한 양방향 번역이 가능합니다."
         },
         "start": {
           "title": "8단계: 번역 시작",
@@ -479,6 +494,10 @@
       "welcome": {
         "title": "Sokuji에 오신 것을 환영합니다",
         "content": "Sokuji에 오신 것을 환영합니다! 이 가이드는 실시간 음성 번역을 위한 확장 프로그램 설정을 도와드립니다. 시작해보겠습니다!"
+      },
+      "mode": {
+        "content": "Sokuji가 무엇을 번역할지 선택하세요: 당신 — 당신 자신의 음성(상대방이 당신을 이해하도록); 상대방 — 다른 참가자가 말하는 내용(당신이 그들을 이해하도록); 또는 모두로 양방향 번역. 이 설정이 어떤 오디오를 캡처할지 결정합니다. 참가자 오디오를 켜려면 상대방 또는 모두를 선택하세요.",
+        "title": "번역 모드"
       },
       "settings": {
         "title": "1단계: 설정 열기",
@@ -514,7 +533,7 @@
       },
       "systemAudio": {
         "title": "단계 8: 참가자 오디오",
-        "content": "참가자 오디오 캡처를 활성화하여 다른 발언자의 음성을 실시간으로 번역합니다. 브라우저 확장 프로그램에서는 현재 탭의 오디오를 캡처하여 Google Meet, Teams, Zoom 등 웹 회의에서 다른 참가자의 음성을 번역할 수 있습니다. 데스크톱 앱에서는 컴퓨터에서 재생되는 모든 오디오를 캡처하여 YouTube 동영상, Twitch 스트리밍, Netflix 콘텐츠 등 모든 오디오 소스를 번역할 수 있습니다. 참가자 오디오는 음성 인식과 텍스트 번역만 수행하며 음성 합성은 적용되지 않습니다. Sokuji는 마이크를 통해 당신이 말하는 것을 캡처하여 번역하고, 이 기능을 통해 상대방이 말하는 것을 캡처하여 번역합니다. 둘을 함께 사용하면 완전한 양방향 번역이 가능합니다."
+        "content": "이것은 참가자 채널입니다 — 다른 사람이 말하는 내용을 당신을 위해 번역합니다. 번역 모드에서 상대방 또는 모두를 선택하면 켜집니다(당신 모드에서는 꺼진 상태로 유지됩니다). 브라우저 확장 프로그램에서는 현재 탭을 캡처하여 Google Meet, Teams, Zoom의 참가자를 번역할 수 있습니다. 데스크톱 앱에서는 모든 시스템 오디오를 캡처하여 YouTube, Twitch, Netflix 등 모든 소스를 번역할 수 있습니다. 참가자의 음성은 텍스트로만 번역되며 음성 합성은 적용되지 않습니다. 마이크와 함께 사용하면 완전한 양방향 번역이 가능합니다."
       },
       "startSession": {
         "title": "9단계: 세션 시작",
@@ -668,7 +687,8 @@
     "loadingModels": "모델 로딩 중...",
     "noModelsAvailable": "사용 가능한 모델 없음",
     "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
-    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요."
+    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
+    "clickToConfigParticipant": "참가자 오디오를 구성하려면 클릭"
   },
   "connectionStatus": {
     "disconnected": "연결 해제됨",
@@ -867,5 +887,32 @@
     "minimize": "최소화",
     "maximize": "최대화",
     "close": "닫기"
+  },
+  "modePicker": {
+    "modeYou": "당신",
+    "modeParticipants": "상대방",
+    "modeBoth": "모두",
+    "groupLabel": "번역 모드",
+    "descYou": "당신의 음성 → 상대방을 위해 번역. 당신의 말을 번역하여 상대방이 이해할 수 있게 합니다.",
+    "descOthers": "상대방의 음성 → 당신을 위해 번역. 참가자의 말을 번역하여 당신이 이해할 수 있게 합니다.",
+    "descBoth": "양방향. 당신의 음성과 상대방의 음성을 동시에 번역합니다.",
+    "switchDisabled": "세션 중에는 모드가 잠겨 있습니다.",
+    "configureDevices": "클릭하여 장치를 구성하세요.",
+    "missingDevice": "이 모드를 시작하려면 장치를 구성하세요.",
+    "popoverHeaderYou": "당신 — 장치",
+    "popoverHeaderParticipants": "상대방 — 장치",
+    "popoverHeaderBoth": "모두 — 장치",
+    "popoverFooter": "전체 설정 →",
+    "deviceMic": "마이크",
+    "deviceSpeakerMonitor": "스피커 모니터",
+    "notSelected": "선택 안 됨",
+    "deviceParticipantAudio": "참가자 오디오"
+  },
+  "popover": {
+    "statusOff": "끄기",
+    "toggleOn": "{{label}} 켜기",
+    "toggleOff": "{{label}} 끄기",
+    "participantSubtitleElectron": "모든 시스템 오디오",
+    "participantSubtitleExtension": "시스템 기본 출력으로 재생"
   }
 }

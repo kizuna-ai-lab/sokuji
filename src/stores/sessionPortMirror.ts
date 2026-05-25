@@ -11,7 +11,7 @@ interface InboundStateInit {
   type: 'state-init';
   payload: {
     items?: any[];
-    systemAudioItems?: any[];
+    participantItems?: any[];
     isSessionActive?: boolean;
     sessionStartTime?: number | null;
     provider?: string;
@@ -24,7 +24,7 @@ interface InboundStateInit {
 interface InboundItems {
   type: 'items';
   items: any[];
-  systemAudioItems?: any[];
+  participantItems?: any[];
 }
 interface InboundSession {
   type: 'session';
@@ -159,7 +159,7 @@ function handle(msg: Inbound): void {
   if (msg.type === 'state-init') {
     useSessionStore.setState({
       items: msg.payload.items ?? [],
-      systemAudioItems: msg.payload.systemAudioItems ?? [],
+      participantItems: msg.payload.participantItems ?? [],
       isSessionActive: msg.payload.isSessionActive ?? false,
       sessionStartTime: msg.payload.sessionStartTime ?? null,
     } as any);
@@ -186,7 +186,7 @@ function handle(msg: Inbound): void {
   } else if (msg.type === 'items') {
     useSessionStore.setState({
       items: msg.items,
-      systemAudioItems: msg.systemAudioItems ?? useSessionStore.getState().systemAudioItems,
+      participantItems: msg.participantItems ?? useSessionStore.getState().participantItems,
     } as any);
   } else if (msg.type === 'session') {
     useSessionStore.setState({

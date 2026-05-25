@@ -176,7 +176,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       type: 'state-init',
       payload: {
         items: session.items,
-        systemAudioItems: session.systemAudioItems,
+        participantItems: session.participantItems,
         isSessionActive: session.isSessionActive,
         sessionStartTime: session.sessionStartTime,
         provider: lastConfig.provider,
@@ -189,17 +189,17 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
 
     // Subscribe to subsequent changes.
     const unsubItems = useSessionStore.subscribe(
-      (s) => ({ items: s.items, systemAudioItems: s.systemAudioItems }),
+      (s) => ({ items: s.items, participantItems: s.participantItems }),
       (next) => {
         this.port?.postMessage({
           type: 'items',
           items: next.items,
-          systemAudioItems: next.systemAudioItems,
+          participantItems: next.participantItems,
         });
       },
       {
         equalityFn: (a, b) =>
-          a.items === b.items && a.systemAudioItems === b.systemAudioItems,
+          a.items === b.items && a.participantItems === b.participantItems,
       },
     );
     const unsubSession = useSessionStore.subscribe(

@@ -1,0 +1,88 @@
+// Segmented control. Color palette and structure mirror the
+// .segmented-control.noise-suppression-modes in Settings.scss so the two
+// segmented controls look like the same component across the app:
+//   - 1px outer border (var --border-color, #333)
+//   - Each option fills with var --bg-secondary (#1a1a1a)
+//   - Options separated by border-right (not a gap)
+//   - Hover var --bg-hover (#252525)
+//   - Active #10a37f / #fff
+//
+// Deviation from noise-suppression: NO font-weight change on active.
+// Active state is differentiated by bg + text color only — keeps segment
+// width stable when the user switches modes (noise-suppression doesn't
+// have this concern because all three labels are roughly the same width).
+.mode-picker {
+  display: inline-flex;
+  align-items: stretch;
+  height: 28px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &__segment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 12px;
+    font-size: 12px;
+    color: var(--text-secondary, #aaa);
+    background: var(--bg-secondary, #333);
+    border: 0;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+
+    svg { flex-shrink: 0; }
+
+    &:not(:last-child) {
+      border-right: 1px solid var(--border-color, #444);
+    }
+
+    &:hover:not(.mode-picker__segment--active):not(:disabled) {
+      background: var(--bg-hover, #3a3a3a);
+    }
+
+    &--active {
+      background: #10a37f;
+      color: #fff;
+    }
+
+    &--warn {
+      box-shadow: inset 0 0 0 1px #f59e0b;
+    }
+  }
+
+  &--locked {
+    opacity: 0.85;
+    .mode-picker__segment {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    // Active segment stays clickable in-session (opens the device popover),
+    // so override the locked-cursor to signal it's interactive.
+    .mode-picker__segment--active {
+      opacity: 1;
+      background: #555;
+      color: #fff;
+      cursor: pointer;
+    }
+  }
+}
+
+// Narrow-container fallback — hide segment labels, keep icons only.
+// Threshold matched to .main-action-btn / .session-button / .push-to-talk*
+// (defined in MainPanel.scss at the same 768px container breakpoint) so
+// the picker collapses to icons-only at the same time the Start/PTT
+// buttons collapse to icon-only. Keeps the whole footer's "compact"
+// transition synchronized.
+@container (max-width: 768px) {
+  .mode-picker__label { display: none; }
+  .mode-picker__segment {
+    padding: 0 10px;
+    gap: 0;
+  }
+}

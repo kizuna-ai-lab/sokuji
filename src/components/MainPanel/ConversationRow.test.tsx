@@ -103,6 +103,19 @@ describe('ConversationRow — expanded (default) mode', () => {
     expect(container.querySelector('.row-play-btn')).toBeNull();
   });
 
+  it('does not render a play button on participant rows (text-only channel, no audio)', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'participant', role: 'assistant' })}
+        prevItem={null}
+        canPlay
+        onPlay={() => {}}
+      />,
+    );
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+  });
+
   it('does not render the play button when onPlay is not provided', () => {
     const { container } = render(
       <ConversationRow

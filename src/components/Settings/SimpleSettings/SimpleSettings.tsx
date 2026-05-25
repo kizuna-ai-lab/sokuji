@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useIsSessionActive } from '../../../stores/sessionStore';
+import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
+import { useMode } from '../../../stores/audioStore';
 import { useNavigateToSettings, useSettingsNavigationTarget } from '../../../stores/settingsStore';
-import { useAudioContext } from '../../../stores/audioStore';
-import WarningModal from '../shared/WarningModal';
-import { WarningType } from '../shared/hooks';
 import {
   AccountSection,
   ProviderSection,
@@ -24,13 +22,28 @@ interface SimpleSettingsProps {
 const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => {
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
+  const lockedMode = useLockedMode();
+  const mode = useMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const navigateToSettings = useNavigateToSettings();
 
-  const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
-
-  // Warning modal state for mutual exclusivity
-  const [warningType, setWarningType] = useState<WarningType | null>(null);
+  // Per-channel lock derivation. A section is locked (greyed/disabled) when
+  // its channel is out of the mode's scope, so the mode picker is the master
+  // control. The monitor <-> participant mutual exclusivity is enforced by
+  // mode scope: monitor is in scope ONLY in pure speaker mode, and its
+  // playback is mode-gated at session init and on every mode switch (see
+  // audioStore setMode / initializeAudioService) — locking the section here
+  // keeps the UI from offering a toggle that can't take effect.
+  const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
+  // Participant toggle is disabled whenever participant is out of the effective
+  // mode scope, so the mode picker is the master control. Pre-session this means
+  // Speaker mode disables it; in-session the locked mode governs.
+  const effectiveMode = lockedMode ?? mode;
+  // Monitor is in scope ONLY in pure speaker mode (mutex with participant) —
+  // locked in Both/Participant pre- and in-session so it can't be enabled
+  // where it would violate the mutex.
+  const lockMonitor = effectiveMode !== 'speaker';
+  const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
   // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
   useEffect(() => {
@@ -53,12 +66,6 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
   return (
     <div className="simple-settings">
-      <WarningModal
-        isOpen={warningType !== null}
-        onClose={() => setWarningType(null)}
-        type={warningType}
-      />
-
       <div className="settings-content">
         {isSessionActive && (
           <div className="session-warning">
@@ -90,27 +97,26 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isSessionActive={isSessionActive}
         />
 
-        {/* Microphone Selection */}
+        {/* Microphone */}
         <AudioDeviceSection
           isSessionActive={isSessionActive}
+          isLocked={lockMic}
           showMicrophone={true}
           showSpeaker={false}
         />
 
-        {/* Speaker Selection */}
+        {/* Speaker monitor */}
         <AudioDeviceSection
           isSessionActive={isSessionActive}
+          isLocked={lockMonitor}
           showMicrophone={false}
           showSpeaker={true}
-          isSystemAudioEnabled={isSystemAudioCaptureEnabled}
-          onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
         />
 
-        {/* System Audio / Participant Audio */}
+        {/* Participant audio (system audio capture) */}
         <SystemAudioSection
           isSessionActive={isSessionActive}
-          isMonitorDeviceOn={isMonitorDeviceOn}
-          onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+          isLocked={lockParticipant}
         />
 
         {/* Help & Updates */}

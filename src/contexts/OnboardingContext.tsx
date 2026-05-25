@@ -44,7 +44,7 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
 const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
-const ONBOARDING_VERSION = '1.1.0';
+const ONBOARDING_VERSION = '1.2.0';
 
 // Basic mode onboarding steps - simplified for regular users.
 // The account step targets #user-account-section, which AccountSection only
@@ -65,6 +65,12 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
         primaryColor: '#10a37f',
       }
     }
+  },
+  {
+    target: '.mode-picker',
+    content: t('onboarding.basic.steps.mode.content', "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
+    title: t('onboarding.basic.steps.mode.title', 'Translation mode'),
+    placement: 'top',
   },
   {
     target: '.settings-button',
@@ -103,8 +109,8 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     placement: 'left',
   },
   {
-    target: '#system-audio-section',
-    content: t('onboarding.basic.steps.systemAudio.content', 'Enable participant audio capture to translate other speakers\' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation.'),
+    target: '#participant-section',
+    content: t('onboarding.basic.steps.systemAudio.content', 'This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation.'),
     title: t('onboarding.basic.steps.systemAudio.title', 'Step 7: Participant Audio'),
     placement: 'left',
   },
@@ -140,6 +146,12 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
           primaryColor: '#007bff',
         }
       }
+    },
+    {
+      target: '.mode-picker',
+      content: t('onboarding.steps.mode.content', "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
+      title: t('onboarding.steps.mode.title', 'Translation mode'),
+      placement: 'top',
     },
     {
       target: '.settings-button',
@@ -184,8 +196,8 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
       placement: 'left',
     },
     {
-      target: '#system-audio-section',
-      content: t('onboarding.steps.systemAudio.content', 'Enable participant audio capture to translate other speakers\' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation.'),
+      target: '#participant-section',
+      content: t('onboarding.steps.systemAudio.content', 'This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation.'),
       title: t('onboarding.steps.systemAudio.title', 'Step 8: Participant Audio'),
       placement: 'left',
     },

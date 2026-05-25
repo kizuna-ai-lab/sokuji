@@ -52,6 +52,14 @@ export interface IParticipantAudioRecorder {
    * End recording session and clean up all resources
    */
   end(): Promise<void>;
+
+  /**
+   * Returns the AnalyserNode tapped from the captured audio stream, or null
+   * if the recorder is not currently capturing. Consumers call
+   * getByteTimeDomainData() against this node from a requestAnimationFrame
+   * loop to draw a waveform.
+   */
+  getAnalyser(): AnalyserNode | null;
 }
 
 /**
@@ -66,6 +74,7 @@ export function isParticipantAudioRecorder(recorder: unknown): recorder is IPart
     'begin' in recorder &&
     'record' in recorder &&
     'pause' in recorder &&
-    'end' in recorder
+    'end' in recorder &&
+    'getAnalyser' in recorder
   );
 }

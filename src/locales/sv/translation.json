@@ -16,7 +16,8 @@
     "off": "Av",
     "autoDetect": "Automatisk Detektion",
     "signIn": "Logga in",
-    "signUp": "Registrera"
+    "signUp": "Registrera",
+    "on": "På"
   },
   "app": {
     "title": "Sokuji",
@@ -277,7 +278,11 @@
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
     "transcriptModelTooltipTranslate": "Källspråksundertexter. För närvarande stöds endast gpt-realtime-whisper.",
     "modelTooltipTranslate": "OpenAIs särskilda röstöversättningsmodell. Rösten anpassas automatiskt till källtalaren.",
-    "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds."
+    "translateSourceParticipantWarning": "Participant-översättning kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds.",
+    "speechModeAppliesTo": "Gäller din röst. Deltagarljud använder alltid semantisk VAD.",
+    "participantSectionHeader": "Deltagarljud",
+    "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
+    "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång."
   },
   "mainPanel": {
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
@@ -330,7 +335,9 @@
       "headerSource": "Källa",
       "headerTarget": "Mål",
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
-    }
+    },
+    "participantAudio": "Deltagarljud",
+    "noChannelConfigured": "Aktivera mikrofon eller deltagarljud innan du börjar."
   },
   "audioPanel": {
     "title": "Ljudinställningar",
@@ -345,7 +352,11 @@
     "mutualExclusivitySpeakerText": "Stäng av Deltagarljud innan du aktiverar Högtalare.",
     "mutualExclusivityParticipantText": "Stäng av Högtalare innan du aktiverar Deltagarljud.",
     "availableSystemAudioSources": "Fångningsbara systemaudioenheter",
-    "refreshSystemAudioSources": "Uppdatera enhetslista"
+    "refreshSystemAudioSources": "Uppdatera enhetslista",
+    "turnOnMicrophone": "Slå på mikrofon",
+    "turnOffMicrophone": "Stäng av mikrofon",
+    "turnOnMonitor": "Slå på högtalarmonitor",
+    "turnOffMonitor": "Stäng av högtalarmonitor"
   },
   "logsPanel": {
     "title": "Loggar",
@@ -380,6 +391,10 @@
           "title": "Welcome to Sokuji",
           "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
         },
+        "mode": {
+          "content": "Välj vad Sokuji översätter: Du — din egen röst (så att andra förstår dig); Andra — vad andra deltagare säger (så att du förstår dem); eller Båda för tvåvägsöversättning. Detta avgör vilket ljud som fångas — välj Andra eller Båda för att slå på deltagarljud.",
+          "title": "Översättningsläge"
+        },
         "settings": {
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
@@ -402,7 +417,7 @@
         },
         "systemAudio": {
           "title": "Steg 7: Deltagarljud",
-          "content": "Aktivera deltagarljudinspelning för att översätta andra talares tal i realtid. I webbläsartillägget fångar denna funktion ljudet från den aktuella fliken och kan översätta andra deltagares röster i webbkonferenser som Google Meet, Teams, Zoom med flera. I skrivbordsappen fångar denna funktion allt ljud som datorn spelar upp och kan översätta YouTube-videor, Twitch-strömmar, Netflix-innehåll och vilken annan ljudkälla som helst. Deltagarljud utför bara taligenkänning och textöversättning, ingen talsyntes. Sokuji fångar och översätter vad du säger via mikrofonen, och fångar och översätter vad den andra personen säger via denna funktion. Tillsammans möjliggör de fullständig tvåvägsöversättning."
+          "content": "Detta är deltagarkanalen — vad andra säger, översatt för dig. Slå på den genom att välja Andra eller Båda i översättningsläget (den förblir av i läget Du). I webbläsartillägget fångar den den aktuella fliken så att du kan översätta deltagare i Google Meet, Teams eller Zoom. I skrivbordsappen fångar den allt systemljud, så att du kan översätta YouTube, Twitch, Netflix eller vilken källa som helst. Deltagarnas tal översätts endast till text — ingen talsyntes. Tillsammans med din mikrofon ger detta fullständig tvåvägsöversättning."
         },
         "start": {
           "title": "Steg 8: Börja Översätta",
@@ -430,6 +445,10 @@
       "welcome": {
         "title": "Välkommen till Sokuji!",
         "content": "Välkommen till realtidsapplikationen för röstöversättning! Låt oss snabbt konfigurera ditt system för bästa upplevelse."
+      },
+      "mode": {
+        "content": "Välj vad Sokuji översätter: Du — din egen röst (så att andra förstår dig); Andra — vad andra deltagare säger (så att du förstår dem); eller Båda för tvåvägsöversättning. Detta avgör vilket ljud som fångas — välj Andra eller Båda för att slå på deltagarljud.",
+        "title": "Översättningsläge"
       },
       "openSettings": {
         "title": "Öppna inställningspanelen",
@@ -465,7 +484,7 @@
       },
       "systemAudio": {
         "title": "Steg 8: Deltagarljud",
-        "content": "Aktivera deltagarljudinspelning för att översätta andra talares tal i realtid. I webbläsartillägget fångar denna funktion ljudet från den aktuella fliken och kan översätta andra deltagares röster i webbkonferenser som Google Meet, Teams, Zoom med flera. I skrivbordsappen fångar denna funktion allt ljud som datorn spelar upp och kan översätta YouTube-videor, Twitch-strömmar, Netflix-innehåll och vilken annan ljudkälla som helst. Deltagarljud utför bara taligenkänning och textöversättning, ingen talsyntes. Sokuji fångar och översätter vad du säger via mikrofonen, och fångar och översätter vad den andra personen säger via denna funktion. Tillsammans möjliggör de fullständig tvåvägsöversättning."
+        "content": "Detta är deltagarkanalen — vad andra säger, översatt för dig. Slå på den genom att välja Andra eller Båda i översättningsläget (den förblir av i läget Du). I webbläsartillägget fångar den den aktuella fliken så att du kan översätta deltagare i Google Meet, Teams eller Zoom. I skrivbordsappen fångar den allt systemljud, så att du kan översätta YouTube, Twitch, Netflix eller vilken källa som helst. Deltagarnas tal översätts endast till text — ingen talsyntes. Tillsammans med din mikrofon ger detta fullständig tvåvägsöversättning."
       },
       "startSession": {
         "title": "Starta din session",
@@ -624,7 +643,8 @@
     "loadingModels": "Laddar modeller...",
     "noModelsAvailable": "Inga modeller tillgängliga",
     "insufficientBalance": "Otillräckligt tokensaldo: {{balance}} tokens",
-    "walletFrozen": "Plånboken är frusen. Kontakta supporten."
+    "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
+    "clickToConfigParticipant": "Klicka för att konfigurera deltagarljud"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",
@@ -823,5 +843,32 @@
     "minimize": "Minimera",
     "maximize": "Maximera",
     "close": "Stäng"
+  },
+  "modePicker": {
+    "modeYou": "Du",
+    "modeParticipants": "Andra",
+    "modeBoth": "Båda",
+    "groupLabel": "Översättningsläge",
+    "descYou": "Din röst → översatt för andra. Översätter det du säger så att andra förstår dig.",
+    "descOthers": "Andras röster → översatta för dig. Översätter det deltagarna säger så att du förstår dem.",
+    "descBoth": "Tvåvägs. Översätter din röst och andras samtidigt.",
+    "switchDisabled": "Läget är låst under en session.",
+    "configureDevices": "Klicka för att konfigurera enheter.",
+    "missingDevice": "Konfigurera enheter för detta läge för att börja.",
+    "popoverHeaderYou": "Du — enheter",
+    "popoverHeaderParticipants": "Deltagare — enheter",
+    "popoverHeaderBoth": "Båda — enheter",
+    "popoverFooter": "Fullständiga inställningar →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Högtalarmonitor",
+    "notSelected": "Inte vald",
+    "deviceParticipantAudio": "Deltagarljud"
+  },
+  "popover": {
+    "statusOff": "Av",
+    "toggleOn": "Slå på {{label}}",
+    "toggleOff": "Stäng av {{label}}",
+    "participantSubtitleElectron": "Allt systemljud",
+    "participantSubtitleExtension": "Spelas upp via systemets standardutgång"
   }
 }

@@ -115,6 +115,15 @@ export abstract class ParticipantRecorder extends BaseAudioRecorder implements I
   }
 
   /**
+   * Returns the AnalyserNode tapped from the captured audio stream, or null
+   * if the recorder is not currently capturing. Side-branch off the shared
+   * MediaStreamSource created in BaseAudioRecorder — see setupRealtimeAudioProcessing.
+   */
+  getAnalyser(): AnalyserNode | null {
+    return this.analyserNode;
+  }
+
+  /**
    * End recording session and clean up
    */
   async end(): Promise<void> {

@@ -5,11 +5,19 @@ import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode } from '../../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
+  /** Real session-active state — used for analytics (during_session) only. */
   isSessionActive: boolean;
+  /**
+   * Per-channel lock — when true, disable interactive controls.
+   * Defaults to isSessionActive for backward compatibility.
+   * Callers that need finer-grained control (locking specific channels
+   * while a session is active) should pass this explicitly.
+   */
+  isLocked?: boolean;
   /** Show microphone section */
   showMicrophone?: boolean;
   /** Show speaker section */
@@ -24,12 +32,20 @@ interface AudioDeviceSectionProps {
 
 const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   isSessionActive,
+  isLocked,
   showMicrophone = true,
   showSpeaker = true,
   isSystemAudioEnabled = false,
   onSpeakerMutualExclusivity,
   className = ''
 }) => {
+  const locked = isLocked ?? isSessionActive;
+  // Monitor is in scope only in pure speaker mode (mutex with participant).
+  // Out of scope the monitor toggle reads Off even though the user's saved
+  // preference (isMonitorMuted) is preserved underneath and restored when they
+  // return to speaker mode — keeps the displayed state honest (the monitor is
+  // silenced) without destroying the preference.
+  const monitorInScope = useIsMonitorChannelInScope();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
@@ -40,13 +56,13 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
     audioMonitorDevices,
     selectedInputDevice,
     selectedMonitorDevice,
-    isInputDeviceOn,
-    isMonitorDeviceOn,
+    isMicMuted,
+    isMonitorMuted,
     isLoading,
     selectInputDevice,
     selectMonitorDevice,
-    toggleInputDeviceState,
-    toggleMonitorDeviceState,
+    setMicMuted,
+    setMonitorMuted,
     refreshDevices
   } = useAudioContext();
 
@@ -58,8 +74,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
   const handleInputDeviceSelect = (device: AudioDevice) => {
-    if (!isInputDeviceOn) {
-      toggleInputDeviceState();
+    if (isMicMuted) {
+      setMicMuted(false);
     }
     selectInputDevice(device);
     trackEvent('audio_device_changed', {
@@ -81,8 +97,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
       return;
     }
 
-    if (!isMonitorDeviceOn) {
-      toggleMonitorDeviceState();
+    if (isMonitorMuted) {
+      setMonitorMuted(false);
     }
     selectMonitorDevice(device);
     trackEvent('audio_device_changed', {
@@ -142,13 +158,17 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredInputDevices}
             selectedDevice={selectedInputDevice}
-            isDeviceOn={isInputDeviceOn}
+            isDeviceOn={!isMicMuted}
             onSelect={handleInputDeviceSelect}
-            onToggleOff={toggleInputDeviceState}
+            onToggleOff={() => setMicMuted(!isMicMuted)}
+            disabled={locked}
             deviceType="input"
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleInputVirtualDeviceClick}
+            toggleAriaLabel={isMicMuted
+              ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
+              : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
           />
 
           {/* Noise Suppression Mode */}
@@ -213,14 +233,17 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedMonitorDevice}
-            isDeviceOn={isMonitorDeviceOn}
+            isDeviceOn={!isMonitorMuted && monitorInScope}
             onSelect={handleMonitorDeviceSelect}
-            onToggleOff={toggleMonitorDeviceState}
-            disabled={isSystemAudioEnabled}
+            onToggleOff={() => setMonitorMuted(!isMonitorMuted)}
+            disabled={locked}
             deviceType="output"
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleOutputVirtualDeviceClick}
+            toggleAriaLabel={isMonitorMuted
+              ? t('audioPanel.turnOnMonitor', 'Turn on speaker monitor')
+              : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
           />
         </div>
       )}

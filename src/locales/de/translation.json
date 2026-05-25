@@ -17,7 +17,8 @@
     "autoDetect": "Automatische Erkennung",
     "signIn": "Anmelden",
     "signUp": "Registrieren",
-    "signInRequired": "Bitte melden Sie sich an, um Kizuna AI als Anbieter zu verwenden"
+    "signInRequired": "Bitte melden Sie sich an, um Kizuna AI als Anbieter zu verwenden",
+    "on": "Ein"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "Der API-Schlüssel funktioniert, aber gpt-realtime-translate ist mit diesem Schlüssel nicht zugänglich.",
     "transcriptModelTooltipTranslate": "Untertitel in Ausgangssprache. Derzeit wird nur gpt-realtime-whisper unterstützt.",
     "modelTooltipTranslate": "OpenAIs spezielles Sprachübersetzungsmodell. Die Stimme passt sich automatisch an den Originalsprecher an.",
-    "translateSourceParticipantWarning": "Die Participant-Übersetzung funktioniert möglicherweise nicht — Ihre gewählte Ausgangssprache ist nicht in den 13 unterstützten Zielsprachen."
+    "translateSourceParticipantWarning": "Die Participant-Übersetzung funktioniert möglicherweise nicht — Ihre gewählte Ausgangssprache ist nicht in den 13 unterstützten Zielsprachen.",
+    "speechModeAppliesTo": "Gilt für Ihre Stimme. Teilnehmer-Audio verwendet immer semantische VAD.",
+    "participantSectionHeader": "Teilnehmer-Audio",
+    "participantSectionDescriptionElectron": "Audio von jeder auf diesem System laufenden Anwendung übersetzen.",
+    "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über die Standardausgabe Ihres Systems wiedergegeben."
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
@@ -323,7 +328,11 @@
     "mutualExclusivitySpeakerText": "Bitte schalten Sie Teilnehmer-Audio aus, bevor Sie den Lautsprecher aktivieren.",
     "mutualExclusivityParticipantText": "Bitte schalten Sie den Lautsprecher aus, bevor Sie Teilnehmer-Audio aktivieren.",
     "availableSystemAudioSources": "Erfassbare Systemaudiogeräte",
-    "refreshSystemAudioSources": "Geräteliste aktualisieren"
+    "refreshSystemAudioSources": "Geräteliste aktualisieren",
+    "turnOnMicrophone": "Mikrofon einschalten",
+    "turnOffMicrophone": "Mikrofon ausschalten",
+    "turnOnMonitor": "Lautsprecher-Überwachung einschalten",
+    "turnOffMonitor": "Lautsprecher-Überwachung ausschalten"
   },
   "logsPanel": {
     "title": "Protokolle",
@@ -402,7 +411,9 @@
       "headerSource": "Quelle",
       "headerTarget": "Ziel",
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
-    }
+    },
+    "participantAudio": "Teilnehmer-Audio",
+    "noChannelConfigured": "Aktivieren Sie das Mikrofon oder Teilnehmer-Audio, bevor Sie starten."
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -429,6 +440,10 @@
           "title": "Willkommen bei Sokuji",
           "content": "Willkommen bei Sokuji! Diese einfache Anleitung hilft Ihnen dabei, die Echtzeit-Übersetzung in nur wenigen Schritten zu nutzen."
         },
+        "mode": {
+          "content": "Wählen Sie, was Sokuji übersetzt: Sie — Ihre eigene Stimme (damit andere Sie verstehen); Andere — was andere Teilnehmer sagen (damit Sie sie verstehen); oder Beides für zweisprachige Übersetzung. Dies legt fest, welches Audio erfasst wird — wählen Sie Andere oder Beides, um Teilnehmer-Audio einzuschalten.",
+          "title": "Übersetzungsmodus"
+        },
         "settings": {
           "title": "Schritt 1: Einstellungen öffnen",
           "content": "Klicken Sie hier, um die Einstellungen zu öffnen, wo Sie Ihre Sprachen und Audiogeräte konfigurieren können."
@@ -451,7 +466,7 @@
         },
         "systemAudio": {
           "title": "Schritt 7: Teilnehmer-Audio",
-          "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
+          "content": "Dies ist der Teilnehmer-Kanal — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Andere oder Beides wählen (im Modus Sie bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Teilnehmer in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Teilnehmer-Sprache wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
         },
         "start": {
           "title": "Schritt 8: Übersetzen starten",
@@ -479,6 +494,10 @@
       "welcome": {
         "title": "Willkommen bei Sokuji",
         "content": "Willkommen bei Sokuji! Diese Anleitung hilft Ihnen dabei, die Erweiterung für Live-Sprachübersetzung einzurichten. Lassen Sie uns beginnen!"
+      },
+      "mode": {
+        "content": "Wählen Sie, was Sokuji übersetzt: Sie — Ihre eigene Stimme (damit andere Sie verstehen); Andere — was andere Teilnehmer sagen (damit Sie sie verstehen); oder Beides für zweisprachige Übersetzung. Dies legt fest, welches Audio erfasst wird — wählen Sie Andere oder Beides, um Teilnehmer-Audio einzuschalten.",
+        "title": "Übersetzungsmodus"
       },
       "settings": {
         "title": "Schritt 1: Einstellungen öffnen",
@@ -514,7 +533,7 @@
       },
       "systemAudio": {
         "title": "Schritt 8: Teilnehmer-Audio",
-        "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
+        "content": "Dies ist der Teilnehmer-Kanal — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Andere oder Beides wählen (im Modus Sie bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Teilnehmer in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Teilnehmer-Sprache wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
       },
       "startSession": {
         "title": "Schritt 9: Sitzung starten",
@@ -669,7 +688,8 @@
     "loadingModels": "Modelle werden geladen...",
     "noModelsAvailable": "Keine Modelle verfügbar",
     "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
-    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support."
+    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
+    "clickToConfigParticipant": "Klicken Sie, um Teilnehmer-Audio zu konfigurieren"
   },
   "connectionStatus": {
     "disconnected": "Getrennt",
@@ -868,5 +888,32 @@
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "close": "Schließen"
+  },
+  "modePicker": {
+    "modeYou": "Sie",
+    "modeParticipants": "Andere",
+    "modeBoth": "Beides",
+    "groupLabel": "Übersetzungsmodus",
+    "descYou": "Ihre Stimme → für andere übersetzt. Übersetzt, was Sie sagen, damit andere Sie verstehen.",
+    "descOthers": "Stimmen anderer → für Sie übersetzt. Übersetzt, was die Teilnehmer sagen, damit Sie sie verstehen.",
+    "descBoth": "In beide Richtungen. Übersetzt Ihre Stimme und die der anderen gleichzeitig.",
+    "switchDisabled": "Der Modus ist während einer Sitzung gesperrt.",
+    "configureDevices": "Klicken Sie, um Geräte zu konfigurieren.",
+    "missingDevice": "Konfigurieren Sie die Geräte für diesen Modus, um zu starten.",
+    "popoverHeaderYou": "Sie — Geräte",
+    "popoverHeaderParticipants": "Teilnehmer — Geräte",
+    "popoverHeaderBoth": "Beides — Geräte",
+    "popoverFooter": "Vollständige Einstellungen →",
+    "deviceMic": "Mikrofon",
+    "deviceSpeakerMonitor": "Lautsprecher-Überwachung",
+    "notSelected": "Nicht ausgewählt",
+    "deviceParticipantAudio": "Teilnehmer-Audio"
+  },
+  "popover": {
+    "statusOff": "Aus",
+    "toggleOn": "{{label}} einschalten",
+    "toggleOff": "{{label}} ausschalten",
+    "participantSubtitleElectron": "Gesamtes Systemaudio",
+    "participantSubtitleExtension": "Wiedergabe über Systemstandard"
   }
 }

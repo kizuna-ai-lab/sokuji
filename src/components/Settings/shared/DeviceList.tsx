@@ -20,6 +20,8 @@ interface DeviceListProps {
   onVirtualDeviceClick?: (device: AudioDevice) => void;
   /** Additional class name */
   className?: string;
+  /** Accessible label for the Off option (context-specific, e.g. "Turn off microphone") */
+  toggleAriaLabel?: string;
 }
 
 const DeviceList: React.FC<DeviceListProps> = ({
@@ -33,7 +35,8 @@ const DeviceList: React.FC<DeviceListProps> = ({
   filterVirtual = false,
   showVirtualIndicators = true,
   onVirtualDeviceClick,
-  className = ''
+  className = '',
+  toggleAriaLabel
 }) => {
   const { t } = useTranslation();
 
@@ -88,6 +91,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
         role="option"
         aria-selected={!isDeviceOn}
         aria-disabled={disabled}
+        aria-label={toggleAriaLabel}
         tabIndex={disabled ? -1 : 0}
       >
         <span>{t('common.off', 'Off')}</span>

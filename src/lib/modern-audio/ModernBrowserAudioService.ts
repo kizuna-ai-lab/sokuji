@@ -101,11 +101,11 @@ export class ModernBrowserAudioService implements IAudioService {
 
     this.initialized = true;
     console.info('[Sokuji] [ModernBrowserAudio] Audio service initialized');
-    
+
     // Start diagnostics monitoring in development
     this.startDiagnosticsMonitoring();
   }
-  
+
   // Issue #246 — previous passthrough snapshot, used to compute write/read rates
   // (samples-per-second) between 5s diagnostic ticks.
   private prevPtSnapshot: {
@@ -1403,5 +1403,31 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public isParticipantAudioRecordingActive(): boolean {
     return this.tabAudioRecordingActive || this.systemAudioRecordingActive;
+  }
+
+  /**
+   * AnalyserNode for the participant audio capture stream. Returns null
+   * when participant capture is not active. Used by MainPanel to drive
+   * the participant waveform visualization.
+   */
+  public getParticipantAnalyser(): AnalyserNode | null {
+    if (this.tabAudioRecordingActive) {
+      return this.tabAudioRecorder?.getAnalyser() ?? null;
+    }
+    if (this.systemAudioRecordingActive) {
+      return this.systemAudioRecorder?.getAnalyser() ?? null;
+    }
+    return null;
+  }
+
+  /**
+   * Tear down the audio service and release all resources.
+   * Safe to call multiple times.
+   */
+  public destroy(): void {
+    if (this.diagnosticsInterval) {
+      clearInterval(this.diagnosticsInterval);
+      this.diagnosticsInterval = null;
+    }
   }
 }

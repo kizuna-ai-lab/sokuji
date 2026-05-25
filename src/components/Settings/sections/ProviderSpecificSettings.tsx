@@ -473,7 +473,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <h2>
           {t('settings.speechMode')}
           <Tooltip
-            content={t('settings.turnDetectionTooltip')}
+            content={`${t('settings.turnDetectionTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
             position="top"
           >
             <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1052,7 +1052,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <h2>
           {t('settings.speechMode')}
           <Tooltip
-            content={t('settings.geminiVadTooltip')}
+            content={`${t('settings.geminiVadTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
             position="top"
           >
             <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1619,7 +1619,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>
             {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
+              content={`${t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -2006,7 +2006,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>
             {t('settings.speechMode')}
             <Tooltip
-              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}
+              content={`${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />

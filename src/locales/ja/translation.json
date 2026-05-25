@@ -17,7 +17,8 @@
     "autoDetect": "自動検出",
     "signIn": "サインイン",
     "signUp": "サインアップ",
-    "signInRequired": "Kizuna AIをプロバイダーとして使用するにはサインインしてください"
+    "signInRequired": "Kizuna AIをプロバイダーとして使用するにはサインインしてください",
+    "on": "オン"
   },
   "app": {
     "title": "Sokuji",
@@ -285,7 +286,11 @@
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
     "transcriptModelTooltipTranslate": "原語字幕。現在は gpt-realtime-whisper のみ対応しています。",
     "modelTooltipTranslate": "OpenAI 専用の音声翻訳モデル。出力音声は話者の声質に自動適応します。",
-    "translateSourceParticipantWarning": "Participant 翻訳が機能しない可能性があります — 選択した入力言語が 13 のサポート対象出力言語に含まれていません。"
+    "translateSourceParticipantWarning": "Participant 翻訳が機能しない可能性があります — 選択した入力言語が 13 のサポート対象出力言語に含まれていません。",
+    "speechModeAppliesTo": "あなたの声に適用されます。参加者の音声は常にセマンティックVADを使用します。",
+    "participantSectionHeader": "参加者の音声",
+    "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
+    "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声はシステムの既定の出力から再生されます。"
   },
   "audioPanel": {
     "title": "オーディオ設定",
@@ -328,7 +333,11 @@
     "screenRecordingDeniedText2": "システム環境設定 > プライバシーとセキュリティ > 画面録画 で Sokuji を有効にしてください。",
     "screenRecordingDeniedText3": "権限を有効にした後、アプリを再起動してください。",
     "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
-    "refreshSystemAudioSources": "デバイスリストを更新"
+    "refreshSystemAudioSources": "デバイスリストを更新",
+    "turnOnMicrophone": "マイクをオンにする",
+    "turnOffMicrophone": "マイクをオフにする",
+    "turnOnMonitor": "スピーカーモニターをオンにする",
+    "turnOffMonitor": "スピーカーモニターをオフにする"
   },
   "logsPanel": {
     "title": "ログ",
@@ -407,7 +416,9 @@
       "headerSource": "ソース言語",
       "headerTarget": "ターゲット言語",
       "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。"
-    }
+    },
+    "participantAudio": "参加者の音声",
+    "noChannelConfigured": "開始する前にマイクまたは参加者の音声を有効にしてください。"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",
@@ -435,6 +446,10 @@
           "title": "Sokujiへようこそ",
           "content": "Sokujiへようこそ！このシンプルなガイドで、数ステップでリアルタイム翻訳を始められます。"
         },
+        "mode": {
+          "content": "Sokuji が何を翻訳するかを選びます：あなた — 自分の声（相手に理解してもらうため）；相手 — 他の参加者の発言（あなたが理解するため）；または 両方 で双方向翻訳。これによりどの音声をキャプチャするかが決まります。参加者の音声を有効にするには 相手 または 両方 を選んでください。",
+          "title": "翻訳モード"
+        },
         "settings": {
           "title": "ステップ 1：設定を開く",
           "content": "ここをクリックして設定を開き、言語とオーディオデバイスを設定できます。"
@@ -457,7 +472,7 @@
         },
         "systemAudio": {
           "title": "ステップ 7：参加者オーディオ",
-          "content": "参加者オーディオキャプチャを有効にして、他の発言者の音声をリアルタイムで翻訳します。ブラウザ拡張機能では、現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom などの Web 会議で他の参加者の音声を翻訳できます。デスクトップアプリでは、コンピューターで再生されるすべての音声をキャプチャし、YouTube 動画、Twitch 配信、Netflix 番組など、あらゆる音声ソースを翻訳できます。参加者オーディオは音声認識とテキスト翻訳のみを行い、音声合成は行いません。Sokuji はマイクを通じてあなたの発言をキャプチャして翻訳し、この機能を通じて相手の発言をキャプチャして翻訳します。両者を組み合わせることで完全な双方向翻訳が実現します。"
+          "content": "これは参加者チャンネル — 他の人が話す内容を、あなたのために翻訳します。翻訳モードで 相手 または 両方 を選ぶとオンになります（あなた モードではオフのままです）。ブラウザ拡張機能では現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom の参加者を翻訳できます。デスクトップアプリではシステム音声をすべてキャプチャし、YouTube、Twitch、Netflix などあらゆるソースを翻訳できます。参加者の発言はテキストへの翻訳のみで、音声合成は行いません。マイクと組み合わせることで、完全な双方向翻訳が実現します。"
         },
         "start": {
           "title": "ステップ 8：翻訳を開始",
@@ -485,6 +500,10 @@
       "welcome": {
         "title": "Sokujiへようこそ",
         "content": "Sokujiへようこそ！このガイドでは、リアルタイム音声翻訳のための拡張機能の設定をお手伝いします。始めましょう！"
+      },
+      "mode": {
+        "content": "Sokuji が何を翻訳するかを選びます：あなた — 自分の声（相手に理解してもらうため）；相手 — 他の参加者の発言（あなたが理解するため）；または 両方 で双方向翻訳。これによりどの音声をキャプチャするかが決まります。参加者の音声を有効にするには 相手 または 両方 を選んでください。",
+        "title": "翻訳モード"
       },
       "settings": {
         "title": "ステップ1：設定を開く",
@@ -520,7 +539,7 @@
       },
       "systemAudio": {
         "title": "ステップ 8：参加者オーディオ",
-        "content": "参加者オーディオキャプチャを有効にして、他の発言者の音声をリアルタイムで翻訳します。ブラウザ拡張機能では、現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom などの Web 会議で他の参加者の音声を翻訳できます。デスクトップアプリでは、コンピューターで再生されるすべての音声をキャプチャし、YouTube 動画、Twitch 配信、Netflix 番組など、あらゆる音声ソースを翻訳できます。参加者オーディオは音声認識とテキスト翻訳のみを行い、音声合成は行いません。Sokuji はマイクを通じてあなたの発言をキャプチャして翻訳し、この機能を通じて相手の発言をキャプチャして翻訳します。両者を組み合わせることで完全な双方向翻訳が実現します。"
+        "content": "これは参加者チャンネル — 他の人が話す内容を、あなたのために翻訳します。翻訳モードで 相手 または 両方 を選ぶとオンになります（あなた モードではオフのままです）。ブラウザ拡張機能では現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom の参加者を翻訳できます。デスクトップアプリではシステム音声をすべてキャプチャし、YouTube、Twitch、Netflix などあらゆるソースを翻訳できます。参加者の発言はテキストへの翻訳のみで、音声合成は行いません。マイクと組み合わせることで、完全な双方向翻訳が実現します。"
       },
       "startSession": {
         "title": "ステップ9：セッション開始",
@@ -679,7 +698,8 @@
     "loadingModels": "モデルを読み込み中...",
     "noModelsAvailable": "利用可能なモデルがありません",
     "insufficientBalance": "トークン残高不足: {{balance}} トークン",
-    "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。"
+    "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
+    "clickToConfigParticipant": "参加者の音声を設定するにはクリック"
   },
   "connectionStatus": {
     "disconnected": "切断済み",
@@ -879,5 +899,32 @@
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "閉じる"
+  },
+  "modePicker": {
+    "modeYou": "あなた",
+    "modeParticipants": "相手",
+    "modeBoth": "両方",
+    "groupLabel": "翻訳モード",
+    "descYou": "あなたの声 → 相手向けに翻訳。あなたの発言を翻訳して相手に伝えます。",
+    "descOthers": "相手の声 → あなた向けに翻訳。参加者の発言を翻訳してあなたが理解できるようにします。",
+    "descBoth": "双方向。あなたの声と相手の声を同時に翻訳します。",
+    "switchDisabled": "セッション中はモードがロックされています。",
+    "configureDevices": "クリックしてデバイスを設定。",
+    "missingDevice": "このモードを開始するにはデバイスを設定してください。",
+    "popoverHeaderYou": "あなた — デバイス",
+    "popoverHeaderParticipants": "相手 — デバイス",
+    "popoverHeaderBoth": "両方 — デバイス",
+    "popoverFooter": "すべての設定 →",
+    "deviceMic": "マイク",
+    "deviceSpeakerMonitor": "スピーカーモニター",
+    "notSelected": "未選択",
+    "deviceParticipantAudio": "参加者の音声"
+  },
+  "popover": {
+    "statusOff": "オフ",
+    "toggleOn": "{{label}}をオンにする",
+    "toggleOff": "{{label}}をオフにする",
+    "participantSubtitleElectron": "すべてのシステム音声",
+    "participantSubtitleExtension": "システムの既定の出力から再生"
   }
 }
