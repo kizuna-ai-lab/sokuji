@@ -427,7 +427,7 @@
     "realVoicePassthrough": "تمرير الصوت الأصلي",
     "enableRealVoicePassthrough": "تمكين تمرير الصوت الأصلي",
     "realVoicePassthroughDescription": "تمرير صوتك الأصلي (صوت المتحدث) مباشرة إلى الميكروفون الافتراضي حتى يتمكن المستمعون من سماع الصوت الأصلي والمترجم معاً",
-    "passthroughManagedByPushToTranslate": "لا يمكن تفعيله أثناء تفعيل اضغط للترجمة",
+    "passthroughManagedByPushToTranslate": "في وضع اضغط للترجمة، يُدار تمرير الصوت تلقائيًا: يمر الصوت بمستوى 100% عندما لا تضغط مع الاستمرار على المفتاح، ويتوقف (يُرسَل الصوت إلى الترجمة) أثناء الضغط المستمر على المفتاح.",
     "realVoiceVolume": "مستوى الصوت الأصلي",
     "mutualExclusivityNotice": "تعارض الصوت",
     "mutualExclusivitySpeakerTitle": "لا يمكن تمكين السماعة",

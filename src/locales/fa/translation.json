@@ -433,7 +433,7 @@
     "realVoicePassthrough": "عبور صدای اصلی",
     "enableRealVoicePassthrough": "فعال کردن عبور صدای اصلی",
     "realVoicePassthroughDescription": "انتقال مستقیم صدای اصلی شما (صدای گوینده) به میکروفون مجازی تا شنوندگان بتوانند هم صدای اصلی و هم صدای ترجمه شده را بشنوند",
-    "passthroughManagedByPushToTranslate": "زمانی که فشار و ترجمه فعال است، نمی‌توان فعال کرد",
+    "passthroughManagedByPushToTranslate": "در حالت فشار و ترجمه، عبور صدا به‌طور خودکار مدیریت می‌شود: وقتی کلید را نگه نداشته‌اید با ۱۰۰٪ بلندی عبور می‌کند و هنگام نگه‌داشتن کلید، ضبط و ترجمه انجام می‌شود (بدون عبور).",
     "realVoiceVolume": "حجم صدای اصلی",
     "mutualExclusivityNotice": "تداخل صوتی",
     "mutualExclusivitySpeakerTitle": "نمی‌توان بلندگو را فعال کرد",

@@ -476,7 +476,7 @@
     "realVoicePassthrough": "Passthrough Audio Asli",
     "enableRealVoicePassthrough": "Aktifkan Passthrough Audio Asli",
     "realVoicePassthroughDescription": "Teruskan audio asli Anda (suara pembicara) langsung ke mikrofon virtual agar pendengar dapat mendengar audio asli dan terjemahan",
-    "passthroughManagedByPushToTranslate": "Tidak dapat diaktifkan saat Tekan untuk Terjemahkan aktif",
+    "passthroughManagedByPushToTranslate": "Dalam mode Tekan untuk Terjemahkan, passthrough dikelola otomatis: diputar pada volume 100% saat Anda tidak menahan tombol, dan berhenti (audio dikirim ke terjemahan) saat Anda menahan tombol.",
     "realVoiceVolume": "Volume Audio Asli",
     "mutualExclusivityNotice": "Konflik Audio",
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Mengaktifkan Speaker",

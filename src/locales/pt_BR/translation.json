@@ -320,7 +320,7 @@
     "realVoicePassthrough": "Passagem de Áudio Original",
     "enableRealVoicePassthrough": "Ativar Passagem de Áudio Original",
     "realVoicePassthroughDescription": "Passe seu áudio original (voz do falante) diretamente para o microfone virtual para que os ouvintes possam ouvir tanto o áudio original quanto o traduzido",
-    "passthroughManagedByPushToTranslate": "Não pode ser ativado enquanto Pressionar para traduzir está ativo",
+    "passthroughManagedByPushToTranslate": "No modo Pressionar para traduzir, o passthrough é automático: reproduz com 100% de volume quando você não está segurando a tecla e para (o áudio vai para a tradução) enquanto você a mantém pressionada.",
     "realVoiceVolume": "Volume do Áudio Original",
     "mutualExclusivityNotice": "Conflito de Áudio",
     "mutualExclusivitySpeakerTitle": "Não é possível ativar o Alto-falante",

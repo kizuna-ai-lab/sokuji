@@ -320,7 +320,7 @@
     "realVoicePassthrough": "Paso de Audio Original",
     "enableRealVoicePassthrough": "Habilitar Paso de Audio Original",
     "realVoicePassthroughDescription": "Pasar tu audio original (voz del hablante) directamente al micrófono virtual para que los oyentes puedan escuchar tanto el audio original como el traducido",
-    "passthroughManagedByPushToTranslate": "No se puede activar mientras Pulsar para traducir está activo",
+    "passthroughManagedByPushToTranslate": "En el modo Pulsar para traducir, el passthrough es automático: se reproduce al 100 % de volumen cuando no mantienes pulsada la tecla y se detiene (el audio se envía a la traducción) mientras la mantienes.",
     "realVoiceVolume": "Volumen de Audio Original",
     "mutualExclusivityNotice": "Conflicto de Audio",
     "mutualExclusivitySpeakerTitle": "No se puede habilitar el Altavoz",

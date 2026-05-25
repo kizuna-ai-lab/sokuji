@@ -320,7 +320,7 @@
     "realVoicePassthrough": "原音パススルー",
     "enableRealVoicePassthrough": "原音パススルーを有効にする",
     "realVoicePassthroughDescription": "あなたの原音（話者の声）を仮想マイクに直接送信し、聞き手が原音と通訳音声の両方を聞けるようにします",
-    "passthroughManagedByPushToTranslate": "プッシュトゥトランスレートが有効な間は有効にできません",
+    "passthroughManagedByPushToTranslate": "プッシュトゥトランスレートでは原音声の直通が自動で管理されます。キーを押していない間は100%の音量で直通し、押している間は録音・翻訳が行われ直通しません。",
     "realVoiceVolume": "原音ボリューム",
     "mutualExclusivityNotice": "音声の競合",
     "mutualExclusivitySpeakerTitle": "話者モードを有効にできません",

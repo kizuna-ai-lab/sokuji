@@ -433,7 +433,7 @@
     "realVoicePassthrough": "মূল অডিও পাসথ্রু",
     "enableRealVoicePassthrough": "মূল অডিও পাসথ্রু সক্রিয় করুন",
     "realVoicePassthroughDescription": "আপনার মূল অডিও (বক্তার কণ্ঠস্বর) সরাসরি ভার্চুয়াল মাইক্রোফোনে পাঠান যাতে শ্রোতারা মূল এবং অনুবাদিত উভয় অডিও শুনতে পারেন",
-    "passthroughManagedByPushToTranslate": "পুশ-টু-ট্রান্সলেট সক্রিয় থাকাকালীন সক্ষম করা যাবে না",
+    "passthroughManagedByPushToTranslate": "পুশ-টু-ট্রান্সলেট মোডে পাসথ্রু স্বয়ংক্রিয়ভাবে পরিচালিত হয়: কী চেপে না রাখলে এটি 100% ভলিউমে বাজে, আর কী চেপে রাখলে রেকর্ডিং ও অনুবাদ হয় (পাসথ্রু হয় না)।",
     "realVoiceVolume": "মূল অডিও ভলিউম",
     "mutualExclusivityNotice": "অডিও দ্বন্দ্ব",
     "mutualExclusivitySpeakerTitle": "স্পীকার সক্রিয় করা যাবে না",

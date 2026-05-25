@@ -505,7 +505,7 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
     "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",
-    "passthroughManagedByPushToTranslate": "Hindi maaaring i-enable habang aktibo ang Push-to-Translate",
+    "passthroughManagedByPushToTranslate": "Sa Push-to-Translate mode, awtomatiko ang passthrough: tumutugtog ito sa 100% volume kapag hindi mo pinipindot nang matagal ang key, at humihinto (ipinapadala sa pagsasalin ang audio) habang pinipindot mo ito.",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Conflict sa Audio",
     "mutualExclusivitySpeakerTitle": "Hindi Makapag-enable ng Speaker",

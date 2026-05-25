@@ -320,7 +320,7 @@
     "realVoicePassthrough": "원음 패스스루",
     "enableRealVoicePassthrough": "원음 패스스루 활성화",
     "realVoicePassthroughDescription": "원음(화자의 목소리)을 가상 마이크로 직접 전달하여 청취자가 원음과 번역된 음성을 모두 들을 수 있도록 합니다",
-    "passthroughManagedByPushToTranslate": "푸시 투 트랜슬레이트가 활성화된 동안에는 활성화할 수 없습니다",
+    "passthroughManagedByPushToTranslate": "푸시 투 트랜슬레이트 모드에서는 음성 패스스루가 자동으로 관리됩니다. 키를 누르지 않을 때는 100% 음량으로 패스스루되고, 누르고 있는 동안에는 녹음·번역이 진행되어 패스스루되지 않습니다.",
     "realVoiceVolume": "원음 볼륨",
     "mutualExclusivityNotice": "오디오 충돌",
     "mutualExclusivitySpeakerTitle": "스피커를 활성화할 수 없습니다",

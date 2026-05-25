@@ -470,7 +470,7 @@
     "realVoicePassthrough": "原声直通",
     "enableRealVoicePassthrough": "启用原声直通",
     "realVoicePassthroughDescription": "将您的原声（说话者声音）直接传递到虚拟麦克风，让听众同时听到原声和译声",
-    "passthroughManagedByPushToTranslate": "按住翻译激活时无法启用",
+    "passthroughManagedByPushToTranslate": "按住翻译模式下原声直通自动管理：未按住按键时以 100% 音量直通，按住时进行录音翻译、不直通。",
     "realVoiceVolume": "原声音量",
     "mutualExclusivityNotice": "音频冲突",
     "mutualExclusivitySpeakerTitle": "无法启用扬声器",
