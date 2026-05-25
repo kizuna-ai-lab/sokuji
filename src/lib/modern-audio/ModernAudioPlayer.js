@@ -219,10 +219,14 @@ export class ModernAudioPlayer {
 
     this.destinationNode = this.context.createMediaStreamDestination();
 
-    // Connect: worklet → gain → analyser → mediaStreamDestination
-    this.workletNode.connect(this.gainNode);
-    this.gainNode.connect(this.analyser);
-    this.analyser.connect(this.destinationNode);
+    // Connect: worklet → analyser → gain → mediaStreamDestination.
+    // The analyser sits BEFORE the gain so the output waveform reflects the
+    // signal sent to the virtual microphone (AI translation + passthrough),
+    // independent of the monitor volume. The monitor device (destinationNode)
+    // still receives the gained signal, so muting the monitor stays silent.
+    this.workletNode.connect(this.analyser);
+    this.analyser.connect(this.gainNode);
+    this.gainNode.connect(this.destinationNode);
 
     // Single persistent HTMLAudioElement for AEC-visible output
     this.audioElement = new Audio();
@@ -504,7 +508,11 @@ export class ModernAudioPlayer {
    * Add audio to passthrough buffer — with optional delay for echo cancellation.
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
-    if (this.globalVolumeMultiplier === 0) return;
+    // NOT gated on globalVolumeMultiplier (monitor volume): passthrough is
+    // always sent to the virtual microphone regardless of the local monitor,
+    // so it must always be mixed into the ring too — that keeps the (pre-gain)
+    // output waveform faithful to what the meeting receives. The monitor stays
+    // silent when muted because the gain node (after the analyser) is 0.
     if (volume < 0.01) return;
 
     const buffer = this._normalizeAudioData(audioData);
@@ -514,9 +522,7 @@ export class ModernAudioPlayer {
       // Worker (e.g. AsrEngine.feedAudio) before this timeout fires.  (#177)
       const copy = new Int16Array(buffer);
       setTimeout(() => {
-        if (this.globalVolumeMultiplier > 0) {
-          this._writeToPassthroughRing(copy, volume);
-        }
+        this._writeToPassthroughRing(copy, volume);
       }, delay);
     } else {
       this._writeToPassthroughRing(buffer, volume);
