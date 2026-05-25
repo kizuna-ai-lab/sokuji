@@ -199,16 +199,8 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    * Setup passthrough functionality
    */
   setupPassthrough(enabled = false, volume = 0.3): boolean {
-    const prevEnabled = this._passthroughEnabled;
     this._passthroughEnabled = enabled;
     this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    // Issue #246: surface passthrough enable/disable transitions at info level
-    // so they're visible without enabling verbose audio-chunk logging.
-    if (prevEnabled !== enabled) {
-      console.info(`${this.getLogPrefix()} [PtDiag] Passthrough -> ${enabled ? 'ON' : 'OFF'} (vol=${this._passthroughVolume.toFixed(2)})`);
-    } else {
-      console.debug(`${this.getLogPrefix()} Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
-    }
     return true;
   }
 
@@ -234,14 +226,6 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
       // Create AudioContext at 48kHz for RNNoise compatibility
       this.audioContext = new AudioContext({ sampleRate: this.internalSampleRate });
-
-      // Issue #246: log state transitions. If the recorder ctx suspends, the
-      // producer-side worklet halts and pt would stop *growing* (different
-      // signature than consumer-side stall, but worth distinguishing).
-      this.audioContext.addEventListener('statechange', () => {
-        const ts = (typeof performance !== 'undefined' ? performance.now() : Date.now()).toFixed(0);
-        console.warn(`${this.getLogPrefix()} [PtDiag] recorder AudioContext.state -> ${this.audioContext && this.audioContext.state} (t=${ts}ms)`);
-      });
 
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
