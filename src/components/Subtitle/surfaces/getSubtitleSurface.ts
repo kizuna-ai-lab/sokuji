@@ -9,6 +9,7 @@ class NoopSubtitleSurface implements SubtitleSurface {
     throw new Error('Subtitle mode is not supported in this context');
   }
   async exit(): Promise<void> { /* no-op */ }
+  async setFullscreen(_flag: boolean): Promise<void> { /* no-op */ }
 }
 
 let cached: SubtitleSurface | null = null;

@@ -114,6 +114,12 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     this.tearDown();
   }
 
+  // Fullscreen is an Electron-window concept; the extension overlay lives
+  // inside the host page and has no equivalent. No-op by design.
+  async setFullscreen(_flag: boolean): Promise<void> {
+    /* no-op */
+  }
+
   private tearDown() {
     chrome.runtime.onConnect.removeListener(this.handleConnect);
     chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
