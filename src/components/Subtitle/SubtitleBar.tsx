@@ -34,7 +34,8 @@ interface Props {
   sourceLanguageCode: string;
   targetLanguageCode: string;
   onClearConversation: () => void;
-  participantHasAudio: boolean;
+  speakerActive: boolean;
+  participantActive: boolean;
   exportProps: React.ComponentProps<typeof ExportButton>;
   surface?: SubtitleSurfaceKind;
 }
@@ -52,7 +53,8 @@ const SubtitleBar: React.FC<Props> = ({
   sourceLanguageCode,
   targetLanguageCode,
   onClearConversation,
-  participantHasAudio,
+  speakerActive,
+  participantActive,
   exportProps,
   surface = 'electron',
 }) => {
@@ -115,8 +117,10 @@ const SubtitleBar: React.FC<Props> = ({
       </div>
 
       <div className="subtitle-bar__right">
-        <DisplayModeButton scope="speaker" value={speakerMode} onChange={setSpeakerMode} />
-        {participantHasAudio && (
+        {speakerActive && (
+          <DisplayModeButton scope="speaker" value={speakerMode} onChange={setSpeakerMode} />
+        )}
+        {participantActive && (
           <DisplayModeButton scope="participant" value={participantMode} onChange={setParticipantMode} />
         )}
         <button

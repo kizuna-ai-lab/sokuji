@@ -26,7 +26,9 @@ import {
   useItems,
   useParticipantItems,
   useRequestClearConversation,
+  useLockedMode,
 } from '../../stores/sessionStore';
+import { useMode } from '../../stores/audioStore';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './SubtitleApp.scss';
 
@@ -210,8 +212,18 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     };
   }, [saveBounds, surface]);
 
-  // Detect whether participant has produced any items
-  const participantHasAudio = participantItems.length > 0;
+  // Display-mode buttons follow the same intent-driven logic as MainPanel's
+  // conversation toolbar: show a channel's button when that channel is
+  // intent-active for the (current or locked) session, OR when items already
+  // exist for it. effectiveMode reads the locked session mode while a session
+  // runs and falls back to the current setting after it ends; the items
+  // fallback then keeps the buttons available so historical conversation
+  // remains reconfigurable. See MainPanel.tsx.
+  const currentMode = useMode();
+  const lockedMode = useLockedMode();
+  const effectiveMode = lockedMode ?? currentMode;
+  const speakerActive = effectiveMode === 'speaker' || effectiveMode === 'both' || items.length > 0;
+  const participantActive = effectiveMode === 'participant' || effectiveMode === 'both' || participantItems.length > 0;
 
   // Resize handles (extension-overlay only). Lock state from subtitleStore
   // gates rendering — locked = no handles, no cursor change.
@@ -243,7 +255,8 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
         sourceLanguageCode={languageCodeShort(sourceLanguage)}
         targetLanguageCode={languageCodeShort(targetLanguage)}
         onClearConversation={requestClearConversation}
-        participantHasAudio={participantHasAudio}
+        speakerActive={speakerActive}
+        participantActive={participantActive}
         exportProps={{
           combinedItems,
           provider,
