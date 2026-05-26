@@ -62,6 +62,7 @@ const validReceiveChannels = [
   'update-progress',
   // Subtitle window bounds change events
   'subtitle:window-bounds-changed',
+  'subtitle:fullscreen-changed',
 ];
 
 // Expose protected methods that allow the renderer process to use
@@ -139,6 +140,7 @@ contextBridge.exposeInMainWorld(
         'subtitle:exit',
         'subtitle:set-always-on-top',
         'subtitle:set-locked',
+        'subtitle:set-fullscreen',
         'subtitle:get-screen-bounds',
       ];
       if (validChannels.includes(channel)) {

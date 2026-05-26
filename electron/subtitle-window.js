@@ -76,6 +76,15 @@ ipcMain.handle('subtitle:enter', (_event, payload) => {
 ipcMain.handle('subtitle:exit', (_event, payload) => {
   const win = getLiveWindow();
   if (!win) return { ok: false };
+  // If the user exits subtitle mode while fullscreen, drop fullscreen first;
+  // otherwise setBounds() fights the fullscreen state and the window can be
+  // left stuck. Guarded to avoid a needless transition on the common path.
+  // macOS caveat: setFullScreen(false) animates asynchronously, so the
+  // synchronous setBounds() below can land before the Space transition ends
+  // and be overridden. If macOS QA shows wrong bounds on this exit path,
+  // switch the darwin fullscreen calls to setSimpleFullScreen (synchronous,
+  // in-place) — see the design doc's macOS note and Task 6 QA.
+  if (win.isFullScreen()) win.setFullScreen(false);
   const restore = payload?.restoreBounds ?? normalBoundsSnapshot ?? { width: 1200, height: 800 };
   beginTransition();
   if (restore.x !== undefined && restore.y !== undefined) {
@@ -112,6 +121,17 @@ ipcMain.handle('subtitle:set-locked', (_event, locked) => {
   return { ok: true };
 });
 
+ipcMain.handle('subtitle:set-fullscreen', (_event, flag) => {
+  const win = getLiveWindow();
+  if (!win) return { ok: false };
+  // Suppress the resize/move broadcaster while the WM animates in/out of
+  // fullscreen, so the fullscreen geometry is never persisted as the bar's
+  // windowBounds. The isFullScreen() guard added to onChange backs this up.
+  beginTransition();
+  win.setFullScreen(Boolean(flag));
+  return { ok: true };
+});
+
 function setupSubtitleHandlers(mainWindow) {
   // Rebind the active window. Resize/move listeners are per-window and need
   // to be attached on every createWindow() call.
@@ -126,6 +146,7 @@ function setupSubtitleHandlers(mainWindow) {
   // user's intended bounds.
   let debounceTimer = null;
   const onChange = () => {
+    if (mainWindow.isFullScreen()) return; // never persist fullscreen geometry as bar bounds
     if (Date.now() < transitionUntil) return;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
@@ -136,6 +157,12 @@ function setupSubtitleHandlers(mainWindow) {
   };
   mainWindow.on('resize', onChange);
   mainWindow.on('move', onChange);
+  const onEnterFullScreen = () =>
+    mainWindow.webContents.send('subtitle:fullscreen-changed', true);
+  const onLeaveFullScreen = () =>
+    mainWindow.webContents.send('subtitle:fullscreen-changed', false);
+  mainWindow.on('enter-full-screen', onEnterFullScreen);
+  mainWindow.on('leave-full-screen', onLeaveFullScreen);
   mainWindow.on('closed', () => {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
