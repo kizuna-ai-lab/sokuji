@@ -945,6 +945,8 @@
       "clear": "Clear conversation",
       "settings": "Subtitle settings",
       "alwaysOnTop": "Always on top",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
       "lock": "Lock position and size",
       "exit": "Exit subtitle mode"
     },
