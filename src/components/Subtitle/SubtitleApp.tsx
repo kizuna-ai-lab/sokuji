@@ -162,10 +162,16 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   // Auto-hide bar
   const [barVisible, setBarVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onMouseEnter = () => {
+  // Reveal the bar and (re)arm an inactivity timer that hides it after
+  // AUTO_HIDE_MS. Driven by mouse MOVEMENT, not just enter/leave: in
+  // fullscreen the root fills the entire screen, so the pointer never
+  // "leaves" and a leave-only hide would keep the bar stuck visible.
+  // Movement-based inactivity hides correctly in both windowed and fullscreen.
+  const revealBar = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setBarVisible(true);
-  };
+    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
+  }, []);
   const onMouseLeave = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
@@ -270,9 +276,10 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   return (
     <div
       ref={rootRef}
-      className="subtitle-app"
+      className={`subtitle-app${fullscreen ? ' fullscreen' : ''}`}
       style={rootStyle}
-      onMouseEnter={onMouseEnter}
+      onMouseEnter={revealBar}
+      onMouseMove={revealBar}
       onMouseLeave={onMouseLeave}
     >
       <SubtitleBar

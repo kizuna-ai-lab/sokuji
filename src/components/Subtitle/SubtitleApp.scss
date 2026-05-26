@@ -10,6 +10,12 @@
   // Positioning context for the SubtitleBar, which floats above the
   // subtitle area so the bar's footprint isn't permanently reserved.
   position: relative;
+
+  // In fullscreen the window fills the screen, so the rounded corners would
+  // expose the transparent window (the desktop) behind them. Square them.
+  &.fullscreen {
+    border-radius: 0;
+  }
 }
 
 // Resize affordance for the extension-overlay surface — 4 corners + 4
