@@ -3,14 +3,18 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
-  Pin, Lock, X, Settings, Trash2,
+  Pin, Lock, X, Settings, Trash2, Maximize, Minimize,
 } from 'lucide-react';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
-import { useExitSubtitleMode } from '../../stores/settingsStore';
+import {
+  useExitSubtitleMode,
+  useSubtitleFullscreen,
+  useSetSubtitleFullscreen,
+} from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
   useSetSubtitleFontSize,
@@ -69,6 +73,12 @@ const SubtitleBar: React.FC<Props> = ({
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
   const exitSubtitleMode = useExitSubtitleMode();
+  const fullscreen = useSubtitleFullscreen();
+  const setFullscreen = useSetSubtitleFullscreen();
+  // Single source for both title + aria-label so they can't drift apart.
+  const fullscreenLabel = fullscreen
+    ? t('subtitle.bar.exitFullscreen', 'Exit fullscreen')
+    : t('subtitle.bar.fullscreen', 'Fullscreen');
   // See SubtitleApp.requestExit — in the extension-overlay surface we forward
   // the exit intent to the side panel via a window event instead of calling
   // the local (no-op) settings store action.
@@ -175,6 +185,17 @@ const SubtitleBar: React.FC<Props> = ({
         >
           <Settings size={14} />
         </button>
+        {surface === 'electron' && (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${fullscreen ? 'active' : ''}`}
+            onClick={() => void setFullscreen(!fullscreen)}
+            title={fullscreenLabel}
+            aria-label={fullscreenLabel}
+          >
+            {fullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+          </button>
+        )}
         {surface === 'electron' && (
           <button
             type="button"

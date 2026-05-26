@@ -20,4 +20,8 @@ export class ElectronSubtitleSurface implements SubtitleSurface {
     // normal mode.
     await window.electron?.invoke('subtitle:exit', {});
   }
+
+  async setFullscreen(flag: boolean): Promise<void> {
+    await window.electron?.invoke('subtitle:set-fullscreen', flag);
+  }
 }

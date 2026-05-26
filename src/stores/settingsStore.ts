@@ -403,8 +403,11 @@ interface SettingsStore {
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 
-  // Subtitle runtime flag (lifecycle only — subtitle settings live in subtitleStore)
+  // Subtitle runtime flags (lifecycle only — subtitle settings live in subtitleStore)
   subtitleModeActive: boolean;
+  // Ephemeral: true while subtitle mode is in OS fullscreen. Never persisted;
+  // always reset to false on enter (start windowed) and exit. Electron-only.
+  subtitleFullscreen: boolean;
 
   // === Actions ===
   // Common settings actions
@@ -423,6 +426,14 @@ interface SettingsStore {
    * Resets the flag without re-entering the exit path.
    */
   __notifySubtitleSurfaceExited: () => void;
+  /** Toggle OS fullscreen for the active subtitle surface (Electron-only). */
+  setSubtitleFullscreen: (flag: boolean) => Promise<void>;
+  /**
+   * Internal: invoked when the OS fullscreen state changes outside of our
+   * setSubtitleFullscreen() call (app menu, F11, macOS gesture). Updates the
+   * flag only — does NOT re-invoke the surface, which would loop.
+   */
+  __syncSubtitleFullscreen: (flag: boolean) => void;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -791,6 +802,7 @@ const useSettingsStore = create<SettingsStore>()(
 
     settingsLoaded: false,
     subtitleModeActive: false,
+    subtitleFullscreen: false,
 
     // === Common Settings Actions ===
     setProvider: async (provider) => {
@@ -921,7 +933,7 @@ const useSettingsStore = create<SettingsStore>()(
       // racing into a second surface.enter(). On the Electron path the
       // second IPC would otherwise overwrite normalBoundsSnapshot with
       // the already-shrunk subtitle bounds — same bug class as 8f9aea85.
-      set({ subtitleModeActive: true });
+      set({ subtitleModeActive: true, subtitleFullscreen: false });
       try {
         await getSubtitleSurface().enter();
       } catch (error) {
@@ -940,7 +952,7 @@ const useSettingsStore = create<SettingsStore>()(
       // first so a re-entrant exit() short-circuits. The original
       // `finally` already set the flag false on the way out; the only
       // observable difference is concurrent callers, which we want.
-      set({ subtitleModeActive: false });
+      set({ subtitleModeActive: false, subtitleFullscreen: false });
       try {
         await getSubtitleSurface().exit();
       } catch (error) {
@@ -949,7 +961,26 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     __notifySubtitleSurfaceExited: () => {
-      set({ subtitleModeActive: false });
+      set({ subtitleModeActive: false, subtitleFullscreen: false });
+    },
+
+    setSubtitleFullscreen: async (flag) => {
+      const previous = get().subtitleFullscreen;
+      if (previous === flag) return;
+      set({ subtitleFullscreen: flag });
+      try {
+        await getSubtitleSurface().setFullscreen(flag);
+      } catch (error) {
+        // Swallow (unlike enterSubtitleMode, which re-throws so the entry
+        // button can toast): a fullscreen-toggle failure is non-actionable
+        // for the caller, and reverting the flag re-syncs the bar button.
+        console.error('[SettingsStore] setSubtitleFullscreen failed:', error);
+        set({ subtitleFullscreen: previous });
+      }
+    },
+
+    __syncSubtitleFullscreen: (flag) => {
+      set({ subtitleFullscreen: flag });
     },
 
     // === Provider Settings Actions ===
@@ -1625,6 +1656,10 @@ export const useParticipantDisplayMode = () => useSettingsStore((state) => state
 export const useSubtitleModeActive = () => useSettingsStore((state) => state.subtitleModeActive);
 export const useEnterSubtitleMode = () => useSettingsStore((state) => state.enterSubtitleMode);
 export const useExitSubtitleMode = () => useSettingsStore((state) => state.exitSubtitleMode);
+export const useSubtitleFullscreen = () =>
+  useSettingsStore((state) => state.subtitleFullscreen);
+export const useSetSubtitleFullscreen = () =>
+  useSettingsStore((state) => state.setSubtitleFullscreen);
 export const useNotifySubtitleSurfaceExited = () =>
   useSettingsStore((state) => state.__notifySubtitleSurfaceExited);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);

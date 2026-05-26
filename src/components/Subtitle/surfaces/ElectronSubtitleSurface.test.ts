@@ -68,4 +68,16 @@ describe('ElectronSubtitleSurface', () => {
     await surface.exit();
     expect(invoke).toHaveBeenCalledWith('subtitle:exit', {});
   });
+
+  it('setFullscreen(true) invokes subtitle:set-fullscreen with true', async () => {
+    const surface = new ElectronSubtitleSurface();
+    await surface.setFullscreen(true);
+    expect(invoke).toHaveBeenCalledWith('subtitle:set-fullscreen', true);
+  });
+
+  it('setFullscreen(false) invokes subtitle:set-fullscreen with false', async () => {
+    const surface = new ElectronSubtitleSurface();
+    await surface.setFullscreen(false);
+    expect(invoke).toHaveBeenCalledWith('subtitle:set-fullscreen', false);
+  });
 });

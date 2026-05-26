@@ -44,7 +44,7 @@ const { default: useSessionStore } = await import('./sessionStore');
 
 describe('settingsStore subtitle actions', () => {
   beforeEach(() => {
-    useSettingsStore.setState({ subtitleModeActive: false });
+    useSettingsStore.setState({ subtitleModeActive: false, subtitleFullscreen: false });
   });
 
   it('enterSubtitleMode is a no-op when session is not active', async () => {
@@ -114,6 +114,52 @@ describe('settingsStore subtitle actions', () => {
     });
     await expect(useSettingsStore.getState().enterSubtitleMode()).rejects.toThrow(/boom/);
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+  });
+
+  it('setSubtitleFullscreen(true) sets the flag and invokes subtitle:set-fullscreen', async () => {
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockClear();
+    await useSettingsStore.getState().setSubtitleFullscreen(true);
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(true);
+    expect(invokeMock).toHaveBeenCalledWith('subtitle:set-fullscreen', true);
+  });
+
+  it('setSubtitleFullscreen rolls back the flag if the surface rejects', async () => {
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockImplementationOnce(async (channel: string) => {
+      if (channel === 'subtitle:set-fullscreen') throw new Error('boom');
+      return { ok: true };
+    });
+    await useSettingsStore.getState().setSubtitleFullscreen(true);
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
+  });
+
+  it('enterSubtitleMode resets subtitleFullscreen to false (always start windowed)', async () => {
+    useSessionStore.setState({ isSessionActive: true } as any);
+    useSettingsStore.setState({ subtitleFullscreen: true });
+    await useSettingsStore.getState().enterSubtitleMode();
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
+  });
+
+  it('exitSubtitleMode resets subtitleFullscreen to false', async () => {
+    useSettingsStore.setState({ subtitleModeActive: true, subtitleFullscreen: true });
+    await useSettingsStore.getState().exitSubtitleMode();
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
+  });
+
+  it('__notifySubtitleSurfaceExited resets subtitleFullscreen (external exit)', () => {
+    useSettingsStore.setState({ subtitleModeActive: true, subtitleFullscreen: true });
+    useSettingsStore.getState().__notifySubtitleSurfaceExited();
+    expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
+  });
+
+  it('__syncSubtitleFullscreen sets state only and does not call the surface', () => {
+    const invokeMock = (window as any).electron.invoke;
+    invokeMock.mockClear();
+    useSettingsStore.getState().__syncSubtitleFullscreen(true);
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(true);
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
   // NOTE: setSubtitleFontSize / setSubtitleBgOpacity / etc. moved to subtitleStore in Task 5.

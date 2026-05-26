@@ -10,6 +10,8 @@ import useSettingsStore, {
   useCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
+  useSubtitleFullscreen,
+  useSetSubtitleFullscreen,
 } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
@@ -80,6 +82,8 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
+  const fullscreen = useSubtitleFullscreen();
+  const setFullscreen = useSetSubtitleFullscreen();
   const saveBounds = useSaveSubtitleWindowBounds();
   const items = useItems();
   const participantItems = useParticipantItems();
@@ -158,14 +162,25 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   // Auto-hide bar
   const [barVisible, setBarVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onMouseEnter = () => {
+  // Reveal the bar and (re)arm an inactivity timer that hides it after
+  // AUTO_HIDE_MS. Driven by mouse MOVEMENT, not just enter/leave: in
+  // fullscreen the root fills the entire screen, so the pointer never
+  // "leaves" and a leave-only hide would keep the bar stuck visible.
+  // Movement-based inactivity hides correctly in both windowed and fullscreen.
+  const revealBar = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setBarVisible(true);
-  };
+    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
+  }, []);
   const onMouseLeave = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
   };
+  // Clear the pending auto-hide timer on unmount so it can't fire after the
+  // component is gone (movement-based revealBar arms one frequently).
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
 
   // Centralised exit request. In the extension-overlay surface we don't have
   // direct access to the side panel's settingsStore.exitSubtitleMode; instead
@@ -179,15 +194,36 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     }
   }, [surface, exitSubtitleMode]);
 
-  // ESC to exit subtitle mode
+  // ESC is layered: if we're in fullscreen, the first ESC drops back to the
+  // windowed bar; otherwise (or on the next ESC) it exits subtitle mode.
   useEffect(() => {
     const target = rootRef.current?.ownerDocument ?? document;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestExit();
+      if (e.key !== 'Escape') return;
+      if (fullscreen) {
+        void setFullscreen(false);
+      } else {
+        requestExit();
+      }
     };
     target.addEventListener('keydown', onKey);
     return () => target.removeEventListener('keydown', onKey);
-  }, [requestExit]);
+  }, [requestExit, fullscreen, setFullscreen]);
+
+  // The OS fullscreen state can change outside our button (app menu, F11,
+  // macOS gesture). Mirror it into the store so the bar button + layered ESC
+  // stay correct. Electron surface only.
+  useEffect(() => {
+    if (surface !== 'electron') return;
+    if (!window.electron?.receive) return;
+    const handler = (flag: boolean) => {
+      useSettingsStore.getState().__syncSubtitleFullscreen(Boolean(flag));
+    };
+    window.electron.receive('subtitle:fullscreen-changed', handler);
+    return () => {
+      window.electron?.removeListener?.('subtitle:fullscreen-changed', handler);
+    };
+  }, [surface]);
 
   // Bounds-changed listener (debounced 500 ms before persistence).
   // The main process emits this for any resize/move regardless of mode, so
@@ -245,9 +281,10 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   return (
     <div
       ref={rootRef}
-      className="subtitle-app"
+      className={`subtitle-app${fullscreen ? ' fullscreen' : ''}`}
       style={rootStyle}
-      onMouseEnter={onMouseEnter}
+      onMouseEnter={revealBar}
+      onMouseMove={revealBar}
       onMouseLeave={onMouseLeave}
     >
       <SubtitleBar
