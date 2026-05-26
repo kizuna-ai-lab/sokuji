@@ -961,7 +961,7 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     __notifySubtitleSurfaceExited: () => {
-      set({ subtitleModeActive: false });
+      set({ subtitleModeActive: false, subtitleFullscreen: false });
     },
 
     setSubtitleFullscreen: async (flag) => {

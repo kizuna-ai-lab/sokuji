@@ -176,6 +176,11 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
   };
+  // Clear the pending auto-hide timer on unmount so it can't fire after the
+  // component is gone (movement-based revealBar arms one frequently).
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
 
   // Centralised exit request. In the extension-overlay surface we don't have
   // direct access to the side panel's settingsStore.exitSubtitleMode; instead

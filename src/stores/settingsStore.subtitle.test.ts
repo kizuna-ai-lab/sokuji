@@ -147,6 +147,13 @@ describe('settingsStore subtitle actions', () => {
     expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
   });
 
+  it('__notifySubtitleSurfaceExited resets subtitleFullscreen (external exit)', () => {
+    useSettingsStore.setState({ subtitleModeActive: true, subtitleFullscreen: true });
+    useSettingsStore.getState().__notifySubtitleSurfaceExited();
+    expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+    expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
+  });
+
   it('__syncSubtitleFullscreen sets state only and does not call the surface', () => {
     const invokeMock = (window as any).electron.invoke;
     invokeMock.mockClear();

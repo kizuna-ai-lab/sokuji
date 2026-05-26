@@ -79,11 +79,16 @@ ipcMain.handle('subtitle:exit', (_event, payload) => {
   // If the user exits subtitle mode while fullscreen, drop fullscreen first;
   // otherwise setBounds() fights the fullscreen state and the window can be
   // left stuck. Guarded to avoid a needless transition on the common path.
-  // macOS caveat: setFullScreen(false) animates asynchronously, so the
-  // synchronous setBounds() below can land before the Space transition ends
-  // and be overridden. If macOS QA shows wrong bounds on this exit path,
-  // switch the darwin fullscreen calls to setSimpleFullScreen (synchronous,
-  // in-place) — see the design doc's macOS note and Task 6 QA.
+  //
+  // KNOWN, ACCEPTED limitation (macOS): setFullScreen(false) animates
+  // asynchronously, so the synchronous setBounds() below can land before the
+  // Space transition finishes, leaving the window slightly mis-sized when
+  // exiting subtitle mode DIRECTLY from fullscreen via the ✕ button. The
+  // layered-ESC path (fullscreen → windowed → exit) is unaffected. We keep
+  // native setFullScreen (not setSimpleFullScreen) because it emits
+  // enter/leave-full-screen, which the subtitle:fullscreen-changed sync relies
+  // on. If revisited, defer setBounds to the leave-full-screen event rather
+  // than switching fullscreen modes.
   if (win.isFullScreen()) win.setFullScreen(false);
   const restore = payload?.restoreBounds ?? normalBoundsSnapshot ?? { width: 1200, height: 800 };
   beginTransition();
@@ -146,6 +151,9 @@ function setupSubtitleHandlers(mainWindow) {
   // user's intended bounds.
   let debounceTimer = null;
   const onChange = () => {
+    // resize/move can fire synchronously during window teardown; isFullScreen()
+    // throws on a destroyed window, so bail before touching it.
+    if (mainWindow.isDestroyed()) return;
     if (mainWindow.isFullScreen()) return; // never persist fullscreen geometry as bar bounds
     if (Date.now() < transitionUntil) return;
     if (debounceTimer) clearTimeout(debounceTimer);

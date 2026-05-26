@@ -83,7 +83,7 @@ Rationale:
 
 ### State machine (within an active subtitle session)
 
-```
+```text
                  ┌─────────────────────── ESC ◄─────────────────────┐
                  ▼                                                   │
         ┌──────────────────┐  ⤢ button / setFullscreen(true)   ┌──────────────────┐
