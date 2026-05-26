@@ -10,6 +10,8 @@ import useSettingsStore, {
   useCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
+  useSubtitleFullscreen,
+  useSetSubtitleFullscreen,
 } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
@@ -80,6 +82,8 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
+  const fullscreen = useSubtitleFullscreen();
+  const setFullscreen = useSetSubtitleFullscreen();
   const saveBounds = useSaveSubtitleWindowBounds();
   const items = useItems();
   const participantItems = useParticipantItems();
@@ -179,15 +183,36 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     }
   }, [surface, exitSubtitleMode]);
 
-  // ESC to exit subtitle mode
+  // ESC is layered: if we're in fullscreen, the first ESC drops back to the
+  // windowed bar; otherwise (or on the next ESC) it exits subtitle mode.
   useEffect(() => {
     const target = rootRef.current?.ownerDocument ?? document;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestExit();
+      if (e.key !== 'Escape') return;
+      if (fullscreen) {
+        void setFullscreen(false);
+      } else {
+        requestExit();
+      }
     };
     target.addEventListener('keydown', onKey);
     return () => target.removeEventListener('keydown', onKey);
-  }, [requestExit]);
+  }, [requestExit, fullscreen, setFullscreen]);
+
+  // The OS fullscreen state can change outside our button (app menu, F11,
+  // macOS gesture). Mirror it into the store so the bar button + layered ESC
+  // stay correct. Electron surface only.
+  useEffect(() => {
+    if (surface !== 'electron') return;
+    if (!window.electron?.receive) return;
+    const handler = (flag: boolean) => {
+      useSettingsStore.getState().__syncSubtitleFullscreen(Boolean(flag));
+    };
+    window.electron.receive('subtitle:fullscreen-changed', handler);
+    return () => {
+      window.electron?.removeListener?.('subtitle:fullscreen-changed', handler);
+    };
+  }, [surface]);
 
   // Bounds-changed listener (debounced 500 ms before persistence).
   // The main process emits this for any resize/move regardless of mode, so
