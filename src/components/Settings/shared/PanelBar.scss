@@ -1,0 +1,122 @@
+@use 'variables' as vars;
+
+.panel-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  border-bottom: 1px solid vars.$border-subtle;
+  flex-shrink: 0;
+
+  // TabBar provides its own item styling; the bar owns padding + the divider.
+  // min-width:0 + overflow lets the tab strip give way first so the right
+  // cluster (and its collapse button) is never pushed off-screen.
+  .tab-bar {
+    border-bottom: none;
+    padding: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  // Right cluster never shrinks — the collapse button must always stay
+  // reachable, and nothing here wraps to a second line.
+  &__actions {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: vars.$space-3;
+    padding: vars.$space-2 0;
+    white-space: nowrap;
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-left: 1px solid vars.$border-subtle;
+    color: vars.$text-muted;
+    cursor: pointer;
+    padding: 6px 6px 6px 12px;
+    transition: color vars.$transition-fast;
+
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  // Segmented mode toggle. Applied to a `.mode-toggle` element a consumer
+  // passes via the `actions` slot (see Settings.tsx for the markup shape).
+  // Relocated from Settings.scss, with the track intentionally deepened to
+  // $bg-page (vs the old $bg-surface) so it reads as a recessed segmented
+  // track against the $bg-surface panel rather than two loose buttons.
+  .mode-toggle {
+    display: flex;
+    background: vars.$bg-page;
+    border-radius: vars.$radius-md;
+    padding: 2px;
+    gap: 2px;
+
+    .mode-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      border-radius: vars.$radius-sm;
+      color: vars.$text-muted;
+      font-size: vars.$font-caption;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all vars.$transition-fast;
+
+      svg { width: 14px; height: 14px; }
+
+      &:hover:not(:disabled):not(.active) {
+        color: vars.$text-secondary;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &.active { @include vars.state-selected-fill; }
+      &:disabled { @include vars.disabled-state; }
+      &:focus-visible { @include vars.focus-ring; }
+    }
+  }
+
+  // When the bar carries tabs (Settings Advanced, all of Logs) the tabs eat
+  // the horizontal room, so the right-cluster controls collapse to icon-only
+  // (their `title`/`aria-label` carry the meaning). With no tabs (Settings
+  // Quick) there is room, so the labels stay visible.
+  &--has-tabs {
+    .panel-bar__actions .mode-button {
+      padding: 6px 8px;
+    }
+    .panel-bar__actions span {
+      display: none;
+    }
+  }
+}
+
+// Tab labels are the last thing to go — only on a genuinely tiny panel. Use an
+// sr-only collapse (not display:none) so the accessible name survives while the
+// visual width drops to just the icon.
+@container panel-chrome (max-width: 360px) {
+  .panel-bar .tab-bar__tab span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

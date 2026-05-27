@@ -4,6 +4,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
+    "collapsePanel": "Close panel",
+    "resizePanel": "Resize panel",
     "settings": "Settings",
     "help": "Help",
     "loading": "Loading...",

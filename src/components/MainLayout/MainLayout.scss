@@ -62,10 +62,6 @@
     min-width: 0; /* Allow content to shrink below its minimum content size */
     min-height: 0; /* Allow content to shrink for nested scrolling to work */
     
-    &.with-panel {
-      border-right: 1px solid #333;
-    }
-    
     &.full-width {
       width: 100%;
     }
@@ -80,11 +76,14 @@
   }
   
   .settings-panel-container {
-    width: 450px;
-    min-width: 300px;
-    max-width: 450px;
+    min-width: 300px; /* width is state-driven via inline style (see MainLayout.tsx) */
     overflow-y: auto; /* Changed to allow vertical scrolling */
     padding: 0;
     background-color: #252525;
+    /* Query container so PanelBar can collapse labels based on the panel's
+       own width, not the viewport's (the side panel stays narrow even when
+       the window is wide). */
+    container-type: inline-size;
+    container-name: panel-chrome;
   }
 }

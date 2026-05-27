@@ -115,6 +115,21 @@ $toggle-bg-on:    $color-primary;
   outline-offset: $focus-ring-offset;
 }
 
+// --- Selection state (mutually-exclusive sets) ---------------
+// green = the selected item. Form is fixed per control archetype:
+//   tabs        → underline
+//   segmented   → fill
+//   focus       → outline (focus-ring above; :focus-visible only)
+@mixin state-selected-underline {
+  color: $color-primary;
+  border-bottom: 2px solid $color-primary;
+}
+
+@mixin state-selected-fill {
+  background: $color-primary;
+  color: $text-primary;
+}
+
 @mixin control-base {
   background: $bg-control;
   border: 1px solid $border-default;

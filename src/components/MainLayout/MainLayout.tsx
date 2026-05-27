@@ -6,6 +6,8 @@ import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
 import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
 import TitleBar from '../TitleBar/TitleBar';
+import PanelResizer from './PanelResizer';
+import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
@@ -33,7 +35,7 @@ const MainLayout: React.FC = () => {
   const [showSettings, setShowSettings] = useState(() => {
     return sessionStorage.getItem('panelState.showSettings') === 'true';
   });
-
+  const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
@@ -101,6 +103,23 @@ const MainLayout: React.FC = () => {
     }
   };
 
+
+  // Re-clamp the saved/active width when the window shrinks so a wide panel
+  // can never strand MainPanel below its minimum.
+  useEffect(() => {
+    const onResize = () => setPanelWidth((w) => clampPanelWidth(w, window.innerWidth));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const handlePanelResize = useCallback((next: number) => {
+    setPanelWidth(clampPanelWidth(next, window.innerWidth));
+  }, []);
+  const handlePanelResizeCommit = useCallback((next: number) => {
+    const clamped = clampPanelWidth(next, window.innerWidth);
+    setPanelWidth(clamped);
+    savePanelWidth(clamped);
+  }, []);
 
   // Listen for navigation requests from settings context
   useEffect(() => {
@@ -187,15 +206,24 @@ const MainLayout: React.FC = () => {
         </div>
       </div>
       {(showLogs || showSettings) && (
-        <div className="settings-panel-container">
-          {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
-          {showSettings && (
-            <SettingsComponent
-              toggleSettings={toggleSettings}
-              highlightSection={settingsNavigationTarget}
-            />
-          )}
-        </div>
+        <>
+          <PanelResizer
+            width={panelWidth}
+            min={PANEL_MIN_WIDTH}
+            max={maxPanelWidth(window.innerWidth)}
+            onResize={handlePanelResize}
+            onCommit={handlePanelResizeCommit}
+          />
+          <div className="settings-panel-container" style={{ width: panelWidth }}>
+            {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
+            {showSettings && (
+              <SettingsComponent
+                toggleSettings={toggleSettings}
+                highlightSection={settingsNavigationTarget}
+              />
+            )}
+          </div>
+        </>
       )}
       <Onboarding />
     </div>

@@ -68,9 +68,13 @@
   }
 
   &.is-active {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: #10a37f;
+    background: rgba(255, 255, 255, 0.16);
     color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #10a37f;
+    outline-offset: -1px;
   }
 
   &:disabled {
