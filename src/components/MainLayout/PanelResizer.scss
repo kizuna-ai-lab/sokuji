@@ -1,15 +1,25 @@
 .panel-resizer {
-  flex: 0 0 4px;
+  position: relative;
+  z-index: 2;
+  flex: 0 0 1px;          // 1px visible seam (matches the old divider)
   align-self: stretch;
-  cursor: col-resize;
   background: #333;
+  cursor: col-resize;
   transition: background 0.15s;
 
-  &:hover,
-  &:focus-visible {
-    background: #10a37f;
+  // Wider invisible hit area straddling the 1px seam (7px total) so the thin
+  // seam is still easy to grab. Sits above the neighbours for pointer events.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 -3px;
+  }
+
+  &:hover {
+    background: #555;       // subtle neutral lift; the col-resize cursor is the main affordance
   }
   &:focus-visible {
+    background: #10a37f;
     outline: none;
   }
 
@@ -21,4 +31,9 @@
 body.is-resizing-panel {
   cursor: col-resize;
   user-select: none;
+
+  // Accent the seam only while a drag is actually in progress.
+  .panel-resizer {
+    background: #10a37f;
+  }
 }
