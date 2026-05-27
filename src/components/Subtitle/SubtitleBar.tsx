@@ -162,7 +162,12 @@ const SubtitleBar: React.FC<Props> = ({
         >
           {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
         </button>
-        <ExportButton {...exportProps} />
+        {/* In the extension overlay the wire is capped to the recent tail
+            (MAX_FORWARDED_ITEMS), so an export here would silently omit older
+            messages. The side panel holds the full conversation and is the
+            export source of truth — only offer export on the Electron surface,
+            where the overlay shares the full session store. */}
+        {surface === 'electron' && <ExportButton {...exportProps} />}
         <button
           type="button"
           className="subtitle-bar__btn"

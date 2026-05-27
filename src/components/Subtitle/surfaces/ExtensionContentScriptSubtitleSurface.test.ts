@@ -354,6 +354,40 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
       expect(itemsMsgs).toHaveLength(1); // coalesced
       expect(itemsMsgs[0][0].items.map((i: any) => i.id)).toEqual(['a', 'b', 'c']); // latest snapshot
     });
+
+    it('reconnect cancels a pending throttle timer (no stale post to the new port)', async () => {
+      // A throttle timer scheduled by the prior port's subscription must not
+      // fire after a reconnect and post a stale pendingItems snapshot to the
+      // new port. installStoreSubscriptions must reset the throttle state, the
+      // same way tearDown does.
+      const { default: useSessionStore } = await import('../../../stores/sessionStore');
+      useSessionStore.setState({ items: [], participantItems: [], isSessionActive: true } as any);
+
+      const surface = new ExtensionContentScriptSubtitleSurface();
+      await surface.enter();
+      const handleConnect = listeners.onConnect[0];
+
+      // Gen 1 connects.
+      const port1 = makePort();
+      handleConnect(port1);
+      await new Promise((r) => setTimeout(r, 0));
+
+      // Items change → schedules a throttle timer holding this snapshot. Do NOT
+      // wait for it to fire.
+      useSessionStore.setState({ items: [{ id: 'stale' }] } as any);
+
+      // Tab reload: port1 disconnects, port2 connects → gen2 installs.
+      port1.onDisconnect.addListener.mock.calls[0][0]();
+      const port2 = makePort();
+      handleConnect(port2);
+      await new Promise((r) => setTimeout(r, 0));
+      port2.postMessage.mockClear();
+
+      // Past the throttle window: the carried-over gen1 timer must not post.
+      await waitThrottle();
+      const itemsMsgs = port2.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'items');
+      expect(itemsMsgs).toHaveLength(0);
+    });
   });
 
   describe('playback forwarding', () => {

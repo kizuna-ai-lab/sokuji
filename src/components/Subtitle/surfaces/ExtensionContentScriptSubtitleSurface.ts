@@ -210,9 +210,16 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     // when the meeting tab reloads (iframe re-mounts → new port), and
     // without this cleanup the previous generation of Zustand listeners
     // would stay alive, fan messages to the new port too, and accumulate
-    // on every reload.
+    // on every reload. Reset the items throttle too (same as tearDown): a
+    // timer scheduled by the prior generation must not fire after reconnect
+    // and post its stale pendingItems snapshot to the new port.
     this.subscriptions.forEach((u) => u());
     this.subscriptions = [];
+    if (this.itemsThrottleTimer != null) {
+      clearTimeout(this.itemsThrottleTimer);
+      this.itemsThrottleTimer = null;
+    }
+    this.pendingItems = null;
 
     // Lazy dynamic import keeps the surface module testable in environments
     // that don't want to pull in sessionStore (and its audio dependencies)

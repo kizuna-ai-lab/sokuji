@@ -43,7 +43,9 @@ vi.mock('./useOverlayDragResize', () => ({
 // Stub the child components so we only assert SubtitleBar's own controls and
 // don't pull conversationDisplayStore / ServiceFactory transitively.
 vi.mock('../MainPanel/DisplayModeButton', () => ({ default: () => null }));
-vi.mock('../MainPanel/ExportButton', () => ({ default: () => null }));
+vi.mock('../MainPanel/ExportButton', () => ({
+  default: () => require('react').createElement('div', { 'data-testid': 'export-button' }),
+}));
 vi.mock('../Display/DisplaySettingsPopover', () => ({ default: () => null }));
 
 const baseProps = {
@@ -88,5 +90,20 @@ describe('SubtitleBar fullscreen button', () => {
     expect(btn.classList.contains('active')).toBe(true);
     fireEvent.click(btn);
     expect(setSubtitleFullscreen).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('SubtitleBar export button', () => {
+  // In the extension overlay the forwarded items are windowed to the recent
+  // tail, so export there would silently omit older messages. Export is only
+  // offered on the Electron surface, where the overlay shares the full store.
+  it('renders the export button on the electron surface', () => {
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    expect(screen.getByTestId('export-button')).toBeInTheDocument();
+  });
+
+  it('does NOT render the export button on the extension-overlay surface', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
+    expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
   });
 });
