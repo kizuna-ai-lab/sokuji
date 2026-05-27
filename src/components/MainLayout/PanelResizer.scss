@@ -1,0 +1,24 @@
+.panel-resizer {
+  flex: 0 0 4px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: #333;
+  transition: background 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    background: #10a37f;
+  }
+  &:focus-visible {
+    outline: none;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+body.is-resizing-panel {
+  cursor: col-resize;
+  user-select: none;
+}
