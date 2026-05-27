@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users, ClipboardCopy } from 'lucide-react';
-import TabBar, { Tab } from '../Settings/shared/TabBar';
+import { Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users, ClipboardCopy } from 'lucide-react';
+import PanelBar from '../Settings/shared/PanelBar';
+import type { Tab } from '../Settings/shared/TabBar';
 import './LogsPanel.scss';
 import { useLogData, useLogActions } from '../../stores/logStore';
 import type { LogEntry, ClientId } from '../../stores/logStore';
@@ -263,39 +264,35 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
 
   return (
     <div className="logs-panel">
-      <div className="logs-panel-header">
-        <h2>{t('logsPanel.title')}</h2>
-        <div className="header-actions">
-          <button 
-            className={`auto-scroll-button ${autoScroll ? 'active' : ''}`} 
-            onClick={toggleAutoScroll}
-            title={autoScroll ? t('logsPanel.disableAutoScroll') : t('logsPanel.enableAutoScroll')}
-          >
-            <FastForward size={16} />
-            <span>{autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}</span>
-          </button>
-          {filteredLogs.length > 0 && (
-            <button className="copy-logs-button" onClick={handleCopyLogs}>
-              <ClipboardCopy size={16} />
-              <span>{copyLabel || t('logsPanel.copyLogs')}</span>
-            </button>
-          )}
-          {logs.length > 0 && (
-            <button className="clear-logs-button" onClick={clearLogs}>
-              <Trash2 size={16} />
-              <span>{t('common.clear')}</span>
-            </button>
-          )}
-          <button className="close-logs-button" onClick={toggleLogs}>
-            <ArrowRight size={16} />
-            <span>{t('common.close')}</span>
-          </button>
-        </div>
-      </div>
-      <TabBar
+      <PanelBar
         tabs={LOG_TABS}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as ClientId)}
+        onClose={toggleLogs}
+        actions={
+          <div className="logs-actions">
+            <button
+              className={`auto-scroll-button ${autoScroll ? 'active' : ''}`}
+              onClick={toggleAutoScroll}
+              title={autoScroll ? t('logsPanel.disableAutoScroll') : t('logsPanel.enableAutoScroll')}
+            >
+              <FastForward size={16} />
+              <span>{autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}</span>
+            </button>
+            {filteredLogs.length > 0 && (
+              <button className="copy-logs-button" onClick={handleCopyLogs}>
+                <ClipboardCopy size={16} />
+                <span>{copyLabel || t('logsPanel.copyLogs')}</span>
+              </button>
+            )}
+            {logs.length > 0 && (
+              <button className="clear-logs-button" onClick={clearLogs}>
+                <Trash2 size={16} />
+                <span>{t('common.clear')}</span>
+              </button>
+            )}
+          </div>
+        }
       />
       <div
         className="logs-content"
