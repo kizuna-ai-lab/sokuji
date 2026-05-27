@@ -19,6 +19,71 @@ function isSupportedUrl(url: string | undefined): boolean {
 }
 
 /**
+ * Cap how many trailing items cross the port. The overlay is a live tail, not a
+ * scrollback log: compact mode only ever renders ~BUCKET_MAX_CHARS of the
+ * newest text. Bounding to the most recent N keeps the per-message clone and
+ * the iframe's per-render work (re-sort / filter / Map-rebuild) O(N) regardless
+ * of how long the session runs. Full history stays on the side panel (the
+ * source of truth) for export. Defensive bound — the dominant cost was the
+ * heavy per-item fields (see stripHeavyItemFields), not item count.
+ */
+const MAX_FORWARDED_ITEMS = 15;
+
+// Coalesce items forwarding to this cadence. Streaming deltas mutate the items
+// array many times/sec; posting each one (structured clone + cross-process IPC
+// + an iframe re-render) is wasteful for a live subtitle. ~8 refreshes/sec
+// reads perfectly smoothly. Roughly matches the 100ms playback/karaoke cadence
+// so text and highlight stay in step.
+const ITEMS_THROTTLE_MS = 120;
+
+function recentItems(items: any[] | undefined): any[] {
+  if (!items) return [];
+  return items.length > MAX_FORWARDED_ITEMS
+    ? items.slice(-MAX_FORWARDED_ITEMS)
+    : items;
+}
+
+/**
+ * Drop the heavy replay-only fields from items before they cross the
+ * chrome.runtime port: `formatted.audio` (raw PCM `Int16Array`),
+ * `formatted.file` (a generated WAV blob for the download/replay button), and
+ * `content[].audio`.
+ *
+ * Provider clients keep this audio on each conversation item to power replay,
+ * but the subtitle overlay never reads any of it — it renders text and uses
+ * only the small `audioSegments`/`audioTextEnd` timing metadata for the
+ * karaoke highlight. Forwarding these fields was catastrophic because the items
+ * subscription re-posts the whole array on every streaming delta and port
+ * messages are structured-cloned in full:
+ *   - `formatted.audio` grew until one message exceeded Chrome's 64MiB port
+ *     limit and `postMessage` threw synchronously inside the Zustand notify,
+ *     crashing the app.
+ *   - `formatted.file` (the WAV, even larger than the PCM) reached multiple MB
+ *     per item and, re-cloned on every delta, pegged the page (measured: a
+ *     single item at 5.4MB, total payload 12MB).
+ * Stripping them keeps the wire payload tiny and bounded to text.
+ */
+function stripHeavyItemFields(items: any[] | undefined): any[] {
+  if (!items) return [];
+  return items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const next: any = { ...item };
+    if (item.formatted && typeof item.formatted === 'object') {
+      const { audio: _audio, file: _file, ...formattedRest } = item.formatted;
+      next.formatted = formattedRest;
+    }
+    if (Array.isArray(item.content)) {
+      next.content = item.content.map((part: any) => {
+        if (!part || typeof part !== 'object') return part;
+        const { audio: _partAudio, ...partRest } = part;
+        return partRest;
+      });
+    }
+    return next;
+  });
+}
+
+/**
  * Thrown when the meeting tab has no content-script receiver. Most common
  * cause: the user reloaded the extension after the meeting tab was already
  * open, so the (now-current) content script was never injected into it. The
@@ -30,6 +95,9 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   private targetTabId: number | null = null;
   private port: any = null;
   private subscriptions: (() => void)[] = [];
+  // Trailing throttle state for items forwarding (see ITEMS_THROTTLE_MS).
+  private itemsThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingItems: { items: any[]; participantItems: any[] } | null = null;
 
   private handleConnect = (p: any) => {
     if (p.name !== 'sokuji-subtitle') return;
@@ -124,6 +192,11 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     chrome.runtime.onConnect.removeListener(this.handleConnect);
     chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
     chrome.tabs.onUpdated.removeListener(this.handleTabUpdated);
+    if (this.itemsThrottleTimer != null) {
+      clearTimeout(this.itemsThrottleTimer);
+      this.itemsThrottleTimer = null;
+    }
+    this.pendingItems = null;
     this.subscriptions.forEach((u) => u());
     this.subscriptions = [];
     this.port?.disconnect();
@@ -181,8 +254,8 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     this.port.postMessage({
       type: 'state-init',
       payload: {
-        items: session.items,
-        participantItems: session.participantItems,
+        items: stripHeavyItemFields(recentItems(session.items)),
+        participantItems: stripHeavyItemFields(recentItems(session.participantItems)),
         isSessionActive: session.isSessionActive,
         sessionStartTime: session.sessionStartTime,
         provider: lastConfig.provider,
@@ -194,21 +267,34 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     });
 
     // Subscribe to subsequent changes.
-    const unsubItems = useSessionStore.subscribe(
+    const subs: (() => void)[] = [];
+
+    subs.push(useSessionStore.subscribe(
       (s) => ({ items: s.items, participantItems: s.participantItems }),
       (next) => {
-        this.port?.postMessage({
-          type: 'items',
-          items: next.items,
-          participantItems: next.participantItems,
-        });
+        // Trailing throttle: keep only the latest snapshot and post it at
+        // most once per ITEMS_THROTTLE_MS. Bursts of streaming deltas
+        // collapse into one message instead of one-per-delta.
+        this.pendingItems = { items: next.items, participantItems: next.participantItems };
+        if (this.itemsThrottleTimer != null) return;
+        this.itemsThrottleTimer = setTimeout(() => {
+          this.itemsThrottleTimer = null;
+          const p = this.pendingItems;
+          this.pendingItems = null;
+          if (!p || !this.port) return;
+          this.port.postMessage({
+            type: 'items',
+            items: stripHeavyItemFields(recentItems(p.items)),
+            participantItems: stripHeavyItemFields(recentItems(p.participantItems)),
+          });
+        }, ITEMS_THROTTLE_MS);
       },
       {
         equalityFn: (a, b) =>
           a.items === b.items && a.participantItems === b.participantItems,
       },
-    );
-    const unsubSession = useSessionStore.subscribe(
+    ));
+    subs.push(useSessionStore.subscribe(
       (s) => ({ isSessionActive: s.isSessionActive, sessionStartTime: s.sessionStartTime }),
       (next) => {
         this.port?.postMessage({
@@ -222,7 +308,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
           a.isSessionActive === b.isSessionActive &&
           a.sessionStartTime === b.sessionStartTime,
       },
-    );
+    ));
 
     // Forward provider + language pair + turn detection mode whenever they
     // change in the side panel. We listen to the full state (rather than a
@@ -254,13 +340,13 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       lastConfig = next;
       this.port.postMessage({ type: 'config', ...next });
     };
-    const unsubConfig = useSettingsStore.subscribe(pushConfigIfChanged);
+    subs.push(useSettingsStore.subscribe(pushConfigIfChanged));
 
-    const unsubPlayback = subscribePlaybackForPort((encoded) => {
+    subs.push(subscribePlaybackForPort((encoded) => {
       this.port?.postMessage({ type: 'playback', ...encoded });
-    });
+    }));
 
-    this.subscriptions = [unsubItems, unsubSession, unsubConfig, unsubPlayback];
+    this.subscriptions = subs;
   }
 }
 
