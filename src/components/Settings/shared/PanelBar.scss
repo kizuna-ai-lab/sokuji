@@ -1,0 +1,90 @@
+@use 'variables' as vars;
+
+.panel-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  border-bottom: 1px solid vars.$border-subtle;
+  flex-shrink: 0;
+
+  // TabBar provides its own item styling; the bar owns padding + the divider.
+  .tab-bar {
+    border-bottom: none;
+    padding: 0;
+    flex: 0 1 auto;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: vars.$space-3;
+    padding: vars.$space-2 0;
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-left: 1px solid vars.$border-subtle;
+    color: vars.$text-muted;
+    cursor: pointer;
+    padding: 6px 6px 6px 12px;
+    transition: color vars.$transition-fast;
+
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  // Segmented mode toggle. Applied to a `.mode-toggle` element a consumer
+  // passes via the `actions` slot (see Settings.tsx for the markup shape).
+  // Relocated from Settings.scss, with the track intentionally deepened to
+  // $bg-page (vs the old $bg-surface) so it reads as a recessed segmented
+  // track against the $bg-surface panel rather than two loose buttons.
+  .mode-toggle {
+    display: flex;
+    background: vars.$bg-page;
+    border-radius: vars.$radius-md;
+    padding: 2px;
+    gap: 2px;
+
+    .mode-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      border-radius: vars.$radius-sm;
+      color: vars.$text-muted;
+      font-size: vars.$font-caption;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all vars.$transition-fast;
+
+      svg { width: 14px; height: 14px; }
+
+      &:hover:not(:disabled):not(.active) {
+        color: vars.$text-secondary;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &.active { @include vars.state-selected-fill; }
+      &:disabled { @include vars.disabled-state; }
+      &:focus-visible { @include vars.focus-ring; }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .mode-toggle .mode-button {
+      padding: 6px 8px;
+      span { display: none; }
+    }
+  }
+}
