@@ -86,5 +86,10 @@
     overflow-y: auto; /* Changed to allow vertical scrolling */
     padding: 0;
     background-color: #252525;
+    /* Query container so PanelBar can collapse labels based on the panel's
+       own width, not the viewport's (the side panel stays narrow even when
+       the window is wide). */
+    container-type: inline-size;
+    container-name: panel-chrome;
   }
 }

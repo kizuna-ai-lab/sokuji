@@ -32,7 +32,7 @@ const PanelBar: React.FC<PanelBarProps> = ({ tabs, activeTab, onTabChange, actio
   const hasTabs = tabs && activeTab !== undefined && onTabChange;
 
   return (
-    <div className="panel-bar">
+    <div className={`panel-bar${hasTabs ? ' panel-bar--has-tabs' : ''}`}>
       {hasTabs ? (
         <TabBar tabs={tabs!} activeTab={activeTab!} onTabChange={onTabChange!} />
       ) : (

@@ -275,18 +275,29 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
               className={`auto-scroll-button ${autoScroll ? 'active' : ''}`}
               onClick={toggleAutoScroll}
               title={autoScroll ? t('logsPanel.disableAutoScroll') : t('logsPanel.enableAutoScroll')}
+              aria-label={autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}
             >
               <FastForward size={16} />
               <span>{autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}</span>
             </button>
             {filteredLogs.length > 0 && (
-              <button className="copy-logs-button" onClick={handleCopyLogs}>
+              <button
+                className="copy-logs-button"
+                onClick={handleCopyLogs}
+                title={copyLabel || t('logsPanel.copyLogs')}
+                aria-label={t('logsPanel.copyLogs')}
+              >
                 <ClipboardCopy size={16} />
                 <span>{copyLabel || t('logsPanel.copyLogs')}</span>
               </button>
             )}
             {logs.length > 0 && (
-              <button className="clear-logs-button" onClick={clearLogs}>
+              <button
+                className="clear-logs-button"
+                onClick={clearLogs}
+                title={t('common.clear')}
+                aria-label={t('common.clear')}
+              >
                 <Trash2 size={16} />
                 <span>{t('common.clear')}</span>
               </button>
