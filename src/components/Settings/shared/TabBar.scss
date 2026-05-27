@@ -28,8 +28,7 @@
     }
 
     &--active {
-      color: vars.$color-primary;
-      border-bottom-color: vars.$color-primary;
+      @include vars.state-selected-underline;
     }
 
     &:focus-visible {
