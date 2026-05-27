@@ -9,95 +9,6 @@
   overflow: hidden;
   color: vars.$text-primary;
 
-  .settings-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10.5px 15px;
-    border-bottom: 1px solid vars.$border-subtle;
-    box-sizing: border-box;
-    width: 100%;
-    flex-shrink: 0;
-
-    h2 {
-      margin: 0;
-      font-size: vars.$font-title;
-      font-weight: 500;
-      color: vars.$text-primary;
-      line-height: 32px;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .mode-toggle {
-        display: flex;
-        background: vars.$bg-surface;
-        border-radius: vars.$radius-md;
-        padding: 2px;
-        gap: 2px;
-
-        .mode-button {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: transparent;
-          border: none;
-          border-radius: vars.$radius-sm;
-          color: vars.$text-muted;
-          font-size: vars.$font-caption;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all vars.$transition-fast;
-
-          svg {
-            width: 14px;
-            height: 14px;
-          }
-
-          &:hover:not(:disabled):not(.active) {
-            color: vars.$text-secondary;
-            background: rgba(255, 255, 255, 0.05);
-          }
-
-          &.active {
-            background: vars.$color-primary;
-            color: vars.$text-primary;
-          }
-
-          &:disabled {
-            @include vars.disabled-state;
-          }
-        }
-      }
-
-      .close-button {
-        display: flex;
-        align-items: center;
-        background: none;
-        border: none;
-        color: vars.$text-muted;
-        cursor: pointer;
-        padding: 6px 12px;
-        border-radius: vars.$radius-sm;
-        transition: all 0.2s;
-
-        span {
-          margin-left: 5px;
-          font-size: vars.$font-body;
-        }
-
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-          color: vars.$text-primary;
-        }
-      }
-    }
-  }
-
   .settings-body {
     flex: 1;
     overflow: hidden;
@@ -1612,22 +1523,6 @@
 
 // Responsive
 @media (max-width: 768px) {
-  .settings-container {
-    .settings-header {
-      .header-actions {
-        .mode-toggle {
-          .mode-button {
-            padding: 6px 8px;
-
-            span {
-              display: none;
-            }
-          }
-        }
-      }
-    }
-  }
-
   .language-pair-row {
     grid-template-columns: 1fr;
     gap: 12px;

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
 import { useMode } from '../../../stores/audioStore';
@@ -9,15 +9,12 @@ import {
   useLoadingModels,
   useFetchAvailableModels,
   useGetProcessedSystemInstructions,
-  useSettingsNavigationTarget,
-  useNavigateToSettings,
   useCurrentTurnDetectionMode,
 } from '../../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
-import TabBar, { Tab } from '../shared/TabBar';
 import {
   AccountSection,
   ProviderSection,
@@ -30,34 +27,12 @@ import {
 import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
 import './AdvancedSettings.scss';
 
-const TABS: Tab[] = [
-  { id: 'general', labelKey: 'settings.tabs.general', fallback: 'General', icon: Settings },
-  { id: 'audio', labelKey: 'settings.tabs.audio', fallback: 'Audio', icon: Headphones },
-  { id: 'provider', labelKey: 'settings.tabs.provider', fallback: 'Provider', icon: Cpu },
-];
-
-const NAVIGATION_TAB_MAP: Record<string, string> = {
-  'user-account': 'general',
-  'languages': 'general',
-  'microphone': 'audio',
-  'speaker': 'audio',
-  'system-audio': 'audio',
-  'participant': 'audio', // renamed section target — popover footer navigates here
-  'provider': 'provider',
-  'system-instructions': 'provider',
-  'voice-settings': 'provider',
-  'turn-detection': 'provider',
-  'model-management': 'provider',
-  'model-asr': 'provider',
-  'model-translation': 'provider',
-  'model-tts': 'provider',
-};
-
 interface AdvancedSettingsProps {
   toggleSettings?: () => void;
+  activeTab: string;
 }
 
-const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) => {
+const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, activeTab }) => {
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
 
@@ -99,37 +74,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
     }
   }, [provider]);
 
-  // Navigation target for scroll-to-section
-  const settingsNavigationTarget = useSettingsNavigationTarget();
-  const navigateToSettings = useNavigateToSettings();
-
   // State
-  const [activeTab, setActiveTab] = useState('general');
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
-
-  // Handle scrolling and highlighting when settingsNavigationTarget changes
-  useEffect(() => {
-    if (settingsNavigationTarget) {
-      const targetTab = NAVIGATION_TAB_MAP[settingsNavigationTarget];
-      if (targetTab && targetTab !== activeTab) {
-        setActiveTab(targetTab);
-      }
-
-      // Wait for tab switch + DOM update before scrolling
-      setTimeout(() => {
-        const element = document.getElementById(`${settingsNavigationTarget}-section`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          element.classList.add('highlight');
-          setTimeout(() => {
-            element.classList.remove('highlight');
-            navigateToSettings(null);
-          }, 3000);
-        }
-      }, 150);
-    }
-  }, [settingsNavigationTarget, navigateToSettings]);
 
   return (
     <div className="advanced-settings">
@@ -145,8 +92,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
           <span>{t('settings.sessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
         </div>
       )}
-
-      <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div
         className="settings-content"
