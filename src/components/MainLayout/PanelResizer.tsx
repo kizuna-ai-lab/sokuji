@@ -25,6 +25,7 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
   useEffect(() => () => cleanupRef.current?.(), []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // primary button only
     if (drag.current) return; // ignore re-entrant pointerdowns (e.g. multi-touch)
     e.preventDefault();
     const start = { startX: e.clientX, startWidth: width };

@@ -66,18 +66,22 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     // Wait for the tab switch + DOM update before scrolling. Cancel the
     // pending scroll on cleanup so flipping modes mid-navigation doesn't
     // fire into an unmounted/stale DOM.
+    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
     const scrollTimer = setTimeout(() => {
       const element = document.getElementById(`${settingsNavigationTarget}-section`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         element.classList.add('highlight');
-        setTimeout(() => {
+        highlightTimer = setTimeout(() => {
           element.classList.remove('highlight');
           navigateToSettings(null);
         }, 3000);
       }
     }, 150);
-    return () => clearTimeout(scrollTimer);
+    return () => {
+      clearTimeout(scrollTimer);
+      if (highlightTimer) clearTimeout(highlightTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsNavigationTarget, navigateToSettings, isSimpleMode]);
 
