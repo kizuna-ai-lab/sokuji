@@ -4,10 +4,14 @@ export const PANEL_DEFAULT_WIDTH = 450;
 
 const STORAGE_KEY = 'panelState.settingsPanelWidth';
 
+/** Widest the panel may be: leaves MainPanel at least MAIN_CONTENT_MIN, floored at MIN. */
+export function maxPanelWidth(viewportWidth: number): number {
+  return Math.max(PANEL_MIN_WIDTH, viewportWidth - MAIN_CONTENT_MIN);
+}
+
 /** Clamp to [MIN, viewport − MAIN_CONTENT_MIN], floored at MIN for tiny viewports. */
 export function clampPanelWidth(width: number, viewportWidth: number): number {
-  const max = Math.max(PANEL_MIN_WIDTH, viewportWidth - MAIN_CONTENT_MIN);
-  return Math.min(Math.max(width, PANEL_MIN_WIDTH), max);
+  return Math.min(Math.max(width, PANEL_MIN_WIDTH), maxPanelWidth(viewportWidth));
 }
 
 export function readPanelWidth(): number {
