@@ -123,6 +123,14 @@ export class VolcengineAST2Client implements IClient {
   // Whether we registered WebSocket headers that need cleanup (Electron/Extension)
   private headersRegistered = false;
 
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). When false, the
+   * inline merge into `formatted.audio` inside decodeTTSAndPlay() is
+   * skipped — real-time TTS playback (onConversationUpdated delta) is
+   * unaffected.
+   */
+  private keepReplayAudio: boolean = false;
+
   constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053') {
     this.appId = appId;
     this.accessToken = accessToken;
@@ -145,6 +153,7 @@ export class VolcengineAST2Client implements IClient {
     }
 
     this.currentConfig = config;
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.sessionId = uuidv4();
     this.connectionId = uuidv4();
     this.sequence = 0;
@@ -740,16 +749,21 @@ export class VolcengineAST2Client implements IClient {
         : null;
 
       if (existingItem) {
-        // Concatenate audio if the item already has some (multiple TTS sentences)
-        if (existingItem.formatted?.audio && existingItem.formatted.audio instanceof Int16Array) {
-          const prev = existingItem.formatted.audio;
-          const combined = new Int16Array(prev.length + int16Array.length);
-          combined.set(prev);
-          combined.set(int16Array, prev.length);
-          existingItem.formatted.audio = combined;
-        } else {
-          if (!existingItem.formatted) existingItem.formatted = {};
-          existingItem.formatted.audio = int16Array;
+        // Concatenate audio if the item already has some (multiple TTS sentences).
+        // Gated on keepReplayAudio — when off, the per-item replay buffer is
+        // never populated, but the real-time delta dispatch below still fires
+        // so live TTS playback is unaffected.
+        if (this.keepReplayAudio) {
+          if (existingItem.formatted?.audio && existingItem.formatted.audio instanceof Int16Array) {
+            const prev = existingItem.formatted.audio;
+            const combined = new Int16Array(prev.length + int16Array.length);
+            combined.set(prev);
+            combined.set(int16Array, prev.length);
+            existingItem.formatted.audio = combined;
+          } else {
+            if (!existingItem.formatted) existingItem.formatted = {};
+            existingItem.formatted.audio = int16Array;
+          }
         }
 
         // Emit delta with audio for real-time playback
