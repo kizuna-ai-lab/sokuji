@@ -500,11 +500,12 @@ describe('GeminiClient — reconnection state machine', () => {
   // MainPanel's disconnect flow is: `await client.disconnect()` →
   // `setItems(client.getConversationItems())` → `client.reset()`. The middle
   // step reads the items into React state. If disconnect() clears them, the UI
-  // blanks out. The contract that MainPanel relies on (and that the other 5
-  // provider clients honor): disconnect() closes the network only; reset() is
-  // the dedicated state-clear. This test pins down both halves: the synchronous
-  // disconnect() call must not clear, and neither must the asynchronous onclose
-  // handler that fires later via the socket close handshake.
+  // blanks out. The contract MainPanel relies on (and that most other provider
+  // clients in this repo honor): disconnect() closes the network only;
+  // reset() is the dedicated state-clear. This test pins down both halves: the
+  // synchronous disconnect() call must not clear, and neither must the
+  // asynchronous onclose handler that fires later via the socket close
+  // handshake.
   it('disconnect() preserves conversationItems; only reset() clears them', async () => {
     await client.connect(baseConfig);
 
@@ -531,5 +532,39 @@ describe('GeminiClient — reconnection state machine', () => {
     // Step 3: reset() is the dedicated clearing step.
     client.reset();
     expect(client.getConversationItems()).toHaveLength(0);
+  });
+
+  // ── Test 19: firePermanentDisconnect() also preserves conversationItems ────
+  // After all reconnect retries fail, the client calls firePermanentDisconnect()
+  // which fires onClose to MainPanel. MainPanel's onClose handler then routes
+  // through disconnectConversation() — same flow as Test 18 — which reads
+  // client.getConversationItems() into React state BEFORE calling client.reset().
+  // If firePermanentDisconnect zeroes the items synchronously, MainPanel reads
+  // [] and the UI blanks on permanent disconnect (same UX regression Test 18
+  // fixed for the user-stop path). The defensive argument for clearing here
+  // ("prevent stray reconnect with stale state") is already covered by setting
+  // lastConfig = null — reconnect()'s entry guard `if (!this.lastConfig) return;`
+  // short-circuits before any code reads conversationItems.
+  it('firePermanentDisconnect (retry-fail path) preserves conversationItems', async () => {
+    await client.connect(baseConfig);
+    sendResumptionUpdate(true, 'handle-will-die');
+
+    // Seed items
+    (client as any).conversationItems = [
+      { id: 'a', role: 'user', type: 'message', status: 'completed', createdAt: 1 },
+      { id: 'b', role: 'assistant', type: 'message', status: 'completed', createdAt: 2 },
+    ];
+
+    // Exhaust the 3 reconnect attempts — drops to firePermanentDisconnect.
+    setupFailingConnect();
+    sendGoAway();
+    await vi.runAllTimersAsync();
+
+    // Sanity: permanent-disconnect path was actually taken.
+    expect(handlers.onClose).toHaveBeenCalledTimes(1);
+
+    // Items must survive — MainPanel needs to read them via getConversationItems()
+    // in its onClose → disconnectConversation chain.
+    expect(client.getConversationItems()).toHaveLength(2);
   });
 });
