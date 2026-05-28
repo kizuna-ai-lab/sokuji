@@ -314,6 +314,32 @@ describe('settingsStore', () => {
     });
   });
 
+  describe('keepReplayAudio', () => {
+    it('defaults to false on a fresh store', () => {
+      // Reset specifically for this test — beforeEach only resets a few fields.
+      useSettingsStore.setState({ keepReplayAudio: false });
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+
+    it('setKeepReplayAudio(true) updates state and persists', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setKeepReplayAudio(true);
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.keepReplayAudio',
+        true,
+      );
+    });
+
+    it('rolls back state when persistence fails', async () => {
+      useSettingsStore.setState({ keepReplayAudio: false });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setKeepReplayAudio(true);
+      // State must roll back to the previous value.
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
