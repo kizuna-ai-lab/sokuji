@@ -346,7 +346,9 @@
     "systemAudioDescExtension": "Capture e transcreva o áudio do separador actual. Seleccione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição. Nota: O altifalante e o áudio de participantes não podem ser activados em simultâneo — desligue primeiro o altifalante para activar o áudio de participantes.",
     "swapLanguages": "Trocar idiomas",
     "textOnly": "Apenas texto",
-    "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz"
+    "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz",
+    "keepReplayAudio": "Manter áudio para reprodução",
+    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para o poder reproduzir mais tarde a partir de cada mensagem. Desativado por predefinição para reduzir o uso de memória em sessões longas."
   },
   "providers": {
     "openai": {

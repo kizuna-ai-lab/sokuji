@@ -599,7 +599,9 @@
     "systemAudioDescExtension": "Cattura e trascrivi l'audio della scheda corrente. Seleziona un dispositivo di output per ascoltare l'audio della riunione durante la trascrizione. Nota: L'altoparlante e l'audio dei partecipanti non possono essere abilitati contemporaneamente — disattiva prima l'altoparlante per abilitare l'audio dei partecipanti.",
     "swapLanguages": "Scambia lingue",
     "textOnly": "Solo testo",
-    "textOnlyDesc": "Traduci solo in testo — nessuna uscita vocale"
+    "textOnlyDesc": "Traduci solo in testo — nessuna uscita vocale",
+    "keepReplayAudio": "Mantieni l'audio per la riproduzione",
+    "keepReplayAudioDesc": "Memorizza l'audio tradotto in memoria per poterlo riprodurre in seguito da ogni messaggio. Disattivato per impostazione predefinita per ridurre l'uso della memoria nelle sessioni lunghe."
   },
   "providers": {
     "openai": {

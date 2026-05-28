@@ -344,7 +344,9 @@
     "currentTab": "当前标签页",
     "swapLanguages": "交换语言",
     "textOnly": "仅文本",
-    "textOnlyDesc": "仅翻译为文本 — 不生成语音"
+    "textOnlyDesc": "仅翻译为文本 — 不生成语音",
+    "keepReplayAudio": "保留音频以便重播",
+    "keepReplayAudioDesc": "将翻译的音频保存在内存中，以便您之后可以从每条消息重新播放。默认关闭以减少长时间会话中的内存占用。"
   },
   "simplePanel": {
     "translationActive": "翻译进行中",

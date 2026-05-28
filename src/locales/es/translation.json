@@ -600,7 +600,9 @@
     "currentTab": "Pestaña Actual",
     "swapLanguages": "Intercambiar idiomas",
     "textOnly": "Solo texto",
-    "textOnlyDesc": "Traducir solo a texto — sin salida de voz"
+    "textOnlyDesc": "Traducir solo a texto — sin salida de voz",
+    "keepReplayAudio": "Conservar audio para reproducción",
+    "keepReplayAudioDesc": "Guardar el audio traducido en memoria para poder reproducirlo más tarde desde cada mensaje. Desactivado de forma predeterminada para reducir el uso de memoria en sesiones largas."
   },
   "providers": {
     "openai": {

@@ -64,7 +64,9 @@
     "systemAudioDescExtension": "擷取並轉錄當前分頁的音訊。選擇輸出裝置以在轉錄時收聽會議音訊。 注意：揚聲器和參與者音訊無法同時啟用——請先關閉揚聲器再啟用參與者音訊。",
     "swapLanguages": "交換語言",
     "textOnly": "僅文字",
-    "textOnlyDesc": "僅翻譯為文字 — 不產生語音"
+    "textOnlyDesc": "僅翻譯為文字 — 不產生語音",
+    "keepReplayAudio": "保留音訊以便重播",
+    "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
   },
   "providers": {
     "openai": {

@@ -600,7 +600,9 @@
     "currentTab": "Onglet Actuel",
     "swapLanguages": "Inverser les langues",
     "textOnly": "Texte uniquement",
-    "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale"
+    "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale",
+    "keepReplayAudio": "Conserver l'audio pour la relecture",
+    "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
   },
   "providers": {
     "openai": {

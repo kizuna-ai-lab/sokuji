@@ -606,7 +606,9 @@
     "currentTab": "現在のタブ",
     "swapLanguages": "言語を入れ替え",
     "textOnly": "テキストのみ",
-    "textOnlyDesc": "テキストのみに翻訳 — 音声出力なし"
+    "textOnlyDesc": "テキストのみに翻訳 — 音声出力なし",
+    "keepReplayAudio": "再生用に音声を保持",
+    "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。"
   },
   "providers": {
     "openai": {

@@ -557,7 +557,9 @@
     "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Metne dönüştürürken toplantı sesini duymak için bir çıkış cihazı seçin. Not: Hoparlör ve Katılımcı Sesi aynı anda etkinleştirilemez — Katılımcı Sesini etkinleştirmek için önce Hoparlörü kapatın.",
     "swapLanguages": "Dilleri değiştir",
     "textOnly": "Yalnızca metin",
-    "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok"
+    "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok",
+    "keepReplayAudio": "Sesi yeniden oynatma için sakla",
+    "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
   },
   "providers": {
     "openai": {

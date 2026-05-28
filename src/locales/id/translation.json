@@ -343,7 +343,9 @@
     "systemAudioDescExtension": "Tangkap dan transkrip audio dari tab saat ini. Pilih perangkat output untuk mendengar audio rapat saat mentranskripsi. Catatan: Speaker dan Audio Peserta tidak dapat diaktifkan secara bersamaan — matikan Speaker terlebih dahulu untuk mengaktifkan Audio Peserta.",
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks saja",
-    "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara"
+    "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara",
+    "keepReplayAudio": "Simpan audio untuk diputar ulang",
+    "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
   },
   "providers": {
     "openai": {

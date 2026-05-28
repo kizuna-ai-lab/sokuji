@@ -599,7 +599,9 @@
     "systemAudioDescExtension": "Leg audio vast en transcribeer van het huidige tabblad. Selecteer een uitvoerapparaat om de vergaderaudio te horen tijdens het transcriberen. Opmerking: Luidspreker en Deelnemer Audio kunnen niet tegelijkertijd worden ingeschakeld — schakel eerst de Luidspreker uit om Deelnemer Audio in te schakelen.",
     "swapLanguages": "Talen wisselen",
     "textOnly": "Alleen tekst",
-    "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer"
+    "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer",
+    "keepReplayAudio": "Audio bewaren voor herhaling",
+    "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },
   "providers": {
     "openai": {

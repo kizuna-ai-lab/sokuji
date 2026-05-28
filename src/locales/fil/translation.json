@@ -342,7 +342,9 @@
     "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe. Tandaan: Hindi maaaring sabay na i-enable ang Speaker at Audio ng Kalahok — i-off muna ang Speaker upang i-enable ang Audio ng Kalahok.",
     "swapLanguages": "Palitan ang mga wika",
     "textOnly": "Teksto lamang",
-    "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output"
+    "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output",
+    "keepReplayAudio": "Itago ang audio para sa muling pagpapatugtog",
+    "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
   },
   "providers": {
     "openai": {

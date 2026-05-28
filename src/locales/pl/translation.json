@@ -598,7 +598,9 @@
     "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Wybierz urządzenie wyjściowe, aby słyszeć dźwięk spotkania podczas transkrypcji. Uwaga: Głośnik i Dźwięk uczestnika nie mogą być włączone jednocześnie — najpierw wyłącz Głośnik, aby włączyć Dźwięk uczestnika.",
     "swapLanguages": "Zamień języki",
     "textOnly": "Tylko tekst",
-    "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego"
+    "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego",
+    "keepReplayAudio": "Zachowaj dźwięk do powtórnego odtworzenia",
+    "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
   },
   "providers": {
     "openai": {

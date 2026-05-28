@@ -600,7 +600,9 @@
     "currentTab": "Aktueller Tab",
     "swapLanguages": "Sprachen tauschen",
     "textOnly": "Nur Text",
-    "textOnlyDesc": "Nur als Text übersetzen — keine Sprachausgabe"
+    "textOnlyDesc": "Nur als Text übersetzen — keine Sprachausgabe",
+    "keepReplayAudio": "Audio für Wiedergabe behalten",
+    "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
   },
   "providers": {
     "openai": {

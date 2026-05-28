@@ -342,7 +342,9 @@
     "systemAudioDescExtension": "Tangkap dan transkripkan audio dari tab semasa. Pilih peranti output untuk mendengar audio mesyuarat semasa menulis transkripsi. Nota: Pembesar Suara dan Audio Peserta tidak boleh diaktifkan pada masa yang sama — matikan Pembesar Suara terlebih dahulu untuk mengaktifkan Audio Peserta.",
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks sahaja",
-    "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara"
+    "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara",
+    "keepReplayAudio": "Simpan audio untuk main semula",
+    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
   },
   "providers": {
     "openai": {

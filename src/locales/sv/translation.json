@@ -555,7 +555,9 @@
     "systemAudioDescExtension": "Fånga och transkribera ljud från den aktuella fliken. Välj en utgångsenhet för att höra mötesljudet under transkribering. Obs: Högtalare och Deltagarljud kan inte aktiveras samtidigt — stäng av Högtalare först för att aktivera Deltagarljud.",
     "swapLanguages": "Byt språk",
     "textOnly": "Endast text",
-    "textOnlyDesc": "Översätt till text — inget talat ljud"
+    "textOnlyDesc": "Översätt till text — inget talat ljud",
+    "keepReplayAudio": "Behåll ljud för uppspelning",
+    "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
   },
   "providers": {
     "openai": {

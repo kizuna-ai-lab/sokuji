@@ -550,7 +550,9 @@
     "systemAudioDescExtension": "Ghi lại và phiên âm âm thanh từ tab hiện tại. Chọn thiết bị đầu ra để nghe âm thanh cuộc họp trong khi phiên âm. Lưu ý: Loa và Âm Thanh Người Tham Gia không thể được bật cùng lúc — hãy tắt Loa trước để bật Âm Thanh Người Tham Gia.",
     "swapLanguages": "Đổi ngôn ngữ",
     "textOnly": "Chỉ văn bản",
-    "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh"
+    "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
+    "keepReplayAudio": "Giữ âm thanh để phát lại",
+    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
   },
   "providers": {
     "openai": {

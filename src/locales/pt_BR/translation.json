@@ -599,7 +599,9 @@
     "systemAudioDescExtension": "Capture e transcreva o áudio da aba atual. Selecione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição. Observação: O alto-falante e o áudio de participantes não podem ser ativados ao mesmo tempo — desligue primeiro o alto-falante para ativar o áudio de participantes.",
     "swapLanguages": "Trocar idiomas",
     "textOnly": "Somente texto",
-    "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz"
+    "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz",
+    "keepReplayAudio": "Manter áudio para reprodução",
+    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas."
   },
   "providers": {
     "openai": {
