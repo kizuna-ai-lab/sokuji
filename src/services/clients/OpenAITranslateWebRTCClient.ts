@@ -225,10 +225,12 @@ export class OpenAITranslateWebRTCClient implements IClient {
     const assistantItem = this.itemLookup.get(pair.assistantItemId);
     if (!assistantItem) return;
 
-    if (!this.audioChunks.has(pair.assistantItemId)) {
-      this.audioChunks.set(pair.assistantItemId, []);
+    if (this.keepReplayAudio) {
+      if (!this.audioChunks.has(pair.assistantItemId)) {
+        this.audioChunks.set(pair.assistantItemId, []);
+      }
+      this.audioChunks.get(pair.assistantItemId)!.push(pcmData);
     }
-    this.audioChunks.get(pair.assistantItemId)!.push(pcmData);
 
     this.eventHandlers.onConversationUpdated?.({
       item: assistantItem,
@@ -317,10 +319,12 @@ export class OpenAITranslateWebRTCClient implements IClient {
 
         const sequenceNumber = ++this.deltaSequenceNumber;
 
-        if (!this.audioChunks.has(pair.assistantItemId)) {
-          this.audioChunks.set(pair.assistantItemId, []);
+        if (this.keepReplayAudio) {
+          if (!this.audioChunks.has(pair.assistantItemId)) {
+            this.audioChunks.set(pair.assistantItemId, []);
+          }
+          this.audioChunks.get(pair.assistantItemId)!.push(audioData);
         }
-        this.audioChunks.get(pair.assistantItemId)!.push(audioData);
 
         this.eventHandlers.onConversationUpdated?.({
           item: assistantItem,
