@@ -481,8 +481,13 @@ export class GeminiClient implements IClient {
             //       failure block in reconnect() — firing it again is a duplicate.
             //   (c) Tests 12 and 13 assert that stray closes after disconnect()/failure
             //       do not invoke onClose.
+            // NOTE: do NOT clear `conversationItems` here. For user-initiated
+            // disconnect this onclose fires asynchronously after disconnect()
+            // returns; clearing here races MainPanel's
+            // `setItems(client.getConversationItems())` and can blank the UI.
+            // For the reconnect-failure path firePermanentDisconnect() already
+            // cleared items. Either way nothing for this handler to clear.
             this.isConnectedState = false;
-            this.conversationItems = [];
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
               event: {
@@ -917,7 +922,14 @@ export class GeminiClient implements IClient {
       this.session = null;
     }
     this.isConnectedState = false;
-    this.conversationItems = [];
+    // NOTE: do NOT clear `conversationItems` here. MainPanel's disconnect flow
+    // is `await client.disconnect()` → `setItems(client.getConversationItems())`
+    // → `client.reset()`. The middle step needs the populated items to keep
+    // the conversation visible after stop; reset() is the dedicated clearing
+    // step. Most other provider clients in this repo honor the same contract
+    // (closing the network without touching conversation state) — at the time
+    // this fix landed, PalabraAIClient.disconnect() was the only other
+    // remaining violator, tracked as a follow-up.
     this.resetCurrentTurn();
   }
 
@@ -1031,8 +1043,14 @@ export class GeminiClient implements IClient {
   /**
    * Tear down the client permanently and notify the caller via onClose. Used by
    * the reconnect failure path AND by the "lost handle with active state" gate
-   * in reconnect(). Clears all session-level state so a stray onclose from a
-   * still-pending socket cannot loop back into reconnect().
+   * in reconnect(). Clears session-level reconnect state (lastConfig,
+   * savedResumptionHandle, isReconnecting) so a stray onclose from a
+   * still-pending socket cannot loop back into reconnect() — reconnect()'s
+   * entry guard `if (this.isReconnecting || !this.lastConfig) return;` is
+   * sufficient on its own; no need to also zero conversationItems for that
+   * defense. Items are preserved so MainPanel's onClose → disconnectConversation
+   * chain can still read them via getConversationItems() and surface the final
+   * conversation state to the user before reset() clears them.
    */
   private firePermanentDisconnect(reason: string, cause?: unknown): void {
     const closeEvent = {
@@ -1044,7 +1062,12 @@ export class GeminiClient implements IClient {
     this.savedResumptionHandle = undefined;
     this.lastConfig = null;  // Prevent stray onclose from spawning a new reconnect attempt
     this.isConnectedState = false;
-    this.conversationItems = [];
+    // NOTE: conversationItems intentionally NOT cleared here. The MainPanel
+    // onClose chain (disconnectConversation) reads them into React state via
+    // setItems(client.getConversationItems()) before calling client.reset() —
+    // same contract as the user-stop path (see disconnect()'s NOTE). Clearing
+    // here used to blank the UI on permanent disconnect after all retries
+    // failed; the lastConfig = null above already prevents stray reconnect.
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: {
