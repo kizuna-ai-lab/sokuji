@@ -57,7 +57,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
-import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
+import { getSafeAudioConfiguration } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
@@ -1168,19 +1168,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           return;
         }
         lastUpdateTimeRef.current = now;
-        
-        // Handle completed audio items
-        if (item.status === 'completed' && item.formatted?.audio) {
-          const wavFile = await decodeAudioToWav(
-            item.formatted.audio as Int16Array,
-            24000,
-            24000
-          );
-          if (item.formatted) {
-            item.formatted.file = wavFile;
-          }
-        }
-        
+
         // Increment translation count when assistant item is completed
         if (item.status === 'completed' && item.role === 'assistant' && 
             (item.formatted?.text || item.formatted?.transcript)) {
