@@ -28,7 +28,8 @@ import {
   useSetSpeakerDisplayMode,
   useSetParticipantDisplayMode,
   useCurrentTurnDetectionMode,
-  useSubtitleModeActive
+  useSubtitleModeActive,
+  useKeepReplayAudio,
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import {
@@ -109,6 +110,7 @@ interface ConversationBubbleProps {
   someItemPlaying: boolean;
   uiMode: string;
   compact: boolean;
+  replayEnabled: boolean;
 }
 
 const ConversationBubble: React.FC<ConversationBubbleProps> = ({
@@ -122,6 +124,7 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
   someItemPlaying,
   uiMode,
   compact,
+  replayEnabled,
 }) => {
   const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
   const playDisabled = someItemPlaying && !isPlaying;
@@ -158,6 +161,7 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
         canPlay={canPlay}
         onPlay={onPlay}
         playDisabled={playDisabled}
+        replayEnabled={replayEnabled}
         compact={compact}
       />
     );
@@ -236,6 +240,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
+  const replayEnabled = useKeepReplayAudio();
   const subtitleTakeover = subtitleModeActive && isExtension();
   const conversationFontSize = useConversationDisplayFontSize();
   const setConversationFontSize = useSetConversationDisplayFontSize();
@@ -3176,6 +3181,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       someItemPlaying={playingItemId !== null}
                       uiMode={uiMode}
                       compact={conversationCompactMode}
+                      replayEnabled={replayEnabled}
                     />
                   );
                 });
