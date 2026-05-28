@@ -29,6 +29,14 @@ export class GeminiClient implements IClient {
   private currentModel = '';
   private instanceId: string;
   private textOnlyMode = false;
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). When false, the
+   * per-turn `newAudioChunks` accumulator stops collecting and the
+   * `formatted.audio = combinedAudio` assignments are skipped. Real-time
+   * playback deltas (onConversationUpdated with delta.audio) are NOT
+   * gated — only the per-item replay copy.
+   */
+  private keepReplayAudio = false;
   private pttMode = false;
   private isUserSpeaking = false;
 
@@ -314,6 +322,7 @@ export class GeminiClient implements IClient {
     this.lastConfig = config;
     this.currentModel = config.model;
     this.textOnlyMode = config.textOnly || false;
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
     // Both Push-to-Talk and Push-to-Translate use manual turn control on the client side
     // (activityStart/activityEnd plumbing). Without this, automaticActivityDetection stays
     // enabled and the server auto-detects turns regardless of the user's hold state.
@@ -632,8 +641,10 @@ export class GeminiClient implements IClient {
         formatted: {}
       };
 
-      // Store the complete audio for reference, but don't send it as delta
-      if (this.currentTurn.audioData.length > 0) {
+      // Store the complete audio for reference, but don't send it as delta.
+      // Gated on keepReplayAudio — when off, currentTurn.audioData stays empty
+      // (the push above is also gated), so this entire block becomes inert.
+      if (this.keepReplayAudio && this.currentTurn.audioData.length > 0) {
         const totalLength = this.currentTurn.audioData.reduce((sum, arr) => sum + arr.length, 0);
         const combinedAudio = new Int16Array(totalLength);
         let offset = 0;
@@ -793,7 +804,13 @@ export class GeminiClient implements IClient {
         if (audioPart.inlineData?.data) {
           const audioData = this.base64ToArrayBuffer(audioPart.inlineData.data);
           const audioChunk = new Int16Array(audioData);
-          this.currentTurn.audioData.push(audioChunk);
+          // Per-turn replay buffer: skip when keepReplayAudio is off so the
+          // entire turn's PCM doesn't pile up in memory before being dropped.
+          if (this.keepReplayAudio) {
+            this.currentTurn.audioData.push(audioChunk);
+          }
+          // newAudioChunks feeds the real-time delta below — MUST stay
+          // unconditional so live playback keeps working with the flag off.
           newAudioChunks.push(audioChunk);
           hasNewAudio = true;
         }
@@ -823,8 +840,11 @@ export class GeminiClient implements IClient {
 
         // Update with latest accumulated data
         if (this.currentTurn.assistantItem.formatted) {
-          // Update combined audio data
-          if (this.currentTurn.audioData.length > 0) {
+          // Update combined audio data. Gated on keepReplayAudio — when the
+          // flag is off, currentTurn.audioData stays empty (see push above)
+          // so this block is a no-op anyway, but the explicit guard makes
+          // the contract obvious at the assignment site.
+          if (this.keepReplayAudio && this.currentTurn.audioData.length > 0) {
             const totalLength = this.currentTurn.audioData.reduce((sum, arr) => sum + arr.length, 0);
             const combinedAudio = new Int16Array(totalLength);
             let offset = 0;
