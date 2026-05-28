@@ -496,3 +496,99 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(client.isConnected()).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────
+// keepReplayAudio gating
+// ─────────────────────────────────────────────
+//
+// When keepReplayAudio is false (the default), the per-turn audio buffer
+// should NOT be copied into ConversationItem.formatted.audio. The realtime
+// audio delta dispatched via onConversationUpdated MUST still fire so live
+// playback keeps working — only the per-item replay copy is gated.
+describe('GeminiClient — keepReplayAudio gating', () => {
+  /** Encode an Int16Array of PCM samples to a base64 string (browser atob round-trip). */
+  function int16ToBase64(samples: Int16Array): string {
+    const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  /** Dispatch a modelTurn message carrying one PCM audio part, then a turnComplete to finalize. */
+  function sendAudioTurn(samples: Int16Array) {
+    capturedCallbacks.onmessage?.({
+      serverContent: {
+        modelTurn: {
+          parts: [
+            { inlineData: { data: int16ToBase64(samples), mimeType: 'audio/pcm' } },
+          ],
+        },
+      },
+    });
+    // Fire turnComplete so finalizeTurn() runs. The currentTurn.assistantItem
+    // already has formatted.audio assigned in handleServerContent, so this is
+    // belt-and-suspenders for the assertion path.
+    capturedCallbacks.onmessage?.({
+      serverContent: { turnComplete: {} },
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    setupSuccessfulConnect();
+  });
+
+  it('populates formatted.audio when keepReplayAudio is true', async () => {
+    const client = new GeminiClient('test-api-key');
+    const updates: any[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: (e: any) => updates.push(e),
+    } as any);
+
+    await client.connect({ ...baseConfig, keepReplayAudio: true } as any);
+
+    const samples = new Int16Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    sendAudioTurn(samples);
+
+    // Real-time delta should have fired with the audio
+    const audioDelta = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioDelta).toBeDefined();
+    expect(audioDelta.delta.audio.length).toBe(samples.length);
+
+    // formatted.audio should be populated on the assistant item
+    const assistant = client
+      .getConversationItems()
+      .find((i: any) => i.role === 'assistant');
+    expect(assistant).toBeDefined();
+    expect(assistant!.formatted?.audio).toBeInstanceOf(Int16Array);
+    expect((assistant!.formatted!.audio as Int16Array).length).toBe(samples.length);
+  });
+
+  it('leaves formatted.audio undefined when keepReplayAudio is false', async () => {
+    const client = new GeminiClient('test-api-key');
+    const updates: any[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: (e: any) => updates.push(e),
+    } as any);
+
+    await client.connect({ ...baseConfig, keepReplayAudio: false } as any);
+
+    const samples = new Int16Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    sendAudioTurn(samples);
+
+    // Real-time delta still flows — live playback must not regress
+    const audioDelta = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioDelta).toBeDefined();
+    expect(audioDelta.delta.audio.length).toBe(samples.length);
+
+    // But formatted.audio stays undefined on the persisted item
+    const assistant = client
+      .getConversationItems()
+      .find((i: any) => i.role === 'assistant');
+    expect(assistant).toBeDefined();
+    expect(assistant!.formatted?.audio).toBeUndefined();
+  });
+});

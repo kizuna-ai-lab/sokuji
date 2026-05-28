@@ -49,6 +49,12 @@ function recentItems(items: any[] | undefined): any[] {
  * `formatted.file` (a generated WAV blob for the download/replay button), and
  * `content[].audio`.
  *
+ * Since `keepReplayAudio` defaults to false (see settingsStore), `formatted.audio`
+ * is usually absent and this strip is a no-op for those fields. `formatted.file`
+ * is no longer generated anywhere (the WAV path in MainPanel was removed). The
+ * strip stays as defense-in-depth: when a user explicitly enables `keepReplayAudio`
+ * AND uses the subtitle overlay, this still bounds the wire payload.
+ *
  * Provider clients keep this audio on each conversation item to power replay,
  * but the subtitle overlay never reads any of it — it renders text and uses
  * only the small `audioSegments`/`audioTextEnd` timing metadata for the

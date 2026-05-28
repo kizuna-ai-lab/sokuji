@@ -95,6 +95,15 @@ export class LocalInferenceClient implements IClient {
   private ttsProcessing = false;
 
   /**
+   * Cached from `config.keepReplayAudio` at session start. When false, each
+   * call to `appendItemAudio()` is skipped — `item.formatted.audio` stays
+   * empty, hiding the inline replay button. Real-time TTS playback (via the
+   * audio service through `onConversationUpdated({ delta: { audio } })`) is
+   * unaffected.
+   */
+  private keepReplayAudio: boolean = false;
+
+  /**
    * Helper to wrap an engine init call with per-engine progress event emission and timing.
    */
   private async trackInit<T>(
@@ -152,6 +161,7 @@ export class LocalInferenceClient implements IClient {
     this.conversationItems = [];
     this.itemCounter = 0;
     this.ttsEngine = null;
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     try {
       // --- Create engines & set callbacks synchronously ---
@@ -648,7 +658,14 @@ export class LocalInferenceClient implements IClient {
                   const resampled = resampleFloat32(chunkSamples, chunkSampleRate, 24000);
                   const int16Audio = float32ToInt16(resampled);
                   chunkSampleCount += int16Audio.length;
-                  this.appendItemAudio(assistantItem, int16Audio);
+                  // Gated on keepReplayAudio — when off, the per-item replay
+                  // buffer is skipped. Real-time playback below (via the audio
+                  // delta) is unaffected. Karaoke math (sentenceAudioDuration)
+                  // is computed from chunkSampleCount, not from the stored
+                  // buffer, so gating does not affect it.
+                  if (this.keepReplayAudio) {
+                    this.appendItemAudio(assistantItem, int16Audio);
+                  }
                   this.handlers.onConversationUpdated?.({
                     item: assistantItem,
                     delta: { audio: int16Audio },
@@ -718,8 +735,14 @@ export class LocalInferenceClient implements IClient {
 
               console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${displayText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
 
-              // Emit audio delta immediately — player receives chunk right away
-              this.appendItemAudio(assistantItem, int16Audio);
+              // Emit audio delta immediately — player receives chunk right away.
+              // The replay buffer (appendItemAudio) is gated on keepReplayAudio,
+              // but the delta below dispatches to real-time playback regardless.
+              // Karaoke math above uses int16Audio.length directly, not the
+              // stored buffer, so it is unaffected.
+              if (this.keepReplayAudio) {
+                this.appendItemAudio(assistantItem, int16Audio);
+              }
               this.handlers.onConversationUpdated?.({
                 item: assistantItem,
                 delta: { audio: int16Audio },

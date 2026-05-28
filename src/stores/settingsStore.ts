@@ -40,6 +40,7 @@ export interface CommonSettings {
   useTemplateMode: boolean;
   participantSystemInstructions: string;
   textOnly: boolean;
+  keepReplayAudio: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -187,6 +188,7 @@ const defaultCommonSettings: CommonSettings = {
   uiLanguage: 'en',
   uiMode: 'basic',
   textOnly: false,
+  keepReplayAudio: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -399,6 +401,12 @@ interface SettingsStore {
   // Text-only mode (no audio output)
   textOnly: boolean;
 
+  // Keep per-item PCM audio in memory so the inline replay button works.
+  // Off by default — reduces memory use during long sessions. Cached by
+  // provider clients at session start; mid-session changes take effect
+  // on the next session.
+  keepReplayAudio: boolean;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -415,6 +423,7 @@ interface SettingsStore {
   setUILanguage: (lang: string) => void;
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
+  setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -895,6 +904,18 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting textOnly setting:', error);
         set({textOnly: previous});
+      }
+    },
+
+    setKeepReplayAudio: async (keepReplayAudio) => {
+      const previous = get().keepReplayAudio;
+      set({keepReplayAudio});
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.keepReplayAudio', keepReplayAudio);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting keepReplayAudio setting:', error);
+        set({keepReplayAudio: previous});
       }
     },
 
@@ -1452,6 +1473,7 @@ const useSettingsStore = create<SettingsStore>()(
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
+        const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1489,6 +1511,7 @@ const useSettingsStore = create<SettingsStore>()(
           useTemplateMode,
           participantSystemInstructions,
           textOnly,
+          keepReplayAudio,
           speakerDisplayMode,
           participantDisplayMode,
           openai,
@@ -1636,6 +1659,7 @@ const useSettingsStore = create<SettingsStore>()(
           config = createOpenAISessionConfig(state.openai, systemInstructions);
       }
       config.textOnly = state.textOnly;
+      config.keepReplayAudio = state.keepReplayAudio;
       return config;
     },
 
@@ -1702,11 +1726,13 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
+export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
+export const useSetKeepReplayAudio = () => useSettingsStore((state) => state.setKeepReplayAudio);
 export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
 export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);

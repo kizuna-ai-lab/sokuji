@@ -19,6 +19,7 @@ interface ConversationRowProps {
   canPlay?: boolean;
   onPlay?: () => void;
   playDisabled?: boolean;
+  replayEnabled?: boolean;
   compact?: boolean;
 }
 
@@ -56,6 +57,7 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   canPlay = false,
   onPlay,
   playDisabled = false,
+  replayEnabled = true,
   compact = false,
 }) => {
   const { t } = useTranslation();
@@ -125,18 +127,16 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
           </span>
         )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>{renderText()}</span>
-        {!compact && onPlay && isTranslation && source === 'speaker' && (
-          // Render the play button slot in expanded mode for speaker
-          // translation rows regardless of canPlay. canPlay only flips true
-          // once the assistant item completes and audio is aggregated, so
-          // gating the button on it would cause the row to re-flow on
-          // completion (text wraps onto a second line because the button
-          // suddenly takes ~22 px). The button stays disabled until the item
-          // is actually playable. User rows (source transcripts) get no button
-          // since they have no audio, and participant rows get none either:
-          // the participant channel is text-only (no speech synthesis), so its
-          // canPlay never becomes true and the button would sit permanently
-          // disabled. The reflow concern only applies to the speaker channel.
+        {!compact && onPlay && replayEnabled && isTranslation && source === 'speaker' && (
+          // The play button slot is rendered for speaker translation rows whose
+          // owning setting allows replay (`replayEnabled`). Within that, `canPlay`
+          // toggles enabled/disabled but does NOT gate visibility — gating
+          // visibility on `canPlay` would cause text re-flow when the assistant
+          // item completes and the slot suddenly appears (~22 px wide).
+          // When `replayEnabled` is false the slot is absent for the whole
+          // session — no per-item reflow churn.
+          // User rows (source transcripts) get no button (no audio); participant
+          // rows get none either (text-only channel; canPlay never true).
           <button
             type="button"
             className={`row-play-btn ${isPlaying ? 'playing' : ''}`}

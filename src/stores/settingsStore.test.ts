@@ -314,6 +314,43 @@ describe('settingsStore', () => {
     });
   });
 
+  describe('keepReplayAudio', () => {
+    it('defaults to false when storage has no stored value (loadSettings fallback)', async () => {
+      // Mutate state to the OPPOSITE of the expected default first, so that
+      // a passing assertion proves loadSettings() actually wrote the default
+      // through — not that the field happened to already be false.
+      useSettingsStore.setState({ keepReplayAudio: true });
+
+      // Mock getSetting to behave like a fresh install: every key is missing,
+      // so the SettingsService returns the caller-supplied fallback. The
+      // fallback for keepReplayAudio is `defaultCommonSettings.keepReplayAudio`
+      // (which is the source of truth this test guards).
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+
+    it('setKeepReplayAudio(true) updates state and persists', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setKeepReplayAudio(true);
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.keepReplayAudio',
+        true,
+      );
+    });
+
+    it('rolls back state when persistence fails', async () => {
+      useSettingsStore.setState({ keepReplayAudio: false });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setKeepReplayAudio(true);
+      // State must roll back to the previous value.
+      expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
 });
 
 describe('createParticipantLocalInferenceConfig', () => {

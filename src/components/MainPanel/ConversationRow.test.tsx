@@ -73,6 +73,34 @@ describe('ConversationRow — expanded (default) mode', () => {
     expect(btn?.disabled).toBe(false);
   });
 
+  it('hides the play button entirely when replayEnabled is false', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'assistant' })}
+        prevItem={null}
+        canPlay
+        onPlay={() => {}}
+        replayEnabled={false}
+      />,
+    );
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+  });
+
+  it('shows the play button when replayEnabled is true (existing behavior)', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'assistant' })}
+        prevItem={null}
+        canPlay
+        onPlay={() => {}}
+        replayEnabled={true}
+      />,
+    );
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+  });
+
   it('renders the play button as disabled on streaming assistant rows (layout stability)', () => {
     // The button slot must be reserved while the assistant item is still
     // streaming, otherwise text re-flows when it appears on completion.

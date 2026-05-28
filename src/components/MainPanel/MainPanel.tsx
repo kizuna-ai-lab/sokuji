@@ -28,7 +28,8 @@ import {
   useSetSpeakerDisplayMode,
   useSetParticipantDisplayMode,
   useCurrentTurnDetectionMode,
-  useSubtitleModeActive
+  useSubtitleModeActive,
+  useKeepReplayAudio,
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import {
@@ -57,7 +58,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
-import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
+import { getSafeAudioConfiguration } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
@@ -109,6 +110,7 @@ interface ConversationBubbleProps {
   someItemPlaying: boolean;
   uiMode: string;
   compact: boolean;
+  replayEnabled: boolean;
 }
 
 const ConversationBubble: React.FC<ConversationBubbleProps> = ({
@@ -122,6 +124,7 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
   someItemPlaying,
   uiMode,
   compact,
+  replayEnabled,
 }) => {
   const { isPlaying, highlightedChars } = usePlaybackHighlight(item);
   const playDisabled = someItemPlaying && !isPlaying;
@@ -158,6 +161,7 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
         canPlay={canPlay}
         onPlay={onPlay}
         playDisabled={playDisabled}
+        replayEnabled={replayEnabled}
         compact={compact}
       />
     );
@@ -236,6 +240,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
+  const replayEnabled = useKeepReplayAudio();
   const subtitleTakeover = subtitleModeActive && isExtension();
   const conversationFontSize = useConversationDisplayFontSize();
   const setConversationFontSize = useSetConversationDisplayFontSize();
@@ -1168,19 +1173,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           return;
         }
         lastUpdateTimeRef.current = now;
-        
-        // Handle completed audio items
-        if (item.status === 'completed' && item.formatted?.audio) {
-          const wavFile = await decodeAudioToWav(
-            item.formatted.audio as Int16Array,
-            24000,
-            24000
-          );
-          if (item.formatted) {
-            item.formatted.file = wavFile;
-          }
-        }
-        
+
         // Increment translation count when assistant item is completed
         if (item.status === 'completed' && item.role === 'assistant' && 
             (item.formatted?.text || item.formatted?.transcript)) {
@@ -3188,6 +3181,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       someItemPlaying={playingItemId !== null}
                       uiMode={uiMode}
                       compact={conversationCompactMode}
+                      replayEnabled={replayEnabled}
                     />
                   );
                 });

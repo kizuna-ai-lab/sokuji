@@ -90,6 +90,17 @@ export class OpenAITranslateGAClient implements IClient {
   private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
   private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). See OpenAIGAClient
+   * for full rationale.
+   */
+  private keepReplayAudio: boolean = false;
+  /**
+   * Cumulative sample count per assistant item, tracked independently of
+   * `audioChunks` so karaoke timing (audioSegments / audioTextEnd) stays
+   * accurate even when `keepReplayAudio` is false and chunks are not stored.
+   */
+  private audioCumSamples: Map<string, number> = new Map();
   private itemLookup: Map<string, ConversationItem> = new Map();
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
@@ -246,18 +257,28 @@ export class OpenAITranslateGAClient implements IClient {
     const item = this.itemLookup.get(itemId);
     if (item) {
       item.status = 'completed';
-      const chunks = this.audioChunks.get(itemId);
-      if (chunks && chunks.length > 0 && item.formatted) {
-        const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-        const merged = new Int16Array(totalLength);
-        let offset = 0;
-        for (const chunk of chunks) {
-          merged.set(chunk, offset);
-          offset += chunk.length;
+      // Gate the merge on keepReplayAudio. When the gate above skipped the
+      // chunk pushes, this map has no entry for the item, so the merge is
+      // implicitly skipped — the explicit gate here mirrors the push site
+      // for clarity and protects against future code reintroducing entries.
+      if (this.keepReplayAudio) {
+        const chunks = this.audioChunks.get(itemId);
+        if (chunks && chunks.length > 0 && item.formatted) {
+          const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+          const merged = new Int16Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.length;
+          }
+          item.formatted.audio = merged;
+          this.audioChunks.delete(itemId);
         }
-        item.formatted.audio = merged;
-        this.audioChunks.delete(itemId);
       }
+      // Drop the cumulative-sample tally regardless — its only consumer
+      // (karaoke segment population) runs during streaming and is finished
+      // by the time we reach completion.
+      this.audioCumSamples.delete(itemId);
       if (item.formatted) item.formatted.text = item.formatted.transcript || '';
       this.eventHandlers.onConversationUpdated?.({ item });
     }
@@ -350,11 +371,22 @@ export class OpenAITranslateGAClient implements IClient {
 
         const sequenceNumber = ++this.deltaSequenceNumber;
 
-        if (!this.audioChunks.has(assistantItemId)) {
-          this.audioChunks.set(assistantItemId, []);
+        // Gate full-audio retention on keepReplayAudio. The chunk push is the
+        // only thing that scales linearly with session length (multi-MB per
+        // utterance), so it's the one to drop when replay storage is off.
+        // Karaoke timing (audioSegments / audioTextEnd) below stays populated
+        // unconditionally — it uses audioCumSamples which is updated whether
+        // we store the chunk or not, so highlight stepping is independent of
+        // replay storage.
+        if (this.keepReplayAudio) {
+          if (!this.audioChunks.has(assistantItemId)) {
+            this.audioChunks.set(assistantItemId, []);
+          }
+          this.audioChunks.get(assistantItemId)!.push(audioData);
         }
-        const chunks = this.audioChunks.get(assistantItemId)!;
-        chunks.push(audioData);
+        const prevCumSamples = this.audioCumSamples.get(assistantItemId) ?? 0;
+        const newCumSamples = prevCumSamples + audioData.length;
+        this.audioCumSamples.set(assistantItemId, newCumSamples);
 
         // Karaoke segment: anchor current transcript end to cumulative audio
         // time. The translate API delivers transcript and audio as two
@@ -366,8 +398,7 @@ export class OpenAITranslateGAClient implements IClient {
         // segment-based path of getHighlightedChars step the highlight in
         // chunk-aligned units that match the played audio. (issue #216)
         if (assistantItem.formatted) {
-          let cumSamples = 0;
-          for (const c of chunks) cumSamples += c.length;
+          const cumSamples = newCumSamples;
           const textLen = assistantItem.formatted.transcript?.length ?? 0;
           // Prefer the per-event sample_rate if the API reports one; fall
           // back to the spec default (24 kHz for `pcm16`). event.elapsed_ms
@@ -446,6 +477,8 @@ export class OpenAITranslateGAClient implements IClient {
     this.itemLookup.clear();
     this.conversationItems = [];
     this.audioChunks.clear();
+    this.audioCumSamples.clear();
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
@@ -628,6 +661,7 @@ export class OpenAITranslateGAClient implements IClient {
     this.conversationItems = [];
     this.itemLookup.clear();
     this.audioChunks.clear();
+    this.audioCumSamples.clear();
     this.deltaSequenceNumber = 0;
   }
 
@@ -668,6 +702,7 @@ export class OpenAITranslateGAClient implements IClient {
     this.conversationItems = [];
     this.itemLookup.clear();
     this.audioChunks.clear();
+    this.audioCumSamples.clear();
   }
   setEventHandlers(handlers: ClientEventHandlers): void { this.eventHandlers = { ...handlers }; }
   getProvider(): ProviderType { return Provider.OPENAI_TRANSLATE; }

@@ -33,6 +33,16 @@ export class OpenAIClient implements IClient {
   private apiHost: string;
   private deltaSequenceNumber: number = 0; // Track delta sequence for ordering
   private itemCreatedAtMap: Map<string, number> = new Map(); // Track item creation times
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). When false (default),
+   * `convertToConversationItem` strips `item.formatted.audio` and
+   * `item.formatted.file` from the returned `ConversationItem`, so the inline
+   * replay button stays hidden and no per-item PCM/WAV memory is retained in
+   * the UI state. The underlying `openai-realtime-api` SDK may still cache
+   * audio internally (outside our control), but we don't propagate it forward.
+   * Mirrors the gating in the other provider clients.
+   */
+  private keepReplayAudio: boolean = false;
 
   constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
@@ -380,13 +390,16 @@ export class OpenAIClient implements IClient {
       formatted: 'formatted' in item && item.formatted ? {
         text: unwrapTranslationText(item.formatted!.text),
         transcript: unwrapTranslationText(item.formatted!.transcript),
-        audio: item.formatted!.audio,
+        // Gated by keepReplayAudio. When false (default), the heavy replay
+        // fields are dropped so the inline ▶ button stays hidden and no
+        // per-item PCM/WAV memory is retained on the UI items list.
+        audio: this.keepReplayAudio ? item.formatted!.audio : undefined,
         tool: item.formatted!.tool ? {
           name: item.formatted!.tool.name,
           arguments: item.formatted!.tool.arguments
         } : undefined,
         output: item.formatted!.output,
-        file: item.formatted!.file
+        file: this.keepReplayAudio ? item.formatted!.file : undefined
       } : undefined,
       content: itemAny.content || []
     };
@@ -452,6 +465,7 @@ export class OpenAIClient implements IClient {
     // Reset delta sequence number and item creation times for new session
     this.deltaSequenceNumber = 0;
     this.itemCreatedAtMap.clear();
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
