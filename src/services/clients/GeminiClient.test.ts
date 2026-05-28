@@ -495,4 +495,41 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onClose).not.toHaveBeenCalled();
     expect(client.isConnected()).toBe(false);
   });
+
+  // ── Test 18: disconnect() preserves conversationItems for MainPanel ────────
+  // MainPanel's disconnect flow is: `await client.disconnect()` →
+  // `setItems(client.getConversationItems())` → `client.reset()`. The middle
+  // step reads the items into React state. If disconnect() clears them, the UI
+  // blanks out. The contract that MainPanel relies on (and that the other 5
+  // provider clients honor): disconnect() closes the network only; reset() is
+  // the dedicated state-clear. This test pins down both halves: the synchronous
+  // disconnect() call must not clear, and neither must the asynchronous onclose
+  // handler that fires later via the socket close handshake.
+  it('disconnect() preserves conversationItems; only reset() clears them', async () => {
+    await client.connect(baseConfig);
+
+    // Seed items directly — we want to test the disconnect/reset contract, not
+    // the message-handling path that populates items.
+    const seeded = [
+      { id: 'a', role: 'user', type: 'message', status: 'completed', createdAt: 1 },
+      { id: 'b', role: 'assistant', type: 'message', status: 'completed', createdAt: 2 },
+    ];
+    (client as any).conversationItems = seeded;
+
+    // Step 1: disconnect() must not clear items synchronously.
+    await client.disconnect();
+    expect(client.getConversationItems()).toHaveLength(2);
+
+    // Step 2: the close handshake fires onclose later via the event loop. When
+    // lastConfig is null (which disconnect() just set), the onclose handler
+    // used to also clear items — that race would blank React state if onclose
+    // fired before MainPanel's setItems read. Items must survive this too.
+    sendClose();
+    await vi.runAllTimersAsync();
+    expect(client.getConversationItems()).toHaveLength(2);
+
+    // Step 3: reset() is the dedicated clearing step.
+    client.reset();
+    expect(client.getConversationItems()).toHaveLength(0);
+  });
 });

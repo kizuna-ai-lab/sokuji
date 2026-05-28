@@ -472,8 +472,13 @@ export class GeminiClient implements IClient {
             //       failure block in reconnect() — firing it again is a duplicate.
             //   (c) Tests 12 and 13 assert that stray closes after disconnect()/failure
             //       do not invoke onClose.
+            // NOTE: do NOT clear `conversationItems` here. For user-initiated
+            // disconnect this onclose fires asynchronously after disconnect()
+            // returns; clearing here races MainPanel's
+            // `setItems(client.getConversationItems())` and can blank the UI.
+            // For the reconnect-failure path firePermanentDisconnect() already
+            // cleared items. Either way nothing for this handler to clear.
             this.isConnectedState = false;
-            this.conversationItems = [];
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
               event: {
@@ -897,7 +902,13 @@ export class GeminiClient implements IClient {
       this.session = null;
     }
     this.isConnectedState = false;
-    this.conversationItems = [];
+    // NOTE: do NOT clear `conversationItems` here. MainPanel's disconnect flow
+    // is `await client.disconnect()` → `setItems(client.getConversationItems())`
+    // → `client.reset()`. The middle step needs the populated items to keep
+    // the conversation visible after stop; reset() is the dedicated clearing
+    // step. The other 5 provider clients (OpenAI GA / Translate GA / Translate
+    // WebRTC, Volcengine AST2, LocalInference) all honor the same contract:
+    // disconnect() closes the network, reset() clears items.
     this.resetCurrentTurn();
   }
 
