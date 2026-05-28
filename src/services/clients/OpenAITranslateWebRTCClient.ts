@@ -83,6 +83,15 @@ export class OpenAITranslateWebRTCClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
 
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). When false, the
+   * single `formatted.audio = merged` assignment is skipped — the inline
+   * replay button stays hidden and no per-item PCM memory is retained.
+   * Real-time WebRTC audio playback (handled by the browser's audio
+   * element) is unaffected.
+   */
+  private keepReplayAudio: boolean = false;
+
   constructor(options: WebRTCClientOptions) {
     this.apiKey = options.apiKey;
     this.apiHost = (options.apiHost || DEFAULT_API_HOST).replace(/\/$/, '');
@@ -178,7 +187,9 @@ export class OpenAITranslateWebRTCClient implements IClient {
           merged.set(chunk, offset);
           offset += chunk.length;
         }
-        assistantItem.formatted.audio = merged;
+        if (this.keepReplayAudio) {
+          assistantItem.formatted.audio = merged;
+        }
         this.audioChunks.delete(assistantItemId);
       }
       if (assistantItem.formatted) assistantItem.formatted.text = assistantItem.formatted.transcript || '';
@@ -368,6 +379,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.conversationItems = [];
     this.audioChunks.clear();
     this.currentPair = null;
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     try {
       // 1. Mint ephemeral client secret for the SDP exchange.
