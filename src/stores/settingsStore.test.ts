@@ -315,9 +315,20 @@ describe('settingsStore', () => {
   });
 
   describe('keepReplayAudio', () => {
-    it('defaults to false on a fresh store', () => {
-      // Reset specifically for this test — beforeEach only resets a few fields.
-      useSettingsStore.setState({ keepReplayAudio: false });
+    it('defaults to false when storage has no stored value (loadSettings fallback)', async () => {
+      // Mutate state to the OPPOSITE of the expected default first, so that
+      // a passing assertion proves loadSettings() actually wrote the default
+      // through — not that the field happened to already be false.
+      useSettingsStore.setState({ keepReplayAudio: true });
+
+      // Mock getSetting to behave like a fresh install: every key is missing,
+      // so the SettingsService returns the caller-supplied fallback. The
+      // fallback for keepReplayAudio is `defaultCommonSettings.keepReplayAudio`
+      // (which is the source of truth this test guards).
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+
+      await useSettingsStore.getState().loadSettings();
+
       expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
     });
 
