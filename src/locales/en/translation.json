@@ -464,7 +464,9 @@
     "currentTab": "Current Tab",
     "swapLanguages": "Swap languages",
     "textOnly": "Text Only",
-    "textOnlyDesc": "Translate to text only — no spoken audio output"
+    "textOnlyDesc": "Translate to text only — no spoken audio output",
+    "keepReplayAudio": "Keep audio for replay",
+    "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions."
   },
   "providers": {
     "openai": {

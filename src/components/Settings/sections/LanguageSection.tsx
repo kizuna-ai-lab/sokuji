@@ -27,7 +27,9 @@ import {
   useNavigateToSettings,
   useSetUIMode,
   useTextOnly,
-  useSetTextOnly
+  useSetTextOnly,
+  useKeepReplayAudio,
+  useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -82,6 +84,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();
+
+  const keepReplayAudio = useKeepReplayAudio();
+  const setKeepReplayAudio = useSetKeepReplayAudio();
 
   const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
@@ -518,6 +523,14 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
             />
           )}
+
+          <ToggleSwitch
+            checked={keepReplayAudio}
+            onChange={() => setKeepReplayAudio(!keepReplayAudio)}
+            label={t('simpleConfig.keepReplayAudio', 'Keep audio for replay')}
+            disabled={isSessionActive}
+            tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
+          />
 
           {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
             <div className="language-model-warning">
