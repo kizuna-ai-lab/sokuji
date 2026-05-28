@@ -247,6 +247,12 @@ describe('OpenAITranslateGAClient state machine', () => {
     });
     const assistant = client.getConversationItems().find((i) => i.role === 'assistant');
     expect(assistant?.formatted?.audio).toBeUndefined();
+
+    // Karaoke timing must remain populated even when replay storage is off —
+    // that's the whole point of the parallel audioCumSamples map.
+    expect(assistant?.formatted?.audioSegments?.length).toBeGreaterThan(0);
+    expect(assistant?.formatted?.audioSegments?.[0].audioEnd).toBeGreaterThan(0);
+    expect(assistant?.formatted?.audioTextEnd).toBeGreaterThan(0);
   });
 
   it('accumulates output_audio.delta into formatted.audio when keepReplayAudio is true', () => {
@@ -266,6 +272,17 @@ describe('OpenAITranslateGAClient state machine', () => {
     const firstChunkList = Array.from(chunks.values())[0];
     expect(firstChunkList.length).toBe(1);
     expect(firstChunkList[0].length).toBe(9600);
+
+    // Cross the completion boundary so the merge path runs.
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.done',
+    });
+
+    const assistant = client.getConversationItems().find((i) => i.role === 'assistant');
+    expect(assistant?.formatted?.audio).toBeInstanceOf(Int16Array);
+    expect((assistant?.formatted?.audio as Int16Array).length).toBe(9600);
+    // After completion the per-item chunk buffer is purged.
+    expect((client as any).audioChunks.size).toBe(0);
   });
 
   it('drops zero-amplitude heartbeat output_audio.delta even when an assistant exists', () => {
