@@ -219,6 +219,55 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(audioUpdate).toBeDefined();
   });
 
+  it('does NOT accumulate output_audio.delta into formatted.audio when keepReplayAudio is false', () => {
+    (client as any).keepReplayAudio = false;
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Test',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: CONTENT_DELTA,
+    });
+
+    // Real-time delta still flows through onConversationUpdated for playback.
+    const audioUpdate = updates.find(
+      (u) => u.delta?.audio instanceof Int16Array && u.delta.audio.length === 9600
+    );
+    expect(audioUpdate).toBeDefined();
+
+    // Internal audioChunks must stay empty (no buffering for replay).
+    const chunks = (client as any).audioChunks as Map<string, Int16Array[]>;
+    expect(chunks.size).toBe(0);
+
+    // Trigger the per-item end so completeAssistantItem() runs the gated
+    // merge path. formatted.audio must remain undefined.
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.done',
+    });
+    const assistant = client.getConversationItems().find((i) => i.role === 'assistant');
+    expect(assistant?.formatted?.audio).toBeUndefined();
+  });
+
+  it('accumulates output_audio.delta into formatted.audio when keepReplayAudio is true', () => {
+    (client as any).keepReplayAudio = true;
+    (client as any).handleServerEvent({
+      type: 'session.output_transcript.delta',
+      delta: 'Test',
+    });
+    (client as any).handleServerEvent({
+      type: 'session.output_audio.delta',
+      delta: CONTENT_DELTA,
+    });
+
+    // Internal audioChunks should have an entry for the assistant item.
+    const chunks = (client as any).audioChunks as Map<string, Int16Array[]>;
+    expect(chunks.size).toBeGreaterThan(0);
+    const firstChunkList = Array.from(chunks.values())[0];
+    expect(firstChunkList.length).toBe(1);
+    expect(firstChunkList[0].length).toBe(9600);
+  });
+
   it('drops zero-amplitude heartbeat output_audio.delta even when an assistant exists', () => {
     // Filter is rms === 0, not a fixed sample length. Heartbeat shape stays
     // covered, and any future API frame size with zero amplitude stays out.
