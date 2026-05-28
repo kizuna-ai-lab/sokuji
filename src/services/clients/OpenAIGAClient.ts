@@ -45,6 +45,13 @@ export class OpenAIGAClient implements IClient {
   private outOfBandResponseIds: Set<string> = new Set();
   // Audio chunk list per item — merged into formatted.audio on response.done
   private audioChunks: Map<string, Int16Array[]> = new Map();
+  /**
+   * Cached from `config.keepReplayAudio` at connect(). When false, audio
+   * chunks are not pushed into `audioChunks` and never merged into
+   * `item.formatted.audio`, so the inline replay button stays hidden and
+   * no per-item PCM memory is retained.
+   */
+  private keepReplayAudio: boolean = false;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -80,6 +87,7 @@ export class OpenAIGAClient implements IClient {
     this.turnDetectionDisabled = false;
     this.outOfBandResponseIds.clear();
     this.audioChunks.clear();
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     // Create the official SDK WebSocket client
     this.rt = new OpenAIRealtimeWebSocket({
@@ -496,10 +504,12 @@ export class OpenAIGAClient implements IClient {
 
     // Store audio chunks — merged into item.formatted.audio on response.done
     // This avoids O(n²) array merging on every delta event
-    if (!this.audioChunks.has(itemId)) {
-      this.audioChunks.set(itemId, []);
+    if (this.keepReplayAudio) {
+      if (!this.audioChunks.has(itemId)) {
+        this.audioChunks.set(itemId, []);
+      }
+      this.audioChunks.get(itemId)!.push(audioData);
     }
-    this.audioChunks.get(itemId)!.push(audioData);
 
     this.eventHandlers.onConversationUpdated?.({
       item,
@@ -583,17 +593,19 @@ export class OpenAIGAClient implements IClient {
       const item = this.itemLookup.get(outputItem.id);
       if (item) {
         // Merge accumulated audio chunks into item.formatted.audio for manual playback
-        const chunks = this.audioChunks.get(outputItem.id);
-        if (chunks && chunks.length > 0 && item.formatted) {
-          const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-          const merged = new Int16Array(totalLength);
-          let offset = 0;
-          for (const chunk of chunks) {
-            merged.set(chunk, offset);
-            offset += chunk.length;
+        if (this.keepReplayAudio) {
+          const chunks = this.audioChunks.get(outputItem.id);
+          if (chunks && chunks.length > 0 && item.formatted) {
+            const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+            const merged = new Int16Array(totalLength);
+            let offset = 0;
+            for (const chunk of chunks) {
+              merged.set(chunk, offset);
+              offset += chunk.length;
+            }
+            item.formatted.audio = merged;
+            this.audioChunks.delete(outputItem.id);
           }
-          item.formatted.audio = merged;
-          this.audioChunks.delete(outputItem.id);
         }
 
         item.status = 'completed';
