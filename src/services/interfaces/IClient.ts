@@ -44,6 +44,12 @@ export interface BaseSessionConfig {
   temperature?: number;
   maxTokens?: number | string;
   textOnly?: boolean; // If true, only generate text responses (no audio output)
+  /**
+   * If false (default), provider clients skip per-item audio chunk
+   * accumulation — `item.formatted.audio` stays undefined and the inline
+   * replay button is hidden. Cached at session start by each client.
+   */
+  keepReplayAudio?: boolean;
 }
 
 /**
