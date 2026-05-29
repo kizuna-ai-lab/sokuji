@@ -101,6 +101,9 @@ function injectSitePluginsScript() {
   } else if (hostname === 'teams.live.com' || hostname === 'teams.microsoft.com' || hostname === 'teams.cloud.microsoft') {
     title = chrome.i18n.getMessage('teamsTitle');
     guidance = chrome.i18n.getMessage('teamsGuidance');
+  } else if (hostname === 'meet.jit.si') {
+    title = chrome.i18n.getMessage('jitsiTitle');
+    guidance = chrome.i18n.getMessage('jitsiGuidance');
   } else {
     // Default fallback
     title = chrome.i18n.getMessage('defaultTitle');
