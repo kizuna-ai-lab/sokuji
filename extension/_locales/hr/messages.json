@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Ako ne vidite potpuni popis audio uređaja u postavkama Teamsa:<br><strong>1)</strong> Privremeno onemogućite Sokuji proširenje i osvježite stranicu<br><strong>2)</strong> Dozvolite Teamsu pristup mikrofonu i kameri kada budete upitani<br><strong>3)</strong> Ponovo omogućite Sokuji proširenje i osvježite stranicu ponovno<br><strong>4)</strong> Dozvolite Sokujiju pristup mikrofonu kada budete upitani. Sada biste trebali vidjeti i stvarne uređaje i <strong>\"Sokuji Virtual Microphone\"</strong> u postavkama."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "Za korištenje Sokuji u Jitsi Meet, otvorite <strong>Settings > Devices</strong> i odaberite <strong>\"Sokuji Virtual Microphone\"</strong> kao svoj mikrofon. Zatim otvorite <strong>Advanced audio settings</strong> i <strong>onemogućite Noise suppression, Echo cancellation i Automatic gain control</strong> za jasan prevedeni zvuk."
   }
 }

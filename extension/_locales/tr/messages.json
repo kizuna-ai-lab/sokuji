@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Teams ayarlarında tam ses cihazı listesini görmüyorsanız:<br><strong>1)</strong> Sokuji uzantısını geçici olarak devre dışı bırakın ve sayfayı yenileyin<br><strong>2)</strong> İstendiğinde Teams'in mikrofonunuza ve kameranıza erişmesine izin verin<br><strong>3)</strong> Sokuji uzantısını tekrar etkinleştirin ve sayfayı tekrar yenileyin<br><strong>4)</strong> İstendiğinde Sokuji'nin mikrofonunuza erişmesine izin verin. Artık ayarlarınızda hem gerçek cihazları hem de <strong>\"Sokuji Virtual Microphone\"</strong> sanal cihazı görmelisiniz."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "Jitsi Meet'te Sokuji kullanmak için <strong>Settings > Devices</strong> bölümünü açın ve mikrofonunuz olarak <strong>\"Sokuji Virtual Microphone\"</strong> seçin. Ardından <strong>Advanced audio settings</strong> bölümünü açın ve net çevrilmiş ses için <strong>Gürültü Bastırma, Yankı Giderme ve Otomatik Kazanç Kontrolü'nü devre dışı bırakın</strong>."
   }
 }

@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Jos et näe täydellistä äänilaitteen luetteloa Teams-asetuksissa:<br><strong>1)</strong> Poista Sokuji-laajennus väliaikaisesti käytöstä ja päivitä sivu<br><strong>2)</strong> Salli Teamsin käyttää mikrofonia ja kameraa pyydettäessä<br><strong>3)</strong> Ota Sokuji-laajennus uudelleen käyttöön ja päivitä sivu uudelleen<br><strong>4)</strong> Salli Sokujin käyttää mikrofonia pyydettäessä. Nyt sinun pitäisi nähdä sekä todelliset laitteet että <strong>\"Sokuji Virtual Microphone\"</strong> asetuksissasi."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "Käyttääksesi Sokuji:ta Jitsi Meetissä, avaa <strong>Settings > Devices</strong> ja valitse mikrofoniksesi <strong>\"Sokuji Virtual Microphone\"</strong>. Avaa sitten <strong>Advanced audio settings</strong> ja <strong>poista käytöstä Kohinanvaimennus, Kaiunvaimennus ja Automaattinen vahvistuksen säätö</strong> selkeää käännettyä ääntä varten."
   }
 }

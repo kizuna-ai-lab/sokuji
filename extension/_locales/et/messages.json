@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Kui te ei näe Teamsi seadetes täielikku heliseadmete loendit:<br><strong>1)</strong> Keelake Sokuji laiendus ajutiselt ja värskendage lehte<br><strong>2)</strong> Lubage Teamsil kasutada mikrofoni ja kaamerat, kui palutakse<br><strong>3)</strong> Lubage Sokuji laiendus uuesti ja värskendage lehte uuesti<br><strong>4)</strong> Lubage Sokujil kasutada mikrofoni, kui palutakse. Nüüd peaksite nägema nii tegelikke seadmeid kui ka <strong>\"Sokuji Virtual Microphone\"</strong> oma seadetes."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "Sokuji kasutamiseks Jitsi Meetis avage <strong>Settings > Devices</strong> ja valige oma mikrofoniks <strong>\"Sokuji Virtual Microphone\"</strong>. Seejärel avage <strong>Advanced audio settings</strong> ja <strong>lülitage välja müra vähendamine, kaja summutamine ja automaatne võimenduse reguleerimine</strong> selge tõlgitud heli jaoks."
   }
 }

@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "如果您在 Teams 設定中看不到完整的音訊裝置清單：<br><strong>1)</strong> 暫時停用 Sokuji 擴充功能並重新整理頁面<br><strong>2)</strong> 在提示時允許 Teams 存取您的麥克風和攝影機<br><strong>3)</strong> 重新啟用 Sokuji 擴充功能並再次重新整理頁面<br><strong>4)</strong> 在提示時允許 Sokuji 存取您的麥克風。現在您應該可以在設定中看到真實裝置和 <strong>\"Sokuji Virtual Microphone\"</strong> 虛擬裝置了。"
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "要在 Jitsi Meet 中使用 Sokuji，請開啟 <strong>Settings > Devices</strong>，選擇 <strong>\"Sokuji Virtual Microphone\"</strong> 作為您的麥克風。然後開啟 <strong>Advanced audio settings</strong>，並<strong>關閉噪音抑制、回音消除和自動增益控制</strong>以獲得清晰的翻譯音訊。"
   }
 }

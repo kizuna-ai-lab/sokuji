@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "If you don't see the complete audio device list in Teams settings:<br><strong>1)</strong> Temporarily disable the Sokuji extension and refresh the page<br><strong>2)</strong> Allow Teams to access your microphone and camera when prompted<br><strong>3)</strong> Re-enable Sokuji extension and refresh the page again<br><strong>4)</strong> Allow Sokuji to access your microphone when prompted<br>Now you should see both real and <strong>\"Sokuji Virtual Microphone\"</strong> devices in your settings."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "To use Sokuji in Jitsi Meet, open <strong>Settings > Devices</strong> and select <strong>\"Sokuji Virtual Microphone\"</strong> as your microphone. Then open <strong>Advanced audio settings</strong> and <strong>turn off Noise suppression, Echo cancellation, and Automatic gain control</strong> for clear translated audio."
   }
 }

@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "אם אינך רואה את רשימת מכשירי השמע המלאה בהגדרות Teams:<br><strong>1)</strong> השבת זמנית את התוסף Sokuji ורענן את הדף<br><strong>2)</strong> אפשר ל-Teams גישה למיקרופון ולמצלמה שלך כשתתבקש<br><strong>3)</strong> הפעל מחדש את התוסף Sokuji ורענן את הדף שוב<br><strong>4)</strong> אפשר ל-Sokuji גישה למיקרופון שלך כשתתבקש. כעת אתה אמור לראות גם מכשירים אמיתיים וגם <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות שלך."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "כדי להשתמש ב-Sokuji ב-Jitsi Meet, פתח את <strong>Settings > Devices</strong> ובחר <strong>\"Sokuji Virtual Microphone\"</strong> כמיקרופון שלך. לאחר מכן פתח את <strong>Advanced audio settings</strong> ו<strong>השבת את הפחתת הרעש, ביטול ההד ובקרת ההגבר האוטומטית</strong> לקבלת אודיו מתורגם ברור."
   }
 }
