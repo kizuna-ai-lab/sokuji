@@ -167,6 +167,24 @@ Ensure a 1px top border on the pinned bar so it reads as distinct from the
 panel above it. Reuse `.control-footer`'s existing top border if present;
 otherwise add `border-top: 1px solid #333;` to `.main-content.with-panel`.
 
+### Accessibility trade-off (accepted)
+
+The bottom-pinned bar is produced with CSS flex `order` (panel `order: 1`,
+main-content `order: 2`). `order` changes visual position only, not DOM/focus
+order — so in the narrow + panel-open state, keyboard and screen-reader users
+traverse the footer (Start/Stop, language) **before** the panel, the reverse of
+the visual top→bottom (WCAG 2.4.3 Focus Order / 1.3.2 Meaningful Sequence).
+
+This is **accepted, not fixed**: the mismatch is confined to one state, the
+reordered-first region (the footer) holds only a few controls, and the clean
+alternatives each cost more — a top-pinned bar abandons the chosen
+bottom-bar ergonomics, and a JS/`matchMedia` DOM reorder re-couples a responsive
+concern to React that this CSS-only design deliberately avoids. If WCAG focus
+order later becomes a priority for this viewport, reorder the DOM in
+`MainLayout.tsx` (render the panel before `.main-content` when narrow +
+panel-open) and drop the `order` swap. (Raised in PR #254 review by Gemini Code
+Assist.)
+
 ## Edge cases & verification items
 
 - **`UpdateBanner` / `UpdateDialog` / `AudioFeedbackWarning`** live inside

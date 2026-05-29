@@ -24,6 +24,15 @@
 
     .panel-resizer { display: none; } /* meaningless when stacked */
 
+    /* A11y trade-off (WCAG 2.4.3 Focus Order / 1.3.2 Meaningful Sequence):
+       `order` reflows the layout visually but NOT the DOM/focus order. So in
+       this narrow + panel-open state, keyboard and screen-reader users reach
+       the footer (inside .main-content, order: 2) BEFORE the panel — the
+       reverse of the visual top→bottom. Accepted: the mismatch is confined to
+       this one state and the footer holds only a few controls. If WCAG focus
+       order becomes a priority for this viewport, reorder the DOM in
+       MainLayout.tsx (render the panel before .main-content when narrow +
+       panel-open) and drop the `order` swap. Raised in PR #254 review. */
     .settings-panel-container {
       order: 1; /* panel on top */
       width: 100% !important;
