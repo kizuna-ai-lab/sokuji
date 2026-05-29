@@ -93,7 +93,8 @@
         "https://app.v2.gather.town/*",
         "https://whereby.com/*",
         "https://discord.com/*",
-        "https://app.slack.com/*"
+        "https://app.slack.com/*",
+        "https://meet.jit.si/*"
       ]
     }
   ],
