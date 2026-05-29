@@ -110,6 +110,12 @@
   "slackGuidance": {
     "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "To use Sokuji in Jitsi Meet, open <strong>Settings > Devices</strong> and select <strong>\"Sokuji Virtual Microphone\"</strong> as your microphone. Then open <strong>Advanced audio settings</strong> and <strong>turn off Noise suppression, Echo cancellation, and Automatic gain control</strong> for clear translated audio."
+  },
   "teamsTitle": {
     "message": "Sokuji for Microsoft Teams"
   },
