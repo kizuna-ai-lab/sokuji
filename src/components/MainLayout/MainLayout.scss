@@ -8,49 +8,69 @@
   color: white;
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
   
-  /* For small screens, change to a vertical layout with panel taking full width */
+  /* Narrow viewports: stack vertically. When a side panel (Settings/Logs) is
+     open, the panel takes the space and MainPanel collapses to its control
+     footer, pinned as a bar at the bottom; the footer renders unchanged (its
+     own @container styles handle narrow widths).
+     See docs/superpowers/specs/2026-05-29-narrow-layout-panel-design.md.
+
+     CONTRACT: the rules below reach into MainPanel's class names
+     (.conversation-toolbar, .conversation-display, .text-input-section) to hide
+     the transcript. If those names change in MainPanel, update them here too —
+     a stale selector silently matches nothing (this is exactly what broke the
+     previous version). */
   @media (max-width: 768px) {
     flex-direction: column;
-    
+
+    .panel-resizer { display: none; } /* meaningless when stacked */
+
+    /* A11y trade-off (WCAG 2.4.3 Focus Order / 1.3.2 Meaningful Sequence):
+       `order` reflows the layout visually but NOT the DOM/focus order. So in
+       this narrow + panel-open state, keyboard and screen-reader users reach
+       the footer (inside .main-content, order: 2) BEFORE the panel — the
+       reverse of the visual top→bottom. Accepted: the mismatch is confined to
+       this one state and the footer holds only a few controls. If WCAG focus
+       order becomes a priority for this viewport, reorder the DOM in
+       MainLayout.tsx (render the panel before .main-content when narrow +
+       panel-open) and drop the `order` swap. Raised in PR #254 review. */
     .settings-panel-container {
+      order: 1; /* panel on top */
       width: 100% !important;
       min-width: 100% !important;
       max-width: 100% !important;
-      height: calc(100vh - 120px); /* Full height minus header and audio controls */
-      border-top: 1px solid #333;
+      flex: 1 1 auto;
+      min-height: 0; /* allow internal scrolling */
+      overflow-y: auto;
+      border-top: none;
       border-right: none;
     }
-    
-    .main-content {
+
+    .main-content.with-panel {
+      order: 2; /* control footer pinned below the panel */
+      flex: 0 0 auto; /* size to the footer, not a flex-grow region */
       height: auto;
-      
-      &.with-panel {
-        height: 120px; /* Enough for the header and audio controls */
-        min-height: 120px;
-        border-right: none;
-        
-        .main-panel-container {
-          display: block; /* Show the main panel content for audio controls */
-          height: 60px; /* Just enough for the audio visualization and controls */
-          overflow: hidden; /* Hide everything else */
-          
-          /* Ensure the audio visualization is visible */
-          .main-panel {
-            height: 100%;
-            
-            /* Hide the conversation container when panel is open */
-            .conversation-container {
-              display: none;
-            }
-            
-            /* Ensure audio visualization is positioned correctly */
-            .audio-visualization {
-              position: relative;
-              bottom: auto;
-              margin-top: 10px;
-            }
-          }
-        }
+      min-height: 0;
+      border-right: none;
+
+      .main-panel-container {
+        height: auto;
+        overflow: visible;
+      }
+
+      .main-panel-wrapper,
+      .main-panel {
+        height: auto;
+        min-height: 0;
+      }
+
+      /* Hide the transcript while a panel is open. MainPanel stays mounted
+         (display:none, NOT unmounted) so the active session survives. The
+         .control-footer is intentionally left untouched — it renders exactly
+         as in the normal layout and adapts via its own @container styles. */
+      .conversation-toolbar,
+      .conversation-display,
+      .text-input-section {
+        display: none;
       }
     }
   }
