@@ -45,8 +45,19 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://teams.cloud.microsoft/*", "https://app.gather.town/*", "https://app.v2.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*", "https://meet.jit.si/*"],
+      "matches": ["https://meet.google.com/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://teams.cloud.microsoft/*", "https://app.gather.town/*", "https://app.v2.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
       "js": ["content.js", "subtitle-overlay-content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://meet.jit.si/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://meet.jit.si/*"],
+      "js": ["subtitle-overlay-content.js"],
       "run_at": "document_start"
     },
     {
