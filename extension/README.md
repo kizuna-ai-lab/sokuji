@@ -6,7 +6,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 
 - **Real-time speech translation** powered by multiple AI providers
 - **Smart site detection** - Shows supported sites when clicking the extension icon
-- **Seamless integration** with Google Meet, Microsoft Teams, Zoom, and Gather Town
+- **Seamless integration** with Google Meet, Microsoft Teams, Zoom, Gather Town, and Jitsi Meet
 - **Virtual microphone** functionality for meeting integration
 - **Customizable settings** for voice, model, and translation preferences
 
@@ -17,6 +17,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 - **Microsoft Teams Live** (teams.live.com)
 - **Zoom** (app.zoom.us)
 - **Gather Town** (app.gather.town, app.v2.gather.town)
+- **Jitsi Meet** (meet.jit.si)
 
 ## How to Use
 
