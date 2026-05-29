@@ -11,6 +11,7 @@ const SUPPORTED_HOSTS = new Set([
   'whereby.com',
   'discord.com',
   'app.slack.com',
+  'meet.jit.si',
 ]);
 
 function isSupportedUrl(url: string | undefined): boolean {
