@@ -410,6 +410,12 @@ function showUnsupportedState(hostname) {
   const headline = `<strong>${getMessage('unsupportedHeadline', [`<code>${hostname}</code>`])}</strong>`;
   content.innerHTML = renderUnsupportedFirstHtml(headline);
 
+  // Prefill the site-request issue title with the current hostname
+  const requestLink = document.getElementById('requestSiteLink');
+  if (requestLink) {
+    requestLink.href = REQUEST_SITE_URL + encodeURIComponent(hostname);
+  }
+
   setupUnsupportedHandlers('unsupported', hostname);
 }
 
