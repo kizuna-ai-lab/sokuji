@@ -58,7 +58,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
-import { getSafeAudioConfiguration } from '../../utils/audioUtils';
+import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
@@ -721,9 +721,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
 
-    const enabled = isPushToTranslate
-      ? !isRecording                    // mute only while user is holding the key
-      : isRealVoicePassthroughEnabled;  // legacy: user-controlled toggle
+    const enabled = isPassthroughActive({
+      mode: currentTurnDetectionMode,
+      isRecording,
+      isMicMuted,
+      legacyPassthroughEnabled: isRealVoicePassthroughEnabled,
+    });
 
     const volume = isPushToTranslate
       ? 1.0                             // self-contained, ignore 0-60% cap
@@ -737,6 +740,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [
     currentTurnDetectionMode,
     isRecording,
+    isMicMuted,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
     selectedInputDevice,
