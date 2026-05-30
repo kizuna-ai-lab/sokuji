@@ -245,16 +245,82 @@ body {
   .popup-container {
     padding: 16px;
   }
-  
+
   .header h1 {
     font-size: 16px;
   }
-  
+
   .site-name {
     font-size: 12px;
   }
-  
+
   .site-url {
     font-size: 10px;
   }
+}
+
+/* Desktop-first unsupported / detect-failure states */
+.status-headline {
+  margin-bottom: 12px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #1a1a1a;
+}
+
+.status-headline code {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.cta-card {
+  background-color: #f5f3ff;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.cta-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.cta-card-body {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.cta-card-button {
+  width: 100%;
+}
+
+.browser-sites-heading {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.popup-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.popup-footer-links a {
+  font-size: 12px;
+  color: #667eea;
+  text-decoration: none;
+}
+
+.popup-footer-links a:hover {
+  text-decoration: underline;
 } 
