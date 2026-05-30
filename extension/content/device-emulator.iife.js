@@ -579,6 +579,38 @@
     mediaStream.addTrack(track);
   }
 
+  // When an emulated device is backed by a real customStream, getUserMedia returns
+  // that stream's track (often via MediaStream.clone()), which reports an empty
+  // deviceId/label instead of the emulated device's identity. Apps that map the
+  // active track back to a device entry then fail to mark it as selected — e.g.
+  // Jitsi matches the active track to a device by track.label and reads
+  // track.getSettings().deviceId. Stamp the emulated device's identity onto the
+  // returned track so it behaves like a real hardware device. (The synthetic-stream
+  // path does the equivalent inside registerMediaStreamTrack.)
+  function applyEmulatedDeviceIdentity(track, props) {
+    if (!track || !props || !props.device) {
+      return;
+    }
+    const device = props.device;
+    const nativeGetSettings = typeof track.getSettings === "function" ? track.getSettings.bind(track) : () => ({});
+    const nativeGetCapabilities = typeof track.getCapabilities === "function" ? track.getCapabilities.bind(track) : () => ({});
+    try {
+      Object.defineProperty(track, "label", { value: device.label, configurable: true });
+    } catch (ex) {
+      // label may be non-configurable in some engines; getSettings().deviceId is the primary signal anyway.
+    }
+    track.getSettings = () => ({
+      ...nativeGetSettings(),
+      deviceId: device.deviceId,
+      groupId: device.groupId
+    });
+    track.getCapabilities = () => ({
+      ...nativeGetCapabilities(),
+      deviceId: device.deviceId,
+      groupId: device.groupId
+    });
+  }
+
   async function evaluateConstraints(originalFn, realConstraints, meta) {
     const emulatedConstraints = {};
     const audioDeviceId = evaluateDeviceIdConstraint(realConstraints, emulatedConstraints, "audio", meta);
@@ -615,6 +647,12 @@
         stream.getTracks().forEach((track) => {
           mediaStream2.addTrack(track);
         });
+      }
+      if (audioProps) {
+        mediaStream2.getAudioTracks().forEach((track) => applyEmulatedDeviceIdentity(track, audioProps));
+      }
+      if (videoProps) {
+        mediaStream2.getVideoTracks().forEach((track) => applyEmulatedDeviceIdentity(track, videoProps));
       }
       return mediaStream2;
     }
