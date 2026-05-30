@@ -73,36 +73,11 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 200px;
-  overflow-y: auto;
   border-radius: 6px;
   /* Grid layout for 4 columns */
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  /* Firefox scrollbar styling */
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
-}
-
-/* Custom scrollbar styling for webkit browsers */
-.sites-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sites-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.sites-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-  transition: background 0.2s ease;
-}
-
-.sites-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }
 
 .site-item {
