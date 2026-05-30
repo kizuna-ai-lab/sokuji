@@ -588,9 +588,13 @@
   // returned track so it behaves like a real hardware device. (The synthetic-stream
   // path does the equivalent inside registerMediaStreamTrack.)
   function applyEmulatedDeviceIdentity(track, props) {
-    if (!track || !props || !props.device) {
+    if (!track || !props || !props.device || track.__sokujiEmulated) {
       return;
     }
+    // Guard against re-wrapping the same track across multiple getUserMedia calls
+    // (e.g. the audio+video customStream branch reuses the original tracks), which
+    // would otherwise stack getSettings/getCapabilities closures on each call.
+    track.__sokujiEmulated = true;
     const device = props.device;
     const nativeGetSettings = typeof track.getSettings === "function" ? track.getSettings.bind(track) : () => ({});
     const nativeGetCapabilities = typeof track.getCapabilities === "function" ? track.getCapabilities.bind(track) : () => ({});
