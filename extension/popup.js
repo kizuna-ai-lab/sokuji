@@ -107,6 +107,12 @@ const ENABLED_SITES = [
   'meet.jit.si'
 ];
 
+// Destinations for the desktop-first unsupported/error states
+const DOWNLOAD_URL = 'https://sokuji.kizuna.ai/';
+const WEBSITE_URL = 'https://sokuji.kizuna.ai/docs';
+const REQUEST_SITE_URL =
+  'https://github.com/kizuna-ai-lab/sokuji/issues/new?labels=site-request&title=Site%20request%3A%20';
+
 // Site information with display names and icons
 const SITE_INFO = {
   'meet.google.com': {
@@ -332,58 +338,94 @@ function showSupportedState(hostname) {
   openButton.style.display = 'block';
 }
 
+// Shared markup for both the unsupported-site and detect-failure states.
+// `headlineHtml` is the only part that differs between the two.
+function renderUnsupportedFirstHtml(headlineHtml) {
+  return `
+    <div class="status-headline">
+      ${headlineHtml}
+    </div>
+
+    <div class="cta-card">
+      <div class="cta-card-title">💻 ${getMessage('desktopCtaTitle')}</div>
+      <p class="cta-card-body">${getMessage('desktopCtaBody')}</p>
+      <button id="downloadDesktop" class="primary-button cta-card-button">${getMessage('desktopCtaButton')}</button>
+    </div>
+
+    <div class="supported-sites">
+      <p class="browser-sites-heading">${getMessage('browserSitesHeading')}</p>
+      <ul class="sites-list" id="sitesList">
+        ${generateSitesList()}
+      </ul>
+    </div>
+
+    <div class="popup-footer-links">
+      <a id="requestSiteLink" href="${REQUEST_SITE_URL}" target="_blank" rel="noopener">${getMessage('requestSiteLink')}</a>
+      <a id="learnMoreLink" href="${WEBSITE_URL}" target="_blank" rel="noopener">${getMessage('learnMore')}</a>
+    </div>
+  `;
+}
+
+// Wire the CTA buttons/links plus the (reused) supported-sites grid.
+// `source` is 'unsupported' | 'error'; `hostname` may be null in the error state.
+function setupUnsupportedHandlers(source, hostname) {
+  const trackingHostname = hostname || 'unknown';
+
+  const downloadBtn = document.getElementById('downloadDesktop');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      trackEvent('popup_desktop_download_clicked', { source, hostname: trackingHostname });
+      chrome.tabs.create({ url: DOWNLOAD_URL });
+      window.close();
+    });
+  }
+
+  const learnMoreLink = document.getElementById('learnMoreLink');
+  if (learnMoreLink) {
+    learnMoreLink.addEventListener('click', () => {
+      trackEvent('popup_website_clicked', { source, hostname: trackingHostname });
+    });
+  }
+
+  const requestSiteLink = document.getElementById('requestSiteLink');
+  if (requestSiteLink) {
+    requestSiteLink.addEventListener('click', () => {
+      trackEvent('popup_request_site_clicked', { source, hostname: trackingHostname });
+    });
+  }
+
+  // Reuse the existing grid navigation + extension_site_navigated tracking.
+  setupSiteItemClickHandlers(false, hostname);
+}
+
 function showUnsupportedState(hostname) {
   const content = document.getElementById('content');
-  
+
   // Track unsupported state shown
   trackEvent('extension_popup_unsupported_state_shown', {
     hostname: hostname,
     supported_sites_count: ENABLED_SITES.length
   });
-  
-  content.innerHTML = `
-    <div class="status-message status-unsupported">
-      <strong>${getMessage('notSupported')}</strong><br>
-      ${getMessage('currentlyOn', [`<code>${hostname}</code>`])}
-    </div>
 
-    <div class="supported-sites">
-      <ul class="sites-list" id="sitesList">
-        ${generateSitesList()}
-      </ul>
-    </div>
+  const headline = `<strong>${getMessage('unsupportedHeadline', [`<code>${hostname}</code>`])}</strong>`;
+  content.innerHTML = renderUnsupportedFirstHtml(headline);
 
-    <div class="instructions">
-      <p><strong>${getMessage('needMoreSites')}</strong> ${getMessage('contactUs')} <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('openSourceProject')}</a>.</p>
-    </div>
-  `;
+  setupUnsupportedHandlers('unsupported', hostname);
 }
 
 function showErrorState() {
   const content = document.getElementById('content');
-  
+
   // Track error state shown
   trackEvent('extension_popup_error', {
     error_type: 'no_tab_info',
     error_message: 'Unable to detect current site'
   });
-  
-  content.innerHTML = `
-    <div class="status-message status-unsupported">
-      <strong>${getMessage('unableToDetect')}</strong><br>
-      ${getMessage('refreshAndTry')}
-    </div>
 
-    <div class="supported-sites">
-      <ul class="sites-list" id="sitesList">
-        ${generateSitesList()}
-      </ul>
-    </div>
+  const headline = `<strong>${getMessage('detectFailHeadline')}</strong><br>${getMessage('detectFailBody')}`;
+  content.innerHTML = renderUnsupportedFirstHtml(headline);
 
-    <div class="instructions">
-      <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
-    </div>
-  `;
+  setupUnsupportedHandlers('error', null);
 }
 
 // Helper function to generate sites list HTML
@@ -485,9 +527,6 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
       }
     });
   }
-
-  // Handle site item clicks (navigate to supported sites) 
-  setupSiteItemClickHandlers(isSupported, currentHostname);
 
   // Handle store link clicks
   const storeLink = document.getElementById('storeLink');
