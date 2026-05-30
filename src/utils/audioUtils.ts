@@ -152,19 +152,24 @@ export const isLikelyToGenerateFeedback = (
  * - Push-to-Translate → on while idle, off while the user holds the key (recording).
  * - Other modes → follow the user's legacy passthrough toggle.
  */
-export const isPassthroughActive = (params: {
+export const isPassthroughActive = ({
+  mode,
+  isRecording,
+  isMicMuted,
+  legacyPassthroughEnabled,
+}: {
   mode: string;
   isRecording: boolean;
   isMicMuted: boolean;
   legacyPassthroughEnabled: boolean;
 }): boolean => {
-  if (params.isMicMuted) {
+  if (isMicMuted) {
     return false;
   }
-  if (params.mode === 'Push-to-Translate') {
-    return !params.isRecording;
+  if (mode === 'Push-to-Translate') {
+    return !isRecording;
   }
-  return params.legacyPassthroughEnabled;
+  return legacyPassthroughEnabled;
 };
 
 /**

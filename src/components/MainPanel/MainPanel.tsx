@@ -710,6 +710,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, []);
 
+  // Whether raw-mic passthrough is currently audible to the outputs. Shared by
+  // the passthrough setup, the feedback-warning effect, and the warning UI so
+  // they never drift (mute always wins; see isPassthroughActive).
+  const passthroughActive = useMemo(
+    () =>
+      isPassthroughActive({
+        mode: currentTurnDetectionMode,
+        isRecording,
+        isMicMuted,
+        legacyPassthroughEnabled: isRealVoicePassthroughEnabled,
+      }),
+    [currentTurnDetectionMode, isRecording, isMicMuted, isRealVoicePassthroughEnabled]
+  );
+
   /**
    * Update passthrough settings when they change.
    * Push-to-translate mode hijacks passthrough: on @ 100% during idle,
@@ -721,12 +735,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
 
-    const enabled = isPassthroughActive({
-      mode: currentTurnDetectionMode,
-      isRecording,
-      isMicMuted,
-      legacyPassthroughEnabled: isRealVoicePassthroughEnabled,
-    });
+    const enabled = passthroughActive;
 
     const volume = isPushToTranslate
       ? 1.0                             // self-contained, ignore 0-60% cap
@@ -739,12 +748,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
   }, [
     currentTurnDetectionMode,
-    isRecording,
-    isMicMuted,
-    isRealVoicePassthroughEnabled,
+    passthroughActive,
     realVoicePassthroughVolume,
-    selectedInputDevice,
-    selectedMonitorDevice,
+    selectedInputDevice?.deviceId,
+    selectedMonitorDevice?.deviceId,
     isMonitorMuted,
   ]);
 
@@ -770,8 +777,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * in addition to the user-controlled isRealVoicePassthroughEnabled.
    */
   useEffect(() => {
-    const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
-    const effectivePassthroughEnabled = isPushToTranslate || isRealVoicePassthroughEnabled;
+    const effectivePassthroughEnabled = passthroughActive;
 
     if (feedbackWarningDismissed || !effectivePassthroughEnabled || isMonitorMuted) {
       setShowFeedbackWarning(false);
@@ -790,8 +796,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setShowFeedbackWarning(false);
     }
   }, [
-    currentTurnDetectionMode,
-    isRealVoicePassthroughEnabled,
+    passthroughActive,
     selectedInputDevice,
     selectedMonitorDevice,
     feedbackWarningDismissed,
@@ -3481,14 +3486,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             getSafeAudioConfiguration(
               selectedInputDevice,
               selectedMonitorDevice,
-              isRealVoicePassthroughEnabled
+              passthroughActive
             ).recommendedAction
           }
           feedbackRisk={
             getSafeAudioConfiguration(
               selectedInputDevice,
               selectedMonitorDevice,
-              isRealVoicePassthroughEnabled
+              passthroughActive
             ).feedbackRisk
           }
           onDismiss={() => {
