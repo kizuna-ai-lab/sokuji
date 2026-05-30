@@ -103,7 +103,8 @@ const ENABLED_SITES = [
   'app.gather.town',
   'app.v2.gather.town',
   'whereby.com',
-  'discord.com'
+  'discord.com',
+  'meet.jit.si'
 ];
 
 // Site information with display names and icons
@@ -160,6 +161,11 @@ const SITE_INFO = {
     name: 'Discord',
     shortName: 'Discord',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC'
+  },
+  'meet.jit.si': {
+    name: 'Jitsi Meet',
+    shortName: 'Jitsi',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAACMVBMVEUXoNsWn9oYoNsVn9oOnNkPnNkRndqU0u7a7/gyqt4QndoZoNsWoNscotvS7PfQ6/em2fAGmdgaodsTntoAltdcu+Xg8PlYt+Pe8Pkgo9wUn9orp9244fPm9PqDy+tLsuHm8/otqN4SndrG5vXF5vW03/JVt+ONz+zB5PQDl9cbodsNnNk3q9/Y7viIzOtnv+a+4/TT7PcQndkJmdiGzOuQ0O3R6/dVtuOy3fLy+PxLtOIMm9k6reDb7/mGy+uNzuz///94xulpv+aJy+uo2vDB5fULmtkcoduj2PCJzeux3vJ8x+ne8fnd8Pmz3/Kd1O7R6vcio9wZodsKmtllvubN6fac1e/z+v3f8Pn9/v77/f6a1O6W0e3W7PclpNwTn9pduuTF5fWy3vKf1u9XtuN2w+iV0u3J6PZ1xOjV7PgVntqx3fGCyuru9/z2+v284vTZ7vie1e9Dr+CHzOsGmNgWn9s9ruDt9vvX7vi/4/Rww+iByeqn2vCX0+6d1e9swOd5x+kFmNgImdi44POr2/FTteOMzux5xum03vJ9x+mp2vEeotvS6/eByurr9/zj8/prwOew3fLx+PxQtuMKm9kpp93O6vep2/HL6Pap2vDW7fit3PHh8vo7reAho9zX7fiKzev2+/2k1++j1+/u9/t7yOoAldcPndlkveZ/yepevOWs3PEsp90Xn9uLzuza7vgnpd0Cl9cEmNgEmNcRntoXn9oSntoopd2S0e0uqN5Ks+Ie52EyAAABeklEQVQoz2NgQAWMYIQdMDIwMTEx4pJjZmFlwyXLxMbOwcnFhFUjNw8vH7+AoBA2OSZhEVExcQlJKWxybNIysnLyCopsWMxlUlJWUVVT19DUwnARo5C2jq6egL6BoSILN5osI7eRsYmhqZmeuYWllTWqLCM3i42urZ29g6OTs4urGzeqTmZ3Ww9PMy9vH18//4BAVPcGBYeEhjmER3BERkXHxMbFo5jKK5KQmJSckiqQlp6UkZnFg2ojZ7ZsTm5efkZBYVGxQUkQQq6Um6WsPKmisqq6hr+2rl6loRE5AIOamltaQ9rao6IcOjq7OLpR3CMl2ZNmoNfb5+DQP2HipMlTgpC9KTx12vQZOjNtZ81un6Mx1w1FjkFq3vwFvQvNFi02WLJ02XJUOQYm654VBitXrW6RWyMohBawa4Ua162fv2Hjps2btghtRY8Spm3bF6azagkJCWFJP4xCG3cIaGJLHWDAtnMXCxMOOUYGKTa8qRmnHAMPGKEBAADXVbSub916AAAAAElFTkSuQmCC'
   }
 };
 

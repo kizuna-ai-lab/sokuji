@@ -436,6 +436,33 @@ const teamsPlugin = {
   }
 };
 
+// Jitsi Meet plugin implementation
+const jitsiPlugin = {
+  name: 'Jitsi Meet',
+  hostname: 'meet.jit.si',
+
+  init() {
+    console.info('[Sokuji] [Jitsi] Jitsi Meet plugin initialized');
+  },
+
+  showGuidance(messages) {
+    // Use provided messages or fallback to default English
+    const i18n = messages || {
+      title: 'Sokuji for Jitsi Meet',
+      guidance: 'To use Sokuji in Jitsi Meet, open <strong>Settings > Devices</strong> and select <strong>"Sokuji Virtual Microphone"</strong> as your microphone. Then open <strong>Advanced audio settings</strong> and <strong>turn off Noise suppression, Echo cancellation, and Automatic gain control</strong> for clear translated audio.',
+      gotIt: 'Got it',
+      remindLater: 'Remind me later'
+    };
+
+    showCommonGuidanceNotification({
+      pluginName: 'Jitsi',
+      hostname: window.location.hostname,
+      backgroundColor: 'linear-gradient(135deg, #1657FF 0%, #0B3FCC 100%)',
+      messages: i18n
+    });
+  }
+};
+
 // Site plugins registry - maps hostname to plugin
 const sitePluginsRegistry = {
   'app.gather.town': gatherTownPlugin,
@@ -445,7 +472,8 @@ const sitePluginsRegistry = {
   'app.slack.com': slackPlugin,
   'teams.live.com': teamsPlugin,
   'teams.microsoft.com': teamsPlugin,
-  'teams.cloud.microsoft': teamsPlugin
+  'teams.cloud.microsoft': teamsPlugin,
+  'meet.jit.si': jitsiPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
   // etc.

@@ -50,6 +50,17 @@
       "run_at": "document_start"
     },
     {
+      "matches": ["https://meet.jit.si/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://meet.jit.si/*"],
+      "js": ["subtitle-overlay-content.js"],
+      "run_at": "document_start"
+    },
+    {
       "matches": ["https://app.zoom.us/*"],
       "js": ["zoom-content.js"],
       "run_at": "document_start",
@@ -93,7 +104,8 @@
         "https://app.v2.gather.town/*",
         "https://whereby.com/*",
         "https://discord.com/*",
-        "https://app.slack.com/*"
+        "https://app.slack.com/*",
+        "https://meet.jit.si/*"
       ]
     }
   ],

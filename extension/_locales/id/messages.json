@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Jika Anda tidak melihat daftar perangkat audio lengkap di pengaturan Teams:<br><strong>1)</strong> Nonaktifkan sementara ekstensi Sokuji dan segarkan halaman<br><strong>2)</strong> Izinkan Teams mengakses mikrofon dan kamera Anda saat diminta<br><strong>3)</strong> Aktifkan kembali ekstensi Sokuji dan segarkan halaman lagi<br><strong>4)</strong> Izinkan Sokuji mengakses mikrofon Anda saat diminta. Sekarang Anda seharusnya melihat perangkat nyata dan <strong>\"Sokuji Virtual Microphone\"</strong> di pengaturan Anda."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "Untuk menggunakan Sokuji di Jitsi Meet, buka <strong>Settings > Devices</strong> dan pilih <strong>\"Sokuji Virtual Microphone\"</strong> sebagai mikrofon Anda. Kemudian buka <strong>Advanced audio settings</strong> dan <strong>nonaktifkan Noise suppression, Echo cancellation, dan Automatic gain control</strong> untuk audio terjemahan yang jernih."
   }
 }

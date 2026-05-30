@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jitsi Meet Tutorial - Sokuji Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .step h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .screenshot-placeholder {
+            background-color: #e9ecef;
+            border: 2px dashed #cbd5e0;
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            color: #6c757d;
+            margin: 15px 0;
+        }
+        .tip {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .tip h4 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        .faq {
+            margin-top: 40px;
+        }
+        .faq-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .faq-item h4 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-sites.html" class="back-link">← Back to Supported Sites</a>
+
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">Using Sokuji with Jitsi Meet</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // Language content definitions
+        const translations = {
+            en: {
+                pageTitle: "Using Sokuji with Jitsi Meet",
+                langLabel: "Language:",
+                backLink: "← Back to Supported Sites",
+                overview: {
+                    title: "Overview",
+                    content: "This guide walks you through setting up Sokuji with Jitsi Meet for real-time voice translation in your open-source meetings."
+                },
+                steps: [
+                    {
+                        title: "Open or Join a Jitsi Meet Meeting",
+                        content: "Navigate to <code>meet.jit.si</code> and start a new meeting or join an existing one.",
+                        tip: "Sokuji works with any Jitsi Meet room — no account required."
+                    },
+                    {
+                        title: "Select Sokuji Virtual Microphone in Jitsi",
+                        content: "In Jitsi Meet, open <strong>Settings</strong> (the gear icon or the three dots menu) and go to <strong>Devices</strong>. Under the microphone section, choose <strong>Sokuji Virtual Microphone</strong> as your input device.",
+                        tip: "If Sokuji Virtual Microphone does not appear in the list, make sure the Sokuji extension is active and refresh the page."
+                    },
+                    {
+                        title: "Disable Jitsi's Audio Processing",
+                        content: "In Jitsi's <strong>Advanced audio settings</strong>, turn <strong>OFF</strong> the following options: <strong>Noise suppression</strong>, <strong>Echo cancellation</strong>, and <strong>Automatic gain control</strong>. These audio processing filters are designed for a real microphone signal and will distort the translated audio output from Sokuji.",
+                        tip: "You can find these options in Settings → Audio → Advanced. Disabling them ensures the translated voice is delivered clearly to other participants."
+                    },
+                    {
+                        title: "Start Your Sokuji Session",
+                        content: "Open the Sokuji side panel, configure your translation settings (language pair, AI provider, API key), and start the session. Sokuji will translate your speech in real-time and route it through the virtual microphone to your Jitsi meeting.",
+                        tip: "Speak clearly and at a moderate pace for the best translation results."
+                    }
+                ],
+                tips: {
+                    title: "Tips for Best Results",
+                    items: [
+                        "Disable Jitsi's noise suppression, echo cancellation, and automatic gain control",
+                        "Speak clearly and avoid background noise",
+                        "Pause briefly between sentences for better translation accuracy",
+                        "Test your audio before important meetings"
+                    ]
+                },
+                faq: {
+                    title: "Frequently Asked Questions",
+                    items: [
+                        {
+                            question: "Why can't I see the Sokuji Virtual Microphone in Jitsi?",
+                            answer: "Make sure the Sokuji extension is installed and active in your browser. Refresh the Jitsi Meet page and check that the extension has microphone permissions."
+                        },
+                        {
+                            question: "Why does the translated audio sound distorted?",
+                            answer: "Jitsi's built-in audio processing (noise suppression, echo cancellation, automatic gain control) can interfere with the translated audio stream. Go to Settings → Audio → Advanced and disable all three options."
+                        },
+                        {
+                            question: "Can other participants hear both languages?",
+                            answer: "No, other participants will only hear the translated audio delivered through the Sokuji Virtual Microphone."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "Troubleshooting",
+                    content: "If you encounter any issues, please visit our <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub repository</a> for support."
+                }
+            },
+            zh: {
+                pageTitle: "在 Jitsi Meet 中使用 Sokuji",
+                langLabel: "语言：",
+                backLink: "← 返回支持的网站",
+                overview: {
+                    title: "概述",
+                    content: "本指南将指导您如何在 Jitsi Meet 中设置 Sokuji，实现开源会议中的实时语音翻译。"
+                },
+                steps: [
+                    {
+                        title: "打开或加入 Jitsi Meet 会议",
+                        content: "访问 <code>meet.jit.si</code>，开始新会议或加入现有会议。",
+                        tip: "Sokuji 适用于任何 Jitsi Meet 房间——无需账户。"
+                    },
+                    {
+                        title: "在 Jitsi 中选择 Sokuji 虚拟麦克风",
+                        content: "在 Jitsi Meet 中，打开<strong>设置</strong>（齿轮图标或三点菜单），进入<strong>设备</strong>。在麦克风部分，选择 <strong>Sokuji Virtual Microphone</strong> 作为输入设备。",
+                        tip: "如果列表中没有 Sokuji Virtual Microphone，请确保 Sokuji 扩展处于活动状态，然后刷新页面。"
+                    },
+                    {
+                        title: "禁用 Jitsi 的音频处理",
+                        content: "在 Jitsi 的<strong>高级音频设置</strong>中，关闭以下选项：<strong>噪声抑制</strong>、<strong>回声消除</strong>和<strong>自动增益控制</strong>。这些音频处理滤镜是为真实麦克风信号设计的，会干扰 Sokuji 的翻译音频输出。",
+                        tip: "您可以在 设置 → 音频 → 高级 中找到这些选项。禁用后，翻译后的声音将清晰地传达给其他参与者。"
+                    },
+                    {
+                        title: "启动您的 Sokuji 会话",
+                        content: "打开 Sokuji 侧边栏，配置翻译设置（语言对、AI 提供商、API 密钥），然后启动会话。Sokuji 将实时翻译您的语音，并通过虚拟麦克风传输到您的 Jitsi 会议。",
+                        tip: "为获得最佳翻译效果，请清晰地说话并保持适中的语速。"
+                    }
+                ],
+                tips: {
+                    title: "最佳使用建议",
+                    items: [
+                        "禁用 Jitsi 的噪声抑制、回声消除和自动增益控制",
+                        "清晰说话，避免背景噪音",
+                        "句子之间稍作停顿以提高翻译准确性",
+                        "重要会议前测试音频"
+                    ]
+                },
+                faq: {
+                    title: "常见问题",
+                    items: [
+                        {
+                            question: "为什么在 Jitsi 中看不到 Sokuji 虚拟麦克风？",
+                            answer: "确保 Sokuji 扩展已安装并处于活动状态。刷新 Jitsi Meet 页面，并检查扩展是否具有麦克风权限。"
+                        },
+                        {
+                            question: "为什么翻译音频听起来失真？",
+                            answer: "Jitsi 的内置音频处理（噪声抑制、回声消除、自动增益控制）可能会干扰翻译音频流。请前往 设置 → 音频 → 高级，禁用这三个选项。"
+                        },
+                        {
+                            question: "其他参与者能听到两种语言吗？",
+                            answer: "不能，其他参与者只能通过 Sokuji 虚拟麦克风听到翻译后的音频。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "故障排除",
+                    content: "如果遇到任何问题，请访问我们的 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 仓库</a> 获取支持。"
+                }
+            },
+            ja: {
+                pageTitle: "Jitsi Meet で Sokuji を使用する",
+                langLabel: "言語：",
+                backLink: "← サポートされているサイトに戻る",
+                overview: {
+                    title: "概要",
+                    content: "このガイドでは、Jitsi Meet で Sokuji を設定して、オープンソースの会議でリアルタイム音声翻訳を行う方法を説明します。"
+                },
+                steps: [
+                    {
+                        title: "Jitsi Meet の会議を開くまたは参加する",
+                        content: "<code>meet.jit.si</code> にアクセスし、新しい会議を開始するか、既存の会議に参加します。",
+                        tip: "Sokuji はどの Jitsi Meet ルームでも動作します — アカウント不要です。"
+                    },
+                    {
+                        title: "Jitsi で Sokuji 仮想マイクを選択する",
+                        content: "Jitsi Meet で<strong>設定</strong>（歯車アイコンまたは三点メニュー）を開き、<strong>デバイス</strong>に移動します。マイクのセクションで、入力デバイスとして <strong>Sokuji Virtual Microphone</strong> を選択します。",
+                        tip: "リストに Sokuji Virtual Microphone が表示されない場合は、Sokuji 拡張機能がアクティブであることを確認してページを更新してください。"
+                    },
+                    {
+                        title: "Jitsi の音声処理を無効にする",
+                        content: "Jitsi の<strong>高度な音声設定</strong>で、<strong>ノイズ抑制</strong>、<strong>エコーキャンセル</strong>、<strong>自動ゲイン制御</strong>をすべて<strong>オフ</strong>にします。これらの音声処理フィルターは実際のマイク信号向けに設計されており、Sokuji の翻訳音声出力を歪ませてしまいます。",
+                        tip: "これらのオプションは 設定 → 音声 → 詳細 で確認できます。無効にすることで、翻訳された声が他の参加者に明瞭に届きます。"
+                    },
+                    {
+                        title: "Sokuji セッションを開始する",
+                        content: "Sokuji のサイドパネルを開き、翻訳設定（言語ペア、AI プロバイダー、API キー）を設定してセッションを開始します。Sokuji はリアルタイムで音声を翻訳し、仮想マイクを通じて Jitsi 会議に配信します。",
+                        tip: "最高の翻訳結果を得るために、はっきりと適度なペースで話してください。"
+                    }
+                ],
+                tips: {
+                    title: "最良の結果を得るためのヒント",
+                    items: [
+                        "Jitsi のノイズ抑制、エコーキャンセル、自動ゲイン制御を無効にする",
+                        "はっきりと話し、背景ノイズを避ける",
+                        "翻訳精度を向上させるため、文の間で少し一時停止する",
+                        "重要な会議の前にオーディオをテストする"
+                    ]
+                },
+                faq: {
+                    title: "よくある質問",
+                    items: [
+                        {
+                            question: "Jitsi で Sokuji 仮想マイクが表示されないのはなぜですか？",
+                            answer: "Sokuji 拡張機能がインストールされ、アクティブであることを確認してください。Jitsi Meet ページを更新し、拡張機能にマイクの権限が付与されているか確認してください。"
+                        },
+                        {
+                            question: "翻訳音声が歪んで聞こえるのはなぜですか？",
+                            answer: "Jitsi の組み込み音声処理（ノイズ抑制、エコーキャンセル、自動ゲイン制御）が翻訳音声ストリームに干渉することがあります。設定 → 音声 → 詳細 に移動して、これら 3 つのオプションをすべて無効にしてください。"
+                        },
+                        {
+                            question: "他の参加者は両方の言語を聞くことができますか？",
+                            answer: "いいえ、他の参加者は Sokuji 仮想マイクを通じて翻訳された音声のみを聞くことができます。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "トラブルシューティング",
+                    content: "問題が発生した場合は、<a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub リポジトリ</a>でサポートを受けてください。"
+                }
+            },
+            ko: {
+                pageTitle: "Jitsi Meet에서 Sokuji 사용하기",
+                langLabel: "언어:",
+                backLink: "← 지원 사이트로 돌아가기",
+                overview: {
+                    title: "개요",
+                    content: "이 가이드는 Jitsi Meet에서 Sokuji를 설정하여 오픈소스 회의에서 실시간 음성 번역을 수행하는 방법을 안내합니다."
+                },
+                steps: [
+                    {
+                        title: "Jitsi Meet 회의 열기 또는 참여",
+                        content: "<code>meet.jit.si</code>로 이동하여 새 회의를 시작하거나 기존 회의에 참여하세요.",
+                        tip: "Sokuji는 모든 Jitsi Meet 방에서 작동합니다 — 계정이 필요하지 않습니다."
+                    },
+                    {
+                        title: "Jitsi에서 Sokuji 가상 마이크 선택",
+                        content: "Jitsi Meet에서 <strong>설정</strong>(기어 아이콘 또는 세 점 메뉴)을 열고 <strong>장치</strong>로 이동하세요. 마이크 섹션에서 입력 장치로 <strong>Sokuji Virtual Microphone</strong>을 선택하세요.",
+                        tip: "목록에 Sokuji Virtual Microphone이 표시되지 않으면 Sokuji 확장 프로그램이 활성화되어 있는지 확인하고 페이지를 새로 고치세요."
+                    },
+                    {
+                        title: "Jitsi의 오디오 처리 비활성화",
+                        content: "Jitsi의 <strong>고급 오디오 설정</strong>에서 <strong>노이즈 억제</strong>, <strong>에코 제거</strong>, <strong>자동 게인 제어</strong>를 모두 <strong>끄세요</strong>. 이 오디오 처리 필터들은 실제 마이크 신호를 위해 설계된 것으로, Sokuji의 번역 오디오 출력을 왜곡할 수 있습니다.",
+                        tip: "이 옵션들은 설정 → 오디오 → 고급에서 찾을 수 있습니다. 비활성화하면 번역된 목소리가 다른 참가자에게 명확하게 전달됩니다."
+                    },
+                    {
+                        title: "Sokuji 세션 시작",
+                        content: "Sokuji 사이드 패널을 열고 번역 설정(언어 쌍, AI 제공업체, API 키)을 구성한 후 세션을 시작하세요. Sokuji는 실시간으로 음성을 번역하여 가상 마이크를 통해 Jitsi 회의에 전달합니다.",
+                        tip: "최상의 번역 결과를 위해 명확하고 적당한 속도로 말하세요."
+                    }
+                ],
+                tips: {
+                    title: "최상의 결과를 위한 팁",
+                    items: [
+                        "Jitsi의 노이즈 억제, 에코 제거, 자동 게인 제어를 비활성화하세요",
+                        "명확하게 말하고 배경 소음을 피하세요",
+                        "번역 정확도 향상을 위해 문장 사이에 잠시 멈추세요",
+                        "중요한 회의 전에 오디오를 테스트하세요"
+                    ]
+                },
+                faq: {
+                    title: "자주 묻는 질문",
+                    items: [
+                        {
+                            question: "Jitsi에서 Sokuji 가상 마이크가 보이지 않는 이유는 무엇인가요?",
+                            answer: "Sokuji 확장 프로그램이 설치되고 활성화되어 있는지 확인하세요. Jitsi Meet 페이지를 새로 고치고 확장 프로그램에 마이크 권한이 부여되었는지 확인하세요."
+                        },
+                        {
+                            question: "번역된 오디오가 왜곡되어 들리는 이유는 무엇인가요?",
+                            answer: "Jitsi의 내장 오디오 처리(노이즈 억제, 에코 제거, 자동 게인 제어)가 번역 오디오 스트림을 방해할 수 있습니다. 설정 → 오디오 → 고급으로 이동하여 세 가지 옵션을 모두 비활성화하세요."
+                        },
+                        {
+                            question: "다른 참가자들이 두 언어를 모두 들을 수 있나요?",
+                            answer: "아니요, 다른 참가자들은 Sokuji 가상 마이크를 통해 번역된 오디오만 들을 수 있습니다."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "문제 해결",
+                    content: "문제가 발생하면 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 저장소</a>를 방문하여 지원을 받으세요."
+                }
+            }
+        };
+
+        // Get language from query string
+        function getLanguage() {
+            const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang');
+            return translations[lang] ? lang : 'en';
+        }
+
+        // Render content based on selected language
+        function renderContent() {
+            const lang = getLanguage();
+            const t = translations[lang];
+
+            // Update page title
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.title = t.pageTitle + ' - Sokuji Extension';
+
+            // Update language label
+            document.getElementById('lang-label').textContent = t.langLabel;
+
+            // Update back link
+            document.querySelector('.back-link').textContent = t.backLink;
+
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+
+            // Build content HTML
+            let contentHTML = '';
+
+            // Overview
+            contentHTML += `
+                <h2>${t.overview.title}</h2>
+                <p>${t.overview.content}</p>
+            `;
+
+            // Steps
+            t.steps.forEach((step, index) => {
+                contentHTML += `
+                    <div class="step">
+                        <h3><span class="step-number">${index + 1}</span>${step.title}</h3>
+                        <p>${step.content}</p>
+                        <div class="screenshot-placeholder">Screenshot placeholder</div>
+                        ${step.tip ? `<div class="tip"><h4>Tip</h4><p>${step.tip}</p></div>` : ''}
+                    </div>
+                `;
+            });
+
+            // Tips
+            contentHTML += `
+                <div class="tip">
+                    <h4>${t.tips.title}</h4>
+                    <ul>
+                        ${t.tips.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+
+            // FAQ
+            contentHTML += `
+                <div class="faq">
+                    <h2>${t.faq.title}</h2>
+                    ${t.faq.items.map(item => `
+                        <div class="faq-item">
+                            <h4>${item.question}</h4>
+                            <p>${item.answer}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Troubleshooting
+            contentHTML += `
+                <h2>${t.troubleshooting.title}</h2>
+                <p>${t.troubleshooting.content}</p>
+            `;
+
+            // Insert content
+            document.getElementById('content').innerHTML = contentHTML;
+        }
+
+        // Initialize on page load
+        renderContent();
+    </script>
+</body>
+</html>

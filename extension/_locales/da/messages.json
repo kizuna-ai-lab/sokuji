@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "Hvis du ikke kan se den komplette lydenheds liste i Teams-indstillingerne:<br><strong>1)</strong> Deaktiver Sokuji-udvidelsen midlertidigt og opdater siden<br><strong>2)</strong> Tillad Teams at få adgang til din mikrofon og kamera, når du bliver bedt om det<br><strong>3)</strong> Aktiver Sokuji-udvidelsen igen og opdater siden igen<br><strong>4)</strong> Tillad Sokuji at få adgang til din mikrofon, når du bliver bedt om det. Nu skulle du kunne se både rigtige enheder og <strong>\"Sokuji Virtual Microphone\"</strong> i dine indstillinger."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "For at bruge Sokuji i Jitsi Meet skal du åbne <strong>Settings > Devices</strong> og vælge <strong>\"Sokuji Virtual Microphone\"</strong> som din mikrofon. Åbn derefter <strong>Advanced audio settings</strong> og <strong>slå Støjreduktion, Ekko-annullering og Automatisk forstærkningskontrol fra</strong> for klar oversat lyd."
   }
 }

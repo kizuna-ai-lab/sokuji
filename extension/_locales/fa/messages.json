@@ -127,5 +127,11 @@
   },
   "teamsGuidance": {
     "message": "اگر فهرست کامل دستگاه‌های صوتی را در تنظیمات Teams نمی‌بینید:<br><strong>1)</strong> افزونه Sokuji را به طور موقت غیرفعال کنید و صفحه را بارگیری مجدد کنید<br><strong>2)</strong> هنگام درخواست، به Teams اجازه دسترسی به میکروفون و دوربین خود را بدهید<br><strong>3)</strong> افزونه Sokuji را دوباره فعال کنید و صفحه را مجدداً بارگیری کنید<br><strong>4)</strong> هنگام درخواست، به Sokuji اجازه دسترسی به میکروفون خود را بدهید. اکنون باید هم دستگاه‌های واقعی و هم <strong>\"Sokuji Virtual Microphone\"</strong> را در تنظیمات خود ببینید."
+  },
+  "jitsiTitle": {
+    "message": "Sokuji for Jitsi Meet"
+  },
+  "jitsiGuidance": {
+    "message": "برای استفاده از Sokuji در Jitsi Meet، <strong>Settings > Devices</strong> را باز کنید و <strong>\"Sokuji Virtual Microphone\"</strong> را به عنوان میکروفون خود انتخاب کنید. سپس <strong>Advanced audio settings</strong> را باز کنید و برای صدای ترجمه‌شده شفاف، <strong>کاهش نویز، حذف اکو و کنترل خودکار بهره را غیرفعال کنید</strong>."
   }
 }

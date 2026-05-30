@@ -35,7 +35,8 @@ const ENABLED_SITES = [
   'app.v2.gather.town',
   'whereby.com',
   'discord.com',
-  'slack.com'
+  'slack.com',
+  'meet.jit.si'
 ];
 
 // Track which tabs have the side panel open

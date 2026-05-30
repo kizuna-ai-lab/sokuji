@@ -52,6 +52,12 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     await expect(surface.enter()).rejects.toThrow(/not on supported site/);
   });
 
+  it('enter() accepts meet.jit.si as a supported site', async () => {
+    globalThis.chrome.tabs.query = vi.fn(async () => [{ id: 11, url: 'https://meet.jit.si/SomeRoomName' }]);
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    await expect(surface.enter()).resolves.not.toThrow();
+  });
+
   it('enter() throws CONTENT_SCRIPT_UNAVAILABLE when sendMessage fails (stale tab)', async () => {
     // Repro: extension was reloaded while the meeting tab was already open.
     // The content script that ships with the new extension was not injected
