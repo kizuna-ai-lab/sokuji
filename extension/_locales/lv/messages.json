@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "ieguldīt kodu"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Lai izmantotu Sokuji pakalpojumā Jitsi Meet, atveriet <strong>Settings > Devices</strong> un izvēlieties <strong>\"Sokuji Virtual Microphone\"</strong> kā savu mikrofonu. Pēc tam atveriet <strong>Advanced audio settings</strong> un <strong>atspējojiet Noise suppression, Echo cancellation un Automatic gain control</strong>, lai iegūtu skaidru tulkoto audio."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji vēl nav pieejams vietnē $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Tulkojiet jebkurā lietotnē"
+  },
+  "desktopCtaBody": {
+    "message": "Darbvirsmas lietotne pievieno virtuālu mikrofonu, kas darbojas visā sistēmā — ar OBS, YouTube, Twitch, vietējiem darbvirsmas klientiem un jebkuru citu lietotni. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Lejupielādēt darbvirsmas lietotni"
+  },
+  "browserSitesHeading": {
+    "message": "Dodat priekšroku pārlūkprogrammai? Sokuji darbojas šajās vietnēs — noklikšķiniet, lai atvērtu:"
+  },
+  "requestSiteLink": {
+    "message": "Neredzat savu vietni? Pieprasiet to →"
+  },
+  "learnMore": {
+    "message": "Uzzināt vairāk →"
+  },
+  "detectFailHeadline": {
+    "message": "Nevarēja noteikt šo cilni"
+  },
+  "detectFailBody": {
+    "message": "Atsvaidziniet lapu un atkārtoti atveriet Sokuji."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "अपनी API कुंजी कॉन्फ़िगर करें (OpenAI या Gemini) → माइक्रोफ़ोन के रूप में \"Sokuji_Virtual_Mic\" चुनें → बोलना शुरू करें!"
   },
-  "notSupported": {
-    "message": "⚠ इस साइट पर समर्थित नहीं"
-  },
-  "currentlyOn": {
-    "message": "वर्तमान में $HOSTNAME$ पर। Sokuji इन प्लेटफॉर्म पर काम करता है:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "अधिक साइटों के लिए समर्थन चाहिए?"
-  },
-  "contactUs": {
-    "message": "हमसे संपर्क करें:"
-  },
-  "contributeCode": {
-    "message": "हमारे"
-  },
-  "openSourceProject": {
-    "message": "ओपन सोर्स प्रोजेक्ट में योगदान दें"
-  },
-  "unableToDetect": {
-    "message": "⚠ वर्तमान साइट का पता नहीं लगा सकते"
-  },
-  "refreshAndTry": {
-    "message": "कृपया पेज को रिफ्रेश करें और फिर से कोशिश करें।"
-  },
-  "needMoreSitesShort": {
-    "message": "अधिक साइटों की आवश्यकता?"
-  },
-  "contactUsShort": {
-    "message": "संपर्क करें"
-  },
-  "contributeCodeShort": {
-    "message": "कोड योगदान करें"
-  },
   "gatherTownTitle": {
     "message": "Gather Town के लिए Sokuji"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet में Sokuji का उपयोग करने के लिए, <strong>Settings > Devices</strong> खोलें और माइक्रोफ़ोन के रूप में <strong>\"Sokuji Virtual Microphone\"</strong> चुनें। फिर <strong>Advanced audio settings</strong> खोलें और स्पष्ट अनूदित ऑडियो के लिए <strong>Noise suppression, Echo cancellation और Automatic gain control को बंद करें</strong>।"
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji अभी $HOSTNAME$ पर उपलब्ध नहीं है।",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "किसी भी ऐप में अनुवाद करें"
+  },
+  "desktopCtaBody": {
+    "message": "डेस्कटॉप ऐप एक वर्चुअल माइक्रोफोन जोड़ता है जो पूरे सिस्टम में काम करता है — OBS, YouTube, Twitch, नेटिव डेस्कटॉप क्लाइंट और किसी भी अन्य ऐप के साथ। Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "डेस्कटॉप ऐप डाउनलोड करें"
+  },
+  "browserSitesHeading": {
+    "message": "ब्राउज़र पसंद है? Sokuji इन साइटों पर काम करता है — खोलने के लिए क्लिक करें:"
+  },
+  "requestSiteLink": {
+    "message": "अपनी साइट नहीं दिख रही? अनुरोध करें →"
+  },
+  "learnMore": {
+    "message": "और जानें →"
+  },
+  "detectFailHeadline": {
+    "message": "इस टैब को डिटेक्ट नहीं किया जा सका"
+  },
+  "detectFailBody": {
+    "message": "पेज रिफ्रेश करें और Sokuji दोबारा खोलें।"
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurasi kunci API OpenAI Anda → Pilih \"Sokuji_Virtual_Mic\" sebagai mikrofon → Mulai berbicara!"
   },
-  "notSupported": {
-    "message": "⚠ Tidak didukung di situs ini"
-  },
-  "currentlyOn": {
-    "message": "Saat ini di $HOSTNAME$. Sokuji bekerja di platform ini:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Butuh dukungan untuk lebih banyak situs?"
-  },
-  "contactUs": {
-    "message": "Hubungi kami di"
-  },
-  "contributeCode": {
-    "message": "berkontribusi pada"
-  },
-  "openSourceProject": {
-    "message": "proyek open source kami"
-  },
-  "unableToDetect": {
-    "message": "⚠ Tidak dapat mendeteksi situs saat ini"
-  },
-  "refreshAndTry": {
-    "message": "Silakan refresh halaman dan coba lagi."
-  },
-  "needMoreSitesShort": {
-    "message": "Butuh lebih banyak situs?"
-  },
-  "contactUsShort": {
-    "message": "Hubungi kami"
-  },
-  "contributeCodeShort": {
-    "message": "kontribusi kode"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Untuk menggunakan Sokuji di Jitsi Meet, buka <strong>Settings > Devices</strong> dan pilih <strong>\"Sokuji Virtual Microphone\"</strong> sebagai mikrofon Anda. Kemudian buka <strong>Advanced audio settings</strong> dan <strong>nonaktifkan Noise suppression, Echo cancellation, dan Automatic gain control</strong> untuk audio terjemahan yang jernih."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji belum tersedia di $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Terjemahkan di aplikasi apa pun"
+  },
+  "desktopCtaBody": {
+    "message": "Aplikasi desktop menambahkan mikrofon virtual yang bekerja di seluruh sistem — dengan OBS, YouTube, Twitch, klien desktop asli, dan aplikasi lainnya. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Unduh aplikasi desktop"
+  },
+  "browserSitesHeading": {
+    "message": "Lebih suka browser? Sokuji bekerja di situs-situs ini — klik untuk membuka:"
+  },
+  "requestSiteLink": {
+    "message": "Tidak melihat situs Anda? Minta ditambahkan →"
+  },
+  "learnMore": {
+    "message": "Pelajari lebih lanjut →"
+  },
+  "detectFailHeadline": {
+    "message": "Tidak dapat mendeteksi tab ini"
+  },
+  "detectFailBody": {
+    "message": "Muat ulang halaman dan buka kembali Sokuji."
   }
 }

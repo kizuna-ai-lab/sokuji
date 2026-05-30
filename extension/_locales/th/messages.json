@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "กำหนดค่า API key (OpenAI or Gemini) ของคุณ → เลือก \"Sokuji_Virtual_Mic\" เป็นไมโครโฟน → เริ่มพูด!"
   },
-  "notSupported": {
-    "message": "⚠ ไม่รองรับบนเว็บไซต์นี้"
-  },
-  "currentlyOn": {
-    "message": "ขณะนี้อยู่ที่ $HOSTNAME$ Sokuji ทำงานบนแพลตฟอร์มเหล่านี้:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "ต้องการการรองรับเว็บไซต์เพิ่มเติมหรือไม่?"
-  },
-  "contactUs": {
-    "message": "ติดต่อเราที่"
-  },
-  "contributeCode": {
-    "message": "มีส่วนร่วมใน"
-  },
-  "openSourceProject": {
-    "message": "โครงการโอเพ่นซอร์สของเรา"
-  },
-  "unableToDetect": {
-    "message": "⚠ ไม่สามารถตรวจจับเว็บไซต์ปัจจุบันได้"
-  },
-  "refreshAndTry": {
-    "message": "โปรดรีเฟรชหน้าและลองอีกครั้ง"
-  },
-  "needMoreSitesShort": {
-    "message": "ต้องการเว็บไซต์เพิ่มเติม?"
-  },
-  "contactUsShort": {
-    "message": "ติดต่อเรา"
-  },
-  "contributeCodeShort": {
-    "message": "มีส่วนร่วมในโค้ด"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "หากต้องการใช้ Sokuji ใน Jitsi Meet ให้เปิด <strong>Settings > Devices</strong> และเลือก <strong>\"Sokuji Virtual Microphone\"</strong> เป็นไมโครโฟนของคุณ จากนั้นเปิด <strong>Advanced audio settings</strong> และ<strong>ปิดการลดเสียงรบกวน การตัดเสียงสะท้อน และการปรับเกนอัตโนมัติ</strong>เพื่อเสียงแปลที่ชัดเจน"
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ยังไม่พร้อมใช้งานบน $HOSTNAME$",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "แปลภาษาในแอปใดก็ได้"
+  },
+  "desktopCtaBody": {
+    "message": "แอปเดสก์ท็อปเพิ่มไมโครโฟนเสมือนที่ทำงานทั่วทั้งระบบ — ใช้กับ OBS, YouTube, Twitch, ไคลเอนต์เดสก์ท็อปแบบเนทีฟ และแอปอื่นๆ ทุกชนิด Windows · macOS · Linux"
+  },
+  "desktopCtaButton": {
+    "message": "ดาวน์โหลดแอปเดสก์ท็อป"
+  },
+  "browserSitesHeading": {
+    "message": "ชอบใช้เบราว์เซอร์? Sokuji รองรับเว็บไซต์เหล่านี้ — คลิกเพื่อเปิด:"
+  },
+  "requestSiteLink": {
+    "message": "ไม่เห็นเว็บไซต์ของคุณ? ส่งคำขอ →"
+  },
+  "learnMore": {
+    "message": "เรียนรู้เพิ่มเติม →"
+  },
+  "detectFailHeadline": {
+    "message": "ไม่สามารถตรวจจับแท็บนี้ได้"
+  },
+  "detectFailBody": {
+    "message": "รีเฟรชหน้าเว็บและเปิด Sokuji ใหม่อีกครั้ง"
   }
 }

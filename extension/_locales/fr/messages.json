@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configurez votre clé API OpenAI → Sélectionnez \"Sokuji_Virtual_Mic\" comme microphone → Commencez à parler !"
   },
-  "notSupported": {
-    "message": "⚠ Non pris en charge sur ce site"
-  },
-  "currentlyOn": {
-    "message": "Actuellement sur $HOSTNAME$. Sokuji fonctionne sur ces plateformes :",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Besoin de support pour plus de sites ?"
-  },
-  "contactUs": {
-    "message": "Contactez-nous à"
-  },
-  "contributeCode": {
-    "message": "contribuez à notre"
-  },
-  "openSourceProject": {
-    "message": "projet open source"
-  },
-  "unableToDetect": {
-    "message": "⚠ Impossible de détecter le site actuel"
-  },
-  "refreshAndTry": {
-    "message": "Veuillez actualiser la page et réessayer."
-  },
-  "needMoreSitesShort": {
-    "message": "Plus de sites ?"
-  },
-  "contactUsShort": {
-    "message": "Contactez-nous"
-  },
-  "contributeCodeShort": {
-    "message": "contribuer au code"
-  },
   "gatherTownTitle": {
     "message": "Sokuji pour Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Pour utiliser Sokuji dans Jitsi Meet, ouvrez <strong>Settings > Devices</strong> et sélectionnez <strong>\"Sokuji Virtual Microphone\"</strong> comme microphone. Ouvrez ensuite les <strong>Advanced audio settings</strong> et <strong>désactivez la Suppression du bruit, l'Annulation d'écho et le Contrôle automatique du gain</strong> pour un audio traduit clair."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji n'est pas encore disponible sur $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Traduisez dans n'importe quelle application"
+  },
+  "desktopCtaBody": {
+    "message": "L'application de bureau ajoute un microphone virtuel qui fonctionne sur tout le système : avec OBS, YouTube, Twitch, les clients de bureau natifs et toute autre application. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Télécharger l'application de bureau"
+  },
+  "browserSitesHeading": {
+    "message": "Vous préférez le navigateur ? Sokuji fonctionne sur ces sites — cliquez pour ouvrir :"
+  },
+  "requestSiteLink": {
+    "message": "Votre site n'apparaît pas ? Demandez-le →"
+  },
+  "learnMore": {
+    "message": "En savoir plus →"
+  },
+  "detectFailHeadline": {
+    "message": "Impossible de détecter cet onglet"
+  },
+  "detectFailBody": {
+    "message": "Actualisez la page et rouvrez Sokuji."
   }
 }

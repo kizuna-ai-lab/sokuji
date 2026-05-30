@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "API 키 설정 (OpenAI 또는 Gemini) → 마이크로 \"Sokuji_Virtual_Mic\" 선택 → 말하기 시작!"
   },
-  "notSupported": {
-    "message": "⚠ 이 사이트에서는 지원되지 않습니다"
-  },
-  "currentlyOn": {
-    "message": "현재 $HOSTNAME$에 있습니다. Sokuji는 다음 플랫폼에서 작동합니다:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "더 많은 사이트 지원이 필요하신가요?"
-  },
-  "contactUs": {
-    "message": "다음으로 문의하세요"
-  },
-  "contributeCode": {
-    "message": "우리의"
-  },
-  "openSourceProject": {
-    "message": "오픈소스 프로젝트에 기여하기"
-  },
-  "unableToDetect": {
-    "message": "⚠ 현재 사이트를 감지할 수 없습니다"
-  },
-  "refreshAndTry": {
-    "message": "페이지를 새로고침하고 다시 시도해주세요."
-  },
-  "needMoreSitesShort": {
-    "message": "더 많은 사이트가 필요하신가요?"
-  },
-  "contactUsShort": {
-    "message": "문의하기"
-  },
-  "contributeCodeShort": {
-    "message": "코드 기여"
-  },
   "gatherTownTitle": {
     "message": "Gather Town용 Sokuji"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet에서 Sokuji를 사용하려면 <strong>Settings > Devices</strong>를 열고 마이크로 <strong>\"Sokuji Virtual Microphone\"</strong>을 선택하세요. 그런 다음 <strong>Advanced audio settings</strong>를 열고 깨끗한 번역 오디오를 위해 <strong>Noise suppression, Echo cancellation, Automatic gain control을 비활성화</strong>하세요."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji는 아직 $HOSTNAME$에서 사용할 수 없습니다.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "어떤 앱에서도 번역"
+  },
+  "desktopCtaBody": {
+    "message": "데스크톱 앱은 시스템 전체에서 작동하는 가상 마이크를 추가합니다 — OBS, YouTube, Twitch, 네이티브 데스크톱 클라이언트 및 다른 모든 앱과 함께 사용할 수 있습니다. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "데스크톱 앱 다운로드"
+  },
+  "browserSitesHeading": {
+    "message": "브라우저를 선호하시나요? Sokuji는 이 사이트들에서 작동합니다 — 클릭하여 열기:"
+  },
+  "requestSiteLink": {
+    "message": "원하는 사이트가 없나요? 요청하기 →"
+  },
+  "learnMore": {
+    "message": "자세히 알아보기 →"
+  },
+  "detectFailHeadline": {
+    "message": "이 탭을 감지할 수 없습니다"
+  },
+  "detectFailBody": {
+    "message": "페이지를 새로고침하고 Sokuji를 다시 여세요."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Настройте ваш API-ключ OpenAI → Выберите \"Sokuji_Virtual_Mic\" как микрофон → Начните говорить!"
   },
-  "notSupported": {
-    "message": "⚠ Не поддерживается на этом сайте"
-  },
-  "currentlyOn": {
-    "message": "Сейчас на $HOSTNAME$. Sokuji работает на этих платформах:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Нужна поддержка для большего количества сайтов?"
-  },
-  "contactUs": {
-    "message": "Свяжитесь с нами по адресу"
-  },
-  "contributeCode": {
-    "message": "внесите вклад в наш"
-  },
-  "openSourceProject": {
-    "message": "проект с открытым исходным кодом"
-  },
-  "unableToDetect": {
-    "message": "⚠ Не удается определить текущий сайт"
-  },
-  "refreshAndTry": {
-    "message": "Пожалуйста, обновите страницу и попробуйте снова."
-  },
-  "needMoreSitesShort": {
-    "message": "Нужно больше сайтов?"
-  },
-  "contactUsShort": {
-    "message": "Связаться с нами"
-  },
-  "contributeCodeShort": {
-    "message": "внести вклад в код"
-  },
   "gatherTownTitle": {
     "message": "Sokuji для Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Чтобы использовать Sokuji в Jitsi Meet, откройте <strong>Settings > Devices</strong> и выберите <strong>\"Sokuji Virtual Microphone\"</strong> в качестве микрофона. Затем откройте <strong>Advanced audio settings</strong> и <strong>отключите подавление шума, подавление эха и автоматическую регулировку усиления</strong> для чистого переведённого звука."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji пока недоступен на $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Переводите в любом приложении"
+  },
+  "desktopCtaBody": {
+    "message": "Настольное приложение добавляет виртуальный микрофон, работающий на уровне всей системы — с OBS, YouTube, Twitch, нативными десктопными клиентами и любыми другими приложениями. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Скачать настольное приложение"
+  },
+  "browserSitesHeading": {
+    "message": "Предпочитаете браузер? Sokuji работает на этих сайтах — нажмите для открытия:"
+  },
+  "requestSiteLink": {
+    "message": "Не видите свой сайт? Запросите его →"
+  },
+  "learnMore": {
+    "message": "Узнать больше →"
+  },
+  "detectFailHeadline": {
+    "message": "Не удалось определить эту вкладку"
+  },
+  "detectFailBody": {
+    "message": "Обновите страницу и снова откройте Sokuji."
   }
 }

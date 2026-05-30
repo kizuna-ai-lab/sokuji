@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "कोड योगदान"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet मध्ये Sokuji वापरण्यासाठी, <strong>Settings > Devices</strong> उघडा आणि तुमचा मायक्रोफोन म्हणून <strong>\"Sokuji Virtual Microphone\"</strong> निवडा. त्यानंतर <strong>Advanced audio settings</strong> उघडा आणि स्पष्ट भाषांतरित ऑडिओसाठी <strong>Noise suppression, Echo cancellation आणि Automatic gain control बंद करा</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji अजून $HOSTNAME$ वर उपलब्ध नाही.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "कोणत्याही ॲपमध्ये भाषांतर करा"
+  },
+  "desktopCtaBody": {
+    "message": "डेस्कटॉप ॲप एक व्हर्च्युअल मायक्रोफोन जोडतो जो संपूर्ण सिस्टमवर काम करतो — OBS, YouTube, Twitch, नेटिव्ह डेस्कटॉप क्लायंट्स आणि इतर कोणत्याही ॲपसह. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "डेस्कटॉप ॲप डाउनलोड करा"
+  },
+  "browserSitesHeading": {
+    "message": "ब्राउझर पसंत आहे? Sokuji या साइट्सवर काम करते — उघडण्यासाठी क्लिक करा:"
+  },
+  "requestSiteLink": {
+    "message": "तुमची साइट दिसत नाही? विनंती करा →"
+  },
+  "learnMore": {
+    "message": "अधिक जाणून घ्या →"
+  },
+  "detectFailHeadline": {
+    "message": "हा टॅब शोधता आला नाही"
+  },
+  "detectFailBody": {
+    "message": "पेज रिफ्रेश करा आणि Sokuji पुन्हा उघडा."
   }
 }

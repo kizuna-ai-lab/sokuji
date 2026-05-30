@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "కోడ్ సహకారం"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet లో Sokuji ని ఉపయోగించడానికి, <strong>Settings > Devices</strong> ని తెరిచి మీ మైక్రోఫోన్‌గా <strong>\"Sokuji Virtual Microphone\"</strong> ని ఎంచుకోండి. తర్వాత <strong>Advanced audio settings</strong> ని తెరిచి, స్పష్టమైన అనువదించబడిన ఆడియో కోసం <strong>Noise suppression, Echo cancellation, మరియు Automatic gain control ను నిలిపివేయండి</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ఇంకా $HOSTNAME$లో అందుబాటులో లేదు.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "ఏ యాప్‌లోనైనా అనువదించండి"
+  },
+  "desktopCtaBody": {
+    "message": "డెస్క్‌టాప్ యాప్ సిస్టమ్-వ్యాప్తంగా పని చేసే వర్చువల్ మైక్రోఫోన్‌ను జోడిస్తుంది — OBS, YouTube, Twitch, నేటివ్ డెస్క్‌టాప్ క్లయింట్లు మరియు ఏ ఇతర యాప్‌తో అయినా. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "డెస్క్‌టాప్ యాప్ డౌన్‌లోడ్ చేయండి"
+  },
+  "browserSitesHeading": {
+    "message": "బ్రౌజర్ ఇష్టమా? Sokuji ఈ సైట్‌లలో పని చేస్తుంది — తెరవడానికి క్లిక్ చేయండి:"
+  },
+  "requestSiteLink": {
+    "message": "మీ సైట్ కనిపించడం లేదా? అభ్యర్థించండి →"
+  },
+  "learnMore": {
+    "message": "మరింత తెలుసుకోండి →"
+  },
+  "detectFailHeadline": {
+    "message": "ఈ ట్యాబ్‌ను గుర్తించలేకపోయాం"
+  },
+  "detectFailBody": {
+    "message": "పేజీని రిఫ్రెష్ చేసి Sokuji మళ్ళీ తెరవండి."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "ಕೋಡ್ ಕೊಡುಗೆ"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet ನಲ್ಲಿ Sokuji ಬಳಸಲು, <strong>Settings > Devices</strong> ತೆರೆಯಿರಿ ಮತ್ತು ನಿಮ್ಮ ಮೈಕ್ರೊಫೋನ್ ಆಗಿ <strong>\"Sokuji Virtual Microphone\"</strong> ಆಯ್ಕೆಮಾಡಿ. ನಂತರ <strong>Advanced audio settings</strong> ತೆರೆಯಿರಿ ಮತ್ತು ಸ್ಪಷ್ಟ ಅನುವಾದಿತ ಆಡಿಯೊಗಾಗಿ <strong>Noise suppression, Echo cancellation ಮತ್ತು Automatic gain control ಅನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ಇನ್ನೂ $HOSTNAME$ ನಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "ಯಾವುದೇ ಅಪ್ಲಿಕೇಶನ್‌ನಲ್ಲಿ ಅನುವಾದಿಸಿ"
+  },
+  "desktopCtaBody": {
+    "message": "ಡೆಸ್ಕ್‌ಟಾಪ್ ಅಪ್ಲಿಕೇಶನ್ ಸಿಸ್ಟಂ-ವ್ಯಾಪಿ ಕಾರ್ಯನಿರ್ವಹಿಸುವ ವರ್ಚುವಲ್ ಮೈಕ್ರೋಫೋನ್ ಅನ್ನು ಸೇರಿಸುತ್ತದೆ — OBS, YouTube, Twitch, ನೇಟಿವ್ ಡೆಸ್ಕ್‌ಟಾಪ್ ಕ್ಲೈಂಟ್‌ಗಳು ಮತ್ತು ಇನ್ನಾವುದೇ ಅಪ್ಲಿಕೇಶನ್‌ನೊಂದಿಗೆ. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "ಡೆಸ್ಕ್‌ಟಾಪ್ ಅಪ್ಲಿಕೇಶನ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ"
+  },
+  "browserSitesHeading": {
+    "message": "ಬ್ರೌಸರ್ ಬಯಸುತ್ತೀರಾ? Sokuji ಈ ಸೈಟ್‌ಗಳಲ್ಲಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ — ತೆರೆಯಲು ಕ್ಲಿಕ್ ಮಾಡಿ:"
+  },
+  "requestSiteLink": {
+    "message": "ನಿಮ್ಮ ಸೈಟ್ ಕಾಣಿಸುತ್ತಿಲ್ಲವೇ? ವಿನಂತಿಸಿ →"
+  },
+  "learnMore": {
+    "message": "ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ →"
+  },
+  "detectFailHeadline": {
+    "message": "ಈ ಟ್ಯಾಬ್ ಅನ್ನು ಪತ್ತೆ ಮಾಡಲಾಗಲಿಲ್ಲ"
+  },
+  "detectFailBody": {
+    "message": "ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತು Sokuji ಅನ್ನು ಮತ್ತೆ ತೆರೆಯಿರಿ."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
   },
-  "notSupported": {
-    "message": "⚠ Nem támogatott ezen az oldalon"
-  },
-  "currentlyOn": {
-    "message": "Jelenleg a(z) $HOSTNAME$ oldalon. A Sokuji ezeken a platformokon működik:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Több oldal támogatására van szüksége?"
-  },
-  "contactUs": {
-    "message": "Lépjen kapcsolatba velünk:"
-  },
-  "contributeCode": {
-    "message": "járuljon hozzá"
-  },
-  "openSourceProject": {
-    "message": "nyílt forráskódú projektünkhöz"
-  },
-  "unableToDetect": {
-    "message": "⚠ Nem sikerült észlelni a jelenlegi oldalt"
-  },
-  "refreshAndTry": {
-    "message": "Kérjük, frissítse az oldalt és próbálja újra."
-  },
-  "needMoreSitesShort": {
-    "message": "Több oldalra van szükség?"
-  },
-  "contactUsShort": {
-    "message": "Kapcsolat"
-  },
-  "contributeCodeShort": {
-    "message": "kód hozzájárulás"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "A Sokuji Jitsi Meetben való használatához nyissa meg a <strong>Settings > Devices</strong> menüt, és válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót mikrofonként. Ezután nyissa meg az <strong>Advanced audio settings</strong> beállításokat, és <strong>kapcsolja ki a zajcsökkentést, a visszhangszűrést és az automatikus erősítésszabályozást</strong> a tiszta lefordított hang érdekében."
+  },
+  "unsupportedHeadline": {
+    "message": "A Sokuji még nem érhető el a(z) $HOSTNAME$ oldalon.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Fordítson bármely alkalmazásban"
+  },
+  "desktopCtaBody": {
+    "message": "Az asztali alkalmazás rendszerszintű virtuális mikrofont ad hozzá — OBS-sel, YouTube-bal, Twitch-csel, natív asztali kliensekkel és bármely más alkalmazással. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Töltse le az asztali alkalmazást"
+  },
+  "browserSitesHeading": {
+    "message": "A böngészőt részesíti előnyben? A Sokuji működik ezeken az oldalakon — kattintson a megnyitáshoz:"
+  },
+  "requestSiteLink": {
+    "message": "Nem látja az oldalát? Kérje hozzáadását →"
+  },
+  "learnMore": {
+    "message": "Tudjon meg többet →"
+  },
+  "detectFailHeadline": {
+    "message": "Ez a lap nem volt észlelhető"
+  },
+  "detectFailBody": {
+    "message": "Frissítse az oldalt, majd nyissa meg újra a Sokuji-t."
   }
 }

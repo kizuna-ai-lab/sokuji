@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "API-Schlüssel konfigurieren (OpenAI oder Gemini) → \"Sokuji_Virtual_Mic\" als Mikrofon auswählen → Sprechen beginnen!"
   },
-  "notSupported": {
-    "message": "⚠ Auf dieser Website nicht unterstützt"
-  },
-  "currentlyOn": {
-    "message": "Derzeit auf $HOSTNAME$. Sokuji funktioniert auf diesen Plattformen:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Benötigen Sie Unterstützung für weitere Websites?"
-  },
-  "contactUs": {
-    "message": "Kontaktieren Sie uns unter"
-  },
-  "contributeCode": {
-    "message": "tragen Sie zu unserem"
-  },
-  "openSourceProject": {
-    "message": "Open-Source-Projekt bei"
-  },
-  "unableToDetect": {
-    "message": "⚠ Aktuelle Website kann nicht erkannt werden"
-  },
-  "refreshAndTry": {
-    "message": "Bitte aktualisieren Sie die Seite und versuchen Sie es erneut."
-  },
-  "needMoreSitesShort": {
-    "message": "Weitere Websites benötigt?"
-  },
-  "contactUsShort": {
-    "message": "Kontakt"
-  },
-  "contributeCodeShort": {
-    "message": "Code beitragen"
-  },
   "gatherTownTitle": {
     "message": "Sokuji für Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Um Sokuji in Jitsi Meet zu verwenden, öffnen Sie <strong>Settings > Devices</strong> und wählen Sie <strong>\"Sokuji Virtual Microphone\"</strong> als Mikrofon aus. Öffnen Sie dann <strong>Advanced audio settings</strong> und <strong>deaktivieren Sie Rauschunterdrückung, Echounterdrückung und automatische Verstärkungsregelung</strong> für klaren übersetzten Ton."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ist auf $HOSTNAME$ noch nicht verfügbar.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "In jeder App übersetzen"
+  },
+  "desktopCtaBody": {
+    "message": "Die Desktop-App fügt ein virtuelles Mikrofon hinzu, das systemweit funktioniert — mit OBS, YouTube, Twitch, nativen Desktop-Clients und jeder anderen App. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Desktop-App herunterladen"
+  },
+  "browserSitesHeading": {
+    "message": "Lieber den Browser? Sokuji funktioniert auf diesen Seiten — zum Öffnen klicken:"
+  },
+  "requestSiteLink": {
+    "message": "Ihre Website nicht dabei? Jetzt anfordern →"
+  },
+  "learnMore": {
+    "message": "Mehr erfahren →"
+  },
+  "detectFailHeadline": {
+    "message": "Dieser Tab konnte nicht erkannt werden"
+  },
+  "detectFailBody": {
+    "message": "Seite neu laden und Sokuji erneut öffnen."
   }
 }

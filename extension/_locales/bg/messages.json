@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "допринесете код"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "За да използвате Sokuji в Jitsi Meet, отворете <strong>Settings > Devices</strong> и изберете <strong>\"Sokuji Virtual Microphone\"</strong> като свой микрофон. След това отворете <strong>Advanced audio settings</strong> и <strong>изключете Шумоподтискане, Премахване на ехо и Автоматично регулиране на усилването</strong> за ясен преведен звук."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji все още не е наличен на $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Превеждайте в произволно приложение"
+  },
+  "desktopCtaBody": {
+    "message": "Десктоп приложението добавя виртуален микрофон, работещ на ниво система — с OBS, YouTube, Twitch, местни настолни клиенти и всяко друго приложение. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Изтеглете десктоп приложението"
+  },
+  "browserSitesHeading": {
+    "message": "Предпочитате браузъра? Sokuji работи на тези сайтове — кликнете, за да отворите:"
+  },
+  "requestSiteLink": {
+    "message": "Не виждате вашия сайт? Заявете го →"
+  },
+  "learnMore": {
+    "message": "Научете повече →"
+  },
+  "detectFailHeadline": {
+    "message": "Не можа да се открие този раздел"
+  },
+  "detectFailBody": {
+    "message": "Презаредете страницата и отворете Sokuji отново."
   }
 }

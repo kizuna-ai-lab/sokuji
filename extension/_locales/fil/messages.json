@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
   },
-  "notSupported": {
-    "message": "⚠ Hindi suportado sa website na ito"
-  },
-  "currentlyOn": {
-    "message": "Kasalukuyan sa $HOSTNAME$. Gumagana ang Sokuji sa mga platform na ito:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Kailangan ng suporta para sa mas maraming website?"
-  },
-  "contactUs": {
-    "message": "Makipag-ugnayan sa amin sa"
-  },
-  "contributeCode": {
-    "message": "mag-ambag sa"
-  },
-  "openSourceProject": {
-    "message": "aming open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Hindi ma-detect ang kasalukuyang website"
-  },
-  "refreshAndTry": {
-    "message": "Pakiulit ang pag-refresh ng page at subukan ulit."
-  },
-  "needMoreSitesShort": {
-    "message": "Kailangan ng mas maraming site?"
-  },
-  "contactUsShort": {
-    "message": "Makipag-ugnayan"
-  },
-  "contributeCodeShort": {
-    "message": "mag-ambag ng code"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Upang gamitin ang Sokuji sa Jitsi Meet, buksan ang <strong>Settings > Devices</strong> at piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> bilang inyong microphone. Pagkatapos ay buksan ang <strong>Advanced audio settings</strong> at <strong>i-disable ang Noise suppression, Echo cancellation, at Automatic gain control</strong> para sa malinaw na isinaling audio."
+  },
+  "unsupportedHeadline": {
+    "message": "Hindi pa available ang Sokuji sa $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "I-translate sa anumang app"
+  },
+  "desktopCtaBody": {
+    "message": "Ang desktop app ay nagdadagdag ng virtual na mikropono na gumagana sa buong system — kasama ang OBS, YouTube, Twitch, mga native na desktop client, at anumang iba pang app. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "I-download ang desktop app"
+  },
+  "browserSitesHeading": {
+    "message": "Mas gusto ang browser? Gumagana ang Sokuji sa mga site na ito — i-click para buksan:"
+  },
+  "requestSiteLink": {
+    "message": "Hindi mo nakita ang iyong site? Hilingin ito →"
+  },
+  "learnMore": {
+    "message": "Matuto pa →"
+  },
+  "detectFailHeadline": {
+    "message": "Hindi ma-detect ang tab na ito"
+  },
+  "detectFailBody": {
+    "message": "I-refresh ang pahina at buksan muli ang Sokuji."
   }
 }

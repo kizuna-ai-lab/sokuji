@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "panustada koodi"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Sokuji kasutamiseks Jitsi Meetis avage <strong>Settings > Devices</strong> ja valige oma mikrofoniks <strong>\"Sokuji Virtual Microphone\"</strong>. Seejärel avage <strong>Advanced audio settings</strong> ja <strong>lülitage välja müra vähendamine, kaja summutamine ja automaatne võimenduse reguleerimine</strong> selge tõlgitud heli jaoks."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji pole $HOSTNAME$ veel saadaval.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Tõlgi mis tahes rakenduses"
+  },
+  "desktopCtaBody": {
+    "message": "Töölauarakendus lisab virtuaalse mikrofoni, mis töötab kogu süsteemis — OBS-i, YouTube'i, Twitchi, natiivsete töölauaklientide ja mis tahes muu rakendusega. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Laadi töölauarakendus alla"
+  },
+  "browserSitesHeading": {
+    "message": "Eelistate brauserit? Sokuji töötab nendel saitidel — klõpsake avamiseks:"
+  },
+  "requestSiteLink": {
+    "message": "Ei näe oma saiti? Taotlege seda →"
+  },
+  "learnMore": {
+    "message": "Lisateave →"
+  },
+  "detectFailHeadline": {
+    "message": "Seda vahekaarti ei õnnestunud tuvastada"
+  },
+  "detectFailBody": {
+    "message": "Värskendage lehte ja avage Sokuji uuesti."
   }
 }

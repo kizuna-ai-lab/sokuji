@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "changia kodi"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Ili kutumia Sokuji katika Jitsi Meet, fungua <strong>Settings > Devices</strong> na uchague <strong>\"Sokuji Virtual Microphone\"</strong> kama maikrofoni yako. Kisha fungua <strong>Advanced audio settings</strong> na <strong>uzime Noise suppression, Echo cancellation, na Automatic gain control</strong> kwa sauti ya tafsiri iliyo wazi."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji bado haipatikani kwenye $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Tafsiri katika programu yoyote"
+  },
+  "desktopCtaBody": {
+    "message": "Programu ya desktop inaongeza maikrofoni ya kawaida inayofanya kazi katika mfumo mzima — na OBS, YouTube, Twitch, wateja wa desktop wa kawaida, na programu nyingine yoyote. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Pakua programu ya desktop"
+  },
+  "browserSitesHeading": {
+    "message": "Unapenda kivinjari? Sokuji inafanya kazi kwenye tovuti hizi — bofya kufungua:"
+  },
+  "requestSiteLink": {
+    "message": "Huoni tovuti yako? Iomba →"
+  },
+  "learnMore": {
+    "message": "Jifunza zaidi →"
+  },
+  "detectFailHeadline": {
+    "message": "Haikuwezekana kutambua kichupo hiki"
+  },
+  "detectFailBody": {
+    "message": "Onyesha upya ukurasa na ufungue Sokuji tena."
   }
 }

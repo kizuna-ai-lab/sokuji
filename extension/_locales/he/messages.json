@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "הגדר את מפתח ה-API של OpenAI שלך ← בחר \"Sokuji_Virtual_Mic\" כמיקרופון ← התחל לדבר!"
   },
-  "notSupported": {
-    "message": "⚠ לא נתמך באתר זה"
-  },
-  "currentlyOn": {
-    "message": "כרגע ב-$HOSTNAME$. Sokuji עובד על הפלטפורמות הללו:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "צריך תמיכה לאתרים נוספים?"
-  },
-  "contactUs": {
-    "message": "צור איתנו קשר ב"
-  },
-  "contributeCode": {
-    "message": "תרום ל"
-  },
-  "openSourceProject": {
-    "message": "פרויקט הקוד הפתוח שלנו"
-  },
-  "unableToDetect": {
-    "message": "⚠ לא ניתן לזהות את האתר הנוכחי"
-  },
-  "refreshAndTry": {
-    "message": "אנא רענן את הדף ונסה שוב."
-  },
-  "needMoreSitesShort": {
-    "message": "צריך אתרים נוספים?"
-  },
-  "contactUsShort": {
-    "message": "צור קשר"
-  },
-  "contributeCodeShort": {
-    "message": "תרום קוד"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "כדי להשתמש ב-Sokuji ב-Jitsi Meet, פתח את <strong>Settings > Devices</strong> ובחר <strong>\"Sokuji Virtual Microphone\"</strong> כמיקרופון שלך. לאחר מכן פתח את <strong>Advanced audio settings</strong> ו<strong>השבת את הפחתת הרעש, ביטול ההד ובקרת ההגבר האוטומטית</strong> לקבלת אודיו מתורגם ברור."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji אינו זמין עדיין ב-$HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "תרגם בכל אפליקציה"
+  },
+  "desktopCtaBody": {
+    "message": "אפליקציית שולחן העבודה מוסיפה מיקרופון וירטואלי שעובד ברחבי המערכת — עם OBS, YouTube, Twitch, לקוחות שולחן עבודה מקוריים וכל אפליקציה אחרת. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "הורד את אפליקציית שולחן העבודה"
+  },
+  "browserSitesHeading": {
+    "message": "מעדיפ/ה את הדפדפן? Sokuji עובד באתרים האלו — לחץ/י לפתיחה:"
+  },
+  "requestSiteLink": {
+    "message": "לא רואה את האתר שלך? בקש/י את הוספתו →"
+  },
+  "learnMore": {
+    "message": "למד/י עוד →"
+  },
+  "detectFailHeadline": {
+    "message": "לא ניתן לזהות כרטיסייה זו"
+  },
+  "detectFailBody": {
+    "message": "רענן/י את הדף ופתח/י מחדש את Sokuji."
   }
 }

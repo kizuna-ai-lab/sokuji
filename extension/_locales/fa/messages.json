@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "کلید API OpenAI خود را پیکربندی کنید ← \"Sokuji_Virtual_Mic\" را به عنوان میکروفون انتخاب کنید ← شروع به صحبت کنید!"
   },
-  "notSupported": {
-    "message": "⚠ در این وب‌سایت پشتیبانی نمی‌شود"
-  },
-  "currentlyOn": {
-    "message": "در حال حاضر در $HOSTNAME$. Sokuji روی این پلتفرم‌ها کار می‌کند:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "به پشتیبانی از وب‌سایت‌های بیشتر نیاز دارید؟"
-  },
-  "contactUs": {
-    "message": "با ما تماس بگیرید در"
-  },
-  "contributeCode": {
-    "message": "مشارکت در"
-  },
-  "openSourceProject": {
-    "message": "پروژه متن‌باز ما"
-  },
-  "unableToDetect": {
-    "message": "⚠ قادر به تشخیص وب‌سایت فعلی نیست"
-  },
-  "refreshAndTry": {
-    "message": "لطفاً صفحه را تازه‌سازی کرده و دوباره تلاش کنید."
-  },
-  "needMoreSitesShort": {
-    "message": "به وب‌سایت‌های بیشتر نیاز دارید؟"
-  },
-  "contactUsShort": {
-    "message": "تماس با ما"
-  },
-  "contributeCodeShort": {
-    "message": "مشارکت کد"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "برای استفاده از Sokuji در Jitsi Meet، <strong>Settings > Devices</strong> را باز کنید و <strong>\"Sokuji Virtual Microphone\"</strong> را به عنوان میکروفون خود انتخاب کنید. سپس <strong>Advanced audio settings</strong> را باز کنید و برای صدای ترجمه‌شده شفاف، <strong>کاهش نویز، حذف اکو و کنترل خودکار بهره را غیرفعال کنید</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji هنوز در $HOSTNAME$ در دسترس نیست.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "در هر برنامه‌ای ترجمه کنید"
+  },
+  "desktopCtaBody": {
+    "message": "برنامه دسکتاپ یک میکروفون مجازی اضافه می‌کند که در سطح کل سیستم کار می‌کند — با OBS، YouTube، Twitch، کلاینت‌های دسکتاپ بومی و هر برنامه دیگری. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "دانلود برنامه دسکتاپ"
+  },
+  "browserSitesHeading": {
+    "message": "مرورگر را ترجیح می‌دهید؟ Sokuji در این سایت‌ها کار می‌کند — برای باز کردن کلیک کنید:"
+  },
+  "requestSiteLink": {
+    "message": "سایت خود را نمی‌بینید؟ درخواست دهید →"
+  },
+  "learnMore": {
+    "message": "بیشتر بدانید →"
+  },
+  "detectFailHeadline": {
+    "message": "این تب شناسایی نشد"
+  },
+  "detectFailBody": {
+    "message": "صفحه را بازنشانی کنید و Sokuji را دوباره باز کنید."
   }
 }

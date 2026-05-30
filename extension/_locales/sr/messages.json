@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "допринесите код"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Da biste koristili Sokuji u Jitsi Meet-u, otvorite <strong>Settings > Devices</strong> i izaberite <strong>\"Sokuji Virtual Microphone\"</strong> kao svoj mikrofon. Zatim otvorite <strong>Advanced audio settings</strong> i <strong>isključite potiskivanje šuma, poništavanje eha i automatsku kontrolu pojačanja</strong> za čist prevedeni zvuk."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji još nije dostupan na $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Преведите у bilo kojoj aplikaciji"
+  },
+  "desktopCtaBody": {
+    "message": "Aplikacija za radnu površinu dodaje virtuelni mikrofon koji radi na nivou celog sistema — sa OBS, YouTube, Twitch, nativnim desktop klijentima i bilo kojom drugom aplikacijom. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Preuzmite aplikaciju za radnu površinu"
+  },
+  "browserSitesHeading": {
+    "message": "Više volite pregledač? Sokuji radi na ovim sajtovima — kliknite za otvaranje:"
+  },
+  "requestSiteLink": {
+    "message": "Ne vidite vaš sajt? Zatražite ga →"
+  },
+  "learnMore": {
+    "message": "Saznajte više →"
+  },
+  "detectFailHeadline": {
+    "message": "Nije moguće otkriti ovu karticu"
+  },
+  "detectFailBody": {
+    "message": "Osvežite stranicu i ponovo otvorite Sokuji."
   }
 }

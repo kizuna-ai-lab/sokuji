@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurer din API-nøkkel (OpenAI eller Gemini) → Velg \"Sokuji_Virtual_Mic\" som mikrofon → Begynn å snakke!"
   },
-  "notSupported": {
-    "message": "⚠ Ikke støttet på dette nettstedet"
-  },
-  "currentlyOn": {
-    "message": "For øyeblikket på $HOSTNAME$. Sokuji fungerer på disse plattformene:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Trenger du støtte for flere nettsteder?"
-  },
-  "contactUs": {
-    "message": "Kontakt oss på"
-  },
-  "contributeCode": {
-    "message": "bidra til vårt"
-  },
-  "openSourceProject": {
-    "message": "åpen kildekode-prosjekt"
-  },
-  "unableToDetect": {
-    "message": "⚠ Kan ikke oppdage gjeldende nettsted"
-  },
-  "refreshAndTry": {
-    "message": "Vennligst oppdater siden og prøv igjen."
-  },
-  "needMoreSitesShort": {
-    "message": "Trenger flere nettsteder?"
-  },
-  "contactUsShort": {
-    "message": "Kontakt oss"
-  },
-  "contributeCodeShort": {
-    "message": "bidra med kode"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "For å bruke Sokuji i Jitsi Meet, åpne <strong>Settings > Devices</strong> og velg <strong>\"Sokuji Virtual Microphone\"</strong> som mikrofon. Åpne deretter <strong>Advanced audio settings</strong> og <strong>slå av Støyreduksjon, Ekkokansellering og Automatisk forsterkningskontroll</strong> for tydelig oversatt lyd."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji er ikke tilgjengelig på $HOSTNAME$ ennå.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Oversett i en hvilken som helst app"
+  },
+  "desktopCtaBody": {
+    "message": "Skrivebordsappen legger til en virtuell mikrofon som fungerer systemomfattende — med OBS, YouTube, Twitch, native skrivebordsklienter og en hvilken som helst annen app. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Last ned skrivebordsappen"
+  },
+  "browserSitesHeading": {
+    "message": "Foretrekker du nettleseren? Sokuji fungerer på disse sidene — klikk for å åpne:"
+  },
+  "requestSiteLink": {
+    "message": "Ser du ikke nettstedet ditt? Be om det →"
+  },
+  "learnMore": {
+    "message": "Lær mer →"
+  },
+  "detectFailHeadline": {
+    "message": "Kunne ikke oppdage denne fanen"
+  },
+  "detectFailBody": {
+    "message": "Oppdater siden og åpne Sokuji på nytt."
   }
 }

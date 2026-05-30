@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "കോഡ് സംഭാവന"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Sokuji Jitsi Meet-ൽ ഉപയോഗിക്കാൻ, <strong>Settings > Devices</strong> തുറന്ന് നിങ്ങളുടെ മൈക്രോഫോണായി <strong>\"Sokuji Virtual Microphone\"</strong> തിരഞ്ഞെടുക്കുക. തുടർന്ന് <strong>Advanced audio settings</strong> തുറന്ന്, വ്യക്തമായ വിവർത്തന ഓഡിയോയ്ക്കായി <strong>Noise suppression, Echo cancellation, Automatic gain control എന്നിവ ഓഫ് ചെയ്യുക</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ഇതുവരെ $HOSTNAME$-ൽ ലഭ്യമല്ല.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "ഏത് ആപ്പിലും വിവർത്തനം ചെയ്യൂ"
+  },
+  "desktopCtaBody": {
+    "message": "ഡെസ്‌ക്‌ടോപ്പ് ആപ്പ് സിസ്‌റ്റം-വ്യാപകമായി പ്രവർത്തിക്കുന്ന ഒരു വെർച്വൽ മൈക്രോഫോൺ ചേർക്കുന്നു — OBS, YouTube, Twitch, നേറ്റീവ് ഡെസ്‌ക്‌ടോപ്പ് ക്ലയന്റുകൾ, മറ്റ് ഏത് ആപ്പുമായും. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "ഡെസ്‌ക്‌ടോപ്പ് ആപ്പ് ഡൗൺലോഡ് ചെയ്യൂ"
+  },
+  "browserSitesHeading": {
+    "message": "ബ്രൗസർ ഇഷ്ടമാണോ? Sokuji ഈ സൈറ്റുകളിൽ പ്രവർത്തിക്കുന്നു — തുറക്കാൻ ക്ലിക്ക് ചെയ്യൂ:"
+  },
+  "requestSiteLink": {
+    "message": "നിങ്ങളുടെ സൈറ്റ് കാണുന്നില്ലേ? അഭ്യർത്ഥിക്കൂ →"
+  },
+  "learnMore": {
+    "message": "കൂടുതൽ അറിയൂ →"
+  },
+  "detectFailHeadline": {
+    "message": "ഈ ടാബ് കണ്ടെത്താനായില്ല"
+  },
+  "detectFailBody": {
+    "message": "പേജ് റിഫ്രഷ് ചെയ്ത് Sokuji വീണ്ടും തുറക്കൂ."
   }
 }

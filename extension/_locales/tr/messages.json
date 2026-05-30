@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "API anahtarınızı yapılandırın (OpenAI veya Gemini) → Mikrofon olarak \"Sokuji_Virtual_Mic\"i seçin → Konuşmaya başlayın!"
   },
-  "notSupported": {
-    "message": "⚠ Bu sitede desteklenmiyor"
-  },
-  "currentlyOn": {
-    "message": "Şu anda $HOSTNAME$ üzerinde. Sokuji bu platformlarda çalışır:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Daha fazla site desteğine ihtiyacınız var mı?"
-  },
-  "contactUs": {
-    "message": "Bizimle iletişime geçin:"
-  },
-  "contributeCode": {
-    "message": "açık kaynak"
-  },
-  "openSourceProject": {
-    "message": "projemize katkıda bulunun"
-  },
-  "unableToDetect": {
-    "message": "⚠ Mevcut site tespit edilemiyor"
-  },
-  "refreshAndTry": {
-    "message": "Lütfen sayfayı yenileyin ve tekrar deneyin."
-  },
-  "needMoreSitesShort": {
-    "message": "Daha fazla site gerekli mi?"
-  },
-  "contactUsShort": {
-    "message": "İletişim"
-  },
-  "contributeCodeShort": {
-    "message": "kod katkısı"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet'te Sokuji kullanmak için <strong>Settings > Devices</strong> bölümünü açın ve mikrofonunuz olarak <strong>\"Sokuji Virtual Microphone\"</strong> seçin. Ardından <strong>Advanced audio settings</strong> bölümünü açın ve net çevrilmiş ses için <strong>Gürültü Bastırma, Yankı Giderme ve Otomatik Kazanç Kontrolü'nü devre dışı bırakın</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji henüz $HOSTNAME$ üzerinde mevcut değil.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Her uygulamada çeviri yapın"
+  },
+  "desktopCtaBody": {
+    "message": "Masaüstü uygulama, sistem genelinde çalışan bir sanal mikrofon ekler — OBS, YouTube, Twitch, yerel masaüstü istemcileri ve diğer tüm uygulamalarla birlikte. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Masaüstü uygulamasını indir"
+  },
+  "browserSitesHeading": {
+    "message": "Tarayıcıyı mı tercih ediyorsunuz? Sokuji bu sitelerde çalışır — açmak için tıklayın:"
+  },
+  "requestSiteLink": {
+    "message": "Sitenizi görmüyor musunuz? Talep edin →"
+  },
+  "learnMore": {
+    "message": "Daha fazla bilgi →"
+  },
+  "detectFailHeadline": {
+    "message": "Bu sekme tespit edilemedi"
+  },
+  "detectFailBody": {
+    "message": "Sayfayı yenileyin ve Sokuji'yi yeniden açın."
   }
 }

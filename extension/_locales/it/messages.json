@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configura la tua chiave API OpenAI → Seleziona \"Sokuji_Virtual_Mic\" come microfono → Inizia a parlare!"
   },
-  "notSupported": {
-    "message": "⚠ Non supportato su questo sito"
-  },
-  "currentlyOn": {
-    "message": "Attualmente su $HOSTNAME$. Sokuji funziona su queste piattaforme:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Hai bisogno di supporto per più siti?"
-  },
-  "contactUs": {
-    "message": "Contattaci a"
-  },
-  "contributeCode": {
-    "message": "contribuisci al nostro"
-  },
-  "openSourceProject": {
-    "message": "progetto open source"
-  },
-  "unableToDetect": {
-    "message": "⚠ Impossibile rilevare il sito attuale"
-  },
-  "refreshAndTry": {
-    "message": "Per favore aggiorna la pagina e riprova."
-  },
-  "needMoreSitesShort": {
-    "message": "Servono più siti?"
-  },
-  "contactUsShort": {
-    "message": "Contattaci"
-  },
-  "contributeCodeShort": {
-    "message": "contribuisci al codice"
-  },
   "gatherTownTitle": {
     "message": "Sokuji per Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Per utilizzare Sokuji in Jitsi Meet, apri <strong>Settings > Devices</strong> e seleziona <strong>\"Sokuji Virtual Microphone\"</strong> come microfono. Quindi apri <strong>Advanced audio settings</strong> e <strong>disabilita Noise suppression, Echo cancellation e Automatic gain control</strong> per un audio tradotto nitido."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji non è ancora disponibile su $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Traduci in qualsiasi app"
+  },
+  "desktopCtaBody": {
+    "message": "L'app desktop aggiunge un microfono virtuale che funziona a livello di sistema — con OBS, YouTube, Twitch, client desktop nativi e qualsiasi altra app. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Scarica l'app desktop"
+  },
+  "browserSitesHeading": {
+    "message": "Preferisci il browser? Sokuji funziona su questi siti — clicca per aprire:"
+  },
+  "requestSiteLink": {
+    "message": "Non vedi il tuo sito? Richiedilo →"
+  },
+  "learnMore": {
+    "message": "Scopri di più →"
+  },
+  "detectFailHeadline": {
+    "message": "Impossibile rilevare questa scheda"
+  },
+  "detectFailBody": {
+    "message": "Aggiorna la pagina e riapri Sokuji."
   }
 }

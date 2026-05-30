@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurera din API-nyckel (OpenAI eller Gemini) → Välj \"Sokuji_Virtual_Mic\" som mikrofon → Börja tala!"
   },
-  "notSupported": {
-    "message": "⚠ Stöds inte på denna webbplats"
-  },
-  "currentlyOn": {
-    "message": "För närvarande på $HOSTNAME$. Sokuji fungerar på dessa plattformar:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Behöver du stöd för fler webbplatser?"
-  },
-  "contactUs": {
-    "message": "Kontakta oss på"
-  },
-  "contributeCode": {
-    "message": "bidra till vårt"
-  },
-  "openSourceProject": {
-    "message": "öppen källkodsprojekt"
-  },
-  "unableToDetect": {
-    "message": "⚠ Kan inte upptäcka nuvarande webbplats"
-  },
-  "refreshAndTry": {
-    "message": "Vänligen uppdatera sidan och försök igen."
-  },
-  "needMoreSitesShort": {
-    "message": "Behöver fler webbplatser?"
-  },
-  "contactUsShort": {
-    "message": "Kontakta oss"
-  },
-  "contributeCodeShort": {
-    "message": "bidra med kod"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "För att använda Sokuji i Jitsi Meet, öppna <strong>Settings > Devices</strong> och välj <strong>\"Sokuji Virtual Microphone\"</strong> som din mikrofon. Öppna sedan <strong>Advanced audio settings</strong> och <strong>inaktivera Brusreducering, Ekosläckning och Automatisk förstärkningskontroll</strong> för tydligt översatt ljud."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji är ännu inte tillgängligt på $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Översätt i vilken app som helst"
+  },
+  "desktopCtaBody": {
+    "message": "Skrivbordsappen lägger till en virtuell mikrofon som fungerar i hela systemet — med OBS, YouTube, Twitch, inbyggda skrivbordsklienter och alla andra appar. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Ladda ner skrivbordsappen"
+  },
+  "browserSitesHeading": {
+    "message": "Föredrar du webbläsaren? Sokuji fungerar på dessa sidor — klicka för att öppna:"
+  },
+  "requestSiteLink": {
+    "message": "Ser du inte din webbplats? Begär den →"
+  },
+  "learnMore": {
+    "message": "Läs mer →"
+  },
+  "detectFailHeadline": {
+    "message": "Det gick inte att identifiera den här fliken"
+  },
+  "detectFailBody": {
+    "message": "Uppdatera sidan och öppna Sokuji igen."
   }
 }

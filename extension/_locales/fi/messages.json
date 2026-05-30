@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Määritä API-avaimesi (OpenAI tai Gemini) → Valitse \"Sokuji_Virtual_Mic\" mikrofoniksi → Aloita puhuminen!"
   },
-  "notSupported": {
-    "message": "⚠ Ei tuettu tällä sivustolla"
-  },
-  "currentlyOn": {
-    "message": "Tällä hetkellä sivustolla $HOSTNAME$. Sokuji toimii näillä alustoilla:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Tarvitsetko tukea useammille sivustoille?"
-  },
-  "contactUs": {
-    "message": "Ota meihin yhteyttä osoitteessa"
-  },
-  "contributeCode": {
-    "message": "osallistu"
-  },
-  "openSourceProject": {
-    "message": "avoimen lähdekoodin projektiimme"
-  },
-  "unableToDetect": {
-    "message": "⚠ Nykyistä sivustoa ei voida tunnistaa"
-  },
-  "refreshAndTry": {
-    "message": "Päivitä sivu ja yritä uudelleen."
-  },
-  "needMoreSitesShort": {
-    "message": "Tarvitsetko lisää sivustoja?"
-  },
-  "contactUsShort": {
-    "message": "Ota yhteyttä"
-  },
-  "contributeCodeShort": {
-    "message": "osallistu koodiin"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Käyttääksesi Sokuji:ta Jitsi Meetissä, avaa <strong>Settings > Devices</strong> ja valitse mikrofoniksesi <strong>\"Sokuji Virtual Microphone\"</strong>. Avaa sitten <strong>Advanced audio settings</strong> ja <strong>poista käytöstä Kohinanvaimennus, Kaiunvaimennus ja Automaattinen vahvistuksen säätö</strong> selkeää käännettyä ääntä varten."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji ei ole vielä saatavilla sivustolla $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Käännä missä tahansa sovelluksessa"
+  },
+  "desktopCtaBody": {
+    "message": "Työpöytäsovellus lisää virtuaalimikrofonin, joka toimii koko järjestelmässä — OBS:n, YouTuben, Twitchin, natiivisovellusten ja minkä tahansa muun sovelluksen kanssa. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Lataa työpöytäsovellus"
+  },
+  "browserSitesHeading": {
+    "message": "Käytätkö mieluummin selainta? Sokuji toimii näillä sivustoilla — avaa napsauttamalla:"
+  },
+  "requestSiteLink": {
+    "message": "Etkö näe sivustoasi? Pyydä sen lisäämistä →"
+  },
+  "learnMore": {
+    "message": "Lue lisää →"
+  },
+  "detectFailHeadline": {
+    "message": "Tätä välilehteä ei voitu tunnistaa"
+  },
+  "detectFailBody": {
+    "message": "Päivitä sivu ja avaa Sokuji uudelleen."
   }
 }

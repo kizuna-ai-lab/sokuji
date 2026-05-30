@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "APIキー（OpenAI または Gemini）を設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
   },
-  "notSupported": {
-    "message": "⚠ このサイトではサポートされていません"
-  },
-  "currentlyOn": {
-    "message": "現在$HOSTNAME$にいます。Sokujiはこれらのプラットフォームで動作します：",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "より多くのサイトのサポートが必要ですか？"
-  },
-  "contactUs": {
-    "message": "お問い合わせ"
-  },
-  "contributeCode": {
-    "message": "私たちの"
-  },
-  "openSourceProject": {
-    "message": "オープンソースプロジェクトに貢献"
-  },
-  "unableToDetect": {
-    "message": "⚠ 現在のサイトを検出できません"
-  },
-  "refreshAndTry": {
-    "message": "ページを更新してもう一度お試しください。"
-  },
-  "needMoreSitesShort": {
-    "message": "より多くのサイト？"
-  },
-  "contactUsShort": {
-    "message": "お問い合わせ"
-  },
-  "contributeCodeShort": {
-    "message": "コード貢献"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi MeetでSokujiを使用するには、<strong>Settings > Devices</strong>を開き、マイクとして<strong>「Sokuji Virtual Microphone」</strong>を選択してください。次に<strong>Advanced audio settings</strong>を開き、クリアな翻訳音声のために<strong>Noise suppression、Echo cancellation、Automatic gain controlを無効</strong>にしてください。"
+  },
+  "unsupportedHeadline": {
+    "message": "Sokujiは$HOSTNAME$ではまだご利用いただけません。",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "どんなアプリでも翻訳"
+  },
+  "desktopCtaBody": {
+    "message": "デスクトップアプリは、システム全体で動作する仮想マイクを追加します。OBS、YouTube、Twitch、ネイティブのデスクトップクライアントなど、あらゆるアプリで利用できます。Windows · macOS · Linux。"
+  },
+  "desktopCtaButton": {
+    "message": "デスクトップアプリをダウンロード"
+  },
+  "browserSitesHeading": {
+    "message": "ブラウザをご利用ですか？Sokujiは以下のサイトで動作します。クリックして開いてください："
+  },
+  "requestSiteLink": {
+    "message": "サイトが見つかりませんか？リクエストする →"
+  },
+  "learnMore": {
+    "message": "詳しく見る →"
+  },
+  "detectFailHeadline": {
+    "message": "このタブを検出できませんでした"
+  },
+  "detectFailBody": {
+    "message": "ページを再読み込みして、Sokujiを開き直してください。"
   }
 }

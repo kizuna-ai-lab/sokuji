@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "contribuie cu cod"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Pentru a folosi Sokuji în Jitsi Meet, deschideți <strong>Settings > Devices</strong> și selectați <strong>\"Sokuji Virtual Microphone\"</strong> ca microfon. Apoi deschideți <strong>Advanced audio settings</strong> și <strong>dezactivați Reducerea zgomotului, Anularea ecoului și Controlul automat al volumului</strong> pentru un audio tradus clar."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji nu este încă disponibil pe $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Traduceți în orice aplicație"
+  },
+  "desktopCtaBody": {
+    "message": "Aplicația desktop adaugă un microfon virtual care funcționează la nivelul întregului sistem — cu OBS, YouTube, Twitch, clienți desktop nativi și orice altă aplicație. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Descărcați aplicația desktop"
+  },
+  "browserSitesHeading": {
+    "message": "Preferați browserul? Sokuji funcționează pe aceste site-uri — faceți clic pentru a deschide:"
+  },
+  "requestSiteLink": {
+    "message": "Nu vedeți site-ul dvs.? Solicitați-l →"
+  },
+  "learnMore": {
+    "message": "Aflați mai multe →"
+  },
+  "detectFailHeadline": {
+    "message": "Nu s-a putut detecta această filă"
+  },
+  "detectFailBody": {
+    "message": "Reîncărcați pagina și redeschideți Sokuji."
   }
 }

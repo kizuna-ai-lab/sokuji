@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurer din API-nøgle (OpenAI eller Gemini) → Vælg \"Sokuji_Virtual_Mic\" som mikrofon → Begynd at tale!"
   },
-  "notSupported": {
-    "message": "⚠ Ikke understøttet på denne side"
-  },
-  "currentlyOn": {
-    "message": "I øjeblikket på $HOSTNAME$. Sokuji virker på disse platforme:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Har du brug for support til flere sider?"
-  },
-  "contactUs": {
-    "message": "Kontakt os på"
-  },
-  "contributeCode": {
-    "message": "bidrag til vores"
-  },
-  "openSourceProject": {
-    "message": "open source projekt"
-  },
-  "unableToDetect": {
-    "message": "⚠ Kan ikke registrere nuværende side"
-  },
-  "refreshAndTry": {
-    "message": "Venligst opdater siden og prøv igen."
-  },
-  "needMoreSitesShort": {
-    "message": "Brug for flere sider?"
-  },
-  "contactUsShort": {
-    "message": "Kontakt os"
-  },
-  "contributeCodeShort": {
-    "message": "bidrag med kode"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "For at bruge Sokuji i Jitsi Meet skal du åbne <strong>Settings > Devices</strong> og vælge <strong>\"Sokuji Virtual Microphone\"</strong> som din mikrofon. Åbn derefter <strong>Advanced audio settings</strong> og <strong>slå Støjreduktion, Ekko-annullering og Automatisk forstærkningskontrol fra</strong> for klar oversat lyd."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji er endnu ikke tilgængelig på $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Oversæt i enhver app"
+  },
+  "desktopCtaBody": {
+    "message": "Desktop-appen tilføjer en virtuel mikrofon, der fungerer på tværs af hele systemet — med OBS, YouTube, Twitch, native desktop-klienter og enhver anden app. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Download desktop-appen"
+  },
+  "browserSitesHeading": {
+    "message": "Foretrækker du browseren? Sokuji virker på disse sider — klik for at åbne:"
+  },
+  "requestSiteLink": {
+    "message": "Kan du ikke se dit websted? Anmod om det →"
+  },
+  "learnMore": {
+    "message": "Læs mere →"
+  },
+  "detectFailHeadline": {
+    "message": "Kunne ikke registrere denne fane"
+  },
+  "detectFailBody": {
+    "message": "Genindlæs siden og åbn Sokuji igen."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "prisidėti prie kodo"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Norėdami naudoti Sokuji su Jitsi Meet, atidarykite <strong>Settings > Devices</strong> ir pasirinkite <strong>\"Sokuji Virtual Microphone\"</strong> kaip mikrofoną. Tada atidarykite <strong>Advanced audio settings</strong> ir <strong>išjunkite Noise suppression, Echo cancellation ir Automatic gain control</strong>, kad išversta garso versija būtų aiški."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji dar nepasiekiamas $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Versti bet kurioje programėlėje"
+  },
+  "desktopCtaBody": {
+    "message": "Darbalaukio programėlė prideda virtualų mikrofoną, veikiantį visoje sistemoje — su OBS, YouTube, Twitch, vietiniais darbalaukio klientais ir bet kuria kita programėle. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Atsisiųsti darbalaukio programėlę"
+  },
+  "browserSitesHeading": {
+    "message": "Teikiate pirmenybę naršyklei? Sokuji veikia šiose svetainėse — spustelėkite, kad atidarytumėte:"
+  },
+  "requestSiteLink": {
+    "message": "Nematote savo svetainės? Paprašykite jos →"
+  },
+  "learnMore": {
+    "message": "Sužinokite daugiau →"
+  },
+  "detectFailHeadline": {
+    "message": "Nepavyko aptikti šio skirtuko"
+  },
+  "detectFailBody": {
+    "message": "Atnaujinkite puslapį ir vėl atidarykite Sokuji."
   }
 }

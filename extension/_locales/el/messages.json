@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Διαμορφώστε το κλειδί API OpenAI σας → Επιλέξτε \"Sokuji_Virtual_Mic\" ως μικρόφωνο → Αρχίστε να μιλάτε!"
   },
-  "notSupported": {
-    "message": "⚠ Δεν υποστηρίζεται σε αυτή την ιστοσελίδα"
-  },
-  "currentlyOn": {
-    "message": "Αυτή τη στιγμή στο $HOSTNAME$. Το Sokuji λειτουργεί σε αυτές τις πλατφόρμες:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Χρειάζεστε υποστήριξη για περισσότερες ιστοσελίδες;"
-  },
-  "contactUs": {
-    "message": "Επικοινωνήστε μαζί μας στο"
-  },
-  "contributeCode": {
-    "message": "συνεισφέρετε στο"
-  },
-  "openSourceProject": {
-    "message": "έργο ανοιχτού κώδικά μας"
-  },
-  "unableToDetect": {
-    "message": "⚠ Αδυναμία εντοπισμού της τρέχουσας ιστοσελίδας"
-  },
-  "refreshAndTry": {
-    "message": "Παρακαλώ ανανεώστε τη σελίδα και δοκιμάστε ξανά."
-  },
-  "needMoreSitesShort": {
-    "message": "Χρειάζεστε περισσότερες ιστοσελίδες;"
-  },
-  "contactUsShort": {
-    "message": "Επικοινωνία"
-  },
-  "contributeCodeShort": {
-    "message": "συνεισφορά κώδικα"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Για να χρησιμοποιήσετε το Sokuji στο Jitsi Meet, ανοίξτε <strong>Settings > Devices</strong> και επιλέξτε <strong>\"Sokuji Virtual Microphone\"</strong> ως μικρόφωνό σας. Στη συνέχεια ανοίξτε <strong>Advanced audio settings</strong> και <strong>απενεργοποιήστε τη μείωση θορύβου, την ακύρωση ηχούς και τον αυτόματο έλεγχο απολαβής</strong> για καθαρό μεταφρασμένο ήχο."
+  },
+  "unsupportedHeadline": {
+    "message": "Το Sokuji δεν είναι ακόμα διαθέσιμο στο $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Μεταφράστε σε οποιαδήποτε εφαρμογή"
+  },
+  "desktopCtaBody": {
+    "message": "Η εφαρμογή επιφάνειας εργασίας προσθέτει ένα εικονικό μικρόφωνο που λειτουργεί σε ολόκληρο το σύστημα — με OBS, YouTube, Twitch, εγγενείς desktop clients και οποιαδήποτε άλλη εφαρμογή. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Λήψη εφαρμογής επιφάνειας εργασίας"
+  },
+  "browserSitesHeading": {
+    "message": "Προτιμάτε το πρόγραμμα περιήγησης; Το Sokuji λειτουργεί σε αυτές τις σελίδες — κάντε κλικ για άνοιγμα:"
+  },
+  "requestSiteLink": {
+    "message": "Δεν βλέπετε τη σελίδα σας; Ζητήστε την →"
+  },
+  "learnMore": {
+    "message": "Μάθετε περισσότερα →"
+  },
+  "detectFailHeadline": {
+    "message": "Αδυναμία εντοπισμού αυτής της καρτέλας"
+  },
+  "detectFailBody": {
+    "message": "Ανανεώστε τη σελίδα και ανοίξτε ξανά το Sokuji."
   }
 }

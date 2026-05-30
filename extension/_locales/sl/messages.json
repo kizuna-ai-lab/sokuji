@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "prispevaj kodo"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Če želite uporabljati Sokuji v Jitsi Meet, odprite <strong>Settings > Devices</strong> in izberite <strong>\"Sokuji Virtual Microphone\"</strong> kot svoj mikrofon. Nato odprite <strong>Advanced audio settings</strong> in <strong>izklopite odpravljanje šuma, odpravljanje odmeva in samodejno nastavljanje ojačanja</strong> za čist preveden zvok."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji na $HOSTNAME$ še ni na voljo.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Prevajajte v kateri koli aplikaciji"
+  },
+  "desktopCtaBody": {
+    "message": "Namizna aplikacija doda virtualni mikrofon, ki deluje v celotnem sistemu — z OBS, YouTube, Twitch, nativnimi namiznimi odjemalci in katero koli drugo aplikacijo. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Prenesite namizno aplikacijo"
+  },
+  "browserSitesHeading": {
+    "message": "Imate raje brskalnik? Sokuji deluje na teh straneh — kliknite za odpiranje:"
+  },
+  "requestSiteLink": {
+    "message": "Ne vidite svojega spletnega mesta? Zahtevajte ga →"
+  },
+  "learnMore": {
+    "message": "Izvedi več →"
+  },
+  "detectFailHeadline": {
+    "message": "Te zavihka ni bilo mogoče zaznati"
+  },
+  "detectFailBody": {
+    "message": "Osvežite stran in znova odprite Sokuji."
   }
 }

@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "કોડ યોગદાન"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet માં Sokuji નો ઉપયોગ કરવા માટે, <strong>Settings > Devices</strong> ખોલો અને તમારા માઇક્રોફોન તરીકે <strong>\"Sokuji Virtual Microphone\"</strong> પસંદ કરો. પછી <strong>Advanced audio settings</strong> ખોલો અને સ્પષ્ટ અનુવાદિત ઑડિયો માટે <strong>Noise suppression, Echo cancellation અને Automatic gain control બંધ કરો</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji હજી $HOSTNAME$ પર ઉપલબ્ધ નથી.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "કોઈ પણ એપ્લિકેશનમાં ભાષાંતર કરો"
+  },
+  "desktopCtaBody": {
+    "message": "ડેસ્કટૉપ એપ સિસ્ટમ-વ્યાપી કાર્ય કરતું વર્ચ્યુઅલ માઈક્રોફોન ઉમેરે છે — OBS, YouTube, Twitch, નેટિવ ડેસ્કટૉપ ક્લાઈન્ટ્સ અને અન્ય કોઈ પણ એપ સાથે. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "ડેસ્કટૉપ એપ ડાઉનલોડ કરો"
+  },
+  "browserSitesHeading": {
+    "message": "બ્રાઉઝર પસંદ છે? Sokuji આ સાઇટ્સ પર કાર્ય કરે છે — ખોલવા ક્લિક કરો:"
+  },
+  "requestSiteLink": {
+    "message": "તમારી સાઇટ દેખાતી નથી? વિનંતી કરો →"
+  },
+  "learnMore": {
+    "message": "વધુ જાણો →"
+  },
+  "detectFailHeadline": {
+    "message": "આ ટૅબ શોધી શકાઈ નહીં"
+  },
+  "detectFailBody": {
+    "message": "પૃષ્ઠ રિફ્રૅશ કરો અને Sokuji ફરી ખોલો."
   }
 }

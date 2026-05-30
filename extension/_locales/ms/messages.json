@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Konfigurasikan kunci API OpenAI anda ← Pilih \"Sokuji_Virtual_Mic\" sebagai mikrofon ← Mula bercakap!"
   },
-  "notSupported": {
-    "message": "⚠ Tidak disokong di laman web ini"
-  },
-  "currentlyOn": {
-    "message": "Kini di $HOSTNAME$. Sokuji berfungsi di platform ini:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Perlukan sokongan untuk lebih banyak laman web?"
-  },
-  "contactUs": {
-    "message": "Hubungi kami di"
-  },
-  "contributeCode": {
-    "message": "menyumbang kepada"
-  },
-  "openSourceProject": {
-    "message": "projek sumber terbuka kami"
-  },
-  "unableToDetect": {
-    "message": "⚠ Tidak dapat mengesan laman web semasa"
-  },
-  "refreshAndTry": {
-    "message": "Sila muat semula halaman dan cuba lagi."
-  },
-  "needMoreSitesShort": {
-    "message": "Perlukan lebih banyak laman?"
-  },
-  "contactUsShort": {
-    "message": "Hubungi kami"
-  },
-  "contributeCodeShort": {
-    "message": "sumbang kod"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Untuk menggunakan Sokuji dalam Jitsi Meet, buka <strong>Settings > Devices</strong> dan pilih <strong>\"Sokuji Virtual Microphone\"</strong> sebagai mikrofon anda. Kemudian buka <strong>Advanced audio settings</strong> dan <strong>matikan Penindasan bunyi, Pembatalan gema, dan Kawalan gandaan automatik</strong> untuk audio terjemahan yang jelas."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji belum tersedia di $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Terjemah dalam mana-mana apl"
+  },
+  "desktopCtaBody": {
+    "message": "Apl desktop menambah mikrofon maya yang berfungsi di seluruh sistem — dengan OBS, YouTube, Twitch, klien desktop asli, dan mana-mana apl lain. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Muat turun apl desktop"
+  },
+  "browserSitesHeading": {
+    "message": "Lebih suka penyemak imbas? Sokuji berfungsi di laman-laman ini — klik untuk buka:"
+  },
+  "requestSiteLink": {
+    "message": "Tidak nampak laman anda? Minta ia →"
+  },
+  "learnMore": {
+    "message": "Ketahui lebih lanjut →"
+  },
+  "detectFailHeadline": {
+    "message": "Tidak dapat mengesan tab ini"
+  },
+  "detectFailBody": {
+    "message": "Muat semula halaman dan buka semula Sokuji."
   }
 }

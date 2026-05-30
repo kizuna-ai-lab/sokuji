@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "contribute code"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Jitsi Meet இல் Sokuji ஐ பயன்படுத்த, <strong>Settings > Devices</strong> ஐ திறந்து உங்கள் மைக்ரோஃபோனாக <strong>\"Sokuji Virtual Microphone\"</strong> ஐ தேர்ந்தெடுக்கவும். பிறகு <strong>Advanced audio settings</strong> ஐ திறந்து, தெளிவான மொழிபெயர்க்கப்பட்ட ஒலிக்காக <strong>Noise suppression, Echo cancellation, மற்றும் Automatic gain control ஆகியவற்றை முடக்கவும்</strong>."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji இன்னும் $HOSTNAME$-ல் கிடைக்கவில்லை.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "எந்த செயலியிலும் மொழிபெயர்க்கவும்"
+  },
+  "desktopCtaBody": {
+    "message": "டெஸ்க்டாப் செயலி சிஸ்டம்-அளவில் செயல்படும் மெய்நிகர் மைக்ரோஃபோனை சேர்க்கிறது — OBS, YouTube, Twitch, நேட்டிவ் டெஸ்க்டாப் கிளையன்ட்கள் மற்றும் வேறு எந்த செயலியிலும். Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "டெஸ்க்டாப் செயலியை பதிவிறக்கவும்"
+  },
+  "browserSitesHeading": {
+    "message": "உலாவியை விரும்புகிறீர்களா? Sokuji இந்த தளங்களில் செயல்படுகிறது — திறக்க கிளிக் செய்யுங்கள்:"
+  },
+  "requestSiteLink": {
+    "message": "உங்கள் தளம் தெரியவில்லையா? கோரிக்கை வையுங்கள் →"
+  },
+  "learnMore": {
+    "message": "மேலும் அறியுங்கள் →"
+  },
+  "detectFailHeadline": {
+    "message": "இந்த தாவலை கண்டறிய முடியவில்லை"
+  },
+  "detectFailBody": {
+    "message": "பக்கத்தை புதுப்பித்து Sokuji-ஐ மீண்டும் திறக்கவும்."
   }
 }

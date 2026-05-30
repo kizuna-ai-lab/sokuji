@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Cấu hình khóa API OpenAI của bạn → Chọn \"Sokuji_Virtual_Mic\" làm microphone → Bắt đầu nói!"
   },
-  "notSupported": {
-    "message": "⚠ Không được hỗ trợ trên trang web này"
-  },
-  "currentlyOn": {
-    "message": "Hiện tại trên $HOSTNAME$. Sokuji hoạt động trên các nền tảng này:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Cần hỗ trợ cho nhiều trang web hơn?"
-  },
-  "contactUs": {
-    "message": "Liên hệ với chúng tôi tại"
-  },
-  "contributeCode": {
-    "message": "đóng góp cho"
-  },
-  "openSourceProject": {
-    "message": "dự án mã nguồn mở của chúng tôi"
-  },
-  "unableToDetect": {
-    "message": "⚠ Không thể phát hiện trang web hiện tại"
-  },
-  "refreshAndTry": {
-    "message": "Vui lòng làm mới trang và thử lại."
-  },
-  "needMoreSitesShort": {
-    "message": "Cần thêm trang web?"
-  },
-  "contactUsShort": {
-    "message": "Liên hệ"
-  },
-  "contributeCodeShort": {
-    "message": "đóng góp mã"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Để sử dụng Sokuji trong Jitsi Meet, hãy mở <strong>Settings > Devices</strong> và chọn <strong>\"Sokuji Virtual Microphone\"</strong> làm micrô của bạn. Sau đó mở <strong>Advanced audio settings</strong> và <strong>tắt Khử tiếng ồn, Khử tiếng vọng và Tự động điều chỉnh độ khuếch đại</strong> để có âm thanh dịch rõ ràng."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji chưa có sẵn trên $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Dịch trong bất kỳ ứng dụng nào"
+  },
+  "desktopCtaBody": {
+    "message": "Ứng dụng máy tính để bàn thêm một micrô ảo hoạt động trên toàn hệ thống — với OBS, YouTube, Twitch, các ứng dụng máy tính để bàn gốc và bất kỳ ứng dụng nào khác. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Tải xuống ứng dụng máy tính để bàn"
+  },
+  "browserSitesHeading": {
+    "message": "Thích dùng trình duyệt? Sokuji hoạt động trên những trang này — nhấp để mở:"
+  },
+  "requestSiteLink": {
+    "message": "Không thấy trang của bạn? Yêu cầu thêm →"
+  },
+  "learnMore": {
+    "message": "Tìm hiểu thêm →"
+  },
+  "detectFailHeadline": {
+    "message": "Không thể phát hiện tab này"
+  },
+  "detectFailBody": {
+    "message": "Làm mới trang và mở lại Sokuji."
   }
 }

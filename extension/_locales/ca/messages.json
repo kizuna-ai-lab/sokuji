@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "contribuir codi"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Per utilitzar Sokuji a Jitsi Meet, obre <strong>Settings > Devices</strong> i selecciona <strong>\"Sokuji Virtual Microphone\"</strong> com a micròfon. A continuació, obre <strong>Advanced audio settings</strong> i <strong>desactiva la Supressió de soroll, la Cancel·lació d'eco i el Control automàtic de guany</strong> per obtenir un àudio traduït clar."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji encara no és disponible a $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Tradueix en qualsevol aplicació"
+  },
+  "desktopCtaBody": {
+    "message": "L'aplicació d'escriptori afegeix un micròfon virtual que funciona a tot el sistema — amb OBS, YouTube, Twitch, clients d'escriptori natius i qualsevol altra aplicació. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Baixa l'aplicació d'escriptori"
+  },
+  "browserSitesHeading": {
+    "message": "Preferiu el navegador? Sokuji funciona en aquests llocs — feu clic per obrir:"
+  },
+  "requestSiteLink": {
+    "message": "No veieu el vostre lloc? Sol·liciteu-lo →"
+  },
+  "learnMore": {
+    "message": "Més informació →"
+  },
+  "detectFailHeadline": {
+    "message": "No s'ha pogut detectar aquesta pestanya"
+  },
+  "detectFailBody": {
+    "message": "Actualitzeu la pàgina i torneu a obrir Sokuji."
   }
 }

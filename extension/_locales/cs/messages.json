@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Nakonfigurujte svůj API klíč (OpenAI nebo Gemini) → Vyberte \"Sokuji_Virtual_Mic\" jako mikrofon → Začněte mluvit!"
   },
-  "notSupported": {
-    "message": "⚠ Nepodporováno na této stránce"
-  },
-  "currentlyOn": {
-    "message": "Aktuálně na $HOSTNAME$. Sokuji funguje na těchto platformách:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Potřebujete podporu pro více stránek?"
-  },
-  "contactUs": {
-    "message": "Kontaktujte nás na"
-  },
-  "contributeCode": {
-    "message": "přispějte do našeho"
-  },
-  "openSourceProject": {
-    "message": "open source projektu"
-  },
-  "unableToDetect": {
-    "message": "⚠ Nelze detekovat aktuální stránku"
-  },
-  "refreshAndTry": {
-    "message": "Prosím obnovte stránku a zkuste to znovu."
-  },
-  "needMoreSitesShort": {
-    "message": "Potřebujete více stránek?"
-  },
-  "contactUsShort": {
-    "message": "Kontakt"
-  },
-  "contributeCodeShort": {
-    "message": "přispět kódem"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Chcete-li používat Sokuji v Jitsi Meet, otevřete <strong>Settings > Devices</strong> a jako mikrofon vyberte <strong>\"Sokuji Virtual Microphone\"</strong>. Poté otevřete <strong>Advanced audio settings</strong> a <strong>vypněte Potlačení šumu, Potlačení ozvěny a Automatické řízení zisku</strong> pro čistý přeložený zvuk."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji na $HOSTNAME$ zatím není k dispozici.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Překládejte v jakékoli aplikaci"
+  },
+  "desktopCtaBody": {
+    "message": "Desktopová aplikace přidává virtuální mikrofon fungující v celém systému — s OBS, YouTube, Twitch, nativními desktopovými klienty a jakoukoli jinou aplikací. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Stáhnout desktopovou aplikaci"
+  },
+  "browserSitesHeading": {
+    "message": "Preferujete prohlížeč? Sokuji funguje na těchto stránkách — kliknutím otevřete:"
+  },
+  "requestSiteLink": {
+    "message": "Nevidíte svůj web? Požádejte o přidání →"
+  },
+  "learnMore": {
+    "message": "Zjistit více →"
+  },
+  "detectFailHeadline": {
+    "message": "Nepodařilo se zjistit tento panel"
+  },
+  "detectFailBody": {
+    "message": "Obnovte stránku a znovu otevřete Sokuji."
   }
 }

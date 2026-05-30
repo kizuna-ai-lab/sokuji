@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
-  },
-  "contactUs": {
-    "message": "Contact us at"
-  },
-  "contributeCode": {
-    "message": "contribute to our"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
-  },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
-  },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
-  },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "ኮድ አስተዋፅዖ"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "ሶኩጂ ን በJitsi Meet ለመጠቀም፣ <strong>Settings > Devices</strong>ን ክፈቱ እና <strong>\"Sokuji Virtual Microphone\"</strong>ን እንደ ማይክሮፎንዎ ይምረጡ። ከዚያ <strong>Advanced audio settings</strong>ን ክፈቱ እና ለጥሩ የተተረጎመ ድምፅ <strong>ድምፅ መቀነስን፣ ድምፅ ማስተጋባት ቁጥጥርን እና ራስ-ሰር ትርፍ ቁጥጥርን ያሰናክሉ</strong>።"
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji በ$HOSTNAME$ ላይ እስካሁን አይገኝም።",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "በማንኛውም መተግበሪያ ተርጉም"
+  },
+  "desktopCtaBody": {
+    "message": "የዴስክቶፕ መተግበሪያ በስርዓቱ ሁሉ የሚሠራ ምናባዊ ማይክሮፎን ይጨምራል — OBS፣ YouTube፣ Twitch፣ ዴስክቶፕ ደንበኞች እና ሌሎች መተግበሪያዎች ጋር። Windows · macOS · Linux።"
+  },
+  "desktopCtaButton": {
+    "message": "የዴስክቶፕ መተግበሪያ ያውርዱ"
+  },
+  "browserSitesHeading": {
+    "message": "አሳሽ ይመርጣሉ? Sokuji ከዚህ በታች ባሉ ጣቢያዎች ይሠራል — ለመክፈት ይጫኑ፦"
+  },
+  "requestSiteLink": {
+    "message": "ጣቢያዎ አይታይም? ይጠይቁ →"
+  },
+  "learnMore": {
+    "message": "ተጨማሪ ይወቁ →"
+  },
+  "detectFailHeadline": {
+    "message": "ይህን ትር ማስተዋወቅ አልተቻለም"
+  },
+  "detectFailBody": {
+    "message": "ገጹን ያድሱ እና Sokujiን እንደገና ይክፈቱ።"
   }
 }

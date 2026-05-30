@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "Configureer uw API-sleutel (OpenAI of Gemini) → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
   },
-  "notSupported": {
-    "message": "⚠ Niet ondersteund op deze site"
-  },
-  "currentlyOn": {
-    "message": "Momenteel op $HOSTNAME$. Sokuji werkt op deze platforms:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "Ondersteuning nodig voor meer sites?"
-  },
-  "contactUs": {
-    "message": "Neem contact met ons op via"
-  },
-  "contributeCode": {
-    "message": "draag bij aan ons"
-  },
-  "openSourceProject": {
-    "message": "open source project"
-  },
-  "unableToDetect": {
-    "message": "⚠ Kan huidige site niet detecteren"
-  },
-  "refreshAndTry": {
-    "message": "Ververs de pagina en probeer het opnieuw."
-  },
-  "needMoreSitesShort": {
-    "message": "Meer sites nodig?"
-  },
-  "contactUsShort": {
-    "message": "Contact opnemen"
-  },
-  "contributeCodeShort": {
-    "message": "code bijdragen"
-  },
   "gatherTownTitle": {
     "message": "Sokuji voor Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "Om Sokuji in Jitsi Meet te gebruiken, open <strong>Settings > Devices</strong> en selecteer <strong>\"Sokuji Virtual Microphone\"</strong> als uw microfoon. Open vervolgens <strong>Advanced audio settings</strong> en <strong>schakel Ruisonderdrukking, Echo-onderdrukking en Automatische versterkingsregeling uit</strong> voor heldere vertaalde audio."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji is nog niet beschikbaar op $HOSTNAME$.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "Vertaal in elke app"
+  },
+  "desktopCtaBody": {
+    "message": "De desktop-app voegt een virtuele microfoon toe die systeembreed werkt — met OBS, YouTube, Twitch, native desktop-clients en elke andere app. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "Desktop-app downloaden"
+  },
+  "browserSitesHeading": {
+    "message": "Liever de browser? Sokuji werkt op deze sites — klik om te openen:"
+  },
+  "requestSiteLink": {
+    "message": "Uw site niet zien? Verzoek het →"
+  },
+  "learnMore": {
+    "message": "Meer informatie →"
+  },
+  "detectFailHeadline": {
+    "message": "Dit tabblad kon niet worden gedetecteerd"
+  },
+  "detectFailBody": {
+    "message": "Ververs de pagina en open Sokuji opnieuw."
   }
 }

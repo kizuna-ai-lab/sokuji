@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "قم بتكوين مفتاح API الخاص بك (OpenAI أو Gemini) ← حدد \"Sokuji_Virtual_Mic\" كميكروفون ← ابدأ بالتحدث!"
   },
-  "notSupported": {
-    "message": "⚠ غير مدعوم على هذا الموقع"
-  },
-  "currentlyOn": {
-    "message": "حالياً على $HOSTNAME$. Sokuji يعمل على هذه المنصات:",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "تحتاج دعم لمواقع أكثر؟"
-  },
-  "contactUs": {
-    "message": "اتصل بنا على"
-  },
-  "contributeCode": {
-    "message": "ساهم في"
-  },
-  "openSourceProject": {
-    "message": "مشروعنا مفتوح المصدر"
-  },
-  "unableToDetect": {
-    "message": "⚠ غير قادر على اكتشاف الموقع الحالي"
-  },
-  "refreshAndTry": {
-    "message": "يرجى تحديث الصفحة والمحاولة مرة أخرى."
-  },
-  "needMoreSitesShort": {
-    "message": "تحتاج مواقع أكثر؟"
-  },
-  "contactUsShort": {
-    "message": "اتصل بنا"
-  },
-  "contributeCodeShort": {
-    "message": "ساهم بالكود"
-  },
   "gatherTownTitle": {
     "message": "Sokuji لـ Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "لاستخدام Sokuji في Jitsi Meet، افتح <strong>Settings > Devices</strong> وحدد <strong>\"Sokuji Virtual Microphone\"</strong> كميكروفون لك. ثم افتح <strong>Advanced audio settings</strong> و<strong>قم بإيقاف قمع الضوضاء وإلغاء الصدى والتحكم التلقائي في مستوى الصوت</strong> للحصول على صوت مترجم واضح."
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji غير متاح على $HOSTNAME$ بعد.",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "ترجم في أي تطبيق"
+  },
+  "desktopCtaBody": {
+    "message": "يضيف تطبيق سطح المكتب ميكروفونًا افتراضيًا يعمل على مستوى النظام بأكمله — مع OBS وYouTube وTwitch وعملاء سطح المكتب الأصليين وأي تطبيق آخر. Windows · macOS · Linux."
+  },
+  "desktopCtaButton": {
+    "message": "تحميل تطبيق سطح المكتب"
+  },
+  "browserSitesHeading": {
+    "message": "تفضّل المتصفح؟ Sokuji يعمل على هذه المواقع — انقر للفتح:"
+  },
+  "requestSiteLink": {
+    "message": "لا ترى موقعك؟ اطلب إضافته →"
+  },
+  "learnMore": {
+    "message": "اعرف المزيد →"
+  },
+  "detectFailHeadline": {
+    "message": "تعذّر اكتشاف هذه الصفحة"
+  },
+  "detectFailBody": {
+    "message": "حدّث الصفحة وأعد فتح Sokuji."
   }
 }

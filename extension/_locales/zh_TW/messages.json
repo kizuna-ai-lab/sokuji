@@ -35,45 +35,6 @@
   "quickStartInstructions": {
     "message": "設定您的 API 金鑰（OpenAI 或 Gemini）→ 選擇「Sokuji_Virtual_Mic」作為麥克風 → 開始說話！"
   },
-  "notSupported": {
-    "message": "⚠ 此網站不支援"
-  },
-  "currentlyOn": {
-    "message": "目前在 $HOSTNAME$。Sokuji 支援這些平台：",
-    "placeholders": {
-      "hostname": {
-        "content": "$1",
-        "example": "example.com"
-      }
-    }
-  },
-  "needMoreSites": {
-    "message": "需要支援更多網站？"
-  },
-  "contactUs": {
-    "message": "聯絡我們："
-  },
-  "contributeCode": {
-    "message": "為我們的"
-  },
-  "openSourceProject": {
-    "message": "開源專案貢獻程式碼"
-  },
-  "unableToDetect": {
-    "message": "⚠ 無法偵測目前網站"
-  },
-  "refreshAndTry": {
-    "message": "請重新整理頁面後重試。"
-  },
-  "needMoreSitesShort": {
-    "message": "需要更多網站？"
-  },
-  "contactUsShort": {
-    "message": "聯絡我們"
-  },
-  "contributeCodeShort": {
-    "message": "貢獻程式碼"
-  },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
   },
@@ -133,5 +94,38 @@
   },
   "jitsiGuidance": {
     "message": "要在 Jitsi Meet 中使用 Sokuji，請開啟 <strong>Settings > Devices</strong>，選擇 <strong>\"Sokuji Virtual Microphone\"</strong> 作為您的麥克風。然後開啟 <strong>Advanced audio settings</strong>，並<strong>關閉噪音抑制、回音消除和自動增益控制</strong>以獲得清晰的翻譯音訊。"
+  },
+  "unsupportedHeadline": {
+    "message": "Sokuji 尚不支援 $HOSTNAME$。",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "desktopCtaTitle": {
+    "message": "在任何應用程式中翻譯"
+  },
+  "desktopCtaBody": {
+    "message": "桌面應用程式新增了系統層級的虛擬麥克風，可與 OBS、YouTube、Twitch、原生桌面客戶端及任何其他應用程式搭配使用。Windows · macOS · Linux。"
+  },
+  "desktopCtaButton": {
+    "message": "下載桌面應用程式"
+  },
+  "browserSitesHeading": {
+    "message": "偏好使用瀏覽器？Sokuji 支援以下網站，點選即可開啟："
+  },
+  "requestSiteLink": {
+    "message": "找不到您的網站？申請新增 →"
+  },
+  "learnMore": {
+    "message": "了解更多 →"
+  },
+  "detectFailHeadline": {
+    "message": "無法偵測此分頁"
+  },
+  "detectFailBody": {
+    "message": "請重新整理頁面後再開啟 Sokuji。"
   }
 }
