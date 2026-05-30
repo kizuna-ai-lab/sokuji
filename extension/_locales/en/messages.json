@@ -35,11 +35,8 @@
   "quickStartInstructions": {
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
-  "notSupported": {
-    "message": "⚠ Not supported on this site"
-  },
-  "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+  "unsupportedHeadline": {
+    "message": "Sokuji isn't available on $HOSTNAME$ yet.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -47,32 +44,29 @@
       }
     }
   },
-  "needMoreSites": {
-    "message": "Need support for more sites?"
+  "desktopCtaTitle": {
+    "message": "Translate in any app"
   },
-  "contactUs": {
-    "message": "Contact us at"
+  "desktopCtaBody": {
+    "message": "The desktop app adds a virtual microphone that works system-wide — with OBS, YouTube, Twitch, native desktop clients, and any other app. Windows · macOS · Linux."
   },
-  "contributeCode": {
-    "message": "contribute to our"
+  "desktopCtaButton": {
+    "message": "Download desktop app"
   },
-  "openSourceProject": {
-    "message": "open source project"
+  "browserSitesHeading": {
+    "message": "Prefer the browser? Sokuji works on these — click to open:"
   },
-  "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+  "requestSiteLink": {
+    "message": "Don't see your site? Request it →"
   },
-  "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+  "learnMore": {
+    "message": "Learn more →"
   },
-  "needMoreSitesShort": {
-    "message": "Need more sites?"
+  "detectFailHeadline": {
+    "message": "Couldn't detect this tab"
   },
-  "contactUsShort": {
-    "message": "Contact us"
-  },
-  "contributeCodeShort": {
-    "message": "contribute code"
+  "detectFailBody": {
+    "message": "Refresh the page and reopen Sokuji."
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"
