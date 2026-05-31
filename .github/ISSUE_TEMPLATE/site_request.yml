@@ -1,0 +1,37 @@
+name: 🌐 Site Support Request
+description: Request Sokuji browser-extension support for a video-meeting site
+title: "[Site]: "
+labels: ["site-request", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us expand Sokuji!
+
+        The browser extension works on a fixed list of meeting sites. Tell us which site you'd like added and we'll consider it.
+
+        💡 Need it right now? The **desktop app** adds a system-wide virtual mic that works with **any** app (OBS, native clients, and more) — download it at https://sokuji.kizuna.ai/
+
+  - type: input
+    id: site-url
+    attributes:
+      label: Site URL / domain
+      description: The address where you'd like to use Sokuji
+      placeholder: e.g. example.com
+    validations:
+      required: true
+
+  - type: input
+    id: platform-name
+    attributes:
+      label: Platform name (if known)
+      description: The product name of the meeting service
+      placeholder: e.g. Acme Meet
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else? (optional)
+      description: How you use it, roughly how many people would benefit, or anything else that helps us prioritise.
+      placeholder: Optional context...

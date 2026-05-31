@@ -110,8 +110,10 @@ const ENABLED_SITES = [
 // Destinations for the desktop-first unsupported/error states
 const DOWNLOAD_URL = 'https://sokuji.kizuna.ai/';
 const WEBSITE_URL = 'https://sokuji.kizuna.ai/docs';
+// Opens the dedicated "Site Support Request" issue form. Blank issues are
+// disabled in the repo, so this MUST use ?template= (not a bare new-issue URL).
 const REQUEST_SITE_URL =
-  'https://github.com/kizuna-ai-lab/sokuji/issues/new?labels=site-request&title=Site%20request%3A%20';
+  'https://github.com/kizuna-ai-lab/sokuji/issues/new?template=site_request.yml';
 
 // Site information with display names and icons
 const SITE_INFO = {
@@ -422,10 +424,12 @@ function showUnsupportedState(hostname) {
   const headline = `<strong>${getMessage('unsupportedHeadline', [`<code>${hostname}</code>`])}</strong>`;
   content.innerHTML = renderUnsupportedFirstHtml(headline);
 
-  // Prefill the site-request issue title with the current hostname
+  // Prefill the site-request form's title + "Site URL" field with the current host
   const requestLink = document.getElementById('requestSiteLink');
   if (requestLink) {
-    requestLink.href = REQUEST_SITE_URL + encodeURIComponent(hostname);
+    requestLink.href = REQUEST_SITE_URL
+      + '&title=' + encodeURIComponent('[Site]: ' + hostname)
+      + '&site-url=' + encodeURIComponent(hostname);
   }
 
   setupUnsupportedHandlers('unsupported', hostname);

@@ -265,4 +265,31 @@ Changes (applied on top of the original design, unsupported + error states only)
 
 Everything else (links, analytics events, GitHub-issue request with hostname
 prefill, scope) is unchanged from the original design above.
+
+---
+
+## Revision 2 (2026-05-31) — dedicated "Request a site" issue template
+
+The original `REQUEST_SITE_URL` opened a **blank** issue
+(`/issues/new?labels=…&title=…`), but the repo sets
+`blank_issues_enabled: false` in `.github/ISSUE_TEMPLATE/config.yml` — so GitHub
+ignored the prefilled title/labels and dropped the user on the template picker.
+The existing `feature_request.yml` is too heavy for this ask (4 required
+checkboxes + 3 required textareas, "technical feature request" tone).
+
+Fix: a new lightweight form **`.github/ISSUE_TEMPLATE/site_request.yml`**
+(title `[Site]: `, labels `site-request` + `needs-triage`) with one required
+**Site URL** field plus optional platform name / notes, and a note steering
+urgent users to the desktop app.
+
+`REQUEST_SITE_URL` becomes
+`https://github.com/kizuna-ai-lab/sokuji/issues/new?template=site_request.yml`.
+In the unsupported state the link is extended with
+`&title=[Site]: <host>&site-url=<host>` so the form opens with the title and the
+Site URL field pre-filled from the current hostname (issue-form fields prefill by
+field `id`). The error state opens the bare template (no host).
+
+Note: the `site-request` label degrades gracefully — if it doesn't yet exist in
+the repo GitHub simply omits it and still creates the issue; creating it once
+(any colour) just makes filtering nicer.
 ```
