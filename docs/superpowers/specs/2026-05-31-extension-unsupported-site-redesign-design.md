@@ -231,4 +231,38 @@ checklist with the extension loaded unpacked:
 - Desktop card lists desktop-only apps (OBS, YouTube, Twitch, native clients),
   not already-supported browser sites.
 - Localization handled in the same pass — all 55 locales, no follow-up.
+
+---
+
+## Revision 1 (2026-05-31) — visual pass after first build
+
+Feedback on the shipped first version: (1) the CTA card style didn't match the
+rest of the popup, (2) it was much taller than the old screen and the
+`logo + "Sokuji"` header felt redundant, (3) the two stacked footer links looked
+empty. Options were explored in a web demo
+(`docs/superpowers/demos/popup-unsupported-redesign.html`); **Variant A** was
+chosen, with the **brand-green** button.
+
+Changes (applied on top of the original design, unsupported + error states only):
+
+- **Header removed** from these two states — the global `.header` is hidden via
+  JS in `setupUnsupportedHandlers` (the headline already says "Sokuji"). The
+  supported state keeps its header.
+- **CTA card restyled to the neutral site-tile look** — `background #f8fafc` /
+  `border #e2e8f0` instead of the lavender `#f5f3ff` + purple `#667eea` border,
+  so it matches the rest of the popup.
+- **Button uses the brand primary action color, green `#10a37f`** (solid),
+  implemented as an override on `.cta-card-button` so the supported-state
+  `.primary-button` (purple) is untouched.
+- **Footer is one justified row** (`space-between`) instead of two stacked links:
+  muted `Request a site` (left) + green `Learn more →` (right, matching the
+  button). The global store-link `.footer` is hidden in these two states.
+- **Copy shortened** (re-translated across all 55 locales):
+  - `desktopCtaBody` → "A system-wide virtual mic for OBS, YouTube, Twitch and
+    any desktop app. Windows · macOS · Linux."
+  - `requestSiteLink` → "Request a site" (dropped the leading "Don't see your
+    site?" and the trailing arrow so it fits the inline footer row).
+
+Everything else (links, analytics events, GitHub-issue request with hostname
+prefill, scope) is unchanged from the original design above.
 ```
