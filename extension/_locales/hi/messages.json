@@ -108,7 +108,7 @@
     "message": "किसी भी ऐप में अनुवाद करें"
   },
   "desktopCtaBody": {
-    "message": "डेस्कटॉप ऐप एक वर्चुअल माइक्रोफोन जोड़ता है जो पूरे सिस्टम में काम करता है — OBS, YouTube, Twitch, नेटिव डेस्कटॉप क्लाइंट और किसी भी अन्य ऐप के साथ। Windows · macOS · Linux."
+    "message": "OBS, YouTube, Twitch और किसी भी डेस्कटॉप ऐप के लिए सिस्टम-व्यापी वर्चुअल माइक्रोफोन। Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "डेस्कटॉप ऐप डाउनलोड करें"
@@ -117,7 +117,7 @@
     "message": "ब्राउज़र पसंद है? Sokuji इन साइटों पर काम करता है — खोलने के लिए क्लिक करें:"
   },
   "requestSiteLink": {
-    "message": "अपनी साइट नहीं दिख रही? अनुरोध करें →"
+    "message": "साइट का अनुरोध करें"
   },
   "learnMore": {
     "message": "और जानें →"

@@ -108,7 +108,7 @@
     "message": "Käännä missä tahansa sovelluksessa"
   },
   "desktopCtaBody": {
-    "message": "Työpöytäsovellus lisää virtuaalimikrofonin, joka toimii koko järjestelmässä — OBS:n, YouTuben, Twitchin, natiivisovellusten ja minkä tahansa muun sovelluksen kanssa. Windows · macOS · Linux."
+    "message": "Koko järjestelmän kattava virtuaalimikrofoni OBS:lle, YouTubelle, Twitchille ja kaikille työpöytäsovelluksille. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Lataa työpöytäsovellus"
@@ -117,7 +117,7 @@
     "message": "Käytätkö mieluummin selainta? Sokuji toimii näillä sivustoilla — avaa napsauttamalla:"
   },
   "requestSiteLink": {
-    "message": "Etkö näe sivustoasi? Pyydä sen lisäämistä →"
+    "message": "Pyydä sivustoa"
   },
   "learnMore": {
     "message": "Lue lisää →"

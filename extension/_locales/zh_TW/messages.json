@@ -108,7 +108,7 @@
     "message": "在任何應用程式中翻譯"
   },
   "desktopCtaBody": {
-    "message": "桌面應用程式新增了系統層級的虛擬麥克風，可與 OBS、YouTube、Twitch、原生桌面客戶端及任何其他應用程式搭配使用。Windows · macOS · Linux。"
+    "message": "適用於 OBS、YouTube、Twitch 等任何桌面應用程式的系統級虛擬麥克風。Windows · macOS · Linux。"
   },
   "desktopCtaButton": {
     "message": "下載桌面應用程式"
@@ -117,7 +117,7 @@
     "message": "偏好使用瀏覽器？Sokuji 支援以下網站，點選即可開啟："
   },
   "requestSiteLink": {
-    "message": "找不到您的網站？申請新增 →"
+    "message": "申請網站"
   },
   "learnMore": {
     "message": "了解更多 →"

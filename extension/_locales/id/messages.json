@@ -108,7 +108,7 @@
     "message": "Terjemahkan di aplikasi apa pun"
   },
   "desktopCtaBody": {
-    "message": "Aplikasi desktop menambahkan mikrofon virtual yang bekerja di seluruh sistem — dengan OBS, YouTube, Twitch, klien desktop asli, dan aplikasi lainnya. Windows · macOS · Linux."
+    "message": "Mikrofon virtual sistem untuk OBS, YouTube, Twitch, dan aplikasi desktop apa pun. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Unduh aplikasi desktop"
@@ -117,7 +117,7 @@
     "message": "Lebih suka browser? Sokuji bekerja di situs-situs ini — klik untuk membuka:"
   },
   "requestSiteLink": {
-    "message": "Tidak melihat situs Anda? Minta ditambahkan →"
+    "message": "Minta situs"
   },
   "learnMore": {
     "message": "Pelajari lebih lanjut →"

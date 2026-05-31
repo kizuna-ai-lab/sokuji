@@ -108,7 +108,7 @@
     "message": "Prevajajte v kateri koli aplikaciji"
   },
   "desktopCtaBody": {
-    "message": "Namizna aplikacija doda virtualni mikrofon, ki deluje v celotnem sistemu — z OBS, YouTube, Twitch, nativnimi namiznimi odjemalci in katero koli drugo aplikacijo. Windows · macOS · Linux."
+    "message": "Sistemski virtualni mikrofon za OBS, YouTube, Twitch in katero koli namizno aplikacijo. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Prenesite namizno aplikacijo"
@@ -117,7 +117,7 @@
     "message": "Imate raje brskalnik? Sokuji deluje na teh straneh — kliknite za odpiranje:"
   },
   "requestSiteLink": {
-    "message": "Ne vidite svojega spletnega mesta? Zahtevajte ga →"
+    "message": "Zahtevajte spletno mesto"
   },
   "learnMore": {
     "message": "Izvedi več →"

@@ -108,7 +108,7 @@
     "message": "Dịch trong bất kỳ ứng dụng nào"
   },
   "desktopCtaBody": {
-    "message": "Ứng dụng máy tính để bàn thêm một micrô ảo hoạt động trên toàn hệ thống — với OBS, YouTube, Twitch, các ứng dụng máy tính để bàn gốc và bất kỳ ứng dụng nào khác. Windows · macOS · Linux."
+    "message": "Micrô ảo toàn hệ thống cho OBS, YouTube, Twitch và mọi ứng dụng desktop. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Tải xuống ứng dụng máy tính để bàn"
@@ -117,7 +117,7 @@
     "message": "Thích dùng trình duyệt? Sokuji hoạt động trên những trang này — nhấp để mở:"
   },
   "requestSiteLink": {
-    "message": "Không thấy trang của bạn? Yêu cầu thêm →"
+    "message": "Yêu cầu thêm trang web"
   },
   "learnMore": {
     "message": "Tìm hiểu thêm →"

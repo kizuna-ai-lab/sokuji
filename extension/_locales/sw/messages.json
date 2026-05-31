@@ -108,7 +108,7 @@
     "message": "Tafsiri katika programu yoyote"
   },
   "desktopCtaBody": {
-    "message": "Programu ya desktop inaongeza maikrofoni ya kawaida inayofanya kazi katika mfumo mzima — na OBS, YouTube, Twitch, wateja wa desktop wa kawaida, na programu nyingine yoyote. Windows · macOS · Linux."
+    "message": "Maikrofoni wa kawaida wa mfumo mzima kwa OBS, YouTube, Twitch na programu yoyote ya desktop. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Pakua programu ya desktop"
@@ -117,7 +117,7 @@
     "message": "Unapenda kivinjari? Sokuji inafanya kazi kwenye tovuti hizi — bofya kufungua:"
   },
   "requestSiteLink": {
-    "message": "Huoni tovuti yako? Iomba →"
+    "message": "Omba tovuti"
   },
   "learnMore": {
     "message": "Jifunza zaidi →"

@@ -108,7 +108,7 @@
     "message": "કોઈ પણ એપ્લિકેશનમાં ભાષાંતર કરો"
   },
   "desktopCtaBody": {
-    "message": "ડેસ્કટૉપ એપ સિસ્ટમ-વ્યાપી કાર્ય કરતું વર્ચ્યુઅલ માઈક્રોફોન ઉમેરે છે — OBS, YouTube, Twitch, નેટિવ ડેસ્કટૉપ ક્લાઈન્ટ્સ અને અન્ય કોઈ પણ એપ સાથે. Windows · macOS · Linux."
+    "message": "OBS, YouTube, Twitch અને કોઈ પણ ડેસ્કટૉપ ઍપ માટે સિસ્ટમ-વ્યાપી વર્ચ્યુઅલ માઈક્રોફોન. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "ડેસ્કટૉપ એપ ડાઉનલોડ કરો"
@@ -117,7 +117,7 @@
     "message": "બ્રાઉઝર પસંદ છે? Sokuji આ સાઇટ્સ પર કાર્ય કરે છે — ખોલવા ક્લિક કરો:"
   },
   "requestSiteLink": {
-    "message": "તમારી સાઇટ દેખાતી નથી? વિનંતી કરો →"
+    "message": "સાઇટ માટે વિનંતી કરો"
   },
   "learnMore": {
     "message": "વધુ જાણો →"

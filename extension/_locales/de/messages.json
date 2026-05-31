@@ -108,7 +108,7 @@
     "message": "In jeder App übersetzen"
   },
   "desktopCtaBody": {
-    "message": "Die Desktop-App fügt ein virtuelles Mikrofon hinzu, das systemweit funktioniert — mit OBS, YouTube, Twitch, nativen Desktop-Clients und jeder anderen App. Windows · macOS · Linux."
+    "message": "Ein systemweites virtuelles Mikrofon für OBS, YouTube, Twitch und jede Desktop-App. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Desktop-App herunterladen"
@@ -117,7 +117,7 @@
     "message": "Lieber den Browser? Sokuji funktioniert auf diesen Seiten — zum Öffnen klicken:"
   },
   "requestSiteLink": {
-    "message": "Ihre Website nicht dabei? Jetzt anfordern →"
+    "message": "Website vorschlagen"
   },
   "learnMore": {
     "message": "Mehr erfahren →"

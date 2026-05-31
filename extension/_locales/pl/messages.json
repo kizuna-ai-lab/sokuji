@@ -108,7 +108,7 @@
     "message": "Tłumacz w dowolnej aplikacji"
   },
   "desktopCtaBody": {
-    "message": "Aplikacja desktopowa dodaje wirtualny mikrofon działający w całym systemie — z OBS, YouTube, Twitch, natywnymi klientami desktopowymi i dowolną inną aplikacją. Windows · macOS · Linux."
+    "message": "Wirtualny mikrofon działający w całym systemie dla OBS, YouTube, Twitch i każdej aplikacji desktopowej. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Pobierz aplikację desktopową"
@@ -117,7 +117,7 @@
     "message": "Wolisz przeglądarkę? Sokuji działa na tych stronach — kliknij, aby otworzyć:"
   },
   "requestSiteLink": {
-    "message": "Nie widzisz swojej strony? Poproś o jej dodanie →"
+    "message": "Poproś o stronę"
   },
   "learnMore": {
     "message": "Dowiedz się więcej →"

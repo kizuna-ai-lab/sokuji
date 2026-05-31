@@ -108,7 +108,7 @@
     "message": "I-translate sa anumang app"
   },
   "desktopCtaBody": {
-    "message": "Ang desktop app ay nagdadagdag ng virtual na mikropono na gumagana sa buong system — kasama ang OBS, YouTube, Twitch, mga native na desktop client, at anumang iba pang app. Windows · macOS · Linux."
+    "message": "Isang system-wide na virtual na mikropono para sa OBS, YouTube, Twitch at anumang desktop app. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "I-download ang desktop app"
@@ -117,7 +117,7 @@
     "message": "Mas gusto ang browser? Gumagana ang Sokuji sa mga site na ito — i-click para buksan:"
   },
   "requestSiteLink": {
-    "message": "Hindi mo nakita ang iyong site? Hilingin ito →"
+    "message": "Humiling ng site"
   },
   "learnMore": {
     "message": "Matuto pa →"

@@ -108,7 +108,7 @@
     "message": "Prekladajte v ľubovoľnej aplikácii"
   },
   "desktopCtaBody": {
-    "message": "Desktopová aplikácia pridáva virtuálny mikrofón fungujúci na úrovni celého systému — s OBS, YouTube, Twitch, natívnymi desktopovými klientmi a ľubovoľnou inou aplikáciou. Windows · macOS · Linux."
+    "message": "Virtuálny mikrofón fungujúci na úrovni celého systému pre OBS, YouTube, Twitch a akúkoľvek desktopovú aplikáciu. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Stiahnuť desktopovú aplikáciu"
@@ -117,7 +117,7 @@
     "message": "Uprednostňujete prehliadač? Sokuji funguje na týchto stránkach — kliknutím otvorte:"
   },
   "requestSiteLink": {
-    "message": "Nevidíte svoju stránku? Požiadajte o jej pridanie →"
+    "message": "Požiadať o stránku"
   },
   "learnMore": {
     "message": "Zistiť viac →"

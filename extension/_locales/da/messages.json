@@ -108,7 +108,7 @@
     "message": "Oversæt i enhver app"
   },
   "desktopCtaBody": {
-    "message": "Desktop-appen tilføjer en virtuel mikrofon, der fungerer på tværs af hele systemet — med OBS, YouTube, Twitch, native desktop-klienter og enhver anden app. Windows · macOS · Linux."
+    "message": "En systemomfattende virtuel mikrofon til OBS, YouTube, Twitch og enhver desktop-app. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Download desktop-appen"
@@ -117,7 +117,7 @@
     "message": "Foretrækker du browseren? Sokuji virker på disse sider — klik for at åbne:"
   },
   "requestSiteLink": {
-    "message": "Kan du ikke se dit websted? Anmod om det →"
+    "message": "Anmod om et websted"
   },
   "learnMore": {
     "message": "Læs mere →"

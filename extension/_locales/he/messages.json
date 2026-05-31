@@ -108,7 +108,7 @@
     "message": "תרגם בכל אפליקציה"
   },
   "desktopCtaBody": {
-    "message": "אפליקציית שולחן העבודה מוסיפה מיקרופון וירטואלי שעובד ברחבי המערכת — עם OBS, YouTube, Twitch, לקוחות שולחן עבודה מקוריים וכל אפליקציה אחרת. Windows · macOS · Linux."
+    "message": "מיקרופון וירטואלי ברחבי המערכת עבור OBS, YouTube, Twitch וכל אפליקציית שולחן עבודה. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "הורד את אפליקציית שולחן העבודה"
@@ -117,7 +117,7 @@
     "message": "מעדיפ/ה את הדפדפן? Sokuji עובד באתרים האלו — לחץ/י לפתיחה:"
   },
   "requestSiteLink": {
-    "message": "לא רואה את האתר שלך? בקש/י את הוספתו →"
+    "message": "בקש/י אתר"
   },
   "learnMore": {
     "message": "למד/י עוד →"

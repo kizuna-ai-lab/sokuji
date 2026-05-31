@@ -108,7 +108,7 @@
     "message": "어떤 앱에서도 번역"
   },
   "desktopCtaBody": {
-    "message": "데스크톱 앱은 시스템 전체에서 작동하는 가상 마이크를 추가합니다 — OBS, YouTube, Twitch, 네이티브 데스크톱 클라이언트 및 다른 모든 앱과 함께 사용할 수 있습니다. Windows · macOS · Linux."
+    "message": "OBS, YouTube, Twitch 및 모든 데스크톱 앱을 위한 시스템 전체 가상 마이크. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "데스크톱 앱 다운로드"
@@ -117,7 +117,7 @@
     "message": "브라우저를 선호하시나요? Sokuji는 이 사이트들에서 작동합니다 — 클릭하여 열기:"
   },
   "requestSiteLink": {
-    "message": "원하는 사이트가 없나요? 요청하기 →"
+    "message": "사이트 요청"
   },
   "learnMore": {
     "message": "자세히 알아보기 →"

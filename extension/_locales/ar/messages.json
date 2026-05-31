@@ -108,7 +108,7 @@
     "message": "ترجم في أي تطبيق"
   },
   "desktopCtaBody": {
-    "message": "يضيف تطبيق سطح المكتب ميكروفونًا افتراضيًا يعمل على مستوى النظام بأكمله — مع OBS وYouTube وTwitch وعملاء سطح المكتب الأصليين وأي تطبيق آخر. Windows · macOS · Linux."
+    "message": "ميكروفون افتراضي على مستوى النظام لـ OBS وYouTube وTwitch وأي تطبيق سطح مكتب. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "تحميل تطبيق سطح المكتب"
@@ -117,7 +117,7 @@
     "message": "تفضّل المتصفح؟ Sokuji يعمل على هذه المواقع — انقر للفتح:"
   },
   "requestSiteLink": {
-    "message": "لا ترى موقعك؟ اطلب إضافته →"
+    "message": "طلب إضافة موقع"
   },
   "learnMore": {
     "message": "اعرف المزيد →"

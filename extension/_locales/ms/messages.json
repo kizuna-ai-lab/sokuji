@@ -108,7 +108,7 @@
     "message": "Terjemah dalam mana-mana apl"
   },
   "desktopCtaBody": {
-    "message": "Apl desktop menambah mikrofon maya yang berfungsi di seluruh sistem — dengan OBS, YouTube, Twitch, klien desktop asli, dan mana-mana apl lain. Windows · macOS · Linux."
+    "message": "Mikrofon maya sistem untuk OBS, YouTube, Twitch dan mana-mana apl desktop. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Muat turun apl desktop"
@@ -117,7 +117,7 @@
     "message": "Lebih suka penyemak imbas? Sokuji berfungsi di laman-laman ini — klik untuk buka:"
   },
   "requestSiteLink": {
-    "message": "Tidak nampak laman anda? Minta ia →"
+    "message": "Minta laman web"
   },
   "learnMore": {
     "message": "Ketahui lebih lanjut →"

@@ -108,7 +108,7 @@
     "message": "どんなアプリでも翻訳"
   },
   "desktopCtaBody": {
-    "message": "デスクトップアプリは、システム全体で動作する仮想マイクを追加します。OBS、YouTube、Twitch、ネイティブのデスクトップクライアントなど、あらゆるアプリで利用できます。Windows · macOS · Linux。"
+    "message": "OBS、YouTube、Twitch などあらゆるデスクトップアプリで使えるシステム全体の仮想マイク。Windows · macOS · Linux。"
   },
   "desktopCtaButton": {
     "message": "デスクトップアプリをダウンロード"
@@ -117,7 +117,7 @@
     "message": "ブラウザをご利用ですか？Sokujiは以下のサイトで動作します。クリックして開いてください："
   },
   "requestSiteLink": {
-    "message": "サイトが見つかりませんか？リクエストする →"
+    "message": "サイトをリクエスト"
   },
   "learnMore": {
     "message": "詳しく見る →"

@@ -108,7 +108,7 @@
     "message": "Traduceți în orice aplicație"
   },
   "desktopCtaBody": {
-    "message": "Aplicația desktop adaugă un microfon virtual care funcționează la nivelul întregului sistem — cu OBS, YouTube, Twitch, clienți desktop nativi și orice altă aplicație. Windows · macOS · Linux."
+    "message": "Un microfon virtual la nivel de sistem pentru OBS, YouTube, Twitch și orice aplicație desktop. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Descărcați aplicația desktop"
@@ -117,7 +117,7 @@
     "message": "Preferați browserul? Sokuji funcționează pe aceste site-uri — faceți clic pentru a deschide:"
   },
   "requestSiteLink": {
-    "message": "Nu vedeți site-ul dvs.? Solicitați-l →"
+    "message": "Solicitați un site"
   },
   "learnMore": {
     "message": "Aflați mai multe →"

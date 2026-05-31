@@ -108,7 +108,7 @@
     "message": "แปลภาษาในแอปใดก็ได้"
   },
   "desktopCtaBody": {
-    "message": "แอปเดสก์ท็อปเพิ่มไมโครโฟนเสมือนที่ทำงานทั่วทั้งระบบ — ใช้กับ OBS, YouTube, Twitch, ไคลเอนต์เดสก์ท็อปแบบเนทีฟ และแอปอื่นๆ ทุกชนิด Windows · macOS · Linux"
+    "message": "ไมโครโฟนเสมือนระดับระบบสำหรับ OBS, YouTube, Twitch และทุกแอปเดสก์ท็อป Windows · macOS · Linux"
   },
   "desktopCtaButton": {
     "message": "ดาวน์โหลดแอปเดสก์ท็อป"
@@ -117,7 +117,7 @@
     "message": "ชอบใช้เบราว์เซอร์? Sokuji รองรับเว็บไซต์เหล่านี้ — คลิกเพื่อเปิด:"
   },
   "requestSiteLink": {
-    "message": "ไม่เห็นเว็บไซต์ของคุณ? ส่งคำขอ →"
+    "message": "ขอเพิ่มเว็บไซต์"
   },
   "learnMore": {
     "message": "เรียนรู้เพิ่มเติม →"

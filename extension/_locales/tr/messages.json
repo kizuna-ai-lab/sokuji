@@ -108,7 +108,7 @@
     "message": "Her uygulamada çeviri yapın"
   },
   "desktopCtaBody": {
-    "message": "Masaüstü uygulama, sistem genelinde çalışan bir sanal mikrofon ekler — OBS, YouTube, Twitch, yerel masaüstü istemcileri ve diğer tüm uygulamalarla birlikte. Windows · macOS · Linux."
+    "message": "OBS, YouTube, Twitch ve her masaüstü uygulaması için sistem genelinde çalışan sanal mikrofon. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Masaüstü uygulamasını indir"
@@ -117,7 +117,7 @@
     "message": "Tarayıcıyı mı tercih ediyorsunuz? Sokuji bu sitelerde çalışır — açmak için tıklayın:"
   },
   "requestSiteLink": {
-    "message": "Sitenizi görmüyor musunuz? Talep edin →"
+    "message": "Site talep et"
   },
   "learnMore": {
     "message": "Daha fazla bilgi →"

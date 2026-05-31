@@ -108,7 +108,7 @@
     "message": "Traduza em qualquer aplicação"
   },
   "desktopCtaBody": {
-    "message": "A aplicação de ambiente de trabalho adiciona um microfone virtual que funciona em todo o sistema — com OBS, YouTube, Twitch, clientes de ambiente de trabalho nativos e qualquer outra aplicação. Windows · macOS · Linux."
+    "message": "Um microfone virtual a nível do sistema para OBS, YouTube, Twitch e qualquer aplicação de ambiente de trabalho. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Transferir a aplicação de ambiente de trabalho"
@@ -117,7 +117,7 @@
     "message": "Prefere o browser? O Sokuji funciona nestes sites — clique para abrir:"
   },
   "requestSiteLink": {
-    "message": "Não vê o seu site? Solicite-o →"
+    "message": "Solicitar um site"
   },
   "learnMore": {
     "message": "Saber mais →"

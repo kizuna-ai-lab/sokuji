@@ -108,7 +108,7 @@
     "message": "在任意应用中翻译"
   },
   "desktopCtaBody": {
-    "message": "桌面应用会添加一个系统级虚拟麦克风，适用于 OBS、YouTube、Twitch、原生桌面客户端以及任何其他应用。Windows · macOS · Linux。"
+    "message": "适用于 OBS、YouTube、Twitch 等任意桌面应用的系统级虚拟麦克风。Windows · macOS · Linux。"
   },
   "desktopCtaButton": {
     "message": "下载桌面应用"
@@ -117,7 +117,7 @@
     "message": "想用浏览器？Sokuji 支持以下网站，点击即可打开："
   },
   "requestSiteLink": {
-    "message": "没有你的网站？申请支持 →"
+    "message": "申请站点"
   },
   "learnMore": {
     "message": "了解更多 →"

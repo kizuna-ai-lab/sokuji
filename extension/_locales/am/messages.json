@@ -108,7 +108,7 @@
     "message": "በማንኛውም መተግበሪያ ተርጉም"
   },
   "desktopCtaBody": {
-    "message": "የዴስክቶፕ መተግበሪያ በስርዓቱ ሁሉ የሚሠራ ምናባዊ ማይክሮፎን ይጨምራል — OBS፣ YouTube፣ Twitch፣ ዴስክቶፕ ደንበኞች እና ሌሎች መተግበሪያዎች ጋር። Windows · macOS · Linux።"
+    "message": "ለOBS፣ YouTube፣ Twitch እና ማንኛውም ዴስክቶፕ አፕ ስርዓት-ሙሉ ምናባዊ ማይክሮፎን። Windows · macOS · Linux።"
   },
   "desktopCtaButton": {
     "message": "የዴስክቶፕ መተግበሪያ ያውርዱ"
@@ -117,7 +117,7 @@
     "message": "አሳሽ ይመርጣሉ? Sokuji ከዚህ በታች ባሉ ጣቢያዎች ይሠራል — ለመክፈት ይጫኑ፦"
   },
   "requestSiteLink": {
-    "message": "ጣቢያዎ አይታይም? ይጠይቁ →"
+    "message": "ጣቢያ ይጠይቁ"
   },
   "learnMore": {
     "message": "ተጨማሪ ይወቁ →"

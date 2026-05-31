@@ -108,7 +108,7 @@
     "message": "Tõlgi mis tahes rakenduses"
   },
   "desktopCtaBody": {
-    "message": "Töölauarakendus lisab virtuaalse mikrofoni, mis töötab kogu süsteemis — OBS-i, YouTube'i, Twitchi, natiivsete töölauaklientide ja mis tahes muu rakendusega. Windows · macOS · Linux."
+    "message": "Süsteemiülene virtuaalne mikrofon OBS-i, YouTube'i, Twitchi ja iga töölauarakenduse jaoks. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Laadi töölauarakendus alla"
@@ -117,7 +117,7 @@
     "message": "Eelistate brauserit? Sokuji töötab nendel saitidel — klõpsake avamiseks:"
   },
   "requestSiteLink": {
-    "message": "Ei näe oma saiti? Taotlege seda →"
+    "message": "Taotle saiti"
   },
   "learnMore": {
     "message": "Lisateave →"

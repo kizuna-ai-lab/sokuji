@@ -108,7 +108,7 @@
     "message": "Traduce en cualquier aplicación"
   },
   "desktopCtaBody": {
-    "message": "La aplicación de escritorio añade un micrófono virtual que funciona en todo el sistema: con OBS, YouTube, Twitch, clientes de escritorio nativos y cualquier otra aplicación. Windows · macOS · Linux."
+    "message": "Un micrófono virtual de todo el sistema para OBS, YouTube, Twitch y cualquier app de escritorio. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Descargar la app de escritorio"
@@ -117,7 +117,7 @@
     "message": "¿Prefieres el navegador? Sokuji funciona en estos sitios — haz clic para abrir:"
   },
   "requestSiteLink": {
-    "message": "¿No ves tu sitio? Solicítalo →"
+    "message": "Solicitar un sitio"
   },
   "learnMore": {
     "message": "Más información →"

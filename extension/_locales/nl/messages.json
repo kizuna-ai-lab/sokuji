@@ -108,7 +108,7 @@
     "message": "Vertaal in elke app"
   },
   "desktopCtaBody": {
-    "message": "De desktop-app voegt een virtuele microfoon toe die systeembreed werkt — met OBS, YouTube, Twitch, native desktop-clients en elke andere app. Windows · macOS · Linux."
+    "message": "Een systeembrede virtuele microfoon voor OBS, YouTube, Twitch en elke desktop-app. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Desktop-app downloaden"
@@ -117,7 +117,7 @@
     "message": "Liever de browser? Sokuji werkt op deze sites — klik om te openen:"
   },
   "requestSiteLink": {
-    "message": "Uw site niet zien? Verzoek het →"
+    "message": "Vraag een site aan"
   },
   "learnMore": {
     "message": "Meer informatie →"

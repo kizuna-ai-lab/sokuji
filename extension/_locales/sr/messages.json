@@ -108,7 +108,7 @@
     "message": "Prevedite u bilo kojoj aplikaciji"
   },
   "desktopCtaBody": {
-    "message": "Aplikacija za radnu površinu dodaje virtuelni mikrofon koji radi na nivou celog sistema — sa OBS, YouTube, Twitch, nativnim desktop klijentima i bilo kojom drugom aplikacijom. Windows · macOS · Linux."
+    "message": "Virtuelni mikrofon na nivou sistema za OBS, YouTube, Twitch i bilo koju desktop aplikaciju. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Preuzmite aplikaciju za radnu površinu"
@@ -117,7 +117,7 @@
     "message": "Više volite pregledač? Sokuji radi na ovim sajtovima — kliknite za otvaranje:"
   },
   "requestSiteLink": {
-    "message": "Ne vidite vaš sajt? Zatražite ga →"
+    "message": "Zatražite sajt"
   },
   "learnMore": {
     "message": "Saznajte više →"

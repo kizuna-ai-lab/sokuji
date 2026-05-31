@@ -108,7 +108,7 @@
     "message": "Fordítson bármely alkalmazásban"
   },
   "desktopCtaBody": {
-    "message": "Az asztali alkalmazás rendszerszintű virtuális mikrofont ad hozzá — OBS-sel, YouTube-bal, Twitch-csel, natív asztali kliensekkel és bármely más alkalmazással. Windows · macOS · Linux."
+    "message": "Rendszerszintű virtuális mikrofon OBS-hez, YouTube-hoz, Twitch-hez és bármely asztali alkalmazáshoz. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Töltse le az asztali alkalmazást"
@@ -117,7 +117,7 @@
     "message": "A böngészőt részesíti előnyben? A Sokuji működik ezeken az oldalakon — kattintson a megnyitáshoz:"
   },
   "requestSiteLink": {
-    "message": "Nem látja az oldalát? Kérje hozzáadását →"
+    "message": "Oldal kérése"
   },
   "learnMore": {
     "message": "Tudjon meg többet →"

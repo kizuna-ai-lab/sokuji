@@ -108,7 +108,7 @@
     "message": "در هر برنامه‌ای ترجمه کنید"
   },
   "desktopCtaBody": {
-    "message": "برنامه دسکتاپ یک میکروفون مجازی اضافه می‌کند که در سطح کل سیستم کار می‌کند — با OBS، YouTube، Twitch، کلاینت‌های دسکتاپ بومی و هر برنامه دیگری. Windows · macOS · Linux."
+    "message": "یک میکروفون مجازی در سطح کل سیستم برای OBS، YouTube، Twitch و هر برنامه دسکتاپ. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "دانلود برنامه دسکتاپ"
@@ -117,7 +117,7 @@
     "message": "مرورگر را ترجیح می‌دهید؟ Sokuji در این سایت‌ها کار می‌کند — برای باز کردن کلیک کنید:"
   },
   "requestSiteLink": {
-    "message": "سایت خود را نمی‌بینید؟ درخواست دهید →"
+    "message": "درخواست سایت"
   },
   "learnMore": {
     "message": "بیشتر بدانید →"

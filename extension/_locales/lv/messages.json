@@ -108,7 +108,7 @@
     "message": "Tulkojiet jebkurā lietotnē"
   },
   "desktopCtaBody": {
-    "message": "Darbvirsmas lietotne pievieno virtuālu mikrofonu, kas darbojas visā sistēmā — ar OBS, YouTube, Twitch, vietējiem darbvirsmas klientiem un jebkuru citu lietotni. Windows · macOS · Linux."
+    "message": "Sistēmas mēroga virtuāls mikrofons OBS, YouTube, Twitch un jebkurai darbvirsmas lietotnei. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Lejupielādēt darbvirsmas lietotni"
@@ -117,7 +117,7 @@
     "message": "Dodat priekšroku pārlūkprogrammai? Sokuji darbojas šajās vietnēs — noklikšķiniet, lai atvērtu:"
   },
   "requestSiteLink": {
-    "message": "Neredzat savu vietni? Pieprasiet to →"
+    "message": "Pieprasīt vietni"
   },
   "learnMore": {
     "message": "Uzzināt vairāk →"

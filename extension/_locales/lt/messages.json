@@ -108,7 +108,7 @@
     "message": "Versti bet kurioje programėlėje"
   },
   "desktopCtaBody": {
-    "message": "Darbalaukio programėlė prideda virtualų mikrofoną, veikiantį visoje sistemoje — su OBS, YouTube, Twitch, vietiniais darbalaukio klientais ir bet kuria kita programėle. Windows · macOS · Linux."
+    "message": "Visos sistemos virtualus mikrofonas OBS, YouTube, Twitch ir bet kuriai darbalaukio programėlei. Windows · macOS · Linux."
   },
   "desktopCtaButton": {
     "message": "Atsisiųsti darbalaukio programėlę"
@@ -117,7 +117,7 @@
     "message": "Teikiate pirmenybę naršyklei? Sokuji veikia šiose svetainėse — spustelėkite, kad atidarytumėte:"
   },
   "requestSiteLink": {
-    "message": "Nematote savo svetainės? Paprašykite jos →"
+    "message": "Paprašyti svetainės"
   },
   "learnMore": {
     "message": "Sužinokite daugiau →"
