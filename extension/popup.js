@@ -371,6 +371,18 @@ function renderUnsupportedFirstHtml(headlineHtml) {
 function setupUnsupportedHandlers(source, hostname) {
   const trackingHostname = hostname || 'unknown';
 
+  // These states stand on their own (the headline already says "Sokuji" and they
+  // carry their own in-content footer links), so hide the global header and the
+  // store-link footer here. Both remain for the supported state.
+  const header = document.querySelector('.header');
+  if (header) {
+    header.style.display = 'none';
+  }
+  const storeFooter = document.querySelector('.footer');
+  if (storeFooter) {
+    storeFooter.style.display = 'none';
+  }
+
   const downloadBtn = document.getElementById('downloadDesktop');
   if (downloadBtn) {
     downloadBtn.addEventListener('click', () => {

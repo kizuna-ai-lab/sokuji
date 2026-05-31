@@ -275,8 +275,8 @@ body {
 }
 
 .cta-card {
-  background-color: #f5f3ff;
-  border: 1px solid #667eea;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 16px;
@@ -298,6 +298,13 @@ body {
 
 .cta-card-button {
   width: 100%;
+  /* Brand primary action color (overrides .primary-button's purple gradient,
+     which is kept for the supported-state "Open Sokuji" button). */
+  background: #10a37f;
+}
+
+.cta-card-button:hover {
+  box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
 }
 
 .browser-sites-heading {
@@ -308,8 +315,8 @@ body {
 
 .popup-footer-links {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid #e5e5e5;
@@ -317,8 +324,16 @@ body {
 
 .popup-footer-links a {
   font-size: 12px;
-  color: #667eea;
   text-decoration: none;
+}
+
+/* left link (request a site): muted; right link (learn more): brand green to match the button */
+.popup-footer-links a:first-child {
+  color: #64748b;
+}
+
+.popup-footer-links a:last-child {
+  color: #10a37f;
 }
 
 .popup-footer-links a:hover {
