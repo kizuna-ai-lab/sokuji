@@ -664,6 +664,13 @@ function createLocalInferenceSessionConfig(
   };
 }
 
+/** Migrate a persisted legacy 'kizunaai' provider value to the relay twin.
+ *  The realtime KizunaAI provider was replaced by two relay-managed providers;
+ *  default existing users to the Translate twin. */
+export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
+  return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
+}
+
 /**
  * Resolve the worker type for a specific translation model id.
  * Returns 'opus-mt' when the id is missing or not in the manifest.
@@ -1499,7 +1506,10 @@ const useSettingsStore = create<SettingsStore>()(
         const service = ServiceFactory.getSettingsService();
 
         // Load common settings
-        const provider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
+        const persistedProvider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
+        // Migrate legacy realtime 'kizunaai' to the relay-managed Translate twin
+        // before validation, so stranded users land on a supported provider.
+        const provider = migrateLegacyKizunaProvider(persistedProvider);
         const uiLanguage = await service.getSetting('settings.common.uiLanguage', defaultCommonSettings.uiLanguage);
         const uiMode = await service.getSetting('settings.common.uiMode', defaultCommonSettings.uiMode);
         const systemInstructions = await service.getSetting('settings.common.systemInstructions', defaultCommonSettings.systemInstructions);
