@@ -1121,6 +1121,10 @@ const useSettingsStore = create<SettingsStore>()(
 
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
+        // The relay twin authenticates with a short-lived Better Auth session token,
+        // injected at validate/connect time — never the user-managed `apiKey`. Never
+        // persist `apiKey` to settings storage, even if one is set programmatically.
+        if (key === 'apiKey') continue;
         await service.setSetting(`settings.kizunaOpenaiTranslate.${key}`, value);
       }
     },
@@ -1130,6 +1134,10 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         const service = ServiceFactory.getSettingsService();
         for (const [key, value] of Object.entries(settings)) {
+          // The relay supplies the real Doubao credentials server-side; `appId` /
+          // `accessToken` are user-managed fields that must never be persisted for
+          // the relay twin (avoids storing stale or sensitive credential values).
+          if (key === 'appId' || key === 'accessToken') continue;
           await service.setSetting(`settings.kizunaVolcengineAst2.${key}`, value);
         }
       } catch (error) {
@@ -1219,8 +1227,21 @@ const useSettingsStore = create<SettingsStore>()(
 
       // For KizunaAI, ensure we have an API key first
       if (isKizunaManagedProvider(provider)) {
-        const hasKey = await state.ensureKizunaApiKey(getAuthToken!, true);
+        const hasKey = getAuthToken
+          ? await state.ensureKizunaApiKey(getAuthToken, true)
+          : false;
         if (!hasKey) {
+          // Signed out or token unavailable: clear any stale validity so a
+          // previously-valid signed-in state can't keep Start enabled. Without
+          // this reset the UI would only discover the missing auth at connect time.
+          set({
+            isApiKeyValid: false,
+            availableModels: [],
+            validationMessage: state.kizunaKeyError || 'Sign in is required for Kizuna relay providers',
+            isValidating: false,
+            isValidated: false,
+            validationError: null
+          });
           return {
             valid: false,
             message: state.kizunaKeyError || 'Failed to fetch Kizuna AI API key',

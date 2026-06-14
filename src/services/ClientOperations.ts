@@ -99,6 +99,19 @@ export class ClientOperations {
         // signed-in user (non-empty token) validates statically without a network
         // request — sending the session token to the public provider endpoint would
         // fail. Return the twin's static single model.
+        // An empty token means the user is signed out: reject so a signed-out state
+        // isn't cached as a successful validation (which would only fail later when
+        // the relay rejects the WebSocket connection).
+        if (!apiKey) {
+          return {
+            validation: {
+              valid: false,
+              message: 'Sign in is required for Kizuna relay providers',
+              validating: false
+            },
+            models: []
+          };
+        }
         return {
           validation: { valid: true, message: '', validating: false },
           models: [{

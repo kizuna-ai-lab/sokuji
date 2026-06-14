@@ -11,7 +11,7 @@ import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_M
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
-import { isElectron } from '../../utils/environment';
+import { isElectron, isKizunaAIEnabled } from '../../utils/environment';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
@@ -153,8 +153,10 @@ const MainLayout: React.FC = () => {
   useEffect(() => {
     // Check if user just logged in (was false, now true)
     if (!prevIsSignedInRef.current && isSignedIn) {
-      // User just logged in
-      if (uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
+      // User just logged in. Only auto-switch when the Kizuna twins are actually
+      // registered (isKizunaAIEnabled); otherwise we'd strand non-Kizuna builds on
+      // a provider that ProviderConfigFactory/ClientFactory never registered.
+      if (isKizunaAIEnabled() && uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
         // User is in Basic Mode and not using a Kizuna-managed provider; switch
         // to the default relay-managed provider (the Translate twin).
         setProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE);

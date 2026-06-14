@@ -59,7 +59,9 @@ export function SettingsInitializer() {
   // ── KizunaAI: auto-fetch API key when user logs in or provider changes ──
   useEffect(() => {
     const handleKizunaAI = async () => {
-      if (isKizunaManagedProvider(provider) && isSignedIn && getToken) {
+      if (!isKizunaManagedProvider(provider)) return;
+
+      if (isSignedIn && getToken) {
         console.log('[SettingsInitializer] KizunaAI provider selected, ensuring API key...');
         const hasKey = await ensureKizunaApiKey(getToken, isSignedIn);
 
@@ -71,6 +73,18 @@ export function SettingsInitializer() {
           } finally {
             isValidatingRef.current = false;
           }
+        }
+      } else if (!isValidatingRef.current) {
+        // Kizuna twin selected but auth is missing (signed out or hook not ready).
+        // Re-run validation so the store clears isApiKeyValid/availableModels;
+        // otherwise a stale signed-in validity would keep Start enabled until a
+        // later connect attempt fails with an empty session token.
+        isValidatingRef.current = true;
+        console.log('[SettingsInitializer] KizunaAI provider selected without auth, clearing validity...');
+        try {
+          await validateApiKey(getToken);
+        } finally {
+          isValidatingRef.current = false;
         }
       }
     };
