@@ -10,7 +10,7 @@ import { VolcengineSTClient } from './VolcengineSTClient';
 import { VolcengineAST2Client } from './VolcengineAST2Client';
 import { LocalInferenceClient } from './LocalInferenceClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getApiUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
+import { getApiUrl, getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
 
 /**
@@ -119,6 +119,18 @@ export class ClientFactory {
         // Use environment-specific backend URL
         // Note: WebRTC is not yet supported for Kizuna AI (would require backend proxy)
         return new OpenAIClient(apiKey, getApiUrl());
+
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        if (!isKizunaAIEnabled()) {
+          throw new Error(`Provider ${provider} is not available in this build`);
+        }
+        return new OpenAITranslateGAClient(apiKey, { wsUrl: `${getRelayWsUrl()}/realtime/translations` });
+
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        if (!isKizunaAIEnabled()) {
+          throw new Error(`Provider ${provider} is not available in this build`);
+        }
+        return new VolcengineAST2Client('', '', undefined, { wsUrl: `${getRelayWsUrl()}/ast/translate`, sessionToken: apiKey });
 
       case Provider.VOLCENGINE_ST:
         // Check if Volcengine ST is enabled before creating the client
