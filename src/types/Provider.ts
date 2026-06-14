@@ -12,6 +12,8 @@ export enum Provider {
   GEMINI = 'gemini',
   PALABRA_AI = 'palabraai',
   KIZUNA_AI = 'kizunaai',
+  KIZUNA_AI_OPENAI_TRANSLATE = 'kizunaai_openai_translate',
+  KIZUNA_AI_VOLCENGINE_AST2 = 'kizunaai_volcengine_ast2',
   OPENAI_COMPATIBLE = 'openai_compatible',
   OPENAI_TRANSLATE = 'openai_translate',
   VOLCENGINE_ST = 'volcengine_st',
@@ -22,7 +24,7 @@ export enum Provider {
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
 
 /**
  * Array of all supported providers
@@ -35,7 +37,7 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.GEMINI,
   Provider.LOCAL_INFERENCE,
   ...(isPalabraAIEnabled() ? [Provider.PALABRA_AI] : []),
-  ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
+  ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI_OPENAI_TRANSLATE, Provider.KIZUNA_AI_VOLCENGINE_AST2] : []),
   ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
   ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
   Provider.OPENAI_COMPATIBLE,
@@ -90,4 +92,15 @@ export function getProviderDisplayName(provider: ProviderType): string {
     default:
       return provider;
   }
-} 
+}
+
+export function isKizunaManagedProvider(p: Provider): boolean {
+  return p === Provider.KIZUNA_AI_OPENAI_TRANSLATE || p === Provider.KIZUNA_AI_VOLCENGINE_AST2;
+}
+
+/** The user-managed base provider whose behavior/UI a kizuna-managed twin reuses. */
+export function kizunaBaseProvider(p: Provider): Provider | undefined {
+  if (p === Provider.KIZUNA_AI_OPENAI_TRANSLATE) return Provider.OPENAI_TRANSLATE;
+  if (p === Provider.KIZUNA_AI_VOLCENGINE_AST2) return Provider.VOLCENGINE_AST2;
+  return undefined;
+}
