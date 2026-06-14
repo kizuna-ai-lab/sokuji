@@ -104,3 +104,24 @@ describe('VolcengineAST2Client — item IDs are unique across instances', () => 
     expect(overlap).toEqual([]);
   });
 });
+
+describe("VolcengineAST2Client relay mode", () => {
+  it("connects to the relay URL with sokuji-auth and no header injection", async () => {
+    const captured: { url?: string; protocols?: any } = {};
+    const FakeWS: any = vi.fn(function (this: any, url: string, protocols?: any) {
+      captured.url = url; captured.protocols = protocols;
+      this.readyState = 0; this.binaryType = ""; this.send = vi.fn(); this.close = vi.fn(); this.addEventListener = vi.fn();
+    });
+    FakeWS.OPEN = 1;
+    const orig = globalThis.WebSocket;
+    (globalThis as any).WebSocket = FakeWS;
+    try {
+      const client = new VolcengineAST2Client("", "", undefined, { wsUrl: "wss://r.example/v1/ast/translate", sessionToken: "sess_TOKEN" });
+      client.connect({ provider: "volcengine_ast2", model: "ast-v2-s2s", sourceLanguage: "zh", targetLanguage: "en" } as any).catch(() => {});
+      await new Promise((r) => setTimeout(r, 5));
+      expect(captured.url).toBe("wss://r.example/v1/ast/translate");
+      const protos = Array.isArray(captured.protocols) ? captured.protocols : [captured.protocols];
+      expect(protos).toContain("sokuji-auth.sess_TOKEN");
+    } finally { (globalThis as any).WebSocket = orig; }
+  });
+});

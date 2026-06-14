@@ -131,10 +131,19 @@ export class VolcengineAST2Client implements IClient {
    */
   private keepReplayAudio: boolean = false;
 
-  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053') {
+  /**
+   * Relay mode config. When set, connect() bypasses all platform header
+   * injection and instead opens the WebSocket against `wsUrl` with a
+   * `sokuji-auth.<sessionToken>` subprotocol; the relay server injects the
+   * X-Api-* auth headers server-side.
+   */
+  private relay?: { wsUrl: string; sessionToken: string };
+
+  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053', relay?: { wsUrl: string; sessionToken: string }) {
     this.appId = appId;
     this.accessToken = accessToken;
     this.resourceId = resourceId;
+    this.relay = relay;
   }
 
   private generateItemId(prefix: string): string {
@@ -163,6 +172,10 @@ export class VolcengineAST2Client implements IClient {
     this.lastCompletedTranslationItemId = null;
     this.lastResponseSequence = -1;
     this.ttsSentenceTargetItemId = null;
+
+    if (this.relay) {
+      return this.connectViaRelay();
+    }
 
     if (isElectron() && window.electron?.invoke) {
       return this.connectViaElectronHeaderInjection();
@@ -269,9 +282,41 @@ export class VolcengineAST2Client implements IClient {
     return new Promise((resolve, reject) => {
       try {
         this.websocket = new WebSocket(WS_ENDPOINT);
-        this.websocket.binaryType = 'arraybuffer';
+        this.wireWebSocket(resolve, reject);
+      } catch (error) {
+        console.error('[VolcengineAST2Client] Connection error:', error);
+        reject(error);
+      }
+    });
+  }
 
-        this.websocket.onopen = () => {
+  // ─── Relay mode: relay server injects headers, we auth via subprotocol ───
+  private connectViaRelay(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        // Relay sets X-Api-* auth server-side; we authenticate via the subprotocol.
+        // No platform header injection (Electron webRequest / Extension DNR) is used.
+        this.websocket = new WebSocket(this.relay!.wsUrl, ['sokuji-auth.' + this.relay!.sessionToken]);
+        this.wireWebSocket(resolve, reject);
+      } catch (error) {
+        console.error('[VolcengineAST2Client] Connection error:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Wire an already-constructed WebSocket: binaryType, event handlers,
+   * connection timeout, and the SessionStarted-gated resolve/reject. Shared
+   * by the normal browser path (Electron/Extension/web) and relay mode so the
+   * onopen/onmessage/onerror/onclose/keepalive/config-send behavior is
+   * identical regardless of how the socket URL/subprotocol was chosen.
+   */
+  private wireWebSocket(resolve: () => void, reject: (error: Error) => void): void {
+    if (!this.websocket) return;
+    this.websocket.binaryType = 'arraybuffer';
+
+    this.websocket.onopen = () => {
           console.log('[VolcengineAST2Client] WebSocket connected');
           this.isConnectedState = true;
 
@@ -344,12 +389,6 @@ export class VolcengineAST2Client implements IClient {
           clearTimeout(connectionTimer);
           reject(error);
         };
-
-      } catch (error) {
-        console.error('[VolcengineAST2Client] Connection error:', error);
-        reject(error);
-      }
-    });
   }
 
   private sendStartSession(): void {
