@@ -336,6 +336,10 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
   glossaryTableId: '',
 };
 
+// Relay-managed KizunaAI twins reuse the existing OpenAI-translate / Volcengine-AST2 slices.
+const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
+const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...defaultVolcengineAST2Settings };
+
 const defaultLocalInferenceSettings: LocalInferenceSettings = {
   asrModel: 'sensevoice-int8',
   translationModel: '',  // Auto-select based on language pair
@@ -376,6 +380,8 @@ interface SettingsStore {
   openaiTranslate: OpenAITranslateSettings;
   volcengineST: VolcengineSTSettings;
   volcengineAST2: VolcengineAST2Settings;
+  kizunaOpenaiTranslate: OpenAITranslateSettings;
+  kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
 
   // Validation state
@@ -457,6 +463,8 @@ interface SettingsStore {
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
+  updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
+  updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
 
   // Async actions
@@ -794,6 +802,8 @@ const useSettingsStore = create<SettingsStore>()(
     openaiTranslate: defaultOpenAITranslateSettings,
     volcengineST: defaultVolcengineSTSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
+    kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
+    kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
 
     isApiKeyValid: null,
@@ -1127,6 +1137,30 @@ const useSettingsStore = create<SettingsStore>()(
         }
       } catch (error) {
         console.error('[SettingsStore] Error persisting Volcengine AST2 settings:', error);
+      }
+    },
+
+    updateKizunaOpenaiTranslate: async (settings) => {
+      set((state) => {
+        const updatedSettings = { ...state.kizunaOpenaiTranslate, ...settings };
+        return { kizunaOpenaiTranslate: updatedSettings };
+      });
+
+      const service = ServiceFactory.getSettingsService();
+      for (const [key, value] of Object.entries(settings)) {
+        await service.setSetting(`settings.kizunaOpenaiTranslate.${key}`, value);
+      }
+    },
+
+    updateKizunaVolcengineAst2: async (settings) => {
+      set((state) => ({kizunaVolcengineAst2: {...state.kizunaVolcengineAst2, ...settings}}));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.kizunaVolcengineAst2.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Kizuna Volcengine AST2 settings:', error);
       }
     },
 
@@ -1490,7 +1524,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2, localInference, openaiTranslate] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -1500,6 +1534,8 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
           loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
+          loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings),
+          loadProviderSettings('settings.kizunaVolcengineAst2', defaultKizunaVolcengineAst2Settings),
         ]);
 
         set({
@@ -1523,6 +1559,8 @@ const useSettingsStore = create<SettingsStore>()(
           volcengineAST2,
           localInference,
           openaiTranslate,
+          kizunaOpenaiTranslate,
+          kizunaVolcengineAst2,
           settingsLoaded: true,
         });
 
@@ -1560,6 +1598,10 @@ const useSettingsStore = create<SettingsStore>()(
           return state.volcengineST;
         case Provider.VOLCENGINE_AST2:
           return state.volcengineAST2;
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+          return state.kizunaOpenaiTranslate;
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          return state.kizunaVolcengineAst2;
         case Provider.LOCAL_INFERENCE:
           return state.localInference;
         default:
@@ -1652,6 +1694,12 @@ const useSettingsStore = create<SettingsStore>()(
         case Provider.VOLCENGINE_AST2:
           config = createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
           break;
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+          config = createOpenAITranslateSessionConfig(state.kizunaOpenaiTranslate, systemInstructions);
+          break;
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          config = createVolcengineAST2SessionConfig(state.kizunaVolcengineAst2, systemInstructions);
+          break;
         case Provider.LOCAL_INFERENCE:
           config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
           break;
@@ -1700,6 +1748,8 @@ export const useKizunaAISettings = () => useSettingsStore((state) => state.kizun
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
+export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
+export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 
 // Transport type selector (for OpenAI provider)
@@ -1748,6 +1798,8 @@ export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateK
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
+export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
+export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
@@ -1790,4 +1842,5 @@ export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state
   }
 });
 
+export { useSettingsStore };
 export default useSettingsStore;
