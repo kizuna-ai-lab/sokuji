@@ -92,6 +92,21 @@ export class ClientOperations {
           };
         }
         return await VolcengineAST2Client.validateApiKeyAndFetchModels(apiKey, clientSecret);
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        // Backend-managed (relay) twins: the "apiKey" is a Better Auth session token,
+        // not a provider key. The relay enforces real auth at connect time, so a
+        // signed-in user (non-empty token) validates statically without a network
+        // request — sending the session token to the public provider endpoint would
+        // fail. Return the twin's static single model.
+        return {
+          validation: { valid: true, message: '', validating: false },
+          models: [{
+            id: ClientOperations.getLatestRealtimeModel([], provider),
+            type: 'realtime',
+            created: Date.now() / 1000
+          }]
+        };
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -118,6 +133,12 @@ export class ClientOperations {
         // Volcengine ST has a fixed model for speech translation
         return 'speech-translate-v1';
       case Provider.VOLCENGINE_AST2:
+        return 'ast-v2-s2s';
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        // Relay twin of OpenAI Translate — fixed single model.
+        return filteredModels[0]?.id ?? 'gpt-realtime-translate';
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        // Relay twin of Doubao AST 2.0 — fixed single model.
         return 'ast-v2-s2s';
       default:
         throw new Error(`Unsupported provider: ${provider}`);
