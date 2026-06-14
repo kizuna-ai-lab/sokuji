@@ -71,11 +71,11 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI Translate",
-      "description": "即時翻譯，透過你的帳戶進行驗證"
+      "description": "即時翻譯，透過您的帳戶進行驗證"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI Doubao",
-      "description": "端到端語音翻譯，透過你的帳戶進行驗證"
+      "description": "語音到語音翻譯，透過您的帳戶進行驗證"
     },
     "openai": {
       "name": "OpenAI",
