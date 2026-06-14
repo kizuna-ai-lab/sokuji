@@ -9,7 +9,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
@@ -21,7 +20,6 @@ import {
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateKizunaAI,
   useUpdateOpenAITranslate,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
@@ -74,7 +72,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
@@ -99,7 +96,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateKizunaAISettings = useUpdateKizunaAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
@@ -141,8 +137,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return openAICompatibleSettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
-      case Provider.KIZUNA_AI:
-        return kizunaAISettings;
       case Provider.OPENAI_TRANSLATE:
         return openAITranslateSettings;
       case Provider.VOLCENGINE_ST:
@@ -158,7 +152,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -174,9 +168,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ sourceLanguage: value });
-        break;
-      case Provider.KIZUNA_AI:
-        updateKizunaAISettings({ sourceLanguage: value });
         break;
       case Provider.OPENAI_TRANSLATE:
         // Source language is UI-only for translate (auto-detected by API).
@@ -251,9 +242,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ targetLanguage: value });
-        break;
-      case Provider.KIZUNA_AI:
-        updateKizunaAISettings({ targetLanguage: value });
         break;
       case Provider.OPENAI_TRANSLATE:
         updateOpenAITranslateSettings({ targetLanguage: value as any });

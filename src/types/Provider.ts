@@ -11,7 +11,6 @@ export enum Provider {
   OPENAI = 'openai',
   GEMINI = 'gemini',
   PALABRA_AI = 'palabraai',
-  KIZUNA_AI = 'kizunaai',
   KIZUNA_AI_OPENAI_TRANSLATE = 'kizunaai_openai_translate',
   KIZUNA_AI_VOLCENGINE_AST2 = 'kizunaai_volcengine_ast2',
   OPENAI_COMPATIBLE = 'openai_compatible',
@@ -24,7 +23,7 @@ export enum Provider {
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
 
 /**
  * Array of all supported providers
@@ -49,7 +48,6 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
 export const OPENAI_COMPATIBLE_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
   Provider.OPENAI_COMPATIBLE,
-  ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : [])
 ];
 
 /**
@@ -79,8 +77,6 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'Gemini';
     case Provider.PALABRA_AI:
       return 'PalabraAI';
-    case Provider.KIZUNA_AI:
-      return 'KizunaAI';
     case Provider.OPENAI_COMPATIBLE:
       return 'OpenAI Compatible API';
     case Provider.VOLCENGINE_ST:

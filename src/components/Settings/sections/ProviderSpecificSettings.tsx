@@ -13,7 +13,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -28,7 +27,6 @@ import {
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateKizunaAI,
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
@@ -50,7 +48,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
-import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../../types/Provider';
+import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
@@ -105,7 +103,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -123,7 +120,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateKizunaAISettings = useUpdateKizunaAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
@@ -386,8 +382,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings({ [key]: value });
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       updateOpenAICompatibleSettings({ [key]: value });
-    } else if (provider === Provider.KIZUNA_AI) {
-      updateKizunaAISettings({ [key]: value });
     } else if (provider === Provider.GEMINI) {
       updateGeminiSettings({ [key]: value });
     } else if (provider === Provider.PALABRA_AI) {
@@ -423,8 +417,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return openAISettings;
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       return openAICompatibleSettings;
-    } else if (provider === Provider.KIZUNA_AI) {
-      return kizunaAISettings;
     } else if (effectiveProvider === Provider.OPENAI_TRANSLATE) {
       // Covers OPENAI_TRANSLATE and its kizuna twin; activeOpenAITranslateSettings
       // resolves to the kizuna slice when managed.
@@ -438,8 +430,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings(updates);
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       updateOpenAICompatibleSettings(updates);
-    } else if (provider === Provider.KIZUNA_AI) {
-      updateKizunaAISettings(updates);
     } else if (effectiveProvider === Provider.OPENAI_TRANSLATE) {
       updateActiveOpenAITranslateSettings(updates);
     }
@@ -717,8 +707,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     const handleRefreshModels = async () => {
       try {
-        // Pass getAuthToken for Kizuna AI provider
-        const getAuthToken = provider === Provider.KIZUNA_AI && getToken ? 
+        // Pass getAuthToken for Kizuna-managed (relay) providers
+        const getAuthToken = isKizunaManagedProvider(provider) && getToken ?
           () => getToken() : undefined;
         
         await fetchAvailableModels(getAuthToken);

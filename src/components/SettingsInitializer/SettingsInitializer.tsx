@@ -15,7 +15,7 @@ import {
 import useSettingsStore from '../../stores/settingsStore';
 import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
 import { useAuth } from '../../lib/auth/hooks';
-import { Provider } from '../../types/Provider';
+import { Provider, isKizunaManagedProvider } from '../../types/Provider';
 import { getEdgeTtsVoices, filterVoicesByLanguage } from '../../lib/edge-tts/voiceList';
 
 /**
@@ -59,7 +59,7 @@ export function SettingsInitializer() {
   // ── KizunaAI: auto-fetch API key when user logs in or provider changes ──
   useEffect(() => {
     const handleKizunaAI = async () => {
-      if (provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
+      if (isKizunaManagedProvider(provider) && isSignedIn && getToken) {
         console.log('[SettingsInitializer] KizunaAI provider selected, ensuring API key...');
         const hasKey = await ensureKizunaApiKey(getToken, isSignedIn);
 
@@ -81,8 +81,9 @@ export function SettingsInitializer() {
   // ── API providers: validate when provider changes or credentials change ──
   useEffect(() => {
     if (!settingsLoaded) return;
-    // Skip LOCAL_INFERENCE (handled by the next effect) and KizunaAI (handled above)
-    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.KIZUNA_AI) return;
+    // Skip LOCAL_INFERENCE (handled by the next effect) and Kizuna-managed
+    // providers (handled above)
+    if (provider === Provider.LOCAL_INFERENCE || isKizunaManagedProvider(provider)) return;
 
     prevProviderRef.current = provider;
 

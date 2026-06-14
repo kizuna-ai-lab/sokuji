@@ -7,7 +7,6 @@ import { VolcengineAST2Client } from './clients/VolcengineAST2Client';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
-import { getApiUrl } from '../utils/environment';
 
 /**
  * Utility class for client operations
@@ -67,13 +66,6 @@ export class ClientOperations {
             created: Date.now() / 1000 // Current timestamp
           }] // PalabraAI default model
         };
-      case Provider.KIZUNA_AI:
-        // KizunaAI is OpenAI-compatible, use OpenAIClient with proxy
-        // Use environment-specific backend URL
-        return await OpenAIClient.validateApiKeyAndFetchModels(
-          apiKey,
-          getApiUrl()
-        );
       case Provider.VOLCENGINE_ST:
         // Volcengine ST requires both Access Key ID and Secret Access Key
         if (!clientSecret || !apiKey) {
@@ -122,9 +114,6 @@ export class ClientOperations {
       case Provider.PALABRA_AI:
         // PalabraAI doesn't have model selection, return a default identifier
         return 'realtime-translation';
-      case Provider.KIZUNA_AI:
-        // KizunaAI uses the same model detection logic as OpenAI
-        return OpenAIClient.getLatestRealtimeModel(filteredModels);
       case Provider.VOLCENGINE_ST:
         // Volcengine ST has a fixed model for speech translation
         return 'speech-translate-v1';

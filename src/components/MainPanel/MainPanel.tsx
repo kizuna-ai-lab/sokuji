@@ -9,7 +9,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -56,7 +55,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible } from '../../types/Provider';
+import { Provider, isOpenAICompatible, isKizunaManagedProvider } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
@@ -257,7 +256,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -325,7 +323,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.KIZUNA_AI ||
            provider === Provider.LOCAL_INFERENCE;
   }, [provider]);
 
@@ -348,7 +345,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
   // Balance validation for Kizuna AI
-  const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
+  const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
     (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).
@@ -1442,10 +1439,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.OPENAI_COMPATIBLE:
           apiKey = openAICompatibleSettings.apiKey;
           break;
-        case Provider.KIZUNA_AI:
         case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-          // For Kizuna AI (and relay-managed providers), fetch a fresh session token from Better Auth
+          // For relay-managed providers, fetch a fresh session token from Better Auth
           if (getToken && isLoaded && isSignedIn === true) {
             console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
             try {
@@ -1454,11 +1450,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               console.log('[MainPanel] Successfully got fresh auth session for Kizuna AI');
             } catch (error) {
               console.error('[MainPanel] Failed to get fresh auth session:', error);
-              apiKey = kizunaAISettings.apiKey || '';
+              apiKey = '';
             }
           } else {
-            // Fallback to stored token if getToken is not available or user not signed in
-            apiKey = kizunaAISettings.apiKey || '';
+            // No stored token fallback — relay providers require a live auth session
+            apiKey = '';
           }
           break;
         case Provider.GEMINI:
@@ -1884,7 +1880,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     geminiSettings,
     openAICompatibleSettings,
     palabraAISettings,
-    kizunaAISettings,
     openAITranslateSettings,
     volcengineSTSettings,
     volcengineAST2Settings,
@@ -2088,7 +2083,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     // If AI is responding (OpenAI), queue the message for later
-    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE || provider === Provider.KIZUNA_AI)) {
+    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE)) {
       console.log('[MainPanel] AI is responding, queuing text message');
       pendingTextRef.current = text;
       return;
@@ -3440,10 +3435,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     {missingDeviceForMode === null && isApiKeyValid && loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance < 0 && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>

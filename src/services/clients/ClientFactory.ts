@@ -10,7 +10,7 @@ import { VolcengineSTClient } from './VolcengineSTClient';
 import { VolcengineAST2Client } from './VolcengineAST2Client';
 import { LocalInferenceClient } from './LocalInferenceClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getApiUrl, getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
+import { getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
 
 /**
@@ -107,18 +107,6 @@ export class ClientFactory {
         }
         // PalabraAI uses the original appendInputAudio pattern, not native audio capture
         return new PalabraAIClient(apiKey, clientSecret);
-
-      case Provider.KIZUNA_AI:
-        // Check if Kizuna AI is enabled before creating the client
-        if (!isKizunaAIEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        // KizunaAI uses OpenAIClient with our Worker proxy
-        // The proxy transparently handles both REST and WebSocket connections
-        // The apiKey here is actually the auth session from Better Auth
-        // Use environment-specific backend URL
-        // Note: WebRTC is not yet supported for Kizuna AI (would require backend proxy)
-        return new OpenAIClient(apiKey, getApiUrl());
 
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         if (!isKizunaAIEnabled()) {

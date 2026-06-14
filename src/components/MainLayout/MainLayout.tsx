@@ -15,7 +15,7 @@ import { isElectron } from '../../utils/environment';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
-import { Provider } from '../../types/Provider';
+import { Provider, isKizunaManagedProvider } from '../../types/Provider';
 
 type PanelName = 'settings' | 'logs' | 'main';
 
@@ -154,14 +154,15 @@ const MainLayout: React.FC = () => {
     // Check if user just logged in (was false, now true)
     if (!prevIsSignedInRef.current && isSignedIn) {
       // User just logged in
-      if (uiMode === 'basic' && provider !== Provider.KIZUNA_AI) {
-        // User is in Basic Mode and not using KizunaAI, switch to KizunaAI
-        setProvider(Provider.KIZUNA_AI);
+      if (uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
+        // User is in Basic Mode and not using a Kizuna-managed provider; switch
+        // to the default relay-managed provider (the Translate twin).
+        setProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
 
         // Track the auto-switch
         trackEvent('settings_modified', {
           setting_name: 'provider',
-          new_value: 'kizunaai',
+          new_value: Provider.KIZUNA_AI_OPENAI_TRANSLATE,
           old_value: provider,
           category: 'api'
         });

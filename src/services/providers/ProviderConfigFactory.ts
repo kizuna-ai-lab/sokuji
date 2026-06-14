@@ -4,7 +4,6 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
-import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
@@ -36,7 +35,6 @@ export class ProviderConfigFactory {
 
     // Only register Kizuna AI if the feature flag is enabled
     if (isKizunaAIEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI, new KizunaAIProviderConfig());
       ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
       ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
     }
