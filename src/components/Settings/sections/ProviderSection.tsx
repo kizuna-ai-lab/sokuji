@@ -31,7 +31,7 @@ import {
   useNavigateToSettings,
   useLocalInferenceSettings,
 } from '../../../stores/settingsStore';
-import { Provider, ProviderType } from '../../../types/Provider';
+import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
@@ -319,6 +319,20 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
         };
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        // Relay-managed twin of OpenAI Translate. Locale strings not yet added;
+        // English fallbacks keep the dropdown label usable (follow-up: i18n).
+        return {
+          name: t('providers.kizunaai_openai_translate.name', 'KizunaAI Translate'),
+          icon: KizunaAIIcon,
+          description: t('providers.kizunaai_openai_translate.description', 'Real-time translation, authenticated via your account')
+        };
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        return {
+          name: t('providers.kizunaai_volcengine_ast2.name', 'KizunaAI Doubao'),
+          icon: KizunaAIIcon,
+          description: t('providers.kizunaai_volcengine_ast2.description', 'Speech-to-speech translation, authenticated via your account')
+        };
       case Provider.LOCAL_INFERENCE:
         return {
           name: t('providers.local_inference.name', 'Local (Offline)'),
@@ -515,7 +529,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             )}
           </div>
         </div>
-      ) : provider !== Provider.KIZUNA_AI ? (
+      ) : (provider !== Provider.KIZUNA_AI && !isKizunaManagedProvider(provider)) ? (
         provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
           <div className="volcengine-st-credentials-group">
