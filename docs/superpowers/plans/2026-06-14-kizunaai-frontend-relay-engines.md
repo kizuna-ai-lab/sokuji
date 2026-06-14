@@ -572,6 +572,10 @@ grep -rnE "Provider\.KIZUNA_AI\b|KIZUNA_AI =|kizunaai:|KizunaAISettings|defaultK
 
 - [ ] **Step 2: Remove them.** Delete from `Provider.ts`: the `KIZUNA_AI` enum member, its `ProviderType` union entry, and any `OPENAI_COMPATIBLE_PROVIDERS` entry. Delete from `settingsStore.ts`: the `kizunaai` slice/state/default, `KizunaAISettings`, `defaultKizunaAISettings`, the `KIZUNA_AI` cases in `getCurrentProviderSettings`/`createSessionConfig`, the `updateKizunaAI` action, and the now-redundant `provider === Provider.KIZUNA_AI ||` halves of the Task-7 conditions (keep only `isKizunaManagedProvider`). Delete the `KIZUNA_AI` case in `ClientFactory.ts` and its `KizunaAIProviderConfig` registration; delete `src/services/providers/KizunaAIProviderConfig.ts`. Convert remaining mechanical refs in `MainPanel.tsx`, `ClientOperations.ts`, `SettingsInitializer.tsx`, `MainLayout.tsx`, `OnboardingContext.tsx`, `vite-env.d.ts` (each becomes `isKizunaManagedProvider(...)` or the two providers).
 
+- [ ] **Step 2b: Generalize behavior-critical KIZUNA_AI sites (not just removal).** Two sites need the two new providers handled, found during Task 7:
+  - `settingsStore.ts` `getTurnDetectionMode` (`case Provider.KIZUNA_AI: return state.kizunaai.turnDetectionMode;`) → add `case Provider.KIZUNA_AI_VOLCENGINE_AST2: return state.kizunaVolcengineAst2.turnDetectionMode;` (the translate twin has no turn-detection; return whatever `OPENAI_TRANSLATE` returns there, or its default).
+  - `MainPanel.tsx` no-interruption gate (the `provider === ... || provider === Provider.KIZUNA_AI` condition around line 2089 that prevents user audio from interrupting AI output) → include both new providers via `isKizunaManagedProvider(provider)`. **Critical:** missing this lets the new providers be interrupted, violating the project's no-interruption rule.
+
 - [ ] **Step 3: Confirm KizunaAI is WS-only** — ensure neither new provider can select WebRTC (`transportType: 'websocket'`); the relay is WS-only. Check `MainPanel.createAIClient`'s `useWebRTC`/`effectiveTransportType` is never webrtc for these providers.
 
 - [ ] **Step 4: Full suite + typecheck**
