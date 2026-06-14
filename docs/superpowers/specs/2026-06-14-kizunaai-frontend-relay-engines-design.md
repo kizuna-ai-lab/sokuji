@@ -1,101 +1,122 @@
-# KizunaAI Frontend: Translate + Volcengine Relay Engines (replacing the Realtime path)
+# KizunaAI Frontend: Two Relay-Managed Providers (replacing the Realtime path)
 
-**Date:** 2026-06-14
+**Date:** 2026-06-14 (revised — two-provider model)
 **Status:** Design — pending review
-**Repo:** `sokuji-react` (frontend). Depends on the backend relay PR (`sokuji-backend#7`) shipping first.
+**Repo:** `sokuji-react` (frontend). Depends on the backend relay PR (`sokuji-backend#7`).
 
 ## Goal
 
-Re-point the KizunaAI provider off the OpenAI **Realtime** proxy and onto the two new server-side relay engines added in `sokuji-backend`:
+Replace the single realtime `KIZUNA_AI` provider with **two new providers**, each the **relay-managed twin** of an existing user-managed provider:
 
-- **Translate engine** → `wss://<backend>/v1/realtime/translations` (OpenAI Translate, JSON)
-- **Doubao engine** → `wss://<backend>/v1/ast/translate` (Volcengine AST 2.0, binary protobuf)
+- **`KIZUNA_AI_OPENAI_TRANSLATE`** (`'kizunaai_openai_translate'`) — twin of `OPENAI_TRANSLATE`, routed through `wss://<backend>/v1/realtime/translations`.
+- **`KIZUNA_AI_VOLCENGINE_AST2`** (`'kizunaai_volcengine_ast2'`) — twin of `VOLCENGINE_AST2`, routed through `wss://<backend>/v1/ast/translate`.
 
 The relay holds the real provider credentials; the browser authenticates with its **Better Auth session token**. The old `KIZUNA_AI` realtime path (`OpenAIClient` + `gpt-realtime-mini` against `getApiUrl()`) is removed.
 
-## Modeling decision (chosen)
+## Why two providers (decided)
 
-**Single `KIZUNA_AI` provider + a `kizunaEngine` sub-setting** (`'translate' | 'doubao'`), not two new `Provider` enum values. KizunaAI stays one dropdown entry; a sub-selector chooses the engine. `ClientFactory` routes `KIZUNA_AI` to the correct relay client based on `kizunaEngine`. This keeps the enum and the provider list untouched and confines the change to the KizunaAI settings slice + factory.
+Modeling each engine as a first-class `Provider` (rather than one provider + an engine sub-setting) is the more elegant architecture: the provider enum already carries the routing, so `ClientFactory.createClient` needs **no engine parameter** (its signature is unchanged), `createSessionConfig` gets two ordinary `case`s, settings/validation/UI all follow the existing per-provider pattern with **zero bespoke "sub-engine" logic**. The cost is breadth (KIZUNA_AI appears in 14 files, each converted mechanically) and two dropdown entries — both accepted.
+
+## Core principle: "relay-managed twin"
+
+Each `KIZUNA_AI_*` provider behaves **exactly** like its base provider, except:
+1. **Auth:** Better Auth session token (auto-fetched), not a user-entered key — `requiresAuth: true`.
+2. **Endpoint:** the relay WS URL, not the provider's direct URL.
+3. **No credential UI:** hide the API-key / appId / accessToken inputs.
+
+So the implementation maximizes reuse: same settings interfaces, same session-config builders, same clients (with relay mode), same UI controls — only the credential sourcing, endpoint, and a couple of UI gates differ.
 
 ## Architecture
 
-### 1. "Relay mode" for the two existing clients (reuse, don't duplicate)
+### 1. Provider enum (`src/types/Provider.ts`)
 
-Both target clients already speak the right protocols; today they hardcode the upstream URL and authenticate with a provider key. We add an optional **relay config** so the same client can talk to our relay instead:
+- Remove `KIZUNA_AI`. Add `KIZUNA_AI_OPENAI_TRANSLATE` and `KIZUNA_AI_VOLCENGINE_AST2` (with the `kizunaai_` string values above), in `ProviderType`, `SUPPORTED_PROVIDERS` (gated by `isKizunaAIEnabled()`, replacing the old `KIZUNA_AI` entry), and remove `KIZUNA_AI` from `OPENAI_COMPATIBLE_PROVIDERS`.
+- Add helper predicates:
+  - `isKizunaManagedProvider(p)` → true for the two new providers.
+  - `kizunaBaseProvider(p)` → `OPENAI_TRANSLATE` | `VOLCENGINE_AST2` (the base whose behavior/UI to reuse). Lets call sites write `provider === OPENAI_TRANSLATE || kizunaBaseProvider(provider) === OPENAI_TRANSLATE`.
 
-- **`OpenAITranslateGAClient`** — gains an optional `relay?: { wsUrl: string }`. In relay mode it (a) connects to `relay.wsUrl` instead of `wss://api.openai.com/v1/realtime/translations`, and (b) sends the auth subprotocol as `sokuji-auth.<sessionToken>` instead of `openai-insecure-api-key.<key>` (the `apiKey` constructor arg carries the session token). Everything else (`session.update`, audio I/O, event handling) is unchanged.
-- **`VolcengineAST2Client`** — gains a relay mode where it (a) connects to the relay `wsUrl`, (b) authenticates via the `sokuji-auth.<sessionToken>` subprotocol, and (c) **skips the `webRequest`/`declarativeNetRequest` header-injection entirely** (the relay sets `X-Api-*` upgrade headers server-side). protobuf encode/decode + audio I/O unchanged.
+### 2. Relay mode for the two clients (unchanged from the protocol work)
 
-Only the WS transport endpoint and auth change. The message/audio logic — the hard part — is untouched.
+- **`OpenAITranslateGAClient`** — optional `relay?: { wsUrl: string }`: connect to `relay.wsUrl` with subprotocol `['realtime', 'sokuji-auth.<sessionToken>']` (the `apiKey` arg carries the token) instead of the OpenAI URL + `openai-insecure-api-key.<key>`.
+- **`VolcengineAST2Client`** — optional `relay?: { wsUrl, sessionToken }`: skip the `webRequest`/`declarativeNetRequest` header-injection, connect to `relay.wsUrl` with subprotocol `sokuji-auth.<sessionToken>`.
 
-### 2. Token transport
+Message/audio logic untouched. User-managed mode is entered only when `relay` is absent.
 
-The browser cannot set `Authorization` on a WS upgrade, so the session token rides in the `Sec-WebSocket-Protocol` header as `sokuji-auth.<token>` (the format the backend `relayAuthMiddleware` parses). The token is obtained the same way the app already does it for KizunaAI today — via the auth `getToken()` flow that currently feeds `settingsStore.validateApiKey` — and passed into `ClientFactory` as `apiKey` (mirroring the existing `KIZUNA_AI` case, where `apiKey` is already the session token).
+### 3. ClientFactory (`src/services/clients/ClientFactory.ts`)
 
-### 3. Relay URL helper
-
-Add `getRelayWsUrl()` to `src/utils/environment.ts`: derive from `getBackendUrl()` (`https://sokuji.kizuna.ai` or `VITE_BACKEND_URL`), swap `http(s)` → `ws(s)`, and append `/v1`. Callers build `${getRelayWsUrl()}/realtime/translations` and `${getRelayWsUrl()}/ast/translate`.
-
-### 4. ClientFactory routing
-
+Two new cases; **signature unchanged**:
 ```
-case Provider.KIZUNA_AI:
+case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
   if (!isKizunaAIEnabled()) throw ...
-  if (kizunaEngine === 'doubao')
-    return new VolcengineAST2Client(/* relay mode */ { wsUrl: `${getRelayWsUrl()}/ast/translate`, sessionToken: apiKey });
   return new OpenAITranslateGAClient(apiKey, { wsUrl: `${getRelayWsUrl()}/realtime/translations` });
+
+case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+  if (!isKizunaAIEnabled()) throw ...
+  return new VolcengineAST2Client('', '', undefined, { wsUrl: `${getRelayWsUrl()}/ast/translate`, sessionToken: apiKey });
 ```
-The `kizunaEngine` value is threaded from the caller (it already passes `model`, `apiKey`, etc. into `createClient`). The old `return new OpenAIClient(apiKey, getApiUrl())` realtime line is deleted.
+`apiKey` is the session token (sourced as today's `KIZUNA_AI` does). The old `KIZUNA_AI → OpenAIClient(...)` case is deleted.
 
-### 5. Settings (`settingsStore`)
+### 4. Settings (`src/stores/settingsStore.ts`)
 
-- Add `kizunaEngine: 'translate' | 'doubao'` to the KizunaAI settings slice (default `'translate'`).
-- The per-engine session parameters **reuse the existing settings shapes**: the translate engine builds its session config like `OPENAI_TRANSLATE` (model `gpt-realtime-translate`, transcript/turn-detection settings already defined for translate); the doubao engine builds its config like `VOLCENGINE_AST2`. KizunaAI does not invent a third settings schema — it selects which existing engine config to feed the relay client.
-- Remove the realtime-only KizunaAI defaults (`gpt-realtime-mini`, realtime transcript model, etc.).
-- `validateApiKey` for `KIZUNA_AI`: availability stays gated on being signed in + token available (unchanged auth check); the engine selection doesn't affect readiness.
+- Add two store slices reusing the existing interfaces: `kizunaOpenaiTranslate: OpenAITranslateSettings` and `kizunaVolcengineAst2: VolcengineAST2Settings`, with defaults cloned from the existing defaults (the credential fields stay but are unused — auth is the session token).
+- Remove the `kizunaai: KizunaAISettings` slice, `KizunaAISettings` alias, and `defaultKizunaAISettings`.
+- `getCurrentProviderSettings`: +2 cases returning the new slices; remove the `KIZUNA_AI` case.
+- `createSessionConfig`: +2 cases calling the **existing** builders with the new slices:
+  - `KIZUNA_AI_OPENAI_TRANSLATE` → `createOpenAITranslateSessionConfig(state.kizunaOpenaiTranslate, ...)`
+  - `KIZUNA_AI_VOLCENGINE_AST2` → `createVolcengineAST2SessionConfig(state.kizunaVolcengineAst2, ...)`
+  - remove the `KIZUNA_AI` realtime case.
+- Persistence/load: register the two new slices with `loadProviderSettings('settings.kizunaOpenaiTranslate', ...)` etc.; add `updateKizunaOpenaiTranslate` / `updateKizunaVolcengineAst2` actions (mirroring `updateOpenAITranslate` / `updateVolcengineAST2`, but never persisting credential fields).
 
-### 6. UI (`SimpleConfigPanel`)
+### 5. Auth-token sourcing (generalize the existing KizunaAI auth)
 
-Add an engine selector (Translate / Doubao) in the KizunaAI section, visible only when the provider is KizunaAI. Selecting an engine swaps which downstream settings (translate vs doubao) are shown. Reuse the existing translate/volcengine setting controls.
+The session-token flow is currently `KIZUNA_AI`-specific (`ensureKizunaApiKey`, and `provider === KIZUNA_AI` checks at validateApiKey lines ~1214/1251 and MainPanel apiKey extraction). Generalize all three to `isKizunaManagedProvider(provider)` so both new providers fetch the token via `getAuthToken()` / `ensureKizunaApiKey`. Readiness stays "signed in → available."
 
-### 7. What is removed / what stays
+### 6. Provider configs (`ProviderConfigFactory` + two new config classes)
 
-- **Removed:** the `KIZUNA_AI → OpenAIClient(token, getApiUrl())` realtime path and its `gpt-realtime-*` model defaults; the realtime KizunaAI model list.
-- **Stays:** the user-managed `OPENAI_TRANSLATE` and `VOLCENGINE_AST2` providers (unchanged — they still use their own keys, `EphemeralTokenService`, and the Volcengine header-injection). `EphemeralTokenService` is NOT removed; only the KizunaAI translate engine bypasses it (the relay mints nothing client-side).
+- `KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProviderConfig` — overrides `id: 'kizunaai_openai_translate'`, `displayName: 'KizunaAI Translate'`, `requiresAuth: true`, credential-label/placeholder set to "managed automatically".
+- `KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2ProviderConfig` — overrides `id: 'kizunaai_volcengine_ast2'`, `displayName: 'KizunaAI Doubao'`, `requiresAuth: true`.
+- Register both in `ProviderConfigFactory` (gated by `isKizunaAIEnabled()`); remove `KizunaAIProviderConfig` registration. Delete the old `KizunaAIProviderConfig`.
+
+### 7. UI
+
+- `ProviderSection.tsx` (provider dropdown): the two new providers appear via `SUPPORTED_PROVIDERS` automatically; verify labels/icons.
+- `ProviderSpecificSettings.tsx` + `LanguageSection.tsx`: wherever a section renders for `OPENAI_TRANSLATE` / `VOLCENGINE_AST2`, include the corresponding kizuna twin (use `kizunaBaseProvider(provider)`), reading/writing the new slices. **Hide the credential inputs** (apiKey/appId/accessToken) when `isKizunaManagedProvider(provider)` — auth is automatic.
+
+### 8. Migration
+
+Existing users have `settings.provider === 'kizunaai'` (the removed value) and a `settings.kizunaai` slice. On load (`SettingsInitializer` / store load), migrate a stored `'kizunaai'` provider to `'kizunaai_openai_translate'` (default engine), and carry over `sourceLanguage`/`targetLanguage` from the old `kizunaai` slice into `kizunaOpenaiTranslate` if present. Drop the rest (realtime-only fields).
+
+### 9. Other touch points (mechanical)
+
+`MainPanel.tsx`, `ClientOperations.ts`, `SettingsInitializer.tsx`, `MainLayout.tsx`, `OnboardingContext.tsx`, `vite-env.d.ts`, `environment.ts` — each has a `KIZUNA_AI` reference that becomes "the two new providers" (or `isKizunaManagedProvider`). Convert per the twin principle.
 
 ## Data flow
 
 ```
-KizunaAI (engine = translate)
-  ClientFactory → OpenAITranslateGAClient(sessionToken, { wsUrl: <relay>/realtime/translations })
-    → WS connect, subprotocol ['realtime', 'sokuji-auth.<token>']
-    → relay authenticates, opens upstream OpenAI Translate with server key, meters → wallet
+Provider KIZUNA_AI_OPENAI_TRANSLATE
+  apiKey = session token (ensureKizunaApiKey / getAuthToken)
+  ClientFactory → OpenAITranslateGAClient(token, { wsUrl: <relay>/realtime/translations })
+    → WS, subprotocol ['realtime','sokuji-auth.<token>'] → relay → OpenAI Translate (server key) → meter
 
-KizunaAI (engine = doubao)
-  ClientFactory → VolcengineAST2Client(relay mode { wsUrl: <relay>/ast/translate, sessionToken })
-    → WS connect, subprotocol 'sokuji-auth.<token>', NO header injection
-    → relay sets X-Api-* upstream, relays protobuf, meters Billing.DurationMsec → wallet
+Provider KIZUNA_AI_VOLCENGINE_AST2
+  apiKey = session token
+  ClientFactory → VolcengineAST2Client('', '', undefined, { wsUrl: <relay>/ast/translate, sessionToken: token })
+    → WS, subprotocol 'sokuji-auth.<token>', no header injection → relay → Volcengine (server creds) → meter
 ```
 
 ## Error handling
 
-- Relay rejects (401 no/invalid token, 402 insufficient, 403 frozen, 503 wallet error) surface as connection failures / error events the existing clients already handle; map them to the existing logStore error surfacing.
-- No-interruption rule preserved: nothing in relay mode adds client-side audio gating.
+Relay rejects (401/402/403/503) surface as connection failures / error events the clients already handle → logStore. No-interruption rule unaffected.
 
 ## Testing
 
-- Unit: `getRelayWsUrl()` (http→ws, /v1 suffix, VITE_BACKEND_URL override). Relay-mode subprotocol construction for `OpenAITranslateGAClient` (asserts `sokuji-auth.<token>` and relay URL). `VolcengineAST2Client` relay mode skips header injection (assert no `webRequest`/DNR registration call) and uses the relay URL + subprotocol.
-- Existing `OpenAITranslateGAClient.test.ts` / `VolcengineAST2Client.test.ts` stay green (user-managed mode unchanged).
-- ClientFactory: `KIZUNA_AI` + `kizunaEngine` routes to the right relay client.
-
-## Open questions
-
-1. Exact mechanism to thread `kizunaEngine` into `ClientFactory.createClient` (new optional param vs derive from `model`) — resolve when reading the createClient call sites.
-2. How the KizunaAI settings slice composes the translate vs doubao engine configs (reuse `openaiTranslate`/`volcengineAST2` slices vs nested kizuna sub-settings) — resolve against the current `KizunaAISettings` shape during planning.
-3. Whether WebRTC has any KizunaAI role — NO: relay is WS-only, so KizunaAI uses the GA (WS) translate client; WebRTC stays user-managed `OPENAI_TRANSLATE` only.
+- Unit: `getRelayWsUrl()`; relay-mode subprotocol/URL for both clients; `isKizunaManagedProvider`/`kizunaBaseProvider`; ClientFactory routes the two new providers to the right relay clients; `createSessionConfig` produces the right `provider`-tagged config for each.
+- Existing `OpenAITranslateGAClient` / `VolcengineAST2Client` / user-managed-provider tests stay green.
+- Migration: a stored `'kizunaai'` provider loads as `'kizunaai_openai_translate'`.
 
 ## Non-goals
 
-- No change to user-managed `OPENAI_TRANSLATE` / `VOLCENGINE_AST2` providers.
-- No change to other providers (OpenAI, Gemini, Palabra, Local Inference).
-- No backend changes (covered by `sokuji-backend#7`).
+- No change to user-managed `OPENAI_TRANSLATE` / `VOLCENGINE_AST2` (keys, `EphemeralTokenService`, Volcengine header injection all intact).
+- No change to other providers.
+- No backend changes (`sokuji-backend#7`).
+- WebRTC is out for KizunaAI (relay is WS-only); both new providers force `transportType: 'websocket'`.
