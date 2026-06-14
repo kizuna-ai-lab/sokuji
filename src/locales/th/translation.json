@@ -59,6 +59,14 @@
     "keepReplayAudioDesc": "เก็บเสียงที่แปลแล้วไว้ในหน่วยความจำ เพื่อให้คุณสามารถเล่นซ้ำได้ในภายหลังจากแต่ละข้อความ ปิดโดยค่าเริ่มต้นเพื่อลดการใช้หน่วยความจำในระหว่างเซสชันยาว"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "การแปลแบบเรียลไทม์ ยืนยันตัวตนผ่านบัญชีของคุณ"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "การแปลเสียงเป็นเสียง ยืนยันตัวตนผ่านบัญชีของคุณ"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "ขับเคลื่อนโดยโมเดล GPT"

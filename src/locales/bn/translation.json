@@ -354,6 +354,14 @@
     "keepReplayAudioDesc": "অনুবাদিত অডিও মেমরিতে সংরক্ষণ করুন যাতে আপনি পরে প্রতিটি বার্তা থেকে এটি আবার চালাতে পারেন। দীর্ঘ সেশনের সময় মেমরি ব্যবহার কমাতে ডিফল্টভাবে বন্ধ।"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "রিয়েল-টাইম অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "স্পিচ-টু-স্পিচ অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT মডেল দ্বারা চালিত"

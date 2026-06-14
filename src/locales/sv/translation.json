@@ -560,6 +560,14 @@
     "keepReplayAudioDesc": "Spara översatt ljud i minnet så att du kan spela upp det senare från varje meddelande. Av som standard för att minska minnesanvändningen under långa sessioner."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Realtidsöversättning, autentiserad via ditt konto"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Tal-till-tal-översättning, autentiserad via ditt konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Drivs av GPT modeller"

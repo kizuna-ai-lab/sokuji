@@ -605,6 +605,14 @@
     "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Echtzeitübersetzung, authentifiziert über Ihr Konto"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Sprache-zu-Sprache-Übersetzung, authentifiziert über Ihr Konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Betrieben von GPT-Modellen"

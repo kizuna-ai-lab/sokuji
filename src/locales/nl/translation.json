@@ -604,6 +604,14 @@
     "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Realtime vertaling, geverifieerd via je account"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Aangedreven door GPT modellen"

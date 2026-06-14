@@ -69,6 +69,14 @@
     "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "即時翻譯，透過你的帳戶進行驗證"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "端到端語音翻譯，透過你的帳戶進行驗證"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "由 GPT 模型驅動"

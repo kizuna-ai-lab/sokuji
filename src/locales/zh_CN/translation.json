@@ -387,6 +387,14 @@
     "clickToConfigParticipant": "点击配置参会者音频"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "实时翻译，通过你的账户进行身份验证"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "端到端语音翻译，通过你的账户进行身份验证"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "由GPT模型驱动"

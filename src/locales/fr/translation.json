@@ -605,6 +605,14 @@
     "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Traduction en temps réel, authentifiée via votre compte"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Traduction voix à voix, authentifiée via votre compte"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Alimenté par les modèles GPT"

@@ -611,6 +611,14 @@
     "keepReplayAudioDesc": "Сохранять переведённое аудио в памяти, чтобы можно было позже воспроизвести его из каждого сообщения. По умолчанию отключено, чтобы уменьшить использование памяти во время длительных сессий."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Перевод в реальном времени, аутентификация через ваш аккаунт"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Перевод речи в речь, аутентификация через ваш аккаунт"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Работает на моделях GPT"

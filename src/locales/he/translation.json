@@ -354,6 +354,14 @@
     "keepReplayAudioDesc": "שמירת האודיו המתורגם בזיכרון כדי שתוכל להפעיל אותו שוב מאוחר יותר מכל הודעה. כבוי כברירת מחדל כדי לצמצם את השימוש בזיכרון בסשנים ארוכים."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "תרגום בזמן אמת, מאומת דרך החשבון שלך"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "תרגום דיבור לדיבור, מאומת דרך החשבון שלך"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "מופעל על ידי מודלי GPT"

@@ -347,6 +347,14 @@
     "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Terjemahan masa nyata, disahkan melalui akaun anda"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Terjemahan pertuturan ke pertuturan, disahkan melalui akaun anda"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Dikuasakan oleh model GPT"
