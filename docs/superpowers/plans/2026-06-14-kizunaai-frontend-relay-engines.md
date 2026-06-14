@@ -1,18 +1,18 @@
-# KizunaAI Frontend Relay Engines — Implementation Plan
+# KizunaAI Frontend: Two Relay-Managed Providers — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Re-point the KizunaAI provider off the OpenAI Realtime proxy onto the two backend relay engines (OpenAI Translate + Volcengine AST 2.0), selectable via a `kizunaEngine` sub-setting, authenticating with the Better Auth session token.
+**Goal:** Replace the realtime `KIZUNA_AI` provider with two relay-managed providers — `KIZUNA_AI_OPENAI_TRANSLATE` and `KIZUNA_AI_VOLCENGINE_AST2` — each the backend-relay twin of `OPENAI_TRANSLATE` / `VOLCENGINE_AST2`, authenticating with the Better Auth session token.
 
-**Architecture:** Keep the single `KIZUNA_AI` provider. Add a `kizunaEngine: 'translate' | 'doubao'` setting. The existing `OpenAITranslateGAClient` and `VolcengineAST2Client` gain a "relay mode" (configurable WS URL + `sokuji-auth.<token>` subprotocol + Volcengine skips header injection). `ClientFactory` routes `KIZUNA_AI` to the right relay client by engine; `createSessionConfig` derives the engine's session config from the existing `kizunaai` settings fields.
+**Architecture:** Each `KIZUNA_AI_*` provider behaves exactly like its base provider except: session-token auth (`requiresAuth`), relay WS endpoint, hidden credential UI. Maximizes reuse — same settings interfaces, same session-config builders, same clients (with relay mode). `ClientFactory.createClient` signature is **unchanged** (the provider enum carries the routing).
 
 **Tech Stack:** React + TypeScript, Zustand, Vitest, i18next.
 
-**Spec:** `docs/superpowers/specs/2026-06-14-kizunaai-frontend-relay-engines-design.md`. **Depends on** backend relay `sokuji-backend#7`.
+**Spec:** `docs/superpowers/specs/2026-06-14-kizunaai-frontend-relay-engines-design.md`. **Depends on** backend relay `sokuji-backend#7`. **Branch:** `feat/kizunaai-relay-engines` (already created).
 
-**Branch:** create `feat/kizunaai-relay-engines` before Task 1.
+**Build order strategy:** ADD the two new providers first (keeping `KIZUNA_AI`), wire everything, and REMOVE `KIZUNA_AI` last (Task 11). This keeps `tsc` green between tasks; only the final removal touches every remaining reference.
 
-**Typecheck note:** run `npx tsc --noEmit` (frontend tsconfig is clean today). Tests: `npm run test -- <path>`.
+**Typecheck:** `npx tsc --noEmit` (frontend tsconfig is clean). Tests: `npm run test -- <path>`.
 
 ---
 
@@ -20,31 +20,88 @@
 
 | Path | Change |
 |---|---|
-| `src/utils/environment.ts` | add `getRelayWsUrl()` (http→ws + `/v1`) |
-| `src/stores/settingsStore.ts` | add `kizunaEngine` to `KizunaAISettings` + default + persistence; add `createKizunaTranslateSessionConfig`/`createKizunaDoubaoSessionConfig`; rewrite the `KIZUNA_AI` branch of `createSessionConfig` |
-| `src/services/clients/OpenAITranslateGAClient.ts` | optional `relay?: { wsUrl }` constructor arg → relay URL + `sokuji-auth.<token>` subprotocol |
-| `src/services/clients/VolcengineAST2Client.ts` | optional `relay?: { wsUrl, sessionToken }` → skip header injection, relay URL + subprotocol |
-| `src/services/clients/ClientFactory.ts` | `createClient` gains `kizunaEngine?` param; rewrite `KIZUNA_AI` case to route to relay clients |
-| `src/components/MainPanel/MainPanel.tsx` | thread `kizunaAISettings.kizunaEngine` into `createAIClient`→`createClient` |
-| `src/services/providers/KizunaAIProviderConfig.ts` | drop `gpt-realtime-*` realtime models; reflect the two engines |
-| `src/components/Settings/sections/ProviderSpecificSettings.tsx` | KizunaAI engine selector + conditional translate/doubao controls |
-| `src/locales/*` (en + others) | i18n labels for the engine selector |
-| Test files alongside the above |
-
-**Resolved design decisions:**
-- `kizunaEngine` threads through the single `createClient` caller (`MainPanel.createAIClient`).
-- KizunaAI engine session config is **derived** from existing `kizunaai` fields — no new nested settings. The derived config carries `provider: 'openai_translate'` or `'volcengine_ast2'` so the relay client's existing type guard passes.
-- Relay clients reuse all message/audio logic; only transport endpoint + auth change.
+| `src/types/Provider.ts` | add 2 enum values + `ProviderType`; add `isKizunaManagedProvider` / `kizunaBaseProvider`; update `SUPPORTED_PROVIDERS`; (Task 11) remove `KIZUNA_AI` |
+| `src/utils/environment.ts` | add `getRelayWsUrl()` |
+| `src/services/clients/OpenAITranslateGAClient.ts` | relay mode (`relay?: { wsUrl }`) |
+| `src/services/clients/VolcengineAST2Client.ts` | relay mode (`relay?: { wsUrl, sessionToken }`, skip header injection) |
+| `src/services/clients/ClientFactory.ts` | 2 new cases (signature unchanged) |
+| `src/stores/settingsStore.ts` | 2 new slices + defaults + `getCurrentProviderSettings` + `createSessionConfig` + update actions + persistence; auth generalization; (Task 11) remove `kizunaai` |
+| `src/services/providers/KizunaAIOpenAITranslateProviderConfig.ts` (new), `KizunaAIVolcengineAST2ProviderConfig.ts` (new) | relay-managed configs |
+| `src/services/providers/ProviderConfigFactory.ts` | register the 2; (Task 11) drop old |
+| `src/components/.../ProviderSpecificSettings.tsx`, `LanguageSection.tsx`, `ProviderSection.tsx` | reuse base-provider UI for twins; hide credential inputs |
+| `src/components/MainPanel/MainPanel.tsx`, `SettingsInitializer.tsx`, `MainLayout.tsx`, `ClientOperations.ts`, `OnboardingContext.tsx` | convert `KIZUNA_AI` refs per twin principle |
+| `src/locales/en/*` | displayName / labels |
+| Test files alongside |
 
 ---
 
-## Task 1: `getRelayWsUrl()` env helper
+## Task 1: Provider enum + predicates
 
-**Files:**
-- Modify: `src/utils/environment.ts`
-- Test: `src/utils/environment.test.ts` (create if absent)
+**Files:** Modify `src/types/Provider.ts`; Test `src/types/Provider.test.ts` (create).
 
-- [ ] **Step 1: Write the failing test** at `src/utils/environment.test.ts`
+- [ ] **Step 1: Write the failing test** at `src/types/Provider.test.ts`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { Provider, isKizunaManagedProvider, kizunaBaseProvider } from "./Provider";
+
+describe("kizuna-managed provider helpers", () => {
+  it("identifies the two relay-managed providers", () => {
+    expect(isKizunaManagedProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE)).toBe(true);
+    expect(isKizunaManagedProvider(Provider.KIZUNA_AI_VOLCENGINE_AST2)).toBe(true);
+    expect(isKizunaManagedProvider(Provider.OPENAI_TRANSLATE)).toBe(false);
+  });
+  it("maps each to its base provider", () => {
+    expect(kizunaBaseProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE)).toBe(Provider.OPENAI_TRANSLATE);
+    expect(kizunaBaseProvider(Provider.KIZUNA_AI_VOLCENGINE_AST2)).toBe(Provider.VOLCENGINE_AST2);
+    expect(kizunaBaseProvider(Provider.OPENAI)).toBeUndefined();
+  });
+});
+```
+
+- [ ] **Step 2: Run to verify it fails** — `npm run test -- src/types/Provider.test.ts` → FAIL (members/fns missing).
+
+- [ ] **Step 3: Implement** in `src/types/Provider.ts`
+
+Add to the `Provider` enum (keep `KIZUNA_AI` for now):
+```typescript
+  KIZUNA_AI_OPENAI_TRANSLATE = 'kizunaai_openai_translate',
+  KIZUNA_AI_VOLCENGINE_AST2 = 'kizunaai_volcengine_ast2',
+```
+Add both to the `ProviderType` union. In `SUPPORTED_PROVIDERS`, replace the `...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : [])` entry with:
+```typescript
+    ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI_OPENAI_TRANSLATE, Provider.KIZUNA_AI_VOLCENGINE_AST2] : []),
+```
+Append the helpers at the end of the file:
+```typescript
+export function isKizunaManagedProvider(p: Provider): boolean {
+  return p === Provider.KIZUNA_AI_OPENAI_TRANSLATE || p === Provider.KIZUNA_AI_VOLCENGINE_AST2;
+}
+
+/** The user-managed base provider whose behavior/UI a kizuna-managed twin reuses. */
+export function kizunaBaseProvider(p: Provider): Provider | undefined {
+  if (p === Provider.KIZUNA_AI_OPENAI_TRANSLATE) return Provider.OPENAI_TRANSLATE;
+  if (p === Provider.KIZUNA_AI_VOLCENGINE_AST2) return Provider.VOLCENGINE_AST2;
+  return undefined;
+}
+```
+
+- [ ] **Step 4: Run tests + typecheck** — `npm run test -- src/types/Provider.test.ts && npx tsc --noEmit` → PASS (enum switches without all-cases-covered may warn but not error; `KIZUNA_AI` still present so nothing breaks yet).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/types/Provider.ts src/types/Provider.test.ts
+git commit -m "feat(provider): add two relay-managed KizunaAI providers + predicates"
+```
+
+---
+
+## Task 2: `getRelayWsUrl()` env helper
+
+**Files:** Modify `src/utils/environment.ts`; Test `src/utils/environment.test.ts` (create if absent).
+
+- [ ] **Step 1: Failing test** at `src/utils/environment.test.ts`
 
 ```typescript
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -57,30 +114,24 @@ describe("getRelayWsUrl", () => {
     vi.stubEnv("VITE_BACKEND_URL", "");
     expect(getRelayWsUrl()).toBe("wss://sokuji.kizuna.ai/v1");
   });
-  it("converts http backend to ws for local dev", () => {
+  it("converts http to ws for local dev", () => {
     vi.stubEnv("VITE_BACKEND_URL", "http://localhost:8787");
     expect(getRelayWsUrl()).toBe("ws://localhost:8787/v1");
   });
-  it("converts https backend to wss", () => {
+  it("converts https to wss", () => {
     vi.stubEnv("VITE_BACKEND_URL", "https://example.com");
     expect(getRelayWsUrl()).toBe("wss://example.com/v1");
   });
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 2: Run → FAIL** (`getRelayWsUrl` missing).
 
-Run: `npm run test -- src/utils/environment.test.ts`
-Expected: FAIL (`getRelayWsUrl` is not a function).
-
-- [ ] **Step 3: Implement** — add to `src/utils/environment.ts` (after `getApiUrl`)
+- [ ] **Step 3: Implement** — add after `getApiUrl` in `src/utils/environment.ts`
 
 ```typescript
-/**
- * The WebSocket base URL for the KizunaAI relay engines, e.g.
- * wss://sokuji.kizuna.ai/v1 . Callers append `/realtime/translations`
- * or `/ast/translate`.
- */
+/** WebSocket base URL for the KizunaAI relay (e.g. wss://sokuji.kizuna.ai/v1).
+ *  Callers append `/realtime/translations` or `/ast/translate`. */
 export function getRelayWsUrl(): string {
   const base = getBackendUrl().replace(/\/$/, "");
   const ws = base.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
@@ -88,175 +139,22 @@ export function getRelayWsUrl(): string {
 }
 ```
 
-- [ ] **Step 4: Run to verify it passes**
-
-Run: `npm run test -- src/utils/environment.test.ts`
-Expected: PASS (3 tests).
+- [ ] **Step 4: Run → PASS** (3 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/utils/environment.ts src/utils/environment.test.ts
-git commit -m "feat(env): add getRelayWsUrl for KizunaAI relay engines"
+git commit -m "feat(env): add getRelayWsUrl for KizunaAI relay providers"
 ```
 
 ---
 
-## Task 2: `kizunaEngine` setting
+## Task 3: `OpenAITranslateGAClient` relay mode
 
-**Files:**
-- Modify: `src/stores/settingsStore.ts`
+**Files:** Modify `src/services/clients/OpenAITranslateGAClient.ts`; Test `OpenAITranslateGAClient.test.ts` (extend).
 
-- [ ] **Step 1: Add the field to `KizunaAISettings`** — replace the alias (settingsStore.ts:80)
-
-```typescript
-export type KizunaEngine = 'translate' | 'doubao';
-export interface KizunaAISettings extends OpenAICompatibleSettingsBase {
-  kizunaEngine: KizunaEngine;
-}
-```
-
-- [ ] **Step 2: Add the default** — in `defaultKizunaAISettings` (settingsStore.ts:274)
-
-```typescript
-const defaultKizunaAISettings: KizunaAISettings = {
-  ...defaultOpenAICompatibleSettingsBase,
-  transcriptModel: 'whisper-1',
-  kizunaEngine: 'translate',
-};
-```
-
-- [ ] **Step 3: Typecheck** — `npx tsc --noEmit`
-Expected: passes (the new field is persisted generically by `updateKizunaAI`'s `Object.entries` loop, and loaded by `loadProviderSettings('settings.kizunaai', defaultKizunaAISettings)` — no extra wiring needed).
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add src/stores/settingsStore.ts
-git commit -m "feat(settings): add kizunaEngine selector to KizunaAI settings"
-```
-
----
-
-## Task 3: KizunaAI engine session-config builders
-
-**Files:**
-- Modify: `src/stores/settingsStore.ts`
-- Test: `src/stores/kizunaSessionConfig.test.ts` (create)
-
-Context: the relay clients require a config whose `provider` is `'openai_translate'` / `'volcengine_ast2'` (their type guards). We derive those from the `kizunaai` fields. The existing builders `createOpenAITranslateSessionConfig` (settingsStore.ts:523) and `createVolcengineAST2SessionConfig` (settingsStore.ts:599) take the user-managed settings shapes; we add thin KizunaAI adapters that map `kizunaai` → those shapes, then reuse the builders.
-
-- [ ] **Step 1: Write the failing test** at `src/stores/kizunaSessionConfig.test.ts`
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { createKizunaTranslateSessionConfig, createKizunaDoubaoSessionConfig } from "./settingsStore";
-import { defaultKizunaAISettings } from "./settingsStore";
-
-describe("KizunaAI engine session configs", () => {
-  it("translate engine produces an openai_translate config from kizuna fields", () => {
-    const s = { ...defaultKizunaAISettings, sourceLanguage: "en", targetLanguage: "zh", noiseReduction: "Near field" as const };
-    const cfg: any = createKizunaTranslateSessionConfig(s, "instr");
-    expect(cfg.provider).toBe("openai_translate");
-    expect(cfg.model).toBe("gpt-realtime-translate");
-    expect(cfg.targetLanguage).toBe("zh");
-    expect(cfg.inputAudioNoiseReduction).toEqual({ type: "near_field" });
-  });
-
-  it("doubao engine produces a volcengine_ast2 config from kizuna fields", () => {
-    const s = { ...defaultKizunaAISettings, sourceLanguage: "zh", targetLanguage: "en", turnDetectionMode: "Auto" as const };
-    const cfg: any = createKizunaDoubaoSessionConfig(s, "instr");
-    expect(cfg.provider).toBe("volcengine_ast2");
-    expect(cfg.sourceLanguage).toBe("zh");
-    expect(cfg.targetLanguage).toBe("en");
-    expect(cfg.turnDetectionMode).toBe("Auto");
-  });
-});
-```
-
-- [ ] **Step 2: Run to verify it fails**
-
-Run: `npm run test -- src/stores/kizunaSessionConfig.test.ts`
-Expected: FAIL (functions not exported). Also export `defaultKizunaAISettings` if not already exported — add `export` to its declaration (settingsStore.ts:274).
-
-- [ ] **Step 3: Implement the two adapters** — add to `src/stores/settingsStore.ts` after `createVolcengineAST2SessionConfig` (settingsStore.ts:618). Reuse the existing builders.
-
-```typescript
-/** KizunaAI Translate engine: derive an OpenAI-Translate session config from
- *  the kizunaai settings (credentials live server-side at the relay). */
-export function createKizunaTranslateSessionConfig(
-  k: KizunaAISettings,
-  systemInstructions: string
-): OpenAITranslateSessionConfig {
-  return createOpenAITranslateSessionConfig(
-    {
-      apiKey: '', // unused: relay holds the OpenAI key
-      sourceLanguage: k.sourceLanguage,
-      targetLanguage: k.targetLanguage as TranslateTargetLanguage,
-      transcriptModel: 'gpt-realtime-whisper',
-      noiseReduction: k.noiseReduction,
-      transportType: 'websocket',
-      userSilenceDuration: k.silenceDuration ?? 1.0,
-      assistantSilenceDuration: k.silenceDuration ?? 0.5,
-    },
-    systemInstructions
-  );
-}
-
-/** KizunaAI Doubao engine: derive a Volcengine AST2 session config from the
- *  kizunaai settings (credentials live server-side at the relay). */
-export function createKizunaDoubaoSessionConfig(
-  k: KizunaAISettings,
-  systemInstructions: string
-): VolcengineAST2SessionConfig {
-  return createVolcengineAST2SessionConfig(
-    {
-      appId: '', // unused: relay holds the Volcengine creds
-      accessToken: '',
-      sourceLanguage: k.sourceLanguage,
-      targetLanguage: k.targetLanguage,
-      turnDetectionMode: k.turnDetectionMode as VolcengineAST2Settings['turnDetectionMode'],
-      hotWordTableId: '',
-      replacementTableId: '',
-      glossaryTableId: '',
-    },
-    systemInstructions
-  );
-}
-```
-Note: confirm `OpenAICompatibleSettingsBase` has `silenceDuration` and `noiseReduction` fields (it does per settingsStore.ts:52–72). If `noiseReduction`'s type differs from `OpenAITranslateSettings.noiseReduction`, cast at the call site.
-
-- [ ] **Step 4: Wire into `createSessionConfig`** — replace the `KIZUNA_AI` branch (settingsStore.ts:1643)
-
-```typescript
-        case Provider.KIZUNA_AI:
-          config = state.kizunaai.kizunaEngine === 'doubao'
-            ? createKizunaDoubaoSessionConfig(state.kizunaai, systemInstructions)
-            : createKizunaTranslateSessionConfig(state.kizunaai, systemInstructions);
-          break;
-```
-
-- [ ] **Step 5: Run tests + typecheck**
-
-Run: `npm run test -- src/stores/kizunaSessionConfig.test.ts && npx tsc --noEmit`
-Expected: PASS, no type errors.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/stores/settingsStore.ts src/stores/kizunaSessionConfig.test.ts
-git commit -m "feat(settings): derive KizunaAI translate/doubao session configs by engine"
-```
-
----
-
-## Task 4: `OpenAITranslateGAClient` relay mode
-
-**Files:**
-- Modify: `src/services/clients/OpenAITranslateGAClient.ts`
-- Test: `src/services/clients/OpenAITranslateGAClient.test.ts` (extend)
-
-- [ ] **Step 1: Write the failing test** (add to the existing test file)
+- [ ] **Step 1: Failing test** (add to the existing test file)
 
 ```typescript
 import { describe, it, expect, vi } from "vitest";
@@ -267,8 +165,7 @@ describe("OpenAITranslateGAClient relay mode", () => {
     const captured: { url?: string; protocols?: string[] } = {};
     const FakeWS: any = vi.fn(function (this: any, url: string, protocols: string[]) {
       captured.url = url; captured.protocols = protocols;
-      this.readyState = 0; this.send = vi.fn(); this.close = vi.fn();
-      this.addEventListener = vi.fn();
+      this.readyState = 0; this.send = vi.fn(); this.close = vi.fn(); this.addEventListener = vi.fn();
       setTimeout(() => this.onopen?.(), 0);
     });
     FakeWS.OPEN = 1;
@@ -276,27 +173,20 @@ describe("OpenAITranslateGAClient relay mode", () => {
     (globalThis as any).WebSocket = FakeWS;
     try {
       const client = new OpenAITranslateGAClient("sess_TOKEN", { wsUrl: "wss://r.example/v1/realtime/translations" });
-      // connect() will hang on waitForSessionCreated; only assert URL+protocol synchronously
       client.connect({ provider: "openai_translate", model: "gpt-realtime-translate", targetLanguage: "zh" } as any).catch(() => {});
       await new Promise((r) => setTimeout(r, 5));
       expect(captured.url).toContain("wss://r.example/v1/realtime/translations?model=");
       expect(captured.protocols).toContain("sokuji-auth.sess_TOKEN");
       expect(captured.protocols?.some((p) => p.startsWith("openai-insecure-api-key."))).toBe(false);
-    } finally {
-      (globalThis as any).WebSocket = orig;
-    }
+    } finally { (globalThis as any).WebSocket = orig; }
   });
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 2: Run → FAIL** (constructor takes 1 arg).
 
-Run: `npm run test -- src/services/clients/OpenAITranslateGAClient.test.ts`
-Expected: FAIL (constructor takes 1 arg; URL/protocol assertions fail).
+- [ ] **Step 3: Implement** — in `OpenAITranslateGAClient.ts`, around line 108
 
-- [ ] **Step 3: Implement relay mode**
-
-In `OpenAITranslateGAClient.ts`, add a private field and extend the constructor (around line 108):
 ```typescript
   private relay?: { wsUrl: string };
 
@@ -305,22 +195,17 @@ In `OpenAITranslateGAClient.ts`, add a private field and extend the constructor 
     this.relay = relay;
   }
 ```
-In `connect()` (around line 487), replace the URL + WebSocket construction:
+In `connect()` (around line 487), replace the URL + WS construction:
 ```typescript
     const baseUrl = this.relay?.wsUrl ?? TRANSLATE_WS_URL;
     const url = `${baseUrl}?model=${encodeURIComponent(config.model)}`;
-    // Relay mode authenticates with the Better Auth session token; direct mode
-    // uses the user's OpenAI key. Both ride the Sec-WebSocket-Protocol header.
     const authProtocol = this.relay
       ? `sokuji-auth.${this.apiKey}`
       : `openai-insecure-api-key.${this.apiKey}`;
     this.ws = new WebSocket(url, ['realtime', authProtocol]);
 ```
 
-- [ ] **Step 4: Run to verify it passes**
-
-Run: `npm run test -- src/services/clients/OpenAITranslateGAClient.test.ts`
-Expected: PASS (existing tests + the new relay test).
+- [ ] **Step 4: Run → PASS** (existing + relay test).
 
 - [ ] **Step 5: Commit**
 
@@ -331,15 +216,13 @@ git commit -m "feat(translate-client): add relay mode (relay URL + sokuji-auth s
 
 ---
 
-## Task 5: `VolcengineAST2Client` relay mode
+## Task 4: `VolcengineAST2Client` relay mode
 
-**Files:**
-- Modify: `src/services/clients/VolcengineAST2Client.ts`
-- Test: `src/services/clients/VolcengineAST2Client.test.ts` (extend)
+**Files:** Modify `src/services/clients/VolcengineAST2Client.ts`; Test `VolcengineAST2Client.test.ts` (extend).
 
-Context: in relay mode the client must NOT inject `X-Api-*` headers (the relay does that server-side) and must open the WS against the relay URL with a `sokuji-auth.<token>` subprotocol. The `connect()` dispatcher (VolcengineAST2Client.ts:150) currently branches Electron→`connectViaElectronHeaderInjection`, Extension→`connectViaExtensionDNR`, else→`connectViaBrowserWebSocket`. Relay mode short-circuits to a relay browser-WS path.
+Context: relay mode must NOT inject `X-Api-*` headers (relay does it server-side) and must open the WS against the relay URL with a `sokuji-auth.<token>` subprotocol. `connect()` (line 150) branches Electron→`connectViaElectronHeaderInjection`, Extension→`connectViaExtensionDNR`, else→`connectViaBrowserWebSocket`.
 
-- [ ] **Step 1: Write the failing test** (add to the existing test file)
+- [ ] **Step 1: Failing test** (add to the existing test file)
 
 ```typescript
 import { describe, it, expect, vi } from "vitest";
@@ -350,83 +233,53 @@ describe("VolcengineAST2Client relay mode", () => {
     const captured: { url?: string; protocols?: any } = {};
     const FakeWS: any = vi.fn(function (this: any, url: string, protocols?: any) {
       captured.url = url; captured.protocols = protocols;
-      this.readyState = 0; this.binaryType = ""; this.send = vi.fn(); this.close = vi.fn();
-      this.addEventListener = vi.fn();
+      this.readyState = 0; this.binaryType = ""; this.send = vi.fn(); this.close = vi.fn(); this.addEventListener = vi.fn();
     });
     FakeWS.OPEN = 1;
     const orig = globalThis.WebSocket;
     (globalThis as any).WebSocket = FakeWS;
     try {
-      const client = new VolcengineAST2Client("", "", undefined, {
-        wsUrl: "wss://r.example/v1/ast/translate", sessionToken: "sess_TOKEN",
-      });
+      const client = new VolcengineAST2Client("", "", undefined, { wsUrl: "wss://r.example/v1/ast/translate", sessionToken: "sess_TOKEN" });
       client.connect({ provider: "volcengine_ast2", model: "ast-v2-s2s", sourceLanguage: "zh", targetLanguage: "en" } as any).catch(() => {});
       await new Promise((r) => setTimeout(r, 5));
       expect(captured.url).toBe("wss://r.example/v1/ast/translate");
-      // subprotocol carries the session token
       const protos = Array.isArray(captured.protocols) ? captured.protocols : [captured.protocols];
       expect(protos).toContain("sokuji-auth.sess_TOKEN");
-    } finally {
-      (globalThis as any).WebSocket = orig;
-    }
+    } finally { (globalThis as any).WebSocket = orig; }
   });
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 2: Run → FAIL** (constructor/relay path missing).
 
-Run: `npm run test -- src/services/clients/VolcengineAST2Client.test.ts`
-Expected: FAIL (constructor signature + relay path missing).
+- [ ] **Step 3: Implement** — extend constructor (line 134)
 
-- [ ] **Step 3: Implement relay mode**
-
-Extend the constructor (VolcengineAST2Client.ts:134):
 ```typescript
   private relay?: { wsUrl: string; sessionToken: string };
 
-  constructor(
-    appId: string,
-    accessToken: string,
-    resourceId: string = 'volc.service_type.10053',
-    relay?: { wsUrl: string; sessionToken: string }
-  ) {
+  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053', relay?: { wsUrl: string; sessionToken: string }) {
     this.appId = appId;
     this.accessToken = accessToken;
     this.resourceId = resourceId;
     this.relay = relay;
   }
 ```
-In `connect()` (VolcengineAST2Client.ts:150), short-circuit relay mode BEFORE the platform branches:
+In `connect()` (line 150), short-circuit relay mode before the platform branches:
 ```typescript
-    this.currentConfig = config;
-    this.keepReplayAudio = config.keepReplayAudio ?? false;
-    // ...existing state reset...
     if (this.relay) {
       return this.connectViaRelay();
     }
-    if (isElectron() && window.electron?.invoke) {
-      return this.connectViaElectronHeaderInjection();
-    }
-    // ...unchanged...
 ```
-Add `connectViaRelay` next to the other connect helpers. It mirrors `connectViaBrowserWebSocket` but uses the relay URL + `sokuji-auth` subprotocol and sets no auth headers. Read the existing `connectViaBrowserWebSocket` (search the file) and copy its socket-wiring (onopen/onmessage/onclose/binaryType, keepalive, config send), changing only:
-- the WebSocket construction to: `new WebSocket(this.relay!.wsUrl, ['sokuji-auth.' + this.relay!.sessionToken])`
-- skip any header-registration calls.
-
+Read the existing `connectViaBrowserWebSocket` and extract its socket-wiring (onopen/onmessage/onclose, `binaryType`, keepalive, config send) into a private `wireWebSocket()` if not already reusable (pure refactor). Add:
 ```typescript
   private async connectViaRelay(): Promise<void> {
-    // Relay handles X-Api-* auth server-side; we authenticate via the subprotocol.
     this.websocket = new WebSocket(this.relay!.wsUrl, ['sokuji-auth.' + this.relay!.sessionToken]);
     this.websocket.binaryType = 'arraybuffer';
-    this.wireWebSocket(); // reuse the existing onopen/onmessage/onclose/keepalive setup
+    this.wireWebSocket();
   }
 ```
-If `connectViaBrowserWebSocket` inlines its socket-wiring rather than exposing a reusable `wireWebSocket()`, extract that wiring into a private `wireWebSocket()` method first (pure refactor, no behavior change) and call it from both paths.
 
-- [ ] **Step 4: Run to verify it passes**
-
-Run: `npm run test -- src/services/clients/VolcengineAST2Client.test.ts`
-Expected: PASS (existing + relay test). If the existing tests touched header injection, ensure they still pass (relay path is only taken when `relay` is set).
+- [ ] **Step 4: Run → PASS** (existing + relay test).
 
 - [ ] **Step 5: Commit**
 
@@ -437,229 +290,312 @@ git commit -m "feat(volcengine-client): add relay mode (relay URL + sokuji-auth,
 
 ---
 
-## Task 6: ClientFactory routing + MainPanel threading
+## Task 5: Two settings slices + session-config cases
 
-**Files:**
-- Modify: `src/services/clients/ClientFactory.ts`
-- Modify: `src/components/MainPanel/MainPanel.tsx`
-- Test: `src/services/clients/ClientFactory.test.ts` (create or extend)
+**Files:** Modify `src/stores/settingsStore.ts`; Test `src/stores/kizunaProviders.test.ts` (create).
 
-- [ ] **Step 1: Write the failing test** at `src/services/clients/ClientFactory.test.ts`
+Context: each new provider gets its own slice reusing the EXISTING interface, and `createSessionConfig` calls the EXISTING builders directly (no adapters).
+
+- [ ] **Step 1: Failing test** at `src/stores/kizunaProviders.test.ts`
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
+import { useSettingsStore } from "./settingsStore";
+import { Provider } from "../types/Provider";
 
+describe("KizunaAI relay providers — session config", () => {
+  it("translate twin builds an openai_translate config from its own slice", () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE } as any);
+    const cfg: any = useSettingsStore.getState().createSessionConfig("instr");
+    expect(cfg.provider).toBe("openai_translate");
+    expect(cfg.model).toBe("gpt-realtime-translate");
+  });
+  it("doubao twin builds a volcengine_ast2 config from its own slice", () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_VOLCENGINE_AST2 } as any);
+    const cfg: any = useSettingsStore.getState().createSessionConfig("instr");
+    expect(cfg.provider).toBe("volcengine_ast2");
+  });
+});
+```
+
+- [ ] **Step 2: Run → FAIL** (default case returns openai config).
+
+- [ ] **Step 3: Add the slices + defaults**
+
+Near the existing defaults, add (reusing the existing default objects):
+```typescript
+const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
+const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...defaultVolcengineAST2Settings };
+```
+Add to the store state interface + initial state:
+```typescript
+  kizunaOpenaiTranslate: OpenAITranslateSettings;
+  kizunaVolcengineAst2: VolcengineAST2Settings;
+```
+```typescript
+    kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
+    kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
+```
+
+- [ ] **Step 4: Wire `getCurrentProviderSettings` + `createSessionConfig`**
+
+In `getCurrentProviderSettings` (settingsStore.ts:1544), add cases:
+```typescript
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+          return state.kizunaOpenaiTranslate;
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          return state.kizunaVolcengineAst2;
+```
+In `createSessionConfig` (settingsStore.ts:1627), add cases:
+```typescript
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+          config = createOpenAITranslateSessionConfig(state.kizunaOpenaiTranslate, systemInstructions);
+          break;
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          config = createVolcengineAST2SessionConfig(state.kizunaVolcengineAst2, systemInstructions);
+          break;
+```
+
+- [ ] **Step 5: Add update actions + persistence**
+
+Add `updateKizunaOpenaiTranslate` / `updateKizunaVolcengineAst2` actions mirroring `updateOpenAITranslate` / `updateVolcengineAST2` (search those for the exact shape), but skip persisting credential fields (`apiKey`, `appId`, `accessToken`). Register loads in the settings-load section (near settingsStore.ts:1498): `loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings)` and the volcengine one; add the loaded values to the returned state object. Export hooks `useKizunaOpenaiTranslateSettings` / `useKizunaVolcengineAst2Settings` mirroring the existing ones.
+
+- [ ] **Step 6: Run tests + typecheck** — `npm run test -- src/stores/kizunaProviders.test.ts && npx tsc --noEmit` → PASS.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/stores/settingsStore.ts src/stores/kizunaProviders.test.ts
+git commit -m "feat(settings): add kizuna translate/volcengine slices + session configs"
+```
+
+---
+
+## Task 6: ClientFactory routing (signature unchanged)
+
+**Files:** Modify `src/services/clients/ClientFactory.ts`; Test `ClientFactory.test.ts` (create).
+
+- [ ] **Step 1: Failing test** at `src/services/clients/ClientFactory.test.ts`
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
 vi.mock("../../utils/environment", async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   getRelayWsUrl: () => "wss://r.example/v1",
 }));
-
 import { ClientFactory } from "./ClientFactory";
 import { Provider } from "../../types/Provider";
 import { OpenAITranslateGAClient } from "./OpenAITranslateGAClient";
 import { VolcengineAST2Client } from "./VolcengineAST2Client";
 
-describe("ClientFactory KizunaAI engine routing", () => {
-  it("routes translate engine to OpenAITranslateGAClient", () => {
-    const c = ClientFactory.createClient("gpt-realtime-translate", Provider.KIZUNA_AI, "sess_TOKEN", undefined, undefined, "websocket", undefined, "translate");
+describe("ClientFactory kizuna relay providers", () => {
+  it("routes the translate twin to OpenAITranslateGAClient", () => {
+    const c = ClientFactory.createClient("gpt-realtime-translate", Provider.KIZUNA_AI_OPENAI_TRANSLATE, "sess_TOKEN");
     expect(c).toBeInstanceOf(OpenAITranslateGAClient);
   });
-  it("routes doubao engine to VolcengineAST2Client", () => {
-    const c = ClientFactory.createClient("ast-v2-s2s", Provider.KIZUNA_AI, "sess_TOKEN", undefined, undefined, "websocket", undefined, "doubao");
+  it("routes the doubao twin to VolcengineAST2Client", () => {
+    const c = ClientFactory.createClient("ast-v2-s2s", Provider.KIZUNA_AI_VOLCENGINE_AST2, "sess_TOKEN");
     expect(c).toBeInstanceOf(VolcengineAST2Client);
   });
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 2: Run → FAIL** (no cases).
 
-Run: `npm run test -- src/services/clients/ClientFactory.test.ts`
-Expected: FAIL (8th param not accepted; KIZUNA_AI still returns OpenAIClient).
-
-- [ ] **Step 3: Add the param + relay imports to `ClientFactory.ts`**
-
-Add imports at top:
+- [ ] **Step 3: Implement** — in `ClientFactory.ts`, add `getRelayWsUrl` to the environment import, and add two cases (do NOT remove the `KIZUNA_AI` case yet — Task 11):
 ```typescript
-import { getApiUrl, getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
-import type { KizunaEngine } from '../../stores/settingsStore';
-```
-Extend the signature (ClientFactory.ts:40):
-```typescript
-  static createClient(
-    model: string,
-    provider: ProviderType,
-    apiKey: string,
-    clientSecret?: string,
-    customEndpoint?: string,
-    transportType?: TransportType,
-    webrtcOptions?: WebRTCClientOptions,
-    kizunaEngine?: KizunaEngine
-  ): IClient {
-```
-Replace the `KIZUNA_AI` case (ClientFactory.ts:111):
-```typescript
-      case Provider.KIZUNA_AI:
-        if (!isKizunaAIEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        // apiKey is the Better Auth session token. The relay holds the real
-        // provider credentials; we connect WS-only with a sokuji-auth subprotocol.
-        if (kizunaEngine === 'doubao') {
-          return new VolcengineAST2Client('', '', undefined, {
-            wsUrl: `${getRelayWsUrl()}/ast/translate`,
-            sessionToken: apiKey,
-          });
-        }
-        return new OpenAITranslateGAClient(apiKey, {
-          wsUrl: `${getRelayWsUrl()}/realtime/translations`,
-        });
-```
-Remove the now-unused `OpenAIClient` import only if no other case uses it (the `OPENAI_COMPATIBLE` case still uses `OpenAIClient` — keep the import).
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        if (!isKizunaAIEnabled()) throw new Error(`Provider ${provider} is not available in this build`);
+        return new OpenAITranslateGAClient(apiKey, { wsUrl: `${getRelayWsUrl()}/realtime/translations` });
 
-- [ ] **Step 4: Thread the engine in `MainPanel.tsx`** (createAIClient, line 532)
-
-Add to the `createAIClient` body before the return:
-```typescript
-    const kizunaEngine = provider === Provider.KIZUNA_AI ? kizunaAISettings.kizunaEngine : undefined;
-```
-and pass it as the 8th arg to `ClientFactory.createClient(...)`. Add `kizunaAISettings.kizunaEngine` to the `useCallback` dependency array.
-
-- [ ] **Step 5: Run tests + typecheck**
-
-Run: `npm run test -- src/services/clients/ClientFactory.test.ts && npx tsc --noEmit`
-Expected: PASS, no type errors.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/services/clients/ClientFactory.ts src/components/MainPanel/MainPanel.tsx src/services/clients/ClientFactory.test.ts
-git commit -m "feat(client-factory): route KizunaAI to relay engines by kizunaEngine"
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        if (!isKizunaAIEnabled()) throw new Error(`Provider ${provider} is not available in this build`);
+        return new VolcengineAST2Client('', '', undefined, { wsUrl: `${getRelayWsUrl()}/ast/translate`, sessionToken: apiKey });
 ```
 
----
-
-## Task 7: KizunaAIProviderConfig — reflect engines, drop realtime models
-
-**Files:**
-- Modify: `src/services/providers/KizunaAIProviderConfig.ts`
-
-Context: it currently extends `OpenAIProviderConfig` and exposes realtime models (filtered `gpt-realtime-2`), default model `gpt-realtime-mini`. With engines, the model is implied by the engine, so the realtime model list is dead.
-
-- [ ] **Step 1: Update the config** — set the default model to the translate model, drop the realtime model list, and keep `requiresAuth: true`.
-
-Read the current file, then change `models` to the two engine-implied models and `defaults.model` to `'gpt-realtime-translate'`:
-```typescript
-      models: [
-        { id: 'gpt-realtime-translate', name: 'KizunaAI Translate' },
-        { id: 'ast-v2-s2s', name: 'KizunaAI Doubao' },
-      ],
-      defaults: {
-        ...baseConfig.defaults,
-        model: 'gpt-realtime-translate',
-      },
-```
-Keep `requiresAuth: true`, `id: 'kizunaai'`, `displayName`, `apiKeyLabel`/placeholder. Remove the `gpt-realtime-mini` / realtime-specific defaults (threshold/prefixPadding/silenceDuration overrides may stay; they're harmless and reused by the derived translate config's silence mapping).
-
-- [ ] **Step 2: Typecheck** — `npx tsc --noEmit`
-Expected: passes.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/services/providers/KizunaAIProviderConfig.ts
-git commit -m "feat(kizuna-config): reflect translate/doubao engines, drop realtime models"
-```
-
----
-
-## Task 8: UI — KizunaAI engine selector
-
-**Files:**
-- Modify: `src/components/Settings/sections/ProviderSpecificSettings.tsx`
-- Modify: i18n locale files (`src/locales/en/*` at minimum)
-
-Context: `ProviderSpecificSettings.tsx` renders provider sections via `provider === Provider.KIZUNA_AI` blocks (lines 354, 387, 400, …). Add an engine selector and make the KizunaAI sub-controls follow it (Translate vs Doubao). Reuse the existing translate/volcengine control markup as the pattern.
-
-- [ ] **Step 1: Add the engine selector control** in the `Provider.KIZUNA_AI` render branch (around line 354). Use the existing select/dropdown component pattern already used for, e.g., `turnDetectionMode`. Bind it to `kizunaAISettings.kizunaEngine` via `updateKizunaAI({ kizunaEngine: value })`.
-
-```tsx
-{provider === Provider.KIZUNA_AI && (
-  <div className="setting-row">
-    <label>{t('settings.kizunaEngine.label')}</label>
-    <select
-      value={kizunaAISettings.kizunaEngine}
-      onChange={(e) => updateKizunaAI({ kizunaEngine: e.target.value as KizunaEngine })}
-    >
-      <option value="translate">{t('settings.kizunaEngine.translate')}</option>
-      <option value="doubao">{t('settings.kizunaEngine.doubao')}</option>
-    </select>
-  </div>
-)}
-```
-Import `KizunaEngine` from the store. Read the file to match the actual control/className conventions and the `updateKizunaAI`/`useKizunaAISettings` hooks already in use.
-
-- [ ] **Step 2: Gate engine-specific controls.** Where KizunaAI currently shows realtime controls (voice/model/temperature), restrict them: for `kizunaEngine === 'translate'` show the translate-relevant controls (target language, noise reduction, silence), for `'doubao'` show source/target language + turn detection. The shared language controls already exist; conditionally render the engine-specific extras using `kizunaAISettings.kizunaEngine`.
-
-- [ ] **Step 3: Add i18n keys** to `src/locales/en/` (the settings namespace):
-```
-"settings.kizunaEngine.label": "Engine",
-"settings.kizunaEngine.translate": "Translate (OpenAI)",
-"settings.kizunaEngine.doubao": "Doubao (Volcengine)"
-```
-Add the same keys to other locale files with English fallback (i18next already falls back to en, so non-en files can be added incrementally — note which were left for follow-up).
-
-- [ ] **Step 4: Typecheck + manual UI check**
-
-Run: `npx tsc --noEmit`
-Then `npm run dev`, open settings with KizunaAI selected, confirm the engine dropdown appears and toggles the sub-controls. (No automated UI test required for this task.)
+- [ ] **Step 4: Run tests + typecheck** → PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/Settings/sections/ProviderSpecificSettings.tsx src/locales/
-git commit -m "feat(ui): add KizunaAI engine selector (translate/doubao)"
+git add src/services/clients/ClientFactory.ts src/services/clients/ClientFactory.test.ts
+git commit -m "feat(client-factory): route kizuna relay providers to relay clients"
 ```
 
 ---
 
-## Task 9: Remove dead realtime KizunaAI bits + full verification
+## Task 7: Auth-token sourcing generalization
 
-**Files:**
-- Modify: any remaining references to the old realtime KizunaAI path
+**Files:** Modify `src/stores/settingsStore.ts`, `src/components/MainPanel/MainPanel.tsx`.
 
-- [ ] **Step 1: Search for dead references**
+Context: the session-token flow is `KIZUNA_AI`-specific today. Generalize so both new providers fetch the token.
+
+- [ ] **Step 1: settingsStore `validateApiKey`** — at the two `provider === Provider.KIZUNA_AI` checks (settingsStore.ts ~1214 and ~1251), broaden to include the managed providers:
+```typescript
+import { isKizunaManagedProvider } from "../types/Provider";
+// ...
+if (provider === Provider.KIZUNA_AI || isKizunaManagedProvider(provider)) { /* ensureKizunaApiKey path */ }
+// and:
+} else if ((provider === Provider.KIZUNA_AI || isKizunaManagedProvider(provider)) && getAuthToken) {
+  apiKey = await getAuthToken() || '';
+```
+
+- [ ] **Step 2: MainPanel apiKey sourcing** — in `connectConversation` (MainPanel.tsx ~1437), where `case Provider.KIZUNA_AI:` fetches the fresh token, add the same handling for the two new providers (either add `case Provider.KIZUNA_AI_OPENAI_TRANSLATE:` / `case Provider.KIZUNA_AI_VOLCENGINE_AST2:` falling through to the KizunaAI token logic, or guard with `isKizunaManagedProvider(provider)`).
+
+- [ ] **Step 3: Typecheck** — `npx tsc --noEmit` → no errors.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/stores/settingsStore.ts src/components/MainPanel/MainPanel.tsx
+git commit -m "feat(auth): source session token for kizuna relay providers"
+```
+
+---
+
+## Task 8: Provider config classes + registration
+
+**Files:** Create `src/services/providers/KizunaAIOpenAITranslateProviderConfig.ts`, `KizunaAIVolcengineAST2ProviderConfig.ts`; Modify `ProviderConfigFactory.ts`.
+
+- [ ] **Step 1: Create `KizunaAIOpenAITranslateProviderConfig.ts`** — extend the base config, override identity + requiresAuth. Read `OpenAITranslateProviderConfig` to match its `getConfig()` shape.
+```typescript
+import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
+import { ProviderConfig } from './ProviderConfig';
+
+export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProviderConfig {
+  getConfig(): ProviderConfig {
+    const base = super.getConfig();
+    return {
+      ...base,
+      id: 'kizunaai_openai_translate',
+      displayName: 'KizunaAI Translate',
+      requiresAuth: true,
+      apiKeyLabel: 'Kizuna AI Access',
+      apiKeyPlaceholder: 'Authentication managed automatically',
+    };
+  }
+}
+```
+
+- [ ] **Step 2: Create `KizunaAIVolcengineAST2ProviderConfig.ts`** analogously, extending `VolcengineAST2ProviderConfig`, `id: 'kizunaai_volcengine_ast2'`, `displayName: 'KizunaAI Doubao'`, `requiresAuth: true`. (Read the base config first to confirm the field names it exposes.)
+
+- [ ] **Step 3: Register in `ProviderConfigFactory.ts`** — inside the `isKizunaAIEnabled()` block, register both (keep the old `KIZUNA_AI` registration for now — removed in Task 11):
+```typescript
+  ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
+  ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
+```
+
+- [ ] **Step 4: Typecheck** — `npx tsc --noEmit` → no errors.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/services/providers/KizunaAIOpenAITranslateProviderConfig.ts src/services/providers/KizunaAIVolcengineAST2ProviderConfig.ts src/services/providers/ProviderConfigFactory.ts
+git commit -m "feat(provider-config): add relay-managed kizuna provider configs"
+```
+
+---
+
+## Task 9: UI — reuse base-provider rendering, hide credentials
+
+**Files:** Modify `ProviderSpecificSettings.tsx`, `LanguageSection.tsx`, `ProviderSection.tsx`; locales.
+
+- [ ] **Step 1: Render twins like their base.** In `ProviderSpecificSettings.tsx` and `LanguageSection.tsx`, every `provider === Provider.OPENAI_TRANSLATE` condition should also fire for `KIZUNA_AI_OPENAI_TRANSLATE`, and every `VOLCENGINE_AST2` condition for `KIZUNA_AI_VOLCENGINE_AST2`. Use the helper:
+```typescript
+import { kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
+const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
+// then branch on effectiveProvider for the translate/volcengine sections,
+// but read/write the kizuna slice when isKizunaManagedProvider(provider).
+```
+Wire the controls to the correct slice: when `isKizunaManagedProvider(provider)`, read `kizunaOpenaiTranslate`/`kizunaVolcengineAst2` and call `updateKizunaOpenaiTranslate`/`updateKizunaVolcengineAst2`; otherwise the existing user-managed slices. (Read the current section code to thread this cleanly.)
+
+- [ ] **Step 2: Hide credential inputs** for managed providers — where the apiKey / appId / accessToken inputs render, wrap with `{!isKizunaManagedProvider(provider) && ( ... )}`.
+
+- [ ] **Step 3: i18n** — add `displayName` strings if the dropdown pulls labels from locales; add to `src/locales/en/` and let i18next fall back for other locales (note as follow-up). Confirm the provider dropdown in `ProviderSection.tsx` shows the two new entries with sensible labels/icons.
+
+- [ ] **Step 4: Typecheck + manual UI check** — `npx tsc --noEmit`, then `npm run dev`: select each KizunaAI provider, confirm language/translation controls show and NO credential input shows.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/components/ src/locales/
+git commit -m "feat(ui): render kizuna relay providers via base-provider controls; hide credentials"
+```
+
+---
+
+## Task 10: Migration (stored `'kizunaai'` → translate twin)
+
+**Files:** Modify the settings load path (`settingsStore.ts` load and/or `SettingsInitializer.tsx`).
+
+- [ ] **Step 1: Failing test** — add to `src/stores/kizunaProviders.test.ts`:
+```typescript
+import { migrateLegacyKizunaProvider } from "./settingsStore";
+it("migrates a legacy 'kizunaai' provider to the translate twin", () => {
+  expect(migrateLegacyKizunaProvider("kizunaai" as any)).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+  expect(migrateLegacyKizunaProvider(Provider.OPENAI)).toBe(Provider.OPENAI);
+});
+```
+
+- [ ] **Step 2: Run → FAIL.**
+
+- [ ] **Step 3: Implement** — export a small migrator in `settingsStore.ts`:
+```typescript
+export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
+  return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
+}
+```
+Apply it where the persisted `provider` is loaded (settings load): `provider: migrateLegacyKizunaProvider(loadedProvider)`. If the old `settings.kizunaai` slice has `sourceLanguage`/`targetLanguage`, copy them into `kizunaOpenaiTranslate` during load (best-effort; ignore realtime-only fields).
+
+- [ ] **Step 4: Run → PASS; typecheck.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/stores/settingsStore.ts src/stores/kizunaProviders.test.ts src/components/SettingsInitializer/SettingsInitializer.tsx
+git commit -m "feat(settings): migrate legacy kizunaai provider to translate twin"
+```
+
+---
+
+## Task 11: Remove the realtime `KIZUNA_AI` path + final verification
+
+**Files:** `Provider.ts`, `settingsStore.ts`, `ClientFactory.ts`, `ProviderConfigFactory.ts`, `KizunaAIProviderConfig.ts` (delete), and any remaining references.
+
+- [ ] **Step 1: Find all remaining references**
 
 Run:
 ```bash
-grep -rnE "gpt-realtime-mini|OpenAIClient\(apiKey, getApiUrl" src --include='*.ts' --include='*.tsx'
+grep -rnE "Provider\.KIZUNA_AI\b|KIZUNA_AI =|kizunaai:|KizunaAISettings|defaultKizunaAISettings|gpt-realtime-mini|new OpenAIClient\(apiKey, getApiUrl" src --include='*.ts' --include='*.tsx' | grep -v "KIZUNA_AI_"
 ```
-Resolve any remaining KizunaAI→realtime assumptions (e.g. transportType webrtc handling specific to KizunaAI in `updateKizunaAI` at settingsStore.ts:1072 — KizunaAI is WS-only now, so the webrtc-forcing branch is dead for KizunaAI; leave generic behavior intact but confirm it can't force KizunaAI into webrtc).
 
-- [ ] **Step 2: Confirm KizunaAI never selects WebRTC.** In `MainPanel.createAIClient`, KizunaAI must pass `transportType: 'websocket'`. Verify the `useWebRTC` flag is never true for KizunaAI (the relay is WS-only). If a transport toggle is exposed for KizunaAI, hide/force it to websocket.
+- [ ] **Step 2: Remove them.** Delete from `Provider.ts`: the `KIZUNA_AI` enum member, its `ProviderType` union entry, and any `OPENAI_COMPATIBLE_PROVIDERS` entry. Delete from `settingsStore.ts`: the `kizunaai` slice/state/default, `KizunaAISettings`, `defaultKizunaAISettings`, the `KIZUNA_AI` cases in `getCurrentProviderSettings`/`createSessionConfig`, the `updateKizunaAI` action, and the now-redundant `provider === Provider.KIZUNA_AI ||` halves of the Task-7 conditions (keep only `isKizunaManagedProvider`). Delete the `KIZUNA_AI` case in `ClientFactory.ts` and its `KizunaAIProviderConfig` registration; delete `src/services/providers/KizunaAIProviderConfig.ts`. Convert remaining mechanical refs in `MainPanel.tsx`, `ClientOperations.ts`, `SettingsInitializer.tsx`, `MainLayout.tsx`, `OnboardingContext.tsx`, `vite-env.d.ts` (each becomes `isKizunaManagedProvider(...)` or the two providers).
 
-- [ ] **Step 3: Full suite + typecheck**
+- [ ] **Step 3: Confirm KizunaAI is WS-only** — ensure neither new provider can select WebRTC (`transportType: 'websocket'`); the relay is WS-only. Check `MainPanel.createAIClient`'s `useWebRTC`/`effectiveTransportType` is never webrtc for these providers.
+
+- [ ] **Step 4: Full suite + typecheck**
 
 Run: `npm run test && npx tsc --noEmit`
-Expected: all tests pass, no type errors.
+Expected: all green, no `Provider.KIZUNA_AI` references remain (re-run the Step-1 grep → empty).
 
-- [ ] **Step 4: Manual end-to-end smoke (requires backend relay running + signed in)**
+- [ ] **Step 5: Manual end-to-end smoke** (backend relay running + signed in): select KizunaAI Translate, run a translation; select KizunaAI Doubao, run one. Confirm audio flows and `event_type='use'` rows appear in the backend `wallet_ledger`. Record the result.
 
-Sign in, select KizunaAI → Translate engine, run a translation, confirm audio flows and a session completes. Switch to Doubao engine, repeat. Confirm in the backend `wallet_ledger` that `event_type='use'` rows appear (validates the full FE→relay→meter loop). Record the result.
-
-- [ ] **Step 5: Commit any cleanup**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
-git commit -m "chore(kizuna): remove dead realtime path; verify WS-only relay engines"
+git commit -m "chore(kizuna): remove realtime KIZUNA_AI provider; relay providers only"
 ```
 
 ---
 
 ## Self-Review Notes (for the executor)
 
-- **Type-guard alignment:** the KizunaAI session config MUST carry `provider: 'openai_translate'` (translate) or `'volcengine_ast2'` (doubao) so the relay client's `isOpenAITranslateSessionConfig` / `isVolcengineAST2SessionConfig` guard passes. The Task 3 adapters guarantee this by reusing the existing builders.
-- **Credentials:** relay-mode clients ignore provider keys; the session token rides the `sokuji-auth.<token>` subprotocol. The backend `relayAuthMiddleware` parses exactly that prefix.
-- **No WebRTC for KizunaAI** (relay is WS-only) — enforced in Tasks 6/9.
-- **User-managed providers untouched:** `OPENAI_TRANSLATE` / `VOLCENGINE_AST2` keep their direct URLs, keys, `EphemeralTokenService`, and Volcengine header injection (relay mode is only entered when the `relay` constructor arg is set).
-- **Follow-up:** non-en i18n strings for the engine selector may be added incrementally (en fallback covers them).
+- **Type-guard alignment:** the twin session config carries `provider: 'openai_translate'` / `'volcengine_ast2'` (the existing builders set these), matching the relay clients' guards.
+- **Reuse over derivation:** there are NO adapter functions — each twin uses its own slice + the existing builder directly (this is why two providers is simpler than the earlier sub-engine design).
+- **Credentials:** relay-mode clients ignore provider keys; the session token rides `sokuji-auth.<token>`.
+- **WebRTC excluded** (relay is WS-only) — enforced in Task 11.
+- **User-managed providers untouched** (relay mode only entered when the `relay` constructor arg is set).
+- **Build order:** `KIZUNA_AI` stays until Task 11 so `tsc` is green between tasks; Task 11 is the single breaking-then-fixing removal.
+- **Follow-up:** non-en i18n strings may be added incrementally (en fallback covers them).
