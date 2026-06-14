@@ -1443,7 +1443,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           apiKey = openAICompatibleSettings.apiKey;
           break;
         case Provider.KIZUNA_AI:
-          // For Kizuna AI, fetch a fresh session token from Better Auth
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          // For Kizuna AI (and relay-managed providers), fetch a fresh session token from Better Auth
           if (getToken && isLoaded && isSignedIn === true) {
             console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
             try {

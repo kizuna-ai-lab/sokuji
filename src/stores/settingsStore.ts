@@ -21,7 +21,7 @@ import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
-import {Provider, ProviderType} from '../types/Provider';
+import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
 
@@ -1245,7 +1245,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // For KizunaAI, ensure we have an API key first
-      if (provider === Provider.KIZUNA_AI) {
+      if (provider === Provider.KIZUNA_AI || isKizunaManagedProvider(provider)) {
         const hasKey = await state.ensureKizunaApiKey(getAuthToken!, true);
         if (!hasKey) {
           return {
@@ -1282,7 +1282,7 @@ const useSettingsStore = create<SettingsStore>()(
         const compatSettings = currentSettings as OpenAICompatibleSettings;
         apiKey = compatSettings.apiKey || '';
         customEndpoint = compatSettings.customEndpoint;
-      } else if (provider === Provider.KIZUNA_AI && getAuthToken) {
+      } else if ((provider === Provider.KIZUNA_AI || isKizunaManagedProvider(provider)) && getAuthToken) {
         apiKey = await getAuthToken() || '';
       } else if (provider === Provider.VOLCENGINE_ST) {
         // Volcengine ST uses accessKeyId as apiKey and secretAccessKey as clientSecret
