@@ -136,6 +136,18 @@ export function getApiUrl(): string {
 }
 
 /**
+ * Get the WebSocket base URL for the KizunaAI relay
+ * @returns The WebSocket URL with /v1 suffix (e.g., wss://sokuji.kizuna.ai/v1)
+ *
+ * Callers append `/realtime/translations` or `/ast/translate` to this URL.
+ */
+export function getRelayWsUrl(): string {
+  const base = getBackendUrl().replace(/\/$/, "");
+  const ws = base.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+  return `${ws}/v1`;
+}
+
+/**
  * Check if running in development mode
  * @returns true if in development mode
  */
