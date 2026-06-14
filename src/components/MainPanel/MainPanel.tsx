@@ -344,9 +344,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
-  // Balance validation for Kizuna AI
+  // Balance validation for Kizuna AI. Require a POSITIVE balance to start (a zero
+  // or negative balance can't begin a session); the relay enforces the same gate
+  // server-side, and cuts the session off if usage drives the balance negative.
   const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
-    (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
+    (quota && quota.balance !== undefined && quota.balance > 0 && !quota.frozen);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
@@ -3438,7 +3440,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0 && !quota.frozen && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>
