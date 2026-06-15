@@ -347,6 +347,14 @@
     "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Real-time na pagsasalin, napapatotohanan sa pamamagitan ng iyong account"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Speech-to-speech na pagsasalin, napapatotohanan sa pamamagitan ng iyong account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Powered ng GPT models"

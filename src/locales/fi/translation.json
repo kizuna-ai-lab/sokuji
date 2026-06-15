@@ -347,6 +347,14 @@
     "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Reaaliaikainen käännös, todennettu tililläsi"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT-mallien voimalla"

@@ -9,7 +9,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -31,7 +30,7 @@ import {
   useNavigateToSettings,
   useLocalInferenceSettings,
 } from '../../../stores/settingsStore';
-import { Provider, ProviderType } from '../../../types/Provider';
+import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
@@ -76,7 +75,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -180,8 +178,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         return openAICompatibleSettings.apiKey;
       case Provider.PALABRA_AI:
         return palabraAISettings.clientId;
-      case Provider.KIZUNA_AI:
-        return kizunaAISettings.apiKey || '';
       case Provider.OPENAI_TRANSLATE:
         return openAITranslateSettings.apiKey;
       case Provider.VOLCENGINE_ST:
@@ -208,9 +204,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ clientId: value });
         break;
-      case Provider.KIZUNA_AI:
-        console.warn('KizunaAI API key is managed automatically');
-        break;
       case Provider.OPENAI_TRANSLATE:
         updateOpenAITranslateSettings({ apiKey: value });
         break;
@@ -225,7 +218,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Validate API key
   const handleValidateApiKey = async () => {
-    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ?
+    const getAuthToken = isKizunaManagedProvider(provider) && isSignedIn && getToken ?
       () => getToken() : undefined;
 
     const result = await validateApiKey(getAuthToken);
@@ -301,12 +294,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: PalabraAIIcon,
           description: t('providers.palabraai.description')
         };
-      case Provider.KIZUNA_AI:
-        return {
-          name: t('providers.kizunaai.name'),
-          icon: KizunaAIIcon,
-          description: t('providers.kizunaai.description')
-        };
       case Provider.VOLCENGINE_ST:
         return {
           name: t('providers.volcengine_st.name'),
@@ -318,6 +305,20 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           name: t('providers.volcengine_ast2.name'),
           icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
+        };
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        // Relay-managed twin of OpenAI Translate. Locale strings not yet added;
+        // English fallbacks keep the dropdown label usable (follow-up: i18n).
+        return {
+          name: t('providers.kizunaai_openai_translate.name', 'KizunaAI Translate'),
+          icon: KizunaAIIcon,
+          description: t('providers.kizunaai_openai_translate.description', 'Real-time translation, authenticated via your account')
+        };
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        return {
+          name: t('providers.kizunaai_volcengine_ast2.name', 'KizunaAI Doubao'),
+          icon: KizunaAIIcon,
+          description: t('providers.kizunaai_volcengine_ast2.description', 'Speech-to-speech translation, authenticated via your account')
         };
       case Provider.LOCAL_INFERENCE:
         return {
@@ -515,7 +516,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             )}
           </div>
         </div>
-      ) : provider !== Provider.KIZUNA_AI ? (
+      ) : (!isKizunaManagedProvider(provider)) ? (
         provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
           <div className="volcengine-st-credentials-group">

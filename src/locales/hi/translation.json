@@ -341,6 +341,14 @@
     "keepReplayAudioDesc": "अनुवादित ऑडियो को मेमोरी में संग्रहीत करें ताकि आप इसे बाद में प्रत्येक संदेश से फिर से चला सकें। लंबे सत्रों के दौरान मेमोरी उपयोग कम करने के लिए डिफ़ॉल्ट रूप से बंद।"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "रीयल-टाइम अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "वाक्-से-वाक् अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT मॉडल द्वारा संचालित"

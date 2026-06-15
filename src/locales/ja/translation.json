@@ -611,6 +611,14 @@
     "keepReplayAudioDesc": "翻訳された音声をメモリに保存し、後から各メッセージで再生できるようにします。長時間のセッションでのメモリ使用量を抑えるため、既定ではオフです。"
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "リアルタイム翻訳、アカウントで認証"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "音声から音声への翻訳、アカウントで認証"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPTモデル搭載"

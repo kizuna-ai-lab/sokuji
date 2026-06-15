@@ -354,6 +354,14 @@
     "keepReplayAudioDesc": "ذخیره صدای ترجمه‌شده در حافظه تا بتوانید بعداً آن را از هر پیام پخش کنید. به‌طور پیش‌فرض غیرفعال است تا مصرف حافظه در جلسه‌های طولانی کاهش یابد."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "ترجمهٔ بی‌درنگ، احراز هویت‌شده از طریق حساب شما"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "ترجمهٔ گفتار به گفتار، احراز هویت‌شده از طریق حساب شما"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "قدرت گرفته از مدل‌های GPT"

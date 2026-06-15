@@ -84,14 +84,14 @@ describe('settingsStore', () => {
         });
       });
 
-      // Switch to KizunaAI
-      await store.setProvider(Provider.KIZUNA_AI);
+      // Switch to a Kizuna-managed (relay) provider
+      await store.setProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
 
       // validateApiKey should NOT be called from setProvider (handled by SettingsInitializer)
       expect(validateSpy).not.toHaveBeenCalled();
 
       // Provider should be updated
-      expect(useSettingsStore.getState().provider).toBe(Provider.KIZUNA_AI);
+      expect(useSettingsStore.getState().provider).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
     });
 
     it('should clear cache when switching providers', async () => {
@@ -303,15 +303,9 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().openaiCompatible.turnDetectionMode).toBe('Disabled');
     });
 
-    it('Kizuna AI: demotes Push-to-Translate to Disabled when transport switches to webrtc', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateKizunaAI({
-        transportType: 'websocket',
-        turnDetectionMode: 'Push-to-Translate',
-      });
-      await store.updateKizunaAI({ transportType: 'webrtc' });
-      expect(useSettingsStore.getState().kizunaai.turnDetectionMode).toBe('Disabled');
-    });
+    // The realtime KIZUNA_AI provider (with its WebRTC webrtc→Disabled demotion)
+    // was removed in favor of the WS-only relay-managed twins, so its
+    // webrtc-demotion test no longer applies.
   });
 
   describe('keepReplayAudio', () => {

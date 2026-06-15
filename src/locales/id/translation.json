@@ -348,6 +348,14 @@
     "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Terjemahan real-time, diautentikasi melalui akun Anda"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Didukung oleh model GPT"

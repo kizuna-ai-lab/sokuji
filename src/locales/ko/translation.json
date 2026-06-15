@@ -604,6 +604,14 @@
     "keepReplayAudioDesc": "번역된 오디오를 메모리에 저장하여 각 메시지에서 나중에 다시 재생할 수 있도록 합니다. 긴 세션 동안 메모리 사용을 줄이기 위해 기본적으로 꺼져 있습니다."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "실시간 번역, 계정으로 인증"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "음성 대 음성 번역, 계정으로 인증"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT 모델 기반"

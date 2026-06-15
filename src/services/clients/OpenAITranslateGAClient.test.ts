@@ -731,3 +731,33 @@ describe('OpenAITranslateGAClient.validateApiKeyAndFetchModels', () => {
     fetchSpy.mockRestore();
   });
 });
+
+describe("OpenAITranslateGAClient relay mode", () => {
+  it("connects to the relay URL with a sokuji-auth subprotocol", async () => {
+    const captured: { url?: string; protocols?: string[] } = {};
+    const FakeWS: any = vi.fn(function (this: any, url: string, protocols: string[]) {
+      captured.url = url; captured.protocols = protocols;
+      this.readyState = 1;
+      this.send = vi.fn();
+      this.close = vi.fn();
+      this.addEventListener = vi.fn();
+      this.removeEventListener = vi.fn();
+      // Drive the relay handshake to completion: open, then emit session.created
+      // so connect() resolves instead of leaving the 30s handshake timer pending.
+      setTimeout(() => {
+        this.onopen?.();
+        this.onmessage?.({ data: JSON.stringify({ type: 'session.created' }) });
+      }, 0);
+    });
+    FakeWS.OPEN = 1;
+    const orig = globalThis.WebSocket;
+    (globalThis as any).WebSocket = FakeWS;
+    try {
+      const client = new OpenAITranslateGAClient("sess_TOKEN", { wsUrl: "wss://r.example/v1/realtime/translations" });
+      await client.connect({ provider: "openai_translate", model: "gpt-realtime-translate", targetLanguage: "zh" } as any);
+      expect(captured.url).toContain("wss://r.example/v1/realtime/translations?model=");
+      expect(captured.protocols).toContain("sokuji-auth.sess_TOKEN");
+      expect(captured.protocols?.some((p) => p.startsWith("openai-insecure-api-key."))).toBe(false);
+    } finally { (globalThis as any).WebSocket = orig; }
+  });
+});

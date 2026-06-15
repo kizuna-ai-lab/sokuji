@@ -13,10 +13,11 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useKizunaOpenaiTranslateSettings,
+  useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
@@ -26,10 +27,11 @@ import {
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateKizunaAI,
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateKizunaOpenaiTranslate,
+  useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
   useGetCurrentProviderSettings,
   TransportType,
@@ -46,7 +48,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
-import { Provider, isOpenAICompatible } from '../../../types/Provider';
+import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
@@ -101,10 +103,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
+  const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
   const modelStatuses = useModelStatuses();
 
@@ -117,10 +120,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateKizunaAISettings = useUpdateKizunaAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
+  const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localSystemPrompt = useLocalSystemPrompt();
@@ -130,6 +134,33 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const [isLocalPromptPreviewExpanded, setIsLocalPromptPreviewExpanded] = useState(false);
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+
+  // Kizuna-managed relay twins reuse their base provider's controls. The
+  // sections below gate on `effectiveProvider` so the OPENAI_TRANSLATE /
+  // VOLCENGINE_AST2 UI renders for the twins, but read/write the kizuna slices
+  // (selected just below) so the user-managed slices stay untouched.
+  const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
+
+  // Active translate slice + updater: kizuna slice when managed, else the
+  // user-managed openaiTranslate slice. Used by the translate-section helpers.
+  const activeOpenAITranslateSettings =
+    provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE
+      ? kizunaOpenaiTranslateSettings
+      : openAITranslateSettings;
+  const updateActiveOpenAITranslateSettings =
+    provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE
+      ? updateKizunaOpenaiTranslateSettings
+      : updateOpenAITranslateSettings;
+
+  // Active AST2 slice + updater: kizuna slice when managed, else user-managed.
+  const activeVolcengineAST2Settings =
+    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
+      ? kizunaVolcengineAst2Settings
+      : volcengineAST2Settings;
+  const updateActiveVolcengineAST2Settings =
+    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
+      ? updateKizunaVolcengineAst2Settings
+      : updateVolcengineAST2Settings;
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -351,8 +382,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings({ [key]: value });
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       updateOpenAICompatibleSettings({ [key]: value });
-    } else if (provider === Provider.KIZUNA_AI) {
-      updateKizunaAISettings({ [key]: value });
     } else if (provider === Provider.GEMINI) {
       updateGeminiSettings({ [key]: value });
     } else if (provider === Provider.PALABRA_AI) {
@@ -361,6 +390,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
+    } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
+      updateKizunaOpenaiTranslateSettings({ [key]: value });
+    } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
+      updateKizunaVolcengineAst2Settings({ [key]: value });
     } else if (provider === Provider.LOCAL_INFERENCE) {
       updateLocalInferenceSettings({ [key]: value });
     } else {
@@ -384,10 +417,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return openAISettings;
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       return openAICompatibleSettings;
-    } else if (provider === Provider.KIZUNA_AI) {
-      return kizunaAISettings;
-    } else if (provider === Provider.OPENAI_TRANSLATE) {
-      return openAITranslateSettings;
+    } else if (effectiveProvider === Provider.OPENAI_TRANSLATE) {
+      // Covers OPENAI_TRANSLATE and its kizuna twin; activeOpenAITranslateSettings
+      // resolves to the kizuna slice when managed.
+      return activeOpenAITranslateSettings;
     }
     return null;
   };
@@ -397,10 +430,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings(updates);
     } else if (provider === Provider.OPENAI_COMPATIBLE) {
       updateOpenAICompatibleSettings(updates);
-    } else if (provider === Provider.KIZUNA_AI) {
-      updateKizunaAISettings(updates);
-    } else if (provider === Provider.OPENAI_TRANSLATE) {
-      updateOpenAITranslateSettings(updates);
+    } else if (effectiveProvider === Provider.OPENAI_TRANSLATE) {
+      updateActiveOpenAITranslateSettings(updates);
     }
   };
 
@@ -410,7 +441,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // The explicit return type narrows out `OpenAITranslateSettings` so
   // callers can read turnDetectionMode/threshold/etc. directly.
   const getOpenAICompatibleOnlySettings = (): OpenAICompatibleSettingsBase | null => {
-    if (provider === Provider.OPENAI_TRANSLATE) return null;
+    if (effectiveProvider === Provider.OPENAI_TRANSLATE) return null;
     const settings = getOpenAICompatibleSettings();
     if (!settings || 'targetLanguage' in settings && !('voice' in settings)) {
       // Defensive: shouldn't happen given the gate above
@@ -676,8 +707,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     const handleRefreshModels = async () => {
       try {
-        // Pass getAuthToken for Kizuna AI provider
-        const getAuthToken = provider === Provider.KIZUNA_AI && getToken ? 
+        // Pass getAuthToken for Kizuna-managed (relay) providers
+        const getAuthToken = isKizunaManagedProvider(provider) && getToken ?
           () => getToken() : undefined;
         
         await fetchAvailableModels(getAuthToken);
@@ -1511,9 +1542,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderVolcengineAST2Settings = () => {
-    if (provider !== Provider.VOLCENGINE_AST2) {
+    if (effectiveProvider !== Provider.VOLCENGINE_AST2) {
       return null;
     }
+
+    // Bind to the active slice/updater so the kizuna twin writes its own slice
+    // while the user-managed AST2 provider stays on volcengineAST2Settings.
+    const ast2Settings = activeVolcengineAST2Settings;
+    const updateAst2Settings = updateActiveVolcengineAST2Settings;
 
     const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
     const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
@@ -1539,16 +1575,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <select
               className="select-dropdown"
-              value={volcengineAST2Settings.sourceLanguage}
+              value={ast2Settings.sourceLanguage}
               onChange={(e) => {
-                const oldSourceLang = volcengineAST2Settings.sourceLanguage;
-                const oldTargetLang = volcengineAST2Settings.targetLanguage;
+                const oldSourceLang = ast2Settings.sourceLanguage;
+                const oldTargetLang = ast2Settings.targetLanguage;
                 const newSourceLang = e.target.value;
                 const next = resolveAST2LanguagePair(
                   { sourceLanguage: oldSourceLang, targetLanguage: oldTargetLang },
                   { side: 'source', value: newSourceLang },
                 );
-                updateVolcengineAST2Settings({
+                updateAst2Settings({
                   sourceLanguage: next.sourceLanguage,
                   targetLanguage: next.targetLanguage,
                 });
@@ -1579,16 +1615,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <select
               className="select-dropdown"
-              value={volcengineAST2Settings.targetLanguage}
+              value={ast2Settings.targetLanguage}
               onChange={(e) => {
-                const oldSourceLang = volcengineAST2Settings.sourceLanguage;
-                const oldTargetLang = volcengineAST2Settings.targetLanguage;
+                const oldSourceLang = ast2Settings.sourceLanguage;
+                const oldTargetLang = ast2Settings.targetLanguage;
                 const newTargetLang = e.target.value;
                 const next = resolveAST2LanguagePair(
                   { sourceLanguage: oldSourceLang, targetLanguage: oldTargetLang },
                   { side: 'target', value: newTargetLang },
                 );
-                updateVolcengineAST2Settings({
+                updateAst2Settings({
                   sourceLanguage: next.sourceLanguage,
                   targetLanguage: next.targetLanguage,
                 });
@@ -1628,16 +1664,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="setting-item">
             <div className="turn-detection-options">
               <button
-                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+                className={`option-button ${ast2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
                 onClick={() => {
-                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  const fromMode = ast2Settings.turnDetectionMode;
                   if (fromMode !== 'Auto') {
                     trackEvent('speech_mode_changed', {
                       provider: provider,
                       from_mode: fromMode,
                       to_mode: 'Auto',
                     });
-                    updateVolcengineAST2Settings({ turnDetectionMode: 'Auto' });
+                    updateAst2Settings({ turnDetectionMode: 'Auto' });
                   }
                 }}
                 disabled={isSessionActive}
@@ -1645,16 +1681,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 {t('settings.auto')}
               </button>
               <button
-                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
                 onClick={() => {
-                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  const fromMode = ast2Settings.turnDetectionMode;
                   if (fromMode !== 'Push-to-Talk') {
                     trackEvent('speech_mode_changed', {
                       provider: provider,
                       from_mode: fromMode,
                       to_mode: 'Push-to-Talk',
                     });
-                    updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Talk' });
+                    updateAst2Settings({ turnDetectionMode: 'Push-to-Talk' });
                   }
                 }}
                 disabled={isSessionActive}
@@ -1662,16 +1698,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 {t('settings.pushToTalk')}
               </button>
               <button
-                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
+                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
                 onClick={() => {
-                  const fromMode = volcengineAST2Settings.turnDetectionMode;
+                  const fromMode = ast2Settings.turnDetectionMode;
                   if (fromMode !== 'Push-to-Translate') {
                     trackEvent('speech_mode_changed', {
                       provider: provider,
                       from_mode: fromMode,
                       to_mode: 'Push-to-Translate',
                     });
-                    updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Translate' });
+                    updateAst2Settings({ turnDetectionMode: 'Push-to-Translate' });
                   }
                 }}
                 disabled={isSessionActive}
@@ -1708,8 +1744,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <input
               type="text"
               className="text-input"
-              value={volcengineAST2Settings.hotWordTableId}
-              onChange={(e) => updateVolcengineAST2Settings({ hotWordTableId: e.target.value })}
+              value={ast2Settings.hotWordTableId}
+              onChange={(e) => updateAst2Settings({ hotWordTableId: e.target.value })}
               disabled={isSessionActive}
               placeholder=""
             />
@@ -1738,8 +1774,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <input
               type="text"
               className="text-input"
-              value={volcengineAST2Settings.replacementTableId}
-              onChange={(e) => updateVolcengineAST2Settings({ replacementTableId: e.target.value })}
+              value={ast2Settings.replacementTableId}
+              onChange={(e) => updateAst2Settings({ replacementTableId: e.target.value })}
               disabled={isSessionActive}
               placeholder=""
             />
@@ -1768,8 +1804,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <input
               type="text"
               className="text-input"
-              value={volcengineAST2Settings.glossaryTableId}
-              onChange={(e) => updateVolcengineAST2Settings({ glossaryTableId: e.target.value })}
+              value={ast2Settings.glossaryTableId}
+              onChange={(e) => updateAst2Settings({ glossaryTableId: e.target.value })}
               disabled={isSessionActive}
               placeholder=""
             />
@@ -2269,7 +2305,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderTranslateInfoBanner = () => {
-    if (provider !== Provider.OPENAI_TRANSLATE) return null;
+    if (effectiveProvider !== Provider.OPENAI_TRANSLATE) return null;
     return (
       <div className="settings-section translate-info-banner">
         <div className="info-banner">

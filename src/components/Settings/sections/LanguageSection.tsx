@@ -9,8 +9,9 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
+  useKizunaOpenaiTranslateSettings,
+  useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -19,8 +20,9 @@ import {
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateKizunaAI,
   useUpdateOpenAITranslate,
+  useUpdateKizunaOpenaiTranslate,
+  useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
@@ -31,7 +33,7 @@ import {
   useKeepReplayAudio,
   useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
-import { Provider } from '../../../types/Provider';
+import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
@@ -70,8 +72,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
+  const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
+  const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -93,11 +96,26 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateKizunaAISettings = useUpdateKizunaAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
+  const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
+  const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
+
+  // Kizuna-managed relay twins reuse their base provider's language controls but
+  // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
+  // (e.g. AST2's bidirectional language sync); the active slice/updater pairs
+  // resolve to the kizuna slice when managed and the user-managed slice otherwise.
+  const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
+  const activeVolcengineAST2Settings =
+    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
+      ? kizunaVolcengineAst2Settings
+      : volcengineAST2Settings;
+  const updateActiveVolcengineAST2Settings =
+    provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
+      ? updateKizunaVolcengineAst2Settings
+      : updateVolcengineAST2Settings;
 
   // Get provider configuration with fallback
   const providerConfig: ProviderConfig = useMemo(() => {
@@ -119,20 +137,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return openAICompatibleSettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
-      case Provider.KIZUNA_AI:
-        return kizunaAISettings;
       case Provider.OPENAI_TRANSLATE:
         return openAITranslateSettings;
       case Provider.VOLCENGINE_ST:
         return volcengineSTSettings;
       case Provider.VOLCENGINE_AST2:
         return volcengineAST2Settings;
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        return kizunaOpenaiTranslateSettings;
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+        return kizunaVolcengineAst2Settings;
       case Provider.LOCAL_INFERENCE:
         return localInferenceSettings;
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, localInferenceSettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -149,23 +169,28 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ sourceLanguage: value });
         break;
-      case Provider.KIZUNA_AI:
-        updateKizunaAISettings({ sourceLanguage: value });
-        break;
       case Provider.OPENAI_TRANSLATE:
         // Source language is UI-only for translate (auto-detected by API).
         updateOpenAITranslateSettings({ sourceLanguage: value });
         break;
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
+        updateKizunaOpenaiTranslateSettings({ sourceLanguage: value });
+        break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ sourceLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2: {
-        const prev = volcengineAST2Settings;
+      case Provider.VOLCENGINE_AST2:
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
+        // Both the user-managed AST2 provider and its kizuna twin use the same
+        // bidirectional language sync; the active slice/updater resolve which
+        // store slice is read/written.
+        const prev = activeVolcengineAST2Settings;
         const next = resolveAST2LanguagePair(
           { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
           { side: 'source', value },
         );
-        updateVolcengineAST2Settings({
+        updateActiveVolcengineAST2Settings({
           sourceLanguage: next.sourceLanguage,
           targetLanguage: next.targetLanguage,
         });
@@ -218,22 +243,24 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ targetLanguage: value });
         break;
-      case Provider.KIZUNA_AI:
-        updateKizunaAISettings({ targetLanguage: value });
-        break;
       case Provider.OPENAI_TRANSLATE:
         updateOpenAITranslateSettings({ targetLanguage: value as any });
+        break;
+      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
+        updateKizunaOpenaiTranslateSettings({ targetLanguage: value as any });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ targetLanguage: value });
         break;
-      case Provider.VOLCENGINE_AST2: {
-        const prev = volcengineAST2Settings;
+      case Provider.VOLCENGINE_AST2:
+      case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
+        const prev = activeVolcengineAST2Settings;
         const next = resolveAST2LanguagePair(
           { sourceLanguage: prev.sourceLanguage, targetLanguage: prev.targetLanguage },
           { side: 'target', value },
         );
-        updateVolcengineAST2Settings({
+        updateActiveVolcengineAST2Settings({
           sourceLanguage: next.sourceLanguage,
           targetLanguage: next.targetLanguage,
         });
@@ -273,14 +300,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       const availableTargets = getTranslationTargetLanguages(tgt);
       const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
       updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
-    } else if (provider === Provider.VOLCENGINE_AST2) {
+    } else if (effectiveProvider === Provider.VOLCENGINE_AST2) {
       // AST2's updateSource/Target paths each write BOTH fields through the
       // helper, reading prev from this closure. A two-step swap would invoke
       // the second write with a stale prev — overwriting the first write with
       // the original source value and producing src/src. Apply both new values
       // in one update here instead. src === 'zhen' is already excluded above,
-      // so no resolveAST2LanguagePair invocation is needed.
-      updateVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
+      // so no resolveAST2LanguagePair invocation is needed. The active updater
+      // resolves to the kizuna slice for the relay twin.
+      updateActiveVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
       trackEvent('language_changed', { to_language: src, language_type: 'target' });
     } else {
@@ -296,7 +324,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateVolcengineAST2Settings, trackEvent]);
+  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -314,11 +342,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // client's translate target = our source language, and an unsupported
   // target would fail the API call. Informational only (no auto-toggle).
   const showTranslateParticipantWarning = useMemo(() => {
-    if (provider !== Provider.OPENAI_TRANSLATE) return false;
+    if (effectiveProvider !== Provider.OPENAI_TRANSLATE) return false;
     if (!isParticipantChannelInScope) return false;
     const supportedTargets = OpenAITranslateProviderConfig.getTargetLanguages();
     return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
-  }, [provider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
+  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [
@@ -467,7 +495,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.OPENAI_TRANSLATE && (
+                {provider !== Provider.LOCAL_INFERENCE && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (

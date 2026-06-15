@@ -555,6 +555,14 @@
     "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Dịch thời gian thực, xác thực qua tài khoản của bạn"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Dịch giọng nói sang giọng nói, xác thực qua tài khoản của bạn"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Sử dụng các mô hình GPT"

@@ -562,6 +562,14 @@
     "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Gerçek zamanlı çeviri, hesabınız üzerinden kimliği doğrulanır"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Konuşmadan konuşmaya çeviri, hesabınız üzerinden kimliği doğrulanır"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT modelleri ile çalışır"

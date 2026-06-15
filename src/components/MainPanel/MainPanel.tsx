@@ -9,7 +9,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useKizunaAISettings,
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
@@ -56,7 +55,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible } from '../../types/Provider';
+import { Provider, isOpenAICompatible, isKizunaManagedProvider, kizunaBaseProvider } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
@@ -257,7 +256,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
-  const kizunaAISettings = useKizunaAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
@@ -325,7 +323,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.KIZUNA_AI ||
            provider === Provider.LOCAL_INFERENCE;
   }, [provider]);
 
@@ -347,9 +344,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
-  // Balance validation for Kizuna AI
-  const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
-    (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
+  // Balance validation for Kizuna AI. Require a POSITIVE balance to start (a zero
+  // or negative balance can't begin a session); the relay enforces the same gate
+  // server-side, and cuts the session off if usage drives the balance negative.
+  const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
+    (quota && quota.balance !== undefined && quota.balance > 0 && !quota.frozen);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
@@ -1442,8 +1441,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.OPENAI_COMPATIBLE:
           apiKey = openAICompatibleSettings.apiKey;
           break;
-        case Provider.KIZUNA_AI:
-          // For Kizuna AI, fetch a fresh session token from Better Auth
+        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
+        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
+          // For relay-managed providers, fetch a fresh session token from Better Auth
           if (getToken && isLoaded && isSignedIn === true) {
             console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
             try {
@@ -1452,11 +1452,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               console.log('[MainPanel] Successfully got fresh auth session for Kizuna AI');
             } catch (error) {
               console.error('[MainPanel] Failed to get fresh auth session:', error);
-              apiKey = kizunaAISettings.apiKey || '';
+              apiKey = '';
             }
           } else {
-            // Fallback to stored token if getToken is not available or user not signed in
-            apiKey = kizunaAISettings.apiKey || '';
+            // No stored token fallback — relay providers require a live auth session
+            apiKey = '';
           }
           break;
         case Provider.GEMINI:
@@ -1882,7 +1882,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     geminiSettings,
     openAICompatibleSettings,
     palabraAISettings,
-    kizunaAISettings,
     openAITranslateSettings,
     volcengineSTSettings,
     volcengineAST2Settings,
@@ -2021,14 +2020,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const recorder = audioService.getRecorder();
       const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
 
+      // A relay-managed twin behaves exactly like its base provider here, so resolve
+      // to the base provider before any provider-specific PTT branching. Without this,
+      // the KIZUNA_AI_VOLCENGINE_AST2 twin would skip AST2's silence-frame flush and
+      // wrongly fall into the createResponse() path, leaving the turn unfinalized.
+      const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
+
       // For Push-to-translate, recorder.isRecording() is always true (continuous capture).
       // For pure PTT, only proceed if the recorder was actually started by startRecording.
       if (recorder.isRecording()) {
         // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
         // This helps the VAD detect end of speech
-        if ((provider === Provider.VOLCENGINE_AST2 || provider === Provider.LOCAL_INFERENCE) && client) {
+        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || effectiveProvider === Provider.LOCAL_INFERENCE) && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
-          const silenceFrames = provider === Provider.LOCAL_INFERENCE ? 7 : 5; // 700ms for Silero VAD (minSilenceDuration=0.5s + margin), 500ms for AST2
+          const silenceFrames = effectiveProvider === Provider.LOCAL_INFERENCE ? 7 : 5; // 700ms for Silero VAD (minSilenceDuration=0.5s + margin), 500ms for AST2
           for (let i = 0; i < silenceFrames; i++) {
             // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
             client.appendInputAudio(new Int16Array(silenceFrameSize));
@@ -2048,9 +2053,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
         //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && provider === Provider.LOCAL_INFERENCE) {
+        if (client && effectiveProvider === Provider.LOCAL_INFERENCE) {
           client.createResponse();
-        } else if (client && provider === Provider.GEMINI) {
+        } else if (client && effectiveProvider === Provider.GEMINI) {
           if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
             client.createResponse();
           } else {
@@ -2059,10 +2064,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             client.cancelPttTurn?.();
             console.debug(`[Sokuji] [MainPanel] PTT: Gemini turn cancelled - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
           }
-        } else if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+        } else if (client && effectiveProvider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
-        } else if (client && provider !== Provider.VOLCENGINE_AST2) {
+        } else if (client && effectiveProvider !== Provider.VOLCENGINE_AST2) {
           console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
@@ -2086,7 +2091,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     // If AI is responding (OpenAI), queue the message for later
-    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE || provider === Provider.KIZUNA_AI)) {
+    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE)) {
       console.log('[MainPanel] AI is responding, queuing text message');
       pendingTextRef.current = text;
       return;
@@ -3277,9 +3282,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   !canStartSession && !isSessionActive
                     ? missingDeviceForMode !== null
                       ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
-                      : provider === Provider.LOCAL_INFERENCE
-                        ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                        : undefined
+                      : isKizunaManagedProvider(provider) && quota && quota.frozen
+                        ? t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')
+                        : isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0
+                          ? t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })
+                          : provider === Provider.LOCAL_INFERENCE
+                            ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                            : undefined
                     : undefined
                 }
               >
@@ -3438,10 +3447,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     {missingDeviceForMode === null && isApiKeyValid && loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0 && !quota.frozen && (
                       <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>

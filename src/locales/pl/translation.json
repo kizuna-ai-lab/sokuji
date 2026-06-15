@@ -603,6 +603,14 @@
     "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
   },
   "providers": {
+    "kizunaai_openai_translate": {
+      "name": "KizunaAI Translate",
+      "description": "Tłumaczenie w czasie rzeczywistym, uwierzytelnione przez Twoje konto"
+    },
+    "kizunaai_volcengine_ast2": {
+      "name": "KizunaAI Doubao",
+      "description": "Tłumaczenie mowy na mowę, uwierzytelnione przez Twoje konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Napędzany modelami GPT"
