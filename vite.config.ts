@@ -153,7 +153,12 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: 'build',
       assetsDir: 'static',
-      sourcemap: true
+      sourcemap: true,
+      rollupOptions: {
+        input: mode === 'development'
+          ? { main: 'index.html', pocketPlayground: 'pocket-playground.html' }
+          : { main: 'index.html' },
+      },
     },
     worker: {
       format: 'es',

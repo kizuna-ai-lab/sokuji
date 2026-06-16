@@ -1,0 +1,12 @@
+.pocket-playground {
+  max-width: 640px; margin: 40px auto; padding: 24px; font-family: system-ui, sans-serif;
+  color: #ddd; background: #1e1e1e; border-radius: 12px;
+  h1 { font-size: 18px; }
+  .status { color: #8b949e; font-size: 12px; margin-bottom: 12px; }
+  textarea { width: 100%; background: #2a2a2a; color: #ddd; border: 1px solid #3a3a3a; border-radius: 6px; padding: 10px; }
+  .ref-row, .gen-row, .out-row { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button, .upload { background: #10a37f; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .upload input { display: none; }
+  a { color: #10a37f; }
+}
