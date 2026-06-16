@@ -313,6 +313,44 @@ export type SupertonicTtsWorkerInMessage =
   | TtsGenerateMessage
   | TtsDisposeMessage;
 
+// ─── Pocket TTS worker — separate init/generate shape ────────────────────────
+// Pocket clones from a raw reference waveform (no transcript). Init loads the
+// 5 ONNX sessions + tokenizer from /wasm/pocket-tts-en/ blob URLs; generate
+// carries either fresh reference samples (to (re)compute the voice embedding)
+// or `useCachedVoice` to reuse the last one.
+
+export interface PocketTtsConfig {
+  /** Flow/consistency refinement steps (default 1 — the ONNX port's value). */
+  lsdSteps?: number;
+  /** Hard cap on generated frames (default 500). */
+  maxFrames?: number;
+}
+
+export interface PocketTtsInitMessage {
+  type: 'init';
+  /** filename → blob URL for the 5 onnx + tokenizer.model + metadata.json + voices.bin. */
+  fileUrls: Record<string, string>;
+  /** Absolute URL to /wasm/ort/ — used as ort.env.wasm.wasmPaths. */
+  ortWasmBaseUrl: string;
+  ttsConfig: PocketTtsConfig;
+}
+
+export interface PocketTtsGenerateMessage {
+  type: 'generate';
+  text: string;
+  speed: number;
+  /** Mono reference samples (any rate); worker resamples to 24 kHz then encodes. */
+  referenceAudio?: Float32Array;
+  referenceSampleRate?: number;
+  /** Reuse the previously-encoded voice embedding (referenceAudio omitted). */
+  useCachedVoice?: boolean;
+}
+
+export type PocketTtsWorkerInMessage =
+  | PocketTtsInitMessage
+  | PocketTtsGenerateMessage
+  | TtsDisposeMessage;
+
 // ─── TTS Worker Messages (Worker → Main) ─────────────────────────────────────
 
 export interface TtsReadyMessage {
