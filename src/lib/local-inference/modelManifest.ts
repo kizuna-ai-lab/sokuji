@@ -24,7 +24,7 @@ export interface ModelVariant {
   /** GPU features required to use this variant (e.g. ['shader-f16']) */
   requiredFeatures?: string[];
 }
-export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus' | 'edge-tts';
+export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus' | 'edge-tts' | 'pocket';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
 export type AsrEngineType =
@@ -63,6 +63,10 @@ export interface TtsModelConfig {
   defaultSid?: number;
   /** Supertonic: diffusion iteration count. Hardcoded to 16. */
   totalStep?: number;
+  /** Pocket: flow/consistency refinement steps (default 1). */
+  lsdSteps?: number;
+  /** Pocket: hard cap on generated frames (default 500). */
+  maxFrames?: number;
 }
 
 export interface ModelManifestEntry {
@@ -2907,6 +2911,35 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'voice_styles/M3.json',         sizeBytes: 290_198 },
           { filename: 'voice_styles/M4.json',         sizeBytes: 291_522 },
           { filename: 'voice_styles/M5.json',         sizeBytes: 291_469 },
+        ],
+      },
+    },
+  },
+
+  // ── Pocket TTS (dev playground PoC) ───────────────────────────────────
+  // Zero-shot voice cloning. PoC loads the int8 bundle from public/wasm/
+  // pocket-tts-en/ (see scripts/download-pocket-tts-en.sh), NOT ModelManager.
+  // The variant file list is informational for the PoC.
+  {
+    id: 'pocket-tts',
+    type: 'tts',
+    engine: 'pocket',
+    name: 'Pocket TTS (dev)',
+    languages: ['en'],
+    numSpeakers: 1,
+    ttsConfig: { lsdSteps: 1, maxFrames: 500 },
+    variants: {
+      default: {
+        dtype: 'int8',
+        files: [
+          { filename: 'flow_lm_main_int8.onnx', sizeBytes: 0 },
+          { filename: 'flow_lm_flow_int8.onnx', sizeBytes: 0 },
+          { filename: 'mimi_encoder_int8.onnx', sizeBytes: 0 },
+          { filename: 'mimi_decoder_int8.onnx', sizeBytes: 0 },
+          { filename: 'text_conditioner_int8.onnx', sizeBytes: 0 },
+          { filename: 'tokenizer.model', sizeBytes: 0 },
+          { filename: 'metadata.json', sizeBytes: 0 },
+          { filename: 'voices.bin', sizeBytes: 0 },
         ],
       },
     },
