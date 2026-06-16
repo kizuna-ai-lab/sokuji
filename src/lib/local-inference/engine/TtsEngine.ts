@@ -84,6 +84,7 @@ export class TtsEngine {
     const isPiperPlus = model.engine === 'piper-plus';
     const isEdgeTts = model.engine === 'edge-tts';
     const isSupertonic = model.engine === 'supertonic';
+    const isPocket = model.engine === 'pocket';
 
     // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
     // Edge TTS skips the download check — it uses the network directly
@@ -91,7 +92,7 @@ export class TtsEngine {
     let dataPackageMetadata: Record<string, unknown> | null = null;
     let dataFileUrls: Record<string, string> = {};
 
-    if (!isEdgeTts) {
+    if (!isEdgeTts && !isPocket) {
       const manager = ModelManager.getInstance();
       // For supertonic (and future plain-blob engines), skip the isModelReady pre-check
       // and load URLs in a single await so the Worker can be created within one microtask
@@ -126,6 +127,16 @@ export class TtsEngine {
       }
     }
 
+    if (isPocket) {
+      const { POCKET_MODEL_STEMS, POCKET_TOKENIZER_FILE, POCKET_METADATA_FILE, POCKET_VOICES_FILE, pocketBundleUrl } =
+        await import('../pocket/pocketBundle');
+      for (const file of Object.values(POCKET_MODEL_STEMS)) fileUrls[file] = pocketBundleUrl(file);
+      fileUrls[POCKET_TOKENIZER_FILE] = pocketBundleUrl(POCKET_TOKENIZER_FILE);
+      fileUrls[POCKET_METADATA_FILE] = pocketBundleUrl(POCKET_METADATA_FILE);
+      fileUrls[POCKET_VOICES_FILE] = pocketBundleUrl(POCKET_VOICES_FILE);
+      dataFileUrls = fileUrls;
+    }
+
     // For supertonic: load imported voices from IndexedDB before creating the worker.
     // sid = dbKey + 10 (IMPORTED_SID_OFFSET).
     let supertonicImportedEntries: Array<{
@@ -153,6 +164,11 @@ export class TtsEngine {
       if (isSupertonic) {
         this.worker = new Worker(
           new URL('../workers/supertonic-tts.worker.ts', import.meta.url),
+          { type: 'module' },
+        );
+      } else if (isPocket) {
+        this.worker = new Worker(
+          new URL('../workers/pocket-tts.worker.ts', import.meta.url),
           { type: 'module' },
         );
       } else {
@@ -269,6 +285,13 @@ export class TtsEngine {
           engine: 'piper-plus',
           ttsConfig: model.ttsConfig || {},
         });
+      } else if (isPocket) {
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls: dataFileUrls,
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+          ttsConfig: { lsdSteps: model.ttsConfig?.lsdSteps ?? 1, maxFrames: model.ttsConfig?.maxFrames ?? 500 },
+        });
       } else if (isSupertonic) {
         const presets = model.ttsConfig?.presetVoices ?? [];
         const presetEntries = presets.map(p => ({
@@ -342,6 +365,27 @@ export class TtsEngine {
     return new Promise((resolve, reject) => {
       this.pendingGenerate = { resolve, reject };
       this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed, lang });
+    });
+  }
+
+  /**
+   * Generate cloned speech from a reference waveform (Pocket only).
+   * Pass `referenceAudio` to (re)compute the voice embedding, or omit it with
+   * useCachedVoice=true to reuse the previously-encoded voice.
+   */
+  async generateWithReference(
+    text: string, referenceAudio: Float32Array | null, referenceSampleRate: number, speed = 1.0,
+  ): Promise<TtsResult> {
+    if (!this.worker || !this.isReady) throw new Error('TTS engine not initialized');
+    if (this.pendingGenerate) throw new Error('A generation request is already in progress');
+    const sanitized = TtsEngine.stripEmoji(text);
+    if (!sanitized) return { samples: new Float32Array(0), sampleRate: this._sampleRate, generationTimeMs: 0 };
+    return new Promise((resolve, reject) => {
+      this.pendingGenerate = { resolve, reject };
+      const msg: Record<string, unknown> = { type: 'generate', text: sanitized, speed };
+      if (referenceAudio) { msg.referenceAudio = referenceAudio; msg.referenceSampleRate = referenceSampleRate; }
+      else { msg.useCachedVoice = true; }
+      this.worker!.postMessage(msg, referenceAudio ? [referenceAudio.buffer] : []);
     });
   }
 
