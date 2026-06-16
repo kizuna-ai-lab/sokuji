@@ -21,8 +21,7 @@ export const POCKET_MODEL_STEMS = {
 export type PocketSessionId = keyof typeof POCKET_MODEL_STEMS;
 
 export const POCKET_TOKENIZER_FILE = 'tokenizer.model';
-export const POCKET_METADATA_FILE = 'metadata.json';
-export const POCKET_VOICES_FILE = 'voices.bin';
+export const POCKET_METADATA_FILE = 'bundle.json';
 
 /** Audio/frame configuration (from the ONNX port). */
 export const POCKET_SAMPLE_RATE = 24000;

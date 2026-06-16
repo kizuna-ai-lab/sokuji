@@ -9,7 +9,10 @@ import type {
   PocketTtsInitMessage, PocketTtsGenerateMessage, PocketTtsWorkerInMessage,
   TtsWorkerOutMessage,
 } from '../types';
-import { POCKET_MODEL_STEMS, POCKET_SAMPLE_RATE, type PocketSessionId } from '../pocket/pocketBundle';
+import {
+  POCKET_MODEL_STEMS, POCKET_SAMPLE_RATE, POCKET_METADATA_FILE, POCKET_TOKENIZER_FILE,
+  type PocketSessionId,
+} from '../pocket/pocketBundle';
 import { PocketTokenizer } from '../pocket/pocketTokenizer';
 import {
   encodeReference, resampleTo24k, buildVoiceConditionedState, generate,
@@ -86,9 +89,9 @@ async function handleInit(msg: PocketTtsInitMessage) {
     } else throw err;
   }
 
-  meta = JSON.parse(new TextDecoder().decode(await fetchBuf(msg.fileUrls['metadata.json']))) as PocketMetadata;
+  meta = JSON.parse(new TextDecoder().decode(await fetchBuf(msg.fileUrls[POCKET_METADATA_FILE]))) as PocketMetadata;
   tokenizer = new PocketTokenizer();
-  await tokenizer.load(await fetchBuf(msg.fileUrls['tokenizer.model']));
+  await tokenizer.load(await fetchBuf(msg.fileUrls[POCKET_TOKENIZER_FILE]));
 
   post({
     type: 'ready', loadTimeMs: Math.round(performance.now() - start),

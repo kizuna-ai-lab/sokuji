@@ -328,7 +328,7 @@ export interface PocketTtsConfig {
 
 export interface PocketTtsInitMessage {
   type: 'init';
-  /** filename → blob URL for the 5 onnx + tokenizer.model + metadata.json + voices.bin. */
+  /** filename → blob URL for the 5 onnx + tokenizer.model + bundle.json. */
   fileUrls: Record<string, string>;
   /** Absolute URL to /wasm/ort/ — used as ort.env.wasm.wasmPaths. */
   ortWasmBaseUrl: string;

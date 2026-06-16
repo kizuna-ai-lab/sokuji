@@ -128,12 +128,11 @@ export class TtsEngine {
     }
 
     if (isPocket) {
-      const { POCKET_MODEL_STEMS, POCKET_TOKENIZER_FILE, POCKET_METADATA_FILE, POCKET_VOICES_FILE, pocketBundleUrl } =
+      const { POCKET_MODEL_STEMS, POCKET_TOKENIZER_FILE, POCKET_METADATA_FILE, pocketBundleUrl } =
         await import('../pocket/pocketBundle');
       for (const file of Object.values(POCKET_MODEL_STEMS)) fileUrls[file] = pocketBundleUrl(file);
       fileUrls[POCKET_TOKENIZER_FILE] = pocketBundleUrl(POCKET_TOKENIZER_FILE);
       fileUrls[POCKET_METADATA_FILE] = pocketBundleUrl(POCKET_METADATA_FILE);
-      fileUrls[POCKET_VOICES_FILE] = pocketBundleUrl(POCKET_VOICES_FILE);
       dataFileUrls = fileUrls;
     }
 

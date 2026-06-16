@@ -1,4 +1,3 @@
-// @ts-expect-error — vendored JS module without types
 import { SentencePieceProcessor } from './sentencepiece.js';
 
 /** Base64-encode an ArrayBuffer without blowing the call stack on large inputs. */

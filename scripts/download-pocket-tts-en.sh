@@ -8,12 +8,12 @@ SPACE="https://huggingface.co/spaces/KevinAHM/pocket-tts-web/resolve/main"
 OUT="public/wasm/pocket-tts-en"
 mkdir -p "$OUT"
 
-# Confirm exact bundle layout before downloading:
-#   open https://huggingface.co/spaces/KevinAHM/pocket-tts-web/tree/main
-# and set BUNDLE to the English bundle directory (e.g. "en" or "bundles/en").
-BUNDLE="${1:-en}"
+# Confirm the exact dated bundle dir at
+#   https://huggingface.co/spaces/KevinAHM/pocket-tts-web/tree/main/onnx
+# and pass it as $1 if it differs.
+BUNDLE="${1:-onnx/english_2026-04}"
 
-# Files the worker loads (5 int8 onnx + tokenizer + per-bundle metadata + preset voices).
+# Files the worker loads (5 int8 onnx + tokenizer + per-bundle metadata).
 FILES=(
   "flow_lm_main_int8.onnx"
   "flow_lm_flow_int8.onnx"
@@ -21,8 +21,7 @@ FILES=(
   "mimi_decoder_int8.onnx"
   "text_conditioner_int8.onnx"
   "tokenizer.model"
-  "metadata.json"
-  "voices.bin"
+  "bundle.json"
 )
 
 for f in "${FILES[@]}"; do
