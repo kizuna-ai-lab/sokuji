@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, utilityProcess } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
@@ -74,6 +74,46 @@ app.commandLine.appendSwitch('enable-features', 'Vulkan,SharedArrayBuffer');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
+
+// ---- Pocket TTS native (onnxruntime-node) PoC: utilityProcess + IPC (dev only) ----
+let pocketProc = null;
+let pocketReqId = 0;
+const pocketPending = new Map();
+
+function ensurePocketProc() {
+  if (pocketProc) return pocketProc;
+  const proc = utilityProcess.fork(path.join(__dirname, 'pocket-native-process.js'), [], { stdio: 'pipe' });
+  proc.on('message', (msg) => {
+    const p = pocketPending.get(msg.id);
+    if (!p) return;
+    pocketPending.delete(msg.id);
+    if (msg.error) p.reject(new Error(msg.error)); else p.resolve(msg.result);
+  });
+  proc.on('exit', (code) => {
+    for (const p of pocketPending.values()) p.reject(new Error(`pocket-native process exited (code ${code})`));
+    pocketPending.clear();
+    pocketProc = null;
+  });
+  proc.stdout?.on('data', (d) => console.log('[pocket-native]', d.toString().trimEnd()));
+  proc.stderr?.on('data', (d) => console.error('[pocket-native]', d.toString().trimEnd()));
+  pocketProc = proc;
+  return proc;
+}
+
+function pocketRequest(payload) {
+  const proc = ensurePocketProc();
+  const id = ++pocketReqId;
+  return new Promise((resolve, reject) => {
+    pocketPending.set(id, { resolve, reject });
+    proc.postMessage({ id, ...payload });
+  });
+}
+
+ipcMain.handle('pocket-native:init', async () => {
+  const modelDir = path.join(process.cwd(), 'public', 'wasm', 'pocket-tts-en');
+  return pocketRequest({ type: 'init', modelDir });
+});
+ipcMain.handle('pocket-native:generate', async (event, data) => pocketRequest({ type: 'generate', ...data }));
 
 // Create application menu
 function createApplicationMenu() {
@@ -289,8 +329,11 @@ function createWindow() {
   });
   
   if (isDev) {
-    console.log(`[Sokuji] [Main] Loading from http://localhost:5173 at ${loadStartTime}`);
-    mainWindow.loadURL('http://localhost:5173');
+    const devUrl = process.env.SOKUJI_POCKET_PLAYGROUND === '1'
+      ? 'http://localhost:5173/pocket-playground.html'
+      : 'http://localhost:5173';
+    console.log(`[Sokuji] [Main] Loading from ${devUrl} at ${loadStartTime}`);
+    mainWindow.loadURL(devUrl);
   } else {
     const indexPath = path.join(app.getAppPath(), 'build/index.html');
     console.log('[Sokuji] [Main] Loading from:', indexPath);
@@ -408,6 +451,7 @@ app.whenReady().then(async () => {
 const cleanupAndExit = () => {
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
+  if (pocketProc) { try { pocketProc.kill(); } catch (e) { /* ignore */ } pocketProc = null; }
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
 

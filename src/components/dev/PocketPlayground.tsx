@@ -1,5 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
+import { PocketNativeClient } from '../../lib/local-inference/pocketNativeClient';
+import { isElectron } from '../../utils/environment';
 import './PocketPlayground.scss';
 
 type Status = 'idle' | 'loading' | 'ready' | 'generating' | 'error';
@@ -19,8 +21,9 @@ async function decodeToMono(file: File): Promise<{ samples: Float32Array; sample
 }
 
 export const PocketPlayground: React.FC = () => {
-  const engineRef = useRef<TtsEngine | null>(null);
+  const engineRef = useRef<TtsEngine | PocketNativeClient | null>(null);
   const refDirty = useRef(true); // re-encode the reference voice only when it changes
+  const [useNative, setUseNative] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [backend, setBackend] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -39,16 +42,19 @@ export const PocketPlayground: React.FC = () => {
 
   const load = useCallback(async () => {
     setStatus('loading'); setStatusMsg('Loading model…'); addLog('--- load ---');
-    const engine = new TtsEngine();
-    engine.onStatus = (m) => { setStatusMsg(m); addLog(m); };
-    engine.onError = (e) => { setStatus('error'); setStatusMsg(e); addLog('ERROR ' + e); };
+    const native = useNative && isElectron();
+    const engine = native ? new PocketNativeClient() : new TtsEngine();
+    engine.onStatus = (m: string) => { setStatusMsg(m); addLog(m); };
+    engine.onError = (e: string) => { setStatus('error'); setStatusMsg(e); addLog('ERROR ' + e); };
     engineRef.current = engine;
     try {
-      const info = await engine.init('pocket-tts');
+      const info = native
+        ? await (engine as PocketNativeClient).init()
+        : await (engine as TtsEngine).init('pocket-tts');
       setBackend(info.backend ?? 'wasm'); setStatus('ready'); setStatusMsg('Ready');
       addLog(`ready: backend=${info.backend} sampleRate=${info.sampleRate} loadMs=${info.loadTimeMs}`);
     } catch (e) { const m = e instanceof Error ? e.message : String(e); setStatus('error'); setStatusMsg(m); addLog('LOAD ERROR ' + m); }
-  }, [addLog]);
+  }, [addLog, useNative]);
 
   const onUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -100,7 +106,17 @@ export const PocketPlayground: React.FC = () => {
     <div className="pocket-playground">
       <h1>Pocket TTS — Dev Playground</h1>
       <div className="status">{status === 'ready' || status === 'generating' ? `backend: ${backend} · ` : ''}{statusMsg}</div>
-      {status === 'idle' && <button onClick={load}>Load model (~int8 bundle)</button>}
+      {status === 'idle' && (
+        <>
+          {isElectron() && (
+            <label className="native-toggle">
+              <input type="checkbox" checked={useNative} onChange={(e) => setUseNative(e.target.checked)} />
+              Native (Electron / onnxruntime-node)
+            </label>
+          )}
+          <button onClick={load}>Load model (~int8 bundle)</button>
+        </>
+      )}
       {status !== 'idle' && (
         <>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} />

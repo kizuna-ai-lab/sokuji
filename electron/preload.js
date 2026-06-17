@@ -131,6 +131,9 @@ contextBridge.exposeInMainWorld(
         'update-download',
         'update-install',
         'get-app-version',
+        // Pocket TTS native PoC (dev)
+        'pocket-native:init',
+        'pocket-native:generate',
         // Window control IPC for custom title bar
         'window:minimize',
         'window:maximize-toggle',

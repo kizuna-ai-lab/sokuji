@@ -127,7 +127,8 @@ export default defineConfig(({ command, mode }) => {
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
             'subtitle-window': 'electron/subtitle-window.js',
-            'update-manager': 'electron/update-manager.js'
+            'update-manager': 'electron/update-manager.js',
+            'pocket-native-process': 'electron/pocket-native-process.ts'
           },
           onstart(args) {
             // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux
@@ -139,7 +140,7 @@ export default defineConfig(({ command, mode }) => {
               minify: isBuild,
               outDir: 'dist-electron',
               rollupOptions: {
-                external: ['electron', 'electron-squirrel-startup', 'electron-conf', 'electron-audio-loopback', 'electron-updater'],
+                external: ['electron', 'electron-squirrel-startup', 'electron-conf', 'electron-audio-loopback', 'electron-updater', 'onnxruntime-node'],
                 output: {
                   entryFileNames: '[name].js'
                 }
