@@ -29,7 +29,7 @@ export interface PocketStateEntry {
   output_name: string;
   dtype: 'float32' | 'int64' | 'bool';
   shape: number[];
-  fill?: 'nan' | 'ones';
+  fill?: 'nan' | 'ones' | 'zeros' | 'empty';
   module?: string;
   key?: string;
 }
@@ -54,6 +54,15 @@ export interface PocketMetadata {
   sample_rate?: number;
   samples_per_frame?: number;
   model_recommended_frames_after_eos?: number;
+  insert_bos_before_voice?: boolean;
+  bos_before_voice_file?: string;
+}
+
+/** Parse a little-endian, C-order float32 .npy (v1.0) into a Float32Array. */
+export function parseNpyFloat32(buffer: ArrayBuffer): Float32Array {
+  const headerLen = new DataView(buffer).getUint16(8, true); // v1.0: uint16 at offset 8
+  const dataStart = 10 + headerLen;                          // 10-byte preamble + header
+  return new Float32Array(buffer.slice(dataStart));
 }
 
 type OrtTensor = Tensor;
@@ -65,9 +74,9 @@ const makeTensor = (
   dims: number[],
 ): OrtTensor => new Tensor(dtype, data as never, dims);
 
-/** Port of the source's makeFilledArray — honors `fill` ("nan"|"ones") and bool. */
+/** Port of the source's makeFilledArray — honors `fill` ("nan"|"ones"|"zeros"|"empty") and bool. */
 function makeFilledArray(
-  shape: number[], dtype: 'float32' | 'int64' | 'bool', fill?: 'nan' | 'ones',
+  shape: number[], dtype: 'float32' | 'int64' | 'bool', fill?: 'nan' | 'ones' | 'zeros' | 'empty',
 ): Float32Array | BigInt64Array | Uint8Array {
   const size = shape.reduce((a, b) => a * b, 1);
   if (dtype === 'int64') return new BigInt64Array(size);
@@ -138,22 +147,35 @@ export async function encodeReference(
  *   result = flowLmMain.run({ sequence: emptySeq, text_embeddings: voiceTensor, ...flowLmState });
  *   updateStateFromManifestOutputs(flowLmState, result, flow_lm_state_manifest);
  *
- * NOTE: the source optionally prepends a BOS embedding via prepareVoiceEmbeddingData
- * (gated on metadata.insert_bos_before_voice + a bos_before_voice file). This PoC
- * does not load that optional file, so the voice embedding is used as-is. If the
- * real bundle sets insert_bos_before_voice=true this prefill will differ from the
- * reference — flagged for the manual browser check.
+ * When `meta.insert_bos_before_voice` is true and a parsed `bos` Float32Array is
+ * provided, the BOS embedding (one conditioning-dim vector) is prepended to the
+ * voice latents before the prefill, producing text_embeddings [1, T+1, 1024] to
+ * match the source's prepareVoiceEmbeddingData path exactly.
  */
 export async function buildVoiceConditionedState(
   sessions: PocketSessions, meta: PocketMetadata, voiceEmb: Tensor,
+  bos?: Float32Array | null,
 ): Promise<StateMap> {
   const latentDim = meta.latent_dim ?? POCKET_LATENT_DIM;
   const flowLmState = initStateFromManifest(meta.flow_lm_state_manifest);
   const emptySeq = makeF32Tensor(new Float32Array(0), [1, 0, latentDim]);
 
+  // Prepend the BOS embedding (one conditioning-dim token) to the voice latents,
+  // matching the source's insert_bos_before_voice path: [1,T,1024] -> [1,T+1,1024].
+  let voiceTextEmb: Tensor = voiceEmb;
+  if (meta.insert_bos_before_voice && bos) {
+    const condDim = voiceEmb.dims[2];
+    const t = voiceEmb.dims[1];
+    const src = voiceEmb.data as Float32Array;
+    const merged = new Float32Array((t + 1) * condDim);
+    merged.set(bos.subarray(0, condDim), 0);
+    merged.set(src, condDim);
+    voiceTextEmb = makeF32Tensor(merged, [1, t + 1, condDim]);
+  }
+
   const result = await sessions.flowLmMain.run({
     sequence: emptySeq,
-    text_embeddings: voiceEmb,
+    text_embeddings: voiceTextEmb,
     ...(flowLmState as unknown as InferenceSession.OnnxValueMapType),
   });
   updateStateFromManifestOutputs(flowLmState, result as TensorMap, meta.flow_lm_state_manifest);

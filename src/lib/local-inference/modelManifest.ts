@@ -2939,6 +2939,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'text_conditioner_int8.onnx', sizeBytes: 0 },
           { filename: 'tokenizer.model', sizeBytes: 0 },
           { filename: 'bundle.json', sizeBytes: 0 },
+          { filename: 'bos_before_voice.npy', sizeBytes: 0 },
         ],
       },
     },

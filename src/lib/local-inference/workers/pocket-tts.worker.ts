@@ -11,11 +11,12 @@ import type {
 } from '../types';
 import {
   POCKET_MODEL_STEMS, POCKET_SAMPLE_RATE, POCKET_METADATA_FILE, POCKET_TOKENIZER_FILE,
+  POCKET_BOS_FILE,
   type PocketSessionId,
 } from '../pocket/pocketBundle';
 import { PocketTokenizer } from '../pocket/pocketTokenizer';
 import {
-  encodeReference, resampleTo24k, buildVoiceConditionedState, generate,
+  encodeReference, resampleTo24k, buildVoiceConditionedState, generate, parseNpyFloat32,
   type PocketSessions, type PocketMetadata,
 } from '../pocket/pocketInferenceCore';
 import type { StateMap } from '../pocket/pocketState';
@@ -24,6 +25,7 @@ let sessions: PocketSessions | null = null;
 let meta: PocketMetadata | null = null;
 let tokenizer: PocketTokenizer | null = null;
 let cachedFlowState: StateMap | null = null;
+let bosBeforeVoice: Float32Array | null = null;
 let lsdSteps = 1;
 let maxFrames = 500;
 let backend: 'webgpu' | 'wasm' = 'wasm';
@@ -38,7 +40,7 @@ workerScope.onmessage = async (e: MessageEvent<PocketTtsWorkerInMessage>) => {
   try {
     if (e.data.type === 'init') await handleInit(e.data);
     else if (e.data.type === 'generate') await handleGenerate(e.data);
-    else if (e.data.type === 'dispose') { sessions = null; tokenizer = null; cachedFlowState = null; post({ type: 'disposed' }); }
+    else if (e.data.type === 'dispose') { sessions = null; tokenizer = null; cachedFlowState = null; bosBeforeVoice = null; post({ type: 'disposed' }); }
   } catch (err) {
     post({ type: 'error', error: err instanceof Error ? err.message : String(err) });
   }
@@ -90,6 +92,9 @@ async function handleInit(msg: PocketTtsInitMessage) {
   }
 
   meta = JSON.parse(new TextDecoder().decode(await fetchBuf(msg.fileUrls[POCKET_METADATA_FILE]))) as PocketMetadata;
+  if (meta.insert_bos_before_voice && msg.fileUrls[POCKET_BOS_FILE]) {
+    bosBeforeVoice = parseNpyFloat32(await fetchBuf(msg.fileUrls[POCKET_BOS_FILE]));
+  }
   tokenizer = new PocketTokenizer();
   await tokenizer.load(await fetchBuf(msg.fileUrls[POCKET_TOKENIZER_FILE]));
 
@@ -107,7 +112,7 @@ async function handleGenerate(msg: PocketTtsGenerateMessage) {
   if (msg.referenceAudio && !msg.useCachedVoice) {
     const samples24k = resampleTo24k(msg.referenceAudio, msg.referenceSampleRate ?? POCKET_SAMPLE_RATE);
     const voiceEmb = await encodeReference(sessions, samples24k);
-    cachedFlowState = await buildVoiceConditionedState(sessions, meta, voiceEmb);
+    cachedFlowState = await buildVoiceConditionedState(sessions, meta, voiceEmb, bosBeforeVoice);
   }
   if (!cachedFlowState) throw new Error('No reference voice set');
 

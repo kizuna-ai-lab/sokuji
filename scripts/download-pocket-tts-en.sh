@@ -13,7 +13,7 @@ mkdir -p "$OUT"
 # and pass it as $1 if it differs.
 BUNDLE="${1:-onnx/english_2026-04}"
 
-# Files the worker loads (5 int8 onnx + tokenizer + per-bundle metadata).
+# Files the worker loads (5 int8 onnx + tokenizer + per-bundle metadata + BOS embedding).
 FILES=(
   "flow_lm_main_int8.onnx"
   "flow_lm_flow_int8.onnx"
@@ -22,6 +22,7 @@ FILES=(
   "text_conditioner_int8.onnx"
   "tokenizer.model"
   "bundle.json"
+  "bos_before_voice.npy"
 )
 
 for f in "${FILES[@]}"; do
