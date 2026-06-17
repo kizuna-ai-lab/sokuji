@@ -73,12 +73,12 @@ async function loadSessions(
 async function handleInit(msg: PocketTtsInitMessage) {
   const start = performance.now();
   ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-  // Pocket is autoregressive at batch=1 (many tiny sequential ops). Threaded SIMD
-  // WASM on CPU beats WebGPU here — GPU per-dispatch overhead dominates and Kyutai
-  // designed Pocket to be CPU-first. Multi-threading needs the page cross-origin
-  // isolated (COOP/COEP) so SharedArrayBuffer exists; otherwise ORT silently runs
-  // single-threaded. crossOriginIsolated is logged below so we can see which we got.
-  ortEnv.wasm.numThreads = Math.max(1, Math.min(workerScope.navigator?.hardwareConcurrency ?? 4, 8));
+  // Single-threaded: ORT-web multi-threaded WASM does NOT work inside this Vite-bundled
+  // *module* worker — the Emscripten pthread sub-worker (a worker spawning a worker)
+  // fails to start ("worker sent an error"), even when the page is cross-origin
+  // isolated. Real CPU threading needs a CLASSIC worker that importScripts() the ORT
+  // runtime (as sokuji's sherpa workers and KevinAHM's demo do). Tracked as a follow-up.
+  ortEnv.wasm.numThreads = 1;
   lsdSteps = msg.ttsConfig.lsdSteps ?? 1;
   maxFrames = msg.ttsConfig.maxFrames ?? 500;
 
