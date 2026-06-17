@@ -17,6 +17,10 @@
 - **Model files (dev):** read from disk at `public/wasm/pocket-tts-en/` (gitignored; downloaded by `scripts/download-pocket-tts-en.sh`). Files: `mimi_encoder_int8.onnx`, `text_conditioner_int8.onnx`, `flow_lm_main_int8.onnx`, `flow_lm_flow_int8.onnx`, `mimi_decoder_int8.onnx`, `tokenizer.model`, `bundle.json`, `bos_before_voice.npy`.
 - **Commit messages:** English; conventional-commit prefix; end with the repo's `Co-Authored-By` trailer.
 - **No push / no PR** without explicit per-action user consent.
+- **TypeScript baseline (IMPORTANT — read before any tsc gate):** the project does NOT typecheck clean. `npx tsc --noEmit` reports **113 pre-existing errors** (settingsStore, TtsEngine.supertonic.test, Volcengine/Gemini/Palabra clients, MainPanel, environment.ts, splitSentences.ts, …) — **none in this plan's files**. The app builds via Vite/esbuild (no full typecheck) and `vitest` is green (1132 tests). **Do NOT gate on "tsc shows no errors."** The TypeScript regression gate (call it "the tsc gate" below) is BOTH of:
+  1. `npx tsc --noEmit 2>&1 | grep -cE "error TS"` → **≤ 113** (no new errors anywhere), AND
+  2. `npx tsc --noEmit 2>&1 | grep -E "error TS" | grep -E "pocketInferenceCore|pocket-tts\.worker|pocketNativeClient|PocketPlayground|pocket-native-process|bench-pocket-native"` → **empty** (no errors in created/changed files).
+  Baseline test gate: `npx vitest run` → **1132 (+ the new DI tests) passing, 0 failures**.
 
 ---
 
@@ -205,10 +209,11 @@ Then, in `handleInit`, immediately after `ortEnv.wasm.simd = true;` (`:83`), add
 
 (`Tensor` is already imported at `:12` from the barrel.)
 
-- [ ] **Step 6: Typecheck and run the full suite**
+- [ ] **Step 6: Typecheck (baseline-aware) and run the pocket suite**
 
-Run: `npx tsc --noEmit`
-Expected: no errors.
+Run the tsc gate (see Global Constraints):
+`npx tsc --noEmit 2>&1 | grep -cE "error TS"` → ≤ 113, and
+`npx tsc --noEmit 2>&1 | grep -E "error TS" | grep -E "pocketInferenceCore|pocket-tts\.worker"` → empty.
 
 Run: `npx vitest run src/lib/local-inference/pocket`
 Expected: PASS (existing pocket tests + the new DI test).
@@ -556,8 +561,9 @@ And add `onnxruntime-node` to the `external` array (`:142`):
 
 - [ ] **Step 3: Build the electron bundle to verify the entry compiles**
 
-Run: `npx tsc --noEmit`
-Expected: no errors (the new `.ts` files typecheck; onnxruntime-node types resolve).
+Run the tsc gate (see Global Constraints): count ≤ 113 and
+`npx tsc --noEmit 2>&1 | grep -E "error TS" | grep -E "pocket-native-process"` → empty
+(the new `.ts` entry typechecks; onnxruntime-node types resolve).
 
 Run: `SOKUJI_NO_ELECTRON= npx vite build --mode development 2>&1 | tail -20`
 Expected: build succeeds and `dist-electron/pocket-native-process.js` exists (check with `ls dist-electron/pocket-native-process.js`). The `require("onnxruntime-node")` is left external (not bundled).
@@ -754,13 +760,13 @@ import { isElectron } from '../../utils/environment';
 
 (`generate` is unchanged — `engineRef.current.generateWithReference(...)` has the same signature on both backends. Cast at the call site if tsc complains: `(engineRef.current as PocketNativeClient | TtsEngine).generateWithReference(...)`.)
 
-- [ ] **Step 8: Typecheck and run the web suite (web path unaffected)**
+- [ ] **Step 8: Typecheck (baseline-aware) and run the web suite (web path unaffected)**
 
-Run: `npx tsc --noEmit`
-Expected: no errors.
+Run the tsc gate (see Global Constraints): count ≤ 113 and
+`npx tsc --noEmit 2>&1 | grep -E "error TS" | grep -E "pocketInferenceCore|pocket-tts\.worker|pocketNativeClient|PocketPlayground|pocket-native-process"` → empty.
 
 Run: `npx vitest run`
-Expected: full suite green (the existing ~1100+ tests + the Task 1 DI test).
+Expected: full suite green — 1132 (+ the Task 1 DI tests) passing, 0 failures.
 
 - [ ] **Step 9: End-to-end verification in Electron (the acceptance gate)**
 
