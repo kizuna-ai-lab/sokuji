@@ -92,19 +92,6 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
-      // Cross-origin isolation for the web-only dev server (SOKUJI_NO_ELECTRON=1), so
-      // the Pocket TTS playground can use multi-threaded WASM (needs SharedArrayBuffer).
-      // Gated so normal `npm run dev` (Electron) is unaffected.
-      isServe && !!process.env.SOKUJI_NO_ELECTRON && {
-        name: 'pocket-coop-coep',
-        configureServer(server) {
-          server.middlewares.use((_req, res, next) => {
-            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-            res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-            next();
-          });
-        },
-      },
       react(),
       // Web-only dev: set SOKUJI_NO_ELECTRON=1 to run Vite without launching the
       // Electron app (e.g. for browser testing the dev playgrounds). Default
