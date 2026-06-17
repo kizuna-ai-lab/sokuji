@@ -92,10 +92,25 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
-      // NOTE: deliberately NOT cross-origin isolated. ORT-web's threaded (SharedArrayBuffer)
-      // WASM has a fixed memory ceiling that Pocket's large KV-caches overflow (OrtRun
-      // std::bad_alloc). Without isolation, numThreads resolves to 1 and ORT uses the
-      // growable non-threaded WASM (no OOM) — this is the config KevinAHM's demo runs.
+      // The onnxruntime-web Pocket playground (/pocket-playground.html) is deliberately NOT
+      // cross-origin isolated — ORT-web's threaded (SharedArrayBuffer) WASM OOMs on Pocket's
+      // KV-caches, so it must use the growable non-threaded single-thread build.
+      //
+      // BUT the sherpa-onnx Pocket WASM demo (/sherpa-pocket-demo/, the k2-fsa Space) is built
+      // with Emscripten pthreads + ALLOW_MEMORY_GROWTH and DOES need SharedArrayBuffer. So we
+      // scope COOP/COEP to that path only — isolating that page without affecting the rest.
+      isServe && !!process.env.SOKUJI_NO_ELECTRON && {
+        name: 'sherpa-pocket-coop-coep',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url && req.url.includes('/sherpa-pocket-demo')) {
+              res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+              res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            }
+            next();
+          });
+        },
+      },
       react(),
       // Web-only dev: set SOKUJI_NO_ELECTRON=1 to run Vite without launching the
       // Electron app (e.g. for browser testing the dev playgrounds). Default

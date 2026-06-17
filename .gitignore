@@ -110,3 +110,6 @@ public/wasm/*
 
 # Pocket TTS dev-playground model bundle (downloaded via scripts/download-pocket-tts-en.sh)
 public/wasm/pocket-tts-en/
+
+# sherpa-onnx Pocket WASM demo (k2-fsa Space, ~211MB, perf comparison)
+public/sherpa-pocket-demo/
