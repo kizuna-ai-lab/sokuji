@@ -1,4 +1,4 @@
-import { InferenceSession, Tensor } from '../workers/_shared/onnxruntime-all';
+import type { InferenceSession, Tensor } from '../workers/_shared/onnxruntime-all';
 import {
   POCKET_SAMPLE_RATE, POCKET_LATENT_DIM, POCKET_EOS_LOGIT_THRESHOLD,
   POCKET_DECODER_CHUNK_FRAMES, POCKET_DEFAULT_MAX_FRAMES, POCKET_DEFAULT_LSD_STEPS,
@@ -68,11 +68,25 @@ export function parseNpyFloat32(buffer: ArrayBuffer): Float32Array {
 type OrtTensor = Tensor;
 type TensorMap = Record<string, OrtTensor>;
 
+// The ORT Tensor constructor is injected at runtime by the worker (which loads
+// onnxruntime-web from the CDN rather than bundling it, so ORT can spawn its threaded
+// pthread workers). Keeping ORT out of the static import is what enables threading.
+type TensorCtor = new (
+  type: 'float32' | 'int64' | 'bool',
+  data: Float32Array | BigInt64Array | Uint8Array,
+  dims: number[],
+) => OrtTensor;
+let TensorImpl: TensorCtor | null = null;
+export function setTensorImpl(T: TensorCtor): void { TensorImpl = T; }
+
 const makeTensor = (
   dtype: 'float32' | 'int64' | 'bool',
   data: Float32Array | BigInt64Array | Uint8Array,
   dims: number[],
-): OrtTensor => new Tensor(dtype, data as never, dims);
+): OrtTensor => {
+  if (!TensorImpl) throw new Error('pocketInferenceCore: Tensor impl not set (call setTensorImpl first)');
+  return new TensorImpl(dtype, data, dims);
+};
 
 /** Port of the source's makeFilledArray — honors `fill` ("nan"|"ones"|"zeros"|"empty") and bool. */
 function makeFilledArray(
