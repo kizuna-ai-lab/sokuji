@@ -22,7 +22,7 @@ import {
 import { PocketTokenizer } from '../pocket/pocketTokenizer';
 import {
   encodeReference, resampleTo24k, buildVoiceConditionedState, generate, parseNpyFloat32,
-  type PocketSessions, type PocketMetadata,
+  setPocketTensor, type PocketSessions, type PocketMetadata, type PocketTensorCtor,
 } from '../pocket/pocketInferenceCore';
 import type { StateMap } from '../pocket/pocketState';
 
@@ -81,6 +81,7 @@ async function handleInit(msg: PocketTtsInitMessage) {
   ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
   ortEnv.wasm.numThreads = 1;
   ortEnv.wasm.simd = true; // ensure the SIMD WASM kernels are used (big single-thread win)
+  setPocketTensor(Tensor as unknown as PocketTensorCtor); // inject onnxruntime-web Tensor into the core
   lsdSteps = msg.ttsConfig.lsdSteps ?? 1;
   maxFrames = msg.ttsConfig.maxFrames ?? 500;
 

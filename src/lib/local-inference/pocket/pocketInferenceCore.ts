@@ -1,4 +1,8 @@
-import { InferenceSession, Tensor } from '../workers/_shared/onnxruntime-all';
+// Runtime-neutral: TYPES only (erased at build, no runtime pulled in). The Tensor
+// *constructor* is injected via setPocketTensor() so this core runs on onnxruntime-web
+// (renderer worker) OR onnxruntime-node (Electron utilityProcess / node bench). Both
+// re-export onnxruntime-common's Tensor, so either constructor fits PocketTensorCtor.
+import type { InferenceSession, Tensor } from 'onnxruntime-web';
 import {
   POCKET_SAMPLE_RATE, POCKET_LATENT_DIM, POCKET_EOS_LOGIT_THRESHOLD,
   POCKET_DECODER_CHUNK_FRAMES, POCKET_DEFAULT_MAX_FRAMES, POCKET_DEFAULT_LSD_STEPS,
@@ -68,11 +72,34 @@ export function parseNpyFloat32(buffer: ArrayBuffer): Float32Array {
 type OrtTensor = Tensor;
 type TensorMap = Record<string, OrtTensor>;
 
+/** The ONNX `Tensor` constructor, injected per-runtime via setPocketTensor(). */
+export type PocketTensorCtor = new (
+  type: 'float32' | 'int64' | 'bool',
+  data: Float32Array | BigInt64Array | Uint8Array,
+  dims: number[],
+) => OrtTensor;
+
+let injectedTensor: PocketTensorCtor | null = null;
+
+/**
+ * Inject the ONNX `Tensor` constructor before any encode/generate call:
+ *   renderer worker → setPocketTensor(Tensor)  // onnxruntime-web
+ *   node host       → setPocketTensor(Tensor)  // onnxruntime-node
+ */
+export function setPocketTensor(ctor: PocketTensorCtor): void {
+  injectedTensor = ctor;
+}
+
 const makeTensor = (
   dtype: 'float32' | 'int64' | 'bool',
   data: Float32Array | BigInt64Array | Uint8Array,
   dims: number[],
-): OrtTensor => new Tensor(dtype, data as never, dims);
+): OrtTensor => {
+  if (!injectedTensor) {
+    throw new Error('pocketInferenceCore: Tensor not injected — call setPocketTensor() first');
+  }
+  return new injectedTensor(dtype, data, dims);
+};
 
 /** Port of the source's makeFilledArray — honors `fill` ("nan"|"ones"|"zeros"|"empty") and bool. */
 function makeFilledArray(
