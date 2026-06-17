@@ -93,7 +93,10 @@ export default defineConfig(({ command, mode }) => {
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
-      electron({
+      // Web-only dev: set SOKUJI_NO_ELECTRON=1 to run Vite without launching the
+      // Electron app (e.g. for browser testing the dev playgrounds). Default
+      // (`npm run dev`) is unchanged — Electron still launches.
+      !process.env.SOKUJI_NO_ELECTRON && electron({
         main: {
           // Entry points for the main process
           entry: {
