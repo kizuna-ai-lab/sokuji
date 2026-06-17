@@ -73,23 +73,23 @@ async function loadSessions(
 async function handleInit(msg: PocketTtsInitMessage) {
   const start = performance.now();
   ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-  ortEnv.wasm.numThreads = 1;
+  // Pocket is autoregressive at batch=1 (many tiny sequential ops). Threaded SIMD
+  // WASM on CPU beats WebGPU here — GPU per-dispatch overhead dominates and Kyutai
+  // designed Pocket to be CPU-first. Multi-threading needs the page cross-origin
+  // isolated (COOP/COEP) so SharedArrayBuffer exists; otherwise ORT silently runs
+  // single-threaded. crossOriginIsolated is logged below so we can see which we got.
+  ortEnv.wasm.numThreads = Math.max(1, Math.min(workerScope.navigator?.hardwareConcurrency ?? 4, 8));
   lsdSteps = msg.ttsConfig.lsdSteps ?? 1;
   maxFrames = msg.ttsConfig.maxFrames ?? 500;
 
-  const hasWebGPU = typeof (workerScope.navigator as { gpu?: unknown }).gpu !== 'undefined';
-  backend = hasWebGPU ? 'webgpu' : 'wasm';
-  post({ type: 'status', message: `Initializing Pocket TTS (backend: ${backend})` });
+  backend = 'wasm';
+  const isolated = (workerScope as unknown as { crossOriginIsolated?: boolean }).crossOriginIsolated ?? false;
+  post({
+    type: 'status',
+    message: `Initializing Pocket TTS (wasm, threads: ${ortEnv.wasm.numThreads}, crossOriginIsolated: ${isolated})`,
+  });
 
-  try {
-    sessions = await loadSessions(msg.fileUrls, backend);
-  } catch (err) {
-    if (backend === 'webgpu') {
-      post({ type: 'status', message: `WebGPU init failed (${err instanceof Error ? err.message : err}); falling back to WASM` });
-      sessions = null; backend = 'wasm';
-      sessions = await loadSessions(msg.fileUrls, 'wasm');
-    } else throw err;
-  }
+  sessions = await loadSessions(msg.fileUrls, 'wasm');
 
   meta = JSON.parse(new TextDecoder().decode(await fetchBuf(msg.fileUrls[POCKET_METADATA_FILE]))) as PocketMetadata;
   if (meta.insert_bos_before_voice && msg.fileUrls[POCKET_BOS_FILE]) {
