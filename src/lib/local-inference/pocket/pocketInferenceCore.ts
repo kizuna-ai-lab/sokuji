@@ -1,4 +1,4 @@
-import type { InferenceSession, Tensor } from '../workers/_shared/onnxruntime-all';
+import { InferenceSession, Tensor } from '../workers/_shared/onnxruntime-all';
 import {
   POCKET_SAMPLE_RATE, POCKET_LATENT_DIM, POCKET_EOS_LOGIT_THRESHOLD,
   POCKET_DECODER_CHUNK_FRAMES, POCKET_DEFAULT_MAX_FRAMES, POCKET_DEFAULT_LSD_STEPS,
@@ -68,25 +68,11 @@ export function parseNpyFloat32(buffer: ArrayBuffer): Float32Array {
 type OrtTensor = Tensor;
 type TensorMap = Record<string, OrtTensor>;
 
-// The ORT Tensor constructor is injected at runtime by the worker (which loads
-// onnxruntime-web from the CDN rather than bundling it, so ORT can spawn its threaded
-// pthread workers). Keeping ORT out of the static import is what enables threading.
-type TensorCtor = new (
-  type: 'float32' | 'int64' | 'bool',
-  data: Float32Array | BigInt64Array | Uint8Array,
-  dims: number[],
-) => OrtTensor;
-let TensorImpl: TensorCtor | null = null;
-export function setTensorImpl(T: TensorCtor): void { TensorImpl = T; }
-
 const makeTensor = (
   dtype: 'float32' | 'int64' | 'bool',
   data: Float32Array | BigInt64Array | Uint8Array,
   dims: number[],
-): OrtTensor => {
-  if (!TensorImpl) throw new Error('pocketInferenceCore: Tensor impl not set (call setTensorImpl first)');
-  return new TensorImpl(dtype, data, dims);
-};
+): OrtTensor => new Tensor(dtype, data as never, dims);
 
 /** Port of the source's makeFilledArray — honors `fill` ("nan"|"ones"|"zeros"|"empty") and bool. */
 function makeFilledArray(
@@ -200,6 +186,8 @@ export interface PocketGenOptions {
   lsdSteps?: number;
   maxFrames?: number;
   speed?: number;
+  /** Optional diagnostic sink (worker forwards these to the page log panel). */
+  log?: (msg: string) => void;
 }
 
 /** Precompute the per-LSD-step (s, t) scalar tensors — source's precomputeFlowBuffers. */
@@ -286,21 +274,30 @@ export async function generate(
   let isFirstAudioChunk = true;
   let currentLatent = makeF32Tensor(new Float32Array(latentDim).fill(NaN), [1, 1, latentDim]);
   let eosStep: number | null = null;
+  let lastStep = -1;
+  let decodeChunks = 0;
+  let firstEosLogit: number | null = null;
+  let tMain = 0, tFlow = 0, tDecode = 0; // per-stage wall time (ms)
 
   for (let step = 0; step < maxFrames; step++) {
-    // Yield to the event loop periodically (mirrors the source's step % 4 throttle).
-    if (step > 0 && step % 4 === 0) {
+    lastStep = step;
+    // Yield to the event loop occasionally to keep the page responsive (less often than
+    // the source's every-4 to cut setTimeout's ~4ms-clamp overhead).
+    if (step > 0 && step % 16 === 0) {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
+    const _m0 = performance.now();
     const arResult = await sessions.flowLmMain.run({
       sequence: currentLatent,
       text_embeddings: emptyTextEmb,
       ...(flowLmState as unknown as InferenceSession.OnnxValueMapType),
     }) as TensorMap;
+    tMain += performance.now() - _m0;
 
     const conditioning = arResult.conditioning;
     const eosLogit = (arResult.eos_logit.data as Float32Array)[0];
+    if (firstEosLogit === null) firstEosLogit = eosLogit;
     const isEos = eosLogit > POCKET_EOS_LOGIT_THRESHOLD;
     if (isEos && eosStep == null) eosStep = step;
     const shouldStop = eosStep != null && step >= eosStep + framesAfterEos;
@@ -316,12 +313,14 @@ export async function generate(
     }
 
     for (let lsdIndex = 0; lsdIndex < lsdSteps; lsdIndex++) {
+      const _f0 = performance.now();
       const flowResult = await sessions.flowLmFlow.run({
         c: conditioning,
         s: stTensors[lsdIndex].s,
         t: stTensors[lsdIndex].t,
         x: makeF32Tensor(latentData, [1, latentDim]),
       }) as TensorMap;
+      tFlow += performance.now() - _f0;
       const flowDir = flowResult.flow_dir.data as Float32Array;
       for (let i = 0; i < latentDim; i++) latentData[i] += flowDir[i] * dt;
     }
@@ -343,16 +342,27 @@ export async function generate(
       for (let frame = 0; frame < decodeSize; frame++) {
         decodeLatents.set(chunkLatents[chunkDecodedFrames + frame], frame * latentDim);
       }
+      const _d0 = performance.now();
       const decodeResult = await sessions.mimiDecoder.run({
         latent: makeF32Tensor(decodeLatents, [1, decodeSize, latentDim]),
         ...(mimiState as unknown as InferenceSession.OnnxValueMapType),
       }) as TensorMap;
+      tDecode += performance.now() - _d0;
       updateStateFromManifestOutputs(mimiState, decodeResult, meta.mimi_state_manifest);
 
-      const pcm = decodeResult[sessions.mimiDecoder.outputNames[0]].data as Float32Array;
+      const audioTensor = decodeResult[sessions.mimiDecoder.outputNames[0]];
+      const pcm = audioTensor.data as Float32Array;
+      if (decodeChunks === 0) {
+        opts.log?.('[pocket] decode[0] ' + JSON.stringify({
+          decodeSize, latentDim, mimiOutputNames: sessions.mimiDecoder.outputNames,
+          audioFrameDims: (audioTensor as unknown as { dims: number[] }).dims,
+          pcmLen: pcm.length, expectedPcm: decodeSize * 1920,
+        }));
+      }
       pcmChunks.push(new Float32Array(pcm));
       chunkDecodedFrames += decodeSize;
       isFirstAudioChunk = false;
+      decodeChunks++;
     }
 
     if (shouldStop) break;
@@ -363,5 +373,13 @@ export async function generate(
   const out = new Float32Array(total);
   let offset = 0;
   for (const c of pcmChunks) { out.set(c, offset); offset += c.length; }
+  opts.log?.('[pocket] generate ' + JSON.stringify({
+    framesRun: lastStep + 1, eosStep, firstEosLogit, eosThreshold: POCKET_EOS_LOGIT_THRESHOLD,
+    maxFrames, maxFramesHit: lastStep + 1 >= maxFrames, decodeChunks,
+    pcmSamples: total, durationSec: +(total / POCKET_SAMPLE_RATE).toFixed(2),
+    lsdSteps, latentDim, condDim, textEmbFrames: textEmbeddings.dims?.[1],
+    tMainMs: Math.round(tMain), tFlowMs: Math.round(tFlow), tDecodeMs: Math.round(tDecode),
+    msPerFrame: +((tMain + tFlow) / (lastStep + 1)).toFixed(1),
+  }));
   return out;
 }

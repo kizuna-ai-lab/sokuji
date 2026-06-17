@@ -9,4 +9,12 @@
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   .upload input { display: none; }
   a { color: #10a37f; }
+  .logs { margin-top: 18px; }
+  .logs-head { display: flex; gap: 8px; align-items: center; color: #8b949e; font-size: 12px; margin-bottom: 4px; }
+  .logs-head button { padding: 2px 10px; font-size: 11px; }
+  .logs pre {
+    max-height: 300px; overflow: auto; margin: 0; padding: 8px;
+    background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px;
+    font: 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all;
+  }
 }

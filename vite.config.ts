@@ -92,20 +92,10 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
-      // Cross-origin isolation for the web-only dev server (SOKUJI_NO_ELECTRON=1) so the
-      // Pocket TTS playground gets SharedArrayBuffer → multi-threaded WASM. The Pocket
-      // worker loads ORT from the CDN (1.20.0), which threads AND doesn't OOM under
-      // isolation (unlike the bundled build). Gated so normal `npm run dev` is unaffected.
-      isServe && !!process.env.SOKUJI_NO_ELECTRON && {
-        name: 'pocket-coop-coep',
-        configureServer(server) {
-          server.middlewares.use((_req, res, next) => {
-            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-            res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-            next();
-          });
-        },
-      },
+      // NOTE: deliberately NOT cross-origin isolated. ORT-web's threaded (SharedArrayBuffer)
+      // WASM has a fixed memory ceiling that Pocket's large KV-caches overflow (OrtRun
+      // std::bad_alloc). Without isolation, numThreads resolves to 1 and ORT uses the
+      // growable non-threaded WASM (no OOM) — this is the config KevinAHM's demo runs.
       react(),
       // Web-only dev: set SOKUJI_NO_ELECTRON=1 to run Vite without launching the
       // Electron app (e.g. for browser testing the dev playgrounds). Default

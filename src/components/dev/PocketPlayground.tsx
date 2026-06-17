@@ -20,6 +20,7 @@ async function decodeToMono(file: File): Promise<{ samples: Float32Array; sample
 
 export const PocketPlayground: React.FC = () => {
   const engineRef = useRef<TtsEngine | null>(null);
+  const refDirty = useRef(true); // re-encode the reference voice only when it changes
   const [status, setStatus] = useState<Status>('idle');
   const [backend, setBackend] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -30,22 +31,28 @@ export const PocketPlayground: React.FC = () => {
   const [timing, setTiming] = useState('');
   const recorderRef = useRef<MediaRecorder | null>(null);
   const [recording, setRecording] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const addLog = useCallback((m: string) => {
+    const ts = new Date().toISOString().slice(11, 23);
+    setLogs((prev) => [...prev, `${ts}  ${m}`]);
+  }, []);
 
   const load = useCallback(async () => {
-    setStatus('loading'); setStatusMsg('Loading model…');
+    setStatus('loading'); setStatusMsg('Loading model…'); addLog('--- load ---');
     const engine = new TtsEngine();
-    engine.onStatus = (m) => setStatusMsg(m);
-    engine.onError = (e) => { setStatus('error'); setStatusMsg(e); };
+    engine.onStatus = (m) => { setStatusMsg(m); addLog(m); };
+    engine.onError = (e) => { setStatus('error'); setStatusMsg(e); addLog('ERROR ' + e); };
     engineRef.current = engine;
     try {
       const info = await engine.init('pocket-tts');
       setBackend(info.backend ?? 'wasm'); setStatus('ready'); setStatusMsg('Ready');
-    } catch (e) { setStatus('error'); setStatusMsg(e instanceof Error ? e.message : String(e)); }
-  }, []);
+      addLog(`ready: backend=${info.backend} sampleRate=${info.sampleRate} loadMs=${info.loadTimeMs}`);
+    } catch (e) { const m = e instanceof Error ? e.message : String(e); setStatus('error'); setStatusMsg(m); addLog('LOAD ERROR ' + m); }
+  }, [addLog]);
 
   const onUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
-    setRef(await decodeToMono(file)); setStatusMsg(`Reference: ${file.name}`);
+    setRef(await decodeToMono(file)); refDirty.current = true; setStatusMsg(`Reference: ${file.name}`);
   }, []);
 
   const toggleRecord = useCallback(async () => {
@@ -57,7 +64,7 @@ export const PocketPlayground: React.FC = () => {
     rec.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       const blob = new Blob(chunks, { type: rec.mimeType });
-      setRef(await decodeToMono(new File([blob], 'recording.webm')));
+      setRef(await decodeToMono(new File([blob], 'recording.webm'))); refDirty.current = true;
       setStatusMsg('Reference: recording captured');
     };
     recorderRef.current = rec; rec.start(); setRecording(true);
@@ -65,18 +72,29 @@ export const PocketPlayground: React.FC = () => {
 
   const generate = useCallback(async () => {
     const engine = engineRef.current; if (!engine || !ref) return;
-    setStatus('generating'); setStatusMsg('Generating…');
+    setStatus('generating'); setStatusMsg('Generating…'); addLog('--- generate ---');
     try {
       const start = performance.now();
-      // Send the reference (copy: postMessage transfers the buffer).
-      const result = await engine.generateWithReference(text, new Float32Array(ref.samples), ref.sampleRate, speed);
+      // Re-encode the reference only when it changed; otherwise reuse the cached voice
+      // embedding in the worker (skips the Mimi encoder + flow-LM prefill).
+      const sendRef = refDirty.current ? new Float32Array(ref.samples) : null;
+      addLog(sendRef ? 'reference changed → encoding voice' : 'reusing cached voice (no re-encode)');
+      const result = await engine.generateWithReference(text, sendRef, ref.sampleRate, speed);
+      refDirty.current = false;
       const wall = Math.round(performance.now() - start);
       const audioSecs = result.samples.length / result.sampleRate;
+      addLog(`gen done: samples=${result.samples.length} dur=${audioSecs.toFixed(2)}s wall=${wall}ms factor=${(audioSecs / (wall / 1000)).toFixed(2)}x`);
+      // Guard: a runaway buffer would crash the WAV encoder / browser — cap playback.
+      if (result.samples.length > 30 * result.sampleRate) {
+        const m = `Output too large: ${result.samples.length} samples (≈${audioSecs.toFixed(0)}s) — skipping playback`;
+        addLog('WARN ' + m); setTiming(m); setStatus('error'); setStatusMsg(m);
+        return;
+      }
       setTiming(`${wall} ms · ${(audioSecs / (wall / 1000)).toFixed(2)}× realtime`);
       setAudioUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(toWav(result.samples, result.sampleRate)); });
       setStatus('ready'); setStatusMsg('Done');
-    } catch (e) { setStatus('error'); setStatusMsg(e instanceof Error ? e.message : String(e)); }
-  }, [text, ref, speed]);
+    } catch (e) { const m = e instanceof Error ? e.message : String(e); setStatus('error'); setStatusMsg(m); addLog('GEN ERROR ' + m); }
+  }, [text, ref, speed, addLog]);
 
   return (
     <div className="pocket-playground">
@@ -104,6 +122,14 @@ export const PocketPlayground: React.FC = () => {
           )}
         </>
       )}
+      <div className="logs">
+        <div className="logs-head">
+          <span>logs ({logs.length})</span>
+          <button onClick={() => navigator.clipboard?.writeText(logs.join('\n'))}>Copy</button>
+          <button onClick={() => setLogs([])}>Clear</button>
+        </div>
+        <pre>{logs.join('\n')}</pre>
+      </div>
     </div>
   );
 };
