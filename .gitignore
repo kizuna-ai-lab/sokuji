@@ -113,3 +113,6 @@ public/wasm/pocket-tts-en/
 
 # sherpa-onnx Pocket WASM demo (k2-fsa Space, ~211MB, perf comparison)
 public/sherpa-pocket-demo/
+
+# Pocket TTS native benchmark output (build artifact)
+out_native.wav

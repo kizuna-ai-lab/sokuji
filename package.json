@@ -116,6 +116,7 @@
     "livekit-client": "^2.15.2",
     "lucide-react": "^0.515.0",
     "mpg123-decoder": "^1.0.3",
+    "onnxruntime-node": "1.26.0",
     "openai": "^6.29.0",
     "openai-realtime-api": "1.0.8",
     "posthog-js-lite": "^4.1.0",
@@ -136,8 +137,7 @@
   },
   "overrides": {
     "form-data": "^4.0.4",
-    "axios": "^1.9.0",
-    "onnxruntime-node": "npm:empty-npm-package@1.0.0"
+    "axios": "^1.9.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
