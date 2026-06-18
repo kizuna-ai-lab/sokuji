@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, utilityProcess } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
@@ -75,22 +75,33 @@ app.commandLine.appendSwitch('enable-features', 'Vulkan,SharedArrayBuffer');
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
-// ---- Pocket TTS native (onnxruntime-node) PoC: utilityProcess + IPC (dev only) ----
+// ---- Pocket TTS native (onnxruntime-node) PoC: child_process + IPC (dev only) ----
+// Runs in a PLAIN Node child (child_process.fork with ELECTRON_RUN_AS_NODE=1 = Electron's
+// own bundled Node, no system-Node dependency), NOT a utilityProcess — which intermittently
+// crashed (SIGTRAP) hosting this native addon. Throughput is set by the child's
+// intraOpNumThreads cap (default oversubscribes the tiny per-frame matmuls). ~2.5x realtime.
+// serialization:'advanced' keeps the Float32Array reference/result intact over IPC.
+const { fork: forkPocketProc } = require('child_process');
 let pocketProc = null;
 let pocketReqId = 0;
 const pocketPending = new Map();
 
 function ensurePocketProc() {
   if (pocketProc) return pocketProc;
-  const proc = utilityProcess.fork(path.join(__dirname, 'pocket-native-process.js'), [], { stdio: 'pipe' });
+  const proc = forkPocketProc(path.join(__dirname, 'pocket-native-process.js'), [], {
+    execPath: process.execPath,
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    serialization: 'advanced',
+    silent: true,
+  });
   proc.on('message', (msg) => {
     const p = pocketPending.get(msg.id);
     if (!p) return;
     pocketPending.delete(msg.id);
     if (msg.error) p.reject(new Error(msg.error)); else p.resolve(msg.result);
   });
-  proc.on('exit', (code) => {
-    for (const p of pocketPending.values()) p.reject(new Error(`pocket-native process exited (code ${code})`));
+  proc.on('exit', (code, signal) => {
+    for (const p of pocketPending.values()) p.reject(new Error(`pocket-native process exited (code ${code}${signal ? ' signal ' + signal : ''})`));
     pocketPending.clear();
     pocketProc = null;
   });
@@ -105,7 +116,7 @@ function pocketRequest(payload) {
   const id = ++pocketReqId;
   return new Promise((resolve, reject) => {
     pocketPending.set(id, { resolve, reject });
-    proc.postMessage({ id, ...payload });
+    proc.send({ id, ...payload });
   });
 }
 

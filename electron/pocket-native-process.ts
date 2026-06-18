@@ -1,7 +1,15 @@
 /**
- * Pocket TTS native runtime — Electron utilityProcess (Node context).
+ * Pocket TTS native runtime — plain Node child process.
  * Runs pocketInferenceCore on onnxruntime-node (native CPU), driven by main.js over
- * parentPort. Dev PoC: model files read from disk (modelDir passed in the init message).
+ * child_process IPC (process.on('message') / process.send). Dev PoC: model files read
+ * from disk (modelDir passed in the init message).
+ *
+ * Spawned via child_process.fork with ELECTRON_RUN_AS_NODE=1 (Electron's own bundled Node
+ * in plain-node mode, no system-Node dependency) rather than utilityProcess, which
+ * intermittently crashed (SIGTRAP) hosting this native addon. Throughput is governed by
+ * intraOpNumThreads (capped low in loadSessions — onnxruntime's default of all logical
+ * cores oversubscribes the tiny per-frame flowLmMain matmuls and ~halves throughput).
+ * Net: ~2.5x realtime and stable. See the 2026-06-18 design spec.
  */
 import { InferenceSession, Tensor } from 'onnxruntime-node';
 import * as fs from 'node:fs';
@@ -19,10 +27,6 @@ import type { StateMap } from '../src/lib/local-inference/pocket/pocketState';
 
 setPocketTensor(Tensor as unknown as PocketTensorCtor);
 
-const parentPort = (process as unknown as {
-  parentPort: { on(ev: 'message', cb: (e: { data: any }) => void): void; postMessage(msg: any): void };
-}).parentPort;
-
 let sessions: PocketSessions | null = null;
 let meta: PocketMetadata | null = null;
 let tokenizer: PocketTokenizer | null = null;
@@ -32,8 +36,11 @@ let bos: Float32Array | null = null;
 const toAB = (b: Buffer): ArrayBuffer => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
 
 async function loadSessions(modelDir: string): Promise<PocketSessions> {
+  // Cap intra-op threads: the per-frame flowLmMain matmuls are tiny, so onnxruntime's
+  // default (= all logical cores) oversubscribes and ~halves throughput. A low count wins.
+  const threads = process.env.POCKET_NATIVE_THREADS ? parseInt(process.env.POCKET_NATIVE_THREADS, 10) : 2;
   const opts: InferenceSession.SessionOptions = {
-    executionProviders: ['cpu'], graphOptimizationLevel: 'all', logSeverityLevel: 3,
+    executionProviders: ['cpu'], graphOptimizationLevel: 'all', intraOpNumThreads: threads, logSeverityLevel: 3,
   };
   const created: Partial<PocketSessions> = {};
   for (const id of Object.keys(POCKET_MODEL_STEMS) as PocketSessionId[]) {
@@ -74,15 +81,14 @@ async function handleGenerate(msg: any) {
   return { samples, sampleRate: POCKET_SAMPLE_RATE, generationTimeMs: Date.now() - start };
 }
 
-parentPort.on('message', async (e) => {
-  const msg = e.data;
+process.on('message', async (msg: any) => {
   try {
     let result;
     if (msg.type === 'init') result = await handleInit(msg.modelDir);
     else if (msg.type === 'generate') result = await handleGenerate(msg);
     else throw new Error(`unknown message type: ${msg.type}`);
-    parentPort.postMessage({ id: msg.id, result });
+    process.send?.({ id: msg.id, result });
   } catch (err) {
-    parentPort.postMessage({ id: msg.id, error: err instanceof Error ? err.message : String(err) });
+    process.send?.({ id: msg.id, error: err instanceof Error ? err.message : String(err) });
   }
 });
