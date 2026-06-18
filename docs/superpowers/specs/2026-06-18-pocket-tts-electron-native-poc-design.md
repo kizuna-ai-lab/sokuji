@@ -107,3 +107,14 @@ Components:
 1. Our `pocketInferenceCore` on `onnxruntime-node` runs at ≥ ~1× realtime (ideally near sherpa's native ~4×) with correct cloned output — proving the TS core, not just sherpa's C++, is native-fast.
 2. The same core runs inside Electron via a `utilityProcess`, driven from the dev playground over IPC, producing correct audio without freezing the main process.
 3. The existing WASM Pocket path and the web build/tests remain unaffected.
+
+## Update (2026-06-18, post-E2E) — process model changed: utilityProcess → child_process.fork
+
+The interactive Electron E2E revealed the spec's `utilityProcess` host was both slow (~0.74× under full-app load) and intermittently crashed (SIGTRAP / exit 133). Systematic debugging found the **slowdown root cause was thread oversubscription**: the child left `intraOpNumThreads` unset → onnxruntime defaulted to all 28 logical cores → oversubscribed the tiny per-frame `flowLmMain` matmuls. (A "utilityProcess V8 memory cage copies tensors" theory was investigated and **disproven** — both process models measured ~1.5× with threads unset.)
+
+Final implementation (commit `6008dc02`):
+- Native host runs in a **plain Node child via `child_process.fork`**, `execPath` = Electron's own binary + `ELECTRON_RUN_AS_NODE=1` (Electron's bundled Node in plain-node mode; no system-Node dependency), `serialization: 'advanced'` (preserves `Float32Array` over IPC). The child uses `process.on('message')`/`process.send`, not utilityProcess `parentPort`. This also sidesteps the intermittent utilityProcess SIGTRAP.
+- `intraOpNumThreads` capped (default **2**, env-tunable via `POCKET_NATIVE_THREADS`; 2 is the sweet spot on the i7-14700F at ~2.66×).
+- onnxruntime-node is **napi-v6** → ABI-stable across Node and Electron; `@electron/rebuild` is not needed.
+
+Result: **~2.4× realtime, stable, audio correct** (headless-verified driving the built `dist-electron/pocket-native-process.js`; pending in-app GUI confirmation).
