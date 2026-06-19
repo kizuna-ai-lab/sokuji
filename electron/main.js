@@ -72,6 +72,15 @@ app.commandLine.appendSwitch('enable-unsafe-webgpu');
 // (multiple appendSwitch calls for the same flag would override each other)
 app.commandLine.appendSwitch('enable-features', 'Vulkan,SharedArrayBuffer');
 
+// Keep the renderer (and its local-inference Web Worker) running at full speed when
+// the Sokuji window is minimized/hidden/occluded — the common case while the user is
+// in a video call with Sokuji translating in the background. Without these, Chromium
+// backgrounds the hidden renderer and throttles its timers, which stalls the WASM
+// inference loop (its setTimeout-based yields get clamped). See issue #263.
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
@@ -261,7 +270,10 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       // Disable web security in development to allow CORS requests
-      webSecurity: !isDev
+      webSecurity: !isDev,
+      // Don't throttle timers/rendering when the window is hidden/occluded, so
+      // local-inference (WASM) keeps running at full speed in the background. (#263)
+      backgroundThrottling: false
     }
   });
 
