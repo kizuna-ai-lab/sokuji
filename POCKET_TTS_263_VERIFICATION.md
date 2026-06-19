@@ -75,13 +75,27 @@ Ran the same WASM bench inside a real Electron `BrowserWindow` (Chromium 144 / E
 
 - Foreground (visible/focused) window → P-cores → ~1.3× (real-time); the relaxed-SIMD build loads and gives
   the same ~+8% in Electron; pinned to E-cores it reproduces the sub-real-time ~0.75× regime.
-- **Electron-specific risk:** Chromium deprioritizes backgrounded/hidden renderer processes; on this hybrid CPU
-  a deprioritized renderer can land on E-cores → ~0.75× (below real-time). I measured the foreground best case
-  (`backgroundThrottling:false`, focused).
+- **Electron-specific risk (measured) — backgrounding STALLS inference:** when the Sokuji window is
+  hidden/minimized/occluded (the common case while the user is in a video call), Chromium backgrounds the
+  renderer and throttles its timers. The generate loop yields with `setTimeout(0)` every 16 frames, which gets
+  clamped to a crawl → the loop nearly halts:
+
+  | Electron window state | RTF |
+  |---|---|
+  | visible | 1.30× |
+  | **hidden/minimized — default settings** | **stalls** — 1 rep did NOT finish in 185s (vs ~10s visible) |
+  | hidden/minimized — with the fix below | 1.35× (full speed) |
+
+  **Shipped fix (on `main`, commit `ea57cdbf`):** in `electron/main.js`, add `disable-renderer-backgrounding` +
+  `disable-background-timer-throttling` + `disable-backgrounding-occluded-windows` (before app-ready) and
+  `backgroundThrottling: false` on the main window. Cross-platform, no native code. This keeps the WASM worker at
+  full speed regardless of window visibility. (This is the cheap win that does NOT need the native sidecar.)
 - **Implication:** the Electron web environment offers **no speedup** over the browser — same WASM ceiling. The
-  desktop advantage comes entirely from the **native `onnxruntime-node`** path (3.0× plain / ~2.0–2.4× via
-  `child_process`), which is ~2× faster than WASM-in-renderer *and* immune to renderer scheduling. Do not use
-  WASM-in-renderer for desktop when native node is available.
+  desktop advantage comes entirely from the **native** path (a future Python sidecar, per
+  [[pocket-tts-native-local-inference-python-sidecar]], or onnxruntime-node, ~2–4×), which is faster *and* immune
+  to renderer scheduling. P-core affinity / QoS pinning belongs to that native-sidecar task (it needs a real
+  process to pin); on macOS hard-pinning is impossible (QoS-only). Until then, the anti-backgrounding fix is the
+  one actionable lever for the shipping WASM path.
 
 ## Why the old 0.64× differed (it was recorded on THIS same i7-14700F)
 
