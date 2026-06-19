@@ -63,6 +63,26 @@ seqlen-1 GEMV (memory-bound), so the faster int8 dot mostly helps only the batch
 web ≈ **~1.5×** (comfortably real-time, but not native-class). The only path that could *exceed* node is a WebGPU
 re-export to MatMulNBits/fp16 (bigger lift + quality re-validation) — untested.
 
+## Electron renderer (the desktop app's web environment)
+
+Ran the same WASM bench inside a real Electron `BrowserWindow` (Chromium 144 / Electron 40.8.5,
+`scripts/electron-bench.cjs`) — it behaves identically to standalone Chrome (same V8/WASM engine):
+
+| environment | npm WASM | relaxed-SIMD | E-core pinned |
+|---|---|---|---|
+| standalone Chrome 147 | 1.27–1.40× | 1.51× | 0.76× |
+| **Electron 40 renderer** | **1.29×** | **1.37×** | **0.75×** |
+
+- Foreground (visible/focused) window → P-cores → ~1.3× (real-time); the relaxed-SIMD build loads and gives
+  the same ~+8% in Electron; pinned to E-cores it reproduces the sub-real-time ~0.75× regime.
+- **Electron-specific risk:** Chromium deprioritizes backgrounded/hidden renderer processes; on this hybrid CPU
+  a deprioritized renderer can land on E-cores → ~0.75× (below real-time). I measured the foreground best case
+  (`backgroundThrottling:false`, focused).
+- **Implication:** the Electron web environment offers **no speedup** over the browser — same WASM ceiling. The
+  desktop advantage comes entirely from the **native `onnxruntime-node`** path (3.0× plain / ~2.0–2.4× via
+  `child_process`), which is ~2× faster than WASM-in-renderer *and* immune to renderer scheduling. Do not use
+  WASM-in-renderer for desktop when native node is available.
+
 ## Why the old 0.64× differed (it was recorded on THIS same i7-14700F)
 
 The prior session's 0.64× / ~122 ms-per-frame was on the **same machine and essentially the same web code**
@@ -98,5 +118,6 @@ dip below real-time — the regime relaxed-SIMD would rescue.
 ## Reproduce
 
 - node:  `THREADS=1 npx tsx scripts/bench-pocket-native-stages.ts`  (and `scripts/bench-pocket-native.ts` for the thread sweep)
-- web:   `SOKUJI_NO_ELECTRON=1 [SOKUJI_COI=1] npx vite --port 5173` then drive `/pocket-web-bench.html?ep=wasm|webgpu&threads=N&mainthread=0|1&reps=3`
+- web:   `SOKUJI_NO_ELECTRON=1 [SOKUJI_COI=1] npx vite --port 5173` then drive `/pocket-web-bench.html?ep=wasm|webgpu&threads=N&relaxed=0|1&mainthread=0|1&reps=3`
   (Playwright for WASM; `node scripts/chrome-drive.mjs <url> <probe.js>` to use the real GPU for WebGPU).
+- electron renderer: `electron scripts/electron-bench.cjs "<bench-url>"` (optionally `taskset -c <cores>` to pin P/E cores).
