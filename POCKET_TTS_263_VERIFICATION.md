@@ -72,11 +72,24 @@ OUT as the cause:
   always-SIMD `ort-wasm-simd-threaded.wasm`, so the flag is a no-op and there is no scalar build to regress to.
 - **Not the code path**: the worker config is unchanged between the playground branch and this branch.
 
-Most likely cause: **CPU throttling in the earlier session.** The governor is `powersave`; cores DO boost to
-5.3 GHz under load now, but if the earlier run was held low (no boost) or scheduled on the E-cores
-(~4.2 GHz, lower IPC), single-thread WASM would run ~2× slower — matching 122 ms/frame vs 57 ms/frame.
-The earlier decoder figure (38 ms/frame vs 16.2 ms here; native decoder 6 ms then ≈ 6.3 ms now) is consistent
-with the *web* side being throttled while the native side was measured at full speed.
+Cause: **the compute thread ran on an E-core (or un-boosted) in the earlier session.** This is a hybrid CPU
+(8 P-cores @ ~5.3 GHz / high IPC + 12 E-cores @ ~4.2 GHz / low IPC) with the `powersave` governor. This int8
+workload is pure integer-SIMD compute (no VNNI in WASM), so its RTF tracks the core's effective speed almost
+linearly — making it maximally sensitive to P-core vs E-core placement. **Measured directly with `taskset`
+(same machine, same code):**
+
+| pinned to | node (native) | web (WASM) |
+|---|---|---|
+| **P-core** (CPU 0, 5.3 GHz) | 2.77× (22.4 ms/frame) | 1.27× |
+| **E-core** (CPU 16, 4.2 GHz) | 1.27× (46.5 ms/frame) | **0.76×** |
+| P/E ratio | **2.18×** | 1.67× |
+
+Pinning the browser to E-cores reproduces the sub-real-time **0.76×** regime; node-on-E-core (1.27×) ≈
+web-on-P-core (1.27–1.40×). The node P/E ratio (2.18×) matches the historical 0.64↔1.40 ratio (2.19×) almost
+exactly. (Reproduced 0.76×, not precisely 0.64× — I pinned to all 12 E-cores, which leaves scheduling headroom;
+a single E-core or extra background load would land closer to 0.64×.) This is consistent with the earlier
+per-stage data too: the *web* decoder was 38 ms/frame then vs 16.2 ms now, while the *native* decoder matched
+(6 ms ≈ 6.3 ms) — i.e. the web side was on a slow core while native ran at full speed.
 
 **Stable, hardware-independent metric:** the ~2.07× (backbone) / ~2.57× (decoder) web/native *ratio* measured
 in the same session. Absolute RTF tracks single-core speed, so on a genuinely slow laptop the web path can still
