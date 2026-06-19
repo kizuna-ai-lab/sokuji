@@ -96,9 +96,13 @@ function serveOrtRelaxed(): Plugin {
         const url = (req.url || '').replace(/\?.*$/, '')
         if (!url.startsWith('/wasm/ort-relaxed/')) return next()
         let filename = decodeURIComponent(url.replace('/wasm/ort-relaxed/', ''))
+        // Reject path traversal before joining (dev-only middleware, but keep it tight).
+        if (filename.includes('..') || filename.includes('/') || path.isAbsolute(filename)) return next()
         // npm loader asks for the simd glue name; hand it our relaxed glue.
         if (filename === 'ort-wasm-simd-threaded.jsep.mjs') filename = 'ort-wasm-relaxedsimd-threaded.jsep.mjs'
         const filePath = path.join(dir, filename)
+        // Defense in depth: ensure the resolved path stays inside the build dir.
+        if (!path.resolve(filePath).startsWith(path.resolve(dir) + path.sep)) return next()
         if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return next()
         const stat = fs.statSync(filePath)
         res.setHeader('Content-Length', stat.size)
