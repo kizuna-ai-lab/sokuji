@@ -63,6 +63,39 @@ seqlen-1 GEMV (memory-bound), so the faster int8 dot mostly helps only the batch
 web ≈ **~1.5×** (comfortably real-time, but not native-class). The only path that could *exceed* node is a WebGPU
 re-export to MatMulNBits/fp16 (bigger lift + quality re-validation) — untested.
 
+## Shipping the relaxed-SIMD build to production — what it takes + verdict
+
+**Verdict: do NOT ship relaxed-SIMD now.** +8% measured on one VNNI CPU; fleet-wide expected gain is likely
+lower (non-VNNI CPUs fall back to the fixed kernel). It carries a permanent custom-build + dual-artifact +
+numeric-validation burden across two distribution targets (Electron + extension), with no upstream contract —
+not worth it while RTF is already >1.4× (real-time) and the real user-visible problem (background stall) is
+already fixed. **Higher-ROI lever: enable multi-threading** (already-built threaded wasm, upstream-supported,
+sherpa native hit ~4.5× at 4 threads) — only cost is COOP/COEP. Revisit relaxed-SIMD **Electron-first** only if
+profiling proves ORT inference is the fleet-wide bottleneck *and* threading is exhausted/blocked.
+
+**If shipped, must handle:**
+- **Ship BOTH relaxed and fixed artifacts + a JS-layer fallback.** A relaxed `.wasm` **hard-fails to instantiate**
+  (`CompileError`) on engines without relaxed-SIMD, and **ORT throws** (`isRelaxedSimdSupported()` → no auto-fallback).
+  Feature-detect (`WebAssembly.validate` a relaxed-dot probe), set `env.wasm.simd='relaxed'` only when true, catch
+  and re-init on the fixed artifact otherwise.
+- **A real rebuild, not a byte-swap.** The `simd`/`relaxedsimd` filename is baked into the JS glue at build time —
+  rebuild `js/web` glue at the pinned commit (the dev hack of serving relaxed bytes under the `simd` name is NOT shippable).
+- **Set `env.wasm.simd='relaxed'` in the workers** — it is never auto-selected (default `true` loads the *fixed* build,
+  so without this change you ship the relaxed artifact and get **zero gain, silently**).
+- Distribute to Electron (ASAR) + extension (`web_accessible_resources`; CSP already allows wasm). Drop `--use_jsep`
+  (WebGPU irrelevant; ~halves wasm size). CI to rebuild + re-validate on every ORT bump; pin emsdk + ORT commit + JS pkg.
+
+**Compatibility risks:**
+| dimension | finding | severity |
+|---|---|---|
+| Browser support | relaxed default-on: Chrome/Edge **114** (sokuji floors 116 / Chromium 144 are above it). But Firefox(older), all Safari/WKWebView ≤18.x, locked-down embedded Chromium are **unsupported → ORT hard-throws** → must ship the fixed fallback. | **HIGH** |
+| CPU coverage | **No regression** — MLAS `HasUSDot()` runtime probe falls back to fixed on any CPU where the relaxed dot misbehaves. Gain only on AVX-VNNI x86 + ARM-dotprod; others unchanged. | LOW |
+| Numeric determinism | relaxed dot is **spec-nondeterministic** (2 impl-defined axes; spec issue #129 open) and MLAS hits the impl-defined path on ~every inference (u8 activations >127). **Safe** (`HasUSDot`-gated, no NaN) but **not bit-identical** across builds/CPUs → breaks golden/snapshot audio tests; perceptually irrelevant. | MEDIUM |
+
+**Required validation before shipping:** same-machine bit-diff (relaxed vs fixed), cross-vendor A/B (AVX-VNNI Intel,
+pre-VNNI x86, ARM/Apple) asserting no-NaN + TTS perceptual parity + ASR WER≈0, confirm the fixed fallback runs on a
+relaxed-unsupported engine, and field telemetry of which kernel was selected (to catch silent fallback losing the +8%).
+
 ## Electron renderer (the desktop app's web environment)
 
 Ran the same WASM bench inside a real Electron `BrowserWindow` (Chromium 144 / Electron 40.8.5,
