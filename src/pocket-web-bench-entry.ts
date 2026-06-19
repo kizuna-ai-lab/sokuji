@@ -16,7 +16,8 @@ const cfg: BenchConfig = {
   reps: parseInt(q.get('reps') || '3', 10),
   maxFrames: parseInt(q.get('maxFrames') || '500', 10),
   lsdSteps: parseInt(q.get('lsd') || '1', 10),
-  ortWasmBaseUrl: new URL('/wasm/ort/', location.href).href,
+  // ?relaxed=1 → load the locally-built relaxed-SIMD ORT-web (#263) instead of the npm bundle.
+  ortWasmBaseUrl: new URL(q.get('relaxed') === '1' ? '/wasm/ort-relaxed/' : '/wasm/ort/', location.href).href,
 };
 const mainthread = q.get('mainthread') === '1';
 

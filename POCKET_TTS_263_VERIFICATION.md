@@ -48,17 +48,20 @@ The gap is the **int8 dot-product instruction**, confirmed in source AND in the 
 
 ## Can web approach node? — levers, ranked
 
-| lever | class | projected web RTF | notes |
+| lever | class | web RTF | notes |
 |---|---|---|---|
-| **Custom relaxed-SIMD ORT-web build** | the real lever | **~1.6–1.9×** (from measured per-stage: main /1.1–1.3, decoder /1.4–1.7) | Only lever that changes the dot instruction. Closes ~⅓ of the gap; **cannot reach node 3.0×** (128-bit cap). Engages at runtime via `HasUSDot()` on this AVX-VNNI CPU. **Blocked here:** disk 100% full (4.2 GB), `emcc` not activated, cmake 3.22 too old. |
+| **Custom relaxed-SIMD ORT-web build** | the real lever — **BUILT & MEASURED** | **1.51× (+8% vs 1.40×)** | Built from the exact npm commit `b7804b056c` with `--enable_wasm_relaxed_simd` (emsdk 4.0.23, cmake 3.31); the `.wasm` has 44× the relaxed int-dot opcode `fd 93 02`, self-hosted via a Vite override. Same-session A/B (threads=1): decoder −13.4%, GEMV backbone −5.9%, RTF 1.40→1.51, audio valid. **Real but modest** — far below the optimistic ~1.6–1.9× extrapolation; matches ORT #22533's ~1.15× calibration. Reason: at seqlen-1 the AR backbone is memory-bound, so a faster int8 dot barely helps; only the batched decoder benefits. Still ~2× short of node. |
 | Decoder-only multi-thread WASM | try-now | decoder ~1.3–1.8× (sublinear); backbone ~0 | Needs COOP/COEP. Currently `create()` hangs in this setup; and node shows threads regress the backbone. Low net value. |
 | WebGPU EP on **current int8** graphs | **DEAD END** | regression + NaN (measured 0.18×) | No WebGPU kernel for the int8 ops. Do not ship. |
 | WebGPU + **MatMulNBits 4-bit / fp16 re-export** | bigger lift | could **beat** node on RTX 4070 (unmeasured) | New model files, different numerics → re-validate TTS audio quality. AR backbone (seqlen-1) may stay GPU-starved; decoder benefits most. |
 | Reserve GPU for **native node** (CUDA/DirectML EP) | — | fastest overall | Runs MatMulInteger with no re-export. |
 
-**Honest ceiling:** browser WASM cannot reach native 3.0× on this model class — even a relaxed-SIMD build is
-capped at 128-bit vectors vs native 256-bit AVX2+VNNI. Best realistic WASM web ≈ **1.6–1.9×** (still real-time).
-The only path that could *exceed* node is a WebGPU re-export to MatMulNBits/fp16 (bigger lift + quality re-validation).
+**Honest ceiling (now empirically bounded):** browser WASM cannot approach native 3.0× on this model class.
+The only instruction-level lever — a custom relaxed-SIMD build — was built and measured at **1.51× (+8%)**, still
+~2× short of node. Reasons: WASM SIMD is 128-bit vs native 256-bit AVX2, AND the dominant AR backbone is a
+seqlen-1 GEMV (memory-bound), so the faster int8 dot mostly helps only the batched decoder. Best realistic WASM
+web ≈ **~1.5×** (comfortably real-time, but not native-class). The only path that could *exceed* node is a WebGPU
+re-export to MatMulNBits/fp16 (bigger lift + quality re-validation) — untested.
 
 ## Why the old 0.64× differed (it was recorded on THIS same i7-14700F)
 

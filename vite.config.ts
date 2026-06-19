@@ -80,6 +80,37 @@ function serveOrtWasm(): Plugin {
   }
 }
 
+/**
+ * Dev-only plugin (#263): serve the locally-built relaxed-SIMD ORT-web from
+ * /wasm/ort-relaxed/. The npm JS loader requests the `simd` filename (it has no
+ * `relaxedsimd` variant), so map that .mjs request to our relaxed glue, which in
+ * turn loads its real `relaxedsimd` .wasm. Registered FIRST so it wins over
+ * serveOrtWasm's filename-pattern fallback.
+ */
+function serveOrtRelaxed(): Plugin {
+  const dir = '/home/jiangzhuo/Desktop/kizunaai/ort-build/onnxruntime/build/Linux/Release'
+  return {
+    name: 'serve-ort-relaxed',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url || '').replace(/\?.*$/, '')
+        if (!url.startsWith('/wasm/ort-relaxed/')) return next()
+        let filename = decodeURIComponent(url.replace('/wasm/ort-relaxed/', ''))
+        // npm loader asks for the simd glue name; hand it our relaxed glue.
+        if (filename === 'ort-wasm-simd-threaded.jsep.mjs') filename = 'ort-wasm-relaxedsimd-threaded.jsep.mjs'
+        const filePath = path.join(dir, filename)
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return next()
+        const stat = fs.statSync(filePath)
+        res.setHeader('Content-Length', stat.size)
+        if (filename.endsWith('.mjs') || filename.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript')
+        else if (filename.endsWith('.wasm')) res.setHeader('Content-Type', 'application/wasm')
+        else res.setHeader('Content-Type', 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory
@@ -90,6 +121,7 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
+      isServe && serveOrtRelaxed(),
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       // The onnxruntime-web Pocket playground (/pocket-playground.html) is deliberately NOT
