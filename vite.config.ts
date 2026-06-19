@@ -111,6 +111,19 @@ export default defineConfig(({ command, mode }) => {
           });
         },
       },
+      // Investigation-only (issue #263): SOKUJI_COI=1 enables global cross-origin
+      // isolation so the web bench can spawn multi-threaded WASM (SharedArrayBuffer).
+      isServe && !!process.env.SOKUJI_COI && {
+        name: 'global-coop-coep',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+            res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            next();
+          });
+        },
+      },
       react(),
       // Web-only dev: set SOKUJI_NO_ELECTRON=1 to run Vite without launching the
       // Electron app (e.g. for browser testing the dev playgrounds). Default
