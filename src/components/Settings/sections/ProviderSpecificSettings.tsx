@@ -58,7 +58,7 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
-import { NATIVE_ASR, NATIVE_TRANSLATION, hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
+import { NATIVE_ASR, NATIVE_TRANSLATION, nativeTtsVoices } from '../../../lib/local-inference/native/nativeCatalog';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -1931,6 +1931,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
     const speechLang = localNativeSettings.targetLanguage;
+    const ttsVoices = nativeTtsVoices(speechLang);
     return (
       <div className="settings-section">
         <h2>{t('providers.local_native.name', 'Local (Native, Electron)')}</h2>
@@ -1958,11 +1959,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
         <div className="setting-item">
           <div className="setting-label">{t('providers.local_native.speechOutput', 'Speech output')}</div>
-          <span className="setting-value">
-            {hasNativeTts(speechLang)
-              ? t('providers.local_native.ttsOn', 'Piper voice ({{lang}})', { lang: speechLang })
-              : t('providers.local_native.ttsOff', 'Text only (no voice for {{lang}})', { lang: speechLang })}
-          </span>
+          <select
+            className="select-dropdown"
+            value={localNativeSettings.ttsModel}
+            onChange={(e) => updateLocalNativeSettings({ ttsModel: e.target.value })}
+            disabled={isSessionActive}
+          >
+            <option value="">
+              {ttsVoices.length
+                ? t('providers.local_native.ttsAuto', 'Auto (default voice)')
+                : t('providers.local_native.ttsNone', 'Auto — text only (no voice for {{lang}})', { lang: speechLang })}
+            </option>
+            {ttsVoices.map((v) => (<option key={v.id} value={v.id}>{v.label}</option>))}
+            <option value="off">{t('providers.local_native.ttsOffOpt', 'Off (text only)')}</option>
+          </select>
         </div>
       </div>
     );

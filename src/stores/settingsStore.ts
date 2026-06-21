@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { pickNativeTts, resolveNativeTranslation } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -698,7 +698,7 @@ function createLocalNativeSessionConfig(
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
     translationModelId: resolveNativeTranslation(settings.translationModel, settings.sourceLanguage, settings.targetLanguage),
-    ttsModelId: settings.ttsModel || pickNativeTts(settings.targetLanguage) || undefined,
+    ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
     wrapTranscript: true,
   };
 }
