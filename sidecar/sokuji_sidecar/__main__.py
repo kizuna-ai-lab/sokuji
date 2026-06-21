@@ -3,15 +3,15 @@ from .server import serve
 
 
 async def _run():
-    from .pocket_engine import PocketEngine, register as register_pocket
+    from .tts_engine import TtsEngine, register as register_tts
     from .translate_engine import TranslateEngine, register as register_translate
     from .asr_engine import AsrEngine, register as register_asr
     state = {
-        "engine": PocketEngine(),
+        "engine": TtsEngine(),
         "translate_engine": TranslateEngine(),
         "asr_engine": AsrEngine(),
     }
-    register_pocket(state)
+    register_tts(state)
     register_translate(state)
     register_asr(state)
     port, server = await serve(state)
