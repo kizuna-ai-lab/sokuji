@@ -41,6 +41,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       await client.download(model, (p) =>
         set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })));
       set((s) => ({ statuses: { ...s.statuses, [model]: 'ready' } }));
+      // Re-run provider validation so the Start button flips to enabled once
+      // the required models are all present (no manual settings toggle needed).
+      try {
+        const { useSettingsStore } = await import('./settingsStore');
+        if (useSettingsStore.getState().provider === 'local_native') {
+          await useSettingsStore.getState().validateApiKey();
+        }
+      } catch { /* validation re-check is best-effort */ }
     } catch {
       set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     }

@@ -7,13 +7,14 @@
 export interface NativeModelOption {
   id: string;
   label: string;
+  languages?: string[];
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
-  { id: 'sense-voice', label: 'SenseVoice (zh/en/ja/ko/yue)' },
-  { id: 'whisper-tiny', label: 'Whisper tiny (multilingual)' },
-  { id: 'whisper-base', label: 'Whisper base (multilingual)' },
-  { id: 'whisper-small', label: 'Whisper small (multilingual)' },
+  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'] },
+  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'] },
+  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'] },
+  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'] },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
@@ -112,4 +113,37 @@ export function requiredNativeModels(
   const tts = resolveNativeTts(ttsChoice, tgt);
   if (tts) ids.push(tts);
   return ids;
+}
+
+/**
+ * A selectable + downloadable model card for the native settings UI.
+ * `selectId` is written to localNative.{asr,translation,tts}Model; `downloadId`
+ * is the id the sidecar downloads/reports status for (null = nothing to download,
+ * e.g. the TTS "Off" option). The two differ for choices like Opus-MT (selectId
+ * 'opus-mt' → downloadId is the pair-specific repo).
+ */
+export interface NativeModelCardSpec {
+  selectId: string;
+  downloadId: string | null;
+  name: string;
+  languages?: string[];
+  note?: string;
+}
+
+export function nativeAsrCards(): NativeModelCardSpec[] {
+  return NATIVE_ASR.map((m) => ({ selectId: m.id, downloadId: m.id, name: m.label, languages: m.languages }));
+}
+
+export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
+  return [
+    { selectId: '', downloadId: 'qwen', name: 'Qwen LLM', languages: ['multi'] },
+    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt] },
+  ];
+}
+
+export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
+  const voices: NativeModelCardSpec[] = nativeTtsVoices(tgt).map((v) => ({
+    selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
+  }));
+  return [...voices, { selectId: 'off', downloadId: null, name: 'Off', note: 'text only' }];
 }

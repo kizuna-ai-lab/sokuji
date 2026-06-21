@@ -19,7 +19,6 @@ import {
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
-  useLocalNativeSettings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -34,7 +33,6 @@ import {
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
-  useUpdateLocalNative,
   useGetCurrentProviderSettings,
   TransportType,
   useLocalSystemPrompt,
@@ -58,7 +56,6 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
-import { NATIVE_ASR, NATIVE_TRANSLATION, nativeTtsVoices } from '../../../lib/local-inference/native/nativeCatalog';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
@@ -113,7 +110,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
-  const localNativeSettings = useLocalNativeSettings();
   const modelStatuses = useModelStatuses();
 
   // Actions from store
@@ -131,7 +127,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
-  const updateLocalNativeSettings = useUpdateLocalNative();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localSystemPrompt = useLocalSystemPrompt();
   const localParticipantSystemPrompt = useLocalParticipantSystemPrompt();
@@ -1931,53 +1926,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     if (provider !== Provider.LOCAL_NATIVE) {
       return null;
     }
-    const speechLang = localNativeSettings.targetLanguage;
-    const ttsVoices = nativeTtsVoices(speechLang);
-    return (
-      <div className="settings-section">
-        <h2>{t('providers.local_native.name', 'Local (Native, Electron)')}</h2>
-        <div className="setting-item">
-          <div className="setting-label">{t('providers.local_native.asr', 'Speech recognition')}</div>
-          <select
-            className="select-dropdown"
-            value={localNativeSettings.asrModel}
-            onChange={(e) => updateLocalNativeSettings({ asrModel: e.target.value })}
-            disabled={isSessionActive}
-          >
-            {NATIVE_ASR.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
-          </select>
-        </div>
-        <div className="setting-item">
-          <div className="setting-label">{t('providers.local_native.translation', 'Translation')}</div>
-          <select
-            className="select-dropdown"
-            value={localNativeSettings.translationModel}
-            onChange={(e) => updateLocalNativeSettings({ translationModel: e.target.value })}
-            disabled={isSessionActive}
-          >
-            {NATIVE_TRANSLATION.map((m) => (<option key={m.id || 'auto'} value={m.id}>{m.label}</option>))}
-          </select>
-        </div>
-        <div className="setting-item">
-          <div className="setting-label">{t('providers.local_native.speechOutput', 'Speech output')}</div>
-          <select
-            className="select-dropdown"
-            value={localNativeSettings.ttsModel}
-            onChange={(e) => updateLocalNativeSettings({ ttsModel: e.target.value })}
-            disabled={isSessionActive}
-          >
-            <option value="">
-              {ttsVoices.length
-                ? t('providers.local_native.ttsAuto', 'Auto (default voice)')
-                : t('providers.local_native.ttsNone', 'Auto — text only (no voice for {{lang}})', { lang: speechLang })}
-            </option>
-            {ttsVoices.map((v) => (<option key={v.id} value={v.id}>{v.label}</option>))}
-            <option value="off">{t('providers.local_native.ttsOffOpt', 'Off (text only)')}</option>
-          </select>
-        </div>
-        <NativeModelManagementSection />
-      </div>
-    );
+    // Selection + download live in the model-management section (collapsible
+    // per-stage cards), mirroring how renderLocalInferenceSettings leads with
+    // <ModelManagementSection>.
+    return <NativeModelManagementSection isSessionActive={isSessionActive} />;
   };
 
   const renderLocalInferenceSettings = () => {
