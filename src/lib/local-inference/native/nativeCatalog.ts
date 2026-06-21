@@ -99,3 +99,17 @@ export function resolveNativeTranslation(choice: string, src: string, tgt: strin
   if (choice === 'opus-mt') return `Xenova/opus-mt-${src}-${tgt}`;
   return choice || undefined;
 }
+
+/**
+ * The native model ids a given config requires (for download/readiness). Always
+ * an ASR model + a translation model (Qwen LLM default), plus a TTS model when
+ * speech output is on. '' translation resolves to the 'qwen' download id.
+ */
+export function requiredNativeModels(
+  asrModel: string, translationChoice: string, ttsChoice: string, src: string, tgt: string
+): string[] {
+  const ids = [asrModel, resolveNativeTranslation(translationChoice, src, tgt) || 'qwen'];
+  const tts = resolveNativeTts(ttsChoice, tgt);
+  if (tts) ids.push(tts);
+  return ids;
+}
