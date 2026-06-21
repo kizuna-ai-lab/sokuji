@@ -5,6 +5,13 @@ from . import pocket_bundle as pb
 _DT = {"float32": np.float32, "int64": np.int64, "bool": np.bool_}
 
 
+def _meta(meta, key, default):
+    """dict.get that also falls back when the key is present but null —
+    matches the TS source's `meta.x ?? default` (not Python's missing-key-only get)."""
+    v = meta.get(key)
+    return default if v is None else v
+
+
 def load_sessions(model_dir: str, threads: int = 2) -> dict:
     opts = ort.SessionOptions()
     opts.intra_op_num_threads = threads
@@ -66,7 +73,7 @@ def encode_reference(sessions, samples24k: np.ndarray) -> np.ndarray:
 
 
 def build_voice_conditioned_state(sessions, meta, voice_emb, bos) -> dict:
-    latent_dim = meta.get("latent_dim", pb.LATENT_DIM)
+    latent_dim = _meta(meta, "latent_dim", pb.LATENT_DIM)
     flow_state = init_state_from_manifest(meta["flow_lm_state_manifest"])
     empty_seq = np.zeros((1, 0, latent_dim), dtype=np.float32)
     voice_text_emb = voice_emb
@@ -86,10 +93,10 @@ def build_voice_conditioned_state(sessions, meta, voice_emb, bos) -> dict:
 def generate(sessions, meta, text_embeddings, flow_state_in, *, lsd_steps=1,
              max_frames=500, rng=None) -> np.ndarray:
     rng = rng or np.random.default_rng()
-    latent_dim = meta.get("latent_dim", pb.LATENT_DIM)
-    cond_dim = meta.get("conditioning_dim",
-                        text_embeddings.shape[2] if text_embeddings.ndim == 3 else 1024)
-    frames_after_eos = meta.get("model_recommended_frames_after_eos", 1)
+    latent_dim = _meta(meta, "latent_dim", pb.LATENT_DIM)
+    cond_dim = _meta(meta, "conditioning_dim",
+                     text_embeddings.shape[2] if text_embeddings.ndim == 3 else 1024)
+    frames_after_eos = _meta(meta, "model_recommended_frames_after_eos", 1)
     std = float(np.sqrt(0.7))
     dt = 1.0 / lsd_steps
     st = [(np.array([[s / lsd_steps]], np.float32), np.array([[s / lsd_steps + dt]], np.float32))
