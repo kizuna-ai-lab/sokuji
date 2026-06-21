@@ -26,15 +26,14 @@ def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
     return (a + (b - a) * frac).astype(np.float32)
 
 
-def _resolve_vad_model(model_dir):
+def _resolve_vad_model(model_dir=None):
     """Order: explicit SOKUJI_VAD_FILE → silero_vad.onnx shipped in the model dir →
     download the canonical file from the k2-fsa release into the HF cache."""
     explicit = os.environ.get("SOKUJI_VAD_FILE")
     if explicit and os.path.exists(explicit):
         return explicit
-    bundled = f"{model_dir}/silero_vad.onnx"
-    if os.path.exists(bundled):
-        return bundled
+    if model_dir and os.path.exists(f"{model_dir}/silero_vad.onnx"):
+        return f"{model_dir}/silero_vad.onnx"
     import urllib.request
     cache = os.path.join(
         os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
@@ -45,8 +44,38 @@ def _resolve_vad_model(model_dir):
     return dst
 
 
+def _build_sherpa(model_id):
+    """sense-voice offline recognizer → returns recognize(samples16k_float32) -> str."""
+    import sherpa_onnx
+    from huggingface_hub import snapshot_download
+    repo = model_id or os.environ.get(
+        "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    d = snapshot_download(repo_id=repo)
+    rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+        model=f"{d}/model.int8.onnx", tokens=f"{d}/tokens.txt", use_itn=True)
+
+    def recognize(samples16k):
+        s = rec.create_stream()
+        s.accept_waveform(TARGET_RATE, samples16k)
+        rec.decode_stream(s)
+        return s.result.text.strip()
+    return recognize
+
+
+def _build_faster_whisper(model_id, language):
+    """faster-whisper (CTranslate2) recognizer. model id like whisper-tiny / whisper-large-v3."""
+    from faster_whisper import WhisperModel
+    size = model_id.replace("faster-whisper-", "").replace("whisper-", "") or "tiny"
+    wm = WhisperModel(size, device="cpu", compute_type="int8")
+
+    def recognize(samples16k):
+        segments, _info = wm.transcribe(samples16k, language=language, beam_size=1, vad_filter=False)
+        return "".join(s.text for s in segments).strip()
+    return recognize
+
+
 class AsrEngine:
-    """sherpa-onnx VAD + offline recognition. Feed Int16@24k bytes, get text per VAD segment.
+    """silero VAD segmentation + a pluggable recognizer. Feed Int16 bytes, get text per VAD segment.
 
     The silero VAD must be fed in fixed window_size (512-sample @16k) chunks, so feed()
     buffers the downsampled audio and only consumes whole windows; the remainder carries
@@ -63,30 +92,29 @@ class AsrEngine:
     def init(self, model_id=None, language="", sample_rate=SRC_RATE):
         self._src_rate = int(sample_rate)  # actual renderer rate (AudioContext may be 48k, not 24k)
         import sherpa_onnx  # lazy: native lib pulled here
-        from huggingface_hub import snapshot_download
         t0 = time.time()
-        repo = model_id or os.environ.get(
-            "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-        d = snapshot_download(repo_id=repo)
+        # silero VAD — shared segmentation for both recognizer backends
         vad_cfg = sherpa_onnx.VadModelConfig()
-        vad_cfg.silero_vad.model = _resolve_vad_model(d)
+        vad_cfg.silero_vad.model = _resolve_vad_model()
         vad_cfg.sample_rate = TARGET_RATE
         self._window = vad_cfg.silero_vad.window_size
         self._buf = np.zeros(0, np.float32)
         self._vad = sherpa_onnx.VoiceActivityDetector(vad_cfg, buffer_size_in_seconds=30)
-        self._rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-            model=f"{d}/model.int8.onnx", tokens=f"{d}/tokens.txt", use_itn=True)
+        # recognizer is pluggable: model id containing "whisper" → faster-whisper, else sense-voice
+        lang = language or None
+        if model_id and "whisper" in model_id:
+            self._recognize = _build_faster_whisper(model_id, lang)
+        else:
+            self._recognize = _build_sherpa(model_id)
         return int((time.time() - t0) * 1000)
 
     def _drain(self):
         out = []
         while not self._vad.empty():
             seg = self._vad.front
-            stream = self._rec.create_stream()
-            stream.accept_waveform(TARGET_RATE, seg.samples)
+            samples = np.asarray(seg.samples, dtype=np.float32)
             t0 = time.time()
-            self._rec.decode_stream(stream)
-            text = stream.result.text.strip()
+            text = self._recognize(samples)
             self._vad.pop()
             if text:
                 out.append({"type": "result", "text": text,

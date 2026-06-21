@@ -89,3 +89,24 @@ def test_real_engine_transcribes_test_wav():
             results.append(m["text"])
     text = " ".join(results).lower()
     assert "gold" in text or "tribal" in text, f"unexpected transcript: {results!r}"
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),
+                    reason="set SOKUJI_RUN_FW_MODEL=1 (downloads faster-whisper model)")
+def test_real_faster_whisper_transcribes():
+    from huggingface_hub import snapshot_download
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    w = wave.open(f"{d}/test_wavs/en.wav", "rb")
+    pcm16k = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+    ratio = 24000 / 16000
+    n = round(len(pcm16k) * ratio)
+    i0 = np.clip(np.floor(np.arange(n) / ratio).astype(np.int64), 0, len(pcm16k) - 1)
+    pcm24k = pcm16k[i0].astype(np.int16)
+    eng = asr_engine.AsrEngine()
+    eng.init(model_id="whisper-tiny", language="en")
+    results = []
+    for i in range(0, len(pcm24k), 4096):
+        results += [m["text"] for m in eng.feed(pcm24k[i:i + 4096].tobytes()) if m["type"] == "result"]
+    results += [m["text"] for m in eng.flush() if m["type"] == "result"]
+    text = " ".join(results).lower()
+    assert "gold" in text or "tribal" in text, f"unexpected transcript: {results!r}"
