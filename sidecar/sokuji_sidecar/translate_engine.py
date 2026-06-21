@@ -33,13 +33,13 @@ class TranslateEngine:
         return translated, int((time.time() - t0) * 1000)
 
 
-async def _h_translate_init(state, msg, _b):
+async def _h_translate_init(state, msg, _b, conn=None):
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""))
     return {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}, None
 
 
-async def _h_translate(state, msg, _b):
+async def _h_translate(state, msg, _b, conn=None):
     text = msg.get("text", "")
     translated, ms = state["translate_engine"].translate(
         text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)))

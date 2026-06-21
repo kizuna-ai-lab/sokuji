@@ -41,19 +41,19 @@ class PocketEngine:
         return out, int((time.time() - t0) * 1000)
 
 
-async def _h_init(state, msg, _b):
+async def _h_init(state, msg, _b, conn=None):
     ms = state["engine"].init(msg.get("modelDir"))
     return {"type": "ready", "id": msg.get("id"),
             "sampleRate": state["engine"].sample_rate, "loadTimeMs": ms}, None
 
 
-async def _h_set_voice(state, msg, binary_in):
+async def _h_set_voice(state, msg, binary_in, conn=None):
     audio = np.frombuffer(binary_in, dtype=np.float32)
     state["engine"].set_voice(audio, int(msg.get("sampleRate", pb.SAMPLE_RATE)))
     return {"type": "ok", "id": msg.get("id")}, None
 
 
-async def _h_generate(state, msg, _b):
+async def _h_generate(state, msg, _b, conn=None):
     samples, gen_ms = state["engine"].generate(msg.get("text", ""), float(msg.get("speed", 1.0)))
     pcm = np.ascontiguousarray(samples, dtype=np.float32).tobytes()
     reply = {"type": "result", "id": msg.get("id"), "sampleRate": state["engine"].sample_rate,
