@@ -1,12 +1,27 @@
 import React, { useRef, useState } from 'react';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
+import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
 
 export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const client = useRef<NativeTtsClient | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [text, setText] = useState('Hello from the native python sidecar.');
   const [ref, setRef] = useState<Float32Array | null>(null);
+  const tclient = useRef<NativeTranslateClient | null>(null);
+  const [srcText, setSrcText] = useState('Hola, ¿cómo estás?');
   const push = (m: string) => setLog((l) => [...l, m]);
+
+  const onTranslate = async () => {
+    if (!tclient.current) {
+      tclient.current = new NativeTranslateClient();
+      tclient.current.onStatus = push;
+      tclient.current.onError = (e) => push('ERROR: ' + e);
+      const r = await tclient.current.init('Spanish', 'English');
+      push(`translate ready loadMs=${r.loadTimeMs}`);
+    }
+    const res = await tclient.current.translate(srcText);
+    push(`translated: "${res.translatedText}" (${res.inferenceTimeMs}ms)`);
+  };
 
   const ensure = async () => {
     if (!client.current) {
@@ -51,6 +66,10 @@ export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) =
       <input type="file" accept="audio/*" onChange={(e) => e.target.files && onRef(e.target.files[0])} />
       <textarea value={text} onChange={(e) => setText(e.target.value)} style={{ width: '100%', height: 60, marginTop: 8 }} />
       <button onClick={onGen} style={{ marginTop: 8 }}>generate + play</button>
+      <hr style={{ margin: '16px 0', borderColor: '#444' }} />
+      <h4>Translate</h4>
+      <textarea value={srcText} onChange={(e) => setSrcText(e.target.value)} style={{ width: '100%', height: 40 }} />
+      <button onClick={onTranslate} style={{ marginTop: 8 }}>translate</button>
       <pre style={{ marginTop: 12, fontSize: 12 }}>{log.join('\n')}</pre>
     </div>
   );
