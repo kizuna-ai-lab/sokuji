@@ -38,6 +38,29 @@ def download_specs(model_id):
     return {"repos": [model_id], "urls": []}
 
 
+_SILERO_VAD_BYTES = 643854  # silero_vad.onnx (k2-fsa release)
+_SIZE_CACHE = {}
+
+
+def model_size(model_id):
+    """Total download size (bytes) of a model's repos + urls. Cached per process."""
+    if model_id in _SIZE_CACHE:
+        return _SIZE_CACHE[model_id]
+    from huggingface_hub import HfApi
+    specs = download_specs(model_id)
+    total = 0
+    api = HfApi()
+    for repo in specs["repos"]:
+        try:
+            info = api.repo_info(repo, files_metadata=True)
+            total += sum((s.size or 0) for s in (info.siblings or []))
+        except Exception:
+            pass
+    total += len(specs["urls"]) * _SILERO_VAD_BYTES
+    _SIZE_CACHE[model_id] = total
+    return total
+
+
 def model_status(model_id):
     """'ready' if every repo + url for this model is cached locally, else 'absent'."""
     from huggingface_hub import snapshot_download
@@ -90,6 +113,11 @@ async def _h_model_status(state, msg, _b, conn=None):
     return {"type": "model_status_result", "id": msg.get("id"), "statuses": statuses}, None
 
 
+async def _h_model_sizes(state, msg, _b, conn=None):
+    sizes = {m: model_size(m) for m in (msg.get("models") or [])}
+    return {"type": "model_sizes_result", "id": msg.get("id"), "sizes": sizes}, None
+
+
 async def _h_model_download(state, msg, _b, conn=None):
     model = msg.get("model")
     if conn is not None:
@@ -99,4 +127,5 @@ async def _h_model_download(state, msg, _b, conn=None):
 
 def register(state: dict):
     state.setdefault("handlers", {}).update(
-        {"model_status": _h_model_status, "model_download": _h_model_download})
+        {"model_status": _h_model_status, "model_sizes": _h_model_sizes,
+         "model_download": _h_model_download})
