@@ -19,6 +19,8 @@ import {
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
+  useUpdateLocalNative,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -57,6 +59,8 @@ import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
+import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';
+import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -110,6 +114,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
+  const localNativeSettings = useLocalNativeSettings();
+  const updateLocalNativeSettings = useUpdateLocalNative();
   const modelStatuses = useModelStatuses();
 
   // Actions from store
@@ -1926,10 +1932,57 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     if (provider !== Provider.LOCAL_NATIVE) {
       return null;
     }
-    // Selection + download live in the model-management section (collapsible
-    // per-stage cards), mirroring how renderLocalInferenceSettings leads with
-    // <ModelManagementSection>.
-    return <NativeModelManagementSection isSessionActive={isSessionActive} />;
+    // Speech output is active when a voice is selectable for the target language
+    // and the user hasn't turned it Off — only then is the speed slider meaningful.
+    const ttsActive = localNativeSettings.ttsModel !== 'off' && hasNativeTts(localNativeSettings.targetLanguage);
+    // Custom prompts only reach the Qwen LLM path; Opus-MT ('opus-mt') ignores them.
+    const promptSupported = localNativeSettings.translationModel === '';
+
+    return (
+      <>
+        {/* Selection + download (collapsible per-stage cards) lead, like LOCAL_INFERENCE. */}
+        <NativeModelManagementSection isSessionActive={isSessionActive} />
+
+        {ttsActive && (
+          <TtsSpeedControl
+            value={localNativeSettings.ttsSpeed}
+            onChange={(ttsSpeed) => updateLocalNativeSettings({ ttsSpeed })}
+            disabled={isSessionActive}
+          />
+        )}
+
+        <SpeechModeControl
+          value={localNativeSettings.turnDetectionMode}
+          onChange={(turnDetectionMode: SpeechMode) => {
+            const fromMode = localNativeSettings.turnDetectionMode;
+            trackEvent('speech_mode_changed', { provider, from_mode: fromMode, to_mode: turnDetectionMode });
+            updateLocalNativeSettings({ turnDetectionMode });
+          }}
+          disabled={isSessionActive}
+        />
+
+        <TranslationPromptControl
+          useTemplateMode={localNativeSettings.useTemplateMode}
+          systemPrompt={localNativeSettings.systemPrompt}
+          preview={getProcessedLocalPrompt(false)}
+          supported={promptSupported}
+          disabled={isSessionActive}
+          onChange={(patch) => updateLocalNativeSettings(patch)}
+        />
+
+        {localNativeSettings.turnDetectionMode === 'Auto' && (
+          <VadControl
+            values={{
+              vadThreshold: localNativeSettings.vadThreshold,
+              vadMinSilenceDuration: localNativeSettings.vadMinSilenceDuration,
+              vadMinSpeechDuration: localNativeSettings.vadMinSpeechDuration,
+            }}
+            onChange={(patch) => updateLocalNativeSettings(patch)}
+            disabled={isSessionActive}
+          />
+        )}
+      </>
+    );
   };
 
   const renderLocalInferenceSettings = () => {

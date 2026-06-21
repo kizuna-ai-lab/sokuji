@@ -29,6 +29,7 @@ export class LocalNativeClient implements IClient {
   private idCounter = 0;
   private cfg: any = null;
   private ttsEnabled = false;
+  private ttsSpeed = 1.0;
   private queue: Promise<void> = Promise.resolve();
 
   constructor(deps: Deps = {}) {
@@ -47,8 +48,13 @@ export class LocalNativeClient implements IClient {
       asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
+    this.ttsSpeed = config.ttsSpeed ?? 1.0;
     await this.translate.init(config.sourceLanguage, config.targetLanguage, config.translationModelId);
-    await this.asr.init(config.sourceLanguage, config.asrModelId, 24000);
+    await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
+      threshold: config.vadThreshold,
+      minSilence: config.vadMinSilenceDuration,
+      minSpeech: config.vadMinSpeechDuration,
+    });
     // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
     // (Pocket) need a reference clip and stay off until a reference-voice UX.
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly
@@ -101,7 +107,7 @@ export class LocalNativeClient implements IClient {
     this.emit(item);
     if (this.ttsEnabled) {
       this.emitEvent('local.native.tts.start', 'client', {});
-      const res = await this.tts.generate(tr.translatedText);
+      const res = await this.tts.generate(tr.translatedText, this.ttsSpeed);
       const int16 = float32ToInt16(resampleFloat32(res.samples, res.sampleRate, 24000));
       this.emitEvent('local.native.tts.end', 'server', { generationTimeMs: res.generationTimeMs, samples: int16.length });
       this.emit(item, { audio: int16 });

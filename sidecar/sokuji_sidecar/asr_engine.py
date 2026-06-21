@@ -89,13 +89,22 @@ class AsrEngine:
         self._buf = np.zeros(0, np.float32)
         self._src_rate = SRC_RATE
 
-    def init(self, model_id=None, language="", sample_rate=SRC_RATE):
+    def init(self, model_id=None, language="", sample_rate=SRC_RATE,
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None):
         self._src_rate = int(sample_rate)  # actual renderer rate (AudioContext may be 48k, not 24k)
         import sherpa_onnx  # lazy: native lib pulled here
         t0 = time.time()
-        # silero VAD — shared segmentation for both recognizer backends
+        # silero VAD — shared segmentation for both recognizer backends. Tunable
+        # threshold / min-silence / min-speech mirror the LOCAL_INFERENCE VAD knobs;
+        # unset values keep sherpa-onnx defaults.
         vad_cfg = sherpa_onnx.VadModelConfig()
         vad_cfg.silero_vad.model = _resolve_vad_model()
+        if vad_threshold is not None:
+            vad_cfg.silero_vad.threshold = float(vad_threshold)
+        if vad_min_silence is not None:
+            vad_cfg.silero_vad.min_silence_duration = float(vad_min_silence)
+        if vad_min_speech is not None:
+            vad_cfg.silero_vad.min_speech_duration = float(vad_min_speech)
         vad_cfg.sample_rate = TARGET_RATE
         self._window = vad_cfg.silero_vad.window_size
         self._buf = np.zeros(0, np.float32)
@@ -143,7 +152,8 @@ class AsrEngine:
 
 async def _h_asr_init(state, msg, _b, conn=None):
     eng = state["asr_engine"]
-    ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE))
+    ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE),
+                  msg.get("vadThreshold"), msg.get("vadMinSilenceDuration"), msg.get("vadMinSpeechDuration"))
     if conn is not None:
         conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
     return {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}, None

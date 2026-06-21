@@ -186,6 +186,15 @@ export interface LocalNativeSettings {
   ttsModel: string;          // '' (off) — native TTS reserved for later
   sourceLanguage: string;
   targetLanguage: string;
+  // Parity with LocalInferenceSettings — same fields/defaults so the shared
+  // settings UI components work for both providers.
+  ttsSpeed: number;                    // 0.5-2.0 piper speed (sherpa OfflineTts)
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  vadThreshold: number;                // 0.0-1.0 silero speech threshold
+  vadMinSilenceDuration: number;       // seconds — silero min_silence_duration
+  vadMinSpeechDuration: number;        // seconds — silero min_speech_duration
+  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
+  systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
 }
 
 // Cache Entry
@@ -373,6 +382,13 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   ttsModel: '',          // off (native TTS reserved for later)
   sourceLanguage: 'ja',
   targetLanguage: 'en',
+  ttsSpeed: 1.0,
+  turnDetectionMode: 'Auto',
+  vadThreshold: 0.3,
+  vadMinSilenceDuration: 1.4,
+  vadMinSpeechDuration: 0.4,
+  useTemplateMode: true,
+  systemPrompt: '',
 };
 
 // ==================== Store Definition ====================
@@ -688,18 +704,31 @@ function createLocalInferenceSessionConfig(
  * so instructions are advisory.
  */
 function createLocalNativeSessionConfig(
-  settings: LocalNativeSettings
+  settings: LocalNativeSettings,
+  systemInstructions: string
 ): LocalNativeSessionConfig {
+  // wrapTranscript must match the prompt actually in use — same logic as
+  // createLocalInferenceSessionConfig (default prompt references <transcript>).
+  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
+  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+
   return {
     provider: 'local_native',
     model: 'native-asr-translate',
-    instructions: buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage),
+    instructions: systemInstructions,
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
     translationModelId: resolveNativeTranslation(settings.translationModel, settings.sourceLanguage, settings.targetLanguage),
     ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
-    wrapTranscript: true,
+    ttsSpeed: settings.ttsSpeed,
+    vadThreshold: settings.vadThreshold,
+    vadMinSilenceDuration: settings.vadMinSilenceDuration,
+    vadMinSpeechDuration: settings.vadMinSpeechDuration,
+    turnDetectionMode: settings.turnDetectionMode,
+    wrapTranscript,
   };
 }
 
@@ -1731,7 +1760,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     getProcessedLocalPrompt: (forParticipant = false) => {
-      const s = get().localInference;
+      // Both local providers share this path; read the active slice. LOCAL_NATIVE
+      // has no participant prompt, so its participant case falls back to speaker.
+      const st = get();
+      const s = st.provider === Provider.LOCAL_NATIVE ? st.localNative : st.localInference;
       const [srcLang, tgtLang] = forParticipant
         ? [s.targetLanguage, s.sourceLanguage]
         : [s.sourceLanguage, s.targetLanguage];
@@ -1743,7 +1775,7 @@ const useSettingsStore = create<SettingsStore>()(
       const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
       if (!forParticipant) return speakerResolved;
       // Participant falls back to resolved speaker if empty
-      const participant = s.participantSystemPrompt.trim();
+      const participant = 'participantSystemPrompt' in s ? s.participantSystemPrompt.trim() : '';
       return participant || speakerResolved;
     },
 
@@ -1782,7 +1814,7 @@ const useSettingsStore = create<SettingsStore>()(
           config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
           break;
         case Provider.LOCAL_NATIVE:
-          config = createLocalNativeSessionConfig(state.localNative);
+          config = createLocalNativeSessionConfig(state.localNative, systemInstructions);
           break;
         default:
           config = createOpenAISessionConfig(state.openai, systemInstructions);
@@ -1921,6 +1953,7 @@ export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state
     // KIZUNA_AI_OPENAI_TRANSLATE has no turn detection (translate), like
     // OPENAI_TRANSLATE — both fall through to the default 'Auto'.
     case Provider.LOCAL_INFERENCE: return state.localInference.turnDetectionMode;
+    case Provider.LOCAL_NATIVE: return state.localNative.turnDetectionMode;
     default: return 'Auto';
   }
 });

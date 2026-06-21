@@ -199,6 +199,11 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   asrModelId: string;
   translationModelId?: string;
   ttsModelId?: string;
+  ttsSpeed?: number;
+  vadThreshold?: number;
+  vadMinSilenceDuration?: number;
+  vadMinSpeechDuration?: number;
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   wrapTranscript?: boolean;
 }
 

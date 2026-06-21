@@ -13,8 +13,10 @@ class _FakeWS:
 
 
 class FakeAsr:
-    def init(self, model_id=None, language="", sample_rate=24000):
+    def init(self, model_id=None, language="", sample_rate=24000,
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None):
         self.sample_rate = sample_rate
+        self.vad = (vad_threshold, vad_min_silence, vad_min_speech)
         return 33
 
     def feed(self, int16_bytes):
@@ -43,6 +45,15 @@ def test_asr_init_sets_binary_router_and_replies_ready():
         st, json.dumps({"type": "asr_init", "id": 1, "language": "en"}), None, conn))
     assert reply == {"type": "ready", "id": 1, "loadTimeMs": 33}
     assert callable(conn.ctx.get("on_binary"))
+
+
+def test_asr_init_forwards_vad_params():
+    st, conn = make()
+    asyncio.run(server.handle_message(st, json.dumps({
+        "type": "asr_init", "id": 1, "model": "sense-voice",
+        "vadThreshold": 0.3, "vadMinSilenceDuration": 1.4, "vadMinSpeechDuration": 0.4,
+    }), None, conn))
+    assert st["asr_engine"].vad == (0.3, 1.4, 0.4)
 
 
 def test_binary_router_emits_results():
