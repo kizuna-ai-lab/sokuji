@@ -15,7 +15,11 @@ POCKET_SUB = "onnx/english_2026-04"
 TRANSLATE = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 ASR_REPO = os.environ.get(
     "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-VAD_REPO = os.environ.get("SOKUJI_VAD_REPO", "csukuangfj/sherpa-onnx-vad")
+# silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical
+# file lives in the k2-fsa release (same source family as scripts/download-sherpa-wasm.sh).
+VAD_URL = os.environ.get(
+    "SOKUJI_VAD_URL",
+    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx")
 
 
 def fetch(name, **kw):
@@ -41,8 +45,18 @@ def main():
     print(f"\nASR sense-voice ({ASR_REPO}):")
     fetch("asr", repo_id=ASR_REPO)
 
-    print(f"\nASR VAD ({VAD_REPO}):")
-    fetch("vad", repo_id=VAD_REPO)
+    print(f"\nASR VAD ({VAD_URL}):")
+    try:
+        import urllib.request
+        cache = os.path.join(
+            os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
+        os.makedirs(cache, exist_ok=True)
+        dst = os.path.join(cache, "silero_vad.onnx")
+        if not os.path.exists(dst):
+            urllib.request.urlretrieve(VAD_URL, dst)
+        print(f"  OK  vad: {dst}")
+    except Exception as e:
+        print(f"  FAIL vad: {type(e).__name__}: {e}", file=sys.stderr)
 
     if pocket_root:
         print("\nFor the model-gated Pocket pytest (sidecar/tests):")

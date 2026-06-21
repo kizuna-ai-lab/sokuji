@@ -1,5 +1,6 @@
-import asyncio, json
+import asyncio, json, os, wave
 import numpy as np
+import pytest
 from sokuji_sidecar import server, asr_engine
 
 
@@ -59,3 +60,31 @@ def test_asr_flush_drains():
         st, json.dumps({"type": "asr_flush", "id": 2}), None, conn))
     assert reply == {"type": "ok", "id": 2}
     assert any('"tail"' in s for s in conn._ws.sent)
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_ASR_MODEL"),
+                    reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads sherpa-onnx model + VAD)")
+def test_real_engine_transcribes_test_wav():
+    from huggingface_hub import snapshot_download
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    w = wave.open(f"{d}/test_wavs/en.wav", "rb")
+    pcm16k = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+    # AsrEngine.feed expects Int16@24k; upsample the 16k test wav to 24k.
+    ratio = 24000 / 16000
+    n = round(len(pcm16k) * ratio)
+    pos = np.arange(n) / ratio
+    i0 = np.clip(np.floor(pos).astype(np.int64), 0, len(pcm16k) - 1)
+    pcm24k = pcm16k[i0].astype(np.int16)
+
+    eng = asr_engine.AsrEngine()
+    eng.init()
+    results = []
+    for i in range(0, len(pcm24k), 4096):
+        for m in eng.feed(pcm24k[i:i + 4096].tobytes()):
+            if m["type"] == "result":
+                results.append(m["text"])
+    for m in eng.flush():
+        if m["type"] == "result":
+            results.append(m["text"])
+    text = " ".join(results).lower()
+    assert "gold" in text or "tribal" in text, f"unexpected transcript: {results!r}"
