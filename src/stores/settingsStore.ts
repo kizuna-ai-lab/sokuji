@@ -13,10 +13,12 @@ import {
   VolcengineSTSessionConfig,
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig,
+  LocalNativeSessionConfig,
   TranslateTargetLanguage
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
+import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
@@ -171,6 +173,18 @@ export interface LocalInferenceSettings {
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode speaker prompt (default '')
   participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
+}
+
+/**
+ * Native (Electron sidecar) provider settings. MVP = ASR + translation (text);
+ * native TTS is Pocket/cloning so TTS/prompt/VAD fields are intentionally omitted.
+ */
+export interface LocalNativeSettings {
+  asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
+  translationModel: string;  // '' (auto) | 'opus-mt-zh-en' | LLM id
+  ttsModel: string;          // '' (off) — native TTS reserved for later
+  sourceLanguage: string;
+  targetLanguage: string;
 }
 
 // Cache Entry
@@ -352,6 +366,14 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   participantSystemPrompt: '',
 };
 
+const defaultLocalNativeSettings: LocalNativeSettings = {
+  asrModel: 'sense-voice',
+  translationModel: '',  // auto: opus-mt for the language pair
+  ttsModel: '',          // off (native TTS reserved for later)
+  sourceLanguage: 'ja',
+  targetLanguage: 'en',
+};
+
 // ==================== Store Definition ====================
 
 interface SettingsStore {
@@ -376,6 +398,7 @@ interface SettingsStore {
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
+  localNative: LocalNativeSettings;
 
   // Validation state
   isApiKeyValid: boolean | null;
@@ -458,6 +481,7 @@ interface SettingsStore {
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
+  updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -467,7 +491,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
@@ -656,6 +680,26 @@ function createLocalInferenceSessionConfig(
   };
 }
 
+/**
+ * Build the native (Electron sidecar) session config. MVP = ASR + translation;
+ * the engine defaults the translate prompt, so instructions are advisory.
+ */
+function createLocalNativeSessionConfig(
+  settings: LocalNativeSettings
+): LocalNativeSessionConfig {
+  return {
+    provider: 'local_native',
+    model: 'native-asr-translate',
+    instructions: buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage),
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
+    asrModelId: settings.asrModel,
+    translationModelId: settings.translationModel || undefined,
+    ttsModelId: settings.ttsModel || undefined,
+    wrapTranscript: true,
+  };
+}
+
 /** Migrate a persisted legacy 'kizunaai' provider value to the relay twin.
  *  The realtime KizunaAI provider was replaced by two relay-managed providers;
  *  default existing users to the Translate twin. */
@@ -803,6 +847,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
+    localNative: defaultLocalNativeSettings,
 
     isApiKeyValid: null,
     isValidating: false,
@@ -1157,10 +1202,36 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateLocalNative: async (settings) => {
+      set((state) => ({localNative: {...state.localNative, ...settings}}));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.localNative.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Local Native settings:', error);
+      }
+    },
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
       const provider = state.provider;
+
+      // Native (Electron sidecar) inference: no API key. Readiness = running on
+      // Electron (the sidecar spawns on connect; failures surface via onError).
+      // Real download-on-demand + health checks land in Phase 3c.
+      if (provider === Provider.LOCAL_NATIVE) {
+        const ready = isElectron();
+        set({
+          isApiKeyValid: ready,
+          availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
+          validationMessage: ready ? '' : 'Native inference requires the desktop app',
+          isValidating: false,
+        });
+        return { valid: ready, message: ready ? '' : 'Native inference requires the desktop app', validating: false };
+      }
 
       // Local inference: check model readiness instead of API key.
       // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
@@ -1514,7 +1585,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, volcengineST, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, volcengineST, volcengineAST2, localInference, localNative, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -1522,6 +1593,7 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
+          loadProviderSettings('settings.localNative', defaultLocalNativeSettings),
           loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
           loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings),
           loadProviderSettings('settings.kizunaVolcengineAst2', defaultKizunaVolcengineAst2Settings),
@@ -1546,6 +1618,7 @@ const useSettingsStore = create<SettingsStore>()(
           volcengineST,
           volcengineAST2,
           localInference,
+          localNative,
           openaiTranslate,
           kizunaOpenaiTranslate,
           kizunaVolcengineAst2,
@@ -1590,6 +1663,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.kizunaVolcengineAst2;
         case Provider.LOCAL_INFERENCE:
           return state.localInference;
+        case Provider.LOCAL_NATIVE:
+          return state.localNative;
         default:
           return state.openai;
       }
@@ -1686,6 +1761,9 @@ const useSettingsStore = create<SettingsStore>()(
         case Provider.LOCAL_INFERENCE:
           config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
           break;
+        case Provider.LOCAL_NATIVE:
+          config = createLocalNativeSessionConfig(state.localNative);
+          break;
         default:
           config = createOpenAISessionConfig(state.openai, systemInstructions);
       }
@@ -1733,6 +1811,7 @@ export const useVolcengineAST2Settings = () => useSettingsStore((state) => state
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
+export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
 // Transport type selector (for OpenAI provider)
 export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
@@ -1782,6 +1861,7 @@ export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.u
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
+export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);
