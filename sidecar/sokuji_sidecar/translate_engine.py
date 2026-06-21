@@ -5,21 +5,29 @@ class TranslateEngine:
     def __init__(self):
         self._tok = None
         self._model = None
+        self._opus = None       # torch-free onnxruntime opus-mt path
         self._src = ""
         self._tgt = ""
 
     def init(self, model_id=None, source_lang="", target_lang=""):
         import os
-        from transformers import AutoModelForCausalLM, AutoTokenizer  # lazy: torch pulled here
         t0 = time.time()
+        self._src, self._tgt = source_lang, target_lang
+        if model_id and "opus-mt" in model_id:
+            from .opus_mt import OpusMtTranslator
+            onnx_repo = model_id if "/" in model_id else f"Xenova/{model_id}"
+            self._opus = OpusMtTranslator(onnx_repo)
+            return int((time.time() - t0) * 1000)
+        from transformers import AutoModelForCausalLM, AutoTokenizer  # lazy: torch pulled here
         mid = model_id or os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
         self._tok = AutoTokenizer.from_pretrained(mid)
         self._model = AutoModelForCausalLM.from_pretrained(mid, torch_dtype="auto")
-        self._src, self._tgt = source_lang, target_lang
         return int((time.time() - t0) * 1000)
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
         t0 = time.time()
+        if self._opus is not None:
+            return self._opus.translate(text), int((time.time() - t0) * 1000)
         sys_prompt = system_prompt or (
             f"Translate the following text from {self._src} to {self._tgt}. "
             "Output only the translation, no explanations.")

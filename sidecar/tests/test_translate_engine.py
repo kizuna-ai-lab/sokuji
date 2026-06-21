@@ -42,3 +42,13 @@ def test_real_llm_translates():
     eng.init(source_lang="Spanish", target_lang="English")
     out, ms = eng.translate("Hola, ¿cómo estás?")
     assert isinstance(out, str) and len(out) > 0 and ms >= 0
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_OPUS_MODEL"),
+                    reason="set SOKUJI_RUN_OPUS_MODEL=1 (downloads opus-mt ONNX + tokenizer)")
+def test_real_opus_mt_translates():
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="Xenova/opus-mt-zh-en", source_lang="Chinese", target_lang="English")
+    out, ms = eng.translate("你好，你今天好吗？")
+    assert isinstance(out, str) and out.strip() and ms >= 0
+    assert any(c.isascii() and c.isalpha() for c in out), f"expected English: {out!r}"

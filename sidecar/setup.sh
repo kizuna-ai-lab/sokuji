@@ -28,12 +28,13 @@ echo "[setup] venv python: $($PY --version 2>&1)"
 echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, huggingface_hub) + pytest"
 "$PY" -m pip install -q -r requirements.txt pytest
 
-echo "[setup] stage runtimes: torch (CPU), transformers, sherpa-onnx"
+echo "[setup] stage runtimes: torch (CPU), transformers, sherpa-onnx, faster-whisper"
 case "$(uname -s)" in
   Linux) "$PY" -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu ;;
   *)     "$PY" -m pip install -q torch ;;
 esac
-"$PY" -m pip install -q transformers sherpa-onnx
+# transformers→tokenizers; faster-whisper→ASR whisper backend; sacremoses→Marian (opus-mt) tokenizer
+"$PY" -m pip install -q transformers sherpa-onnx faster-whisper sacremoses
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
