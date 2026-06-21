@@ -100,6 +100,7 @@ export default defineConfig(({ command, mode }) => {
             'better-auth-adapter': 'electron/better-auth-adapter.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
+            'native-host-manager': 'electron/native-host-manager.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',

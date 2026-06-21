@@ -13,6 +13,8 @@ if (process.platform === 'win32') {
 }
 
 const { UpdateManager } = require('./update-manager');
+const { NativeHostManager } = require('./native-host-manager');
+const nativeHost = new NativeHostManager();
 
 // Config utility no longer needed - using localStorage in renderer process
 
@@ -420,6 +422,7 @@ app.whenReady().then(async () => {
 const cleanupAndExit = () => {
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
+  nativeHost.stop();
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
 
@@ -470,6 +473,8 @@ app.on('activate', function () {
 app.on('will-quit', cleanupAndExit);
 
 // IPC handler for app version
+nativeHost.registerIpc(ipcMain);
+
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 // ---- Window controls for the custom title bar ----
