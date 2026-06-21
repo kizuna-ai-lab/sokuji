@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -1234,7 +1234,16 @@ const useSettingsStore = create<SettingsStore>()(
             ready = false;
           }
         }
-        const message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
+        let message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
+        if (ready) {
+          // Gate on the selected stage models being downloaded into the sidecar cache.
+          const s = get().localNative;
+          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage);
+          const { useNativeModelStore } = await import('./nativeModelStore');
+          await useNativeModelStore.getState().refresh(models);
+          ready = useNativeModelStore.getState().isReady(models);
+          message = ready ? '' : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+        }
         set({
           isApiKeyValid: ready,
           availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
