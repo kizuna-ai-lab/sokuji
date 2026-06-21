@@ -48,3 +48,12 @@ def test_sizes_handler_shape(monkeypatch):
 def test_real_size_of_sense_voice():
     nm._SIZE_CACHE.clear()
     assert nm.model_size('sense-voice') > 100_000_000  # model.int8.onnx alone is >100MB
+
+
+def test_delete_handler_shape(monkeypatch):
+    monkeypatch.setattr(nm, 'delete_model', lambda m: 4096)
+    st = {'handlers': {}}
+    nm.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-tiny'})))
+    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-tiny', 'freed': 4096}

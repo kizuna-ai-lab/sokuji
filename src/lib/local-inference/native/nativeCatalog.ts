@@ -30,11 +30,19 @@ export const NATIVE_TRANSLATION: NativeModelOption[] = [
   { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 1 },
 ];
 
+/** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */
+function byRecommendedThenOrder(a: NativeModelOption, b: NativeModelOption): number {
+  return Number(!!b.recommended) - Number(!!a.recommended) || (a.sortOrder ?? 99) - (b.sortOrder ?? 99);
+}
+
 /** ASR models that support the source language, recommended/sortOrder first. */
 export function compatibleNativeAsr(srcLang: string): NativeModelOption[] {
-  return NATIVE_ASR
-    .filter((m) => supportsLanguage(m, srcLang))
-    .sort((a, b) => Number(!!b.recommended) - Number(!!a.recommended) || (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+  return NATIVE_ASR.filter((m) => supportsLanguage(m, srcLang)).sort(byRecommendedThenOrder);
+}
+
+/** ASR models that do NOT support the source language (shown behind a "show all" toggle). */
+export function incompatibleNativeAsr(srcLang: string): NativeModelOption[] {
+  return NATIVE_ASR.filter((m) => !supportsLanguage(m, srcLang)).sort(byRecommendedThenOrder);
 }
 
 /** Auto-select an ASR model for the source language: keep current if it still
@@ -155,12 +163,21 @@ export interface NativeModelCardSpec {
   note?: string;
 }
 
-/** ASR cards compatible with the source language, recommended/sortOrder ordered. */
-export function nativeAsrCards(srcLang: string): NativeModelCardSpec[] {
-  return compatibleNativeAsr(srcLang).map((m) => ({
+function asrToCard(m: NativeModelOption): NativeModelCardSpec {
+  return {
     selectId: m.id, downloadId: m.id, name: m.label, languages: m.languages,
     recommended: m.recommended, sortOrder: m.sortOrder,
-  }));
+  };
+}
+
+/** ASR cards compatible with the source language, recommended/sortOrder ordered. */
+export function nativeAsrCards(srcLang: string): NativeModelCardSpec[] {
+  return compatibleNativeAsr(srcLang).map(asrToCard);
+}
+
+/** ASR cards that do NOT support the source language (for the "show all" toggle). */
+export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec[] {
+  return incompatibleNativeAsr(srcLang).map(asrToCard);
 }
 
 export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
@@ -176,4 +193,77 @@ export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
     recommended: i === 0, sortOrder: i,
   }));
   return [...voices, { selectId: 'off', downloadId: null, name: 'Off', note: 'text only', sortOrder: 99 }];
+}
+
+/** The per-stage selection (the selectIds written to LocalNativeSettings). */
+export interface NativeSelection {
+  asrModel: string;
+  translationModel: string;
+  ttsModel: string;
+}
+
+/**
+ * Reconcile the native selection for a language pair — the native twin of
+ * LOCAL_INFERENCE's `autoSelectModels`. Steps, in order, mirror that logic:
+ *   1. recalled history (per-direction) overrides the current choice;
+ *   2. each stage is validated — the chosen card must exist for this pair AND
+ *      be downloaded (a null downloadId, i.e. TTS Off, counts as downloaded);
+ *   3. an invalid choice falls back to the best *downloaded* card, else the
+ *      recommended card (translation), else '' (ASR — nothing until downloaded).
+ * Returns only the changed fields (null if nothing changed).
+ *
+ * Directionality: `nativeTranslationCards(src, tgt)` builds opus-mt's downloadId
+ * as `Xenova/opus-mt-${src}-${tgt}`, so after a src↔tgt swap the *reverse* repo's
+ * download state is what gets validated — a model downloaded only one way is
+ * correctly treated as absent for the other direction.
+ */
+export function autoSelectNative(
+  src: string,
+  tgt: string,
+  current: NativeSelection,
+  isDownloaded: (downloadId: string | null) => boolean,
+  recalled?: Partial<NativeSelection> | null,
+): Partial<NativeSelection> | null {
+  let { asrModel, translationModel, ttsModel } = current;
+  const input = { asrModel, translationModel, ttsModel };
+
+  // 1. recalled history overrides "current" where present and different
+  if (recalled) {
+    if (recalled.asrModel != null && recalled.asrModel !== asrModel) asrModel = recalled.asrModel;
+    if (recalled.translationModel != null && recalled.translationModel !== translationModel) translationModel = recalled.translationModel;
+    if (recalled.ttsModel != null && recalled.ttsModel !== ttsModel) ttsModel = recalled.ttsModel;
+  }
+
+  const updates: Partial<NativeSelection> = {};
+
+  // 2+3. ASR — compatible with src (cards are pre-filtered) and downloaded
+  const asrCards = nativeAsrCards(src);
+  const curAsr = asrCards.find((c) => c.selectId === asrModel);
+  if (!(curAsr && isDownloaded(curAsr.downloadId))) {
+    const best = asrCards.find((c) => isDownloaded(c.downloadId));
+    const newId = best?.selectId ?? '';
+    if (newId !== asrModel) updates.asrModel = newId;
+  }
+
+  // Translation — directional cards; downloaded, else best downloaded, else recommended (Qwen '')
+  const trCards = nativeTranslationCards(src, tgt);
+  const curTr = trCards.find((c) => c.selectId === translationModel);
+  if (!(curTr && isDownloaded(curTr.downloadId))) {
+    const best = trCards.find((c) => isDownloaded(c.downloadId)) ?? trCards.find((c) => c.recommended) ?? trCards[0];
+    const newId = best?.selectId ?? '';
+    if (newId !== translationModel) updates.translationModel = newId;
+  }
+
+  // TTS — optional; a specific voice must be valid for tgt, else fall back to Auto ('').
+  // '' (Auto) and 'off' are always valid.
+  if (ttsModel && ttsModel !== 'off' && ttsModel !== '' && !nativeTtsVoices(tgt).some((v) => v.id === ttsModel)) {
+    updates.ttsModel = '';
+  }
+
+  // Surface recalled values that survived validation (current still holds the old value)
+  if (updates.asrModel == null && asrModel !== input.asrModel) updates.asrModel = asrModel;
+  if (updates.translationModel == null && translationModel !== input.translationModel) updates.translationModel = translationModel;
+  if (updates.ttsModel == null && ttsModel !== input.ttsModel) updates.ttsModel = ttsModel;
+
+  return Object.keys(updates).length > 0 ? updates : null;
 }

@@ -9,5 +9,6 @@ export interface AsrResultMsg { type: 'result'; text: string; startSample?: numb
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
 export interface ModelSizesResultMsg { type: 'model_sizes_result'; id: number; sizes: Record<string, number>; }
+export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number; model: string; freed: number; }
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
-export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelProgressMsg | ErrorMsg;
+export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ErrorMsg;

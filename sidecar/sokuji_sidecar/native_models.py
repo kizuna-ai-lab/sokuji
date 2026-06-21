@@ -76,6 +76,40 @@ def model_status(model_id):
         return "absent"
 
 
+def delete_model(model_id):
+    """Remove a model's cached repos (+ its VAD file) from the HF cache.
+
+    Returns the number of bytes freed. Repos are deleted via the hub's cache
+    scanner so we only touch fully-managed revisions; a repo shared with another
+    still-needed model is deleted here too — callers should only delete models
+    the user explicitly removed.
+    """
+    from huggingface_hub import scan_cache_dir
+    specs = download_specs(model_id)
+    wanted = set(specs["repos"])
+    freed = 0
+    try:
+        cache = scan_cache_dir()
+    except Exception:
+        cache = None
+    if cache is not None:
+        revisions = []
+        for repo in cache.repos:
+            if repo.repo_id in wanted:
+                freed += repo.size_on_disk
+                revisions.extend(rev.commit_hash for rev in repo.revisions)
+        if revisions:
+            cache.delete_revisions(*revisions).execute()
+    # Drop the shared VAD file only when removing the model that owns it.
+    if specs["urls"] and os.path.exists(_vad_cache_path()):
+        try:
+            freed += os.path.getsize(_vad_cache_path())
+            os.remove(_vad_cache_path())
+        except OSError:
+            pass
+    return freed
+
+
 def _download_url(url):
     import urllib.request
     dst = _vad_cache_path()
@@ -125,7 +159,14 @@ async def _h_model_download(state, msg, _b, conn=None):
     return {"type": "ok", "id": msg.get("id")}, None
 
 
+async def _h_model_delete(state, msg, _b, conn=None):
+    import asyncio
+    model = msg.get("model")
+    freed = await asyncio.to_thread(delete_model, model)
+    return {"type": "model_delete_result", "id": msg.get("id"), "model": model, "freed": freed}, None
+
+
 def register(state: dict):
     state.setdefault("handlers", {}).update(
         {"model_status": _h_model_status, "model_sizes": _h_model_sizes,
-         "model_download": _h_model_download})
+         "model_download": _h_model_download, "model_delete": _h_model_delete})

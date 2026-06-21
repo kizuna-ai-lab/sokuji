@@ -51,6 +51,14 @@ export class NativeModelClient {
     return (msg as Extract<ServerMsg, { type: 'model_sizes_result' }>).sizes;
   }
 
+  /** Remove a model from the sidecar's cache; resolves to the bytes freed. */
+  async delete(model: string): Promise<number> {
+    await this.connect();
+    const msg = await this.send({ type: 'model_delete', model });
+    if (msg.type === 'error') throw new Error(msg.message);
+    return (msg as Extract<ServerMsg, { type: 'model_delete_result' }>).freed;
+  }
+
   async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<void> {
     await this.connect();
     this.progressCb = onProgress ?? null;

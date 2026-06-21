@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, nativeAsrForLanguage } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative } from './nativeCatalog';
 
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages and nothing else', () => {
@@ -72,5 +72,70 @@ describe('nativeCatalog', () => {
     const ja = nativeTtsCards('ja');
     expect(ja).toHaveLength(1);
     expect(ja[0]).toMatchObject({ selectId: 'off', downloadId: null, name: 'Off', note: 'text only' });
+  });
+
+  it('splits ASR into compatible / incompatible for a language', () => {
+    // 'de' is not a sense-voice language: sense-voice is incompatible, whisper-* compatible
+    expect(incompatibleNativeAsr('de').map((m) => m.id)).toEqual(['sense-voice']);
+    expect(nativeAsrIncompatibleCards('de')[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice' });
+    // for a sense-voice language nothing is incompatible
+    expect(incompatibleNativeAsr('zh')).toHaveLength(0);
+    expect(nativeAsrIncompatibleCards('zh')).toHaveLength(0);
+  });
+
+  describe('autoSelectNative', () => {
+    const cur = (over = {}) => ({ asrModel: 'sense-voice', translationModel: '', ttsModel: '', ...over });
+    const downloaded = (...ids: string[]) => (id: string | null) => id === null || ids.includes(id);
+    const none = () => false;
+
+    it('keeps a valid, downloaded selection (no change)', () => {
+      expect(autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen'))).toBeNull();
+    });
+
+    it('drops an ASR model that no longer supports the source language', () => {
+      // sense-voice does not support German → switch to the best downloaded compatible (whisper-base)
+      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-base', 'qwen'));
+      expect(r).toMatchObject({ asrModel: 'whisper-base' });
+    });
+
+    it('clears ASR to "" when nothing compatible is downloaded (parity with local inference)', () => {
+      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), none);
+      expect(r?.asrModel).toBe('');
+    });
+
+    it('falls back from a not-downloaded opus-mt to whatever is downloaded for this pair', () => {
+      // user picked opus-mt zh→en but only qwen is cached → revert to Qwen ('')
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'opus-mt' }), downloaded('sense-voice', 'qwen'));
+      expect(r).toMatchObject({ translationModel: '' });
+    });
+
+    it('reverse pair: opus-mt downloaded one way is absent the other way', () => {
+      // zh→en repo is cached; after swap to en→zh the en-zh repo is absent → opus-mt invalid
+      const isDl = downloaded('sense-voice', 'Xenova/opus-mt-zh-en');
+      // forward direction: opus-mt is valid and kept
+      expect(autoSelectNative('zh', 'en', cur({ translationModel: 'opus-mt' }), isDl)).toBeNull();
+      // reverse direction: downloadId becomes opus-mt-en-zh (absent) → reverts to Qwen
+      const rev = autoSelectNative('en', 'zh', cur({ asrModel: 'whisper-base', translationModel: 'opus-mt' }), downloaded('whisper-base', 'Xenova/opus-mt-zh-en'));
+      expect(rev).toMatchObject({ translationModel: '' });
+    });
+
+    it('resets a stale cross-language TTS voice to Auto', () => {
+      const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen'));
+      expect(r?.ttsModel).toBe('');
+    });
+
+    it('applies recalled history when its models are downloaded for this pair', () => {
+      // history for zh→en prefers whisper-small; it is downloaded → recall overrides the default
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-small', 'qwen'),
+        { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
+      expect(r).toMatchObject({ asrModel: 'whisper-small' });
+    });
+
+    it('ignores recalled history whose model is not downloaded', () => {
+      // recall wants whisper-small but only sense-voice is cached → keep sense-voice
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('sense-voice', 'qwen'),
+        { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
+      expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
+    });
   });
 });
