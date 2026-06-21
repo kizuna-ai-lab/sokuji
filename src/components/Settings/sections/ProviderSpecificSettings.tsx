@@ -695,8 +695,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
-    // PalabraAI and Local Inference don't have model selection
-    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE) {
+    // PalabraAI and Local (Offline/Native) inference don't have model selection
+    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
       return null;
     }
 

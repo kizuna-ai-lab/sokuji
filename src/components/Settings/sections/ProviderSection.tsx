@@ -326,6 +326,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: KizunaAIIcon,
           description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
         };
+      case Provider.LOCAL_NATIVE:
+        return {
+          name: t('providers.local_native.name', 'Local (Native, Electron)'),
+          icon: KizunaAIIcon,
+          description: t('providers.local_native.description', 'Native sidecar ASR + Translation')
+        };
       default:
         return {
           name: t('providers.unknown.name'),
@@ -425,7 +431,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       )}
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
-      {provider === Provider.LOCAL_INFERENCE ? (
+      {provider === Provider.LOCAL_NATIVE ? (
+        <div className="local-inference-info">
+          <div className="model-info">
+            {t('providers.local_native.noKey', 'No API key — runs in the local Electron sidecar.')}
+          </div>
+        </div>
+      ) : provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
           <div className="model-info">
             <div className="model-inline">
