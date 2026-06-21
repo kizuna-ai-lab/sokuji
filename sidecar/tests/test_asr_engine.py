@@ -13,7 +13,8 @@ class _FakeWS:
 
 
 class FakeAsr:
-    def init(self, model_id=None, language=""):
+    def init(self, model_id=None, language="", sample_rate=24000):
+        self.sample_rate = sample_rate
         return 33
 
     def feed(self, int16_bytes):

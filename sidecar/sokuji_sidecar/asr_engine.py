@@ -58,8 +58,10 @@ class AsrEngine:
         self._rec = None
         self._window = 512
         self._buf = np.zeros(0, np.float32)
+        self._src_rate = SRC_RATE
 
-    def init(self, model_id=None, language=""):
+    def init(self, model_id=None, language="", sample_rate=SRC_RATE):
+        self._src_rate = int(sample_rate)  # actual renderer rate (AudioContext may be 48k, not 24k)
         import sherpa_onnx  # lazy: native lib pulled here
         from huggingface_hub import snapshot_download
         t0 = time.time()
@@ -94,7 +96,7 @@ class AsrEngine:
         return out
 
     def feed(self, int16_bytes):
-        self._buf = np.concatenate([self._buf, _downsample_int16_to_f32_16k(int16_bytes)])
+        self._buf = np.concatenate([self._buf, _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)])
         out = []
         while len(self._buf) >= self._window:
             was_detected = self._vad.is_speech_detected()
@@ -113,7 +115,7 @@ class AsrEngine:
 
 async def _h_asr_init(state, msg, _b, conn=None):
     eng = state["asr_engine"]
-    ms = eng.init(msg.get("model"), msg.get("language", ""))
+    ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE))
     if conn is not None:
         conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
     return {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}, None

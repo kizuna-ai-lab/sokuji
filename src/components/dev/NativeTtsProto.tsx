@@ -34,10 +34,12 @@ export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) =
     aclient.current.onError = (e) => push('ERROR: ' + e);
     aclient.current.onSpeechStart = () => push('· speech_start');
     aclient.current.onResult = (r) => push(`asr: "${r.text}" (${r.recognitionTimeMs}ms)`);
-    const r = await aclient.current.init('en');
-    push(`asr ready loadMs=${r.loadTimeMs}`);
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 24000 } });
     const ac = new AudioContext({ sampleRate: 24000 });
+    // AudioContext may ignore the 24k hint (often 48k) — tell the sidecar the real rate.
+    push(`mic AudioContext sampleRate=${ac.sampleRate}`);
+    const r = await aclient.current.init('en', undefined, ac.sampleRate);
+    push(`asr ready loadMs=${r.loadTimeMs}`);
     const sourceNode = ac.createMediaStreamSource(stream);
     const node = ac.createScriptProcessor(4096, 1, 1);
     node.onaudioprocess = (e) => {

@@ -48,10 +48,10 @@ export class NativeAsrClient {
     return new Promise((resolve) => { this.pending.set(id, resolve); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
-  async init(language = '', modelId?: string): Promise<{ loadTimeMs: number }> {
+  async init(language = '', modelId?: string, sampleRate = 24000): Promise<{ loadTimeMs: number }> {
     await this.connect();
     this.onStatus?.('[native-asr] init…');
-    const msg = await this.send({ type: 'asr_init', language, model: modelId });
+    const msg = await this.send({ type: 'asr_init', language, model: modelId, sampleRate });
     return { loadTimeMs: (msg as Extract<ServerMsg, { type: 'ready' }>).loadTimeMs };
   }
 
