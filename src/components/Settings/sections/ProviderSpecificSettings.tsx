@@ -59,6 +59,7 @@ import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { NATIVE_ASR, NATIVE_TRANSLATION, nativeTtsVoices } from '../../../lib/local-inference/native/nativeCatalog';
+import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -1974,6 +1975,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <option value="off">{t('providers.local_native.ttsOffOpt', 'Off (text only)')}</option>
           </select>
         </div>
+        <NativeModelManagementSection />
       </div>
     );
   };
