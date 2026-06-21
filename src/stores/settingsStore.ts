@@ -681,8 +681,20 @@ function createLocalInferenceSessionConfig(
 }
 
 /**
- * Build the native (Electron sidecar) session config. MVP = ASR + translation;
- * the engine defaults the translate prompt, so instructions are advisory.
+ * Pick a default non-cloning native TTS (sherpa piper) for the target language.
+ * Only languages with a wired piper model get speech output; others stay text-only.
+ */
+function pickNativeTts(targetLanguage: string): string {
+  const byLang: Record<string, string> = {
+    en: 'csukuangfj/vits-piper-en_US-amy-low',
+  };
+  return byLang[targetLanguage] || '';
+}
+
+/**
+ * Build the native (Electron sidecar) session config. ASR + translation, plus
+ * piper TTS when a model is available for the target language (English today).
+ * The engine defaults the translate prompt, so instructions are advisory.
  */
 function createLocalNativeSessionConfig(
   settings: LocalNativeSettings
@@ -695,7 +707,7 @@ function createLocalNativeSessionConfig(
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
     translationModelId: settings.translationModel || undefined,
-    ttsModelId: settings.ttsModel || undefined,
+    ttsModelId: settings.ttsModel || pickNativeTts(settings.targetLanguage) || undefined,
     wrapTranscript: true,
   };
 }
