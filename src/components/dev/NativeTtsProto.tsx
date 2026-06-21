@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
+import { NativeAsrClient } from '../../lib/local-inference/native/NativeAsrClient';
 
 export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const client = useRef<NativeTtsClient | null>(null);
@@ -21,6 +22,36 @@ export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) =
     }
     const res = await tclient.current.translate(srcText);
     push(`translated: "${res.translatedText}" (${res.inferenceTimeMs}ms)`);
+  };
+
+  const aclient = useRef<NativeAsrClient | null>(null);
+  const micStop = useRef<(() => void) | null>(null);
+
+  const startAsr = async () => {
+    if (micStop.current) { micStop.current(); micStop.current = null; push('asr stopped'); return; }
+    aclient.current = new NativeAsrClient();
+    aclient.current.onStatus = push;
+    aclient.current.onError = (e) => push('ERROR: ' + e);
+    aclient.current.onSpeechStart = () => push('· speech_start');
+    aclient.current.onResult = (r) => push(`asr: "${r.text}" (${r.recognitionTimeMs}ms)`);
+    const r = await aclient.current.init('en');
+    push(`asr ready loadMs=${r.loadTimeMs}`);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 24000 } });
+    const ac = new AudioContext({ sampleRate: 24000 });
+    const sourceNode = ac.createMediaStreamSource(stream);
+    const node = ac.createScriptProcessor(4096, 1, 1);
+    node.onaudioprocess = (e) => {
+      const f32 = e.inputBuffer.getChannelData(0);
+      const i16 = new Int16Array(f32.length);
+      for (let i = 0; i < f32.length; i++) i16[i] = Math.max(-1, Math.min(1, f32[i])) * 32767;
+      aclient.current?.feedAudio(i16, 24000);
+    };
+    sourceNode.connect(node); node.connect(ac.destination);
+    micStop.current = () => {
+      node.disconnect(); sourceNode.disconnect();
+      stream.getTracks().forEach((t) => t.stop()); ac.close(); aclient.current?.flush();
+    };
+    push('asr listening… (click again to stop)');
   };
 
   const ensure = async () => {
@@ -70,6 +101,9 @@ export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) =
       <h4>Translate</h4>
       <textarea value={srcText} onChange={(e) => setSrcText(e.target.value)} style={{ width: '100%', height: 40 }} />
       <button onClick={onTranslate} style={{ marginTop: 8 }}>translate</button>
+      <hr style={{ margin: '16px 0', borderColor: '#444' }} />
+      <h4>ASR (mic)</h4>
+      <button onClick={startAsr}>start / stop mic ASR</button>
       <pre style={{ marginTop: 12, fontSize: 12 }}>{log.join('\n')}</pre>
     </div>
   );
