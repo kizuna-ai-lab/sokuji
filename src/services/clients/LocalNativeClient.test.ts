@@ -58,6 +58,28 @@ describe('LocalNativeClient', () => {
     expect(deltas[0].len).toBe(24000); // 16k resampled to 24k
   });
 
+  it('returns a fresh array from getConversationItems (so setItems re-renders)', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice' } as any);
+    await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
+    expect(c.getConversationItems()).not.toBe(c.getConversationItems()); // different reference each call
+  });
+
+  it('emits local.native.* events to onRealtimeEvent (Logs panel)', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const types: string[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => types.push(e.event.type) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice' } as any);
+    await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(types).toContain('local.native.init.start');
+    expect(types).toContain('local.native.init.ready');
+    expect(types).toContain('local.native.asr.result');
+    expect(types).toContain('local.native.translation.end');
+  });
+
   it('feedAudio forwards to the ASR client', async () => {
     const m = mocks();
     const c = new LocalNativeClient(m);

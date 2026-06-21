@@ -43,6 +43,10 @@ export class LocalNativeClient implements IClient {
     this.asr.onResult = (r: any) => this.onAsrResult(r);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
+    this.emitEvent('local.native.init.start', 'client', {
+      asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
+      sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
+    });
     await this.translate.init(config.sourceLanguage, config.targetLanguage, config.translationModelId);
     await this.asr.init(config.sourceLanguage, config.asrModelId, 24000);
     // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
@@ -54,6 +58,7 @@ export class LocalNativeClient implements IClient {
       catch (e) { this.ttsEnabled = false; this.handlers.onError?.(`native TTS init failed: ${e}`); }
     }
     this.connected = true;
+    this.emitEvent('local.native.init.ready', 'client', { ttsEnabled: this.ttsEnabled });
     this.handlers.onOpen?.();
   }
 
@@ -63,8 +68,14 @@ export class LocalNativeClient implements IClient {
     this.handlers.onConversationUpdated?.({ item, delta });
   }
 
+  /** Mirror the LocalInferenceClient logging contract so events reach the Logs panel. */
+  private emitEvent(type: string, source: 'client' | 'server', data: Record<string, any> = {}): void {
+    this.handlers.onRealtimeEvent?.({ source, event: { type, data } } as any);
+  }
+
   private onAsrResult(r: { text: string }): void {
     if (!r.text?.trim()) return;
+    this.emitEvent('local.native.asr.result', 'server', { text: r.text });
     const userItem: ConversationItem = {
       id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
       createdAt: Date.now(), formatted: { transcript: r.text },
@@ -72,11 +83,16 @@ export class LocalNativeClient implements IClient {
     this.items.push(userItem);
     this.emit(userItem);
     // serialize pipeline jobs so text/audio stay ordered
-    this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => this.handlers.onError?.(String(e)));
+    this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => {
+      this.emitEvent('local.native.error', 'client', { error: String(e) });
+      this.handlers.onError?.(String(e));
+    });
   }
 
   private async runJob(text: string): Promise<void> {
+    this.emitEvent('local.native.translation.start', 'client', { text });
     const tr = await this.translate.translate(text, this.cfg?.instructions ?? '', !!this.cfg?.wrapTranscript);
+    this.emitEvent('local.native.translation.end', 'server', { translatedText: tr.translatedText, inferenceTimeMs: tr.inferenceTimeMs });
     const item: ConversationItem = {
       id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
       createdAt: Date.now(), formatted: { transcript: tr.translatedText },
@@ -84,8 +100,10 @@ export class LocalNativeClient implements IClient {
     this.items.push(item);
     this.emit(item);
     if (this.ttsEnabled) {
+      this.emitEvent('local.native.tts.start', 'client', {});
       const res = await this.tts.generate(tr.translatedText);
       const int16 = float32ToInt16(resampleFloat32(res.samples, res.sampleRate, 24000));
+      this.emitEvent('local.native.tts.end', 'server', { generationTimeMs: res.generationTimeMs, samples: int16.length });
       this.emit(item, { audio: int16 });
     }
     item.status = 'completed';
@@ -98,13 +116,14 @@ export class LocalNativeClient implements IClient {
   cancelResponse(): void {}
   async disconnect(): Promise<void> {
     this.connected = false;
+    this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
     this.asr.dispose?.(); this.translate.dispose?.(); this.tts.dispose?.();
     this.handlers.onClose?.({});
   }
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
   reset(): void { this.items = []; }
-  getConversationItems(): ConversationItem[] { return this.items; }
+  getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
   clearConversationItems(): void { this.items = []; }
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }
