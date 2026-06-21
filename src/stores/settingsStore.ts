@@ -18,6 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
+import { pickNativeTts, resolveNativeTranslation } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -681,20 +682,10 @@ function createLocalInferenceSessionConfig(
 }
 
 /**
- * Pick a default non-cloning native TTS (sherpa piper) for the target language.
- * Only languages with a wired piper model get speech output; others stay text-only.
- */
-function pickNativeTts(targetLanguage: string): string {
-  const byLang: Record<string, string> = {
-    en: 'csukuangfj/vits-piper-en_US-amy-low',
-  };
-  return byLang[targetLanguage] || '';
-}
-
-/**
  * Build the native (Electron sidecar) session config. ASR + translation, plus
- * piper TTS when a model is available for the target language (English today).
- * The engine defaults the translate prompt, so instructions are advisory.
+ * piper TTS when a model is available for the target language. Model lists +
+ * resolution live in nativeCatalog. The engine defaults the translate prompt,
+ * so instructions are advisory.
  */
 function createLocalNativeSessionConfig(
   settings: LocalNativeSettings
@@ -706,7 +697,7 @@ function createLocalNativeSessionConfig(
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
-    translationModelId: settings.translationModel || undefined,
+    translationModelId: resolveNativeTranslation(settings.translationModel, settings.sourceLanguage, settings.targetLanguage),
     ttsModelId: settings.ttsModel || pickNativeTts(settings.targetLanguage) || undefined,
     wrapTranscript: true,
   };
