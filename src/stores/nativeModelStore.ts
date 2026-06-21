@@ -17,6 +17,8 @@ interface NativeModelStore {
   refreshSizes: (models: string[]) => Promise<void>;
   /** Download one model, streaming progress into the store. */
   download: (model: string) => Promise<void>;
+  /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
+  cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
   deleteModel: (model: string) => Promise<void>;
   /** True only if every listed model is cached. */
@@ -78,13 +80,21 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
     }));
     try {
-      await client.download(model, (p) =>
+      const status = await client.download(model, (p) =>
         set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })));
-      set((s) => ({ statuses: { ...s.statuses, [model]: 'ready' } }));
-      await revalidateNativeProvider();
+      // 'cancelled' (or a partial fetch) leaves the model incomplete → absent.
+      set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' } }));
+      if (status === 'ready') await revalidateNativeProvider();
     } catch {
       set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     }
+  },
+
+  cancelDownload: async (model) => {
+    // Fire the signal; the in-flight download() resolves 'cancelled' and flips the
+    // status to absent. (A single-file model already past its only file finishes
+    // as 'ready' — cancellation is checked between files, not mid-file.)
+    await client.cancel(model);
   },
 
   deleteModel: async (model) => {

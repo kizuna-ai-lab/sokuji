@@ -57,3 +57,63 @@ def test_delete_handler_shape(monkeypatch):
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-tiny'})))
     assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-tiny', 'freed': 4096}
+
+
+def test_download_is_nonblocking_and_pushes_completion(monkeypatch):
+    # download runs as a background task; the handler returns nothing (completion
+    # is pushed) so the connection stays free to receive model_cancel.
+    async def fake_download(model_id, send, should_cancel=None):
+        await send({'type': 'model_progress', 'model': model_id, 'downloaded': 1, 'total': 1})
+        return 'ready'
+    monkeypatch.setattr(nm, 'download', fake_download)
+
+    class FakeWS:
+        def __init__(self): self.sent = []
+        async def send(self, d): self.sent.append(d)
+
+    async def scenario():
+        st = {}
+        nm.register(st)
+        conn = server.Conn(FakeWS())
+        reply, _ = await server.handle_message(
+            st, json.dumps({'type': 'model_download', 'id': 1, 'model': 'm'}), None, conn)
+        assert reply is None                      # no synchronous ack
+        await st['download_tasks']['m']           # let the task finish
+        return conn._ws.sent
+
+    sent = [json.loads(s) for s in asyncio.run(scenario())]
+    assert {'type': 'model_progress', 'model': 'm', 'downloaded': 1, 'total': 1} in sent
+    assert sent[-1] == {'type': 'model_download_done', 'model': 'm', 'status': 'ready'}
+
+
+def test_model_cancel_stops_download_at_file_boundary(monkeypatch):
+    # a multi-file download checks should_cancel between files and stops promptly
+    async def fake_download(model_id, send, should_cancel=None):
+        while True:
+            if should_cancel and should_cancel():
+                return 'cancelled'
+            await send({'type': 'model_progress', 'model': model_id, 'downloaded': 1, 'total': 9})
+            await asyncio.sleep(0)
+    monkeypatch.setattr(nm, 'download', fake_download)
+
+    class FakeWS:
+        def __init__(self): self.sent = []
+        async def send(self, d): self.sent.append(d)
+
+    async def scenario():
+        st = {}
+        nm.register(st)
+        conn = server.Conn(FakeWS())
+        await server.handle_message(st, json.dumps({'type': 'model_download', 'id': 1, 'model': 'm'}), None, conn)
+        task = st['download_tasks']['m']
+        await asyncio.sleep(0)                     # stream at least one progress
+        reply, _ = await server.handle_message(st, json.dumps({'type': 'model_cancel', 'id': 2, 'model': 'm'}), None, conn)
+        assert reply == {'type': 'ok', 'id': 2}
+        await task
+        # cancel + task bookkeeping is cleaned up
+        assert 'm' not in st['cancels'] and 'm' not in st['download_tasks']
+        return conn._ws.sent
+
+    sent = [json.loads(s) for s in asyncio.run(scenario())]
+    assert any(m['type'] == 'model_progress' for m in sent)
+    assert sent[-1] == {'type': 'model_download_done', 'model': 'm', 'status': 'cancelled'}

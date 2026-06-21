@@ -1,4 +1,10 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus } from './nativeProtocol';
+
+interface DownloadHandle {
+  onProgress?: (p: ModelProgressMsg) => void;
+  resolve: (status: ModelDownloadStatus) => void;
+  reject: (err: Error) => void;
+}
 
 interface ElectronInvoke { invoke(channel: string, data?: unknown): Promise<any>; }
 function electron(): ElectronInvoke {
@@ -12,7 +18,9 @@ export class NativeModelClient {
   private ws: WebSocket | null = null;
   private nextId = 1;
   private pending = new Map<number, (m: ServerMsg) => void>();
-  private progressCb: ((p: ModelProgressMsg) => void) | null = null;
+  // In-flight downloads keyed by model — completion/progress is pushed (not
+  // id-matched) so cancel can arrive on the same socket while a download runs.
+  private downloads = new Map<string, DownloadHandle>();
 
   private async connect(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
@@ -29,7 +37,20 @@ export class NativeModelClient {
 
   private onMessage(data: any): void {
     const msg = JSON.parse(data) as ServerMsg;
-    if (msg.type === 'model_progress') { this.progressCb?.(msg); return; }
+    // Push-routed download messages (no request id — keyed by model).
+    if (msg.type === 'model_progress') { this.downloads.get(msg.model)?.onProgress?.(msg); return; }
+    if (msg.type === 'model_download_done') {
+      const h = this.downloads.get(msg.model);
+      this.downloads.delete(msg.model);
+      h?.resolve(msg.status);
+      return;
+    }
+    if (msg.type === 'error' && msg.model && this.downloads.has(msg.model)) {
+      const h = this.downloads.get(msg.model)!;
+      this.downloads.delete(msg.model);
+      h.reject(new Error(msg.message));
+      return;
+    }
     const id = (msg as any).id as number;
     if (typeof id === 'number') { this.pending.get(id)?.(msg); this.pending.delete(id); }
   }
@@ -59,16 +80,26 @@ export class NativeModelClient {
     return (msg as Extract<ServerMsg, { type: 'model_delete_result' }>).freed;
   }
 
-  async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<void> {
+  /** Start a download; resolves 'ready' on completion or 'cancelled' if cancel()
+   *  stopped it. Rejects on a sidecar error tagged with this model. */
+  async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<ModelDownloadStatus> {
     await this.connect();
-    this.progressCb = onProgress ?? null;
-    try {
-      const msg = await this.send({ type: 'model_download', model });
-      if (msg.type === 'error') throw new Error(msg.message);
-    } finally {
-      this.progressCb = null;
-    }
+    return new Promise<ModelDownloadStatus>((resolve, reject) => {
+      this.downloads.set(model, { onProgress, resolve, reject });
+      this.ws!.send(JSON.stringify({ type: 'model_download', model, id: this.nextId++ }));
+    });
   }
 
-  dispose(): void { try { this.ws?.close(); } catch (_) {} this.ws = null; this.pending.clear(); }
+  /** Signal an in-flight download to stop at the next file boundary. */
+  async cancel(model: string): Promise<void> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: 'model_cancel', model, id: this.nextId++ }));
+  }
+
+  dispose(): void {
+    try { this.ws?.close(); } catch (_) {}
+    this.ws = null;
+    this.pending.clear();
+    this.downloads.clear();
+  }
 }

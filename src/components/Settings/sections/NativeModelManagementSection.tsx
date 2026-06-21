@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, HardDrive } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, HardDrive, X } from 'lucide-react';
 import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
@@ -48,6 +48,7 @@ const NativeModelCard: React.FC<{
   const progress = useNativeModelProgress();
   const sizes = useNativeModelSizes();
   const download = useNativeModelStore((s) => s.download);
+  const cancelDownload = useNativeModelStore((s) => s.cancelDownload);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const noDownload = spec.downloadId === null;
@@ -109,6 +110,13 @@ const NativeModelCard: React.FC<{
                 </div>
                 <div className="model-card__progress-info">
                   <span className="model-card__progress-percent">{percent}%</span>
+                  <button
+                    className="model-card__btn model-card__btn--cancel"
+                    onClick={(e) => { e.stopPropagation(); cancelDownload(spec.downloadId as string); }}
+                    title={t('models.cancel', 'Cancel')}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               </div>
             ) : status === 'ready' ? (

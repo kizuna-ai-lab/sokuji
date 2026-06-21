@@ -118,10 +118,18 @@ def _download_url(url):
         urllib.request.urlretrieve(url, dst)
 
 
-async def download(model_id, send):
-    """Download every file for a model, awaiting `send({model_progress})` per file."""
+async def download(model_id, send, should_cancel=None):
+    """Download every file for a model, awaiting `send({model_progress})` per file.
+
+    Returns 'ready' when complete or 'cancelled' if `should_cancel()` became true
+    between files. hf_hub_download runs in a worker thread that cannot be killed
+    mid-file, so cancellation is checked at file boundaries — a multi-file repo
+    stops promptly, a single huge file finishes first. Partial downloads are safe:
+    the HF cache is atomic per blob, so an interrupted model reads back as absent.
+    """
     import asyncio
     from huggingface_hub import HfApi, hf_hub_download
+    cancelled = (lambda: bool(should_cancel and should_cancel()))
     specs = download_specs(model_id)
     api = HfApi()
     files = []
@@ -133,13 +141,18 @@ async def download(model_id, send):
     total = len(files) + len(specs["urls"])
     done = 0
     for repo, fname in files:
+        if cancelled():
+            return "cancelled"
         await asyncio.to_thread(hf_hub_download, repo, fname)
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
     for url in specs["urls"]:
+        if cancelled():
+            return "cancelled"
         await asyncio.to_thread(_download_url, url)
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
+    return "ready"
 
 
 async def _h_model_status(state, msg, _b, conn=None):
@@ -152,10 +165,37 @@ async def _h_model_sizes(state, msg, _b, conn=None):
     return {"type": "model_sizes_result", "id": msg.get("id"), "sizes": sizes}, None
 
 
+async def _run_download(state, model, conn):
+    """Background download task: streams progress, then pushes a terminal
+    model_download_done (status ready|cancelled) or an error tagged with `model`."""
+    event = state.get("cancels", {}).get(model)
+    try:
+        status = await download(model, conn.send, should_cancel=(event.is_set if event else None))
+        await conn.send({"type": "model_download_done", "model": model, "status": status})
+    except Exception as e:
+        await conn.send({"type": "error", "model": model, "message": str(e)})
+    finally:
+        state.get("cancels", {}).pop(model, None)
+        state.get("download_tasks", {}).pop(model, None)
+
+
 async def _h_model_download(state, msg, _b, conn=None):
+    """Start a download as a background task so the connection stays responsive
+    to model_cancel. Completion is pushed via model_download_done, not returned."""
+    import asyncio
     model = msg.get("model")
-    if conn is not None:
-        await download(model, conn.send)
+    if conn is None:
+        return {"type": "error", "id": msg.get("id"), "message": "no connection"}, None
+    state.setdefault("cancels", {})[model] = asyncio.Event()
+    state.setdefault("download_tasks", {})[model] = asyncio.create_task(_run_download(state, model, conn))
+    return None, None
+
+
+async def _h_model_cancel(state, msg, _b, conn=None):
+    """Signal an in-flight download to stop at the next file boundary."""
+    event = state.get("cancels", {}).get(msg.get("model"))
+    if event is not None:
+        event.set()
     return {"type": "ok", "id": msg.get("id")}, None
 
 
@@ -169,4 +209,5 @@ async def _h_model_delete(state, msg, _b, conn=None):
 def register(state: dict):
     state.setdefault("handlers", {}).update(
         {"model_status": _h_model_status, "model_sizes": _h_model_sizes,
-         "model_download": _h_model_download, "model_delete": _h_model_delete})
+         "model_download": _h_model_download, "model_cancel": _h_model_cancel,
+         "model_delete": _h_model_delete})
