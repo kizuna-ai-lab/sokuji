@@ -1998,24 +1998,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           onUpdateSettings={updateLocalInferenceSettings}
         />
 
-        <div className="settings-section">
-          <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
-              <span className="setting-value">{localInferenceSettings.ttsSpeed.toFixed(1)}x</span>
-            </div>
-            <input
-              type="range"
-              min="0.5"
-              max="2.0"
-              step="0.1"
-              value={localInferenceSettings.ttsSpeed}
-              onChange={(e) => updateLocalInferenceSettings({ ttsSpeed: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
+        <TtsSpeedControl
+          value={localInferenceSettings.ttsSpeed}
+          onChange={(ttsSpeed) => updateLocalInferenceSettings({ ttsSpeed })}
+          disabled={isSessionActive}
+        >
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
             if (ttsEntry?.engine === 'edge-tts') {
@@ -2100,74 +2087,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
             ) : null;
           })()}
-        </div>
+        </TtsSpeedControl>
 
-        <div className="settings-section turn-detection-section" id="turn-detection-section">
-          <h2>
-            {t('settings.speechMode')}
-            <Tooltip
-              content={`${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="turn-detection-options">
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Auto') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Auto',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Auto' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.auto')}
-              </button>
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Talk') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Talk',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTalk')}
-              </button>
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Translate') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Translate',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Translate' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTranslate')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SpeechModeControl
+          value={localInferenceSettings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: localInferenceSettings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateLocalInferenceSettings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+        />
 
         <div
           className={`settings-section system-instructions-section ${!localPromptSupported ? 'disabled' : ''}`}
@@ -2279,89 +2212,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
         {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}
         {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(localInferenceSettings.asrModel)?.type === 'asr-stream' && !getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType) && (
-        <div className="settings-section">
-          <h2>
-            {t('settings.vadSettings', 'VAD Settings')}
-            <Tooltip
-              content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadThreshold', 'Speech Threshold')}
-                <Tooltip
-                  content={t('settings.vadThresholdTooltip', 'Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadThreshold.toFixed(2)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="0.95"
-              step="0.05"
-              value={localInferenceSettings.vadThreshold}
-              onChange={(e) => updateLocalInferenceSettings({ vadThreshold: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
-                <Tooltip
-                  content={t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(2)}s</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="2.0"
-              step="0.05"
-              value={localInferenceSettings.vadMinSilenceDuration}
-              onChange={(e) => updateLocalInferenceSettings({ vadMinSilenceDuration: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadMinSpeechDuration', 'Min Speech Duration')}
-                <Tooltip
-                  content={t('settings.vadMinSpeechDurationTooltip', 'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadMinSpeechDuration.toFixed(2)}s</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="1.0"
-              step="0.05"
-              value={localInferenceSettings.vadMinSpeechDuration}
-              onChange={(e) => updateLocalInferenceSettings({ vadMinSpeechDuration: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-        </div>
+          <VadControl
+            values={{
+              vadThreshold: localInferenceSettings.vadThreshold,
+              vadMinSilenceDuration: localInferenceSettings.vadMinSilenceDuration,
+              vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
+            }}
+            onChange={(patch) => updateLocalInferenceSettings(patch)}
+            disabled={isSessionActive}
+          />
         )}
 
       </>

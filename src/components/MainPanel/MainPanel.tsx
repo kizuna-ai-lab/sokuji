@@ -88,6 +88,12 @@ function isPttLikeMode(mode: string): boolean {
   return mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
 }
 
+/** Local providers driven by a Silero VAD that PTT release finalizes the same way
+ *  (trailing silence frames + createResponse → flush). */
+function usesLocalSileroVad(provider: string): boolean {
+  return provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
+}
+
 
 // ---------------------------------------------------------------------------
 // ConversationBubble – row renderer extracted from MainPanel.renderConversationItem
@@ -2037,10 +2043,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (recorder.isRecording()) {
         // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
         // This helps the VAD detect end of speech
-        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || effectiveProvider === Provider.LOCAL_INFERENCE || effectiveProvider === Provider.LOCAL_NATIVE) && client) {
+        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || usesLocalSileroVad(effectiveProvider)) && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
           // LOCAL_INFERENCE / LOCAL_NATIVE both use Silero VAD → 700ms tail; AST2 → 500ms
-          const silenceFrames = (effectiveProvider === Provider.LOCAL_INFERENCE || effectiveProvider === Provider.LOCAL_NATIVE) ? 7 : 5;
+          const silenceFrames = usesLocalSileroVad(effectiveProvider) ? 7 : 5;
           for (let i = 0; i < silenceFrames; i++) {
             // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
             client.appendInputAudio(new Int16Array(silenceFrameSize));
@@ -2060,7 +2066,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
         //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && (effectiveProvider === Provider.LOCAL_INFERENCE || effectiveProvider === Provider.LOCAL_NATIVE)) {
+        if (client && usesLocalSileroVad(effectiveProvider)) {
           client.createResponse();
         } else if (client && effectiveProvider === Provider.GEMINI) {
           if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {

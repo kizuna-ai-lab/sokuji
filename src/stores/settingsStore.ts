@@ -658,6 +658,21 @@ function createVolcengineAST2SessionConfig(
   };
 }
 
+/**
+ * wrapTranscript must match the instructions actually in use. The default prompt
+ * (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
+ * came from it the user message MUST be wrapped. This also catches the Advanced-mode
+ * empty-field fallback where the selector returns the default prompt but
+ * useTemplateMode is still false. Shared by both local providers.
+ */
+function resolveWrapTranscript(
+  sourceLanguage: string, targetLanguage: string, useTemplateMode: boolean, systemInstructions: string
+): boolean {
+  const defaultFwd = buildDefaultLocalPrompt(sourceLanguage, targetLanguage);
+  const defaultRev = buildDefaultLocalPrompt(targetLanguage, sourceLanguage);
+  return useTemplateMode || systemInstructions === defaultFwd || systemInstructions === defaultRev;
+}
+
 function createLocalInferenceSessionConfig(
   settings: LocalInferenceSettings,
   systemInstructions: string
@@ -667,15 +682,8 @@ function createLocalInferenceSessionConfig(
   const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
-  // wrapTranscript must match the instructions actually in use. The default prompt
-  // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
-  // came from it, the user message MUST be wrapped. This catches the Advanced-mode
-  // empty-field fallback case where the selector quietly returns the default prompt
-  // but settings.useTemplateMode is still false.
-  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
-  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
-  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
-  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+  const wrapTranscript = resolveWrapTranscript(
+    settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
 
   return {
     provider: 'local_inference',
@@ -707,12 +715,8 @@ function createLocalNativeSessionConfig(
   settings: LocalNativeSettings,
   systemInstructions: string
 ): LocalNativeSessionConfig {
-  // wrapTranscript must match the prompt actually in use — same logic as
-  // createLocalInferenceSessionConfig (default prompt references <transcript>).
-  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
-  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
-  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
-  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+  const wrapTranscript = resolveWrapTranscript(
+    settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
 
   return {
     provider: 'local_native',
