@@ -485,7 +485,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
-    const systemInstructions = provider === Provider.LOCAL_INFERENCE
+    const systemInstructions = (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE)
       ? getProcessedLocalPrompt(false)
       : getProcessedSystemInstructions();
 
@@ -1481,6 +1481,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Local inference doesn't need an API key; placeholder for ClientFactory
           apiKey = 'local';
           break;
+        case Provider.LOCAL_NATIVE:
+          // Native (Electron sidecar) inference doesn't need an API key
+          apiKey = 'local';
+          break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -1490,6 +1494,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ? 'realtime-translation'
         : provider === Provider.LOCAL_INFERENCE
         ? 'local-asr-translate'
+        : provider === Provider.LOCAL_NATIVE
+        ? 'native-asr-translate'
         : provider === Provider.OPENAI_TRANSLATE
         ? 'gpt-realtime-translate'
         : (currentProviderSettings as any).model;
