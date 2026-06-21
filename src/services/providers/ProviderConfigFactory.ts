@@ -9,6 +9,7 @@ import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2Pr
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
+import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
 
@@ -42,6 +43,8 @@ export class ProviderConfigFactory {
     // Only register OpenAI Compatible provider in Electron environment
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
+      // Native (Electron sidecar) local inference — Electron only
+      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig() as any);
     }
 
     // Only register Volcengine Speech Translate if the feature flag is enabled

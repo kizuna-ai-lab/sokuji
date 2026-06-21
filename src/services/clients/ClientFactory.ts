@@ -9,6 +9,7 @@ import { PalabraAIClient } from './PalabraAIClient';
 import { VolcengineSTClient } from './VolcengineSTClient';
 import { VolcengineAST2Client } from './VolcengineAST2Client';
 import { LocalInferenceClient } from './LocalInferenceClient';
+import { LocalNativeClient } from './LocalNativeClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import { getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
@@ -49,6 +50,11 @@ export class ClientFactory {
     // Local inference doesn't require API key
     if (provider === Provider.LOCAL_INFERENCE) {
       return new LocalInferenceClient();
+    }
+
+    // Native (Electron sidecar) inference doesn't require API key
+    if (provider === Provider.LOCAL_NATIVE) {
+      return new LocalNativeClient();
     }
 
     if (!apiKey) {
