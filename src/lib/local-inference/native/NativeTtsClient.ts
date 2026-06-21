@@ -61,10 +61,10 @@ export class NativeTtsClient {
     });
   }
 
-  async init(): Promise<{ sampleRate: number; loadTimeMs: number }> {
+  async init(model?: string): Promise<{ sampleRate: number; loadTimeMs: number }> {
     await this.connect();
     this.onStatus?.('[native-tts] init…');
-    const { msg } = await this.send({ type: 'init' });
+    const { msg } = await this.send({ type: 'init', model });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     return { sampleRate: r.sampleRate, loadTimeMs: r.loadTimeMs };
   }

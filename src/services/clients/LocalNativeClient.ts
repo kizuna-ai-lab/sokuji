@@ -45,10 +45,14 @@ export class LocalNativeClient implements IClient {
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
     await this.translate.init(config.sourceLanguage, config.targetLanguage, config.translationModelId);
     await this.asr.init(config.sourceLanguage, config.asrModelId, 24000);
-    // TTS only when a model is configured AND a reference voice is ready (future UX);
-    // native TTS is Pocket/cloning today, so the MVP runs text-only.
+    // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
+    // (Pocket) need a reference clip and stay off until a reference-voice UX.
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly
-      && typeof this.tts.generate === 'function' && this.tts._refReady === true;
+      && !String(config.ttsModelId).includes('pocket');
+    if (this.ttsEnabled) {
+      try { await this.tts.init(config.ttsModelId); }
+      catch (e) { this.ttsEnabled = false; this.handlers.onError?.(`native TTS init failed: ${e}`); }
+    }
     this.connected = true;
     this.handlers.onOpen?.();
   }
