@@ -8,5 +8,6 @@ export interface SpeechStartMsg { type: 'speech_start'; }
 export interface AsrResultMsg { type: 'result'; text: string; startSample?: number; durationMs: number; recognitionTimeMs: number; }
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
+export interface ModelSizesResultMsg { type: 'model_sizes_result'; id: number; sizes: Record<string, number>; }
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
-export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrResultMsg | ModelStatusResultMsg | ModelProgressMsg | ErrorMsg;
+export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelProgressMsg | ErrorMsg;

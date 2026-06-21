@@ -7,8 +7,11 @@ export type NativeModelStatus = NativeModelState | 'downloading';
 interface NativeModelStore {
   statuses: Record<string, NativeModelStatus>;
   progress: Record<string, { downloaded: number; total: number }>;
+  sizes: Record<string, number>;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
   refresh: (models: string[]) => Promise<void>;
+  /** Query the sidecar for download sizes (bytes) of these models (best-effort). */
+  refreshSizes: (models: string[]) => Promise<void>;
   /** Download one model, streaming progress into the store. */
   download: (model: string) => Promise<void>;
   /** True only if every listed model is cached. */
@@ -21,6 +24,7 @@ const client = new NativeModelClient();
 export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   statuses: {},
   progress: {},
+  sizes: {},
 
   refresh: async (models) => {
     if (!models.length) return;
@@ -29,6 +33,16 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       set((s) => ({ statuses: { ...s.statuses, ...result } }));
     } catch {
       // sidecar not available — leave statuses untouched
+    }
+  },
+
+  refreshSizes: async (models) => {
+    if (!models.length) return;
+    try {
+      const result = await client.sizes(models);
+      set((s) => ({ sizes: { ...s.sizes, ...result } }));
+    } catch {
+      // best-effort — sizes are cosmetic
     }
   },
 
@@ -59,3 +73,4 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
+export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);

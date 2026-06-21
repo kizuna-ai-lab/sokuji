@@ -44,6 +44,7 @@ import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
+import { nativeAsrForLanguage, nativeTtsVoices } from '../../../lib/local-inference/native/nativeCatalog';
 import { useModelStatuses, useModelInitialized } from '../../../stores/modelStore';
 
 interface LanguageSectionProps {
@@ -234,6 +235,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         if (!availableTargets.some(t => t.value === currentTarget)) {
           updates.targetLanguage = availableTargets[0]?.value || 'en';
         }
+        // auto-select a compatible ASR model for the new source language
+        updates.asrModel = nativeAsrForLanguage(value, localNativeSettings.asrModel);
         updateLocalNativeSettings(updates);
         break;
       }
@@ -299,9 +302,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
-      case Provider.LOCAL_NATIVE:
-        updateLocalNativeSettings({ targetLanguage: value });
+      case Provider.LOCAL_NATIVE: {
+        const updates: Record<string, string> = { targetLanguage: value };
+        // reset a now-invalid specific TTS voice back to Auto for the new target language
+        const tts = localNativeSettings.ttsModel;
+        if (tts && tts !== 'off' && !nativeTtsVoices(value).some(v => v.id === tts)) {
+          updates.ttsModel = '';
+        }
+        updateLocalNativeSettings(updates);
         break;
+      }
     }
     trackEvent('language_changed', {
       to_language: value,

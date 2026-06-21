@@ -45,6 +45,12 @@ export class NativeModelClient {
     return (msg as Extract<ServerMsg, { type: 'model_status_result' }>).statuses;
   }
 
+  async sizes(models: string[]): Promise<Record<string, number>> {
+    await this.connect();
+    const msg = await this.send({ type: 'model_sizes', models });
+    return (msg as Extract<ServerMsg, { type: 'model_sizes_result' }>).sizes;
+  }
+
   async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<void> {
     await this.connect();
     this.progressCb = onProgress ?? null;
