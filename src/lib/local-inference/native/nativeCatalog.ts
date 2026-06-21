@@ -7,20 +7,43 @@
 export interface NativeModelOption {
   id: string;
   label: string;
+  /** Supported languages; `['multi']` means any language. */
   languages?: string[];
+  recommended?: boolean;
+  sortOrder?: number;
+}
+
+/** `['multi']` matches any language; otherwise the language must be listed. */
+export function supportsLanguage(opt: { languages?: string[] }, lang: string): boolean {
+  return !!opt.languages && (opt.languages.includes('multi') || opt.languages.includes(lang));
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
-  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'] },
-  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'] },
-  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'] },
-  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'] },
+  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 0 },
+  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 1 },
+  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 2 },
+  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 3 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
-  { id: '', label: 'Auto — Qwen LLM (any language)' },
-  { id: 'opus-mt', label: 'Opus-MT (fast, when the pair exists)' },
+  { id: '', label: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
+  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 1 },
 ];
+
+/** ASR models that support the source language, recommended/sortOrder first. */
+export function compatibleNativeAsr(srcLang: string): NativeModelOption[] {
+  return NATIVE_ASR
+    .filter((m) => supportsLanguage(m, srcLang))
+    .sort((a, b) => Number(!!b.recommended) - Number(!!a.recommended) || (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+}
+
+/** Auto-select an ASR model for the source language: keep current if it still
+ *  supports the language, else the best (recommended) compatible model. */
+export function nativeAsrForLanguage(srcLang: string, current: string): string {
+  const cur = NATIVE_ASR.find((m) => m.id === current);
+  if (cur && supportsLanguage(cur, srcLang)) return current;
+  return compatibleNativeAsr(srcLang)[0]?.id || current;
+}
 
 /**
  * Non-cloning sherpa piper TTS voices by target language. Every repo here was
@@ -127,23 +150,30 @@ export interface NativeModelCardSpec {
   downloadId: string | null;
   name: string;
   languages?: string[];
+  recommended?: boolean;
+  sortOrder?: number;
   note?: string;
 }
 
-export function nativeAsrCards(): NativeModelCardSpec[] {
-  return NATIVE_ASR.map((m) => ({ selectId: m.id, downloadId: m.id, name: m.label, languages: m.languages }));
+/** ASR cards compatible with the source language, recommended/sortOrder ordered. */
+export function nativeAsrCards(srcLang: string): NativeModelCardSpec[] {
+  return compatibleNativeAsr(srcLang).map((m) => ({
+    selectId: m.id, downloadId: m.id, name: m.label, languages: m.languages,
+    recommended: m.recommended, sortOrder: m.sortOrder,
+  }));
 }
 
 export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
   return [
-    { selectId: '', downloadId: 'qwen', name: 'Qwen LLM', languages: ['multi'] },
-    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt] },
+    { selectId: '', downloadId: 'qwen', name: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
+    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 1 },
   ];
 }
 
 export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
-  const voices: NativeModelCardSpec[] = nativeTtsVoices(tgt).map((v) => ({
+  const voices: NativeModelCardSpec[] = nativeTtsVoices(tgt).map((v, i) => ({
     selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
+    recommended: i === 0, sortOrder: i,
   }));
-  return [...voices, { selectId: 'off', downloadId: null, name: 'Off', note: 'text only' }];
+  return [...voices, { selectId: 'off', downloadId: null, name: 'Off', note: 'text only', sortOrder: 99 }];
 }

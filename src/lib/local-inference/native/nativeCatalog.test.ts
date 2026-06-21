@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, nativeAsrForLanguage } from './nativeCatalog';
 
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages and nothing else', () => {
@@ -36,8 +36,27 @@ describe('nativeCatalog', () => {
     expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['', 'opus-mt']);
   });
 
+  it('language compatibility + ASR auto-select', () => {
+    // sense-voice supports its 5 langs; whisper is multi
+    expect(supportsLanguage({ languages: ['zh', 'en'] }, 'zh')).toBe(true);
+    expect(supportsLanguage({ languages: ['zh', 'en'] }, 'de')).toBe(false);
+    expect(supportsLanguage({ languages: ['multi'] }, 'de')).toBe(true);
+
+    // for a sense-voice language, sense-voice is compatible + recommended-first
+    expect(compatibleNativeAsr('zh').map((m) => m.id)[0]).toBe('sense-voice');
+    // for an unsupported language, sense-voice drops out → whisper-base leads
+    expect(compatibleNativeAsr('de').map((m) => m.id)).not.toContain('sense-voice');
+    expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
+
+    // auto-select keeps a still-compatible choice, else switches
+    expect(nativeAsrForLanguage('zh', 'sense-voice')).toBe('sense-voice');
+    expect(nativeAsrForLanguage('de', 'sense-voice')).toBe('whisper-base');
+    expect(nativeAsrForLanguage('de', 'whisper-tiny')).toBe('whisper-tiny');
+  });
+
   it('builds per-stage cards with the selectId/downloadId split', () => {
-    expect(nativeAsrCards()[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice' });
+    expect(nativeAsrCards('zh')[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice', recommended: true });
+    expect(nativeAsrCards('de').map((c) => c.selectId)).not.toContain('sense-voice');
 
     const tr = nativeTranslationCards('zh', 'en');
     expect(tr[0]).toMatchObject({ selectId: '', downloadId: 'qwen' });
@@ -50,6 +69,8 @@ describe('nativeCatalog', () => {
     expect(off.downloadId).toBeNull();
 
     // language with no piper voice -> only the Off card
-    expect(nativeTtsCards('ja')).toEqual([{ selectId: 'off', downloadId: null, name: 'Off', note: 'text only' }]);
+    const ja = nativeTtsCards('ja');
+    expect(ja).toHaveLength(1);
+    expect(ja[0]).toMatchObject({ selectId: 'off', downloadId: null, name: 'Off', note: 'text only' });
   });
 });
