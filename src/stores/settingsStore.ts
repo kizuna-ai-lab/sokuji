@@ -1222,18 +1222,26 @@ const useSettingsStore = create<SettingsStore>()(
       const state = get();
       const provider = state.provider;
 
-      // Native (Electron sidecar) inference: no API key. Readiness = running on
-      // Electron (the sidecar spawns on connect; failures surface via onError).
-      // Real download-on-demand + health checks land in Phase 3c.
+      // Native (Electron sidecar) inference: no API key. Readiness = the sidecar
+      // actually spawns + handshakes (this also warms it for the session).
       if (provider === Provider.LOCAL_NATIVE) {
-        const ready = isElectron();
+        let ready = isElectron();
+        if (ready) {
+          try {
+            const r = await (window as unknown as { electron?: { invoke(c: string): Promise<any> } }).electron?.invoke('native-host:start');
+            ready = !!r?.ok;
+          } catch {
+            ready = false;
+          }
+        }
+        const message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
         set({
           isApiKeyValid: ready,
           availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
-          validationMessage: ready ? '' : 'Native inference requires the desktop app',
+          validationMessage: message,
           isValidating: false,
         });
-        return { valid: ready, message: ready ? '' : 'Native inference requires the desktop app', validating: false };
+        return { valid: ready, message, validating: false };
       }
 
       // Local inference: check model readiness instead of API key.
