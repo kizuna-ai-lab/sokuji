@@ -31,7 +31,10 @@ class NativeHostManager {
     if (this._starting) return this._starting;
     this._starting = new Promise((resolve, reject) => {
       const { app } = require('electron');
-      const env = { ...process.env, HF_HOME: path.join(app.getPath('userData'), 'hf-cache') };
+      // Respect a pre-set HF_HOME (e.g. populated by sidecar/setup.sh) so manual
+      // testing reuses the same model cache; otherwise isolate under userData.
+      const hfHome = process.env.HF_HOME || path.join(app.getPath('userData'), 'hf-cache');
+      const env = { ...process.env, HF_HOME: hfHome };
       const child = spawn(resolvePython(), ['-m', 'sokuji_sidecar'], {
         cwd: path.join(__dirname, '..', 'sidecar'), env,
       });
