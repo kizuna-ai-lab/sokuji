@@ -33,6 +33,9 @@ def download_specs(model_id):
         return {"repos": [model_id, f"Helsinki-NLP/{name}"], "urls": []}
     if "whisper" in model_id:
         return {"repos": [f"Systran/faster-whisper-{_whisper_size(model_id)}"], "urls": []}
+    if model_id.startswith("granite-speech"):
+        # Granite speech-LLM ids (catalog) live under the ibm-granite/ org on HF.
+        return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
     if model_id == "sense-voice":
         return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [VAD_URL]}
     return {"repos": [model_id], "urls": []}
@@ -138,6 +141,12 @@ async def download(model_id, send, should_cancel=None):
             files.extend((repo, f) for f in api.list_repo_files(repo))
         except Exception:
             pass
+    # Never report a no-op download as success: if a model declares repos but none
+    # could be listed (wrong/unreachable repo id, network failure), fail loudly so
+    # the renderer surfaces it — instead of returning 'ready' having fetched nothing.
+    if specs["repos"] and not files:
+        raise RuntimeError(
+            f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
     total = len(files) + len(specs["urls"])
     done = 0
     for repo, fname in files:

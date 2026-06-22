@@ -13,6 +13,33 @@ def test_download_specs_mapping():
     assert sv['repos'] == [nm.SENSE_VOICE_REPO] and len(sv['urls']) == 1
     opus = nm.download_specs('Xenova/opus-mt-zh-en')
     assert opus['repos'] == ['Xenova/opus-mt-zh-en', 'Helsinki-NLP/opus-mt-zh-en']
+    # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
+    assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
+    assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
+
+
+def test_download_raises_when_no_files_resolved(monkeypatch):
+    """A repo whose files cannot be listed must NOT silently report 'ready'.
+
+    Regression: a wrong/unreachable repo id made list_repo_files raise, which the
+    old code swallowed -> total=0 -> returned 'ready' instantly (download appeared
+    to complete with nothing fetched, then status re-read as absent)."""
+    import huggingface_hub
+
+    class _Api:
+        def list_repo_files(self, repo):
+            raise RuntimeError(f"RepositoryNotFoundError: {repo}")
+
+    monkeypatch.setattr(nm, 'download_specs', lambda m: {'repos': ['bogus/repo'], 'urls': []})
+    monkeypatch.setattr(huggingface_hub, 'HfApi', _Api)
+
+    sent = []
+
+    async def send(m):
+        sent.append(m)
+
+    with pytest.raises(Exception):
+        asyncio.run(nm.download('bogus-model', send))
 
 
 def test_status_handler_shape(monkeypatch):
