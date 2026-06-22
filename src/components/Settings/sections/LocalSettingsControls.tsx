@@ -55,19 +55,22 @@ export const SpeechModeControl: React.FC<{
   value: SpeechMode;
   onChange: (mode: SpeechMode) => void;
   disabled: boolean;
-}> = ({ value, onChange, disabled }) => {
+  /** Tooltip body. Defaults to the local-VAD description; providers with a
+   *  different turn-detection backend (gemini, ast2) pass their own. */
+  tooltip?: string;
+}> = ({ value, onChange, disabled, tooltip }) => {
   const { t } = useTranslation();
   const options: Array<[SpeechMode, string]> = [
     ['Auto', t('settings.auto')],
     ['Push-to-Talk', t('settings.pushToTalk')],
     ['Push-to-Translate', t('settings.pushToTranslate')],
   ];
-  const tooltip = `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`;
+  const tooltipContent = tooltip ?? `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`;
   return (
     <div className="settings-section turn-detection-section" id="turn-detection-section">
       <h2>
         {t('settings.speechMode')}
-        <Tooltip content={tooltip} position="top">{helpIcon}</Tooltip>
+        <Tooltip content={tooltipContent} position="top">{helpIcon}</Tooltip>
       </h2>
       <div className="setting-item">
         <div className="turn-detection-options">

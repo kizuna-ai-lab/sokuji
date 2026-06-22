@@ -1085,73 +1085,23 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     return (
-      <div className="settings-section" id="gemini-vad-section">
-        <h2>
-          {t('settings.speechMode')}
-          <Tooltip
-            content={`${t('settings.geminiVadTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
-        </h2>
-        <div className="setting-item">
-          <div className="turn-detection-options">
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Auto') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Auto',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Auto' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.auto')}
-            </button>
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Push-to-Talk') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Push-to-Talk',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.pushToTalk')}
-            </button>
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Push-to-Translate') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Push-to-Translate',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Translate' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.pushToTranslate')}
-            </button>
-          </div>
-        </div>
+      <>
+        <SpeechModeControl
+          value={geminiSettings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: geminiSettings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateGeminiSettings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+          tooltip={`${t('settings.geminiVadTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
+        />
 
         {geminiSettings.turnDetectionMode === 'Auto' && (
+          <div className="settings-section" id="gemini-vad-section">
           <>
             <div className="setting-item">
               <div className="setting-label">
@@ -1263,8 +1213,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               />
             </div>
           </>
+          </div>
         )}
-      </div>
+      </>
     );
   };
 
@@ -1657,72 +1608,19 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        <div className="settings-section turn-detection-section" id="turn-detection-section">
-          <h2>
-            {t('settings.speechMode')}
-            <Tooltip
-              content={`${t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="turn-detection-options">
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Auto') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Auto',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Auto' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.auto')}
-              </button>
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Talk') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Talk',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Push-to-Talk' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTalk')}
-              </button>
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Translate') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Translate',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Push-to-Translate' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTranslate')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SpeechModeControl
+          value={ast2Settings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: ast2Settings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateAst2Settings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+          tooltip={`${t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
+        />
 
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
