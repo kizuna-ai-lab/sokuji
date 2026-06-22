@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, HardDrive, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
 import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
@@ -17,22 +17,9 @@ import {
   useNativeModelProgress,
   useNativeModelSizes,
 } from '../../../stores/nativeModelStore';
+import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 
 type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
-
-// Collapsible per-stage group — mirrors ModelGroup in ModelManagementSection.tsx.
-const NativeModelGroup: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
-  const [expanded, setExpanded] = useState(true);
-  return (
-    <div className="model-group">
-      <div className="model-group__header" onClick={() => setExpanded(!expanded)}>
-        <span className="model-group__chevron">{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-        <h3 className="model-group__title">{title}</h3>
-      </div>
-      {expanded && <div className="model-group__list">{children}</div>}
-    </div>
-  );
-};
 
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
 const NativeModelCard: React.FC<{
@@ -178,7 +165,6 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     asrModel: false, translationModel: false, ttsModel: false,
   });
   const [showAllAsr, setShowAllAsr] = useState(false);
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage), [settings.sourceLanguage]);
   const asrIncompatibleCards = useMemo(
@@ -238,31 +224,18 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
-  // Render cards split into Recommended / Others sub-groups (like ModelManagementSection).
-  const renderCards = (cards: NativeModelCardSpec[], isSelected: (c: NativeModelCardSpec) => boolean, field: Stage) => {
-    const card = (c: NativeModelCardSpec) => (
-      <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
-        selected={isSelected(c)} autoSelected={autoSelectedStages[field]}
-        onSelect={() => selectCard(field, c.selectId)} />
-    );
-    const recommended = cards.filter((c) => c.recommended);
-    const others = cards.filter((c) => !c.recommended);
-    if (recommended.length === 0) return <>{cards.map(card)}</>;
-    return (
-      <>
-        <div className="model-subgroup">
-          <div className="model-subgroup__label"><Star size={11} />{t('models.recommendedGroup', 'Recommended')}</div>
-          {recommended.map(card)}
-        </div>
-        {others.length > 0 && (
-          <div className="model-subgroup">
-            <div className="model-subgroup__label">{t('models.othersGroup', 'Others')}</div>
-            {others.map(card)}
-          </div>
-        )}
-      </>
-    );
-  };
+  // Recommended / Others split via the shared primitive; cards stay native-specific.
+  const renderCards = (cards: NativeModelCardSpec[], isSelected: (c: NativeModelCardSpec) => boolean, field: Stage) => (
+    <RecommendedOthers
+      items={cards}
+      isRecommended={(c) => !!c.recommended}
+      renderItem={(c) => (
+        <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
+          selected={isSelected(c)} autoSelected={autoSelectedStages[field]}
+          onSelect={() => selectCard(field, c.selectId)} />
+      )}
+    />
+  );
 
   // Storage footer: bytes used ≈ sum of download sizes for cached models (deduped by repo id).
   const usedBytes = useMemo(() => {
@@ -282,7 +255,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     <div id="model-management-section" className="settings-section model-management-section">
       <h2>{t('models.management', 'Models')}</h2>
 
-      <NativeModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+      <ModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
         {asrIncompatibleCards.length > 0 && (
           <>
@@ -299,13 +272,13 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             ))}
           </>
         )}
-      </NativeModelGroup>
+      </ModelGroup>
 
-      <NativeModelGroup title={t('models.translationModels', 'Translation')}>
+      <ModelGroup title={t('models.translationModels', 'Translation')}>
         {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
-      </NativeModelGroup>
+      </ModelGroup>
 
-      <NativeModelGroup title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
+      <ModelGroup title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
         {ttsCards.length > 0 ? (
           renderCards(ttsCards, (c) => ttsSelected(c.selectId), 'ttsModel')
         ) : (
@@ -314,44 +287,14 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
           </div>
         )}
-      </NativeModelGroup>
+      </ModelGroup>
 
-      <div className="model-management__storage">
-        <HardDrive size={14} />
-        <span>{t('models.storageUsed', 'Storage: {{size}} MB used', { size: usedMb })}</span>
-        {readyIds.length > 0 && (
-          confirmClearAll ? (
-            <div className="model-management__clear-confirm">
-              <span className="model-management__clear-confirm-text">
-                {t('models.confirmClearAll', 'Delete all models?')}
-              </span>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--yes"
-                onClick={async () => { setConfirmClearAll(false); await Promise.all(readyIds.map((id) => deleteModel(id))); }}
-                disabled={isSessionActive}
-              >
-                {t('models.confirmYes', 'Yes')}
-              </button>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--no"
-                onClick={() => setConfirmClearAll(false)}
-              >
-                {t('models.confirmNo', 'No')}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="model-management__clear-all"
-              onClick={() => setConfirmClearAll(true)}
-              disabled={isSessionActive}
-              title={t('models.clearAll', 'Clear all models')}
-            >
-              <Trash2 size={12} />
-              {t('models.clearAll', 'Clear all')}
-            </button>
-          )
-        )}
-      </div>
+      <ModelStorageFooter
+        usedMb={usedMb}
+        hasModels={readyIds.length > 0}
+        onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id)))}
+        disabled={isSessionActive}
+      />
     </div>
   );
 };
