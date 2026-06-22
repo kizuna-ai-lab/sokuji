@@ -205,6 +205,8 @@ def test_transformers_load_and_transcribe(monkeypatch):
     assert out.text == "the tribal chieftain"   # decoded + stripped
     assert "<|audio|>" in cap["chat"][-1]["content"]   # audio placeholder in the user prompt
     assert cap["generate_kw"]["do_sample"] is False
+    assert cap["generate_kw"]["num_beams"] == 1
+    assert cap["slice"] == (0, slice(4, None))   # decodes only the new tokens after the 4-token prompt
     b.unload()
     assert not b.is_loaded
 
