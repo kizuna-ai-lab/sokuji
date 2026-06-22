@@ -167,6 +167,12 @@ export function hardwareGated(info: NativeModelInfo | undefined): boolean {
   return !!info && info.tiers.length > 0 && !info.tiers.some((t) => t.available);
 }
 
+/** Human label for a measured RTF (process-time / audio-seconds): how many times
+ *  faster than real-time. rtf 0.015 → "67× realtime". */
+export function formatRtf(rtf: number): string {
+  return `${Math.round(1 / rtf)}× realtime`;
+}
+
 /** Display label for a hardware tier string from the sidecar models_catalog. */
 export function tierLabel(tier: string): { label: string; accel: boolean } {
   switch (tier) {

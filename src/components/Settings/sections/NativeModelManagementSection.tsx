@@ -11,6 +11,7 @@ import {
   tierLabel,
   hardwareGated,
   gpuTierAvailable,
+  formatRtf,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -20,6 +21,7 @@ import {
   useNativeModelStatuses,
   useNativeModelProgress,
   useNativeModelSizes,
+  useNativeAsrResolved,
 } from '../../../stores/nativeModelStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 
@@ -43,6 +45,7 @@ const NativeModelCard: React.FC<{
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const noDownload = spec.downloadId === null;
+  const resolved = useNativeAsrResolved();
   const catalog = useNativeCatalog();
   const info = noDownload ? undefined : catalog[spec.downloadId as string];
   const activeTier = info?.tiers.find((x) => x.available) ?? info?.tiers[0];
@@ -92,6 +95,12 @@ const NativeModelCard: React.FC<{
                   </span>
                 );
               })()}
+              {resolved && resolved.model === spec.selectId && (
+                <span className="model-card__lang-tag">
+                  <Zap size={10} />{tierLabel(resolved.device === 'cpu' ? 'cpu' : `gpu-${resolved.device}`).label}
+                  {resolved.rtf !== undefined ? ` · ${formatRtf(resolved.rtf)}` : ''}
+                </span>
+              )}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
               {spec.recommended && (
                 <span className="model-card__recommended-badge">
@@ -281,7 +290,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           <span className="model-group__device-label">{t('models.computeDevice', 'Compute device')}</span>
           <select
             className="select-dropdown"
-            value={settings.asrDevice}
+            value={settings.asrDevice === 'cuda' && !gpuTierAvailable(catalog) ? 'auto' : settings.asrDevice}
             disabled={isSessionActive}
             onChange={(e) => update({ asrDevice: e.target.value as 'auto' | 'cpu' | 'cuda' })}
           >

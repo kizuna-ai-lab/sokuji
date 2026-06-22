@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -196,5 +196,11 @@ describe('nativeCatalog', () => {
       tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
     expect(hardwareGated({ id: 's', name: 'S', languages: ['en'], recommended: false,
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } as any)).toBe(false);              // CPU floor
+  });
+
+  it('formatRtf renders a realtime multiple', () => {
+    expect(formatRtf(0.5)).toBe('2× realtime');
+    expect(formatRtf(0.015)).toBe('67× realtime');
+    expect(formatRtf(1)).toBe('1× realtime');
   });
 });
