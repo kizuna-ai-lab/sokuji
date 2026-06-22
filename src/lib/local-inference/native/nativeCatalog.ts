@@ -170,6 +170,7 @@ export function hardwareGated(info: NativeModelInfo | undefined): boolean {
 /** Human label for a measured RTF (process-time / audio-seconds): how many times
  *  faster than real-time. rtf 0.015 → "67× realtime". */
 export function formatRtf(rtf: number): string {
+  if (!(rtf > 0) || !Number.isFinite(rtf)) return 'realtime';
   return `${Math.round(1 / rtf)}× realtime`;
 }
 

@@ -202,5 +202,6 @@ describe('nativeCatalog', () => {
     expect(formatRtf(0.5)).toBe('2× realtime');
     expect(formatRtf(0.015)).toBe('67× realtime');
     expect(formatRtf(1)).toBe('1× realtime');
+    expect(formatRtf(0)).toBe('realtime');
   });
 });
