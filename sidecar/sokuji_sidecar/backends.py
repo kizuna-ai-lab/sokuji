@@ -48,6 +48,7 @@ class CTranslate2Backend:
         self._m = None
 
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._m = None
         try:
             from faster_whisper import WhisperModel
             self._m = WhisperModel(model_ref, device=device, compute_type=compute_type)
@@ -77,6 +78,7 @@ class SherpaBackend:
         self._rec = None
 
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._rec = None
         try:
             import sherpa_onnx
             from huggingface_hub import snapshot_download

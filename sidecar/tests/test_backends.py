@@ -109,7 +109,7 @@ def test_sherpa_load_and_transcribe(monkeypatch):
     assert cap["from_sense_voice"]["model"].endswith("/model.int8.onnx")
     out = b.transcribe(np.zeros(16000, np.float32), None)
     assert out.text == "konnichiwa" and cap["decoded"] is True
-    assert cap["fed"][0] == 16000
+    assert cap["fed"][0] == 16000 and cap["fed"][1] == 16000
 
 
 def test_sherpa_load_failure_raises(monkeypatch):
