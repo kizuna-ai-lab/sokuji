@@ -254,8 +254,8 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
     accel.probe(force=True)
-    # seed the cache: gpu slower than cpu for whisper-tiny on THIS machine's fingerprint
-    fp = accel.probe().fingerprint
+    # seed the cache keyed by the machine we resolve for (m.fingerprint == "test")
+    fp = m.fingerprint
     accel.bench_save({
         accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
         accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,

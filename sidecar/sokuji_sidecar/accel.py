@@ -141,7 +141,7 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
     m = machine or probe()
-    fp = probe().fingerprint
+    fp = m.fingerprint
     cache = bench_load()
     bench = {}
     for d in model.deployments:
