@@ -101,3 +101,60 @@ class SherpaBackend:
     @property
     def is_loaded(self) -> bool:
         return self._rec is not None
+
+
+_GRANITE_SYSTEM = ("Knowledge Cutoff Date: April 2024.\n"
+                   "You are Granite, developed by IBM. You are a helpful AI assistant")
+_GRANITE_ASR_PROMPT = "<|audio|> can you transcribe the speech into a written format?"
+
+
+@register_backend
+class TransformersBackend:
+    """HuggingFace transformers speech-LLM (Granite Speech 4.1). model_ref is the
+    HF repo id; GPU-tier (bf16). Loaded via .to(device) (no accelerate). The
+    Granite chat template is encapsulated here; a future model would add its own."""
+    NAME = "transformers"
+
+    def __init__(self):
+        self._model = None
+        self._proc = None
+        self._device = "cpu"
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._proc = None
+        try:
+            import torch
+            from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
+            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float16
+            self._proc = AutoProcessor.from_pretrained(model_ref)
+            self._model = AutoModelForSpeechSeq2Seq.from_pretrained(
+                model_ref, dtype=dtype).to(device).eval()
+            self._device = device
+        except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver handles
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        import torch
+        tok = self._proc.tokenizer
+        chat = [{"role": "system", "content": _GRANITE_SYSTEM},
+                {"role": "user", "content": _GRANITE_ASR_PROMPT}]
+        ptext = tok.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+        inputs = self._proc(ptext, samples, device=self._device, return_tensors="pt").to(self._device)
+        with torch.inference_mode():
+            out = self._model.generate(**inputs, max_new_tokens=256, do_sample=False, num_beams=1)
+        text = tok.decode(out[0, inputs["input_ids"].shape[-1]:], skip_special_tokens=True)
+        return AsrResult(text.strip(), language)
+
+    def unload(self) -> None:
+        self._model = None
+        self._proc = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None

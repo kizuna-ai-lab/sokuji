@@ -1,3 +1,4 @@
+import contextlib
 import sys
 import types
 
@@ -121,3 +122,95 @@ def test_sherpa_load_failure_raises(monkeypatch):
     b = backends.make_backend("sherpa")
     with pytest.raises(backends.BackendLoadError):
         b.load("bad/repo", "cpu", "int8")
+
+
+def _install_fake_transformers(monkeypatch, *, fail=False):
+    cap = {}
+
+    class FakeIds:
+        shape = (1, 4)  # prompt length 4
+
+    class FakeInputs(dict):
+        def to(self, device):
+            cap["to_device"] = device
+            return self
+
+    class FakeTok:
+        def apply_chat_template(self, chat, tokenize, add_generation_prompt):
+            cap["chat"] = chat
+            return "PROMPT_TEXT"
+        def decode(self, tokens, skip_special_tokens=True):
+            return "  the tribal chieftain  "
+
+    class FakeProc:
+        tokenizer = FakeTok()
+        def __call__(self, ptext, samples, device, return_tensors):
+            cap["proc_call"] = (ptext, len(samples), device, return_tensors)
+            return FakeInputs({"input_ids": FakeIds()})
+
+    class FakeOut:
+        def __getitem__(self, idx):  # out[0, 4:]
+            cap["slice"] = idx
+            return ["a", "b"]
+
+    class FakeModel:
+        def to(self, device):
+            cap["model_device"] = device
+            return self
+        def eval(self):
+            return self
+        def generate(self, **kw):
+            cap["generate_kw"] = kw
+            return FakeOut()
+
+    class FakeAutoProcessor:
+        @staticmethod
+        def from_pretrained(repo):
+            if fail:
+                raise RuntimeError("model not found")
+            cap["proc_repo"] = repo
+            return FakeProc()
+
+    class FakeAutoModel:
+        @staticmethod
+        def from_pretrained(repo, dtype):
+            cap["model_repo"] = repo
+            cap["dtype"] = dtype
+            return FakeModel()
+
+    tmod = types.ModuleType("transformers")
+    tmod.AutoProcessor = FakeAutoProcessor
+    tmod.AutoModelForSpeechSeq2Seq = FakeAutoModel
+    monkeypatch.setitem(sys.modules, "transformers", tmod)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.bfloat16 = "BF16"
+    torch_mod.float16 = "F16"
+    torch_mod.inference_mode = contextlib.nullcontext
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None, is_available=lambda: True)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_transformers_load_and_transcribe(monkeypatch):
+    cap = _install_fake_transformers(monkeypatch)
+    b = backends.make_backend("transformers")
+    assert not b.is_loaded
+    b.load("ibm-granite/granite-speech-4.1-2b", "cuda", "bfloat16")
+    assert b.is_loaded
+    assert cap["model_repo"] == "ibm-granite/granite-speech-4.1-2b"
+    assert cap["dtype"] == "BF16"          # bfloat16 → torch.bfloat16
+    assert cap["model_device"] == "cuda"
+    out = b.transcribe(np.zeros(16000, np.float32), "en")
+    assert out.text == "the tribal chieftain"   # decoded + stripped
+    assert "<|audio|>" in cap["chat"][-1]["content"]   # audio placeholder in the user prompt
+    assert cap["generate_kw"]["do_sample"] is False
+    b.unload()
+    assert not b.is_loaded
+
+
+def test_transformers_load_failure_raises(monkeypatch):
+    _install_fake_transformers(monkeypatch, fail=True)
+    b = backends.make_backend("transformers")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("bad/repo", "cuda", "bfloat16")
