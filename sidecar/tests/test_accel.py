@@ -140,3 +140,21 @@ def test_hardware_info_handler(monkeypatch):
     assert reply["accelAvailable"] is True
     assert reply["gpus"][0]["name"] == "RTX 4070"
     assert "sherpa" in reply["backendsInstalled"]
+
+
+def test_models_catalog_handler_cpu_machine(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "models_catalog", "id": 3}), None, None))
+    assert reply["type"] == "models_catalog_result" and reply["id"] == 3
+    by_id = {m["id"]: m for m in reply["models"]}
+    assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
+    sv_tiers = by_id["sense-voice"]["tiers"]
+    assert sv_tiers == [{"tier": "cpu", "backend": "sherpa", "available": True}]
+    assert by_id["whisper-large-v3"]["recommended"] is True

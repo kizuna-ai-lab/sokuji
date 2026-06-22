@@ -169,5 +169,23 @@ async def _h_hardware_info(state, msg, _b, conn=None):
             "accelAvailable": bool(m.nvidia or m.apple_silicon or m.dml_adapters)}, None
 
 
+async def _h_models_catalog(state, msg, _b, conn=None):
+    from . import catalog
+    m = probe()
+    wanted = msg.get("models")
+    models = catalog.asr_models()
+    if wanted:
+        models = [x for x in models if x.id in wanted]
+    out = []
+    for mdl in models:
+        tiers = [{"tier": d.tier, "backend": d.backend,
+                  "available": d.backend in m.installed and _tier_available(d.tier, m)}
+                 for d in mdl.deployments]
+        out.append({"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
+                    "recommended": mdl.recommended, "tiers": tiers})
+    return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
+
+
 def register(state: dict):
-    state.setdefault("handlers", {}).update({"hardware_info": _h_hardware_info})
+    state.setdefault("handlers", {}).update(
+        {"hardware_info": _h_hardware_info, "models_catalog": _h_models_catalog})
