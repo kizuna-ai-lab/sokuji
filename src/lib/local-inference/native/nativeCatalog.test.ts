@@ -157,6 +157,7 @@ describe('nativeCatalog', () => {
     expect(tierLabel('gpu-cuda')).toEqual({ label: 'GPU · CUDA', accel: true });
     expect(tierLabel('gpu-metal')).toEqual({ label: 'GPU · Metal', accel: true });
     expect(tierLabel('gpu-dml')).toEqual({ label: 'GPU · DirectML', accel: true });
+    expect(tierLabel('gpu-vulkan')).toEqual({ label: 'GPU · Vulkan', accel: true });
     // unknown tier → echo the raw string, not accelerated
     expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
   });

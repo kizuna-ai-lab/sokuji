@@ -28,6 +28,9 @@ class AsrModel:
     sort_order: int = 99
 
 
+# NOTE: `sort_order` is advisory and NOT sent over the models_catalog wire
+# (NativeModelInfo omits it); the renderer owns card ordering via nativeCatalog.ts.
+# So renderer and sidecar sort_order values may differ harmlessly.
 ASR_MODELS: list[AsrModel] = [
     AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
              (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
