@@ -61,7 +61,9 @@ def test_ctranslate2_load_and_transcribe(monkeypatch):
     assert b.is_loaded and cap["args"] == ("large-v3", "cpu", "int8")
     out = b.transcribe(np.zeros(160, np.float32), "en")
     assert out.text == "hello"
-    assert cap["transcribe"][1] == "en" and cap["transcribe"][3] is False
+    assert cap["transcribe"][1] == "en" and cap["transcribe"][2] == 1 and cap["transcribe"][3] is False
+    b.unload()
+    assert not b.is_loaded
 
 
 def test_ctranslate2_load_failure_raises_backendloaderror(monkeypatch):
@@ -110,6 +112,8 @@ def test_sherpa_load_and_transcribe(monkeypatch):
     out = b.transcribe(np.zeros(16000, np.float32), None)
     assert out.text == "konnichiwa" and cap["decoded"] is True
     assert cap["fed"][0] == 16000 and cap["fed"][1] == 16000
+    b.unload()
+    assert not b.is_loaded
 
 
 def test_sherpa_load_failure_raises(monkeypatch):
