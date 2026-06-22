@@ -24,7 +24,8 @@ class FakeWS {
 
 beforeEach(() => {
   (globalThis as any).WebSocket = FakeWS as any;
-  (globalThis as any).window = { electron: { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) } };
+  (globalThis as any).window = (globalThis as any).window ?? {};
+  (globalThis as any).window.electron = { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) };
   useNativeModelStore.setState({ catalog: {} });
 });
 
