@@ -130,7 +130,11 @@ async def _h_asr_init(state, msg, _b, conn=None):
                   msg.get("vadMinSpeechDuration"), msg.get("device", "auto"))
     if conn is not None:
         conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
-    return {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}, None
+    reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
+    resolved = getattr(eng, "resolved", None)
+    if resolved:
+        reply.update(resolved)  # backend, device, computeType
+    return reply, None
 
 
 async def _h_asr_flush(state, msg, _b, conn=None):

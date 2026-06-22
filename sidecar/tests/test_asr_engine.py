@@ -159,6 +159,31 @@ def test_drain_routes_through_resolved_backend():
     assert out[0]["durationMs"] == 1000  # 16000 samples / 16000 Hz * 1000ms
 
 
+class _ResolvedAsr(FakeAsr):
+    def init(self, *a, **k):
+        ms = super().init(*a, **k)
+        self.resolved = {"backend": "ctranslate2", "device": "cuda", "computeType": "float16"}
+        return ms
+
+
+def test_ready_includes_resolved_plan_when_present():
+    st = {"asr_engine": _ResolvedAsr(), "handlers": {}}
+    asr_engine.register(st)
+    conn = server.Conn(_FakeWS())
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "asr_init", "id": 1}), None, conn))
+    assert reply["backend"] == "ctranslate2"
+    assert reply["device"] == "cuda" and reply["computeType"] == "float16"
+
+
+def test_ready_unchanged_when_engine_has_no_resolved():
+    # The plain FakeAsr (no `resolved`) must still get the minimal ready shape.
+    st, conn = make()
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "asr_init", "id": 2}), None, conn))
+    assert reply == {"type": "ready", "id": 2, "loadTimeMs": 33}
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),
                     reason="set SOKUJI_RUN_FW_MODEL=1 (downloads faster-whisper model)")
 def test_real_faster_whisper_transcribes():
