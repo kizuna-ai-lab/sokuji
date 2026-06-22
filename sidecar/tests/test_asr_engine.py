@@ -14,7 +14,7 @@ class _FakeWS:
 
 class FakeAsr:
     def init(self, model_id=None, language="", sample_rate=24000,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None):
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
         self.sample_rate = sample_rate
         self.vad = (vad_threshold, vad_min_silence, vad_min_speech)
         return 33
@@ -100,6 +100,28 @@ def test_real_engine_transcribes_test_wav():
             results.append(m["text"])
     text = " ".join(results).lower()
     assert "gold" in text or "tribal" in text, f"unexpected transcript: {results!r}"
+
+
+class _FakeBackend:
+    def transcribe(self, samples, language):
+        from sokuji_sidecar.backends import AsrResult
+        return AsrResult("resolved-text")
+
+
+def test_engine_init_uses_resolver(monkeypatch):
+    from sokuji_sidecar import asr_engine as ae, accel
+    eng = ae.AsrEngine()
+    # Stub VAD so no model/native lib is needed.
+    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
+    fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
+    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (_FakeBackend(), fake_plan, None))
+    ms = eng.init(model_id="whisper-tiny", language="en", device="auto")
+    assert isinstance(ms, int)
+    assert eng.resolved == {"backend": "ctranslate2", "device": "cpu", "computeType": "int8"}
+    # _drain uses the resolved backend's transcribe().text
+    import numpy as np
+    assert eng._backend.transcribe(np.zeros(4, np.float32), "en").text == "resolved-text"
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),

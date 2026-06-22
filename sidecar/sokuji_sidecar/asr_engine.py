@@ -44,36 +44,6 @@ def _resolve_vad_model(model_dir=None):
     return dst
 
 
-def _build_sherpa(model_id):
-    """sense-voice offline recognizer → returns recognize(samples16k_float32) -> str."""
-    import sherpa_onnx
-    from huggingface_hub import snapshot_download
-    repo = model_id or os.environ.get(
-        "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-    d = snapshot_download(repo_id=repo)
-    rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-        model=f"{d}/model.int8.onnx", tokens=f"{d}/tokens.txt", use_itn=True)
-
-    def recognize(samples16k):
-        s = rec.create_stream()
-        s.accept_waveform(TARGET_RATE, samples16k)
-        rec.decode_stream(s)
-        return s.result.text.strip()
-    return recognize
-
-
-def _build_faster_whisper(model_id, language):
-    """faster-whisper (CTranslate2) recognizer. model id like whisper-tiny / whisper-large-v3."""
-    from faster_whisper import WhisperModel
-    size = model_id.replace("faster-whisper-", "").replace("whisper-", "") or "tiny"
-    wm = WhisperModel(size, device="cpu", compute_type="int8")
-
-    def recognize(samples16k):
-        segments, _info = wm.transcribe(samples16k, language=language, beam_size=1, vad_filter=False)
-        return "".join(s.text for s in segments).strip()
-    return recognize
-
-
 class AsrEngine:
     """silero VAD segmentation + a pluggable recognizer. Feed Int16 bytes, get text per VAD segment.
 
@@ -84,19 +54,16 @@ class AsrEngine:
 
     def __init__(self):
         self._vad = None
-        self._rec = None
+        self._backend = None
+        self._language = None
+        self.resolved = None
         self._window = 512
         self._buf = np.zeros(0, np.float32)
         self._src_rate = SRC_RATE
 
-    def init(self, model_id=None, language="", sample_rate=SRC_RATE,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None):
-        self._src_rate = int(sample_rate)  # actual renderer rate (AudioContext may be 48k, not 24k)
+    def _init_vad(self, sample_rate, vad_threshold, vad_min_silence, vad_min_speech):
         import sherpa_onnx  # lazy: native lib pulled here
-        t0 = time.time()
-        # silero VAD — shared segmentation for both recognizer backends. Tunable
-        # threshold / min-silence / min-speech mirror the LOCAL_INFERENCE VAD knobs;
-        # unset values keep sherpa-onnx defaults.
+        self._src_rate = int(sample_rate)
         vad_cfg = sherpa_onnx.VadModelConfig()
         vad_cfg.silero_vad.model = _resolve_vad_model()
         if vad_threshold is not None:
@@ -109,12 +76,18 @@ class AsrEngine:
         self._window = vad_cfg.silero_vad.window_size
         self._buf = np.zeros(0, np.float32)
         self._vad = sherpa_onnx.VoiceActivityDetector(vad_cfg, buffer_size_in_seconds=30)
-        # recognizer is pluggable: model id containing "whisper" → faster-whisper, else sense-voice
-        lang = language or None
-        if model_id and "whisper" in model_id:
-            self._recognize = _build_faster_whisper(model_id, lang)
-        else:
-            self._recognize = _build_sherpa(model_id)
+
+    def init(self, model_id=None, language="", sample_rate=SRC_RATE,
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+        from . import accel
+        t0 = time.time()
+        self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
+        # Resolve the fastest available backend+device; CPU floor guaranteed.
+        plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+        self._backend, plan, _notice = accel.load_with_fallback(plans)
+        self._language = language or None
+        self.resolved = {"backend": plan.backend, "device": plan.device,
+                         "computeType": plan.compute_type}
         return int((time.time() - t0) * 1000)
 
     def _drain(self):
@@ -123,7 +96,7 @@ class AsrEngine:
             seg = self._vad.front
             samples = np.asarray(seg.samples, dtype=np.float32)
             t0 = time.time()
-            text = self._recognize(samples)
+            text = self._backend.transcribe(samples, self._language).text
             self._vad.pop()
             if text:
                 out.append({"type": "result", "text": text,
@@ -153,7 +126,8 @@ class AsrEngine:
 async def _h_asr_init(state, msg, _b, conn=None):
     eng = state["asr_engine"]
     ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE),
-                  msg.get("vadThreshold"), msg.get("vadMinSilenceDuration"), msg.get("vadMinSpeechDuration"))
+                  msg.get("vadThreshold"), msg.get("vadMinSilenceDuration"),
+                  msg.get("vadMinSpeechDuration"), msg.get("device", "auto"))
     if conn is not None:
         conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
     return {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}, None
