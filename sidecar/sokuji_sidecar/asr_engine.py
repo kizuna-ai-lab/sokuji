@@ -86,8 +86,11 @@ class AsrEngine:
         plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
         self._backend, plan, _notice = accel.load_with_fallback(plans)
         self._language = language or None
+        rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
+        if rtf is not None:
+            self.resolved["rtf"] = round(rtf, 3)
         return int((time.time() - t0) * 1000)
 
     def _drain(self):
