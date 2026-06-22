@@ -6,6 +6,7 @@ import { NativeAsrClient } from '../../lib/local-inference/native/NativeAsrClien
 import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 
 interface Deps {
   asr?: NativeAsrClient | any;
@@ -50,11 +51,18 @@ export class LocalNativeClient implements IClient {
     });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
     await this.translate.init(config.sourceLanguage, config.targetLanguage, config.translationModelId);
-    await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
-      threshold: config.vadThreshold,
-      minSilence: config.vadMinSilenceDuration,
-      minSpeech: config.vadMinSpeechDuration,
-    }, config.asrDevice);
+    const store = useNativeModelStore.getState();
+    store.setAsrLoading(true);
+    try {
+      const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
+        threshold: config.vadThreshold,
+        minSilence: config.vadMinSilenceDuration,
+        minSpeech: config.vadMinSpeechDuration,
+      }, config.asrDevice);
+      store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf });
+    } finally {
+      store.setAsrLoading(false);
+    }
     // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
     // (Pocket) need a reference clip and stay off until a reference-voice UX.
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly

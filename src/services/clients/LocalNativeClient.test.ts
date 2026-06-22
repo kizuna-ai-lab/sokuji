@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 
 function mocks() {
   const asr: any = {
@@ -89,5 +90,34 @@ describe('LocalNativeClient', () => {
     const buf = new Int16Array(10);
     c.appendInputAudio(buf);
     expect(m.asr.feedAudio).toHaveBeenCalledWith(buf, 24000);
+  });
+});
+
+// ── Task 3: loading flag + resolved plan ──────────────────────────────────────
+
+const fakeAsr = () => ({
+  onResult: null as any, onError: null as any,
+  init: async () => ({ loadTimeMs: 5, device: 'cuda', rtf: 0.02 }),
+  feedAudio() {}, flush: async () => {}, dispose() {},
+});
+const fakeTr = () => ({ onError: null as any, init: async () => {}, translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {} });
+const fakeTts = () => ({ init: async () => {}, generate: async () => ({ samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 1 }), dispose() {} });
+
+const cfg: any = {
+  provider: 'local_native', model: 'native-asr-translate', instructions: '',
+  sourceLanguage: 'en', targetLanguage: 'ja', asrModelId: 'granite-speech-4.1-2b',
+  asrDevice: 'cuda', textOnly: true,
+};
+
+beforeEach(() => { useNativeModelStore.setState({ asrLoading: false, asrResolved: null }); });
+
+describe('LocalNativeClient session channel', () => {
+  it('stores the resolved plan and clears loading after connect', async () => {
+    const c = new LocalNativeClient({ asr: fakeAsr(), translate: fakeTr(), tts: fakeTts() });
+    c.setEventHandlers({});
+    await c.connect(cfg);
+    const st = useNativeModelStore.getState();
+    expect(st.asrLoading).toBe(false);
+    expect(st.asrResolved).toEqual({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.02 });
   });
 });
