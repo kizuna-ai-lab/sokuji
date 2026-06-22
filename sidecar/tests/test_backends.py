@@ -1,3 +1,6 @@
+import sys
+import types
+
 import numpy as np
 import pytest
 from sokuji_sidecar import backends
@@ -29,9 +32,6 @@ def test_register_and_make_returns_instance():
 def test_asr_result_defaults():
     r = backends.AsrResult("hello")
     assert r.text == "hello" and r.language is None
-
-
-import sys, types
 
 
 def _install_fake_faster_whisper(monkeypatch, *, fail=False):
