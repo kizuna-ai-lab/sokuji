@@ -163,10 +163,20 @@ export const TranslationPromptControl: React.FC<{
   /** False when the active model can't take a custom prompt (e.g. Opus-MT). */
   supported: boolean;
   disabled: boolean;
-  onChange: (patch: { useTemplateMode?: boolean; systemPrompt?: string }) => void;
-}> = ({ useTemplateMode, systemPrompt, preview, supported, disabled, onChange }) => {
+  /**
+   * Advanced-mode participant (reverse-direction) prompt. Omit entirely for
+   * providers without a participant path (LOCAL_NATIVE) — the textarea is then
+   * hidden. Empty string means "configured but blank" → falls back to the speaker
+   * prompt at resolve time (LOCAL_INFERENCE).
+   */
+  participantSystemPrompt?: string;
+  /** Unique DOM id for the preview region (distinct per provider). */
+  previewId?: string;
+  onChange: (patch: { useTemplateMode?: boolean; systemPrompt?: string; participantSystemPrompt?: string }) => void;
+}> = ({ useTemplateMode, systemPrompt, preview, supported, disabled, participantSystemPrompt, previewId = 'local-prompt-preview-content', onChange }) => {
   const { t } = useTranslation();
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  const showParticipant = participantSystemPrompt !== undefined;
   return (
     <div
       className={`settings-section system-instructions-section ${!supported ? 'disabled' : ''}`}
@@ -211,14 +221,14 @@ export const TranslationPromptControl: React.FC<{
             <span>{t('settings.preview')}</span>
             <button
               type="button" className="preview-toggle"
-              aria-expanded={previewExpanded} aria-controls="local-native-prompt-preview-content"
+              aria-expanded={previewExpanded} aria-controls={previewId}
               onClick={() => setPreviewExpanded(!previewExpanded)} disabled={disabled}
             >
               {previewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
           </div>
           {previewExpanded && (
-            <div id="local-native-prompt-preview-content" className="system-instructions-preview">
+            <div id={previewId} className="system-instructions-preview">
               <div className="preview-content">{preview}</div>
             </div>
           )}
@@ -234,6 +244,23 @@ export const TranslationPromptControl: React.FC<{
               disabled={disabled || !supported}
             />
           </div>
+          {showParticipant && (
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('settings.participantInstructions', 'Participant Instructions')}
+                  <Tooltip content={t('settings.participantInstructionsTooltip', 'System instructions for participant audio translation. Leave empty to use main instructions.')} position="top">{inlineHelpIcon}</Tooltip>
+                </span>
+              </div>
+              <textarea
+                className="system-instructions"
+                placeholder={t('settings.participantInstructionsPlaceholder', 'Leave empty to use main instructions')}
+                value={participantSystemPrompt}
+                onChange={(e) => onChange({ participantSystemPrompt: e.target.value })}
+                disabled={disabled || !supported}
+              />
+            </div>
+          )}
           <div className="setting-item">
             <span className="setting-description">
               {t('settings.localPromptNoThinkHint', 'For Qwen3 models, ` /no_think` will be automatically appended.')}
