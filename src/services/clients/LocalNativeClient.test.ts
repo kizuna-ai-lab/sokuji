@@ -109,9 +109,9 @@ const cfg: any = {
   asrDevice: 'cuda', textOnly: true,
 };
 
-beforeEach(() => { useNativeModelStore.setState({ asrLoading: false, asrResolved: null }); });
-
 describe('LocalNativeClient session channel', () => {
+  beforeEach(() => { useNativeModelStore.setState({ asrLoading: false, asrResolved: null }); });
+
   it('stores the resolved plan and clears loading after connect', async () => {
     const c = new LocalNativeClient({ asr: fakeAsr(), translate: fakeTr(), tts: fakeTts() });
     c.setEventHandlers({});
