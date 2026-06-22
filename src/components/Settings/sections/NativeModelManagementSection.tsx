@@ -10,6 +10,7 @@ import {
   pickNativeTts,
   tierLabel,
   hardwareGated,
+  gpuTierAvailable,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -169,6 +170,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const update = useUpdateLocalNative();
+  const catalog = useNativeCatalog();
   const statuses = useNativeModelStatuses();
   const sizes = useNativeModelSizes();
   const refresh = useNativeModelStore((s) => s.refresh);
@@ -275,6 +277,19 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       <h2>{t('models.management', 'Models')}</h2>
 
       <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+        <div className="model-group__device-control">
+          <span className="model-group__device-label">{t('models.computeDevice', 'Compute device')}</span>
+          <select
+            className="select-dropdown"
+            value={settings.asrDevice}
+            disabled={isSessionActive}
+            onChange={(e) => update({ asrDevice: e.target.value as 'auto' | 'cpu' | 'cuda' })}
+          >
+            <option value="auto">{t('models.deviceAuto', 'Auto')}</option>
+            <option value="cpu">{t('models.deviceCpu', 'CPU')}</option>
+            {gpuTierAvailable(catalog) && <option value="cuda">{t('models.deviceGpu', 'GPU')}</option>}
+          </select>
+        </div>
         {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
         {asrIncompatibleCards.length > 0 && (
           <>

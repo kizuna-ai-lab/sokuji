@@ -154,6 +154,12 @@ export function requiredNativeModels(
   return ids;
 }
 
+/** True when the sidecar feed reports any available non-cpu tier — i.e. this
+ *  machine has a usable GPU/NPU, so the "Force GPU" device option is meaningful. */
+export function gpuTierAvailable(catalog: Record<string, NativeModelInfo>): boolean {
+  return Object.values(catalog).some((m) => m.tiers.some((t) => t.available && t.tier !== 'cpu'));
+}
+
 /** A model is hardware-gated when the sidecar reports tiers for it but NONE are
  *  available on this machine (e.g. a GPU-only model with no GPU). Unknown (no
  *  catalog entry yet) is NOT gated — we don't grey a card before the feed loads. */

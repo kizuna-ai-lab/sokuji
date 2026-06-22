@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -175,6 +175,16 @@ describe('nativeCatalog', () => {
     expect(tierLabel('gpu-vulkan')).toEqual({ label: 'GPU · Vulkan', accel: true });
     // unknown tier → echo the raw string, not accelerated
     expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
+  });
+
+  it('gpuTierAvailable reflects any available non-cpu tier in the feed', () => {
+    expect(gpuTierAvailable({})).toBe(false);
+    expect(gpuTierAvailable({ a: { id: 'a', name: 'A', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } } as any)).toBe(false);
+    expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } } as any)).toBe(true);
+    expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } } as any)).toBe(false);
   });
 
   it('hardwareGated is true only when a model has tiers but none are available', () => {
