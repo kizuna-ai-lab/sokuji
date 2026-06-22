@@ -71,12 +71,11 @@
     // noise-suppression section, so we restyle locally with the same visuals.
     &__device-control {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      gap: 6px;
       margin: 6px 0 8px;
 
       .segmented-control {
-        flex: 1;
         display: flex;
         border-radius: vars.$radius-md;
         overflow: hidden;
@@ -115,9 +114,10 @@
     }
 
     &__device-label {
+      display: flex;
+      align-items: center;
       font-size: vars.$font-caption;
       color: vars.$text-muted;
-      white-space: nowrap;
     }
   }
 

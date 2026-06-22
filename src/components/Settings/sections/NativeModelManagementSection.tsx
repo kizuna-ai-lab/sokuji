@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
+import Tooltip from '../../Tooltip/Tooltip';
 import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
@@ -287,7 +288,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
       <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         <div className="model-group__device-control">
-          <span className="model-group__device-label">{t('models.computeDevice', 'Compute device')}</span>
+          <div className="model-group__device-label">
+            {t('models.computeDevice', 'Compute device')}
+            <Tooltip
+              content={t('models.computeDeviceTooltip', 'Which device runs the speech model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+            </Tooltip>
+          </div>
           {(() => {
             const gpuAvail = gpuTierAvailable(catalog);
             // Coerce a stale 'cuda' to 'auto' for display when no GPU tier is available.
