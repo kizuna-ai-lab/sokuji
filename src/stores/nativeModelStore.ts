@@ -37,6 +37,12 @@ interface NativeModelStore {
    * changed fields (null if nothing changed) — the caller applies them to settings.
    */
   autoSelect: (src: string, tgt: string, current: NativeSelection) => Partial<NativeSelection> | null;
+  /** True while a native ASR session is loading its model (init→ready). */
+  asrLoading: boolean;
+  /** The resolved ASR plan from the last session `ready` (device + measured rtf). */
+  asrResolved: { model: string; device: string; rtf?: number } | null;
+  setAsrLoading: (v: boolean) => void;
+  setAsrResolved: (r: { model: string; device: string; rtf?: number } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
@@ -58,6 +64,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   sizes: {},
   catalog: {},
   modelPreferences: {},
+  asrLoading: false,
+  asrResolved: null,
 
   refreshCatalog: async (models) => {
     try {
@@ -142,9 +150,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     if (final.asrModel) get().rememberModels(src, tgt, final);
     return updates;
   },
+
+  setAsrLoading: (v) => set({ asrLoading: v }),
+  setAsrResolved: (r) => set({ asrResolved: r }),
 }));
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
+export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
+export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);

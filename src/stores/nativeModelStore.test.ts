@@ -60,3 +60,16 @@ describe('nativeModelStore.refreshCatalog', () => {
     expect(cat['sense-voice'].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
   });
 });
+
+describe('nativeModelStore asr session channel', () => {
+  it('tracks asrLoading and the resolved plan', () => {
+    const s = useNativeModelStore.getState();
+    s.setAsrLoading(true);
+    expect(useNativeModelStore.getState().asrLoading).toBe(true);
+    s.setAsrResolved({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.015 });
+    s.setAsrLoading(false);
+    const st = useNativeModelStore.getState();
+    expect(st.asrLoading).toBe(false);
+    expect(st.asrResolved).toEqual({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.015 });
+  });
+});
