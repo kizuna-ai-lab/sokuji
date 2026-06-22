@@ -276,3 +276,33 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
     })
     plans = accel.resolve("whisper-tiny", override="cuda", machine=m)
     assert plans[0].device == "cuda"  # explicit override beats cache demotion
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
+def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # don't touch the user cache
+    accel.probe(force=True)
+    plans = accel.resolve("whisper-tiny")
+    assert plans[0].device == "cuda", f"expected cuda first, got {[p.device for p in plans]}"
+    backend, plan, _notice = accel.load_with_fallback(plans)
+    try:
+        assert plan.device == "cuda"
+        rtf = accel.measure_rtf(backend, plan, "whisper-tiny", accel.probe(), force=True)
+        assert rtf is not None and rtf < 1.0, f"GPU should be faster than realtime, rtf={rtf}"
+    finally:
+        backend.unload()
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
+def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    accel.probe(force=True)
+    plans = accel.resolve("whisper-tiny", override="cpu")
+    assert plans[0].device == "cpu"
+    backend, plan, _notice = accel.load_with_fallback(plans)
+    try:
+        assert plan.device == "cpu"
+    finally:
+        backend.unload()
