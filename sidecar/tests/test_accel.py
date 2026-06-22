@@ -220,3 +220,45 @@ def test_bench_key_is_stable_and_distinct():
     a = accel._bench_key("fp", "m", "ctranslate2", "cuda", "float16")
     b = accel._bench_key("fp", "m", "ctranslate2", "cpu", "int8")
     assert a != b and a == accel._bench_key("fp", "m", "ctranslate2", "cuda", "float16")
+
+
+def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+
+    class _FakeBackend:
+        def transcribe(self, samples, language):
+            from sokuji_sidecar.backends import AsrResult
+            return AsrResult("")  # near-instant → small rtf
+
+    m = _machine()
+    plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
+    rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-tiny", m)
+    assert rtf is not None and rtf >= 0.0
+    # cached: a second call returns the same value without re-running
+    cache = accel.bench_load()
+    assert accel._bench_key(m.fingerprint, "whisper-tiny", "ctranslate2", "cpu", "int8") in cache
+
+
+def test_apply_bench_demotes_slow_gpu():
+    cpu = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
+    gpu = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
+    # gpu measured SLOWER than cpu → demote gpu below cpu
+    bench = {("ctranslate2", "cuda", "float16"): 0.9, ("ctranslate2", "cpu", "int8"): 0.4}
+    assert [p.device for p in accel._apply_bench([gpu, cpu], bench)] == ["cpu", "cuda"]
+    # gpu measured FASTER → keep gpu first
+    bench2 = {("ctranslate2", "cuda", "float16"): 0.1, ("ctranslate2", "cpu", "int8"): 0.4}
+    assert [p.device for p in accel._apply_bench([gpu, cpu], bench2)] == ["cuda", "cpu"]
+
+
+def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    accel.probe(force=True)
+    # seed the cache: gpu slower than cpu for whisper-tiny on THIS machine's fingerprint
+    fp = accel.probe().fingerprint
+    accel.bench_save({
+        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
+        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+    })
+    plans = accel.resolve("whisper-tiny", machine=m)
+    assert plans[0].device == "cpu"  # demoted: cpu now leads

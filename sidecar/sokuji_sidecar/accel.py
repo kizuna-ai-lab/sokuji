@@ -9,6 +9,8 @@ import platform
 import time
 from dataclasses import dataclass
 
+import numpy as np
+
 from .backends import make_backend, BackendLoadError
 
 
@@ -117,10 +119,10 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     return False
 
 
-def resolve_deployments(model, machine: Machine, override: str = "auto") -> list[Plan]:
+def resolve_deployments(model, machine: Machine, override: str = "auto", bench: dict | None = None) -> list[Plan]:
     """Ordered Plans for `model` on `machine`: filter to runnable, rank by tier
-    (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front. The
-    CPU floor (if declared) always survives as the last resort."""
+    (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front, then
+    the bench cache demotes a proven-slow GPU plan. CPU floor always survives."""
     usable = [d for d in model.deployments
               if d.backend in machine.installed and _tier_available(d.tier, machine)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
@@ -128,8 +130,9 @@ def resolve_deployments(model, machine: Machine, override: str = "auto") -> list
         pinned = [d for d in usable if TIER_DEVICE.get(d.tier) == override]
         rest = [d for d in usable if TIER_DEVICE.get(d.tier) != override]
         usable = pinned + rest
-    return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
-            for d in usable]
+    plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+             for d in usable]
+    return _apply_bench(plans, bench) if bench else plans
 
 
 def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
@@ -137,7 +140,16 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    plans = resolve_deployments(model, machine or probe(), override)
+    m = machine or probe()
+    fp = probe().fingerprint
+    cache = bench_load()
+    bench = {}
+    for d in model.deployments:
+        device = TIER_DEVICE[d.tier]
+        key = _bench_key(fp, model_id, d.backend, device, d.compute_type)
+        if key in cache:
+            bench[(d.backend, device, d.compute_type)] = cache[key]
+    plans = resolve_deployments(model, m, override, bench=bench or None)
     if not plans:
         raise NoUsablePlan(model_id)
     return plans
@@ -190,6 +202,48 @@ def bench_save(cache: dict) -> None:
 
 def _bench_key(fingerprint: str, model_id: str, backend: str, device: str, compute_type: str) -> str:
     return f"{fingerprint}|{model_id}|{backend}|{device}|{compute_type}"
+
+
+BENCH_SECONDS = 3.0
+
+
+def measure_rtf(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
+    """Best-effort: run a fixed synthetic clip through backend.transcribe, return
+    RTF (elapsed / audio_seconds), cache by (fingerprint, model, backend, device,
+    compute_type). One-time per key unless force. Never raises (returns None)."""
+    try:
+        key = _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        cache = bench_load()
+        if not force and key in cache:
+            return cache[key]
+        sr = 16000
+        n = int(BENCH_SECONDS * sr)
+        t = np.arange(n, dtype=np.float32) / sr
+        clip = (0.05 * np.sin(2.0 * np.pi * 220.0 * t)).astype(np.float32)
+        t0 = time.time()
+        backend.transcribe(clip, None)
+        rtf = (time.time() - t0) / BENCH_SECONDS
+        cache[key] = rtf
+        bench_save(cache)
+        return rtf
+    except Exception:
+        return None
+
+
+def _apply_bench(plans: list, bench: dict) -> list:
+    """Demote any non-cpu plan whose cached RTF is >= the cpu floor's cached RTF
+    (proven not faster than CPU). `bench` maps (backend, device, compute_type) -> rtf."""
+    if not bench:
+        return plans
+    cpu = next((p for p in plans if p.tier == "cpu"), None)
+    cpu_rtf = bench.get((cpu.backend, cpu.device, cpu.compute_type)) if cpu else None
+    if cpu_rtf is None:
+        return plans
+    fast, slow = [], []
+    for p in plans:
+        rtf = bench.get((p.backend, p.device, p.compute_type))
+        (slow if (p.tier != "cpu" and rtf is not None and rtf >= cpu_rtf) else fast).append(p)
+    return fast + slow
 
 
 async def _h_hardware_info(state, msg, _b, conn=None):
