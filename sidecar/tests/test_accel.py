@@ -1,11 +1,15 @@
 import asyncio
 import json
+import os
+import tempfile
 
 import pytest
 from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
 from sokuji_sidecar import backends
 from sokuji_sidecar import server
+
+os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
 def test_probe_assembles_machine(monkeypatch):
@@ -173,3 +177,26 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
         st, json.dumps({"type": "models_catalog", "id": 4, "models": ["sense-voice"]}), None, None))
     ids = [m["id"] for m in reply["models"]]
     assert ids == ["sense-voice"]
+
+
+def test_whisper_resolves_gpu_first_on_nvidia():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288),))
+    plans = accel.resolve("whisper-tiny", machine=m)
+    assert [p.device for p in plans] == ["cuda", "cpu"]
+    assert plans[0].compute_type == "float16" and plans[1].compute_type == "int8"
+
+
+def test_whisper_cpu_only_machine_drops_gpu():
+    plans = accel.resolve("whisper-tiny", machine=_machine())  # no nvidia
+    assert [p.device for p in plans] == ["cpu"]
+
+
+def test_whisper_cpu_override_pins_cpu_on_nvidia():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    plans = accel.resolve("whisper-tiny", override="cpu", machine=m)
+    assert plans[0].device == "cpu"
+
+
+def test_sense_voice_has_no_gpu_deployment():
+    plans = accel.resolve("sense-voice", machine=_machine(nvidia=(accel.Gpu("nvidia", "x", 0),)))
+    assert [p.device for p in plans] == ["cpu"]  # sherpa stays CPU-only even with a GPU

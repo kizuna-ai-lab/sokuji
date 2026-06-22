@@ -1,6 +1,6 @@
 """Declarative ASR model catalog: per model, which backends/hardware tiers run
 it and what artifact each needs. Pure data — adding a model is adding a row.
-Phase 0 ships CPU deployments only; GPU tiers are added in Phase 1."""
+Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; sherpa models are CPU-only."""
 import os
 from dataclasses import dataclass
 
@@ -36,14 +36,18 @@ ASR_MODELS: list[AsrModel] = [
              (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
              recommended=True, sort_order=0),
     AsrModel("whisper-large-v3", "Whisper large-v3", ("multi",),
-             (Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0),), sort_order=1),
+             (Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
+              Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0)), sort_order=1),
     AsrModel("whisper-base", "Whisper base", ("multi",),
-             (Deployment("ctranslate2", "cpu", "int8", "base", 1.0),),
+             (Deployment("ctranslate2", "gpu-cuda", "float16", "base", 1.0),
+              Deployment("ctranslate2", "cpu", "int8", "base", 1.0)),
              recommended=True, sort_order=2),
     AsrModel("whisper-small", "Whisper small", ("multi",),
-             (Deployment("ctranslate2", "cpu", "int8", "small", 1.0),), sort_order=3),
+             (Deployment("ctranslate2", "gpu-cuda", "float16", "small", 1.0),
+              Deployment("ctranslate2", "cpu", "int8", "small", 1.0)), sort_order=3),
     AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
-             (Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0),), sort_order=4),
+             (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),
+              Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0)), sort_order=4),
 ]
 
 
