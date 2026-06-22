@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, HardwareInfoResultMsg, NativeModelInfo } from './nativeProtocol';
 
 interface DownloadHandle {
   onProgress?: (p: ModelProgressMsg) => void;
@@ -70,6 +70,20 @@ export class NativeModelClient {
     await this.connect();
     const msg = await this.send({ type: 'model_sizes', models });
     return (msg as Extract<ServerMsg, { type: 'model_sizes_result' }>).sizes;
+  }
+
+  /** Query the sidecar for detected hardware (CPU/GPU/NPU + installed backends). */
+  async hardwareInfo(): Promise<HardwareInfoResultMsg> {
+    await this.connect();
+    const msg = await this.send({ type: 'hardware_info' });
+    return msg as HardwareInfoResultMsg;
+  }
+
+  /** Query the per-machine model catalog (languages, recommended, tier availability). */
+  async modelsCatalog(models?: string[]): Promise<NativeModelInfo[]> {
+    await this.connect();
+    const msg = await this.send(models ? { type: 'models_catalog', models } : { type: 'models_catalog' });
+    return (msg as Extract<ServerMsg, { type: 'models_catalog_result' }>).models;
   }
 
   /** Remove a model from the sidecar's cache; resolves to the bytes freed. */

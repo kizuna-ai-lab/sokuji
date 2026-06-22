@@ -30,6 +30,14 @@ class FakeWS {
       }, 20);
     }
     if (msg.type === 'model_cancel') FakeWS.cancelled.add(msg.model);
+    if (msg.type === 'hardware_info') queueMicrotask(() =>
+      this.emit({ type: 'hardware_info_result', id: msg.id, os: 'Linux', arch: 'x86_64',
+        cpuCores: 8, gpus: [], backendsInstalled: ['ctranslate2', 'sherpa'], accelAvailable: false }));
+    if (msg.type === 'models_catalog') queueMicrotask(() =>
+      this.emit({ type: 'models_catalog_result', id: msg.id, models: [
+        { id: 'sense-voice', name: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'],
+          recommended: true, tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
+      ] }));
   }
   close() {}
   static cancelled = new Set<string>();
@@ -63,5 +71,20 @@ describe('NativeModelClient', () => {
     await c.cancel('whisper-tiny');             // lands before the deferred terminal
     expect(await p).toBe('cancelled');
     expect(prog).toEqual([1]); // only the pre-cancel progress arrived
+  });
+
+  it('queries hardware info', async () => {
+    const c = new NativeModelClient();
+    const hw = await c.hardwareInfo();
+    expect(hw.backendsInstalled).toEqual(['ctranslate2', 'sherpa']);
+    expect(hw.accelAvailable).toBe(false);
+  });
+
+  it('queries the models catalog', async () => {
+    const c = new NativeModelClient();
+    const models = await c.modelsCatalog(['sense-voice']);
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({ id: 'sense-voice', recommended: true });
+    expect(models[0].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
   });
 });
