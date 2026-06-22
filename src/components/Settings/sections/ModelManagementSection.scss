@@ -66,25 +66,23 @@
       }
     }
 
-    // Compute-device selector (LOCAL_NATIVE ASR group): a compact label + select
-    // row matching the group's caption density, not a full-width settings dropdown.
+    // Compute-device selector (LOCAL_NATIVE ASR group): a caption label + the
+    // shared segmented options bar (same pattern as Speech Mode), filling the row.
     &__device-control {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       margin: 6px 0 8px;
+
+      .turn-detection-options {
+        flex: 1;
+      }
     }
 
     &__device-label {
       font-size: vars.$font-caption;
       color: vars.$text-muted;
-    }
-
-    &__device-control .select-dropdown {
-      width: auto;
-      min-width: 84px;
-      padding: 4px 26px 4px 10px;
-      font-size: vars.$font-caption;
+      white-space: nowrap;
     }
   }
 

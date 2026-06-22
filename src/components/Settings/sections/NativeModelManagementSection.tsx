@@ -288,16 +288,30 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         <div className="model-group__device-control">
           <span className="model-group__device-label">{t('models.computeDevice', 'Compute device')}</span>
-          <select
-            className="select-dropdown"
-            value={settings.asrDevice === 'cuda' && !gpuTierAvailable(catalog) ? 'auto' : settings.asrDevice}
-            disabled={isSessionActive}
-            onChange={(e) => update({ asrDevice: e.target.value as 'auto' | 'cpu' | 'cuda' })}
-          >
-            <option value="auto">{t('models.deviceAuto', 'Auto')}</option>
-            <option value="cpu">{t('models.deviceCpu', 'CPU')}</option>
-            {gpuTierAvailable(catalog) && <option value="cuda">{t('models.deviceGpu', 'GPU')}</option>}
-          </select>
+          {(() => {
+            const gpuAvail = gpuTierAvailable(catalog);
+            // Coerce a stale 'cuda' to 'auto' for display when no GPU tier is available.
+            const deviceValue = settings.asrDevice === 'cuda' && !gpuAvail ? 'auto' : settings.asrDevice;
+            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
+              ['auto', t('models.deviceAuto', 'Auto')],
+              ['cpu', t('models.deviceCpu', 'CPU')],
+              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
+            ];
+            return (
+              <div className="turn-detection-options">
+                {opts.map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    className={`option-button ${deviceValue === mode ? 'active' : ''}`}
+                    onClick={() => { if (deviceValue !== mode) update({ asrDevice: mode }); }}
+                    disabled={isSessionActive}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
         {asrIncompatibleCards.length > 0 && (
