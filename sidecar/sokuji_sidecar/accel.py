@@ -173,6 +173,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
     from . import catalog
     m = probe()
     wanted = msg.get("models")
+    if wanted and not isinstance(wanted, list):
+        wanted = [wanted]
     models = catalog.asr_models()
     if wanted:
         models = [x for x in models if x.id in wanted]

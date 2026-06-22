@@ -158,3 +158,17 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [{"tier": "cpu", "backend": "sherpa", "available": True}]
     assert by_id["whisper-large-v3"]["recommended"] is True
+
+
+def test_models_catalog_filter_narrows_results(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "models_catalog", "id": 4, "models": ["sense-voice"]}), None, None))
+    ids = [m["id"] for m in reply["models"]]
+    assert ids == ["sense-voice"]
