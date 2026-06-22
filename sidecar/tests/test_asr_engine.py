@@ -120,8 +120,43 @@ def test_engine_init_uses_resolver(monkeypatch):
     assert isinstance(ms, int)
     assert eng.resolved == {"backend": "ctranslate2", "device": "cpu", "computeType": "int8"}
     # _drain uses the resolved backend's transcribe().text
-    import numpy as np
     assert eng._backend.transcribe(np.zeros(4, np.float32), "en").text == "resolved-text"
+
+
+class _DrainBackend:
+    def transcribe(self, samples, language):
+        from sokuji_sidecar.backends import AsrResult
+        return AsrResult("drained-text")
+
+
+class _FakeVad:
+    def __init__(self, seg):
+        self._segs = [seg]
+
+    def empty(self):
+        return not self._segs
+
+    @property
+    def front(self):
+        return self._segs[0]
+
+    def pop(self):
+        self._segs.pop(0)
+
+
+def test_drain_routes_through_resolved_backend():
+    import types
+    from sokuji_sidecar import asr_engine as ae
+    eng = ae.AsrEngine()
+    eng._backend = _DrainBackend()
+    eng._language = None
+    seg = types.SimpleNamespace(samples=np.zeros(16000, np.float32), start=0)
+    eng._vad = _FakeVad(seg)
+    out = eng._drain()
+    assert len(out) == 1
+    assert out[0]["type"] == "result" and out[0]["text"] == "drained-text"
+    assert out[0]["startSample"] == 0
+    assert out[0]["durationMs"] == 1000  # 16000 samples / 16000 Hz * 1000ms
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),
