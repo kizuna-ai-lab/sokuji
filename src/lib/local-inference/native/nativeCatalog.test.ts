@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated } from './nativeCatalog';
+import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages and nothing else', () => {
@@ -174,5 +175,16 @@ describe('nativeCatalog', () => {
     expect(tierLabel('gpu-vulkan')).toEqual({ label: 'GPU · Vulkan', accel: true });
     // unknown tier → echo the raw string, not accelerated
     expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
+  });
+
+  it('hardwareGated is true only when a model has tiers but none are available', () => {
+    expect(hardwareGated(undefined)).toBe(false);                       // unknown → not gated
+    expect(hardwareGated({ id: 'x', name: 'X', languages: ['en'], recommended: false, tiers: [] } as any)).toBe(false);
+    expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } as any)).toBe(true);   // GPU-only, no GPU
+    expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
+    expect(hardwareGated({ id: 's', name: 'S', languages: ['en'], recommended: false,
+      tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } as any)).toBe(false);              // CPU floor
   });
 });

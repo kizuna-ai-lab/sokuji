@@ -4,6 +4,7 @@
  * config share one source of truth. TTS languages are limited to the sherpa
  * piper repos confirmed to exist.
  */
+import type { NativeModelInfo } from './nativeProtocol';
 export interface NativeModelOption {
   id: string;
   label: string;
@@ -151,6 +152,13 @@ export function requiredNativeModels(
     if (tts) ids.push(tts);
   }
   return ids;
+}
+
+/** A model is hardware-gated when the sidecar reports tiers for it but NONE are
+ *  available on this machine (e.g. a GPU-only model with no GPU). Unknown (no
+ *  catalog entry yet) is NOT gated — we don't grey a card before the feed loads. */
+export function hardwareGated(info: NativeModelInfo | undefined): boolean {
+  return !!info && info.tiers.length > 0 && !info.tiers.some((t) => t.available);
 }
 
 /** Display label for a hardware tier string from the sidecar models_catalog. */

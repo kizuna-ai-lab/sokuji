@@ -9,6 +9,7 @@ import {
   nativeTtsCards,
   pickNativeTts,
   tierLabel,
+  hardwareGated,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -44,6 +45,7 @@ const NativeModelCard: React.FC<{
   const catalog = useNativeCatalog();
   const info = noDownload ? undefined : catalog[spec.downloadId as string];
   const activeTier = info?.tiers.find((x) => x.available) ?? info?.tiers[0];
+  const hwGated = hardwareGated(info);
 
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
@@ -55,11 +57,11 @@ const NativeModelCard: React.FC<{
   const classNames = [
     'model-card', statusClass,
     selected && 'model-card--selected',
-    incompatible && 'model-card--incompatible',
+    (incompatible || hwGated) && 'model-card--incompatible',
     disabled && 'model-card--disabled',
   ].filter(Boolean).join(' ');
 
-  const handleClick = () => { if (!disabled && ready) onSelect(); };
+  const handleClick = () => { if (!disabled && !hwGated && ready) onSelect(); };
 
   const p = noDownload ? undefined : progress[spec.downloadId as string];
   const percent = p && p.total > 0 ? Math.round((p.downloaded / p.total) * 100) : 0;
@@ -89,6 +91,7 @@ const NativeModelCard: React.FC<{
                   </span>
                 );
               })()}
+              {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
               {spec.recommended && (
                 <span className="model-card__recommended-badge">
                   <Star size={10} />
