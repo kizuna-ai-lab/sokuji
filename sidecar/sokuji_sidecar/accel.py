@@ -65,12 +65,15 @@ def probe(force: bool = False) -> Machine:
     if _MACHINE is not None and not force:
         return _MACHINE
     nvidia = _safe(_nvidia_gpus, ())
-    fp = hashlib.sha1(
-        f"{platform.system()}|{platform.machine()}|{','.join(g.name for g in nvidia)}"
-        .encode()).hexdigest()[:12]
+    apple = _safe(_apple_silicon, False)
+    dml = _safe(_dml_adapters, ())
+    installed = _safe(_installed, frozenset())
+    fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
+              f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
+              f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
+    fp = hashlib.sha1(fp_src.encode()).hexdigest()[:12]
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
-        nvidia=nvidia, apple_silicon=_safe(_apple_silicon, False),
-        dml_adapters=_safe(_dml_adapters, ()), installed=_safe(_installed, frozenset()),
+        nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
         fingerprint=fp)
     return _MACHINE
