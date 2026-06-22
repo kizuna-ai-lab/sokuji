@@ -24,6 +24,8 @@ export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 2 },
   { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 3 },
   { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 4 },
+  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 5 },
+  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 6 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [

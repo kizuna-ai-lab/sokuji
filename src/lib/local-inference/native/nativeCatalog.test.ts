@@ -86,9 +86,10 @@ describe('nativeCatalog', () => {
     // 'de' is not a sense-voice language: sense-voice is incompatible, whisper-* compatible
     expect(incompatibleNativeAsr('de').map((m) => m.id)).toEqual(['sense-voice']);
     expect(nativeAsrIncompatibleCards('de')[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice' });
-    // for a sense-voice language nothing is incompatible
-    expect(incompatibleNativeAsr('zh')).toHaveLength(0);
-    expect(nativeAsrIncompatibleCards('zh')).toHaveLength(0);
+    // for a sense-voice language, sense-voice and whisper are compatible; Granite models (no zh) are incompatible
+    expect(incompatibleNativeAsr('zh').map((m) => m.id)).toContain('granite-speech-4.1-2b');
+    expect(incompatibleNativeAsr('zh').map((m) => m.id)).toContain('granite-speech-4.1-2b-plus');
+    expect(nativeAsrIncompatibleCards('zh').map((c) => c.selectId)).toContain('granite-speech-4.1-2b');
   });
 
   describe('autoSelectNative', () => {
@@ -150,6 +151,19 @@ describe('nativeCatalog', () => {
         { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
+  });
+
+  it('exposes Granite speech-LLM ASR options with language-specific gating', () => {
+    const ids = NATIVE_ASR.map((m) => m.id);
+    expect(ids).toContain('granite-speech-4.1-2b');
+    expect(ids).toContain('granite-speech-4.1-2b-plus');
+    // base granite supports Japanese; the plus variant does not
+    expect(compatibleNativeAsr('ja').map((m) => m.id)).toContain('granite-speech-4.1-2b');
+    expect(compatibleNativeAsr('ja').map((m) => m.id)).not.toContain('granite-speech-4.1-2b-plus');
+    // neither is recommended (sense-voice / whisper-base stay the recommended leaders)
+    expect(NATIVE_ASR.find((m) => m.id === 'granite-speech-4.1-2b')!.recommended).toBeFalsy();
+    // a non-sense-voice language still leads with whisper-base, not granite
+    expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
   });
 
   it('maps hardware tiers to display labels', () => {
