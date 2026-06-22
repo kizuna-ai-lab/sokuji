@@ -779,10 +779,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
           };
           // A worker *load* failure (bad import / missing asset) fires `error`, not
           // `message`, and the in-worker try/catch can't see it — without this it
-          // would wait out the full 10s timeout instead of failing fast.
-          this.gtcrnWorker!.onerror = (e) => {
+          // would wait out the full 10s timeout instead of failing fast. Log the
+          // full ErrorEvent (filename/line/underlying error) since e.message is
+          // often empty for module-worker load failures.
+          this.gtcrnWorker!.onerror = (e: ErrorEvent) => {
             clearTimeout(timeout);
-            reject(new Error(`GTCRN worker load error: ${e.message || 'unknown'}`));
+            console.error(`${this.getLogPrefix()} GTCRN worker load error detail:`, {
+              message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, error: e.error,
+            });
+            reject(new Error(`GTCRN worker load error: ${e.message || e.filename || 'unknown (see detail above)'}`));
           };
           this.gtcrnWorker!.postMessage({
             type: 'init',

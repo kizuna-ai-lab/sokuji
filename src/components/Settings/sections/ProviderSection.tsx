@@ -44,7 +44,7 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
-import { useNativeModelStatuses } from '../../../stores/nativeModelStore';
+import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore } from '../../../stores/nativeModelStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
@@ -60,6 +60,7 @@ const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
   [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
   [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
+  [Provider.LOCAL_NATIVE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
 };
 
 const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
@@ -110,6 +111,41 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // Local native (sidecar) model info — separate settings slice + model store.
   const localNativeSettings = useLocalNativeSettings();
   const nativeModelStatuses = useNativeModelStatuses();
+  const nativeModelSizes = useNativeModelSizes();
+  const nativeRefresh = useNativeModelStore(s => s.refresh);
+  const nativeRefreshSizes = useNativeModelStore(s => s.refreshSizes);
+
+  // The sidecar download ids the current native selection maps to (ASR id is its
+  // own download id; translation/TTS resolve through the catalog). Shared by the
+  // status refresh + the memory estimate so both stay in sync with the chips.
+  const nativeActiveDownloadIds = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return [];
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+    return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
+  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
+    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage]);
+
+  // Pull cache status + sizes from the sidecar so the chips and estimate work even
+  // when the model-management section isn't mounted (e.g. before opening Advanced).
+  const nativeIdsKey = nativeActiveDownloadIds.join('|');
+  useEffect(() => {
+    if (provider !== Provider.LOCAL_NATIVE || nativeActiveDownloadIds.length === 0) return;
+    nativeRefresh(nativeActiveDownloadIds);
+    nativeRefreshSizes(nativeActiveDownloadIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, nativeIdsKey]);
+
+  // Memory estimate for native — same "footprint ≈ on-disk model size" heuristic
+  // as LOCAL_INFERENCE, summed over the active sidecar models. Sidecar inference
+  // runs on CPU (sherpa/onnxruntime), so the whole figure is reported as RAM.
+  const nativeMemoryEstimate = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    const bytes = nativeActiveDownloadIds.reduce((sum, id) => sum + (nativeModelSizes[id] || 0), 0);
+    return { ramMb: Math.round(bytes / 1_048_576) };
+  }, [provider, nativeActiveDownloadIds, nativeModelSizes]);
+
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
@@ -494,6 +530,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
+            {nativeMemoryEstimate && nativeMemoryEstimate.ramMb > 0 && (
+              <div className="memory-estimate">
+                <Cpu size={11} />
+                <span>RAM ~{nativeMemoryEstimate.ramMb >= 1024 ? `${(nativeMemoryEstimate.ramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.ramMb} MB`}</span>
+              </div>
+            )}
           </div>
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (
