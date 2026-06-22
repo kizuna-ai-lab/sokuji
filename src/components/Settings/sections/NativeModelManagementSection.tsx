@@ -298,11 +298,11 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
               ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
             ];
             return (
-              <div className="turn-detection-options">
+              <div className="segmented-control">
                 {opts.map(([mode, label]) => (
                   <button
                     key={mode}
-                    className={`option-button ${deviceValue === mode ? 'active' : ''}`}
+                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
                     onClick={() => { if (deviceValue !== mode) update({ asrDevice: mode }); }}
                     disabled={isSessionActive}
                   >

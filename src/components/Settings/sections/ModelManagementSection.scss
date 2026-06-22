@@ -66,16 +66,51 @@
       }
     }
 
-    // Compute-device selector (LOCAL_NATIVE ASR group): a caption label + the
-    // shared segmented options bar (same pattern as Speech Mode), filling the row.
+    // Compute-device selector (LOCAL_NATIVE ASR group): a caption label + a
+    // segmented control. The global .segmented-control rules are scoped to the
+    // noise-suppression section, so we restyle locally with the same visuals.
     &__device-control {
       display: flex;
       align-items: center;
       gap: 10px;
       margin: 6px 0 8px;
 
-      .turn-detection-options {
+      .segmented-control {
         flex: 1;
+        display: flex;
+        border-radius: vars.$radius-md;
+        overflow: hidden;
+        border: 1px solid vars.$border-default;
+      }
+
+      .segmented-option {
+        flex: 1;
+        padding: 6px 12px;
+        font-size: vars.$font-caption;
+        border: none;
+        background: vars.$bg-control;
+        color: vars.$text-secondary;
+        cursor: pointer;
+        transition: background vars.$transition-fast, color vars.$transition-fast;
+
+        &:not(:last-child) {
+          border-right: 1px solid vars.$border-default;
+        }
+
+        &:hover:not(.active):not(:disabled) {
+          background: vars.$bg-elevated;
+        }
+
+        &.active {
+          background: vars.$color-primary;
+          color: #fff;
+          font-weight: vars.$weight-medium;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
       }
     }
 
