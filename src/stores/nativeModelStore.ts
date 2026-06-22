@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -11,6 +11,10 @@ interface NativeModelStore {
   sizes: Record<string, number>;
   /** Remembered selection per language pair, keyed `${src}→${tgt}` (mirrors modelStore.modelPreferences). */
   modelPreferences: Record<string, NativeSelection>;
+  /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
+  catalog: Record<string, NativeModelInfo>;
+  /** Query the sidecar for the per-machine model catalog (best-effort). */
+  refreshCatalog: (models?: string[]) => Promise<void>;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
   refresh: (models: string[]) => Promise<void>;
   /** Query the sidecar for download sizes (bytes) of these models (best-effort). */
@@ -52,7 +56,17 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   statuses: {},
   progress: {},
   sizes: {},
+  catalog: {},
   modelPreferences: {},
+
+  refreshCatalog: async (models) => {
+    try {
+      const list = await client.modelsCatalog(models);
+      set((s) => ({ catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) } }));
+    } catch {
+      // best-effort — tier badges are cosmetic; sidecar may be down
+    }
+  },
 
   refresh: async (models) => {
     if (!models.length) return;
@@ -133,3 +147,4 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
+export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);

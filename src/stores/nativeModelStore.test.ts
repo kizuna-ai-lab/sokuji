@@ -1,6 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNativeModelStore } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
+
+class FakeWS {
+  static OPEN = 1;
+  readyState = 1;
+  onopen: (() => void) | null = null;
+  onmessage: ((e: { data: any }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  binaryType = 'arraybuffer';
+  constructor(public url: string) { setTimeout(() => this.onopen?.(), 0); }
+  private emit(o: any) { this.onmessage?.({ data: JSON.stringify(o) }); }
+  send(d: any) {
+    const msg = JSON.parse(d);
+    if (msg.type === 'models_catalog') queueMicrotask(() =>
+      this.emit({ type: 'models_catalog_result', id: msg.id, models: [
+        { id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
+          tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
+      ] }));
+  }
+  close() {}
+}
+
+beforeEach(() => {
+  (globalThis as any).WebSocket = FakeWS as any;
+  (globalThis as any).window = { electron: { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) } };
+  useNativeModelStore.setState({ catalog: {} });
+});
 
 describe('nativeModelStore.isReady', () => {
   it('is true only when all listed models are ready', () => {
@@ -22,5 +48,14 @@ describe('requiredNativeModels', () => {
     expect(requiredNativeModels('whisper-tiny', 'opus-mt', '', 'zh', 'ja')).toEqual([
       'whisper-tiny', 'Xenova/opus-mt-zh-ja',
     ]);
+  });
+});
+
+describe('nativeModelStore.refreshCatalog', () => {
+  it('populates catalog from the sidecar models_catalog feed', async () => {
+    await useNativeModelStore.getState().refreshCatalog(['sense-voice']);
+    const cat = useNativeModelStore.getState().catalog;
+    expect(cat['sense-voice']).toMatchObject({ recommended: true });
+    expect(cat['sense-voice'].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
   });
 });
