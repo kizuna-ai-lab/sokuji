@@ -151,6 +151,18 @@ export function requiredNativeModels(
   return ids;
 }
 
+/** Display label for a hardware tier string from the sidecar models_catalog. */
+export function tierLabel(tier: string): { label: string; accel: boolean } {
+  switch (tier) {
+    case 'cpu': return { label: 'CPU', accel: false };
+    case 'gpu-cuda': return { label: 'GPU · CUDA', accel: true };
+    case 'gpu-metal': return { label: 'GPU · Metal', accel: true };
+    case 'gpu-vulkan': return { label: 'GPU · Vulkan', accel: true };
+    case 'gpu-dml': return { label: 'GPU · DirectML', accel: true };
+    default: return { label: tier, accel: false };
+  }
+}
+
 /**
  * A selectable + downloadable model card for the native settings UI.
  * `selectId` is written to localNative.{asr,translation,tts}Model; `downloadId`

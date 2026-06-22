@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel } from './nativeCatalog';
 
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages and nothing else', () => {
@@ -150,5 +150,14 @@ describe('nativeCatalog', () => {
         { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
+  });
+
+  it('maps hardware tiers to display labels', () => {
+    expect(tierLabel('cpu')).toEqual({ label: 'CPU', accel: false });
+    expect(tierLabel('gpu-cuda')).toEqual({ label: 'GPU · CUDA', accel: true });
+    expect(tierLabel('gpu-metal')).toEqual({ label: 'GPU · Metal', accel: true });
+    expect(tierLabel('gpu-dml')).toEqual({ label: 'GPU · DirectML', accel: true });
+    // unknown tier → echo the raw string, not accelerated
+    expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
   });
 });

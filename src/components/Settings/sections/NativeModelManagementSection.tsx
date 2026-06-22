@@ -8,11 +8,13 @@ import {
   nativeTranslationCards,
   nativeTtsCards,
   pickNativeTts,
+  tierLabel,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import {
   useNativeModelStore,
+  useNativeCatalog,
   useNativeModelStatuses,
   useNativeModelProgress,
   useNativeModelSizes,
@@ -39,6 +41,10 @@ const NativeModelCard: React.FC<{
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const noDownload = spec.downloadId === null;
+  const catalog = useNativeCatalog();
+  const info = noDownload ? undefined : catalog[spec.downloadId as string];
+  const activeTier = info?.tiers.find((x) => x.available) ?? info?.tiers[0];
+
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
 
@@ -75,6 +81,14 @@ const NativeModelCard: React.FC<{
                 {(spec.languages || []).map((l) => (<span key={l} className="model-card__lang-tag">{l}</span>))}
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
+              {activeTier && (() => {
+                const tl = tierLabel(activeTier.tier);
+                return (
+                  <span className="model-card__lang-tag">
+                    {tl.accel && <Zap size={10} />}{tl.label}
+                  </span>
+                );
+              })()}
               {spec.recommended && (
                 <span className="model-card__recommended-badge">
                   <Star size={10} />
@@ -156,6 +170,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const sizes = useNativeModelSizes();
   const refresh = useNativeModelStore((s) => s.refresh);
   const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
+  const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
   const autoSelect = useNativeModelStore((s) => s.autoSelect);
   const rememberModels = useNativeModelStore((s) => s.rememberModels);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -182,6 +197,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   useEffect(() => {
     refresh(allDownloadIds);
     refreshSizes(allDownloadIds);
+    refreshCatalog();   // per-machine tier availability for the ASR badges
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 
