@@ -447,6 +447,10 @@
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
       "noKeyRequired": "无需 API 密钥"
     },
+    "local_native": {
+      "name": "免费 (Native)",
+      "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI 专用的实时翻译模型"

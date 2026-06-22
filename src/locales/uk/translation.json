@@ -119,6 +119,10 @@
       "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",
       "noKeyRequired": "API-ключ не потрібен"
     },
+    "local_native": {
+      "name": "Безкоштовний (Native)",
+      "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "Спеціалізована модель синхронного перекладу OpenAI"

@@ -255,7 +255,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     <div id="model-management-section" className="settings-section model-management-section">
       <h2>{t('models.management', 'Models')}</h2>
 
-      <ModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+      <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
         {asrIncompatibleCards.length > 0 && (
           <>
@@ -274,11 +274,11 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
         )}
       </ModelGroup>
 
-      <ModelGroup title={t('models.translationModels', 'Translation')}>
+      <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
         {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
       </ModelGroup>
 
-      <ModelGroup title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
+      <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
         {ttsCards.length > 0 ? (
           renderCards(ttsCards, (c) => ttsSelected(c.selectId), 'ttsModel')
         ) : (

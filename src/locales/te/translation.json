@@ -119,6 +119,10 @@
       "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",
       "noKeyRequired": "API కీ అవసరం లేదు"
     },
+    "local_native": {
+      "name": "ఉచిత (Native)",
+      "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI యొక్క ప్రత్యేక రియల్ టైమ్ అనువాద మోడల్"

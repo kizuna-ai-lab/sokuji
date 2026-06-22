@@ -410,6 +410,10 @@
       "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",
       "noKeyRequired": "نیازی به کلید API نیست"
     },
+    "local_native": {
+      "name": "رایگان (Native)",
+      "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "مدل ترجمه بلادرنگ اختصاصی OpenAI"

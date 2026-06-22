@@ -29,6 +29,7 @@ import {
   useSetUIMode,
   useNavigateToSettings,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -43,6 +44,14 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
+import { useNativeModelStatuses } from '../../../stores/nativeModelStore';
+import {
+  nativeAsrCards,
+  nativeAsrIncompatibleCards,
+  nativeTranslationCards,
+  nativeTtsVoices,
+  resolveNativeTts,
+} from '../../../lib/local-inference/native/nativeCatalog';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
@@ -98,6 +107,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
+  // Local native (sidecar) model info — separate settings slice + model store.
+  const localNativeSettings = useLocalNativeSettings();
+  const nativeModelStatuses = useNativeModelStatuses();
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
@@ -328,9 +340,11 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         };
       case Provider.LOCAL_NATIVE:
         return {
-          name: t('providers.local_native.name', 'Local (Native, Electron)'),
+          // LOCAL_NATIVE is the high-performance native-hardware variant of
+          // LOCAL_INFERENCE — same capabilities, so the copy mirrors it (+ TTS).
+          name: t('providers.local_native.name', 'Free (Native)'),
           icon: KizunaAIIcon,
-          description: t('providers.local_native.description', 'Native sidecar ASR + Translation')
+          description: t('providers.local_native.description', 'Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)')
         };
       default:
         return {
@@ -434,7 +448,52 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       {provider === Provider.LOCAL_NATIVE ? (
         <div className="local-inference-info">
           <div className="model-info">
-            {t('providers.local_native.noKey', 'No API key — runs in the local Electron sidecar.')}
+            <div className="model-inline">
+              {(() => {
+                const asrId = localNativeSettings.asrModel;
+                const asrCard = asrId
+                  ? [...nativeAsrCards(localNativeSettings.sourceLanguage), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage)]
+                      .find(c => c.selectId === asrId)
+                  : undefined;
+                const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                    <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
+                      {asrReady ? (asrCard?.name || asrId) : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
+              {(() => {
+                const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+                const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+                const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+                    <span className={`model-chip-value ${trReady ? 'model-ok' : 'model-warn'}`}>
+                      {trReady ? (trCard?.name) : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
+              {(() => {
+                const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+                const ttsVoice = voiceId
+                  ? nativeTtsVoices(localNativeSettings.targetLanguage).find(v => v.id === voiceId)
+                  : undefined;
+                const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                    <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
+                      {ttsReady ? (ttsVoice?.label || voiceId) : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (

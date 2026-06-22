@@ -659,6 +659,10 @@
       "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
       "noKeyRequired": "Klucz API nie jest wymagany"
     },
+    "local_native": {
+      "name": "Darmowy (Native)",
+      "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "Dedykowany model tłumaczenia w czasie rzeczywistym od OpenAI"

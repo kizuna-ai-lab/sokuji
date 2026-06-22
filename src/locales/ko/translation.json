@@ -660,6 +660,10 @@
       "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
       "noKeyRequired": "API 키 불필요"
     },
+    "local_native": {
+      "name": "무료 (Native)",
+      "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI 전용 실시간 번역 모델"

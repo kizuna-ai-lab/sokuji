@@ -410,6 +410,10 @@
       "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",
       "noKeyRequired": "לא נדרש מפתח API"
     },
+    "local_native": {
+      "name": "חינמי (Native)",
+      "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "מודל התרגום הייעודי בזמן אמת של OpenAI"

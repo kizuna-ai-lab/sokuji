@@ -616,6 +616,10 @@
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
       "noKeyRequired": "Ingen API-nyckel krävs"
     },
+    "local_native": {
+      "name": "Gratis (Native)",
+      "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAIs särskilda realtidsöversättningsmodell"

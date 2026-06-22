@@ -661,6 +661,10 @@
       "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
       "noKeyRequired": "Kein API-Schlüssel erforderlich"
     },
+    "local_native": {
+      "name": "Kostenlos (Native)",
+      "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAIs spezielles Echtzeit-Übersetzungsmodell"
