@@ -769,12 +769,20 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
           this.gtcrnWorker!.onmessage = (event) => {
             if (event.data.type === 'ready') {
               clearTimeout(timeout);
+              this.gtcrnWorker!.onerror = null; // init done — let runtime errors log normally
               this.gtcrnReady = true;
               resolve();
             } else if (event.data.type === 'error') {
               clearTimeout(timeout);
               reject(new Error(event.data.message));
             }
+          };
+          // A worker *load* failure (bad import / missing asset) fires `error`, not
+          // `message`, and the in-worker try/catch can't see it — without this it
+          // would wait out the full 10s timeout instead of failing fast.
+          this.gtcrnWorker!.onerror = (e) => {
+            clearTimeout(timeout);
+            reject(new Error(`GTCRN worker load error: ${e.message || 'unknown'}`));
           };
           this.gtcrnWorker!.postMessage({
             type: 'init',
