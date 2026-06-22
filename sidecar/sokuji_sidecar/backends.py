@@ -33,3 +33,35 @@ def make_backend(name: str):
     if cls is None:
         raise BackendLoadError(f"unknown backend: {name}")
     return cls()
+
+
+TARGET_RATE = 16000
+
+
+@register_backend
+class CTranslate2Backend:
+    """faster-whisper (CTranslate2). model_ref is a Whisper size like 'tiny' or
+    'large-v3'; faster-whisper resolves it to the matching Systran CT2 repo."""
+    NAME = "ctranslate2"
+
+    def __init__(self):
+        self._m = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        from faster_whisper import WhisperModel
+        try:
+            self._m = WhisperModel(model_ref, device=device, compute_type=compute_type)
+        except Exception as e:  # bad device/compute → let the resolver fall back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        segments, _info = self._m.transcribe(
+            samples, language=language, beam_size=1, vad_filter=False)
+        return AsrResult("".join(s.text for s in segments).strip(), language)
+
+    def unload(self) -> None:
+        self._m = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._m is not None
