@@ -23,6 +23,7 @@ export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 1 },
   { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 2 },
   { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 3 },
+  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 4 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [

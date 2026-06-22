@@ -157,7 +157,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [{"tier": "cpu", "backend": "sherpa", "available": True}]
-    assert by_id["whisper-large-v3"]["recommended"] is True
+    assert by_id["whisper-large-v3"]["recommended"] is False
+    assert by_id["whisper-base"]["recommended"] is True
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
