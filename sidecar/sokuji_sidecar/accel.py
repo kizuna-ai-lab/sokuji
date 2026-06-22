@@ -158,3 +158,16 @@ def load_with_fallback(plans: list):
             notice = f"{plan.device} unavailable ({e.reason}); falling back"
             continue
     raise AllPlansFailed(notice or "no plans to load")
+
+
+async def _h_hardware_info(state, msg, _b, conn=None):
+    m = probe()
+    return {"type": "hardware_info_result", "id": msg.get("id"),
+            "os": m.os, "arch": m.arch, "cpuCores": m.cpu_cores,
+            "gpus": [{"vendor": g.vendor, "name": g.name, "vramMb": g.vram_mb} for g in m.nvidia],
+            "backendsInstalled": sorted(m.installed),
+            "accelAvailable": bool(m.nvidia or m.apple_silicon or m.dml_adapters)}, None
+
+
+def register(state: dict):
+    state.setdefault("handlers", {}).update({"hardware_info": _h_hardware_info})

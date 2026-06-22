@@ -7,6 +7,7 @@ async def _run():
     from .translate_engine import TranslateEngine, register as register_translate
     from .asr_engine import AsrEngine, register as register_asr
     from .native_models import register as register_models
+    from .accel import register as register_accel
     state = {
         "engine": TtsEngine(),
         "translate_engine": TranslateEngine(),
@@ -16,6 +17,7 @@ async def _run():
     register_translate(state)
     register_asr(state)
     register_models(state)
+    register_accel(state)
     port, server = await serve(state)
     print(json.dumps({"port": port}), flush=True)   # handshake line read by NativeHostManager
     await server.wait_closed()

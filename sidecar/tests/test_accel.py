@@ -1,7 +1,11 @@
+import asyncio
+import json
+
 import pytest
 from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
 from sokuji_sidecar import backends
+from sokuji_sidecar import server
 
 
 def test_probe_assembles_machine(monkeypatch):
@@ -120,3 +124,19 @@ def test_fallback_all_fail_raises(monkeypatch):
     import pytest
     with pytest.raises(accel.AllPlansFailed):
         accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+
+
+def test_hardware_info_handler(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "hardware_info", "id": 7}), None, None))
+    assert reply["type"] == "hardware_info_result" and reply["id"] == 7
+    assert reply["accelAvailable"] is True
+    assert reply["gpus"][0]["name"] == "RTX 4070"
+    assert "sherpa" in reply["backendsInstalled"]
