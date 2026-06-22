@@ -45,6 +45,7 @@ import {
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
+import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
 import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
@@ -289,6 +290,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useSession();
 
   const isReconnecting = useIsReconnecting();
+  const nativeAsrLoading = useNativeAsrLoading();
   const setIsReconnecting = useSetIsReconnecting();
 
   // Store setters for mirroring local items state into sessionStore
@@ -329,7 +331,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.LOCAL_INFERENCE;
+           provider === Provider.LOCAL_INFERENCE ||
+           provider === Provider.LOCAL_NATIVE;
   }, [provider]);
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
@@ -3311,7 +3314,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <span className="btn-text">
                       {initProgress
                         ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : t('simplePanel.connecting', 'Connecting...')}
+                        : nativeAsrLoading
+                          ? t('simplePanel.loadingModel', 'Loading model…')
+                          : t('simplePanel.connecting', 'Connecting...')}
                     </span>
                   </>
                 ) : isSessionActive ? (
