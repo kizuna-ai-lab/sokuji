@@ -65,3 +65,37 @@ class CTranslate2Backend:
     @property
     def is_loaded(self) -> bool:
         return self._m is not None
+
+
+@register_backend
+class SherpaBackend:
+    """sherpa-onnx OfflineRecognizer. Phase 0 = SenseVoice (from_sense_voice).
+    model_ref is the HF repo id. CPU-only (pip wheel has no GPU runtime)."""
+    NAME = "sherpa"
+
+    def __init__(self):
+        self._rec = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        try:
+            import sherpa_onnx
+            from huggingface_hub import snapshot_download
+            d = snapshot_download(repo_id=model_ref)
+            self._rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                model=f"{d}/model.int8.onnx", tokens=f"{d}/tokens.txt",
+                use_itn=True, provider=device)
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        s = self._rec.create_stream()
+        s.accept_waveform(TARGET_RATE, samples)
+        self._rec.decode_stream(s)
+        return AsrResult(s.result.text.strip(), None)
+
+    def unload(self) -> None:
+        self._rec = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._rec is not None
