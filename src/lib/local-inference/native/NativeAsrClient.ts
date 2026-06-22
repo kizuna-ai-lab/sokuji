@@ -52,14 +52,15 @@ export class NativeAsrClient {
     language = '', modelId?: string, sampleRate = 24000,
     vad?: { threshold?: number; minSilence?: number; minSpeech?: number },
     device?: string,
-  ): Promise<{ loadTimeMs: number }> {
+  ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; rtf?: number }> {
     await this.connect();
     this.onStatus?.('[native-asr] init…');
     const msg = await this.send({
       type: 'asr_init', language, model: modelId, sampleRate, device,
       vadThreshold: vad?.threshold, vadMinSilenceDuration: vad?.minSilence, vadMinSpeechDuration: vad?.minSpeech,
     });
-    return { loadTimeMs: (msg as Extract<ServerMsg, { type: 'ready' }>).loadTimeMs };
+    const r = msg as Extract<ServerMsg, { type: 'ready' }>;
+    return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf };
   }
 
   feedAudio(samples: Int16Array, _sampleRate: number): void {

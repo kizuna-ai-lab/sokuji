@@ -16,7 +16,7 @@ class FakeWS {
       if (msg.type === 'asr_init') {
         FakeWS.lastInit = msg;
         queueMicrotask(() =>
-          this.onmessage?.({ data: JSON.stringify({ type: 'ready', id: msg.id, loadTimeMs: 2 }) }));
+          this.onmessage?.({ data: JSON.stringify({ type: 'ready', id: msg.id, loadTimeMs: 2, device: msg.device, rtf: 0.5 }) }));
       }
       if (msg.type === 'asr_flush') queueMicrotask(() =>
         this.onmessage?.({ data: JSON.stringify({ type: 'ok', id: msg.id }) }));
@@ -30,11 +30,20 @@ class FakeWS {
 }
 
 beforeEach(() => {
+  FakeWS.lastInit = undefined;
   (globalThis as any).WebSocket = FakeWS as any;
   (globalThis as any).window = { electron: { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) } };
 });
 
 describe('NativeAsrClient', () => {
+  it('returns the resolved device + rtf from ready', async () => {
+    const c = new NativeAsrClient();
+    const r = await c.init('en', 'granite-speech-4.1-2b', 24000, undefined, 'cuda');
+    expect(r.loadTimeMs).toBe(2);
+    expect(r.device).toBe('cuda');
+    expect(r.rtf).toBe(0.5);
+  });
+
   it('sends the device override in asr_init', async () => {
     const c = new NativeAsrClient();
     await c.init('en', 'granite-speech-4.1-2b', 24000, undefined, 'cuda');
@@ -48,7 +57,7 @@ describe('NativeAsrClient', () => {
     c.onResult = (r) => results.push(r.text);
     c.onSpeechStart = () => { starts++; };
     const r = await c.init('en');
-    expect(r).toEqual({ loadTimeMs: 2 });
+    expect(r.loadTimeMs).toBe(2);
     c.feedAudio(new Int16Array(24000), 24000);
     await new Promise((res) => setTimeout(res, 5));
     expect(starts).toBe(1);
