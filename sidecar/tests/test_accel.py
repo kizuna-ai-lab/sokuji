@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 
+import numpy as np
 import pytest
 from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
@@ -333,3 +334,26 @@ def test_granite_gated_off_without_transformers_installed():
         accel.resolve("granite-speech-4.1-2b",
                       machine=_machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
                                        installed=frozenset({"ctranslate2"})))
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
+def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # isolate the bench cache
+    accel.probe(force=True)
+    plans = accel.resolve("granite-speech-4.1-2b-plus")
+    assert plans[0].device == "cuda" and plans[0].backend == "transformers", \
+        f"expected transformers/cuda, got {[(p.backend, p.device) for p in plans]}"
+    backend, plan, _notice = accel.load_with_fallback(plans)
+    try:
+        from huggingface_hub import snapshot_download
+        import wave
+        d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+        w = wave.open(f"{d}/test_wavs/en.wav", "rb")
+        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+        text = backend.transcribe(audio, None).text.lower()
+        assert "gold" in text or "tribal" in text, f"unexpected transcript: {text!r}"
+        rtf = accel.measure_rtf(backend, plan, "granite-speech-4.1-2b-plus", accel.probe(), force=True)
+        assert rtf is not None and rtf < 1.0, f"speech-LLM should be faster than realtime on GPU, rtf={rtf}"
+    finally:
+        backend.unload()
