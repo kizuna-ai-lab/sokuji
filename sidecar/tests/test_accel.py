@@ -1,4 +1,6 @@
+import pytest
 from sokuji_sidecar import accel
+from sokuji_sidecar import catalog
 
 
 def test_probe_assembles_machine(monkeypatch):
@@ -32,9 +34,6 @@ def test_probe_is_cached(monkeypatch):
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-from sokuji_sidecar import catalog
-
-
 def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"ctranslate2", "sherpa"})):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
@@ -62,7 +61,7 @@ def test_resolve_cpu_only_machine_drops_gpu_plan():
 def test_resolve_override_pins_cpu():
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
     plans = accel.resolve_deployments(_model_cpu_and_cuda(), m, override="cpu")
-    assert plans[0].device == "cpu"  # forced CPU jumps the queue
+    assert [p.device for p in plans] == ["cpu", "cuda"]  # CPU pinned to front, GPU still present
 
 
 def test_resolve_gpu_only_model_on_cpu_machine_is_empty():
@@ -82,6 +81,5 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
 
 
 def test_resolve_unknown_model_raises():
-    import pytest
     with pytest.raises(ValueError):
         accel.resolve("nope", machine=_machine())

@@ -113,7 +113,7 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     return False
 
 
-def resolve_deployments(model, machine: Machine, override: str = "auto") -> list:
+def resolve_deployments(model, machine: Machine, override: str = "auto") -> list[Plan]:
     """Ordered Plans for `model` on `machine`: filter to runnable, rank by tier
     (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front. The
     CPU floor (if declared) always survives as the last resort."""
@@ -128,7 +128,7 @@ def resolve_deployments(model, machine: Machine, override: str = "auto") -> list
             for d in usable]
 
 
-def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list:
+def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.asr_model(model_id)
     if model is None:
