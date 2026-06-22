@@ -7,6 +7,8 @@ import os
 import platform
 from dataclasses import dataclass
 
+from .backends import make_backend, BackendLoadError
+
 
 @dataclass(frozen=True)
 class Gpu:
@@ -137,3 +139,22 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     if not plans:
         raise NoUsablePlan(model_id)
     return plans
+
+
+class AllPlansFailed(Exception):
+    """Every plan failed to load, including the CPU floor."""
+
+
+def load_with_fallback(plans: list):
+    """Try plans in order; return (backend, plan, notice). `notice` is set when a
+    higher-ranked plan was skipped. Raises AllPlansFailed if none load."""
+    notice = None
+    for plan in plans:
+        try:
+            backend = make_backend(plan.backend)
+            backend.load(plan.artifact, plan.device, plan.compute_type)
+            return backend, plan, notice
+        except BackendLoadError as e:
+            notice = f"{plan.device} unavailable ({e.reason}); falling back"
+            continue
+    raise AllPlansFailed(notice or "no plans to load")

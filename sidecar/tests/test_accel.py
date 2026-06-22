@@ -1,6 +1,7 @@
 import pytest
 from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
+from sokuji_sidecar import backends
 
 
 def test_probe_assembles_machine(monkeypatch):
@@ -83,3 +84,39 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
 def test_resolve_unknown_model_raises():
     with pytest.raises(ValueError):
         accel.resolve("nope", machine=_machine())
+
+
+def _plan(device):
+    return accel.Plan("ctranslate2", "cpu" if device == "cpu" else "gpu-cuda",
+                      device, "int8", "large-v3", 1.0)
+
+
+def test_fallback_steps_to_cpu_and_sets_notice(monkeypatch):
+    class FakeBackend:
+        def __init__(self, ok): self.ok = ok; self.loaded = False
+        def load(self, a, device, ct):
+            if not self.ok:
+                raise backends.BackendLoadError("OOM")
+            self.loaded = True
+    seq = iter([FakeBackend(False), FakeBackend(True)])
+    monkeypatch.setattr(accel, "make_backend", lambda name: next(seq))
+    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    assert backend.loaded and plan.device == "cpu"
+    assert "falling back" in notice
+
+
+def test_fallback_first_plan_wins_no_notice(monkeypatch):
+    class FakeBackend:
+        def load(self, a, device, ct): self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    backend, plan, notice = accel.load_with_fallback([_plan("cpu")])
+    assert plan.device == "cpu" and notice is None
+
+
+def test_fallback_all_fail_raises(monkeypatch):
+    class FakeBackend:
+        def load(self, a, device, ct): raise backends.BackendLoadError("nope")
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    import pytest
+    with pytest.raises(accel.AllPlansFailed):
+        accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
