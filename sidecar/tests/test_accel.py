@@ -311,3 +311,25 @@ def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
 def test_installed_includes_transformers():
     # transformers is a sidecar dependency → detected by _installed()
     assert "transformers" in accel._installed()
+
+
+def test_granite_resolves_gpu_only_on_nvidia_with_transformers():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"transformers"}))
+    plans = accel.resolve("granite-speech-4.1-2b", machine=m)
+    assert [p.device for p in plans] == ["cuda"]   # gpu-only → single plan, no cpu floor
+    assert plans[0].backend == "transformers" and plans[0].compute_type == "bfloat16"
+
+
+def test_granite_gated_off_on_cpu_only_machine():
+    # no nvidia → gpu-cuda filtered → no plan → NoUsablePlan (gated off)
+    with pytest.raises(accel.NoUsablePlan):
+        accel.resolve("granite-speech-4.1-2b",
+                      machine=_machine(installed=frozenset({"transformers"})))
+
+
+def test_granite_gated_off_without_transformers_installed():
+    # has a GPU but transformers not installed → backend filtered → NoUsablePlan
+    with pytest.raises(accel.NoUsablePlan):
+        accel.resolve("granite-speech-4.1-2b",
+                      machine=_machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                                       installed=frozenset({"ctranslate2"})))

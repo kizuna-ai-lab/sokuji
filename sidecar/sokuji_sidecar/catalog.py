@@ -48,6 +48,12 @@ ASR_MODELS: list[AsrModel] = [
     AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
              (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),
               Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0)), sort_order=4),
+    AsrModel("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)", ("en", "fr", "de", "es", "pt", "ja"),
+             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b", 1.0),),
+             sort_order=5),
+    AsrModel("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)", ("en", "fr", "de", "es", "pt"),
+             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b-plus", 1.0),),
+             sort_order=6),
 ]
 
 

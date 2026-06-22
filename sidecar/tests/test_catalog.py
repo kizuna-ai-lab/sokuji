@@ -1,13 +1,18 @@
 from sokuji_sidecar import catalog
 
 
-def test_every_model_has_a_cpu_deployment_and_languages():
+def test_models_have_deployments_and_languages():
     for m in catalog.asr_models():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
-        assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no CPU floor"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers"}
+
+
+def test_system_has_a_cpu_floor():
+    # GPU-only models (Granite/Voxtral) are allowed; the SYSTEM still always has a
+    # CPU floor via Whisper / sense-voice.
+    assert any(any(d.tier == "cpu" for d in m.deployments) for m in catalog.asr_models())
 
 
 def test_model_ids_are_unique():
@@ -29,3 +34,8 @@ def test_language_regression_fixtures():
 def test_sense_voice_uses_sherpa_whisper_uses_ctranslate2():
     assert catalog.asr_model("sense-voice").deployments[0].backend == "sherpa"
     assert catalog.asr_model("whisper-tiny").deployments[0].backend == "ctranslate2"
+
+
+def test_granite_language_regression():
+    assert catalog.asr_model("granite-speech-4.1-2b").languages == ("en", "fr", "de", "es", "pt", "ja")
+    assert catalog.asr_model("granite-speech-4.1-2b-plus").languages == ("en", "fr", "de", "es", "pt")
