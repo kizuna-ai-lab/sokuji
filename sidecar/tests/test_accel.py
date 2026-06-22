@@ -262,3 +262,17 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     })
     plans = accel.resolve("whisper-tiny", machine=m)
     assert plans[0].device == "cpu"  # demoted: cpu now leads
+
+
+def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    fp = m.fingerprint
+    # cache says cuda is slower than cpu — AUTO would demote, but an explicit
+    # override must win (the benchmark never overrides the user's forced device).
+    accel.bench_save({
+        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
+        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+    })
+    plans = accel.resolve("whisper-tiny", override="cuda", machine=m)
+    assert plans[0].device == "cuda"  # explicit override beats cache demotion

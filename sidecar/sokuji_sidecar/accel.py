@@ -132,7 +132,11 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
         usable = pinned + rest
     plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
              for d in usable]
-    return _apply_bench(plans, bench) if bench else plans
+    # Cache-based demotion is an AUTO-mode refinement; an explicit override is the
+    # user's will and is never second-guessed by the benchmark.
+    if bench and override == "auto":
+        plans = _apply_bench(plans, bench)
+    return plans
 
 
 def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
