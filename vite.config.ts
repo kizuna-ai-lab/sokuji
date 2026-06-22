@@ -11,6 +11,31 @@ import { workerManualChunks } from './vite.worker-chunks'
  * TTS model .data and package-metadata.json files live in model-packs/tts/wasm-*
  * and need to be accessible to the browser during development.
  */
+/**
+ * Dev-only plugin: set cross-origin isolation headers on EVERY response.
+ *
+ * Electron 40's Chromium requires Cross-Origin-Embedder-Policy for ES module
+ * workers even with SAB from --enable-features. Vite's `server.headers` does not
+ * reach all worker-script responses in v7 (notably `public/` static workers via
+ * sirv, e.g. edge-tts.worker.js, and the `?worker_file` handler for module
+ * workers), so those load with "COEP-framed resource needs COEP header". A
+ * top-of-stack middleware that stamps the headers on every response covers them
+ * all. Runs only in `serve` (dev); the packaged app and extension are untouched.
+ */
+function crossOriginIsolationHeaders(): Plugin {
+  return {
+    name: 'cross-origin-isolation-headers',
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+        next()
+      })
+    },
+  }
+}
+
 function serveModelPacks(): Plugin {
   return {
     name: 'serve-model-packs',
@@ -99,6 +124,7 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
+      isServe && crossOriginIsolationHeaders(),
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
