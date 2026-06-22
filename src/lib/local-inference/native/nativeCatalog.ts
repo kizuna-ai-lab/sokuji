@@ -138,11 +138,15 @@ export function resolveNativeTranslation(choice: string, src: string, tgt: strin
  * speech output is on. '' translation resolves to the 'qwen' download id.
  */
 export function requiredNativeModels(
-  asrModel: string, translationChoice: string, ttsChoice: string, src: string, tgt: string
+  asrModel: string, translationChoice: string, ttsChoice: string, src: string, tgt: string,
+  textOnly = false
 ): string[] {
   const ids = [asrModel, resolveNativeTranslation(translationChoice, src, tgt) || 'qwen'];
-  const tts = resolveNativeTts(ttsChoice, tgt);
-  if (tts) ids.push(tts);
+  // TTS is only required when speech output is on (text-only skips it entirely).
+  if (!textOnly) {
+    const tts = resolveNativeTts(ttsChoice, tgt);
+    if (tts) ids.push(tts);
+  }
   return ids;
 }
 
@@ -188,11 +192,13 @@ export function nativeTranslationCards(src: string, tgt: string): NativeModelCar
 }
 
 export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
-  const voices: NativeModelCardSpec[] = nativeTtsVoices(tgt).map((v, i) => ({
+  // Voice picker only — there's no "Off" card; text-only is the common textOnly
+  // toggle. Languages without a piper voice simply yield an empty list (the UI
+  // shows a "text only" notice).
+  return nativeTtsVoices(tgt).map((v, i) => ({
     selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
     recommended: i === 0, sortOrder: i,
   }));
-  return [...voices, { selectId: 'off', downloadId: null, name: 'Off', note: 'text only', sortOrder: 99 }];
 }
 
 /** The per-stage selection (the selectIds written to LocalNativeSettings). */
@@ -254,9 +260,10 @@ export function autoSelectNative(
     if (newId !== translationModel) updates.translationModel = newId;
   }
 
-  // TTS — optional; a specific voice must be valid for tgt, else fall back to Auto ('').
-  // '' (Auto) and 'off' are always valid.
-  if (ttsModel && ttsModel !== 'off' && ttsModel !== '' && !nativeTtsVoices(tgt).some((v) => v.id === ttsModel)) {
+  // TTS — optional; '' (Auto) = the default voice for tgt. A specific voice that
+  // isn't valid for tgt, or a legacy 'off' (the Off card was removed — text-only
+  // is the common textOnly toggle now), resets to Auto.
+  if (ttsModel === 'off' || (ttsModel && ttsModel !== '' && !nativeTtsVoices(tgt).some((v) => v.id === ttsModel))) {
     updates.ttsModel = '';
   }
 

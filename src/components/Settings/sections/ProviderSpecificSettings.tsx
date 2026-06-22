@@ -1829,9 +1829,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     if (provider !== Provider.LOCAL_NATIVE) {
       return null;
     }
-    // Speech output is active when a voice is selectable for the target language
-    // and the user hasn't turned it Off — only then is the speed slider meaningful.
-    const ttsActive = localNativeSettings.ttsModel !== 'off' && hasNativeTts(localNativeSettings.targetLanguage);
+    // The speed slider is meaningful only when the target language has a native
+    // voice (text-only is the common textOnly toggle, not a per-stage Off option).
+    const ttsActive = hasNativeTts(localNativeSettings.targetLanguage);
     // Custom prompts only reach the Qwen LLM path; Opus-MT ('opus-mt') ignores them.
     const promptSupported = localNativeSettings.translationModel === '';
 

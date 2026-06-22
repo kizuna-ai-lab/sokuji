@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, HardDrive, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, HardDrive, X, AlertTriangle } from 'lucide-react';
 import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
@@ -282,7 +282,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     <div id="model-management-section" className="settings-section model-management-section">
       <h2>{t('models.management', 'Models')}</h2>
 
-      <NativeModelGroup title={t('providers.local_native.asr', 'Speech recognition')}>
+      <NativeModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
         {asrIncompatibleCards.length > 0 && (
           <>
@@ -301,12 +301,19 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
         )}
       </NativeModelGroup>
 
-      <NativeModelGroup title={t('providers.local_native.translation', 'Translation')}>
+      <NativeModelGroup title={t('models.translationModels', 'Translation')}>
         {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
       </NativeModelGroup>
 
-      <NativeModelGroup title={t('providers.local_native.speechOutput', 'Speech output')}>
-        {renderCards(ttsCards, (c) => ttsSelected(c.selectId), 'ttsModel')}
+      <NativeModelGroup title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
+        {ttsCards.length > 0 ? (
+          renderCards(ttsCards, (c) => ttsSelected(c.selectId), 'ttsModel')
+        ) : (
+          <div className="model-card__no-model-warning">
+            <AlertTriangle size={14} />
+            {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
+          </div>
+        )}
       </NativeModelGroup>
 
       <div className="model-management__storage">

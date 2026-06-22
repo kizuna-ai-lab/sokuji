@@ -63,15 +63,12 @@ describe('nativeCatalog', () => {
     expect(tr[1]).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
 
     const tts = nativeTtsCards('en');
-    expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low' });
-    const off = tts[tts.length - 1];
-    expect(off.selectId).toBe('off');
-    expect(off.downloadId).toBeNull();
+    expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low', recommended: true });
+    // no Off card — voice picker only (text-only is the common textOnly toggle)
+    expect(tts.every((c) => c.selectId !== 'off')).toBe(true);
 
-    // language with no piper voice -> only the Off card
-    const ja = nativeTtsCards('ja');
-    expect(ja).toHaveLength(1);
-    expect(ja[0]).toMatchObject({ selectId: 'off', downloadId: null, name: 'Off', note: 'text only' });
+    // language with no piper voice -> empty list (UI shows a text-only notice)
+    expect(nativeTtsCards('ja')).toHaveLength(0);
   });
 
   it('splits ASR into compatible / incompatible for a language', () => {
@@ -121,6 +118,11 @@ describe('nativeCatalog', () => {
 
     it('resets a stale cross-language TTS voice to Auto', () => {
       const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen'));
+      expect(r?.ttsModel).toBe('');
+    });
+
+    it('migrates a legacy "off" TTS choice to Auto', () => {
+      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'off' }), downloaded('sense-voice', 'qwen'));
       expect(r?.ttsModel).toBe('');
     });
 

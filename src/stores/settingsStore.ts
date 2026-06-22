@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -183,7 +183,7 @@ export interface LocalInferenceSettings {
 export interface LocalNativeSettings {
   asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
   translationModel: string;  // '' (auto) | 'opus-mt-zh-en' | LLM id
-  ttsModel: string;          // '' (off) — native TTS reserved for later
+  ttsModel: string;          // '' = Auto (default voice) | a specific piper voice id
   sourceLanguage: string;
   targetLanguage: string;
   // Parity with LocalInferenceSettings — same fields/defaults so the shared
@@ -379,7 +379,7 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
 const defaultLocalNativeSettings: LocalNativeSettings = {
   asrModel: 'sense-voice',
   translationModel: '',  // auto: opus-mt for the language pair
-  ttsModel: '',          // off (native TTS reserved for later)
+  ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
   sourceLanguage: 'ja',
   targetLanguage: 'en',
   ttsSpeed: 1.0,
@@ -1269,13 +1269,20 @@ const useSettingsStore = create<SettingsStore>()(
         }
         let message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
         if (ready) {
-          // Gate on the selected stage models being downloaded into the sidecar cache.
           const s = get().localNative;
-          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage);
+          // The selected ASR must actually support the source language — not just
+          // be downloaded (parity with LOCAL_INFERENCE, which gates on language).
+          const asrOpt = NATIVE_ASR.find((m) => m.id === s.asrModel);
+          const asrCompatible = !!asrOpt && supportsLanguage(asrOpt, s.sourceLanguage);
+          // Gate on the selected stage models being downloaded into the sidecar cache.
+          // TTS is dropped from the requirement when text-only is on.
+          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, get().textOnly);
           const { useNativeModelStore } = await import('./nativeModelStore');
           await useNativeModelStore.getState().refresh(models);
-          ready = useNativeModelStore.getState().isReady(models);
-          message = ready ? '' : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+          ready = asrCompatible && useNativeModelStore.getState().isReady(models);
+          message = ready ? ''
+            : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
+            : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
         }
         set({
           isApiKeyValid: ready,
