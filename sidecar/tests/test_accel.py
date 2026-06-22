@@ -30,3 +30,58 @@ def test_probe_is_cached(monkeypatch):
     first = accel.probe(force=True)
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "x", 0),))
     assert accel.probe() is first  # cached: no re-probe without force
+
+
+from sokuji_sidecar import catalog
+
+
+def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"ctranslate2", "sherpa"})):
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
+                         apple_silicon=apple, dml_adapters=dml, installed=installed,
+                         fingerprint="test")
+
+
+def _model_cpu_and_cuda():
+    return catalog.AsrModel("m", "M", ("multi",), (
+        catalog.Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
+        catalog.Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0),
+    ))
+
+
+def test_resolve_prefers_gpu_when_nvidia_present():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    plans = accel.resolve_deployments(_model_cpu_and_cuda(), m)
+    assert [p.device for p in plans] == ["cuda", "cpu"]  # GPU first, CPU floor last
+
+
+def test_resolve_cpu_only_machine_drops_gpu_plan():
+    plans = accel.resolve_deployments(_model_cpu_and_cuda(), _machine())
+    assert [p.device for p in plans] == ["cpu"]  # no NVIDIA → only the floor
+
+
+def test_resolve_override_pins_cpu():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    plans = accel.resolve_deployments(_model_cpu_and_cuda(), m, override="cpu")
+    assert plans[0].device == "cpu"  # forced CPU jumps the queue
+
+
+def test_resolve_gpu_only_model_on_cpu_machine_is_empty():
+    gpu_only = catalog.AsrModel("v", "Voxtral", ("multi",),
+                                (catalog.Deployment("llamacpp", "gpu-cuda", "q4", "v", 1.0),))
+    assert accel.resolve_deployments(gpu_only, _machine()) == []
+
+
+def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    accel.probe(force=True)
+    plans = accel.resolve("sense-voice")
+    assert plans[0].backend == "sherpa" and plans[0].device == "cpu"
+
+
+def test_resolve_unknown_model_raises():
+    import pytest
+    with pytest.raises(ValueError):
+        accel.resolve("nope", machine=_machine())
