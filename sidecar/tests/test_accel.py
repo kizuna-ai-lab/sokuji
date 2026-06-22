@@ -200,3 +200,23 @@ def test_whisper_cpu_override_pins_cpu_on_nvidia():
 def test_sense_voice_has_no_gpu_deployment():
     plans = accel.resolve("sense-voice", machine=_machine(nvidia=(accel.Gpu("nvidia", "x", 0),)))
     assert [p.device for p in plans] == ["cpu"]  # sherpa stays CPU-only even with a GPU
+
+
+def test_bench_cache_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    assert accel.bench_load() == {}  # nothing yet
+    key = accel._bench_key("fp123", "whisper-tiny", "ctranslate2", "cuda", "float16")
+    accel.bench_save({key: 0.12})
+    assert accel.bench_load()[key] == 0.12
+
+
+def test_bench_load_is_best_effort_on_corrupt(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    (tmp_path / "accel-bench.json").write_text("{ not json")
+    assert accel.bench_load() == {}  # corrupt file → empty, no raise
+
+
+def test_bench_key_is_stable_and_distinct():
+    a = accel._bench_key("fp", "m", "ctranslate2", "cuda", "float16")
+    b = accel._bench_key("fp", "m", "ctranslate2", "cpu", "int8")
+    assert a != b and a == accel._bench_key("fp", "m", "ctranslate2", "cuda", "float16")

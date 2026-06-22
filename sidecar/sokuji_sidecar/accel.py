@@ -3,8 +3,10 @@ of Plans for a model (best first, CPU floor last), and loads with fallback.
 The single owner of "which backend on which device"."""
 import hashlib
 import importlib.util
+import json
 import os
 import platform
+import time
 from dataclasses import dataclass
 
 from .backends import make_backend, BackendLoadError
@@ -158,6 +160,36 @@ def load_with_fallback(plans: list):
             notice = f"{plan.device} unavailable ({e.reason}); falling back"
             continue
     raise AllPlansFailed(notice or "no plans to load")
+
+
+def _bench_cache_path() -> str:
+    base = os.environ.get("SOKUJI_BENCH_DIR", os.path.expanduser("~/.cache/sokuji-sidecar"))
+    return os.path.join(base, "accel-bench.json")
+
+
+def bench_load() -> dict:
+    """Best-effort read of the RTF cache. Missing/corrupt file → {}."""
+    try:
+        with open(_bench_cache_path()) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def bench_save(cache: dict) -> None:
+    """Best-effort write of the RTF cache. Never raises."""
+    try:
+        path = _bench_cache_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(cache, f)
+    except Exception:
+        pass
+
+
+def _bench_key(fingerprint: str, model_id: str, backend: str, device: str, compute_type: str) -> str:
+    return f"{fingerprint}|{model_id}|{backend}|{device}|{compute_type}"
 
 
 async def _h_hardware_info(state, msg, _b, conn=None):
