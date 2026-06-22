@@ -54,7 +54,7 @@ export class LocalNativeClient implements IClient {
       threshold: config.vadThreshold,
       minSilence: config.vadMinSilenceDuration,
       minSpeech: config.vadMinSpeechDuration,
-    });
+    }, config.asrDevice);
     // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
     // (Pocket) need a reference clip and stay off until a reference-voice UX.
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly

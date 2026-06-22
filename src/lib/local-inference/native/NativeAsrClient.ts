@@ -51,11 +51,12 @@ export class NativeAsrClient {
   async init(
     language = '', modelId?: string, sampleRate = 24000,
     vad?: { threshold?: number; minSilence?: number; minSpeech?: number },
+    device?: string,
   ): Promise<{ loadTimeMs: number }> {
     await this.connect();
     this.onStatus?.('[native-asr] init…');
     const msg = await this.send({
-      type: 'asr_init', language, model: modelId, sampleRate,
+      type: 'asr_init', language, model: modelId, sampleRate, device,
       vadThreshold: vad?.threshold, vadMinSilenceDuration: vad?.minSilence, vadMinSpeechDuration: vad?.minSpeech,
     });
     return { loadTimeMs: (msg as Extract<ServerMsg, { type: 'ready' }>).loadTimeMs };

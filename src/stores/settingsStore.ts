@@ -195,6 +195,7 @@ export interface LocalNativeSettings {
   vadMinSpeechDuration: number;        // seconds — silero min_speech_duration
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
+  asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
 }
 
 // Cache Entry
@@ -389,6 +390,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   vadMinSpeechDuration: 0.4,
   useTemplateMode: true,
   systemPrompt: '',
+  asrDevice: 'auto',
 };
 
 // ==================== Store Definition ====================
@@ -733,6 +735,7 @@ function createLocalNativeSessionConfig(
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
     wrapTranscript,
+    asrDevice: settings.asrDevice,
   };
 }
 

@@ -4,6 +4,7 @@ import { NativeAsrClient } from './NativeAsrClient';
 
 class FakeWS {
   static last: FakeWS;
+  static lastInit: any;
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: any }) => void) | null = null;
   onerror: (() => void) | null = null;
@@ -12,8 +13,11 @@ class FakeWS {
   send(d: any) {
     if (typeof d === 'string') {
       const msg = JSON.parse(d);
-      if (msg.type === 'asr_init') queueMicrotask(() =>
-        this.onmessage?.({ data: JSON.stringify({ type: 'ready', id: msg.id, loadTimeMs: 2 }) }));
+      if (msg.type === 'asr_init') {
+        FakeWS.lastInit = msg;
+        queueMicrotask(() =>
+          this.onmessage?.({ data: JSON.stringify({ type: 'ready', id: msg.id, loadTimeMs: 2 }) }));
+      }
       if (msg.type === 'asr_flush') queueMicrotask(() =>
         this.onmessage?.({ data: JSON.stringify({ type: 'ok', id: msg.id }) }));
     } else {
@@ -31,6 +35,12 @@ beforeEach(() => {
 });
 
 describe('NativeAsrClient', () => {
+  it('sends the device override in asr_init', async () => {
+    const c = new NativeAsrClient();
+    await c.init('en', 'granite-speech-4.1-2b', 24000, undefined, 'cuda');
+    expect(FakeWS.lastInit.device).toBe('cuda');
+  });
+
   it('inits then pushes speech_start + result on fed audio', async () => {
     const c = new NativeAsrClient();
     const results: string[] = [];

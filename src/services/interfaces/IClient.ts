@@ -205,6 +205,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   vadMinSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   wrapTranscript?: boolean;
+  asrDevice?: string;
 }
 
 /**
