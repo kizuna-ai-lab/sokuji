@@ -306,3 +306,8 @@ def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
         assert plan.device == "cpu"
     finally:
         backend.unload()
+
+
+def test_installed_includes_transformers():
+    # transformers is a sidecar dependency → detected by _installed()
+    assert "transformers" in accel._installed()

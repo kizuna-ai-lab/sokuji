@@ -50,7 +50,8 @@ def _dml_adapters() -> tuple[str, ...]:
 
 def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
-            "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm"}
+            "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
+            "transformers": "transformers"}
     return frozenset(b for b, mod in mods.items() if importlib.util.find_spec(mod) is not None)
 
 
