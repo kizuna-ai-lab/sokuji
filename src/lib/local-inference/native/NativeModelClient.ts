@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, HardwareInfoResultMsg, NativeModelInfo } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo } from './nativeProtocol';
 
 interface DownloadHandle {
   onProgress?: (p: ModelProgressMsg) => void;
@@ -73,10 +73,10 @@ export class NativeModelClient {
   }
 
   /** Query the sidecar for detected hardware (CPU/GPU/NPU + installed backends). */
-  async hardwareInfo(): Promise<HardwareInfoResultMsg> {
+  async hardwareInfo(): Promise<Extract<ServerMsg, { type: 'hardware_info_result' }>> {
     await this.connect();
     const msg = await this.send({ type: 'hardware_info' });
-    return msg as HardwareInfoResultMsg;
+    return msg as Extract<ServerMsg, { type: 'hardware_info_result' }>;
   }
 
   /** Query the per-machine model catalog (languages, recommended, tier availability). */

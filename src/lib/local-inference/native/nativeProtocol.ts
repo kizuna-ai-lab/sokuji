@@ -1,4 +1,4 @@
-// WS message contract between the renderer and the python sidecar (Phase 1: TTS only).
+// WS message contract between the renderer and the python sidecar (TTS, translation, ASR, model management, hardware info).
 export interface ReadyMsg {
   type: 'ready'; id: number; sampleRate: number; loadTimeMs: number;
   backend?: string; device?: string; computeType?: string; rtf?: number; fallbackReason?: string;
