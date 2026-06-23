@@ -120,12 +120,16 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   deleteModel: async (model) => {
+    // Optimistic: hide the model immediately. The sidecar delete is a WS round-trip
+    // + an rm of a multi-GB dir, so awaiting it first would freeze the card on
+    // "Downloaded" for a noticeable beat (mirrors download()'s optimistic 'downloading').
+    set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     try {
       await client.delete(model);
     } catch {
-      // sidecar refused/unavailable — fall through and reflect best-effort state
+      // sidecar refused/unavailable — keep the best-effort 'absent' (the model is
+      // hidden either way; readiness re-checks against the real cache on next refresh).
     }
-    set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     await revalidateNativeProvider();
   },
 
