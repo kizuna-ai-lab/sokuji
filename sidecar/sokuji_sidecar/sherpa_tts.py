@@ -27,7 +27,7 @@ class SherpaPiperTts:
         from huggingface_hub import snapshot_download
         t0 = time.time()
         repo = PIPER_REPOS.get(model, model)
-        d = snapshot_download(repo_id=repo)
+        d = snapshot_download(repo_id=repo, local_files_only=True)
         onnx = next(f for f in os.listdir(d)
                     if f.endswith(".onnx") and not f.endswith(".onnx.json"))
         cfg = sherpa_onnx.OfflineTtsConfig(

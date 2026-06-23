@@ -82,7 +82,7 @@ class SherpaBackend:
         try:
             import sherpa_onnx
             from huggingface_hub import snapshot_download
-            d = snapshot_download(repo_id=model_ref)
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
             self._rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
                 model=f"{d}/model.int8.onnx", tokens=f"{d}/tokens.txt",
                 use_itn=True, provider=device)
@@ -127,9 +127,9 @@ class TransformersBackend:
             import torch
             from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
             dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float16
-            self._proc = AutoProcessor.from_pretrained(model_ref)
+            self._proc = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
             self._model = AutoModelForSpeechSeq2Seq.from_pretrained(
-                model_ref, dtype=dtype).to(device).eval()
+                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
             self._device = device
         except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver handles
             raise BackendLoadError(str(e))
@@ -190,9 +190,9 @@ class Qwen3AsrBackend:
             import torch
             from transformers import Qwen3ASRForConditionalGeneration, AutoProcessor
             self._dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
-            self._proc = AutoProcessor.from_pretrained(model_ref)
+            self._proc = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
             self._model = Qwen3ASRForConditionalGeneration.from_pretrained(
-                model_ref, dtype=self._dtype).to(device).eval()
+                model_ref, dtype=self._dtype, local_files_only=True).to(device).eval()
             self._device = device
         except Exception as e:  # missing qwen3_asr model, no CUDA, OOM → resolver falls back
             raise BackendLoadError(str(e))

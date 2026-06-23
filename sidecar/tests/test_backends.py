@@ -12,6 +12,12 @@ from sokuji_sidecar import backends
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads bezzam/Qwen3-ASR-1.7B; needs CUDA + the branch transformers)")
 def test_qwen3asr_real_gpu_smoke():
+    # Mirrors the real flow: manager downloads first, backend loads from cache.
+    # snapshot_download without local_files_only=True here because this is the
+    # download step (equivalent to native_models.download); the backend load below
+    # will then use local_files_only=True from the cache.
+    from huggingface_hub import snapshot_download
+    snapshot_download("bezzam/Qwen3-ASR-1.7B")  # populate the HF cache
     b = backends.make_backend("qwen3asr")
     b.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
     assert b.is_loaded
@@ -116,7 +122,9 @@ def _install_fake_sherpa(monkeypatch, *, fail=False):
     monkeypatch.setitem(sys.modules, "sherpa_onnx", sherpa)
 
     hub = types.ModuleType("huggingface_hub")
-    hub.snapshot_download = lambda repo_id: f"/fake/{repo_id}"
+    hub.snapshot_download = lambda repo_id, local_files_only=False: (
+        captured.update({"local_files_only": local_files_only}) or f"/fake/{repo_id}"
+    )
     monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
     return captured
 
@@ -127,6 +135,7 @@ def test_sherpa_load_and_transcribe(monkeypatch):
     b.load("csukuangfj/sherpa-onnx-sense-voice", "cpu", "int8")
     assert b.is_loaded
     assert cap["from_sense_voice"]["model"].endswith("/model.int8.onnx")
+    assert cap["local_files_only"] is True
     out = b.transcribe(np.zeros(16000, np.float32), None)
     assert out.text == "konnichiwa" and cap["decoded"] is True
     assert cap["fed"][0] == 16000 and cap["fed"][1] == 16000
@@ -182,17 +191,19 @@ def _install_fake_transformers(monkeypatch, *, fail=False):
 
     class FakeAutoProcessor:
         @staticmethod
-        def from_pretrained(repo):
+        def from_pretrained(repo, local_files_only=False):
             if fail:
                 raise RuntimeError("model not found")
             cap["proc_repo"] = repo
+            cap["proc_local_files_only"] = local_files_only
             return FakeProc()
 
     class FakeAutoModel:
         @staticmethod
-        def from_pretrained(repo, dtype):
+        def from_pretrained(repo, dtype, local_files_only=False):
             cap["model_repo"] = repo
             cap["dtype"] = dtype
+            cap["model_local_files_only"] = local_files_only
             return FakeModel()
 
     tmod = types.ModuleType("transformers")
@@ -218,6 +229,8 @@ def test_transformers_load_and_transcribe(monkeypatch):
     assert cap["model_repo"] == "ibm-granite/granite-speech-4.1-2b"
     assert cap["dtype"] == "BF16"          # bfloat16 → torch.bfloat16
     assert cap["model_device"] == "cuda"
+    assert cap["proc_local_files_only"] is True
+    assert cap["model_local_files_only"] is True
     out = b.transcribe(np.zeros(16000, np.float32), "en")
     assert out.text == "the tribal chieftain"   # decoded + stripped
     assert "<|audio|>" in cap["chat"][-1]["content"]   # audio placeholder in the user prompt
@@ -291,14 +304,16 @@ def _install_fake_qwen3(monkeypatch, *, decoded="language Chinese<asr_text>hello
 
     class FakeAutoProcessor:
         @staticmethod
-        def from_pretrained(repo):
+        def from_pretrained(repo, local_files_only=False):
             cap["proc_repo"] = repo
+            cap["proc_local_files_only"] = local_files_only
             return FakeProc()
 
     class FakeQwen3:
         @staticmethod
-        def from_pretrained(repo, dtype):
+        def from_pretrained(repo, dtype, local_files_only=False):
             cap["repo"] = repo; cap["dtype"] = dtype
+            cap["model_local_files_only"] = local_files_only
             return FakeModel()
 
     tmod = types.ModuleType("transformers")
@@ -321,6 +336,8 @@ def test_qwen3asr_load_and_transcribe(monkeypatch):
     assert b.is_loaded
     assert cap["repo"] == "bezzam/Qwen3-ASR-1.7B"
     assert cap["dtype"] == "BF16" and cap["model_device"] == "cuda"
+    assert cap["proc_local_files_only"] is True
+    assert cap["model_local_files_only"] is True
     r = b.transcribe(np.zeros(16000, np.float32), "en")
     assert r.text == "hello world"                 # prefix stripped
     assert cap["feat_dtype"] == "BF16"             # input_features cast to model dtype
