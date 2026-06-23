@@ -1,8 +1,38 @@
 # Native ASR: Cohere Transcribe (GPU sidecar) — Design
 
-**Status:** Approved design — ready for implementation plan.
+**Status:** IMPLEMENTED on `feat/native-asr-cohere` — see "Implementation Outcome" for what actually shipped (the key change: a non-gated source, so no HF_TOKEN).
 **Branch:** `feat/native-asr-cohere` (from `native-sidecar`).
 **Date:** 2026-06-24.
+
+## Implementation Outcome (shipped) — supersedes the gated/HF_TOKEN parts of the design below
+
+- **Backend renamed** `cohereasr` → **`cohere_transformers`** (it's the PyTorch-transformers
+  runtime); catalog display **"Cohere Transcribe (Transformers)"**. The "(Transformers)" tag was
+  forward-looking for a possible ONNX sibling — see the Plan-B note.
+- **Non-gated source — no HF_TOKEN.** `CohereLabs/cohere-transcribe-03-2026` is gated, but
+  **`AEmotionStudio/cohere-transcribe-03-2026-models`** is a non-gated re-upload of the **same
+  weights** — verified **byte-identical**: all **2152 tensors match by SHA256**, config
+  identical, and it loads with the native `CohereAsr` class (no `trust_remote_code`, so only the
+  weights are used — none of the mirror's Python runs). The catalog artifact + `download_specs`
+  point at it, so Cohere downloads with **no authentication** (browser parity, no per-user
+  token). The HF_TOKEN / gated-401 handling from the original design was therefore dropped; the
+  general "surface a download error on the card" UX was kept.
+- **`librosa` is a required dependency** — `CohereAsrFeatureExtractor` imports it at load time
+  (the backend crashed without it; mocked tests couldn't catch it). Added to `sidecar/setup.sh`.
+- **Performance (RTX 4070 SUPER, bf16/CUDA):** ~**101–154× realtime** (RTF ~0.006–0.010),
+  ~80 ms/utterance, 4.17 GB VRAM — verified with CUDA-event timing on real clips. The headline
+  multiple is high simply because the GPU decodes ~420 tok/s while speech is ~3 tok/s.
+- **"Plan B" (onnxruntime-GPU ONNX backend) investigated and rejected.** The non-gated
+  `onnx-community` ONNX export runs its encoder on CUDA (62 ms) but its decoder's
+  `GroupQueryAttention` op is rejected by the onnxruntime-CUDA kernel (it doesn't accept the
+  `position_ids` the transformers.js-style export feeds it), so the decoder is **CPU-only** → a
+  ~7× hybrid vs the transformers path's ~100×. Once the non-gated *transformers* mirror was
+  found, B added nothing (slower, an `onnxruntime-gpu` dep, a hand-rolled decode loop) and was
+  dropped. (HF also has sherpa-onnx / GGUF / NVFP4 / CoreML / MLX re-exports; none was needed.)
+
+The sections below are the original design (gated source + HF_TOKEN) — kept as the record.
+
+---
 
 ## 1. Goal
 
