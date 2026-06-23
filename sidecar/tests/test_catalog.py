@@ -46,7 +46,7 @@ def test_qwen3_asr_row():
     assert m is not None
     assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
                            "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
-    assert m.recommended is False        # Phase 1: not selectable/recommended yet
+    assert m.recommended is True         # Phase 2: native runtime available → recommended
     assert m.sort_order == 7
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \

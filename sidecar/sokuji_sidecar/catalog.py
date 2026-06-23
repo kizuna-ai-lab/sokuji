@@ -58,7 +58,7 @@ ASR_MODELS: list[AsrModel] = [
              ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
               "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
              (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
-             recommended=False, sort_order=7),
+             recommended=True, sort_order=7),
 ]
 
 
