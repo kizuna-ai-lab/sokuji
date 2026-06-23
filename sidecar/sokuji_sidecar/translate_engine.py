@@ -29,6 +29,8 @@ class TranslateEngine:
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
         t0 = time.time()
+        if not text.strip():        # empty/whitespace → nothing to translate
+            return "", 0
         if self._opus is not None:
             return self._opus.translate(text), int((time.time() - t0) * 1000)
         sys_prompt = system_prompt or (

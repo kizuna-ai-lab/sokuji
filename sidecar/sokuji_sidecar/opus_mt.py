@@ -36,7 +36,7 @@ class OpusMtTranslator:
         from huggingface_hub import hf_hub_download
         from transformers import MarianTokenizer
         self._np = np
-        g = lambda f: hf_hub_download(onnx_repo, f)
+        g = lambda f: hf_hub_download(onnx_repo, f, local_files_only=True)
 
         def sess(name):
             return ort.InferenceSession(g(f"onnx/{name}"), providers=["CPUExecutionProvider"])
@@ -44,7 +44,7 @@ class OpusMtTranslator:
         self._enc = sess("encoder_model_quantized.onnx")
         self._dec = sess("decoder_model_quantized.onnx")
         self._decp = sess("decoder_with_past_model_quantized.onnx")
-        self._tok = MarianTokenizer.from_pretrained(tok_repo or _tok_repo_for(onnx_repo))
+        self._tok = MarianTokenizer.from_pretrained(tok_repo or _tok_repo_for(onnx_repo), local_files_only=True)
         cfg = json.load(open(g("config.json")))
         self._start = cfg.get("decoder_start_token_id", 65000)
         self._eos = cfg.get("eos_token_id", 0)

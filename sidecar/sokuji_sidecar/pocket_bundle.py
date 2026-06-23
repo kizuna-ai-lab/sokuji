@@ -31,6 +31,7 @@ def resolve_bundle_dir(local_dir: str | None = None) -> str:
     root = snapshot_download(
         repo_id=HF_REPO, repo_type="space",
         allow_patterns=[f"{HF_SUBFOLDER}/*"],
+        local_files_only=True,   # offline-first: model fetched by the manager beforehand
     )
     return f"{root}/{HF_SUBFOLDER}"
 
