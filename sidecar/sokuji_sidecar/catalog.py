@@ -32,7 +32,7 @@ class AsrModel:
 # (NativeModelInfo omits it); the renderer owns card ordering via nativeCatalog.ts.
 # So renderer and sidecar sort_order values may differ harmlessly.
 ASR_MODELS: list[AsrModel] = [
-    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe (Transformers)",
+    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
              ("en", "de", "fr", "it", "es", "pt", "el",
               "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
              (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",

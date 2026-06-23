@@ -56,7 +56,7 @@ def test_qwen3_asr_row():
 def test_cohere_asr_row():
     m = catalog.asr_model("cohere-transcribe-03-2026")
     assert m is not None
-    assert m.name == "Cohere Transcribe (Transformers)"
+    assert m.name == "Cohere Transcribe"
     assert m.languages == ("en", "de", "fr", "it", "es", "pt", "el",
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
