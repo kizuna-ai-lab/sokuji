@@ -41,7 +41,7 @@ def download_specs(model_id):
     if model_id == "qwen3-asr-1.7b":
         return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
     if model_id == "cohere-transcribe-03-2026":
-        return {"repos": ["CohereLabs/cohere-transcribe-03-2026"], "urls": []}
+        return {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 

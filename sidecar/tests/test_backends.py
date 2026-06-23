@@ -349,7 +349,7 @@ def test_qwen3asr_load_and_transcribe(monkeypatch):
 def test_cohereasr_is_gpu_only():
     b = backends.make_backend("cohere_transformers")
     with pytest.raises(backends.BackendLoadError):
-        b.load("CohereLabs/cohere-transcribe-03-2026", "cpu", "bfloat16")
+        b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cpu", "bfloat16")
 
 
 def _install_fake_cohere(monkeypatch, *, decoded="hello world"):
@@ -419,9 +419,9 @@ def _install_fake_cohere(monkeypatch, *, decoded="hello world"):
 def test_cohereasr_load_and_transcribe(monkeypatch):
     cap = _install_fake_cohere(monkeypatch)
     b = backends.make_backend("cohere_transformers")
-    b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
     assert b.is_loaded
-    assert cap["repo"] == "CohereLabs/cohere-transcribe-03-2026"
+    assert cap["repo"] == "AEmotionStudio/cohere-transcribe-03-2026-models"
     assert cap["dtype"] == "BF16" and cap["model_device"] == "cuda"
     assert cap["proc_local_files_only"] is True
     assert cap["model_local_files_only"] is True
@@ -438,7 +438,7 @@ def test_cohereasr_load_and_transcribe(monkeypatch):
 def test_cohereasr_defaults_missing_language_to_english(monkeypatch):
     cap = _install_fake_cohere(monkeypatch)
     b = backends.make_backend("cohere_transformers")
-    b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
     b.transcribe(np.zeros(16000, np.float32), "")        # empty → en
     assert cap["language"] == "en"
     b.transcribe(np.zeros(16000, np.float32), "auto")    # stale 'auto' value → en
@@ -446,13 +446,13 @@ def test_cohereasr_defaults_missing_language_to_english(monkeypatch):
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (downloads CohereLabs/cohere-transcribe-03-2026 ~4GB; needs CUDA)")
+                    reason="set SOKUJI_RUN_GPU=1 (downloads AEmotionStudio/cohere-transcribe-03-2026-models ~4GB; needs CUDA)")
 def test_cohereasr_real_gpu_smoke():
     # Real flow: manager downloads first, backend loads from cache.
     from huggingface_hub import snapshot_download
-    snapshot_download("CohereLabs/cohere-transcribe-03-2026")
+    snapshot_download("AEmotionStudio/cohere-transcribe-03-2026-models")
     b = backends.make_backend("cohere_transformers")
-    b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
     assert b.is_loaded
     clip = np.zeros(16000 * 3, np.float32)   # 3 s silence — exercises the full path
     t0 = time.perf_counter()

@@ -63,7 +63,7 @@ def test_cohere_asr_row():
     assert m.sort_order == 0          # sorted first
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("cohere_transformers", "gpu-cuda", "bfloat16", "CohereLabs/cohere-transcribe-03-2026")
+        ("cohere_transformers", "gpu-cuda", "bfloat16", "AEmotionStudio/cohere-transcribe-03-2026-models")
 
 
 def test_cohere_is_first_qwen3_shifted():

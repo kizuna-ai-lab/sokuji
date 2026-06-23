@@ -36,7 +36,7 @@ ASR_MODELS: list[AsrModel] = [
              ("en", "de", "fr", "it", "es", "pt", "el",
               "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
              (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",
-                         "CohereLabs/cohere-transcribe-03-2026", 1.0),),
+                         "AEmotionStudio/cohere-transcribe-03-2026-models", 1.0),),
              recommended=True, sort_order=0),
     AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
              (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
