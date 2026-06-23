@@ -1,6 +1,4 @@
-const { spawn } = require('child_process');
 const path = require('path');
-const readline = require('readline');
 
 function resolvePython() {
   if (process.env.SOKUJI_SIDECAR_PYTHON) return process.env.SOKUJI_SIDECAR_PYTHON;
@@ -30,6 +28,8 @@ class NativeHostManager {
     if (this.port) return Promise.resolve({ port: this.port });
     if (this._starting) return this._starting;
     this._starting = new Promise((resolve, reject) => {
+      const { spawn } = require('child_process');
+      const readline = require('readline');
       const { app } = require('electron');
       // Respect a pre-set HF_HOME (e.g. populated by sidecar/setup.sh) so manual
       // testing reuses the same model cache; otherwise isolate under userData.
@@ -51,7 +51,15 @@ class NativeHostManager {
         this.proc = null; this.port = null; this._starting = null;
       });
       child.on('error', (err) => { this._starting = null; reject(err); });
-      setTimeout(() => { if (!this.port) reject(new Error('native-host handshake timeout')); }, 30000);
+      setTimeout(() => {
+        if (!this.port) {
+          try { child.kill(); } catch (_) {}
+          this.proc = null;
+          this.port = null;
+          this._starting = null;
+          reject(new Error('native-host handshake timeout'));
+        }
+      }, 30000);
     });
     return this._starting;
   }
