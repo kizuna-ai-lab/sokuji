@@ -167,6 +167,17 @@ describe('nativeCatalog', () => {
     expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
   });
 
+  it('includes Qwen3-ASR 1.7B as a recommended GPU option with verbatim sidecar languages', () => {
+    const q = NATIVE_ASR.find((m) => m.id === 'qwen3-asr-1.7b');
+    expect(q).toBeTruthy();
+    expect(q!.languages).toEqual(['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
+    expect(q!.recommended).toBe(true);
+    expect(q!.sortOrder).toBe(7);
+    // recommended, but its high sortOrder keeps the established leaders first
+    expect(nativeAsrCards('zh')[0].selectId).toBe('sense-voice');
+    expect(nativeAsrCards('de')[0].selectId).toBe('whisper-base');
+  });
+
   it('maps hardware tiers to display labels', () => {
     expect(tierLabel('cpu')).toEqual({ label: 'CPU', accel: false });
     expect(tierLabel('gpu-cuda')).toEqual({ label: 'GPU · CUDA', accel: true });

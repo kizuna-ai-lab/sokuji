@@ -27,6 +27,7 @@ export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 4 },
   { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 5 },
   { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 6 },
+  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 7 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
