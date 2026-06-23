@@ -38,6 +38,8 @@ def download_specs(model_id):
         return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
     if model_id == "sense-voice":
         return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [VAD_URL]}
+    if model_id == "qwen3-asr-1.7b":
+        return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 

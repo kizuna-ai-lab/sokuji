@@ -16,6 +16,8 @@ def test_download_specs_mapping():
     # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
     assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
+    # Qwen3-ASR must map to the bezzam/ HF repo, not the bare catalog id.
+    assert nm.download_specs('qwen3-asr-1.7b')['repos'] == ['bezzam/Qwen3-ASR-1.7B']
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
