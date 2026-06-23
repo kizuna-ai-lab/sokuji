@@ -16,7 +16,7 @@ export class NativeAsrClient {
   onError: ((e: string) => void) | null = null;
   private ws: WebSocket | null = null;
   private nextId = 1;
-  private pending = new Map<number, (m: ServerMsg) => void>();
+  private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
 
   private async connect(): Promise<void> {
     if (this.ws) return;
@@ -27,8 +27,14 @@ export class NativeAsrClient {
       ws.binaryType = 'arraybuffer';
       ws.onopen = () => { this.ws = ws; resolve(); };
       ws.onerror = () => { this.onError?.('native host WS error'); reject(new Error('WS error')); };
+      ws.onclose = () => this.rejectAllPending(new Error('native host disconnected'));
       ws.onmessage = (e) => this.onMessage(e.data);
     });
+  }
+
+  private rejectAllPending(err: Error): void {
+    for (const { reject } of this.pending.values()) reject(err);
+    this.pending.clear();
   }
 
   private onMessage(data: any) {
@@ -39,13 +45,20 @@ export class NativeAsrClient {
       this.onResult?.({ text: msg.text, startSample: msg.startSample, durationMs: msg.durationMs, recognitionTimeMs: msg.recognitionTimeMs });
       return;
     }
-    if (msg.type === 'error') { this.onError?.(msg.message); if (msg.id) this.pending.delete(msg.id); return; }
-    if (typeof msg.id === 'number') { this.pending.get(msg.id)?.(msg); this.pending.delete(msg.id); }
+    if (msg.type === 'error') {
+      this.onError?.(msg.message);
+      if (typeof msg.id === 'number') {
+        this.pending.get(msg.id)?.reject(new Error(msg.message));
+        this.pending.delete(msg.id);
+      }
+      return;
+    }
+    if (typeof msg.id === 'number') { this.pending.get(msg.id)?.resolve(msg); this.pending.delete(msg.id); }
   }
 
   private send(payload: object): Promise<ServerMsg> {
     const id = this.nextId++;
-    return new Promise((resolve) => { this.pending.set(id, resolve); this.ws!.send(JSON.stringify({ ...payload, id })); });
+    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
   async init(
@@ -69,5 +82,5 @@ export class NativeAsrClient {
 
   async flush(): Promise<void> { await this.send({ type: 'asr_flush' }); }
 
-  dispose(): void { try { this.ws?.close(); } catch (_) {} this.ws = null; this.pending.clear(); }
+  dispose(): void { this.rejectAllPending(new Error('native host disconnected')); try { this.ws?.close(); } catch (_) {} this.ws = null; }
 }

@@ -17,10 +17,17 @@ function electron(): ElectronInvoke {
 export class NativeModelClient {
   private ws: WebSocket | null = null;
   private nextId = 1;
-  private pending = new Map<number, (m: ServerMsg) => void>();
+  private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
   // In-flight downloads keyed by model — completion/progress is pushed (not
   // id-matched) so cancel can arrive on the same socket while a download runs.
   private downloads = new Map<string, DownloadHandle>();
+
+  private rejectAllPending(err: Error): void {
+    for (const { reject } of this.pending.values()) reject(err);
+    this.pending.clear();
+    for (const h of this.downloads.values()) h.reject(err);
+    this.downloads.clear();
+  }
 
   private async connect(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
@@ -31,6 +38,7 @@ export class NativeModelClient {
       ws.binaryType = 'arraybuffer';
       ws.onopen = () => { this.ws = ws; resolve(); };
       ws.onerror = () => reject(new Error('native host WS error'));
+      ws.onclose = () => this.rejectAllPending(new Error('native host disconnected'));
       ws.onmessage = (e) => this.onMessage(e.data);
     });
   }
@@ -52,12 +60,19 @@ export class NativeModelClient {
       return;
     }
     const id = (msg as any).id as number;
-    if (typeof id === 'number') { this.pending.get(id)?.(msg); this.pending.delete(id); }
+    if (typeof id === 'number') {
+      if (msg.type === 'error') {
+        this.pending.get(id)?.reject(new Error(msg.message));
+      } else {
+        this.pending.get(id)?.resolve(msg);
+      }
+      this.pending.delete(id);
+    }
   }
 
   private send(payload: object): Promise<ServerMsg> {
     const id = this.nextId++;
-    return new Promise((resolve) => { this.pending.set(id, resolve); this.ws!.send(JSON.stringify({ ...payload, id })); });
+    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
   async status(models: string[]): Promise<Record<string, NativeModelState>> {
@@ -111,9 +126,8 @@ export class NativeModelClient {
   }
 
   dispose(): void {
+    this.rejectAllPending(new Error('native host disconnected'));
     try { this.ws?.close(); } catch (_) {}
     this.ws = null;
-    this.pending.clear();
-    this.downloads.clear();
   }
 }

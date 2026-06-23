@@ -13,7 +13,12 @@ export class NativeTranslateClient {
   onError: ((e: string) => void) | null = null;
   private ws: WebSocket | null = null;
   private nextId = 1;
-  private pending = new Map<number, (m: ServerMsg) => void>();
+  private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
+
+  private rejectAllPending(err: Error): void {
+    for (const { reject } of this.pending.values()) reject(err);
+    this.pending.clear();
+  }
 
   private async connect(): Promise<void> {
     if (this.ws) return;
@@ -24,11 +29,20 @@ export class NativeTranslateClient {
       ws.binaryType = 'arraybuffer';
       ws.onopen = () => { this.ws = ws; resolve(); };
       ws.onerror = () => { this.onError?.('native host WS error'); reject(new Error('WS error')); };
+      ws.onclose = () => this.rejectAllPending(new Error('native host disconnected'));
       ws.onmessage = (e) => {
         const msg = JSON.parse(e.data) as ServerMsg;
-        if (msg.type === 'error') { this.onError?.(msg.message); if (msg.id) this.pending.delete(msg.id); return; }
+        if (msg.type === 'error') {
+          this.onError?.(msg.message);
+          const id = typeof (msg as any).id === 'number' ? (msg as any).id as number : undefined;
+          if (id !== undefined) {
+            this.pending.get(id)?.reject(new Error(msg.message));
+            this.pending.delete(id);
+          }
+          return;
+        }
         const id = (msg as any).id as number;
-        this.pending.get(id)?.(msg);
+        this.pending.get(id)?.resolve(msg);
         this.pending.delete(id);
       };
     });
@@ -36,7 +50,7 @@ export class NativeTranslateClient {
 
   private send(payload: object): Promise<ServerMsg> {
     const id = this.nextId++;
-    return new Promise((resolve) => { this.pending.set(id, resolve); this.ws!.send(JSON.stringify({ ...payload, id })); });
+    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
   async init(sourceLang: string, targetLang: string, modelId?: string): Promise<{ loadTimeMs: number }> {
@@ -51,5 +65,5 @@ export class NativeTranslateClient {
     return { sourceText: msg.sourceText, translatedText: msg.translatedText, inferenceTimeMs: msg.inferenceTimeMs };
   }
 
-  dispose(): void { try { this.ws?.close(); } catch (_) {} this.ws = null; this.pending.clear(); }
+  dispose(): void { this.rejectAllPending(new Error('native host disconnected')); try { this.ws?.close(); } catch (_) {} this.ws = null; }
 }

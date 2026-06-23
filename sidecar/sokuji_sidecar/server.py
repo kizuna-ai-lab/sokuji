@@ -35,15 +35,22 @@ async def _conn(state, ws):
             data = bytes(raw)
             feeder = conn.ctx.get("on_binary")   # ASR streaming: process immediately
             if feeder is not None:
-                for out in feeder(data):
-                    await conn.send(out)
+                try:
+                    for out in feeder(data):
+                        await conn.send(out)
+                except Exception as e:  # feeder error must not kill the connection
+                    await conn.send({"type": "error", "message": str(e)})
             else:
                 pending_binary = data            # set_voice: buffer for next control msg
             continue
         try:
             reply, binary = await handle_message(state, raw, pending_binary, conn)
         except Exception as e:  # never drop the connection on a single bad request
-            reply, binary = {"type": "error", "message": str(e)}, None
+            try:
+                _mid = json.loads(raw).get("id")
+            except Exception:
+                _mid = None
+            reply, binary = {"type": "error", "id": _mid, "message": str(e)}, None
         pending_binary = None
         if binary is not None:
             await ws.send(binary)

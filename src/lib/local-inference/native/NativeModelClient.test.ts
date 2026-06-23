@@ -9,6 +9,7 @@ class FakeWS {
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: any }) => void) | null = null;
   onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
   binaryType = 'arraybuffer';
   constructor(public url: string) { FakeWS.last = this; setTimeout(() => this.onopen?.(), 0); }
   private emit(o: any) { this.onmessage?.({ data: JSON.stringify(o) }); }
@@ -41,6 +42,24 @@ class FakeWS {
   }
   close() {}
   static cancelled = new Set<string>();
+}
+
+class ErrorFakeWS {
+  static last: ErrorFakeWS;
+  static OPEN = 1;
+  readyState = 1;
+  onopen: (() => void) | null = null;
+  onmessage: ((e: { data: any }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+  binaryType = 'arraybuffer';
+  constructor(public url: string) { ErrorFakeWS.last = this; setTimeout(() => this.onopen?.(), 0); }
+  send(d: any) {
+    const msg = JSON.parse(d);
+    queueMicrotask(() =>
+      this.onmessage?.({ data: JSON.stringify({ type: 'error', id: msg.id, message: 'model-boom' }) }));
+  }
+  close() {}
 }
 
 beforeEach(() => {
@@ -86,5 +105,35 @@ describe('NativeModelClient', () => {
     expect(models).toHaveLength(1);
     expect(models[0]).toMatchObject({ id: 'sense-voice', recommended: true });
     expect(models[0].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
+  });
+});
+
+describe('NativeModelClient error rejection', () => {
+  it('rejects status() when sidecar replies {type:error, id}', async () => {
+    (globalThis as any).WebSocket = ErrorFakeWS as any;
+    const c = new NativeModelClient();
+    await expect(c.status(['sense-voice'])).rejects.toThrow('model-boom');
+  });
+
+  it('rejects hardwareInfo() when sidecar replies {type:error, id}', async () => {
+    (globalThis as any).WebSocket = ErrorFakeWS as any;
+    const c = new NativeModelClient();
+    await expect(c.hardwareInfo()).rejects.toThrow('model-boom');
+  });
+
+  it('rejects pending calls on dispose()', async () => {
+    (globalThis as any).WebSocket = FakeWS as any;
+    const c = new NativeModelClient();
+    await c.status(['sense-voice']); // connect and complete one request
+    // Now install a no-reply send so the next request hangs in pending
+    FakeWS.last.send = () => {};
+    // sizes() will: await connect() (returns immediately, already open), then call send() synchronously
+    // We need the request to be in pending before we dispose().
+    // Use a trick: sizes() is async but send() is sync inside it; capture the Promise then yield.
+    const p = c.sizes(['sense-voice']);
+    // Yield to let sizes() advance past the await connect() and register in pending
+    await new Promise((r) => setTimeout(r, 0));
+    c.dispose();
+    await expect(p).rejects.toThrow('native host disconnected');
   });
 });
