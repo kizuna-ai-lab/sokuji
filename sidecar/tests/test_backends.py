@@ -263,6 +263,9 @@ def _install_fake_qwen3(monkeypatch, *, decoded="language Chinese<asr_text>hello
             return "NEW"
 
     class FakeModel:
+        def to(self, device):
+            cap["model_device"] = device
+            return self
         def eval(self):
             return self
         def generate(self, **kw):
@@ -277,8 +280,8 @@ def _install_fake_qwen3(monkeypatch, *, decoded="language Chinese<asr_text>hello
 
     class FakeQwen3:
         @staticmethod
-        def from_pretrained(repo, dtype, device_map):
-            cap["repo"] = repo; cap["dtype"] = dtype; cap["device_map"] = device_map
+        def from_pretrained(repo, dtype):
+            cap["repo"] = repo; cap["dtype"] = dtype
             return FakeModel()
 
     tmod = types.ModuleType("transformers")
@@ -300,7 +303,7 @@ def test_qwen3asr_load_and_transcribe(monkeypatch):
     b.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
     assert b.is_loaded
     assert cap["repo"] == "bezzam/Qwen3-ASR-1.7B"
-    assert cap["dtype"] == "BF16" and cap["device_map"] == "cuda"
+    assert cap["dtype"] == "BF16" and cap["model_device"] == "cuda"
     r = b.transcribe(np.zeros(16000, np.float32), "en")
     assert r.text == "hello world"                 # prefix stripped
     assert cap["feat_dtype"] == "BF16"             # input_features cast to model dtype

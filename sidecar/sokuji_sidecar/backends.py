@@ -192,7 +192,7 @@ class Qwen3AsrBackend:
             self._dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
             self._proc = AutoProcessor.from_pretrained(model_ref)
             self._model = Qwen3ASRForConditionalGeneration.from_pretrained(
-                model_ref, dtype=self._dtype, device_map=device).eval()
+                model_ref, dtype=self._dtype).to(device).eval()
             self._device = device
         except Exception as e:  # missing qwen3_asr model, no CUDA, OOM → resolver falls back
             raise BackendLoadError(str(e))
