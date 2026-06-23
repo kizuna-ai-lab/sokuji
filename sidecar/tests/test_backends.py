@@ -347,7 +347,7 @@ def test_qwen3asr_load_and_transcribe(monkeypatch):
 
 
 def test_cohereasr_is_gpu_only():
-    b = backends.make_backend("cohereasr")
+    b = backends.make_backend("cohere_transformers")
     with pytest.raises(backends.BackendLoadError):
         b.load("CohereLabs/cohere-transcribe-03-2026", "cpu", "bfloat16")
 
@@ -418,7 +418,7 @@ def _install_fake_cohere(monkeypatch, *, decoded="hello world"):
 
 def test_cohereasr_load_and_transcribe(monkeypatch):
     cap = _install_fake_cohere(monkeypatch)
-    b = backends.make_backend("cohereasr")
+    b = backends.make_backend("cohere_transformers")
     b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
     assert b.is_loaded
     assert cap["repo"] == "CohereLabs/cohere-transcribe-03-2026"
@@ -437,7 +437,7 @@ def test_cohereasr_load_and_transcribe(monkeypatch):
 
 def test_cohereasr_defaults_missing_language_to_english(monkeypatch):
     cap = _install_fake_cohere(monkeypatch)
-    b = backends.make_backend("cohereasr")
+    b = backends.make_backend("cohere_transformers")
     b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
     b.transcribe(np.zeros(16000, np.float32), "")        # empty → en
     assert cap["language"] == "en"
@@ -451,7 +451,7 @@ def test_cohereasr_real_gpu_smoke():
     # Real flow: manager downloads first, backend loads from cache.
     from huggingface_hub import snapshot_download
     snapshot_download("CohereLabs/cohere-transcribe-03-2026")
-    b = backends.make_backend("cohereasr")
+    b = backends.make_backend("cohere_transformers")
     b.load("CohereLabs/cohere-transcribe-03-2026", "cuda", "bfloat16")
     assert b.is_loaded
     clip = np.zeros(16000 * 3, np.float32)   # 3 s silence — exercises the full path

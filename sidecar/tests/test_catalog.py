@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohereasr"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohere_transformers"}
 
 
 def test_system_has_a_cpu_floor():
@@ -56,13 +56,14 @@ def test_qwen3_asr_row():
 def test_cohere_asr_row():
     m = catalog.asr_model("cohere-transcribe-03-2026")
     assert m is not None
+    assert m.name == "Cohere Transcribe (Transformers)"
     assert m.languages == ("en", "de", "fr", "it", "es", "pt", "el",
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
     assert m.sort_order == 0          # sorted first
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("cohereasr", "gpu-cuda", "bfloat16", "CohereLabs/cohere-transcribe-03-2026")
+        ("cohere_transformers", "gpu-cuda", "bfloat16", "CohereLabs/cohere-transcribe-03-2026")
 
 
 def test_cohere_is_first_qwen3_shifted():

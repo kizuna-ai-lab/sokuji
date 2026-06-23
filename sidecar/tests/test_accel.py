@@ -393,11 +393,11 @@ def test_cohereasr_resolves_gpu_on_nvidia_with_runtime():
     m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                       nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
                       apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"cohereasr", "transformers"}),
+                      installed=frozenset({"cohere_transformers", "transformers"}),
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
     assert [p.device for p in plans] == ["cuda"]
-    assert plans[0].backend == "cohereasr" and plans[0].compute_type == "bfloat16"
+    assert plans[0].backend == "cohere_transformers" and plans[0].compute_type == "bfloat16"
 
 
 def test_cohereasr_model_unavailable_without_runtime():
@@ -421,7 +421,7 @@ def test_cohereasr_gated_on_cohere_asr_module(monkeypatch):
             return None
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "cohereasr" not in accel._installed()
+    assert "cohere_transformers" not in accel._installed()
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),

@@ -137,8 +137,9 @@ async def download(model_id, send, should_cancel=None):
     import asyncio
     from huggingface_hub import HfApi, hf_hub_download
     cancelled = (lambda: bool(should_cancel and should_cancel()))
+    tok = os.environ.get("HF_TOKEN")
     specs = download_specs(model_id)
-    api = HfApi()
+    api = HfApi(token=tok)
     files = []
     for repo in specs["repos"]:
         try:
@@ -156,7 +157,15 @@ async def download(model_id, send, should_cancel=None):
     for repo, fname in files:
         if cancelled():
             return "cancelled"
-        await asyncio.to_thread(hf_hub_download, repo, fname)
+        try:
+            await asyncio.to_thread(hf_hub_download, repo, fname, token=tok)
+        except Exception as e:
+            m = str(e).lower()
+            if any(k in m for k in ("gated", "restricted", "401", "unauthorized")):
+                raise RuntimeError(
+                    f"Access to {repo} is restricted (gated on HuggingFace). "
+                    f"Set the HF_TOKEN environment variable to download.")
+            raise
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
     for url in specs["urls"]:

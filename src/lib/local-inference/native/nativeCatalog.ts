@@ -20,7 +20,7 @@ export function supportsLanguage(opt: { languages?: string[] }, lang: string): b
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
-  { id: 'cohere-transcribe-03-2026', label: 'Cohere Transcribe', languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'], recommended: true, sortOrder: 0 },
+  { id: 'cohere-transcribe-03-2026', label: 'Cohere Transcribe (Transformers)', languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'], recommended: true, sortOrder: 0 },
   { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 1 },
   { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 2 },
   { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 3 },

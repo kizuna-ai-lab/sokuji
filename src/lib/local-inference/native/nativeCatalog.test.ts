@@ -181,6 +181,7 @@ describe('nativeCatalog', () => {
   it('includes Cohere Transcribe as the first (recommended) ASR with its 14 languages', () => {
     const c = NATIVE_ASR.find((m) => m.id === 'cohere-transcribe-03-2026');
     expect(c).toBeTruthy();
+    expect(c!.label).toBe('Cohere Transcribe (Transformers)');
     expect(c!.languages).toEqual(['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko']);
     expect(c!.recommended).toBe(true);
     expect(c!.sortOrder).toBe(0);

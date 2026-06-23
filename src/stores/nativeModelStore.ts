@@ -9,6 +9,7 @@ interface NativeModelStore {
   statuses: Record<string, NativeModelStatus>;
   progress: Record<string, { downloaded: number; total: number }>;
   sizes: Record<string, number>;
+  errors: Record<string, string>;
   /** Remembered selection per language pair, keyed `${src}→${tgt}` (mirrors modelStore.modelPreferences). */
   modelPreferences: Record<string, NativeSelection>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
@@ -62,6 +63,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   statuses: {},
   progress: {},
   sizes: {},
+  errors: {},
   catalog: {},
   modelPreferences: {},
   asrLoading: false,
@@ -100,15 +102,22 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     set((s) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
+      errors: { ...s.errors, [model]: '' },
     }));
     try {
       const status = await client.download(model, (p) =>
         set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })));
       // 'cancelled' (or a partial fetch) leaves the model incomplete → absent.
-      set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' } }));
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' },
+        errors: { ...s.errors, [model]: '' },
+      }));
       if (status === 'ready') await revalidateNativeProvider();
-    } catch {
-      set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
+    } catch (err) {
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: 'absent' },
+        errors: { ...s.errors, [model]: err instanceof Error ? err.message : String(err) },
+      }));
     }
   },
 
@@ -162,6 +171,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
+export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);

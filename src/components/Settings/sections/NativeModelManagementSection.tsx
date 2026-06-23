@@ -22,6 +22,7 @@ import {
   useNativeModelStatuses,
   useNativeModelProgress,
   useNativeModelSizes,
+  useNativeModelErrors,
   useNativeAsrResolved,
 } from '../../../stores/nativeModelStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
@@ -41,6 +42,7 @@ const NativeModelCard: React.FC<{
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
   const sizes = useNativeModelSizes();
+  const errors = useNativeModelErrors();
   const download = useNativeModelStore((s) => s.download);
   const cancelDownload = useNativeModelStore((s) => s.cancelDownload);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -54,6 +56,7 @@ const NativeModelCard: React.FC<{
 
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
+  const err = noDownload ? undefined : errors[spec.downloadId as string];
 
   const statusClass = noDownload ? 'model-card--none'
     : status === 'ready' ? 'model-card--downloaded'
@@ -64,6 +67,7 @@ const NativeModelCard: React.FC<{
     selected && 'model-card--selected',
     (incompatible || hwGated) && 'model-card--incompatible',
     disabled && 'model-card--disabled',
+    err && status !== 'downloading' && 'model-card--error',
   ].filter(Boolean).join(' ');
 
   const handleClick = () => { if (!disabled && !hwGated && ready) onSelect(); };
@@ -159,6 +163,9 @@ const NativeModelCard: React.FC<{
               </button>
             )}
           </div>
+          {err && status !== 'downloading' && (
+            <div className="model-card__error-message">{err}</div>
+          )}
         </div>
       </div>
     </div>

@@ -224,14 +224,14 @@ class Qwen3AsrBackend:
 
 
 @register_backend
-class CohereAsrBackend:
+class CohereTransformersBackend:
     """Cohere Transcribe (Fast-Conformer ASR) via native transformers
     (CohereAsrForConditionalGeneration). model_ref is the HF repo; GPU-tier (bf16),
     loaded with .to(device) (no accelerate). A Conformer encoder-decoder, NOT a
     chat-template speech-LLM: the source language is passed through the processor and
     generate() returns only the transcription (no input-prompt slicing). Cohere has no
     auto-detect, so a missing/'auto' language defaults to English."""
-    NAME = "cohereasr"
+    NAME = "cohere_transformers"
 
     def __init__(self):
         self._model = None
@@ -243,7 +243,7 @@ class CohereAsrBackend:
         self._model = None
         self._proc = None
         if device == "cpu":
-            raise BackendLoadError("cohereasr is GPU-only")
+            raise BackendLoadError("cohere_transformers is GPU-only")
         try:
             import torch
             from transformers import CohereAsrForConditionalGeneration, AutoProcessor

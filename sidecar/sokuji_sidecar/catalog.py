@@ -11,7 +11,7 @@ SENSE_VOICE_REPO = os.environ.get(
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohereasr"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -32,10 +32,10 @@ class AsrModel:
 # (NativeModelInfo omits it); the renderer owns card ordering via nativeCatalog.ts.
 # So renderer and sidecar sort_order values may differ harmlessly.
 ASR_MODELS: list[AsrModel] = [
-    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
+    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe (Transformers)",
              ("en", "de", "fr", "it", "es", "pt", "el",
               "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
-             (Deployment("cohereasr", "gpu-cuda", "bfloat16",
+             (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",
                          "CohereLabs/cohere-transcribe-03-2026", 1.0),),
              recommended=True, sort_order=0),
     AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
