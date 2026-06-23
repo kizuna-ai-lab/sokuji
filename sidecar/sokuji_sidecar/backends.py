@@ -221,3 +221,61 @@ class Qwen3AsrBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+@register_backend
+class CohereAsrBackend:
+    """Cohere Transcribe (Fast-Conformer ASR) via native transformers
+    (CohereAsrForConditionalGeneration). model_ref is the HF repo; GPU-tier (bf16),
+    loaded with .to(device) (no accelerate). A Conformer encoder-decoder, NOT a
+    chat-template speech-LLM: the source language is passed through the processor and
+    generate() returns only the transcription (no input-prompt slicing). Cohere has no
+    auto-detect, so a missing/'auto' language defaults to English."""
+    NAME = "cohereasr"
+
+    def __init__(self):
+        self._model = None
+        self._proc = None
+        self._device = "cpu"
+        self._dtype = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._proc = None
+        if device == "cpu":
+            raise BackendLoadError("cohereasr is GPU-only")
+        try:
+            import torch
+            from transformers import CohereAsrForConditionalGeneration, AutoProcessor
+            self._dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
+            self._proc = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
+            self._model = CohereAsrForConditionalGeneration.from_pretrained(
+                model_ref, dtype=self._dtype, local_files_only=True).to(device).eval()
+            self._device = device
+        except Exception as e:  # missing cohere_asr module, no CUDA, OOM → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        import torch
+        lang = language if language and language != "auto" else "en"  # no auto-detect
+        inp = self._proc(samples, sampling_rate=TARGET_RATE, return_tensors="pt",
+                         language=lang).to(self._device)
+        if "input_features" in inp:  # features are float32, model is bf16
+            inp["input_features"] = inp["input_features"].to(self._dtype)
+        with torch.inference_mode():
+            out = self._model.generate(**inp, max_new_tokens=256, do_sample=False)
+        text = self._proc.batch_decode(out, skip_special_tokens=True)[0]
+        return AsrResult(text.strip(), language)
+
+    def unload(self) -> None:
+        self._model = None
+        self._proc = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
