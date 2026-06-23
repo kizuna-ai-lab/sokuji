@@ -51,7 +51,10 @@ def _dml_adapters() -> tuple[str, ...]:
 def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
-            "transformers": "transformers"}
+            "transformers": "transformers",
+            # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
+            # then it is "not installed" so resolve()/models_catalog exclude it.
+            "qwen3asr": "transformers.models.qwen3_asr"}
     return frozenset(b for b, mod in mods.items() if importlib.util.find_spec(mod) is not None)
 
 

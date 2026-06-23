@@ -336,6 +336,26 @@ def test_granite_gated_off_without_transformers_installed():
                                        installed=frozenset({"ctranslate2"})))
 
 
+def test_qwen3asr_gated_on_qwen3_asr_module(monkeypatch):
+    import importlib.util as iu
+    from sokuji_sidecar import accel
+    real = iu.find_spec
+
+    def fake_find_spec(name, *a, **k):
+        if name == "transformers.models.qwen3_asr":
+            return None
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
+    assert "qwen3asr" not in accel._installed()
+
+    def present(name, *a, **k):
+        if name == "transformers.models.qwen3_asr":
+            return object()
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
+    assert "qwen3asr" in accel._installed()
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
 def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
