@@ -40,6 +40,8 @@ def download_specs(model_id):
         return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [VAD_URL]}
     if model_id == "qwen3-asr-1.7b":
         return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
+    if model_id == "cohere-transcribe-03-2026":
+        return {"repos": ["CohereLabs/cohere-transcribe-03-2026"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 

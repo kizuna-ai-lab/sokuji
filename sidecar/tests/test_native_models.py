@@ -1,6 +1,7 @@
 import asyncio, json, os
 import pytest
 from sokuji_sidecar import native_models as nm
+from sokuji_sidecar import native_models
 from sokuji_sidecar import server
 
 
@@ -18,6 +19,13 @@ def test_download_specs_mapping():
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
     # Qwen3-ASR must map to the bezzam/ HF repo, not the bare catalog id.
     assert nm.download_specs('qwen3-asr-1.7b')['repos'] == ['bezzam/Qwen3-ASR-1.7B']
+    # Cohere Transcribe must map to the CohereLabs/ HF repo.
+    assert nm.download_specs('cohere-transcribe-03-2026')['repos'] == ['CohereLabs/cohere-transcribe-03-2026']
+
+
+def test_download_specs_cohere():
+    assert native_models.download_specs("cohere-transcribe-03-2026") == \
+        {"repos": ["CohereLabs/cohere-transcribe-03-2026"], "urls": []}
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):

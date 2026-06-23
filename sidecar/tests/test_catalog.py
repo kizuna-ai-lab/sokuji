@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohereasr"}
 
 
 def test_system_has_a_cpu_floor():
@@ -47,7 +47,26 @@ def test_qwen3_asr_row():
     assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
                            "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
     assert m.recommended is True         # Phase 2: native runtime available → recommended
-    assert m.sort_order == 7
+    assert m.sort_order == 8
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B")
+
+
+def test_cohere_asr_row():
+    m = catalog.asr_model("cohere-transcribe-03-2026")
+    assert m is not None
+    assert m.languages == ("en", "de", "fr", "it", "es", "pt", "el",
+                           "nl", "pl", "ar", "vi", "zh", "ja", "ko")
+    assert m.recommended is True
+    assert m.sort_order == 0          # sorted first
+    d = m.deployments[0]
+    assert (d.backend, d.tier, d.compute_type, d.artifact) == \
+        ("cohereasr", "gpu-cuda", "bfloat16", "CohereLabs/cohere-transcribe-03-2026")
+
+
+def test_cohere_is_first_qwen3_shifted():
+    ids = [m.id for m in catalog.asr_models()]
+    assert ids[0] == "cohere-transcribe-03-2026"           # inserted first in the list
+    assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 8   # shifted +1 from 7
+    assert catalog.asr_model("sense-voice").sort_order == 1      # shifted +1 from 0
