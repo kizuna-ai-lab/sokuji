@@ -1,172 +1,137 @@
-# Native ASR: Qwen3-ASR-1.7B (GPU tier) Design
+# Native ASR: Qwen3-ASR-1.7B (native transformers) Design
 
 ## Context
 
-The LOCAL_NATIVE provider's ASR catalog has Whisper (broad multilingual via faster-whisper/CTranslate2), SenseVoice (zh/en/ja/ko/yue, CPU), and Granite Speech 4.1 (a GPU speech-LLM). A research sweep (the `speech-llm-asr-backends` workflow) compared the next speech-LLM ASR candidates and recommended **Qwen3-ASR** as the best value/effort: open Apache-2.0 weights, SOTA accuracy especially on **CJK** plus **context biasing**, with a clean Python API.
+Adds **Qwen3-ASR-1.7B** as a GPU ASR model in the LOCAL_NATIVE sidecar, for SOTA accuracy (esp. CJK + context biasing). Chosen from the `speech-llm-asr-backends` research.
 
-This increment adds **Qwen3-ASR-1.7B on a GPU tier only**. Its value is *accuracy* (CJK + context), not raw language count — Whisper already covers breadth. The CPU 0.6B sherpa-onnx tier is real but deferred to a fast-follow (it needs a separate backend class plus net-new GitHub-tarball download plumbing); see Non-Goals.
+**This design supersedes the earlier qwen-asr-package approach** (`docs/superpowers/plans/2026-06-23-native-asr-qwen3.md`). A deep runtime investigation (see memory `project_qwen3_asr_runtime_decision`) ruled out the `qwen-asr` pip package (hard-pins `transformers==4.57.6`, which breaks Granite; its 5.x community port has degraded accuracy) and the heavyweight vLLM/isolation paths. The chosen path is **native HuggingFace transformers** support via PR #43838, which adds the `qwen3_asr` model to transformers mainline.
 
-Builds on the proven AsrBackend adapter + declarative catalog + GPU-first resolver (Phase 0–2, running Granite/Whisper/SenseVoice on an RTX 4070 SUPER 12 GB).
+**Validated on 2026-06-23** (reversible main-venv spike against the PR branch, transformers 5.13.0.dev0): native `Qwen3ASRForConditionalGeneration` + `AutoProcessor` (checkpoint `bezzam/Qwen3-ASR-1.7B`) runs on the RTX 4070 at **bf16, RTF ~0.04 (~25× realtime), ~5 GB VRAM**, correct zh/en/ja; and **Granite still loads/runs on the same transformers** (so upgrading transformers will not break Granite). Both coexist in one venv — no isolation.
+
+PR #43838 is not yet merged (community author, HF audio maintainers reviewing, all COMMENTED; est. merge ~3–8 weeks → ships in transformers ~5.13.x). So we build in **two phases**.
+
+## Strategy: build plumbing now (self-gated), flip on at release
+
+- **Phase 1 (now, transformers 5.12.1):** build the whole increment — backend class, catalog row, download mapping, renderer row — but **self-gated off** by a runtime feature check, so it never shows a broken model. All testable now (mocked backend tests). No interim sherpa path.
+- **Phase 2 (when transformers ~5.13.x ships with qwen3_asr, a separate small increment):** upgrade the sidecar transformers, re-validate Granite + the full suite, un-skip the real GPU smoke, finalize the output quirks against the released API, mark recommended. The gate then lights the model up automatically.
 
 ## Locked decisions
 
-- **GPU tier only** this increment (`gpu-cuda` deployment); no CPU deployment row.
-- **`recommended=True`** on `qwen3-asr-1.7b`; do **not** demote SenseVoice or Whisper (GPU-less users still resolve to them).
-- **New `Qwen3AsrBackend` class** — do not extend `TransformersBackend` (different model class, custom processor, and a conflicting transformers pin).
-- **Language**: pass the user's source language explicitly (mapped to Qwen's full-name string) when set; pass `None` (native auto-detect) when unset. `context=""` (no hotword UI yet).
-
-## Dependency spike — GATES the build (do first)
-
-`qwen-asr==0.0.6` (Apache 2.0) is reported to pin `transformers==4.57.6`. Our sidecar venv runs **transformers 5.12.1** (installed for Granite) with **torch 2.11.0+cu128**. `sherpa_onnx 1.13.3` is already present (irrelevant to the GPU tier).
-
-**Task 0 (spike), before writing any backend code.** Never `pip install qwen-asr` into the main venv first — its pin would downgrade transformers from 5.12.1 and could break Granite. Instead, in a **throwaway venv** (or via PyPI metadata), determine:
-
-1. Is qwen-asr's `transformers` requirement a hard `==4.57.6`, or a floor (`>=`)?
-2. Does qwen-asr actually run on 5.12.1?
-3. Does Granite (`AutoModelForSpeechSeq2Seq`, granite-speech-4.1) still run on 4.57.6?
-
-Outcomes:
-- **Coexist on one transformers version** → single venv, lazy import like Granite. Proceed with the design below unchanged.
-- **Cannot coexist** → the GPU Qwen3-ASR backend needs **isolation** (a separate venv invoked via subprocess, or a second sidecar process). This changes the architecture; **stop and surface to the user** with the spike evidence before building further.
-
-Document the spike result and the chosen path. Everything below assumes the coexistence outcome; the isolation contingency is a separate design conversation if the spike forces it.
-
-## Architecture
-
-One new `AsrBackend` adapter, registered alongside the existing three. The resolver, RTF benchmark, catalog, download manager, and renderer catalog are unchanged in shape — we add one model (two-ish data rows) and one backend class, mirroring how Granite was added.
-
-```
-VAD float32 @16k segment ─▶ Qwen3AsrBackend.transcribe(samples, language) ─▶ text ─▶ translate ─▶ TTS
-                                   │
-                          qwen_asr.Qwen3ASRModel (bf16, device_map=cuda)
-```
+- **Native transformers path** (`Qwen3ASRForConditionalGeneration`), checkpoint **`bezzam/Qwen3-ASR-1.7B`** (HF-format conversion; revisit to an official `Qwen/...-hf` if one lands by Phase 2). GPU-only, bf16.
+- **Self-gating:** the `qwen3asr` deployment is reported *available* only when `importlib.util.find_spec("transformers.models.qwen3_asr")` is truthy. On transformers 5.12.1 → unavailable → the renderer hides it (no broken/greyed card). On 5.13.x → available.
+- `recommended=False` in Phase 1 (it can't run yet); flip to `True` in Phase 2.
+- Language: explicit source language when set (mapped), else auto-detect.
 
 ## Components
 
 ### 1. `Qwen3AsrBackend` — `sidecar/sokuji_sidecar/backends.py`
 
-Mirror the Granite `TransformersBackend` shape (lazy heavy import, `BackendLoadError(reason)` on failure, `@register_backend`). Uses the `qwen-asr` package directly.
+New backend mirroring the Granite `TransformersBackend`, using the native classes + the three validated quirks. `NAME = "qwen3asr"`, GPU-only.
 
 ```python
-_QWEN_LANG = {
-    "zh": "Chinese", "en": "English", "ja": "Japanese", "ko": "Korean",
-    "yue": "Cantonese", "ar": "Arabic", "de": "German", "es": "Spanish",
-    "fr": "French", "it": "Italian", "pt": "Portuguese", "ru": "Russian",
-    "th": "Thai", "vi": "Vietnamese", "hi": "Hindi", "id": "Indonesian",
-}
+_QWEN_PROMPT = "Transcribe the audio."
+# Strip the model's structured prefix, e.g. "language Chinese<asr_text>...".
+def _strip_qwen_prefix(text):
+    return text.split("<asr_text>", 1)[1].strip() if "<asr_text>" in text else text.strip()
 
 @register_backend
 class Qwen3AsrBackend:
     NAME = "qwen3asr"
-
     def load(self, model_ref, device, compute_type):
-        # GPU-only this increment; the CPU tier is the deferred sherpa path.
         if device == "cpu":
-            raise BackendLoadError("qwen3asr is GPU-only (no CPU deployment)")
+            raise BackendLoadError("qwen3asr is GPU-only")
         try:
             import torch
-            from qwen_asr import Qwen3ASRModel
-            dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
-            self._model = Qwen3ASRModel.from_pretrained(
-                model_ref, dtype=dtype, device_map=device,
-                max_inference_batch_size=1, max_new_tokens=256)
+            from transformers import Qwen3ASRForConditionalGeneration, AutoProcessor
+            self._dtype = torch.bfloat16 if compute_type in ("bfloat16","auto") else torch.float16
+            self._proc = AutoProcessor.from_pretrained(model_ref)
+            self._model = Qwen3ASRForConditionalGeneration.from_pretrained(
+                model_ref, dtype=self._dtype, device_map=device).eval()
+            self._device = device
         except Exception as e:
             raise BackendLoadError(str(e))
-
     def transcribe(self, samples, language):
-        # `samples` is the engine's VAD segment. qwen-asr requires float32 @16k in
-        # [-1, 1]; convert iff the engine passes int16 (match the existing backends'
-        # convention — confirm asr_engine's dtype during implementation).
-        lang = _QWEN_LANG.get((language or "").lower()) or None
-        results = self._model.transcribe(audio=(samples, 16000), language=lang, context="")
-        r = results[0]
-        return AsrResult(r.text.strip(), getattr(r, "language", language))
-
+        import torch
+        conv = [{"role":"user","content":[{"type":"audio"},{"type":"text","text":_QWEN_PROMPT}]}]
+        text = self._proc.apply_chat_template(conv, tokenize=False, add_generation_prompt=True)
+        inp = self._proc(text=text, audio=samples, sampling_rate=TARGET_RATE, return_tensors="pt").to(self._device)
+        if "input_features" in inp:                       # quirk: features come out float32
+            inp["input_features"] = inp["input_features"].to(self._dtype)
+        with torch.inference_mode():
+            out = self._model.generate(**inp, max_new_tokens=256, do_sample=False)
+        decoded = self._proc.batch_decode(out[:, inp["input_ids"].shape[-1]:], skip_special_tokens=True)[0]
+        return AsrResult(_strip_qwen_prefix(decoded), language)
     def unload(self):
-        self._model = None
-        try:
-            import torch; torch.cuda.empty_cache()
-        except Exception:
-            pass
+        self._model = None; self._proc = None
+        try: import torch; torch.cuda.empty_cache()
+        except Exception: pass
 ```
 
-Notes:
-- `_QWEN_LANG` maps our ISO source codes to Qwen's full-name strings; an unknown/empty hint yields `None` (auto-detect). Keep the map to the languages the catalog advertises.
-- `max_new_tokens=256` matches the qwen-asr default; revisit if long CJK segments truncate (Risks).
+Quirks (all validated in the spike): (a) cast `input_features` to the model dtype before `generate`; (b) strip the `language <X><asr_text>` prefix; (c) zh defaults to Traditional — acceptable for Phase 1; Phase 2 may steer via the prompt/context.
 
-### 2. Catalog row — `sidecar/sokuji_sidecar/catalog.py` (append to `ASR_MODELS`)
+### 2. Availability gate — `sidecar/sokuji_sidecar/accel.py`
+
+Where tier availability is computed, a `gpu-cuda` deployment whose backend is `qwen3asr` additionally requires the runtime feature:
+
+```python
+import importlib.util
+def _qwen3asr_runtime_ok():
+    return importlib.util.find_spec("transformers.models.qwen3_asr") is not None
+```
+
+Fold this into the per-deployment availability check so a `qwen3asr` deployment is unavailable when the module is absent (transformers 5.12.1) and available when present (5.13.x). This is what makes Phase 1 safe to ship.
+
+### 3. Catalog row — `sidecar/sokuji_sidecar/catalog.py`
 
 ```python
 AsrModel("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
-         ("zh", "en", "ja", "ko", "yue", "ar", "de", "es", "fr", "it",
-          "pt", "ru", "th", "vi", "hi", "id"),
-         (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "Qwen/Qwen3-ASR-1.7B", 1.0),),
-         recommended=True, sort_order=7),
+         ("zh","en","ja","ko","yue","ar","de","es","fr","it","pt","ru","th","vi","hi","id"),
+         (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
+         recommended=False, sort_order=7),   # recommended flips True in Phase 2
 ```
 
-- Single `gpu-cuda` deployment (no CPU row this increment). `artifact` = the HF repo `Qwen/Qwen3-ASR-1.7B` (qwen-asr's `from_pretrained` model_ref).
-- `sort_order=7` places it after Granite (5/6).
-- `recommended=True`; SenseVoice/Whisper keep their existing flags (no demotion).
-- Languages are a curated subset of the model's 52 (the major + CJK set we advertise as source-compatible); the model still auto-detects others at runtime. Expandable later.
+Add `"qwen3asr"` to `test_catalog.py`'s allowed-backend set + a frozen-language fixture.
 
-### 3. Download mapping — `sidecar/sokuji_sidecar/native_models.py`
+### 4. Download mapping — `sidecar/sokuji_sidecar/native_models.py`
 
-Add an **explicit** branch in `download_specs`, before the bare-id fallthrough (the fallthrough would use the bare id as the repo → the known silent-`ready` failure mode):
+Explicit branch before the bare-id fallthrough (the Granite silent-`ready` lesson):
 
 ```python
 if model_id == "qwen3-asr-1.7b":
-    return {"repos": ["Qwen/Qwen3-ASR-1.7B"], "urls": []}
+    return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
 ```
 
-`model_status`/`model_size` work unchanged (standard HF snapshot). No tarball path needed (that's the deferred CPU tier).
+### 5. Renderer — `src/lib/local-inference/native/nativeCatalog.ts` + the management section
 
-### 4. Renderer catalog — `src/lib/local-inference/native/nativeCatalog.ts` (`NATIVE_ASR`)
-
-```typescript
-{ id: 'qwen3-asr-1.7b', /* name/label per existing row shape */
-  languages: ['zh','en','ja','ko','yue','ar','de','es','fr','it','pt','ru','th','vi','hi','id'],
-  recommended: true, sortOrder: 7 },
-```
-
-Match the exact existing `NATIVE_ASR` row shape (Granite rows are the template). `tierLabel('gpu-cuda')` already exists — no new UI plumbing. The languages array must equal the sidecar catalog's tuple (the Granite-increment review checks this verbatim).
-
-### 5. Language threading
-
-`asr_engine` already passes the source-language hint into `backend.transcribe(samples, language)` (Granite uses it). The backend maps it via `_QWEN_LANG`. No engine change beyond confirming the hint reaches the backend.
-
-## Error handling
-
-- Load failure (import error, missing transitive deps, OOM, no CUDA) → `BackendLoadError(reason)`; the resolver demotes and the `load_with_fallback` chain lands on Whisper/SenseVoice.
-- `device == "cpu"` → `BackendLoadError` (GPU-only this increment) — so an Auto resolve on a GPU-less machine never tries this backend.
-- Download: the explicit `download_specs` branch + the already-shipped global "fail loud on a no-op download" guard.
+Add the `NATIVE_ASR` row `{ id:'qwen3-asr-1.7b', label:'Qwen3-ASR 1.7B', languages:[…16…], sortOrder:7 }` (languages verbatim == the sidecar tuple). The renderer already hides/greys a model whose sidecar catalog reports no available tier (`hardwareGated`) — so the self-gate (Component 2) hides it until transformers supports it. Confirm the gated row does not appear as a usable card on 5.12.1.
 
 ## Testing
 
-- **pytest (no model)**: catalog row present and well-formed; `download_specs("qwen3-asr-1.7b")["repos"] == ["Qwen/Qwen3-ASR-1.7B"]`; `make_backend("qwen3asr")` registers; `_QWEN_LANG` mapping (e.g. `ja`→`Japanese`, unknown→`None`); GPU-only hard-fail (`load(..., device="cpu", ...)` raises `BackendLoadError`) with `qwen_asr` import mocked.
-- **GPU-gated real smoke** (`SOKUJI_RUN_GPU=1`): load `Qwen/Qwen3-ASR-1.7B`, transcribe a ~3 s clip, assert non-empty text + measure RTF; skipped without the flag/model.
-- **renderer vitest**: the new `nativeCatalog.ts` row (id/languages/recommended/sortOrder); `gpuTierAvailable`/compat helpers still pass; update `incompatibleNativeAsr`-style assertions if the new language set shifts them.
-- **build**: `npm run build`.
+- **pytest (mocked, runs on 5.12.1):** `Qwen3AsrBackend` GPU-only hard-fail (device=cpu → BackendLoadError); load+transcribe with `transformers.Qwen3ASRForConditionalGeneration`/`AutoProcessor` mocked (assert the prefix-strip + the bf16 `input_features` cast + the decoded text); `_strip_qwen_prefix` unit; the availability gate (`qwen3asr` deployment unavailable when `qwen3_asr` module absent — monkeypatch `find_spec`); catalog row + frozen languages; `download_specs("qwen3-asr-1.7b") == bezzam/Qwen3-ASR-1.7B`.
+- **renderer vitest:** the row + languages-match; the gated card is hidden when the sidecar reports no tier.
+- **build:** `npm run build`.
+- **DEFERRED to Phase 2 (real, gated `SOKUJI_RUN_GPU` + transformers 5.13.x):** download `bezzam/Qwen3-ASR-1.7B`, load on cuda bf16, transcribe + RTF, assert accuracy; plus re-run the full sidecar suite on 5.13.x and the Granite GPU smoke.
 
 ## Global constraints
 
-- vitest / pytest are the correctness gates (not tsc).
-- GPU-only deployment this increment; `recommended=True` without demoting SenseVoice/Whisper.
-- Reuse the Granite `TransformersBackend` pattern: lazy heavy import, `BackendLoadError`, `@register_backend`, `device_map`/`.to(device)`.
-- The renderer language array must match the sidecar catalog tuple verbatim.
-- English-only comments. Conventional Commits. No pushing/PR without explicit consent.
-- Task 0 dependency spike gates the build; the isolation contingency is a separate design conversation.
+- vitest / pytest gates (not tsc). GPU-only deployment. English-only comments. Conventional Commits. No push/PR without consent.
+- Phase-1 backend must `BackendLoadError` (not crash) when `qwen3_asr` is absent; the availability gate keeps the model hidden so users never hit it.
+- Renderer languages array == sidecar tuple verbatim.
+- Reuse the Granite `TransformersBackend` pattern (lazy import, `BackendLoadError`, `@register_backend`).
 
-## Non-goals (deferred)
+## Phase 2 release trigger
 
-- **CPU 0.6B sherpa tier** — a fast-follow: a new `Qwen3SherpaBackend` (`OfflineRecognizer.from_qwen3_asr`, not SenseVoice's constructor) **plus** a GitHub-release-tarball download/status path in `native_models.py` (the model isn't an HF snapshot). This is the bulk of the CPU work and is intentionally out of scope here.
-- Context-bias / hotword UI (`context=""` for now).
-- flash-attn (optional ~10–20% throughput; needs a CUDA build step).
-- Expanding the advertised language list to all 52.
+PR #43838 merges → transformers ~5.13.x release. **Monitor weekly:** `gh pr view 43838 --repo huggingface/transformers --json merged,state`. On release: bump the sidecar transformers, re-validate Granite + suite, un-skip the GPU smoke, set `recommended=True`, finalize quirks.
 
-## Risks / unknowns
+## Non-goals / deferred
 
-- **[HIGH] transformers pin (4.57.6 vs 5.12.1).** Resolved by Task 0 spike; contingency = venv isolation (separate design).
-- **[MED] Heavy transitive deps.** qwen-asr reportedly pulls `nagisa` (MeCab), `soynlp`, and needs a `sox` binary — verify they install in the sidecar venv and ship in the packaged Electron sidecar.
-- **[MED] Sequential VRAM.** ~5 GB resident for ASR; must not co-reside with TTS + translation on 12 GB — confirm the sidecar loads/unloads per stage.
-- **[LOW] `max_new_tokens` truncation** on long CJK-dense VAD segments (256) — verify against real segment lengths; bump to 512 if needed.
-- **[LOW] Sample dtype seam.** Confirm whether `asr_engine` passes int16 or float32 to `transcribe`; qwen-asr needs float32 @16k — convert in the backend if the engine passes int16.
+- sherpa-onnx / llama.cpp / vLLM runtimes (the native path won; sherpa-0.6B-CPU is documented in memory as a fallback only if the PR stalls past launch).
+- Context-bias / hotword UI.
+- The transformers upgrade itself (Phase 2).
+
+## Risks
+
+- **[MED] PR #43838 API may shift before merge** — the Phase-1 backend is written against the current branch; Phase 2 finalizes it against the release. Low blast radius (one class).
+- **[MED] transformers 5.13.x ⇄ Granite** — validated on 5.13.0.dev0 today; re-confirm on the actual release in Phase 2.
+- **[LOW] zh Traditional-script default** — steer via prompt/context in Phase 2 if needed.
+- **[LOW] checkpoint** — `bezzam/Qwen3-ASR-1.7B` is a contributor conversion; swap to an official `-hf` repo if one ships by Phase 2.
