@@ -33,8 +33,11 @@ case "$(uname -s)" in
   Linux) "$PY" -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu ;;
   *)     "$PY" -m pip install -q torch ;;
 esac
-# transformers→tokenizers; faster-whisper→ASR whisper backend; sacremoses→Marian (opus-mt) tokenizer
-"$PY" -m pip install -q transformers sherpa-onnx faster-whisper sacremoses
+# transformers→tokenizers + Granite/Qwen3 speech-LLMs; faster-whisper→ASR whisper backend;
+# sacremoses→Marian (opus-mt) tokenizer.
+# transformers pinned to the PR #43838 branch for native Qwen3-ASR support; swap to a
+# released 'transformers>=5.13' once https://github.com/huggingface/transformers/pull/43838 merges.
+"$PY" -m pip install -q "https://github.com/mbtariq82/transformers/archive/refs/heads/qwen3-asr.zip" sherpa-onnx faster-whisper sacremoses
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
