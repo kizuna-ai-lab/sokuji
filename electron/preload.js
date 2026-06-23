@@ -126,6 +126,10 @@ contextBridge.exposeInMainWorld(
         // WebSocket header injection (renderer → main)
         'ws-headers-set',
         'ws-headers-clear',
+        // Native local-inference sidecar lifecycle (renderer → main)
+        'native-host:start',
+        'native-host:stop',
+        'native-host:status',
         // Auto-update channels (renderer → main)
         'update-check',
         'update-download',

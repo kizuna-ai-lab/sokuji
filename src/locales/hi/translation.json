@@ -397,6 +397,10 @@
       "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",
       "noKeyRequired": "API कुंजी की आवश्यकता नहीं"
     },
+    "local_native": {
+      "name": "मुफ़्त (Native)",
+      "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI का समर्पित रियल-टाइम अनुवाद मॉडल"

@@ -19,6 +19,8 @@ import {
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
+  useUpdateLocalNative,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -56,6 +58,9 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
+import { NativeModelManagementSection } from './NativeModelManagementSection';
+import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
+import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -109,6 +114,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
+  const localNativeSettings = useLocalNativeSettings();
+  const updateLocalNativeSettings = useUpdateLocalNative();
   const modelStatuses = useModelStatuses();
 
   // Actions from store
@@ -131,7 +138,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const localParticipantSystemPrompt = useLocalParticipantSystemPrompt();
   const localUseTemplateMode = useLocalUseTemplateMode();
   const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
-  const [isLocalPromptPreviewExpanded, setIsLocalPromptPreviewExpanded] = useState(false);
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
 
@@ -695,8 +701,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
-    // PalabraAI and Local Inference don't have model selection
-    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE) {
+    // PalabraAI and Local (Offline/Native) inference don't have model selection
+    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
       return null;
     }
 
@@ -1079,73 +1085,23 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     return (
-      <div className="settings-section" id="gemini-vad-section">
-        <h2>
-          {t('settings.speechMode')}
-          <Tooltip
-            content={`${t('settings.geminiVadTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
-        </h2>
-        <div className="setting-item">
-          <div className="turn-detection-options">
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Auto') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Auto',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Auto' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.auto')}
-            </button>
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Push-to-Talk') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Push-to-Talk',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.pushToTalk')}
-            </button>
-            <button
-              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-              onClick={() => {
-                const fromMode = geminiSettings.turnDetectionMode;
-                if (fromMode !== 'Push-to-Translate') {
-                  trackEvent('speech_mode_changed', {
-                    provider: provider,
-                    from_mode: fromMode,
-                    to_mode: 'Push-to-Translate',
-                  });
-                  updateGeminiSettings({ turnDetectionMode: 'Push-to-Translate' });
-                }
-              }}
-              disabled={isSessionActive}
-            >
-              {t('settings.pushToTranslate')}
-            </button>
-          </div>
-        </div>
+      <>
+        <SpeechModeControl
+          value={geminiSettings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: geminiSettings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateGeminiSettings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+          tooltip={`${t('settings.geminiVadTooltip')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
+        />
 
         {geminiSettings.turnDetectionMode === 'Auto' && (
+          <div className="settings-section" id="gemini-vad-section">
           <>
             <div className="setting-item">
               <div className="setting-label">
@@ -1257,8 +1213,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               />
             </div>
           </>
+          </div>
         )}
-      </div>
+      </>
     );
   };
 
@@ -1651,72 +1608,19 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        <div className="settings-section turn-detection-section" id="turn-detection-section">
-          <h2>
-            {t('settings.speechMode')}
-            <Tooltip
-              content={`${t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="turn-detection-options">
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Auto') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Auto',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Auto' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.auto')}
-              </button>
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Talk') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Talk',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Push-to-Talk' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTalk')}
-              </button>
-              <button
-                className={`option-button ${ast2Settings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = ast2Settings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Translate') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Translate',
-                    });
-                    updateAst2Settings({ turnDetectionMode: 'Push-to-Translate' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTranslate')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SpeechModeControl
+          value={ast2Settings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: ast2Settings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateAst2Settings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+          tooltip={`${t('settings.volcengineAST2TurnDetectionTooltip', 'Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
+        />
 
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
@@ -1921,6 +1825,65 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderLocalNativeSettings = () => {
+    if (provider !== Provider.LOCAL_NATIVE) {
+      return null;
+    }
+    // The speed slider is meaningful only when the target language has a native
+    // voice (text-only is the common textOnly toggle, not a per-stage Off option).
+    const ttsActive = hasNativeTts(localNativeSettings.targetLanguage);
+    // Custom prompts only reach the Qwen LLM path; Opus-MT ('opus-mt') ignores them.
+    const promptSupported = localNativeSettings.translationModel === '';
+
+    return (
+      <>
+        {/* Selection + download (collapsible per-stage cards) lead, like LOCAL_INFERENCE. */}
+        <NativeModelManagementSection isSessionActive={isSessionActive} />
+
+        {ttsActive && (
+          <TtsSpeedControl
+            value={localNativeSettings.ttsSpeed}
+            onChange={(ttsSpeed) => updateLocalNativeSettings({ ttsSpeed })}
+            disabled={isSessionActive}
+          />
+        )}
+
+        <SpeechModeControl
+          value={localNativeSettings.turnDetectionMode}
+          onChange={(turnDetectionMode: SpeechMode) => {
+            const fromMode = localNativeSettings.turnDetectionMode;
+            trackEvent('speech_mode_changed', { provider, from_mode: fromMode, to_mode: turnDetectionMode });
+            updateLocalNativeSettings({ turnDetectionMode });
+          }}
+          disabled={isSessionActive}
+        />
+
+        <TranslationPromptControl
+          useTemplateMode={localNativeSettings.useTemplateMode}
+          systemPrompt={localNativeSettings.systemPrompt}
+          /* no participantSystemPrompt: native has no participant audio path */
+          preview={getProcessedLocalPrompt(false)}
+          supported={promptSupported}
+          disabled={isSessionActive}
+          previewId="local-native-prompt-preview-content"
+          onChange={(patch) => updateLocalNativeSettings(patch)}
+        />
+
+        {localNativeSettings.turnDetectionMode === 'Auto' && (
+          <VadControl
+            values={{
+              vadThreshold: localNativeSettings.vadThreshold,
+              vadMinSilenceDuration: localNativeSettings.vadMinSilenceDuration,
+              vadMinSpeechDuration: localNativeSettings.vadMinSpeechDuration,
+            }}
+            onChange={(patch) => updateLocalNativeSettings(patch)}
+            disabled={isSessionActive}
+          />
+        )}
+      </>
+    );
+  };
+
   const renderLocalInferenceSettings = () => {
     if (provider !== Provider.LOCAL_INFERENCE) {
       return null;
@@ -1934,24 +1897,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           onUpdateSettings={updateLocalInferenceSettings}
         />
 
-        <div className="settings-section">
-          <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
-              <span className="setting-value">{localInferenceSettings.ttsSpeed.toFixed(1)}x</span>
-            </div>
-            <input
-              type="range"
-              min="0.5"
-              max="2.0"
-              step="0.1"
-              value={localInferenceSettings.ttsSpeed}
-              onChange={(e) => updateLocalInferenceSettings({ ttsSpeed: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
+        <TtsSpeedControl
+          value={localInferenceSettings.ttsSpeed}
+          onChange={(ttsSpeed) => updateLocalInferenceSettings({ ttsSpeed })}
+          disabled={isSessionActive}
+        >
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
             if (ttsEntry?.engine === 'edge-tts') {
@@ -2036,268 +1986,42 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
             ) : null;
           })()}
-        </div>
+        </TtsSpeedControl>
 
-        <div className="settings-section turn-detection-section" id="turn-detection-section">
-          <h2>
-            {t('settings.speechMode')}
-            <Tooltip
-              content={`${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="turn-detection-options">
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Auto') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Auto',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Auto' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.auto')}
-              </button>
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Talk') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Talk',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTalk')}
-              </button>
-              <button
-                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Translate' ? 'active' : ''}`}
-                onClick={() => {
-                  const fromMode = localInferenceSettings.turnDetectionMode;
-                  if (fromMode !== 'Push-to-Translate') {
-                    trackEvent('speech_mode_changed', {
-                      provider: provider,
-                      from_mode: fromMode,
-                      to_mode: 'Push-to-Translate',
-                    });
-                    updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Translate' });
-                  }
-                }}
-                disabled={isSessionActive}
-              >
-                {t('settings.pushToTranslate')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <SpeechModeControl
+          value={localInferenceSettings.turnDetectionMode}
+          onChange={(mode) => {
+            trackEvent('speech_mode_changed', {
+              provider: provider,
+              from_mode: localInferenceSettings.turnDetectionMode,
+              to_mode: mode,
+            });
+            updateLocalInferenceSettings({ turnDetectionMode: mode });
+          }}
+          disabled={isSessionActive}
+        />
 
-        <div
-          className={`settings-section system-instructions-section ${!localPromptSupported ? 'disabled' : ''}`}
-          id="local-translation-prompt-section"
-          aria-disabled={!localPromptSupported}
-        >
-          <h2>
-            {t('settings.localTranslationPrompt', 'Translation Prompt')}
-            <Tooltip
-              content={t('settings.localTranslationPromptTooltip', 'Customize how the local translation model is instructed. Only applies to Qwen-family models.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-
-          {!localPromptSupported && (
-            <div className="setting-item">
-              <span className="setting-description">
-                {t('settings.localPromptUnsupported', 'Current translation model does not support custom prompts. Switch to a Qwen-family model in Model Management to enable.')}
-              </span>
-            </div>
-          )}
-
-          <div className="setting-item">
-            <div className="turn-detection-options">
-              <button
-                className={`option-button ${localUseTemplateMode ? 'active' : ''}`}
-                onClick={() => updateLocalInferenceSettings({ useTemplateMode: true })}
-                disabled={isSessionActive || !localPromptSupported}
-              >
-                {t('settings.simple')}
-              </button>
-              <button
-                className={`option-button ${!localUseTemplateMode ? 'active' : ''}`}
-                onClick={() => updateLocalInferenceSettings({ useTemplateMode: false })}
-                disabled={isSessionActive || !localPromptSupported}
-              >
-                {t('settings.advanced')}
-              </button>
-            </div>
-          </div>
-
-          {localUseTemplateMode ? (
-            <div className="setting-item">
-              <div className="setting-label">
-                <span>{t('settings.preview')}</span>
-                <button
-                  type="button"
-                  className="preview-toggle"
-                  aria-expanded={isLocalPromptPreviewExpanded}
-                  aria-controls="local-prompt-preview-content"
-                  onClick={() => setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded)}
-                  disabled={isSessionActive}
-                >
-                  {isLocalPromptPreviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
-              </div>
-              {isLocalPromptPreviewExpanded && (
-                <div
-                  id="local-prompt-preview-content"
-                  className="system-instructions-preview"
-                >
-                  <div className="preview-content">
-                    {getProcessedLocalPrompt(false)}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="setting-item">
-                <textarea
-                  className="system-instructions"
-                  placeholder={t('settings.enterCustomInstructions')}
-                  value={localSystemPrompt}
-                  onChange={(e) => updateLocalInferenceSettings({ systemPrompt: e.target.value })}
-                  disabled={isSessionActive || !localPromptSupported}
-                />
-              </div>
-              <div className="setting-item">
-                <div className="setting-label">
-                  <span>
-                    {t('settings.participantInstructions', 'Participant Instructions')}
-                    <Tooltip
-                      content={t('settings.participantInstructionsTooltip', 'System instructions for participant audio translation. Leave empty to use main instructions.')}
-                      position="top"
-                    >
-                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                    </Tooltip>
-                  </span>
-                </div>
-                <textarea
-                  className="system-instructions"
-                  placeholder={t('settings.participantInstructionsPlaceholder', 'Leave empty to use main instructions')}
-                  value={localParticipantSystemPrompt}
-                  onChange={(e) => updateLocalInferenceSettings({ participantSystemPrompt: e.target.value })}
-                  disabled={isSessionActive || !localPromptSupported}
-                />
-              </div>
-              <div className="setting-item">
-                <span className="setting-description">
-                  {t('settings.localPromptNoThinkHint', 'For Qwen3 models, ` /no_think` will be automatically appended.')}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
+        <TranslationPromptControl
+          useTemplateMode={localUseTemplateMode}
+          systemPrompt={localSystemPrompt}
+          participantSystemPrompt={localParticipantSystemPrompt}
+          preview={getProcessedLocalPrompt(false)}
+          supported={localPromptSupported}
+          disabled={isSessionActive}
+          onChange={(patch) => updateLocalInferenceSettings(patch)}
+        />
 
         {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}
         {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(localInferenceSettings.asrModel)?.type === 'asr-stream' && !getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType) && (
-        <div className="settings-section">
-          <h2>
-            {t('settings.vadSettings', 'VAD Settings')}
-            <Tooltip
-              content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadThreshold', 'Speech Threshold')}
-                <Tooltip
-                  content={t('settings.vadThresholdTooltip', 'Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadThreshold.toFixed(2)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="0.95"
-              step="0.05"
-              value={localInferenceSettings.vadThreshold}
-              onChange={(e) => updateLocalInferenceSettings({ vadThreshold: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
-                <Tooltip
-                  content={t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(2)}s</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="2.0"
-              step="0.05"
-              value={localInferenceSettings.vadMinSilenceDuration}
-              onChange={(e) => updateLocalInferenceSettings({ vadMinSilenceDuration: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>
-                {t('settings.vadMinSpeechDuration', 'Min Speech Duration')}
-                <Tooltip
-                  content={t('settings.vadMinSpeechDurationTooltip', 'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.')}
-                  position="top"
-                >
-                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                </Tooltip>
-              </span>
-              <span className="setting-value">{localInferenceSettings.vadMinSpeechDuration.toFixed(2)}s</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="1.0"
-              step="0.05"
-              value={localInferenceSettings.vadMinSpeechDuration}
-              onChange={(e) => updateLocalInferenceSettings({ vadMinSpeechDuration: parseFloat(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-        </div>
+          <VadControl
+            values={{
+              vadThreshold: localInferenceSettings.vadThreshold,
+              vadMinSilenceDuration: localInferenceSettings.vadMinSilenceDuration,
+              vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
+            }}
+            onChange={(patch) => updateLocalInferenceSettings(patch)}
+            disabled={isSessionActive}
+          />
         )}
 
       </>
@@ -2419,6 +2143,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
       {renderLocalInferenceSettings()}
+      {renderLocalNativeSettings()}
     </Fragment>
   );
 };

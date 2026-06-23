@@ -2,7 +2,7 @@
  * Provider types and enums for AI service providers
  */
 
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron } from '../utils/environment';
 
 /**
  * Supported AI service providers
@@ -17,13 +17,14 @@ export enum Provider {
   OPENAI_TRANSLATE = 'openai_translate',
   VOLCENGINE_ST = 'volcengine_st',
   VOLCENGINE_AST2 = 'volcengine_ast2',
-  LOCAL_INFERENCE = 'local_inference'
+  LOCAL_INFERENCE = 'local_inference',
+  LOCAL_NATIVE = 'local_native'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.LOCAL_NATIVE;
 
 /**
  * Array of all supported providers
@@ -39,6 +40,7 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI_OPENAI_TRANSLATE, Provider.KIZUNA_AI_VOLCENGINE_AST2] : []),
   ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
   ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
+  ...(isElectron() ? [Provider.LOCAL_NATIVE] : []),
   Provider.OPENAI_COMPATIBLE,
 ];
 

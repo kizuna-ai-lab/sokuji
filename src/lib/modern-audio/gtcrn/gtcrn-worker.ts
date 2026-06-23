@@ -42,6 +42,12 @@ async function init(ortWasmBaseUrl: string, modelUrl: string): Promise<void> {
     // Set ORT WASM paths from main thread's resolved URL
     ortEnv.wasm.wasmPaths = ortWasmBaseUrl;
     ortEnv.wasm.proxy = false; // Already in a worker
+    // Single-threaded, matching the other ORT workers (supertonic/whisper/voxtral).
+    // The only bundled artifacts are the *-threaded* builds; leaving numThreads at
+    // its core-count default makes ORT spawn pthread workers via SharedArrayBuffer,
+    // which hangs InferenceSession.create() (no throw) when the worker context isn't
+    // cross-origin isolated — surfacing as the 10s "GTCRN worker init timeout".
+    ortEnv.wasm.numThreads = 1;
 
     session = await InferenceSession.create(modelUrl, {
       executionProviders: ['wasm'],

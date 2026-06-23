@@ -45,6 +45,7 @@ import {
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
+import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
 import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
@@ -86,6 +87,12 @@ import { isVirtualDevice } from '../Settings/shared/hooks';
  */
 function isPttLikeMode(mode: string): boolean {
   return mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
+}
+
+/** Local providers driven by a Silero VAD that PTT release finalizes the same way
+ *  (trailing silence frames + createResponse → flush). */
+function usesLocalSileroVad(provider: string): boolean {
+  return provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
 }
 
 
@@ -283,6 +290,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useSession();
 
   const isReconnecting = useIsReconnecting();
+  const nativeAsrLoading = useNativeAsrLoading();
   const setIsReconnecting = useSetIsReconnecting();
 
   // Store setters for mirroring local items state into sessionStore
@@ -485,7 +493,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
-    const systemInstructions = provider === Provider.LOCAL_INFERENCE
+    const systemInstructions = (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE)
       ? getProcessedLocalPrompt(false)
       : getProcessedSystemInstructions();
 
@@ -1481,6 +1489,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Local inference doesn't need an API key; placeholder for ClientFactory
           apiKey = 'local';
           break;
+        case Provider.LOCAL_NATIVE:
+          // Native (Electron sidecar) inference doesn't need an API key
+          apiKey = 'local';
+          break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -1490,6 +1502,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ? 'realtime-translation'
         : provider === Provider.LOCAL_INFERENCE
         ? 'local-asr-translate'
+        : provider === Provider.LOCAL_NATIVE
+        ? 'native-asr-translate'
         : provider === Provider.OPENAI_TRANSLATE
         ? 'gpt-realtime-translate'
         : (currentProviderSettings as any).model;
@@ -2031,9 +2045,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (recorder.isRecording()) {
         // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
         // This helps the VAD detect end of speech
-        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || effectiveProvider === Provider.LOCAL_INFERENCE) && client) {
+        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || usesLocalSileroVad(effectiveProvider)) && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
-          const silenceFrames = effectiveProvider === Provider.LOCAL_INFERENCE ? 7 : 5; // 700ms for Silero VAD (minSilenceDuration=0.5s + margin), 500ms for AST2
+          // LOCAL_INFERENCE / LOCAL_NATIVE both use Silero VAD → 700ms tail; AST2 → 500ms
+          const silenceFrames = usesLocalSileroVad(effectiveProvider) ? 7 : 5;
           for (let i = 0; i < silenceFrames; i++) {
             // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
             client.appendInputAudio(new Int16Array(silenceFrameSize));
@@ -2053,7 +2068,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
         //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && effectiveProvider === Provider.LOCAL_INFERENCE) {
+        if (client && usesLocalSileroVad(effectiveProvider)) {
           client.createResponse();
         } else if (client && effectiveProvider === Provider.GEMINI) {
           if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
@@ -3298,7 +3313,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <span className="btn-text">
                       {initProgress
                         ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : t('simplePanel.connecting', 'Connecting...')}
+                        : nativeAsrLoading
+                          ? t('simplePanel.loadingModel', 'Loading model…')
+                          : t('simplePanel.connecting', 'Connecting...')}
                     </span>
                   </>
                 ) : isSessionActive ? (

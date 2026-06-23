@@ -536,6 +536,10 @@
       "noAsrModel": "No model available",
       "noTranslationModel": "No model — transcription only"
     },
+    "local_native": {
+      "name": "Free (Native)",
+      "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)"
+    },
     "unknown": {
       "name": "Unknown",
       "description": "Unknown provider"

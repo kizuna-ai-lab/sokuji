@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, HardDrive, ChevronDown, ChevronRight, AlertTriangle, Zap, Star } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -26,6 +26,7 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
+import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import './ModelManagementSection.scss';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
@@ -227,41 +228,6 @@ function ModelCard({
   );
 }
 
-// ─── ModelGroup ────────────────────────────────────────────────────────────
-
-function ModelGroup({
-  id,
-  title,
-  subtitle,
-  defaultExpanded = true,
-  children,
-}: {
-  id?: string;
-  title: string;
-  subtitle?: string;
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-}) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
-  return (
-    <div id={id ? `${id}-section` : undefined} className="model-group">
-      <div className="model-group__header" onClick={() => setExpanded(!expanded)}>
-        <span className="model-group__chevron">
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        <h3 className="model-group__title">{title}</h3>
-        {subtitle && <span className="model-group__subtitle">{subtitle}</span>}
-      </div>
-      {expanded && (
-        <div className="model-group__list">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Sort helpers (type-specific) ──────────────────────────────────────────
 
 /** Creates a model sorter: recommended first → sortOrder → fallback comparator */
@@ -307,7 +273,6 @@ export function ModelManagementSection({
   const deviceFeatures = useDeviceFeatures();
   const modelVariants = useModelVariants();
   const { initialize, downloadModel, cancelDownload, deleteModel, deleteAllModels } = useModelStore();
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   /** Compute variant upgrade/incompatibility hint for a model */
   const getVariantHint = (entry: ModelManifestEntry): { hint?: string; incompatible?: boolean } => {
@@ -492,69 +457,46 @@ export function ModelManagementSection({
 
   // ── Helpers ────────────────────────────────────────────────────────
 
-  /** Render a list of compatible model cards with variant hints */
-  const renderCompatibleCards = (
-    models: ModelManifestEntry[],
+  /** Render a single compatible model card with its variant hint. */
+  const renderCard = (
+    entry: ModelManifestEntry,
     selectedId: string | undefined,
     onSelect: (id: string) => void,
-  ) =>
-    models.map(entry => {
-      const { hint, incompatible } = getVariantHint(entry);
-      return (
-        <ModelCard
-          key={entry.id}
-          entry={entry}
-          status={statuses[entry.id] || 'not_downloaded'}
-          download={downloads[entry.id]}
-          errorMessage={downloadErrors[entry.id]}
-          isSessionActive={isSessionActive}
-          isSelected={selectedId === entry.id}
-          isCompatible={!incompatible}
-          showRadio={true}
-          compatibilityHint={hint}
-          deviceFeatures={deviceFeatures}
-          onSelect={() => onSelect(entry.id)}
-          onDownload={() => handleDownload(entry.id)}
-          onCancel={() => cancelDownload(entry.id)}
-          onDelete={() => deleteModel(entry.id)}
-        />
-      );
-    });
+  ) => {
+    const { hint, incompatible } = getVariantHint(entry);
+    return (
+      <ModelCard
+        key={entry.id}
+        entry={entry}
+        status={statuses[entry.id] || 'not_downloaded'}
+        download={downloads[entry.id]}
+        errorMessage={downloadErrors[entry.id]}
+        isSessionActive={isSessionActive}
+        isSelected={selectedId === entry.id}
+        isCompatible={!incompatible}
+        showRadio={true}
+        compatibilityHint={hint}
+        deviceFeatures={deviceFeatures}
+        onSelect={() => onSelect(entry.id)}
+        onDownload={() => handleDownload(entry.id)}
+        onCancel={() => cancelDownload(entry.id)}
+        onDelete={() => deleteModel(entry.id)}
+      />
+    );
+  };
 
   /** Render recommended / others sub-groups for a compatible model list */
   const renderSubGroups = (
     models: ModelManifestEntry[],
     selectedId: string | undefined,
     onSelect: (id: string) => void,
-  ) => {
-    const recommended = models.filter(m => m.recommended);
-    const others = models.filter(m => !m.recommended);
-
-    if (recommended.length === 0) {
-      // No recommended models — render flat list as before
-      return renderCompatibleCards(models, selectedId, onSelect);
-    }
-
-    return (
-      <>
-        <div className="model-subgroup">
-          <div className="model-subgroup__label">
-            <Star size={11} />
-            {t('models.recommendedGroup', 'Recommended')}
-          </div>
-          {renderCompatibleCards(recommended, selectedId, onSelect)}
-        </div>
-        {others.length > 0 && (
-          <div className="model-subgroup">
-            <div className="model-subgroup__label">
-              {t('models.othersGroup', 'Others')}
-            </div>
-            {renderCompatibleCards(others, selectedId, onSelect)}
-          </div>
-        )}
-      </>
-    );
-  };
+  ) => (
+    <RecommendedOthers
+      items={models}
+      isRecommended={(m) => !!m.recommended}
+      renderItem={(m) => renderCard(m, selectedId, onSelect)}
+    />
+  );
 
   // ── ASR Section ───────────────────────────────────────────────────────
 
@@ -759,47 +701,12 @@ export function ModelManagementSection({
       {renderTranslationGroup()}
       {renderTtsGroup()}
 
-      <div className="model-management__storage">
-        <HardDrive size={14} />
-        <span>
-          {t('models.storageUsed', 'Storage: {{size}} MB used', { size: storageUsedMb })}
-        </span>
-        {storageUsedMb > 0 && (
-          confirmClearAll ? (
-            <div className="model-management__clear-confirm">
-              <span className="model-management__clear-confirm-text">
-                {t('models.confirmClearAll', 'Delete all models?')}
-              </span>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--yes"
-                onClick={async () => {
-                  setConfirmClearAll(false);
-                  await deleteAllModels();
-                }}
-                disabled={isSessionActive}
-              >
-                {t('models.confirmYes', 'Yes')}
-              </button>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--no"
-                onClick={() => setConfirmClearAll(false)}
-              >
-                {t('models.confirmNo', 'No')}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="model-management__clear-all"
-              onClick={() => setConfirmClearAll(true)}
-              disabled={isSessionActive}
-              title={t('models.clearAll', 'Clear all models')}
-            >
-              <Trash2 size={12} />
-              {t('models.clearAll', 'Clear all')}
-            </button>
-          )
-        )}
-      </div>
+      <ModelStorageFooter
+        usedMb={storageUsedMb}
+        hasModels={storageUsedMb > 0}
+        onClearAll={deleteAllModels}
+        disabled={isSessionActive}
+      />
     </div>
   );
 }

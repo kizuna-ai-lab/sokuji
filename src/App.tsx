@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
+import { NativeTtsProto } from './components/dev/NativeTtsProto';
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 import { SignIn } from './routes/SignIn';
@@ -36,9 +37,24 @@ const router = createMemoryRouter([
 ]);
 
 function App() {
+  // Dev-only: Ctrl+Shift+N toggles the native python-sidecar TTS proto.
+  const [showNativeTts, setShowNativeTts] = useState(false);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
+        e.preventDefault();
+        setShowNativeTts((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div className="App">
       <RouterProvider router={router} />
+      {showNativeTts && <NativeTtsProto onClose={() => setShowNativeTts(false)} />}
     </div>
   );
 }

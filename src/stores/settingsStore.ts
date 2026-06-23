@@ -13,10 +13,13 @@ import {
   VolcengineSTSessionConfig,
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig,
+  LocalNativeSessionConfig,
   TranslateTargetLanguage
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage } from '../lib/local-inference/native/nativeCatalog';
+import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
@@ -171,6 +174,28 @@ export interface LocalInferenceSettings {
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode speaker prompt (default '')
   participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
+}
+
+/**
+ * Native (Electron sidecar) provider settings. MVP = ASR + translation (text);
+ * native TTS is Pocket/cloning so TTS/prompt/VAD fields are intentionally omitted.
+ */
+export interface LocalNativeSettings {
+  asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
+  translationModel: string;  // '' (auto) | 'opus-mt-zh-en' | LLM id
+  ttsModel: string;          // '' = Auto (default voice) | a specific piper voice id
+  sourceLanguage: string;
+  targetLanguage: string;
+  // Parity with LocalInferenceSettings — same fields/defaults so the shared
+  // settings UI components work for both providers.
+  ttsSpeed: number;                    // 0.5-2.0 piper speed (sherpa OfflineTts)
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  vadThreshold: number;                // 0.0-1.0 silero speech threshold
+  vadMinSilenceDuration: number;       // seconds — silero min_silence_duration
+  vadMinSpeechDuration: number;        // seconds — silero min_speech_duration
+  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
+  systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
+  asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
 }
 
 // Cache Entry
@@ -352,6 +377,22 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   participantSystemPrompt: '',
 };
 
+const defaultLocalNativeSettings: LocalNativeSettings = {
+  asrModel: 'sense-voice',
+  translationModel: '',  // auto: opus-mt for the language pair
+  ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
+  sourceLanguage: 'ja',
+  targetLanguage: 'en',
+  ttsSpeed: 1.0,
+  turnDetectionMode: 'Auto',
+  vadThreshold: 0.3,
+  vadMinSilenceDuration: 1.4,
+  vadMinSpeechDuration: 0.4,
+  useTemplateMode: true,
+  systemPrompt: '',
+  asrDevice: 'auto',
+};
+
 // ==================== Store Definition ====================
 
 interface SettingsStore {
@@ -376,6 +417,7 @@ interface SettingsStore {
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
+  localNative: LocalNativeSettings;
 
   // Validation state
   isApiKeyValid: boolean | null;
@@ -458,6 +500,7 @@ interface SettingsStore {
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
+  updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -467,7 +510,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
@@ -617,6 +660,21 @@ function createVolcengineAST2SessionConfig(
   };
 }
 
+/**
+ * wrapTranscript must match the instructions actually in use. The default prompt
+ * (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
+ * came from it the user message MUST be wrapped. This also catches the Advanced-mode
+ * empty-field fallback where the selector returns the default prompt but
+ * useTemplateMode is still false. Shared by both local providers.
+ */
+function resolveWrapTranscript(
+  sourceLanguage: string, targetLanguage: string, useTemplateMode: boolean, systemInstructions: string
+): boolean {
+  const defaultFwd = buildDefaultLocalPrompt(sourceLanguage, targetLanguage);
+  const defaultRev = buildDefaultLocalPrompt(targetLanguage, sourceLanguage);
+  return useTemplateMode || systemInstructions === defaultFwd || systemInstructions === defaultRev;
+}
+
 function createLocalInferenceSessionConfig(
   settings: LocalInferenceSettings,
   systemInstructions: string
@@ -626,15 +684,8 @@ function createLocalInferenceSessionConfig(
   const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
-  // wrapTranscript must match the instructions actually in use. The default prompt
-  // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
-  // came from it, the user message MUST be wrapped. This catches the Advanced-mode
-  // empty-field fallback case where the selector quietly returns the default prompt
-  // but settings.useTemplateMode is still false.
-  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
-  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
-  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
-  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+  const wrapTranscript = resolveWrapTranscript(
+    settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
 
   return {
     provider: 'local_inference',
@@ -653,6 +704,38 @@ function createLocalInferenceSessionConfig(
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
     wrapTranscript,
+  };
+}
+
+/**
+ * Build the native (Electron sidecar) session config. ASR + translation, plus
+ * piper TTS when a model is available for the target language. Model lists +
+ * resolution live in nativeCatalog. The engine defaults the translate prompt,
+ * so instructions are advisory.
+ */
+function createLocalNativeSessionConfig(
+  settings: LocalNativeSettings,
+  systemInstructions: string
+): LocalNativeSessionConfig {
+  const wrapTranscript = resolveWrapTranscript(
+    settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
+
+  return {
+    provider: 'local_native',
+    model: 'native-asr-translate',
+    instructions: systemInstructions,
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
+    asrModelId: settings.asrModel,
+    translationModelId: resolveNativeTranslation(settings.translationModel, settings.sourceLanguage, settings.targetLanguage),
+    ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
+    ttsSpeed: settings.ttsSpeed,
+    vadThreshold: settings.vadThreshold,
+    vadMinSilenceDuration: settings.vadMinSilenceDuration,
+    vadMinSpeechDuration: settings.vadMinSpeechDuration,
+    turnDetectionMode: settings.turnDetectionMode,
+    wrapTranscript,
+    asrDevice: settings.asrDevice,
   };
 }
 
@@ -803,6 +886,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
+    localNative: defaultLocalNativeSettings,
 
     isApiKeyValid: null,
     isValidating: false,
@@ -1157,10 +1241,60 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateLocalNative: async (settings) => {
+      set((state) => ({localNative: {...state.localNative, ...settings}}));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.localNative.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Local Native settings:', error);
+      }
+    },
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
       const provider = state.provider;
+
+      // Native (Electron sidecar) inference: no API key. Readiness = the sidecar
+      // actually spawns + handshakes (this also warms it for the session).
+      if (provider === Provider.LOCAL_NATIVE) {
+        let ready = isElectron();
+        if (ready) {
+          try {
+            const r = await (window as unknown as { electron?: { invoke(c: string): Promise<any> } }).electron?.invoke('native-host:start');
+            ready = !!r?.ok;
+          } catch {
+            ready = false;
+          }
+        }
+        let message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
+        if (ready) {
+          const s = get().localNative;
+          // The selected ASR must actually support the source language — not just
+          // be downloaded (parity with LOCAL_INFERENCE, which gates on language).
+          const asrOpt = NATIVE_ASR.find((m) => m.id === s.asrModel);
+          const asrCompatible = !!asrOpt && supportsLanguage(asrOpt, s.sourceLanguage);
+          // Gate on the selected stage models being downloaded into the sidecar cache.
+          // TTS is dropped from the requirement when text-only is on.
+          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, get().textOnly);
+          const { useNativeModelStore } = await import('./nativeModelStore');
+          await useNativeModelStore.getState().refresh(models);
+          ready = asrCompatible && useNativeModelStore.getState().isReady(models);
+          message = ready ? ''
+            : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
+            : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+        }
+        set({
+          isApiKeyValid: ready,
+          availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
+          validationMessage: message,
+          isValidating: false,
+        });
+        return { valid: ready, message, validating: false };
+      }
 
       // Local inference: check model readiness instead of API key.
       // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
@@ -1514,7 +1648,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, volcengineST, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, volcengineST, volcengineAST2, localInference, localNative, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -1522,6 +1656,7 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
+          loadProviderSettings('settings.localNative', defaultLocalNativeSettings),
           loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
           loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings),
           loadProviderSettings('settings.kizunaVolcengineAst2', defaultKizunaVolcengineAst2Settings),
@@ -1546,6 +1681,7 @@ const useSettingsStore = create<SettingsStore>()(
           volcengineST,
           volcengineAST2,
           localInference,
+          localNative,
           openaiTranslate,
           kizunaOpenaiTranslate,
           kizunaVolcengineAst2,
@@ -1590,6 +1726,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.kizunaVolcengineAst2;
         case Provider.LOCAL_INFERENCE:
           return state.localInference;
+        case Provider.LOCAL_NATIVE:
+          return state.localNative;
         default:
           return state.openai;
       }
@@ -1636,7 +1774,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     getProcessedLocalPrompt: (forParticipant = false) => {
-      const s = get().localInference;
+      // Both local providers share this path; read the active slice. LOCAL_NATIVE
+      // has no participant prompt, so its participant case falls back to speaker.
+      const st = get();
+      const s = st.provider === Provider.LOCAL_NATIVE ? st.localNative : st.localInference;
       const [srcLang, tgtLang] = forParticipant
         ? [s.targetLanguage, s.sourceLanguage]
         : [s.sourceLanguage, s.targetLanguage];
@@ -1648,7 +1789,7 @@ const useSettingsStore = create<SettingsStore>()(
       const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
       if (!forParticipant) return speakerResolved;
       // Participant falls back to resolved speaker if empty
-      const participant = s.participantSystemPrompt.trim();
+      const participant = 'participantSystemPrompt' in s ? s.participantSystemPrompt.trim() : '';
       return participant || speakerResolved;
     },
 
@@ -1685,6 +1826,9 @@ const useSettingsStore = create<SettingsStore>()(
           break;
         case Provider.LOCAL_INFERENCE:
           config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
+          break;
+        case Provider.LOCAL_NATIVE:
+          config = createLocalNativeSessionConfig(state.localNative, systemInstructions);
           break;
         default:
           config = createOpenAISessionConfig(state.openai, systemInstructions);
@@ -1733,6 +1877,7 @@ export const useVolcengineAST2Settings = () => useSettingsStore((state) => state
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
+export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
 // Transport type selector (for OpenAI provider)
 export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
@@ -1782,6 +1927,7 @@ export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.u
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
+export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);
@@ -1821,6 +1967,7 @@ export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state
     // KIZUNA_AI_OPENAI_TRANSLATE has no turn detection (translate), like
     // OPENAI_TRANSLATE — both fall through to the default 'Auto'.
     case Provider.LOCAL_INFERENCE: return state.localInference.turnDetectionMode;
+    case Provider.LOCAL_NATIVE: return state.localNative.turnDetectionMode;
     default: return 'Auto';
   }
 });

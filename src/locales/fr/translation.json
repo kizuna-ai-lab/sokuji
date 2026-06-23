@@ -661,6 +661,10 @@
       "description": "Reconnaissance vocale gratuite (ASR) + Traduction + Synthèse vocale (TTS)",
       "noKeyRequired": "Aucune clé API requise"
     },
+    "local_native": {
+      "name": "Gratuit (Native)",
+      "description": "Reconnaissance vocale gratuite (ASR) + Traduction + Synthèse vocale (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "Modèle de traduction temps réel dédié d'OpenAI"

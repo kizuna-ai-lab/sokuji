@@ -11,6 +11,31 @@ import { workerManualChunks } from './vite.worker-chunks'
  * TTS model .data and package-metadata.json files live in model-packs/tts/wasm-*
  * and need to be accessible to the browser during development.
  */
+/**
+ * Dev-only plugin: set cross-origin isolation headers on EVERY response.
+ *
+ * Electron 40's Chromium requires Cross-Origin-Embedder-Policy for ES module
+ * workers even with SAB from --enable-features. Vite's `server.headers` does not
+ * reach all worker-script responses in v7 (notably `public/` static workers via
+ * sirv, e.g. edge-tts.worker.js, and the `?worker_file` handler for module
+ * workers), so those load with "COEP-framed resource needs COEP header". A
+ * top-of-stack middleware that stamps the headers on every response covers them
+ * all. Runs only in `serve` (dev); the packaged app and extension are untouched.
+ */
+function crossOriginIsolationHeaders(): Plugin {
+  return {
+    name: 'cross-origin-isolation-headers',
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+        next()
+      })
+    },
+  }
+}
+
 function serveModelPacks(): Plugin {
   return {
     name: 'serve-model-packs',
@@ -21,6 +46,10 @@ function serveModelPacks(): Plugin {
         if (!fs.existsSync(filePath)) return next()
         const stat = fs.statSync(filePath)
         if (!stat.isFile()) return next()
+        // These middlewares pipe manually and bypass server.headers, so set the
+        // cross-origin-isolation headers here too (needed once COEP is on).
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
         res.setHeader('Content-Length', stat.size)
         if (filePath.endsWith('.json')) res.setHeader('Content-Type', 'application/json')
         else res.setHeader('Content-Type', 'application/octet-stream')
@@ -67,6 +96,11 @@ function serveOrtWasm(): Plugin {
         if (!fs.existsSync(filePath)) return next()
         const stat = fs.statSync(filePath)
         if (!stat.isFile()) return next()
+        // Manual pipe bypasses server.headers. Under cross-origin isolation, ORT
+        // goes multi-threaded and loads its threaded runtime .mjs as nested pthread
+        // worker scripts — those need COEP; the .wasm needs CORP. Set both here.
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
         res.setHeader('Content-Length', stat.size)
         if (filename.endsWith('.mjs') || filename.endsWith('.js'))
           res.setHeader('Content-Type', 'application/javascript')
@@ -90,6 +124,7 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
+      isServe && crossOriginIsolationHeaders(),
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
@@ -100,6 +135,7 @@ export default defineConfig(({ command, mode }) => {
             'better-auth-adapter': 'electron/better-auth-adapter.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
+            'native-host-manager': 'electron/native-host-manager.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
@@ -149,6 +185,19 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       host: true,
+      // Cross-origin isolation for the dev server (electron:dev / web dev only).
+      // Electron 40's Chromium requires COEP for ES module workers even when SAB
+      // comes from the --enable-features=SharedArrayBuffer flag, so without these
+      // the ORT/transformers module workers (ASR/TTS/translation, GTCRN) are
+      // blocked at load ("COEP-framed resource needs COEP header"). #184 removed
+      // these for the extension's chrome.tabCapture; that's a manifest concern in
+      // extension/manifest.json — this dev-server block doesn't touch the extension
+      // build (separate config, no dev server) or the packaged app (file://).
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
     },
     build: {
       outDir: 'build',
