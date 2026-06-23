@@ -63,7 +63,10 @@ def _installed() -> frozenset:
             "transformers": "transformers",
             # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
             # then it is "not installed" so resolve()/models_catalog exclude it.
-            "qwen3asr": "transformers.models.qwen3_asr"}
+            "qwen3asr": "transformers.models.qwen3_asr",
+            # cohereasr needs the native cohere_asr model (mainline since transformers
+            # 5.4); present in our 5.13 venv. Same self-gate as qwen3asr.
+            "cohereasr": "transformers.models.cohere_asr"}
     return frozenset(b for b, mod in mods.items() if _has_mod(mod))
 
 

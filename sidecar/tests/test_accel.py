@@ -388,6 +388,19 @@ def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
     assert "transformers" in result      # … but other present backends survive
 
 
+def test_cohereasr_gated_on_cohere_asr_module(monkeypatch):
+    import importlib.util as iu
+    from sokuji_sidecar import accel
+    real = iu.find_spec
+
+    def fake_find_spec(name, *a, **k):
+        if name == "transformers.models.cohere_asr":
+            return None
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
+    assert "cohereasr" not in accel._installed()
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
 def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
