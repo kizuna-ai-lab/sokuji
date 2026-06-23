@@ -43,20 +43,20 @@ describe('nativeCatalog', () => {
     expect(supportsLanguage({ languages: ['zh', 'en'] }, 'de')).toBe(false);
     expect(supportsLanguage({ languages: ['multi'] }, 'de')).toBe(true);
 
-    // for a sense-voice language, sense-voice is compatible + recommended-first
-    expect(compatibleNativeAsr('zh').map((m) => m.id)[0]).toBe('sense-voice');
-    // for an unsupported language, sense-voice drops out → whisper-base leads
+    // for a sense-voice language, cohere now leads (recommended, sortOrder 0)
+    expect(compatibleNativeAsr('zh').map((m) => m.id)[0]).toBe('cohere-transcribe-03-2026');
+    // for an unsupported language, sense-voice drops out → cohere leads (supports de)
     expect(compatibleNativeAsr('de').map((m) => m.id)).not.toContain('sense-voice');
-    expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
+    expect(compatibleNativeAsr('de')[0].id).toBe('cohere-transcribe-03-2026');
 
     // auto-select keeps a still-compatible choice, else switches
     expect(nativeAsrForLanguage('zh', 'sense-voice')).toBe('sense-voice');
-    expect(nativeAsrForLanguage('de', 'sense-voice')).toBe('whisper-base');
+    expect(nativeAsrForLanguage('de', 'sense-voice')).toBe('cohere-transcribe-03-2026');
     expect(nativeAsrForLanguage('de', 'whisper-tiny')).toBe('whisper-tiny');
   });
 
   it('builds per-stage cards with the selectId/downloadId split', () => {
-    expect(nativeAsrCards('zh')[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice', recommended: true });
+    expect(nativeAsrCards('zh')[0]).toMatchObject({ selectId: 'cohere-transcribe-03-2026', downloadId: 'cohere-transcribe-03-2026', recommended: true });
     expect(nativeAsrCards('de').map((c) => c.selectId)).not.toContain('sense-voice');
 
     const tr = nativeTranslationCards('zh', 'en');
@@ -79,8 +79,8 @@ describe('nativeCatalog', () => {
     expect(lv3!.recommended).toBeFalsy();
     // whisper-base stays the recommended multilingual fallback (CPU-real-time)
     expect(NATIVE_ASR.find((m) => m.id === 'whisper-base')!.recommended).toBe(true);
-    // a non-sense-voice language still leads with whisper-base, not large-v3
-    expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
+    // a non-sense-voice language still leads with cohere (now recommended, sortOrder 0)
+    expect(compatibleNativeAsr('de')[0].id).toBe('cohere-transcribe-03-2026');
   });
 
   it('splits ASR into compatible / incompatible for a language', () => {
@@ -163,8 +163,8 @@ describe('nativeCatalog', () => {
     expect(compatibleNativeAsr('ja').map((m) => m.id)).not.toContain('granite-speech-4.1-2b-plus');
     // neither is recommended (sense-voice / whisper-base stay the recommended leaders)
     expect(NATIVE_ASR.find((m) => m.id === 'granite-speech-4.1-2b')!.recommended).toBeFalsy();
-    // a non-sense-voice language still leads with whisper-base, not granite
-    expect(compatibleNativeAsr('de')[0].id).toBe('whisper-base');
+    // a non-sense-voice language still leads with cohere (now recommended, sortOrder 0)
+    expect(compatibleNativeAsr('de')[0].id).toBe('cohere-transcribe-03-2026');
   });
 
   it('includes Qwen3-ASR 1.7B as a recommended GPU option with verbatim sidecar languages', () => {
@@ -172,10 +172,24 @@ describe('nativeCatalog', () => {
     expect(q).toBeTruthy();
     expect(q!.languages).toEqual(['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
     expect(q!.recommended).toBe(true);
-    expect(q!.sortOrder).toBe(7);
-    // recommended, but its high sortOrder keeps the established leaders first
-    expect(nativeAsrCards('zh')[0].selectId).toBe('sense-voice');
-    expect(nativeAsrCards('de')[0].selectId).toBe('whisper-base');
+    expect(q!.sortOrder).toBe(8);
+    // recommended, but its high sortOrder keeps Cohere first
+    expect(nativeAsrCards('zh')[0].selectId).toBe('cohere-transcribe-03-2026');
+    expect(nativeAsrCards('de')[0].selectId).toBe('cohere-transcribe-03-2026');
+  });
+
+  it('includes Cohere Transcribe as the first (recommended) ASR with its 14 languages', () => {
+    const c = NATIVE_ASR.find((m) => m.id === 'cohere-transcribe-03-2026');
+    expect(c).toBeTruthy();
+    expect(c!.languages).toEqual(['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko']);
+    expect(c!.recommended).toBe(true);
+    expect(c!.sortOrder).toBe(0);
+    // Cohere leads for every language it supports...
+    expect(nativeAsrCards('zh')[0].selectId).toBe('cohere-transcribe-03-2026');
+    expect(nativeAsrCards('ja')[0].selectId).toBe('cohere-transcribe-03-2026');
+    expect(nativeAsrCards('de')[0].selectId).toBe('cohere-transcribe-03-2026');
+    // ...but not for Cantonese (yue), which Cohere does not support → sense-voice still leads
+    expect(nativeAsrCards('yue')[0].selectId).toBe('sense-voice');
   });
 
   it('maps hardware tiers to display labels', () => {
