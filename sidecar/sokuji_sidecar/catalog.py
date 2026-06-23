@@ -11,7 +11,7 @@ SENSE_VOICE_REPO = os.environ.get(
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # "ctranslate2" | "sherpa"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
