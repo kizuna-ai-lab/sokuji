@@ -35,9 +35,12 @@ case "$(uname -s)" in
 esac
 # transformers→tokenizers + Granite/Qwen3 speech-LLMs; faster-whisper→ASR whisper backend;
 # sacremoses→Marian (opus-mt) tokenizer.
-# transformers pinned to the PR #43838 branch for native Qwen3-ASR support; swap to a
-# released 'transformers>=5.13' once https://github.com/huggingface/transformers/pull/43838 merges.
-"$PY" -m pip install -q "https://github.com/mbtariq82/transformers/archive/refs/heads/qwen3-asr.zip" sherpa-onnx faster-whisper sacremoses
+# transformers is pinned to an IMMUTABLE commit SHA on the PR #43838 fork (native Qwen3-ASR
+# support, not yet in any PyPI release). A SHA is content-addressed, so the fork's branch
+# cannot shift the installed code under us (unlike a mutable branch archive). Swap to a
+# released 'transformers>=5.13' from PyPI once huggingface/transformers PR #43838 merges.
+TRANSFORMERS_REF="git+https://github.com/mbtariq82/transformers@a2ec912647e42dee56eb89e64b0ec539ad9e7b65"
+"$PY" -m pip install -q "$TRANSFORMERS_REF" sherpa-onnx faster-whisper sacremoses
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
