@@ -368,6 +368,26 @@ def test_qwen3asr_gated_on_qwen3_asr_module(monkeypatch):
     assert "qwen3asr" in accel._installed()
 
 
+def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
+    """_installed() must never raise when find_spec raises for a sub-module.
+    The qwen3asr entry can trigger ModuleNotFoundError if `transformers` itself
+    is absent; the guarded _has_mod() helper must absorb the exception and keep
+    all other present backends in the returned frozenset."""
+    import importlib.util as iu
+    from sokuji_sidecar import accel
+    real = iu.find_spec
+
+    def raising_find_spec(name, *a, **k):
+        if name == "transformers.models.qwen3_asr":
+            raise ModuleNotFoundError("no module named transformers.models.qwen3_asr")
+        return real(name, *a, **k)
+
+    monkeypatch.setattr(accel.importlib.util, "find_spec", raising_find_spec)
+    result = accel._installed()          # must NOT raise
+    assert "qwen3asr" not in result      # the raising entry is excluded …
+    assert "transformers" in result      # … but other present backends survive
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
 def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):

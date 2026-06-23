@@ -18,10 +18,13 @@ class TranslateEngine:
             onnx_repo = model_id if "/" in model_id else f"Xenova/{model_id}"
             self._opus = OpusMtTranslator(onnx_repo)
             return int((time.time() - t0) * 1000)
+        # Not an Opus-MT model: clear any previously loaded Opus translator so
+        # translate() doesn't keep taking the Opus branch on the next session.
+        self._opus = None
         from transformers import AutoModelForCausalLM, AutoTokenizer  # lazy: torch pulled here
         mid = model_id or os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-        self._tok = AutoTokenizer.from_pretrained(mid)
-        self._model = AutoModelForCausalLM.from_pretrained(mid, torch_dtype="auto")
+        self._tok = AutoTokenizer.from_pretrained(mid, local_files_only=True)
+        self._model = AutoModelForCausalLM.from_pretrained(mid, torch_dtype="auto", local_files_only=True)
         return int((time.time() - t0) * 1000)
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
@@ -31,8 +34,9 @@ class TranslateEngine:
         sys_prompt = system_prompt or (
             f"Translate the following text from {self._src} to {self._tgt}. "
             "Output only the translation, no explanations.")
+        user_content = f"<transcript>{text}</transcript>" if wrap_transcript else text
         messages = [{"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": text}]
+                    {"role": "user", "content": user_content}]
         prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = self._tok(prompt, return_tensors="pt")
         out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)

@@ -74,6 +74,19 @@ def test_asr_flush_drains():
     assert any('"tail"' in s for s in conn._ws.sent)
 
 
+def test_downsample_empty_bytes_returns_empty_float32():
+    """Empty input must return an empty float32 array and must NOT raise."""
+    from sokuji_sidecar.asr_engine import _downsample_int16_to_f32_16k
+    out = _downsample_int16_to_f32_16k(b"")
+    assert out.dtype == np.float32 and len(out) == 0
+
+
+def test_downsample_empty_bytes_with_non_default_rate():
+    from sokuji_sidecar.asr_engine import _downsample_int16_to_f32_16k
+    out = _downsample_int16_to_f32_16k(b"", src_rate=48000)
+    assert out.dtype == np.float32 and len(out) == 0
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_ASR_MODEL"),
                     reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads sherpa-onnx model + VAD)")
 def test_real_engine_transcribes_test_wav():

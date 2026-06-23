@@ -48,6 +48,8 @@ def update_state_from_outputs(state: dict, result: dict, manifest: list[dict]) -
 
 
 def resample_to_24k(samples: np.ndarray, src_rate: int) -> np.ndarray:
+    if len(samples) == 0:
+        return np.zeros(0, dtype=np.float32)
     if src_rate == pb.SAMPLE_RATE:
         return samples.astype(np.float32, copy=False)
     ratio = pb.SAMPLE_RATE / src_rate

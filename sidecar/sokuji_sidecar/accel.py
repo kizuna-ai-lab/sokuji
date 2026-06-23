@@ -48,6 +48,15 @@ def _dml_adapters() -> tuple[str, ...]:
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
 
 
+def _has_mod(mod: str) -> bool:
+    """Return True iff `mod` is importable. Never raises — guards against
+    ModuleNotFoundError from find_spec() when a parent package is absent."""
+    try:
+        return importlib.util.find_spec(mod) is not None
+    except Exception:
+        return False
+
+
 def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
@@ -55,7 +64,7 @@ def _installed() -> frozenset:
             # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
             # then it is "not installed" so resolve()/models_catalog exclude it.
             "qwen3asr": "transformers.models.qwen3_asr"}
-    return frozenset(b for b, mod in mods.items() if importlib.util.find_spec(mod) is not None)
+    return frozenset(b for b, mod in mods.items() if _has_mod(mod))
 
 
 def _safe(fn, default):

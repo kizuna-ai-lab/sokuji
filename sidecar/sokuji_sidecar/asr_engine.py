@@ -13,6 +13,8 @@ VAD_URL = os.environ.get(
 
 
 def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
+    if not int16_bytes:
+        return np.zeros(0, dtype=np.float32)
     x = np.frombuffer(int16_bytes, dtype=np.int16).astype(np.float32) / 32768.0
     if src_rate == TARGET_RATE:
         return x

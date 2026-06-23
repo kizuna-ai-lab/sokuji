@@ -6,6 +6,17 @@ from sokuji_sidecar import pocket_bundle as pb
 from sokuji_sidecar.pocket_tokenizer import PocketTokenizer
 
 
+def test_resample_empty_input_returns_empty_float32():
+    """Empty array must return an empty float32 array and must NOT raise."""
+    out = pi.resample_to_24k(np.zeros(0, dtype=np.float32), src_rate=16000)
+    assert out.dtype == np.float32 and len(out) == 0
+
+
+def test_resample_empty_input_passthrough_rate():
+    out = pi.resample_to_24k(np.zeros(0, dtype=np.float32), src_rate=24000)
+    assert out.dtype == np.float32 and len(out) == 0
+
+
 def test_resample_passthrough_when_already_24k():
     x = np.arange(10, dtype=np.float32)
     assert np.array_equal(pi.resample_to_24k(x, 24000), x)
