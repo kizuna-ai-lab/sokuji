@@ -216,3 +216,94 @@ def test_transformers_load_failure_raises(monkeypatch):
     b = backends.make_backend("transformers")
     with pytest.raises(backends.BackendLoadError):
         b.load("bad/repo", "cuda", "bfloat16")
+
+
+def test_strip_qwen_prefix():
+    assert backends._strip_qwen_prefix("language Chinese<asr_text>foo bar") == "foo bar"
+    assert backends._strip_qwen_prefix("  plain text  ") == "plain text"
+
+
+def test_qwen3asr_is_gpu_only():
+    b = backends.make_backend("qwen3asr")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("bezzam/Qwen3-ASR-1.7B", "cpu", "bfloat16")
+
+
+def _install_fake_qwen3(monkeypatch, *, decoded="language Chinese<asr_text>hello world"):
+    cap = {}
+
+    class FakeFeat:
+        def to(self, dtype):
+            cap["feat_dtype"] = dtype
+            return self
+
+    class FakeIds:
+        shape = (1, 4)
+
+    class FakeBatch(dict):
+        def to(self, device):
+            cap["inp_device"] = device
+            return self
+
+    class FakeProc:
+        def apply_chat_template(self, conv, tokenize=False, add_generation_prompt=False):
+            cap["conv"] = conv
+            return "PROMPT"
+        def __call__(self, text, audio, sampling_rate, return_tensors):
+            cap["sr"] = sampling_rate
+            b = FakeBatch(); b["input_features"] = FakeFeat(); b["input_ids"] = FakeIds()
+            return b
+        def batch_decode(self, seq, skip_special_tokens):
+            cap["decoded_slice"] = seq
+            return [decoded]
+
+    class FakeGen:
+        def __getitem__(self, idx):
+            cap["slice"] = idx
+            return "NEW"
+
+    class FakeModel:
+        def eval(self):
+            return self
+        def generate(self, **kw):
+            cap["gen_kw"] = kw
+            return FakeGen()
+
+    class FakeAutoProcessor:
+        @staticmethod
+        def from_pretrained(repo):
+            cap["proc_repo"] = repo
+            return FakeProc()
+
+    class FakeQwen3:
+        @staticmethod
+        def from_pretrained(repo, dtype, device_map):
+            cap["repo"] = repo; cap["dtype"] = dtype; cap["device_map"] = device_map
+            return FakeModel()
+
+    tmod = types.ModuleType("transformers")
+    tmod.AutoProcessor = FakeAutoProcessor
+    tmod.Qwen3ASRForConditionalGeneration = FakeQwen3
+    monkeypatch.setitem(sys.modules, "transformers", tmod)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.bfloat16 = "BF16"; torch_mod.float16 = "F16"
+    torch_mod.inference_mode = contextlib.nullcontext
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None, is_available=lambda: True)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_qwen3asr_load_and_transcribe(monkeypatch):
+    cap = _install_fake_qwen3(monkeypatch)
+    b = backends.make_backend("qwen3asr")
+    b.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
+    assert b.is_loaded
+    assert cap["repo"] == "bezzam/Qwen3-ASR-1.7B"
+    assert cap["dtype"] == "BF16" and cap["device_map"] == "cuda"
+    r = b.transcribe(np.zeros(16000, np.float32), "en")
+    assert r.text == "hello world"                 # prefix stripped
+    assert cap["feat_dtype"] == "BF16"             # input_features cast to model dtype
+    assert cap["sr"] == 16000                       # TARGET_RATE
+    assert cap["slice"] == (slice(None), slice(4, None))   # decode only new tokens after the 4-token prompt
+    assert cap["gen_kw"]["do_sample"] is False

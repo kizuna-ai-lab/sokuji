@@ -158,3 +158,66 @@ class TransformersBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+_QWEN_PROMPT = "Transcribe the audio."
+
+
+def _strip_qwen_prefix(text):
+    """Qwen3-ASR emits a structured prefix like 'language Chinese<asr_text>...'."""
+    return text.split("<asr_text>", 1)[1].strip() if "<asr_text>" in text else text.strip()
+
+
+@register_backend
+class Qwen3AsrBackend:
+    """Qwen3-ASR speech-LLM via native transformers (Qwen3ASRForConditionalGeneration).
+    model_ref is the HF repo; GPU-tier (bf16). Requires transformers with the qwen3_asr
+    model (5.13.x+); on older transformers load() fails and the resolver excludes it."""
+    NAME = "qwen3asr"
+
+    def __init__(self):
+        self._model = None
+        self._proc = None
+        self._device = "cpu"
+        self._dtype = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._proc = None
+        if device == "cpu":
+            raise BackendLoadError("qwen3asr is GPU-only")
+        try:
+            import torch
+            from transformers import Qwen3ASRForConditionalGeneration, AutoProcessor
+            self._dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
+            self._proc = AutoProcessor.from_pretrained(model_ref)
+            self._model = Qwen3ASRForConditionalGeneration.from_pretrained(
+                model_ref, dtype=self._dtype, device_map=device).eval()
+            self._device = device
+        except Exception as e:  # missing qwen3_asr model, no CUDA, OOM → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        import torch
+        conv = [{"role": "user", "content": [{"type": "audio"}, {"type": "text", "text": _QWEN_PROMPT}]}]
+        text = self._proc.apply_chat_template(conv, tokenize=False, add_generation_prompt=True)
+        inp = self._proc(text=text, audio=samples, sampling_rate=TARGET_RATE, return_tensors="pt").to(self._device)
+        if "input_features" in inp:  # quirk: features are float32, model is bf16
+            inp["input_features"] = inp["input_features"].to(self._dtype)
+        with torch.inference_mode():
+            out = self._model.generate(**inp, max_new_tokens=256, do_sample=False)
+        decoded = self._proc.batch_decode(out[:, inp["input_ids"].shape[-1]:], skip_special_tokens=True)[0]
+        return AsrResult(_strip_qwen_prefix(decoded), language)
+
+    def unload(self) -> None:
+        self._model = None
+        self._proc = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
