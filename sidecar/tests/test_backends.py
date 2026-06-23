@@ -1,10 +1,27 @@
 import contextlib
+import os
 import sys
+import time
 import types
 
 import numpy as np
 import pytest
 from sokuji_sidecar import backends
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads bezzam/Qwen3-ASR-1.7B; needs CUDA + the branch transformers)")
+def test_qwen3asr_real_gpu_smoke():
+    b = backends.make_backend("qwen3asr")
+    b.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
+    assert b.is_loaded
+    clip = np.zeros(16000 * 3, np.float32)   # 3 s silence — exercises the full path
+    t0 = time.perf_counter()
+    r = b.transcribe(clip, "en")
+    rtf = (time.perf_counter() - t0) / 3.0
+    assert isinstance(r.text, str)           # may be empty for silence; must not raise
+    print(f"qwen3-asr-1.7b RTF={rtf:.4f}")
+    b.unload()
 
 
 def test_make_backend_unknown_raises():
