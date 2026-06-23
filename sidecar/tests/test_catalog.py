@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr"}
 
 
 def test_system_has_a_cpu_floor():
@@ -39,3 +39,15 @@ def test_sense_voice_uses_sherpa_whisper_uses_ctranslate2():
 def test_granite_language_regression():
     assert catalog.asr_model("granite-speech-4.1-2b").languages == ("en", "fr", "de", "es", "pt", "ja")
     assert catalog.asr_model("granite-speech-4.1-2b-plus").languages == ("en", "fr", "de", "es", "pt")
+
+
+def test_qwen3_asr_row():
+    m = catalog.asr_model("qwen3-asr-1.7b")
+    assert m is not None
+    assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
+                           "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
+    assert m.recommended is False        # Phase 1: not selectable/recommended yet
+    assert m.sort_order == 7
+    d = m.deployments[0]
+    assert (d.backend, d.tier, d.compute_type, d.artifact) == \
+        ("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B")

@@ -336,6 +336,18 @@ def test_granite_gated_off_without_transformers_installed():
                                        installed=frozenset({"ctranslate2"})))
 
 
+def test_qwen3asr_model_unavailable_without_runtime(monkeypatch):
+    from sokuji_sidecar import accel, catalog
+    # a GPU machine, but qwen3asr backend not installed (transformers lacks qwen3_asr)
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),
+                      fingerprint="testfp")
+    plans = accel.resolve_deployments(catalog.asr_model("qwen3-asr-1.7b"), m)
+    assert plans == []     # gated off: no usable deployment
+
+
 def test_qwen3asr_gated_on_qwen3_asr_module(monkeypatch):
     import importlib.util as iu
     from sokuji_sidecar import accel

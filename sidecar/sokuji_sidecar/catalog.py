@@ -54,6 +54,11 @@ ASR_MODELS: list[AsrModel] = [
     AsrModel("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)", ("en", "fr", "de", "es", "pt"),
              (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b-plus", 1.0),),
              sort_order=6),
+    AsrModel("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
+             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
+              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
+             (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
+             recommended=False, sort_order=7),
 ]
 
 
