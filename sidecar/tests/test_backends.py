@@ -594,3 +594,34 @@ def test_voxtral_realtime_load_failure_raises(monkeypatch):
     b = backends.make_backend("voxtral_realtime")
     with pytest.raises(backends.BackendLoadError):
         b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads mistralai/Voxtral-Mini-4B-Realtime-2602 ~8.9GB; needs CUDA + mistral-common[audio])")
+def test_voxtral_realtime_real_gpu_smoke():
+    # Real flow: manager downloads first (HF-format only, skipping the consolidated dup),
+    # backend loads from cache via the snapshot-dir offline path.
+    import wave
+    from huggingface_hub import snapshot_download
+    snapshot_download("mistralai/Voxtral-Mini-4B-Realtime-2602",
+                      ignore_patterns=["consolidated.safetensors", "*.gitattributes"])
+    b = backends.make_backend("voxtral_realtime")
+    b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
+    assert b.is_loaded
+    # real English speech (sense-voice test clip) → a non-empty transcript
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    w = wave.open(f"{d}/test_wavs/en.wav", "rb")
+    audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    t0 = time.perf_counter()
+    r = b.transcribe(audio, "en")
+    rtf = (time.perf_counter() - t0) / (len(audio) / 16000.0)
+    assert isinstance(r.text, str) and r.text.strip(), f"empty transcript on real speech: {r.text!r}"
+    print(f"voxtral-mini-4b-realtime RTF={rtf:.4f}")
+    b.unload()
+    # coexistence regression: Cohere still loads after Voxtral unload + empty_cache
+    import torch
+    torch.cuda.empty_cache()
+    c = backends.make_backend("cohere_transformers")
+    c.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
+    assert c.is_loaded
+    c.unload()
