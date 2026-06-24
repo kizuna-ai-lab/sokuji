@@ -606,6 +606,36 @@ def test_streaming_end_to_end_real_gpu():
     eng.close()
 
 
+def test_always_stream_aborted_self_heals(monkeypatch):
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+    opened = {"n": 0}
+
+    class _AbortedStream:
+        aborted = True                     # generate died
+        def feed(self, samples): pass
+        def drain(self): return []
+        def abort(self): pass
+        def end(self): return ""
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _AbortedStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _AbortedStream())})()
+    eng._pending = ""; eng._utt_text = "partial words"
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0
+    eng._silence_samples = 0; eng._stream_speech_samples = 0
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False))
+
+    sent = []
+    async def send(m): sent.append(m)
+    asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
+    results = [m for m in sent if m["type"] == "result"]
+    assert results and results[-1]["text"] == "partial words"   # pending flushed on self-heal
+    assert opened["n"] == 1                                      # stream restarted
+
+
 def test_backpressure_degrades_to_per_utterance(monkeypatch):
     import asyncio
     from sokuji_sidecar.asr_engine import AsrEngine

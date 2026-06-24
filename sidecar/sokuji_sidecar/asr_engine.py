@@ -234,7 +234,9 @@ class AsrEngine:
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         events = self._vad_events(samples)
         if "start" in events:
-            # Close any leftover stream (e.g. from always-stream init or prior utterance).
+            # Defensive: in practice _stream is already None here (an "end" precedes every
+            # "start", and degrade nulls it) — abort + reopen guards against a stale stream
+            # from any source.
             if self._stream is not None:
                 try:
                     self._stream.abort()
@@ -345,6 +347,7 @@ class AsrEngine:
             for s in sentences:
                 await send(self._result_event(s))
             self._pending = remainder
+            # _utt_text is _pending stripped for the partial display + flush; _pending keeps the raw text for split_sentences.
             self._utt_text = remainder.strip()
             await send({"type": "partial", "text": self._utt_text})
         if getattr(self._stream, "aborted", False):      # generate died -> self-heal: flush + restart
