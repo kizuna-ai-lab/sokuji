@@ -80,10 +80,13 @@ def model_status(model_id):
             # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
             # it can't know the repo's full file list, so an interrupted download (e.g. a session
             # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
-            # leaves a '*.incomplete' file in blobs/ — treat its presence as not-ready.
+            # leaves a '<sha>.<etag>.incomplete' in blobs/. But a *stale* leftover can coexist with
+            # the finalized '<sha>' blob (a later resume re-fetched under a different temp name), so
+            # only treat it as not-ready when the finalized blob is actually missing.
             blobs = os.path.join(HF_HUB_CACHE, f"models--{repo.replace('/', '--')}", "blobs")
-            if glob.glob(os.path.join(blobs, "*.incomplete")):
-                return "absent"
+            for inc in glob.glob(os.path.join(blobs, "*.incomplete")):
+                if not os.path.exists(os.path.join(blobs, os.path.basename(inc).split(".")[0])):
+                    return "absent"
         for _url in specs["urls"]:
             if not os.path.exists(_vad_cache_path()):
                 return "absent"

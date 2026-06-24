@@ -157,8 +157,8 @@ def test_model_cancel_stops_download_at_file_boundary(monkeypatch):
 
 
 def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
-    """A partial/interrupted download (a *.incomplete blob) must read as 'absent',
-    not 'ready' — snapshot_download(local_files_only) alone is fooled by partials."""
+    """Interrupted download (.incomplete with no finalized blob) → 'absent', but a
+    stale .incomplete alongside its finalized blob must still read 'ready'."""
     import huggingface_hub, huggingface_hub.constants
     from sokuji_sidecar import native_models
     repo = native_models.download_specs("cohere-transcribe-03-2026")["repos"][0]
@@ -168,5 +168,9 @@ def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
     monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **k: str(tmp_path))
     (blobs / "abc123").write_text("a finalized blob")
     assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
-    (blobs / "def456.incomplete").write_bytes(b"half-fetched safetensors")
+    # interrupted: '<sha>.<etag>.incomplete' with its finalized '<sha>' blob MISSING
+    (blobs / "def456.a1b2c3.incomplete").write_bytes(b"half-fetched safetensors")
     assert native_models.model_status("cohere-transcribe-03-2026") == "absent"
+    # stale leftover: the finalized blob has since landed → ignore the orphan .incomplete
+    (blobs / "def456").write_text("now finalized")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
