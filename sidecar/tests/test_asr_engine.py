@@ -607,9 +607,14 @@ def test_streaming_end_to_end_real_gpu():
     results = [m["text"] for m in sent if m["type"] == "result"]
     full = " ".join(results).lower()
     assert results, "no finals produced"
-    assert "ask" in full and "country" in full, f"unexpected: {results!r}"   # first word present, no leading loss
-    print(f"always-stream e2e: {len([m for m in sent if m['type']=='partial'])} partials, "
-          f"{len(results)} finals, restarts(open_stream calls)={opens['n']}")
+    # tail-hold fix: the first sentence ends with "country" and it must be IN a final,
+    # not dropped/leaked onto the next utterance.
+    assert "ask" in full and "country" in full, f"unexpected: {results!r}"
+    # endpoint segmentation: the mid-clip pause should cut at least one final mid-clip,
+    # so >1 final (not one clump) and >1 stream opened (each utterance ended at its pause).
+    print(f"pause-seg e2e: {len([m for m in sent if m['type']=='partial'])} partials, "
+          f"{len(results)} finals, stream opens={opens['n']}, finals={results!r}")
+    assert len(results) >= 2, f"expected the pause to segment into >=2 finals, got {results!r}"
     eng.close()
 
 
