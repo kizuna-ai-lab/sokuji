@@ -2,9 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
+const LOCAL_NATIVE_CONFIG: any = {
+  provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+  asrModelId: 'sense-voice', translationModelId: 'opus-mt-es-en',
+};
+
 function mocks() {
   const asr: any = {
-    onResult: null, onSpeechStart: null, onStatus: null, onError: null,
+    onResult: null, onSpeechStart: null, onStatus: null, onError: null, onPartialResult: null,
     init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }), feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
   };
   const translate: any = {
@@ -90,6 +95,23 @@ describe('LocalNativeClient', () => {
     const buf = new Int16Array(10);
     c.appendInputAudio(buf);
     expect(m.asr.feedAudio).toHaveBeenCalledWith(buf, 24000);
+  });
+
+  it('renders partials as one in-progress item and runs the job only on the final', async () => {
+    const translate = { init: async () => {}, translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const client = new LocalNativeClient({ asr, translate });
+    const items: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: ({ item }) => items.push({ id: item.id, status: item.status, text: item.formatted?.transcript }), onOpen() {}, onRealtimeEvent() {} } as any);
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    asr.onPartialResult('he');            // partial 1
+    asr.onPartialResult('hello');         // partial 2 (same item updates)
+    expect(translate.translate).not.toHaveBeenCalled();
+    asr.onResult({ text: 'hello world' }); // final
+    await new Promise((r) => setTimeout(r, 0));
+    expect(translate.translate).toHaveBeenCalledTimes(1);
+    const userItems = items.filter((i) => i.id.startsWith('user'));
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1);  // one user item across partials+final
   });
 });
 

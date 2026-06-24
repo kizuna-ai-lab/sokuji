@@ -32,6 +32,7 @@ export class LocalNativeClient implements IClient {
   private ttsEnabled = false;
   private ttsSpeed = 1.0;
   private queue: Promise<void> = Promise.resolve();
+  private partialUserItem: ConversationItem | null = null;
 
   constructor(deps: Deps = {}) {
     this.asr = deps.asr ?? new NativeAsrClient();
@@ -43,6 +44,7 @@ export class LocalNativeClient implements IClient {
     if (!isLocalNativeSessionConfig(config)) throw new Error('LocalNativeClient requires a local_native config');
     this.cfg = config;
     this.asr.onResult = (r: any) => this.onAsrResult(r);
+    this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
     this.emitEvent('local.native.init.start', 'client', {
@@ -87,14 +89,36 @@ export class LocalNativeClient implements IClient {
     this.handlers.onRealtimeEvent?.({ source, event: { type, data } } as any);
   }
 
+  private onAsrPartial(text: string): void {
+    if (!text) return;
+    if (!this.partialUserItem) {
+      this.partialUserItem = {
+        id: this.nextId('user'), role: 'user', type: 'message', status: 'in_progress',
+        createdAt: Date.now(), formatted: { transcript: text },
+      };
+      this.items.push(this.partialUserItem);
+      this.emit(this.partialUserItem);
+    } else {
+      this.partialUserItem.formatted!.transcript = text;
+      this.emit(this.partialUserItem, { transcript: text });
+    }
+  }
+
   private onAsrResult(r: { text: string }): void {
     if (!r.text?.trim()) return;
     this.emitEvent('local.native.asr.result', 'server', { text: r.text });
-    const userItem: ConversationItem = {
-      id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
-      createdAt: Date.now(), formatted: { transcript: r.text },
-    };
-    this.items.push(userItem);
+    let userItem = this.partialUserItem;
+    if (userItem) {
+      userItem.status = 'completed';
+      userItem.formatted!.transcript = r.text;
+      this.partialUserItem = null;
+    } else {
+      userItem = {
+        id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
+        createdAt: Date.now(), formatted: { transcript: r.text },
+      };
+      this.items.push(userItem);
+    }
     this.emit(userItem);
     // serialize pipeline jobs so text/audio stay ordered
     this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => {
@@ -130,13 +154,14 @@ export class LocalNativeClient implements IClient {
   cancelResponse(): void {}
   async disconnect(): Promise<void> {
     this.connected = false;
+    this.partialUserItem = null;
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
     this.asr.dispose?.(); this.translate.dispose?.(); this.tts.dispose?.();
     this.handlers.onClose?.({});
   }
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
-  reset(): void { this.items = []; }
+  reset(): void { this.items = []; this.partialUserItem = null; }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
   clearConversationItems(): void { this.items = []; }
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
