@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
 import type { NativeModelState, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
-import { autoSelectNative, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
 
@@ -9,6 +9,7 @@ interface NativeModelStore {
   statuses: Record<string, NativeModelStatus>;
   progress: Record<string, { downloaded: number; total: number }>;
   sizes: Record<string, number>;
+  errors: Record<string, string>;
   /** Remembered selection per language pair, keyed `${src}→${tgt}` (mirrors modelStore.modelPreferences). */
   modelPreferences: Record<string, NativeSelection>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
@@ -62,6 +63,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   statuses: {},
   progress: {},
   sizes: {},
+  errors: {},
   catalog: {},
   modelPreferences: {},
   asrLoading: false,
@@ -100,15 +102,22 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     set((s) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
+      errors: { ...s.errors, [model]: '' },
     }));
     try {
       const status = await client.download(model, (p) =>
         set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })));
       // 'cancelled' (or a partial fetch) leaves the model incomplete → absent.
-      set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' } }));
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' },
+        errors: { ...s.errors, [model]: '' },
+      }));
       if (status === 'ready') await revalidateNativeProvider();
-    } catch {
-      set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
+    } catch (err) {
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: 'absent' },
+        errors: { ...s.errors, [model]: err instanceof Error ? err.message : String(err) },
+      }));
     }
   },
 
@@ -120,12 +129,16 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   deleteModel: async (model) => {
+    // Optimistic: hide the model immediately. The sidecar delete is a WS round-trip
+    // + an rm of a multi-GB dir, so awaiting it first would freeze the card on
+    // "Downloaded" for a noticeable beat (mirrors download()'s optimistic 'downloading').
+    set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     try {
       await client.delete(model);
     } catch {
-      // sidecar refused/unavailable — fall through and reflect best-effort state
+      // sidecar refused/unavailable — keep the best-effort 'absent' (the model is
+      // hidden either way; readiness re-checks against the real cache on next refresh).
     }
-    set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     await revalidateNativeProvider();
   },
 
@@ -139,8 +152,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   autoSelect: (src, tgt, current) => {
     const statuses = get().statuses;
+    const catalog = get().catalog;
     const isDownloaded = (id: string | null) => id === null || statuses[id] === 'ready';
-    const updates = autoSelectNative(src, tgt, current, isDownloaded, get().recallModels(src, tgt));
+    // A GPU-only model on a CPU-only machine is hardware-gated — never auto-select it
+    // (it would pass readiness but fail at Start with NoUsablePlan).
+    const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
+    const updates = autoSelectNative(src, tgt, current, isDownloaded, get().recallModels(src, tgt), isHardwareGated);
     const final: NativeSelection = {
       asrModel: updates?.asrModel ?? current.asrModel,
       translationModel: updates?.translationModel ?? current.translationModel,
@@ -158,6 +175,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
+export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);

@@ -1,6 +1,7 @@
 import asyncio, json, os
 import pytest
 from sokuji_sidecar import native_models as nm
+from sokuji_sidecar import native_models
 from sokuji_sidecar import server
 
 
@@ -18,6 +19,13 @@ def test_download_specs_mapping():
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
     # Qwen3-ASR must map to the bezzam/ HF repo, not the bare catalog id.
     assert nm.download_specs('qwen3-asr-1.7b')['repos'] == ['bezzam/Qwen3-ASR-1.7B']
+    # Cohere Transcribe maps to the non-gated AEmotionStudio mirror (byte-identical to CohereLabs).
+    assert nm.download_specs('cohere-transcribe-03-2026')['repos'] == ['AEmotionStudio/cohere-transcribe-03-2026-models']
+
+
+def test_download_specs_cohere():
+    assert native_models.download_specs("cohere-transcribe-03-2026") == \
+        {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
@@ -146,3 +154,23 @@ def test_model_cancel_stops_download_at_file_boundary(monkeypatch):
     sent = [json.loads(s) for s in asyncio.run(scenario())]
     assert any(m['type'] == 'model_progress' for m in sent)
     assert sent[-1] == {'type': 'model_download_done', 'model': 'm', 'status': 'cancelled'}
+
+
+def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
+    """Interrupted download (.incomplete with no finalized blob) → 'absent', but a
+    stale .incomplete alongside its finalized blob must still read 'ready'."""
+    import huggingface_hub, huggingface_hub.constants
+    from sokuji_sidecar import native_models
+    repo = native_models.download_specs("cohere-transcribe-03-2026")["repos"][0]
+    blobs = tmp_path / f"models--{repo.replace('/', '--')}" / "blobs"
+    blobs.mkdir(parents=True)
+    monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **k: str(tmp_path))
+    (blobs / "abc123").write_text("a finalized blob")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    # interrupted: '<sha>.<etag>.incomplete' with its finalized '<sha>' blob MISSING
+    (blobs / "def456.a1b2c3.incomplete").write_bytes(b"half-fetched safetensors")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "absent"
+    # stale leftover: the finalized blob has since landed → ignore the orphan .incomplete
+    (blobs / "def456").write_text("now finalized")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"

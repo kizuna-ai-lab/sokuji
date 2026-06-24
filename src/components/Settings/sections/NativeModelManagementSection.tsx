@@ -22,6 +22,7 @@ import {
   useNativeModelStatuses,
   useNativeModelProgress,
   useNativeModelSizes,
+  useNativeModelErrors,
   useNativeAsrResolved,
 } from '../../../stores/nativeModelStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
@@ -41,6 +42,7 @@ const NativeModelCard: React.FC<{
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
   const sizes = useNativeModelSizes();
+  const errors = useNativeModelErrors();
   const download = useNativeModelStore((s) => s.download);
   const cancelDownload = useNativeModelStore((s) => s.cancelDownload);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -54,6 +56,7 @@ const NativeModelCard: React.FC<{
 
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
+  const err = noDownload ? undefined : errors[spec.downloadId as string];
 
   const statusClass = noDownload ? 'model-card--none'
     : status === 'ready' ? 'model-card--downloaded'
@@ -64,6 +67,7 @@ const NativeModelCard: React.FC<{
     selected && 'model-card--selected',
     (incompatible || hwGated) && 'model-card--incompatible',
     disabled && 'model-card--disabled',
+    err && status !== 'downloading' && 'model-card--error',
   ].filter(Boolean).join(' ');
 
   const handleClick = () => { if (!disabled && !hwGated && ready) onSelect(); };
@@ -88,20 +92,23 @@ const NativeModelCard: React.FC<{
                 {(spec.languages || []).map((l) => (<span key={l} className="model-card__lang-tag">{l}</span>))}
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
-              {activeTier && (() => {
-                const tl = tierLabel(activeTier.tier);
+              {(() => {
+                // One tier tag: for the model that just ran, show the RESOLVED device + measured
+                // rtf (ground truth — also catches a GPU→CPU fallback); otherwise the catalog's
+                // capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
+                const showResolved = !!resolved && resolved.model === spec.selectId;
+                const tier = showResolved
+                  ? (resolved!.device === 'cpu' ? 'cpu' : `gpu-${resolved!.device}`)
+                  : activeTier?.tier;
+                if (!tier) return null;
+                const tl = tierLabel(tier);
+                const rtf = showResolved && resolved!.rtf !== undefined ? ` · ${formatRtf(resolved!.rtf)}` : '';
                 return (
                   <span className="model-card__lang-tag">
-                    {tl.accel && <Zap size={10} />}{tl.label}
+                    {tl.accel && <Zap size={10} />}{tl.label}{rtf}
                   </span>
                 );
               })()}
-              {resolved && resolved.model === spec.selectId && (
-                <span className="model-card__lang-tag">
-                  <Zap size={10} />{tierLabel(resolved.device === 'cpu' ? 'cpu' : `gpu-${resolved.device}`).label}
-                  {resolved.rtf !== undefined ? ` · ${formatRtf(resolved.rtf)}` : ''}
-                </span>
-              )}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
               {spec.recommended && (
                 <span className="model-card__recommended-badge">
@@ -151,14 +158,17 @@ const NativeModelCard: React.FC<{
               <button
                 className="model-card__btn model-card__btn--download"
                 onClick={(e) => { e.stopPropagation(); download(spec.downloadId as string); }}
-                disabled={disabled}
-                title={t('models.download', 'Download')}
+                disabled={disabled || hwGated}
+                title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
               >
                 <Download size={14} />
                 <span>{t('models.download', 'Download')}</span>
               </button>
             )}
           </div>
+          {err && status !== 'downloading' && (
+            <div className="model-card__error-message">{err}</div>
+          )}
         </div>
       </div>
     </div>

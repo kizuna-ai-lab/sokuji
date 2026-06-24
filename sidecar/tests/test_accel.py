@@ -388,6 +388,42 @@ def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
     assert "transformers" in result      # … but other present backends survive
 
 
+def test_cohereasr_resolves_gpu_on_nvidia_with_runtime():
+    from sokuji_sidecar import accel, catalog
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"cohere_transformers", "transformers"}),
+                      fingerprint="testfp")
+    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
+    assert [p.device for p in plans] == ["cuda"]
+    assert plans[0].backend == "cohere_transformers" and plans[0].compute_type == "bfloat16"
+
+
+def test_cohereasr_model_unavailable_without_runtime():
+    from sokuji_sidecar import accel, catalog
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),  # no cohereasr
+                      fingerprint="testfp")
+    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
+    assert plans == []     # gated off: no usable deployment
+
+
+def test_cohereasr_gated_on_cohere_asr_module(monkeypatch):
+    import importlib.util as iu
+    from sokuji_sidecar import accel
+    real = iu.find_spec
+
+    def fake_find_spec(name, *a, **k):
+        if name == "transformers.models.cohere_asr":
+            return None
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
+    assert "cohere_transformers" not in accel._installed()
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
 def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):

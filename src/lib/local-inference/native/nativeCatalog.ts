@@ -20,14 +20,15 @@ export function supportsLanguage(opt: { languages?: string[] }, lang: string): b
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
-  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 0 },
-  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 1 },
-  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 2 },
-  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 3 },
-  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 4 },
-  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 5 },
-  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 6 },
-  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 7 },
+  { id: 'cohere-transcribe-03-2026', label: 'Cohere Transcribe', languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'], recommended: true, sortOrder: 0 },
+  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 1 },
+  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 2 },
+  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 3 },
+  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 4 },
+  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 5 },
+  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 6 },
+  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 7 },
+  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 8 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
@@ -266,6 +267,7 @@ export function autoSelectNative(
   current: NativeSelection,
   isDownloaded: (downloadId: string | null) => boolean,
   recalled?: Partial<NativeSelection> | null,
+  isHardwareGated: (downloadId: string | null) => boolean = () => false,
 ): Partial<NativeSelection> | null {
   let { asrModel, translationModel, ttsModel } = current;
   const input = { asrModel, translationModel, ttsModel };
@@ -279,11 +281,15 @@ export function autoSelectNative(
 
   const updates: Partial<NativeSelection> = {};
 
-  // 2+3. ASR — compatible with src (cards are pre-filtered) and downloaded
+  // 2+3. ASR — compatible with src (cards are pre-filtered), downloaded, AND runnable
+  // on this machine. A GPU-only model on a CPU-only box is hardware-gated; auto-selecting
+  // it passes readiness but then resolves to NoUsablePlan and fails at Start, so skip it.
   const asrCards = nativeAsrCards(src);
+  const asrUsable = (c: { downloadId: string | null }) =>
+    isDownloaded(c.downloadId) && !isHardwareGated(c.downloadId);
   const curAsr = asrCards.find((c) => c.selectId === asrModel);
-  if (!(curAsr && isDownloaded(curAsr.downloadId))) {
-    const best = asrCards.find((c) => isDownloaded(c.downloadId));
+  if (!(curAsr && asrUsable(curAsr))) {
+    const best = asrCards.find(asrUsable);
     const newId = best?.selectId ?? '';
     if (newId !== asrModel) updates.asrModel = newId;
   }

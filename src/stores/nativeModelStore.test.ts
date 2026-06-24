@@ -18,6 +18,8 @@ class FakeWS {
         { id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
           tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
       ] }));
+    if (msg.type === 'model_delete') queueMicrotask(() =>
+      this.emit({ type: 'model_delete_result', id: msg.id, freed: 0 }));
   }
   close() {}
 }
@@ -58,6 +60,22 @@ describe('nativeModelStore.refreshCatalog', () => {
     const cat = useNativeModelStore.getState().catalog;
     expect(cat['sense-voice']).toMatchObject({ recommended: true });
     expect(cat['sense-voice'].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
+  });
+});
+
+describe('nativeModelStore.deleteModel', () => {
+  it('hides the model optimistically — status flips to absent before the sidecar delete resolves', () => {
+    useNativeModelStore.setState({ statuses: { m: 'ready' } });
+    // Fire and DO NOT await: the optimistic flip must be visible synchronously,
+    // before the (slow) sidecar WS round-trip + disk rm completes.
+    void useNativeModelStore.getState().deleteModel('m');
+    expect(useNativeModelStore.getState().statuses['m']).toBe('absent');
+  });
+
+  it('still ends absent after the delete round-trip completes', async () => {
+    useNativeModelStore.setState({ statuses: { m: 'ready' } });
+    await useNativeModelStore.getState().deleteModel('m');
+    expect(useNativeModelStore.getState().statuses['m']).toBe('absent');
   });
 });
 

@@ -344,3 +344,131 @@ def test_qwen3asr_load_and_transcribe(monkeypatch):
     assert cap["sr"] == 16000                       # TARGET_RATE
     assert cap["slice"] == (slice(None), slice(4, None))   # decode only new tokens after the 4-token prompt
     assert cap["gen_kw"]["do_sample"] is False
+
+
+def test_cohereasr_is_gpu_only():
+    b = backends.make_backend("cohere_transformers")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cpu", "bfloat16")
+
+
+def _install_fake_cohere(monkeypatch, *, decoded="hello world"):
+    cap = {}
+
+    class FakeFeat:
+        def to(self, dtype):
+            cap["feat_dtype"] = dtype
+            return self
+
+    class FakeBatch(dict):
+        def to(self, device):
+            cap["inp_device"] = device
+            return self
+
+    class FakeProc:
+        # Cohere processor: positional audio + sampling_rate + language (no chat template)
+        def __call__(self, samples, sampling_rate, return_tensors, language):
+            cap["sr"] = sampling_rate
+            cap["language"] = language
+            b = FakeBatch()
+            b["input_features"] = FakeFeat()
+            return b
+        def batch_decode(self, seq, skip_special_tokens):
+            cap["decoded_seq"] = seq
+            return [decoded]
+
+    class FakeModel:
+        def to(self, device):
+            cap["model_device"] = device
+            return self
+        def eval(self):
+            return self
+        def generate(self, **kw):
+            cap["gen_kw"] = kw
+            return "OUT"
+
+    class FakeAutoProcessor:
+        @staticmethod
+        def from_pretrained(repo, local_files_only=False):
+            cap["proc_repo"] = repo
+            cap["proc_local_files_only"] = local_files_only
+            return FakeProc()
+
+    class FakeCohere:
+        @staticmethod
+        def from_pretrained(repo, dtype, local_files_only=False):
+            cap["repo"] = repo
+            cap["dtype"] = dtype
+            cap["model_local_files_only"] = local_files_only
+            return FakeModel()
+
+    tmod = types.ModuleType("transformers")
+    tmod.AutoProcessor = FakeAutoProcessor
+    tmod.CohereAsrForConditionalGeneration = FakeCohere
+    monkeypatch.setitem(sys.modules, "transformers", tmod)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.bfloat16 = "BF16"
+    torch_mod.float16 = "F16"
+    torch_mod.inference_mode = contextlib.nullcontext
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None, is_available=lambda: True)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_cohereasr_load_and_transcribe(monkeypatch):
+    cap = _install_fake_cohere(monkeypatch)
+    b = backends.make_backend("cohere_transformers")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
+    assert b.is_loaded
+    assert cap["repo"] == "AEmotionStudio/cohere-transcribe-03-2026-models"
+    assert cap["dtype"] == "BF16" and cap["model_device"] == "cuda"
+    assert cap["proc_local_files_only"] is True
+    assert cap["model_local_files_only"] is True
+    r = b.transcribe(np.zeros(16000, np.float32), "ja")
+    assert r.text == "hello world"            # decoded + stripped, no prefix logic
+    assert cap["feat_dtype"] == "BF16"          # input_features cast to model dtype
+    assert cap["sr"] == 16000                   # TARGET_RATE
+    assert cap["language"] == "ja"              # explicit language passed through
+    assert cap["gen_kw"]["do_sample"] is False
+    b.unload()
+    assert not b.is_loaded
+
+
+def test_cohereasr_defaults_missing_language_to_english(monkeypatch):
+    cap = _install_fake_cohere(monkeypatch)
+    b = backends.make_backend("cohere_transformers")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
+    b.transcribe(np.zeros(16000, np.float32), "")        # empty → en
+    assert cap["language"] == "en"
+    b.transcribe(np.zeros(16000, np.float32), "auto")    # stale 'auto' value → en
+    assert cap["language"] == "en"
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads AEmotionStudio/cohere-transcribe-03-2026-models ~4GB; needs CUDA)")
+def test_cohereasr_real_gpu_smoke():
+    # Real flow: manager downloads first, backend loads from cache.
+    from huggingface_hub import snapshot_download
+    snapshot_download("AEmotionStudio/cohere-transcribe-03-2026-models")
+    b = backends.make_backend("cohere_transformers")
+    b.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
+    assert b.is_loaded
+    clip = np.zeros(16000 * 3, np.float32)   # 3 s silence — exercises the full path
+    t0 = time.perf_counter()
+    r = b.transcribe(clip, "en")
+    rtf = (time.perf_counter() - t0) / 3.0
+    assert isinstance(r.text, str)           # may be empty for silence; must not raise
+    print(f"cohere-transcribe-03-2026 RTF={rtf:.4f}")
+    b.unload()
+    # coexistence regression: Granite + Qwen3 still load after Cohere unload + empty_cache
+    import torch
+    torch.cuda.empty_cache()
+    g = backends.make_backend("transformers")
+    g.load("ibm-granite/granite-speech-4.1-2b", "cuda", "bfloat16")
+    assert g.is_loaded
+    g.unload()
+    q = backends.make_backend("qwen3asr")
+    q.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
+    assert q.is_loaded
+    q.unload()

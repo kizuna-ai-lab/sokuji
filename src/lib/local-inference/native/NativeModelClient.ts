@@ -16,6 +16,7 @@ function electron(): ElectronInvoke {
 /** Manages native-model download/status against the sidecar (not session-bound). */
 export class NativeModelClient {
   private ws: WebSocket | null = null;
+  private connecting: Promise<void> | null = null;   // single-flight guard: concurrent connect() calls share one connection
   private nextId = 1;
   private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
   // In-flight downloads keyed by model — completion/progress is pushed (not
@@ -31,6 +32,16 @@ export class NativeModelClient {
 
   private async connect(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+    // Single-flight: while a connection is being established (the sidecar can take
+    // seconds to boot on first use), concurrent callers must await the SAME attempt
+    // rather than each opening their own socket — otherwise the duplicates race and
+    // an orphaned socket's onclose() rejects everyone's in-flight requests.
+    if (this.connecting) return this.connecting;
+    this.connecting = this._connect().finally(() => { this.connecting = null; });
+    return this.connecting;
+  }
+
+  private async _connect(): Promise<void> {
     const r = await electron().invoke('native-host:start');
     if (!r?.ok) throw new Error(r?.error || 'failed to start native host');
     await new Promise<void>((resolve, reject) => {
