@@ -321,6 +321,24 @@ def test_conn_close_frees_asr_model():
     assert closed["n"] == 1
 
 
+def test_close_aborts_open_streaming_session():
+    """A mid-utterance close() must end the open stream (not leak its threads)."""
+    from sokuji_sidecar.asr_engine import AsrEngine
+    import queue as _q
+    eng = AsrEngine()
+    aborted = {"called": False}
+    class _S:
+        def abort(self): aborted["called"] = True
+        def end(self): return ""
+    eng._stream = _S()
+    eng._audio_q = _q.Queue()
+    eng._backend = type("B", (), {"unload": lambda self: None})()
+    eng.close()
+    assert aborted["called"] is True          # the open stream was ended
+    assert eng._stream is None
+    assert eng._audio_q.get_nowait() is None   # run_stream gets the stop sentinel
+
+
 from sokuji_sidecar.asr_engine import AsrEngine
 
 

@@ -115,6 +115,21 @@ class VoxtralRealtimeStream:
                 out.append(v)
         return out
 
+    def abort(self):
+        """Stop the stream WITHOUT producing a final transcript (e.g. the session
+        closed mid-utterance). Set _ended so the input-features generator stops at its
+        next wait, let generate finish, join the threads briefly, and drop the heavy
+        refs so the model can be reclaimed. Idempotent."""
+        self._ended.set()
+        if self._gen_thread is not None:
+            self._gen_thread.join(timeout=5)
+            self._gen_thread = None
+        if self._reader_thread is not None:
+            self._reader_thread.join(timeout=2)
+            self._reader_thread = None
+        self._model = None
+        self._proc = None
+
     def end(self):
         """End-of-utterance: append right-pad to flush the tail, drain to completion,
         join the threads, return the full transcript."""
@@ -122,9 +137,6 @@ class VoxtralRealtimeStream:
             self._buf = np.concatenate([self._buf, np.zeros(self._right_pad, np.float32)])
         self._ended.set()
         if not self._started:        # utterance shorter than the first chunk → start now
-            with self._lock:
-                if len(self._buf) >= self._FIRST or len(self._buf) > 0:
-                    pass
             self._start()
         # drain until the reader signals completion (None sentinel)
         while True:

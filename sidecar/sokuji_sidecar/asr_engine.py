@@ -1,4 +1,7 @@
-import os, time
+import asyncio
+import os
+import queue
+import time
 import numpy as np
 
 TARGET_RATE = 16000
@@ -109,7 +112,23 @@ class AsrEngine:
 
     def close(self):
         """Free the loaded ASR model and its GPU memory. Idempotent — called at the start
-        of each init() and when a session connection closes, so VRAM never accumulates."""
+        of each init() and when a session connection closes, so VRAM never accumulates.
+        Also ends any open streaming session (its generate thread holds an independent
+        model reference that unload() alone cannot reclaim)."""
+        self._stop = True
+        stream = getattr(self, "_stream", None)
+        if stream is not None:
+            try:
+                stream.abort()
+            except Exception:
+                pass
+            self._stream = None
+        q = getattr(self, "_audio_q", None)   # unblock run_stream's queue.get promptly
+        if q is not None:
+            try:
+                q.put_nowait(None)
+            except Exception:
+                pass
         backend = self._backend
         self._backend = None
         if backend is not None:
@@ -182,11 +201,11 @@ class AsrEngine:
     async def run_stream(self, send):
         """The asyncio streaming loop (Approach A). Owns VAD endpointing, the stream
         session lifecycle, and pushes speech_start/partial/result via `send`."""
-        loop = __import__("asyncio").get_event_loop()
+        loop = asyncio.get_running_loop()
         while not self._stop:
             try:
                 data = await loop.run_in_executor(None, self._audio_q.get, True, 0.1)
-            except Exception:
+            except queue.Empty:
                 continue
             if data is None:
                 break
@@ -218,7 +237,7 @@ class AsrEngine:
     async def _finalize(self, send):
         import time as _time
         t0 = _time.time()
-        loop = __import__("asyncio").get_event_loop()
+        loop = asyncio.get_running_loop()
         final = await loop.run_in_executor(None, self._stream.end)
         dur_ms = int((self._sample_cursor - self._utt_start_sample) / TARGET_RATE * 1000)
         if final.strip():

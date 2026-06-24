@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 import types
@@ -87,9 +88,6 @@ def test_stream_feed_drain_end(monkeypatch):
     final = s.end()                       # flushes right-pad, joins the generate thread
     assert final.strip() == "hello world"
     assert s.aborted is False
-
-
-import os
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
