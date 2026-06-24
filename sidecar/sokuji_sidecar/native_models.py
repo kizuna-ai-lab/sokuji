@@ -69,12 +69,21 @@ def model_size(model_id):
 
 
 def model_status(model_id):
-    """'ready' if every repo + url for this model is cached locally, else 'absent'."""
+    """'ready' only if every repo + url is cached locally AND complete, else 'absent'."""
+    import glob
     from huggingface_hub import snapshot_download
+    from huggingface_hub.constants import HF_HUB_CACHE
     specs = download_specs(model_id)
     try:
         for repo in specs["repos"]:
             snapshot_download(repo_id=repo, local_files_only=True)
+            # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
+            # it can't know the repo's full file list, so an interrupted download (e.g. a session
+            # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
+            # leaves a '*.incomplete' file in blobs/ — treat its presence as not-ready.
+            blobs = os.path.join(HF_HUB_CACHE, f"models--{repo.replace('/', '--')}", "blobs")
+            if glob.glob(os.path.join(blobs, "*.incomplete")):
+                return "absent"
         for _url in specs["urls"]:
             if not os.path.exists(_vad_cache_path()):
                 return "absent"

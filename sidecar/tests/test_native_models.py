@@ -154,3 +154,19 @@ def test_model_cancel_stops_download_at_file_boundary(monkeypatch):
     sent = [json.loads(s) for s in asyncio.run(scenario())]
     assert any(m['type'] == 'model_progress' for m in sent)
     assert sent[-1] == {'type': 'model_download_done', 'model': 'm', 'status': 'cancelled'}
+
+
+def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
+    """A partial/interrupted download (a *.incomplete blob) must read as 'absent',
+    not 'ready' — snapshot_download(local_files_only) alone is fooled by partials."""
+    import huggingface_hub, huggingface_hub.constants
+    from sokuji_sidecar import native_models
+    repo = native_models.download_specs("cohere-transcribe-03-2026")["repos"][0]
+    blobs = tmp_path / f"models--{repo.replace('/', '--')}" / "blobs"
+    blobs.mkdir(parents=True)
+    monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **k: str(tmp_path))
+    (blobs / "abc123").write_text("a finalized blob")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    (blobs / "def456.incomplete").write_bytes(b"half-fetched safetensors")
+    assert native_models.model_status("cohere-transcribe-03-2026") == "absent"
