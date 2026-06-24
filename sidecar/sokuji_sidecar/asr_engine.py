@@ -354,6 +354,18 @@ class AsrEngine:
             await self._flush_and_restart(send)
         elif self._stream_speech_samples >= 4 * 60 * TARGET_RATE and not self._pending:
             await self._flush_and_restart(send)
+        lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up
+        if self._mode == "always_stream" and lag > 3.0:
+            if self._utt_text:
+                await send(self._result_event(self._utt_text))
+            try:
+                self._stream.abort()
+            except Exception:
+                pass
+            self._stream = None                               # per-utterance opens on next VAD start
+            self._mode = "per_utterance"
+            self._pending = ""
+            self._utt_text = ""
 
     def resolves_to_streaming(self, model_id, device):
         """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?

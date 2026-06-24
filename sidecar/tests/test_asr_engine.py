@@ -596,3 +596,33 @@ def test_streaming_end_to_end_real_gpu():
     assert results and results[-1]["text"].strip()
     print(f"streaming e2e: {types_seen.count('partial')} partials, final={results[-1]['text']!r}")
     eng.close()
+
+
+def test_backpressure_degrades_to_per_utterance(monkeypatch):
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _SlowStream:      # never emits deltas -> processed audio stays 0 -> lag grows
+        def feed(self, samples): pass
+        def drain(self): return []
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _SlowStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: _SlowStream()})()
+    eng._pending = ""; eng._utt_text = "held text"
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0
+    eng._silence_samples = 0; eng._stream_speech_samples = 0
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False))
+
+    sent = []
+    async def send(m): sent.append(m)
+    buf = b"\x00\x00" * 16000     # 1s of audio per call
+    # feed ~4s of audio with no deltas -> lag exceeds 3.0 -> degrade
+    for _ in range(4):
+        asyncio.run(eng._drive_always(send, buf))
+    assert eng._mode == "per_utterance"                     # degraded
+    assert eng._stream is None                              # always-stream session dropped
+    assert any(m["type"] == "result" and m["text"] == "held text" for m in sent)  # pending flushed
