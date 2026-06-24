@@ -93,6 +93,14 @@ class AsrEngine:
                          "computeType": plan.compute_type}
         if rtf is not None:
             self.resolved["rtf"] = round(rtf, 3)
+        # Surface the ACTUAL backend/device the session resolved to. A non-'auto'
+        # compute-device choice only reorders plans, so a GPU-only model still loads
+        # on CUDA even when 'cpu' was requested — this line makes that visible.
+        import sys
+        print(f"[sokuji-sidecar] ASR ready: model={model_id or 'sense-voice'} "
+              f"backend={plan.backend} device={plan.device} compute={plan.compute_type}"
+              + (f" rtf={rtf:.3f} (~{1 / rtf:.0f}x realtime)" if rtf else "")
+              + f"  [requested device={device or 'auto'}]", file=sys.stderr, flush=True)
         return int((time.time() - t0) * 1000)
 
     def _drain(self):
