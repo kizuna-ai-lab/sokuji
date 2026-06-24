@@ -210,11 +210,11 @@ describe('nativeCatalog', () => {
     expect(nativeAsrCards('yue')[0].selectId).toBe('sense-voice');
   });
 
-  it('includes Voxtral Mini 4B Realtime (not recommended, sortOrder 9, 13 langs)', () => {
+  it('includes Voxtral Mini 4B Realtime (recommended, sortOrder 9, 13 langs)', () => {
     const v = NATIVE_ASR.find((m) => m.id === 'voxtral-mini-4b-realtime');
     expect(v).toBeDefined();
     expect(v!.label).toBe('Voxtral Mini 4B Realtime');
-    expect(v!.recommended).toBeFalsy();
+    expect(v!.recommended).toBe(true);
     expect(v!.sortOrder).toBe(9);
     expect(v!.languages).toEqual(['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko']);
     // listed for a supported language (ja), behind the recommended rows

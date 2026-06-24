@@ -69,7 +69,7 @@ ASR_MODELS: list[AsrModel] = [
              ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
              (Deployment("voxtral_realtime", "gpu-cuda", "bfloat16",
                          "mistralai/Voxtral-Mini-4B-Realtime-2602", 1.0),),
-             recommended=False, sort_order=9),
+             recommended=True, sort_order=9),
 ]
 
 

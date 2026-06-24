@@ -78,7 +78,7 @@ def test_voxtral_realtime_row():
     assert m is not None
     assert m.name == "Voxtral Mini 4B Realtime"
     assert m.languages == ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko")
-    assert m.recommended is False        # Phase 1: offline mode; promote when streaming lands
+    assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
     assert m.sort_order == 9             # appended after Qwen3 (8); no existing rows shift
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
