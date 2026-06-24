@@ -11,6 +11,7 @@ function electron(): ElectronInvoke {
 
 export class NativeAsrClient {
   onResult: ((r: NativeAsrResult) => void) | null = null;
+  onPartialResult: ((text: string) => void) | null = null;
   onSpeechStart: (() => void) | null = null;
   onStatus: ((m: string) => void) | null = null;
   onError: ((e: string) => void) | null = null;
@@ -40,6 +41,7 @@ export class NativeAsrClient {
   private onMessage(data: any) {
     const msg = JSON.parse(data) as any;
     if (msg.type === 'speech_start') { this.onSpeechStart?.(); return; }
+    if (msg.type === 'partial') { this.onPartialResult?.(msg.text); return; }
     // ASR results are pushed without an id; TTS results (Phase 1) carry an id.
     if (msg.type === 'result' && msg.id === undefined) {
       this.onResult?.({ text: msg.text, startSample: msg.startSample, durationMs: msg.durationMs, recognitionTimeMs: msg.recognitionTimeMs });
