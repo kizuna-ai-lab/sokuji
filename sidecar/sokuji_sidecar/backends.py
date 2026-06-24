@@ -291,6 +291,7 @@ class VoxtralRealtimeBackend:
     not passed. The processor's tokenizer is mistral_common's, which ignores
     local_files_only; so load() resolves the snapshot DIR and loads the processor from it."""
     NAME = "voxtral_realtime"
+    STREAMING = True
 
     def __init__(self):
         self._model = None
@@ -337,6 +338,12 @@ class VoxtralRealtimeBackend:
             torch.cuda.empty_cache()
         except Exception:
             pass
+
+    def open_stream(self):
+        if self._model is None:
+            raise BackendLoadError("voxtral_realtime not loaded")
+        from .voxtral_stream import VoxtralRealtimeStream
+        return VoxtralRealtimeStream(self._model, self._proc, self._device, self._dtype)
 
     @property
     def is_loaded(self) -> bool:
