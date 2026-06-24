@@ -92,20 +92,23 @@ const NativeModelCard: React.FC<{
                 {(spec.languages || []).map((l) => (<span key={l} className="model-card__lang-tag">{l}</span>))}
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
-              {activeTier && (() => {
-                const tl = tierLabel(activeTier.tier);
+              {(() => {
+                // One tier tag: for the model that just ran, show the RESOLVED device + measured
+                // rtf (ground truth — also catches a GPU→CPU fallback); otherwise the catalog's
+                // capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
+                const showResolved = !!resolved && resolved.model === spec.selectId;
+                const tier = showResolved
+                  ? (resolved!.device === 'cpu' ? 'cpu' : `gpu-${resolved!.device}`)
+                  : activeTier?.tier;
+                if (!tier) return null;
+                const tl = tierLabel(tier);
+                const rtf = showResolved && resolved!.rtf !== undefined ? ` · ${formatRtf(resolved!.rtf)}` : '';
                 return (
                   <span className="model-card__lang-tag">
-                    {tl.accel && <Zap size={10} />}{tl.label}
+                    {tl.accel && <Zap size={10} />}{tl.label}{rtf}
                   </span>
                 );
               })()}
-              {resolved && resolved.model === spec.selectId && (
-                <span className="model-card__lang-tag">
-                  <Zap size={10} />{tierLabel(resolved.device === 'cpu' ? 'cpu' : `gpu-${resolved.device}`).label}
-                  {resolved.rtf !== undefined ? ` · ${formatRtf(resolved.rtf)}` : ''}
-                </span>
-              )}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
               {spec.recommended && (
                 <span className="model-card__recommended-badge">
