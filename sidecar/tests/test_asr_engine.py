@@ -468,3 +468,33 @@ def test_asr_init_offline_path_unchanged():
     assert loaded["init_calls"] == 1
     # no stream_task created
     assert conn.ctx.get("stream_task") is None
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (uses cached Voxtral-Mini-4B-Realtime; needs CUDA)")
+def test_streaming_end_to_end_real_gpu():
+    import glob, wave, asyncio
+    from huggingface_hub import snapshot_download
+    snapshot_download("mistralai/Voxtral-Mini-4B-Realtime-2602",
+                      ignore_patterns=["consolidated.safetensors", "*.gitattributes"])
+    eng = AsrEngine()
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en",
+                       sample_rate=16000, device="cuda")
+    wav = glob.glob(os.path.expanduser(
+        "~/.cache/huggingface/hub/models--csukuangfj--sherpa-onnx-sense-voice*/snapshots/*/test_wavs/en.wav"))[0]
+    w = wave.open(wav)
+    pcm = w.readframes(w.getnframes())
+    sent = []
+    async def send(m): sent.append(m)
+    async def drive():
+        for i in range(0, len(pcm), 3200):       # ~100ms @16k int16
+            eng.feed_stream(pcm[i:i + 3200])
+        eng.feed_stream(None)                     # end-of-stream sentinel
+        await eng.run_stream(send)
+    asyncio.run(drive())
+    types_seen = [m["type"] for m in sent]
+    assert "speech_start" in types_seen and "partial" in types_seen
+    results = [m for m in sent if m["type"] == "result"]
+    assert results and results[-1]["text"].strip()
+    print(f"streaming e2e: {types_seen.count('partial')} partials, final={results[-1]['text']!r}")
+    eng.close()
