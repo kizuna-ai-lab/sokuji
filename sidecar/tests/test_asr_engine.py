@@ -486,11 +486,13 @@ def test_streaming_end_to_end_real_gpu():
     pcm = w.readframes(w.getnframes())
     sent = []
     async def send(m): sent.append(m)
-    async def drive():
+    async def feeder():
         for i in range(0, len(pcm), 3200):       # ~100ms @16k int16
             eng.feed_stream(pcm[i:i + 3200])
+            await asyncio.sleep(0.1)              # realtime pacing so partials emerge
         eng.feed_stream(None)                     # end-of-stream sentinel
-        await eng.run_stream(send)
+    async def drive():
+        await asyncio.gather(feeder(), eng.run_stream(send))
     asyncio.run(drive())
     types_seen = [m["type"] for m in sent]
     assert "speech_start" in types_seen and "partial" in types_seen

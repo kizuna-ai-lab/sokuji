@@ -196,21 +196,23 @@ class AsrEngine:
 
     async def _drive(self, send, int16_bytes):
         """Process one audio buffer: VAD → manage session → emit events. Factored so
-        tests can call _drive_once with scripted VAD."""
+        tests can call _drive_once with scripted VAD. Feeds the buffer to the stream
+        ONCE per call — a single buffer spans several VAD windows, so feeding per-event
+        would duplicate the audio and scramble the streaming model's features."""
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
-        for ev in self._vad_events(samples):
-            if ev == "start":
-                self._utt_start_sample = self._sample_cursor
-                self._stream = self._backend.open_stream()
-                await send({"type": "speech_start"})
-            elif ev == "speech" and self._stream is not None:
-                self._stream.feed(samples)
-                deltas = self._stream.drain()
-                if deltas:
-                    self._partial_acc += deltas
-                    await send({"type": "partial", "text": "".join(self._partial_acc)})
-            elif ev == "end" and self._stream is not None:
-                await self._finalize(send)
+        events = self._vad_events(samples)
+        if "start" in events and self._stream is None:
+            self._utt_start_sample = self._sample_cursor
+            self._stream = self._backend.open_stream()
+            await send({"type": "speech_start"})
+        if self._stream is not None and "speech" in events:
+            self._stream.feed(samples)
+            deltas = self._stream.drain()
+            if deltas:
+                self._partial_acc += deltas
+                await send({"type": "partial", "text": "".join(self._partial_acc)})
+        if "end" in events and self._stream is not None:
+            await self._finalize(send)
         self._sample_cursor += len(samples)
 
     async def _finalize(self, send):
