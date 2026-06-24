@@ -319,3 +319,51 @@ def test_conn_close_frees_asr_model():
 
     asyncio.run(server._conn(st, WS()))
     assert closed["n"] == 1
+
+
+from sokuji_sidecar.asr_engine import AsrEngine
+
+
+class _FakeStream:
+    """Scripted stream session: drain() returns queued deltas, end() returns the join."""
+    def __init__(self):
+        self.fed = 0
+        self._pending = ["he", "llo "]
+        self.ended = False
+    def feed(self, samples):
+        self.fed += len(samples)
+    def drain(self):
+        out, self._pending = self._pending, []
+        return out
+    def end(self):
+        self.ended = True
+        return "hello world"
+
+
+def _streaming_engine(monkeypatch, fake_stream, vad_segments):
+    """Build an AsrEngine whose resolved backend is streaming and whose VAD is faked
+    to yield a scripted speech_start then endpoint."""
+    eng = AsrEngine()
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: fake_stream,
+                             "unload": lambda self: None})()
+    # bypass real resolve/VAD: inject the backend + a fake VAD endpoint generator
+    monkeypatch.setattr(eng, "_resolve_streaming_backend", lambda model, device: backend)
+    monkeypatch.setattr(eng, "_vad_events", lambda samples: vad_segments)  # ['start'|'speech'|'end']
+    return eng
+
+
+def test_streaming_emits_speech_start_partials_result(monkeypatch):
+    fs = _FakeStream()
+    eng = _streaming_engine(monkeypatch, fs, vad_segments=["start", "speech", "end"])
+    sent = []
+    async def send(msg): sent.append(msg)
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="cuda")
+    # feed one buffer that the fake VAD turns into start→speech→end
+    eng.feed_stream(np.zeros(16000, np.int16).tobytes())
+    asyncio.run(eng._drive_once(send))   # one iteration of the streaming loop
+    types_seen = [m["type"] for m in sent]
+    assert types_seen[0] == "speech_start"
+    assert "partial" in types_seen
+    assert types_seen[-1] == "result"
+    assert sent[-1]["text"] == "hello world"
+    assert fs.ended is True

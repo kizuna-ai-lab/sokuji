@@ -150,6 +150,115 @@ class AsrEngine:
         self._vad.flush()
         return self._drain()
 
+    # ── Streaming branch (STREAMING backends only; offline path above is unchanged) ──
+
+    def is_streaming(self):
+        return bool(getattr(self._backend, "STREAMING", False))
+
+    def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE,
+                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+        """Like init(), but for a STREAMING backend: resolve+load, set up VAD for
+        endpointing, and prepare the audio queue + per-utterance stream state."""
+        import queue as _queue
+        self.close()
+        self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
+        self._backend = self._resolve_streaming_backend(model_id, device)
+        self._language = language or None
+        self._audio_q = _queue.Queue()
+        self._stream = None
+        self._utt_start_sample = 0
+        self._sample_cursor = 0
+        self._partial_acc = []
+        self._utt_samples = 0
+        self._stop = False
+
+    def feed_stream(self, int16_bytes):
+        """Non-blocking: hand raw audio to the streaming loop (called from on_binary)."""
+        self._audio_q.put_nowait(int16_bytes)
+
+    async def run_stream(self, send):
+        """The asyncio streaming loop (Approach A). Owns VAD endpointing, the stream
+        session lifecycle, and pushes speech_start/partial/result via `send`."""
+        loop = __import__("asyncio").get_event_loop()
+        while not self._stop:
+            try:
+                data = await loop.run_in_executor(None, self._audio_q.get, True, 0.1)
+            except Exception:
+                continue
+            if data is None:
+                break
+            await self._drive(send, data)
+        if self._stream is not None:
+            await self._finalize(send)
+
+    async def _drive(self, send, int16_bytes):
+        """Process one audio buffer: VAD → manage session → emit events. Factored so
+        tests can call _drive_once with scripted VAD."""
+        samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
+        for ev in self._vad_events(samples):
+            if ev == "start":
+                self._utt_start_sample = self._sample_cursor
+                self._stream = self._backend.open_stream()
+                await send({"type": "speech_start"})
+            elif ev == "speech" and self._stream is not None:
+                self._stream.feed(samples)
+                deltas = self._stream.drain()
+                if deltas:
+                    self._partial_acc += deltas
+                    await send({"type": "partial", "text": "".join(self._partial_acc)})
+            elif ev == "end" and self._stream is not None:
+                await self._finalize(send)
+        self._sample_cursor += len(samples)
+
+    async def _finalize(self, send):
+        import time as _time
+        t0 = _time.time()
+        loop = __import__("asyncio").get_event_loop()
+        final = await loop.run_in_executor(None, self._stream.end)
+        dur_ms = int((self._sample_cursor - self._utt_start_sample) / TARGET_RATE * 1000)
+        if final.strip():
+            await send({"type": "result", "text": final.strip(),
+                        "startSample": int(self._utt_start_sample),
+                        "durationMs": dur_ms,
+                        "recognitionTimeMs": int((_time.time() - t0) * 1000)})
+        self._stream = None
+        self._partial_acc = []
+
+    async def _drive_once(self, send):
+        """Test seam: drive exactly the buffers currently queued, once."""
+        while not self._audio_q.empty():
+            await self._drive(send, self._audio_q.get_nowait())
+
+    def _resolve_streaming_backend(self, model_id, device):
+        from . import accel
+        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
+        backend, _plan, _notice = accel.load_with_fallback(plans)
+        return backend
+
+    def _vad_events(self, samples):
+        """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while
+        active, 'end' on endpoint (silence) or the 20s max-utterance cap (bounds VRAM)."""
+        events = []
+        cap = 20 * TARGET_RATE
+        self._buf = np.concatenate([self._buf, samples])
+        while len(self._buf) >= self._window:
+            was = self._vad.is_speech_detected()
+            self._vad.accept_waveform(self._buf[:self._window])
+            self._buf = self._buf[self._window:]
+            now = self._vad.is_speech_detected()
+            if not was and now:
+                self._utt_samples = 0
+                events.append("start")
+            if now:
+                self._utt_samples += self._window
+                events.append("speech")
+                if self._utt_samples >= cap:          # force endpoint to bound VRAM
+                    events.append("end")
+                    self._utt_samples = 0
+            if was and not now:
+                events.append("end")
+        return events
+
 
 async def _h_asr_init(state, msg, _b, conn=None):
     eng = state["asr_engine"]
