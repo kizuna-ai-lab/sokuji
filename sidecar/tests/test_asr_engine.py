@@ -385,6 +385,7 @@ def test_streaming_emits_speech_start_partials_result(monkeypatch):
     sent = []
     async def send(msg): sent.append(msg)
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="cuda")
+    eng._mode = "per_utterance"   # exercise the per-utterance fallback path explicitly
     # feed one buffer that the fake VAD turns into start→speech→end
     eng.feed_stream(np.zeros(16000, np.int16).tobytes())
     asyncio.run(eng._drive_once(send))   # one iteration of the streaming loop
@@ -394,6 +395,83 @@ def test_streaming_emits_speech_start_partials_result(monkeypatch):
     assert types_seen[-1] == "result"
     assert sent[-1]["text"] == "hello world"
     assert fs.ended is True
+
+
+def test_always_stream_feeds_all_and_cuts_on_punctuation(monkeypatch):
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    fed = {"n": 0}
+    pending = {"deltas": []}
+
+    class _FakeStream:
+        def feed(self, samples): fed["n"] += len(samples)
+        def drain(self):
+            out, pending["deltas"] = pending["deltas"], []
+            return out
+        def abort(self): pass
+        def end(self): return ""
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"
+    eng._src_rate = 16000
+    eng._stream = _FakeStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: _FakeStream()})()
+    eng._pending = ""; eng._utt_text = ""
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0
+    eng._silence_samples = 0; eng._stream_speech_samples = 0
+    # VAD stub: speech present, no rising edge, never long-silence
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False))
+
+    sent = []
+    async def send(m): sent.append(m)
+    buf = (b"\x00\x00" * 1600)        # one 100ms buffer (1600 int16 samples)
+
+    # 1) a delta with no sentence end -> partial only, no result
+    pending["deltas"] = ["Ask not "]
+    asyncio.run(eng._drive_always(send, buf))
+    assert fed["n"] == 1600                          # the buffer was fed (not gated)
+    assert sent[-1] == {"type": "partial", "text": "Ask not"}
+    assert not any(m["type"] == "result" for m in sent)
+
+    # 2) a delta completing the sentence -> result + the remainder becomes the new partial
+    pending["deltas"] = ["what you do. Ask "]
+    asyncio.run(eng._drive_always(send, buf))
+    results = [m for m in sent if m["type"] == "result"]
+    assert results and results[-1]["text"] == "Ask not what you do."
+    assert sent[-1] == {"type": "partial", "text": "Ask"}
+
+
+def test_always_stream_long_silence_flushes_and_restarts(monkeypatch):
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+    opened = {"n": 0}
+
+    class _FakeStream:
+        def feed(self, samples): pass
+        def drain(self): return []
+        def abort(self): pass
+        def end(self): return ""
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _FakeStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._pending = ""; eng._utt_text = "trailing words"   # un-punctuated pending
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0
+    eng._silence_samples = int(2.5 * 16000)              # already at the long-silence threshold
+    eng._stream_speech_samples = 0
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False))   # silence
+
+    sent = []
+    async def send(m): sent.append(m)
+    asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
+    results = [m for m in sent if m["type"] == "result"]
+    assert results and results[-1]["text"] == "trailing words"   # un-punctuated text flushed
+    assert opened["n"] == 1                                       # stream restarted
+    assert eng._utt_text == "" and eng._pending == ""            # reset
 
 
 def test_asr_init_starts_streaming_task_for_streaming_backend():
