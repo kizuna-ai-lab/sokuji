@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohere_transformers"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohere_transformers", "voxtral_realtime"}
 
 
 def test_system_has_a_cpu_floor():
@@ -71,3 +71,15 @@ def test_cohere_is_first_qwen3_shifted():
     assert ids[0] == "cohere-transcribe-03-2026"           # inserted first in the list
     assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 8   # shifted +1 from 7
     assert catalog.asr_model("sense-voice").sort_order == 1      # shifted +1 from 0
+
+
+def test_voxtral_realtime_row():
+    m = catalog.asr_model("voxtral-mini-4b-realtime")
+    assert m is not None
+    assert m.name == "Voxtral Mini 4B Realtime"
+    assert m.languages == ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko")
+    assert m.recommended is False        # Phase 1: offline mode; promote when streaming lands
+    assert m.sort_order == 9             # appended after Qwen3 (8); no existing rows shift
+    d = m.deployments[0]
+    assert (d.backend, d.tier, d.compute_type, d.artifact) == \
+        ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")
