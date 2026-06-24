@@ -83,6 +83,10 @@ class AsrEngine:
              vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
         from . import accel
         t0 = time.time()
+        # Free any previously-loaded model BEFORE loading the next. The engine is a
+        # process singleton reused across sessions; without this, re-init piles a second
+        # model into VRAM (PyTorch's caching allocator never returns it) and usage climbs.
+        self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
         plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
@@ -102,6 +106,17 @@ class AsrEngine:
               + (f" rtf={rtf:.3f} (~{1 / rtf:.0f}x realtime)" if rtf else "")
               + f"  [requested device={device or 'auto'}]", file=sys.stderr, flush=True)
         return int((time.time() - t0) * 1000)
+
+    def close(self):
+        """Free the loaded ASR model and its GPU memory. Idempotent — called at the start
+        of each init() and when a session connection closes, so VRAM never accumulates."""
+        backend = self._backend
+        self._backend = None
+        if backend is not None:
+            try:
+                backend.unload()
+            except Exception:
+                pass
 
     def _drain(self):
         out = []

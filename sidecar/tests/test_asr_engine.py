@@ -242,3 +242,80 @@ def test_real_faster_whisper_transcribes():
     results += [m["text"] for m in eng.flush() if m["type"] == "result"]
     text = " ".join(results).lower()
     assert "gold" in text or "tribal" in text, f"unexpected transcript: {results!r}"
+
+
+class _UnloadBackend:
+    def __init__(self):
+        self.unloaded = False
+
+    def transcribe(self, samples, language):
+        from sokuji_sidecar.backends import AsrResult
+        return AsrResult("x")
+
+    def unload(self):
+        self.unloaded = True
+
+
+def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
+    # VRAM-leak regression: the singleton engine must unload the previous backend before
+    # loading the next (no pileup), and close() must free the current one.
+    from sokuji_sidecar import asr_engine as ae, accel
+    eng = ae.AsrEngine()
+    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
+    fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
+    backends = []
+
+    def fake_load(plans):
+        b = _UnloadBackend()
+        backends.append(b)
+        return b, fake_plan, None
+
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
+    monkeypatch.setattr(accel, "load_with_fallback", fake_load)
+    monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
+
+    eng.init(model_id="whisper-tiny")
+    assert len(backends) == 1 and backends[0].unloaded is False
+    eng.init(model_id="whisper-tiny")                 # re-init frees the first
+    assert backends[0].unloaded is True
+    assert len(backends) == 2 and backends[1].unloaded is False
+    eng.close()                                       # close frees the current
+    assert backends[1].unloaded is True
+    assert eng._backend is None
+
+
+def test_conn_close_frees_asr_model():
+    # A session connection (asr_init set on_binary) closing must trigger engine.close()
+    # in _conn's finally, releasing the model from VRAM on stop.
+    closed = {"n": 0}
+
+    class Eng:
+        def init(self, *a, **k):
+            return 1
+
+        def feed(self, b):
+            return []
+
+        def close(self):
+            closed["n"] += 1
+
+    st = {"asr_engine": Eng(), "handlers": {}}
+    asr_engine.register(st)
+
+    class WS:
+        def __init__(self):
+            self._msgs = [json.dumps({"type": "asr_init", "id": 1, "model": "m"})]
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._msgs:
+                return self._msgs.pop(0)
+            raise StopAsyncIteration
+
+        async def send(self, d):
+            pass
+
+    asyncio.run(server._conn(st, WS()))
+    assert closed["n"] == 1
