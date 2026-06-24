@@ -646,6 +646,35 @@ def test_always_stream_aborted_self_heals(monkeypatch):
     results = [m for m in sent if m["type"] == "result"]
     assert results and results[-1]["text"] == "partial words"   # pending flushed on self-heal
     assert opened["n"] == 1                                      # stream restarted
+    assert eng._pending == "" and eng._fed_s == 0.0 and eng._delta_count == 0 and eng._speech_samples == 0
+
+
+def test_always_stream_endpoint_end_failure_still_reopens(monkeypatch):
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+    opened = {"n": 0}
+
+    class _FakeStream:
+        def feed(self, s): pass
+        def drain(self): return []
+        def end(self): raise RuntimeError("generate crashed during flush")
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _FakeStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._pending = "some words"
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
+
+    sent = []
+    async def send(m): sent.append(m)
+    asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
+    assert opened["n"] == 1                                   # reopened despite end() raising
+    assert not [m for m in sent if m["type"] == "result"]     # no final emitted on failure
+    assert eng._pending == ""                                 # state reset (self-heal)
 
 
 def test_backpressure_degrades_to_per_utterance(monkeypatch):
