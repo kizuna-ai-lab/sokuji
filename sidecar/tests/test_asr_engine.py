@@ -352,6 +352,15 @@ def _streaming_engine(monkeypatch, fake_stream, vad_segments):
     return eng
 
 
+def test_feed_stream_returns_iterable_for_conn_loop():
+    import queue
+    eng = AsrEngine()
+    eng._audio_q = queue.Queue()
+    out = eng.feed_stream(b"\x00\x00\x01\x00")
+    assert list(out) == []                 # _conn's `for out in feeder(data)` is safe
+    assert eng._audio_q.qsize() == 1       # audio was enqueued for the streaming task
+
+
 def test_streaming_emits_speech_start_partials_result(monkeypatch):
     fs = _FakeStream()
     eng = _streaming_engine(monkeypatch, fs, vad_segments=["start", "speech", "end"])

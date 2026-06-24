@@ -173,8 +173,11 @@ class AsrEngine:
         self._stop = False
 
     def feed_stream(self, int16_bytes):
-        """Non-blocking: hand raw audio to the streaming loop (called from on_binary)."""
+        """Non-blocking: hand raw audio to the streaming loop (called from on_binary).
+        Returns [] — streaming events are pushed asynchronously by run_stream, so there
+        is nothing to send synchronously from the _conn feeder loop."""
         self._audio_q.put_nowait(int16_bytes)
+        return []
 
     async def run_stream(self, send):
         """The asyncio streaming loop (Approach A). Owns VAD endpointing, the stream
