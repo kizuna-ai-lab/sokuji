@@ -280,6 +280,7 @@ class CohereTransformersBackend:
     def is_loaded(self) -> bool:
         return self._model is not None
 
+
 @register_backend
 class VoxtralRealtimeBackend:
     """Voxtral Mini 4B Realtime via native transformers

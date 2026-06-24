@@ -578,6 +578,7 @@ def test_voxtral_realtime_load_and_transcribe(monkeypatch):
     assert cap["dtype"] == "BF16"            # bfloat16 → torch.bfloat16
     assert cap["model_device"] == "cuda"
     assert cap["model_local_files_only"] is True
+    assert cap["proc_local_files_only"] is False  # processor loaded WITHOUT local_files_only (mistral_common ignores it)
     r = b.transcribe(np.zeros(16000, np.float32), "en")
     assert r.text == "hello world"           # decoded + stripped, audio-only → no prefix/slice
     assert cap["feat_dtype"] == "BF16"        # input_features cast to model dtype
