@@ -367,3 +367,95 @@ def test_streaming_emits_speech_start_partials_result(monkeypatch):
     assert types_seen[-1] == "result"
     assert sent[-1]["text"] == "hello world"
     assert fs.ended is True
+
+
+def test_asr_init_starts_streaming_task_for_streaming_backend():
+    started = {"task": False, "init_streaming": None}
+
+    class FakeEng:
+        resolved = {"backend": "voxtral_realtime", "device": "cuda", "computeType": "bfloat16"}
+
+        def resolves_to_streaming(self, model_id, device):
+            return True
+
+        def init_streaming(self, model_id=None, language="", sample_rate=None,
+                           vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+            started["init_streaming"] = {"model": model_id, "device": device}
+
+        def init(self, *a, **k):
+            started["offline"] = True
+            return 0
+
+        def is_streaming(self):
+            return True
+
+        def feed_stream(self, b):
+            pass
+
+        async def run_stream(self, send):
+            started["task"] = True
+
+    eng = FakeEng()
+
+    async def scenario():
+        state = {"asr_engine": eng, "handlers": {}}
+        from sokuji_sidecar import asr_engine as ae
+        ae.register(state)
+        conn = server.Conn(type("WS", (), {"send": lambda self, d: None})())
+        reply, _ = await server.handle_message(
+            state, json.dumps({"type": "asr_init", "id": 1, "model": "voxtral-mini-4b-realtime",
+                               "language": "en", "device": "cuda"}), None, conn)
+        await asyncio.sleep(0)            # let the created task run once
+        return reply, conn
+
+    reply, conn = asyncio.run(scenario())
+    assert reply["type"] == "ready"
+    assert reply["id"] == 1
+    # streaming backend wires feed_stream, not feed
+    assert conn.ctx["on_binary"] == eng.feed_stream
+    # run_stream task was started and ran
+    assert started["task"] is True
+    # offline init was NOT called (no double-load)
+    assert "offline" not in started
+    # init_streaming was called with the right params
+    assert started["init_streaming"]["model"] == "voxtral-mini-4b-realtime"
+    assert started["init_streaming"]["device"] == "cuda"
+
+
+def test_asr_init_offline_path_unchanged():
+    """An engine without resolves_to_streaming (or returning False) must use the
+    old sync path: on_binary = eng.feed, eng.init() called once."""
+    loaded = {"init_calls": 0}
+
+    class OfflineEng:
+        def resolves_to_streaming(self, model_id, device):
+            return False
+
+        def init(self, model_id=None, language="", sample_rate=None,
+                 vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+            loaded["init_calls"] += 1
+            return 42
+
+        def feed(self, b):
+            return []
+
+    eng = OfflineEng()
+
+    async def scenario():
+        state = {"asr_engine": eng, "handlers": {}}
+        from sokuji_sidecar import asr_engine as ae
+        ae.register(state)
+        conn = server.Conn(type("WS", (), {"send": lambda self, d: None})())
+        reply, _ = await server.handle_message(
+            state, json.dumps({"type": "asr_init", "id": 2, "model": "sense-voice",
+                               "language": "ja", "device": "auto"}), None, conn)
+        return reply, conn
+
+    reply, conn = asyncio.run(scenario())
+    assert reply == {"type": "ready", "id": 2, "loadTimeMs": 42}
+    # offline: on_binary = eng.feed
+    assert conn.ctx["on_binary"] == eng.feed
+    # init called exactly once (no double-load)
+    assert loaded["init_calls"] == 1
+    # no stream_task created
+    assert conn.ctx.get("stream_task") is None

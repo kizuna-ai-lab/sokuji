@@ -229,6 +229,26 @@ class AsrEngine:
         while not self._audio_q.empty():
             await self._drive(send, self._audio_q.get_nowait())
 
+    def resolves_to_streaming(self, model_id, device):
+        """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
+
+        Instantiates a bare backend object (no load()) and reads its STREAMING class flag.
+        Only the top-ranked plan is checked. Returns False on any resolution error so the
+        caller can safely fall back to the offline path."""
+        from . import accel, backends
+        try:
+            plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+        except Exception:
+            return False
+        if not plans:
+            return False
+        try:
+            # make_backend() instantiates the class — no model load, no I/O.
+            obj = backends.make_backend(plans[0].backend)
+            return bool(getattr(obj, "STREAMING", False))
+        except Exception:
+            return False
+
     def _resolve_streaming_backend(self, model_id, device):
         from . import accel
         plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
@@ -261,12 +281,36 @@ class AsrEngine:
 
 
 async def _h_asr_init(state, msg, _b, conn=None):
+    import asyncio
     eng = state["asr_engine"]
-    ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE),
-                  msg.get("vadThreshold"), msg.get("vadMinSilenceDuration"),
-                  msg.get("vadMinSpeechDuration"), msg.get("device", "auto"))
-    if conn is not None:
-        conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
+    model = msg.get("model")
+    device = msg.get("device", "auto")
+    language = msg.get("language", "")
+    sample_rate = msg.get("sampleRate", SRC_RATE)
+    vad_threshold = msg.get("vadThreshold")
+    vad_min_silence = msg.get("vadMinSilenceDuration")
+    vad_min_speech = msg.get("vadMinSpeechDuration")
+
+    # Cheap pre-check: resolve the backend NAME without loading the model, then read
+    # its STREAMING flag. This ensures each branch loads the model exactly once.
+    is_streaming = (hasattr(eng, "resolves_to_streaming")
+                    and eng.resolves_to_streaming(model, device))
+
+    if is_streaming:
+        # Streaming path: init_streaming resolves+loads the backend once.
+        eng.init_streaming(model, language, sample_rate,
+                           vad_threshold, vad_min_silence, vad_min_speech, device)
+        if conn is not None:
+            conn.ctx["on_binary"] = eng.feed_stream
+            conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
+        ms = 0
+    else:
+        # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
+        ms = eng.init(model, language, sample_rate,
+                      vad_threshold, vad_min_silence, vad_min_speech, device)
+        if conn is not None:
+            conn.ctx["on_binary"] = eng.feed
+
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(eng, "resolved", None)
     if resolved:

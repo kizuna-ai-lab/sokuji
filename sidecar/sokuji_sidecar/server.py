@@ -62,6 +62,9 @@ async def _conn(state, ws):
         # connection that started ASR streaming (on_binary set) owns the engine; the
         # model-management connection has no on_binary, so it leaves the model alone.
         if conn.ctx.get("on_binary") is not None:
+            task = conn.ctx.get("stream_task")
+            if task is not None:
+                task.cancel()
             eng = state.get("asr_engine")
             if eng is not None:
                 try:
