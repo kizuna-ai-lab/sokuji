@@ -472,3 +472,125 @@ def test_cohereasr_real_gpu_smoke():
     q.load("bezzam/Qwen3-ASR-1.7B", "cuda", "bfloat16")
     assert q.is_loaded
     q.unload()
+
+
+def test_voxtral_realtime_is_gpu_only():
+    b = backends.make_backend("voxtral_realtime")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cpu", "bfloat16")
+
+
+def _install_fake_voxtral(monkeypatch, *, decoded="  hello world  ", fail=False):
+    cap = {}
+
+    class FakeFeat:
+        def to(self, dtype):
+            cap["feat_dtype"] = dtype
+            return self
+
+    class FakeBatch(dict):
+        def to(self, device):
+            cap["inp_device"] = device
+            return self
+
+    class FakeProc:
+        # Voxtral realtime processor: positional audio + sampling_rate + return_tensors.
+        # No language (multilingual auto-detect), no chat template. If the backend ever
+        # passed language=, this signature would TypeError — guarding that contract.
+        def __call__(self, samples, sampling_rate, return_tensors):
+            cap["sr"] = sampling_rate
+            cap["n_samples"] = len(samples)
+            b = FakeBatch()
+            b["input_features"] = FakeFeat()
+            b["input_ids"] = "IDS"
+            return b
+
+        def batch_decode(self, seq, skip_special_tokens):
+            cap["decoded_seq"] = seq
+            cap["skip_special"] = skip_special_tokens
+            return [decoded]
+
+    class FakeModel:
+        def to(self, device):
+            cap["model_device"] = device
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kw):
+            cap["gen_kw"] = kw
+            return "OUT"
+
+    class FakeAutoProcessor:
+        @staticmethod
+        def from_pretrained(path, local_files_only=False):
+            cap["proc_path"] = path
+            cap["proc_local_files_only"] = local_files_only
+            return FakeProc()
+
+    class FakeVoxtral:
+        @staticmethod
+        def from_pretrained(path, dtype, local_files_only=False):
+            if fail:
+                raise RuntimeError("voxtral_realtime missing")
+            cap["model_path"] = path
+            cap["dtype"] = dtype
+            cap["model_local_files_only"] = local_files_only
+            return FakeModel()
+
+    tmod = types.ModuleType("transformers")
+    tmod.AutoProcessor = FakeAutoProcessor
+    tmod.VoxtralRealtimeForConditionalGeneration = FakeVoxtral
+    monkeypatch.setitem(sys.modules, "transformers", tmod)
+
+    hub = types.ModuleType("huggingface_hub")
+
+    def fake_snapshot(repo, local_files_only=False):
+        cap["snap_repo"] = repo
+        cap["snap_local_files_only"] = local_files_only
+        return f"/fake/snapshot/{repo}"
+
+    hub.snapshot_download = fake_snapshot
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.bfloat16 = "BF16"
+    torch_mod.float16 = "F16"
+    torch_mod.inference_mode = contextlib.nullcontext
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None, is_available=lambda: True)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_voxtral_realtime_load_and_transcribe(monkeypatch):
+    cap = _install_fake_voxtral(monkeypatch)
+    b = backends.make_backend("voxtral_realtime")
+    assert not b.is_loaded
+    b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
+    assert b.is_loaded
+    # Offline load resolves the snapshot DIR (local_files_only) and loads the processor
+    # + model FROM that dir — mistral_common ignores local_files_only on a repo id.
+    assert cap["snap_repo"] == "mistralai/Voxtral-Mini-4B-Realtime-2602"
+    assert cap["snap_local_files_only"] is True
+    assert cap["proc_path"] == "/fake/snapshot/mistralai/Voxtral-Mini-4B-Realtime-2602"
+    assert cap["model_path"] == "/fake/snapshot/mistralai/Voxtral-Mini-4B-Realtime-2602"
+    assert cap["dtype"] == "BF16"            # bfloat16 → torch.bfloat16
+    assert cap["model_device"] == "cuda"
+    assert cap["model_local_files_only"] is True
+    r = b.transcribe(np.zeros(16000, np.float32), "en")
+    assert r.text == "hello world"           # decoded + stripped, audio-only → no prefix/slice
+    assert cap["feat_dtype"] == "BF16"        # input_features cast to model dtype
+    assert cap["sr"] == 16000                 # TARGET_RATE
+    assert cap["skip_special"] is True
+    assert cap["gen_kw"]["do_sample"] is False
+    assert "max_new_tokens" not in cap["gen_kw"]   # audio-derived auto-length, no cap
+    b.unload()
+    assert not b.is_loaded
+
+
+def test_voxtral_realtime_load_failure_raises(monkeypatch):
+    _install_fake_voxtral(monkeypatch, fail=True)
+    b = backends.make_backend("voxtral_realtime")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
