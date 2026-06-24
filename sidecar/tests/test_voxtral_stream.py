@@ -117,3 +117,14 @@ def test_voxtral_stream_real_gpu_live():
     assert len(partials) > 0, "no partials streamed"
     print(f"voxtral stream: {len(partials)} partials, final={final.strip()!r}")
     b.unload()
+
+
+def test_split_sentences():
+    from sokuji_sidecar.voxtral_stream import split_sentences
+    assert split_sentences("Ask what you do. Ask not ") == (["Ask what you do."], "Ask not ")
+    assert split_sentences("hello wor") == ([], "hello wor")
+    assert split_sentences("x. Ask") == (["x."], "Ask")          # delta straddling a boundary
+    assert split_sentences("3.5 ml ") == ([], "3.5 ml ")         # decimal NOT split (no space after .)
+    assert split_sentences("country.") == ([], "country.")       # no trailing space -> held for flush
+    assert split_sentences("a. b! c? d") == (["a.", "b!", "c?"], "d")
+    assert split_sentences("") == ([], "")

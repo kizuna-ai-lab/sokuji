@@ -6,10 +6,30 @@ tail, joins the generate thread, and returns the full transcript. One session pe
 utterance — the padding cache + KV live in the generate call and are freed when the
 thread joins. Constants verified live (see the plan's Spike findings)."""
 import queue
+import re
 import threading
 
 import numpy as np
 from transformers import TextIteratorStreamer
+
+
+_SENT_END = re.compile(r"(.*?[.!?])\s")
+
+
+def split_sentences(buffer):
+    """Cut `buffer` into completed sentences (each ending in . ! ? followed by whitespace)
+    and the trailing remainder. 'Ask what you do. Ask not ' -> (['Ask what you do.'],
+    'Ask not '). No sentence end -> ([], buffer). Decimals ('3.5') don't split (the
+    required trailing whitespace isn't there). A sentence with no trailing space yet is
+    held in the remainder until the next delta brings the space (or the long-silence flush
+    commits it)."""
+    out = []
+    while True:
+        m = _SENT_END.match(buffer)
+        if not m:
+            return out, buffer
+        out.append(m.group(1).strip())
+        buffer = buffer[m.end():]
 
 
 class VoxtralRealtimeStream:
