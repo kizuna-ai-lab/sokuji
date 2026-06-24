@@ -282,10 +282,12 @@ class AsrEngine:
 
     def _vad_state(self, samples):
         """Run silero VAD over `samples` for STATE only (always-stream): return
-        (had_speech, rising_edge). Unlike _vad_events it does not gate input or emit
-        per-utterance start/speech/end."""
+        (had_speech, rising, falling). `falling` = silero's endpoint (is_speech_detected
+        True->False this buffer), governed by the user's min_silence_duration. Does not
+        gate input."""
         had_speech = False
         rising = False
+        falling = False
         self._buf = np.concatenate([self._buf, samples])
         while len(self._buf) >= self._window:
             was = self._vad.is_speech_detected()
@@ -296,7 +298,9 @@ class AsrEngine:
                 had_speech = True
             if not was and now:
                 rising = True
-        return had_speech, rising
+            if was and not now:
+                falling = True
+        return had_speech, rising, falling
 
     def _result_event(self, text):
         """A `result` envelope. startSample/durationMs are approximate in always-stream."""

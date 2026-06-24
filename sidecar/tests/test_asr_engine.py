@@ -664,3 +664,37 @@ def test_backpressure_degrades_to_per_utterance(monkeypatch):
     assert eng._mode == "per_utterance"                     # degraded
     assert eng._stream is None                              # always-stream session dropped
     assert any(m["type"] == "result" and m["text"] == "held text" for m in sent)  # pending flushed
+
+
+def test_vad_state_reports_rising_and_falling_edges():
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _FakeVad:
+        """is_speech_detected() returns the current state; accept_waveform() advances it
+        through `after` (the state AFTER each window)."""
+        def __init__(self, start, after):
+            self._cur = start
+            self._after = list(after)
+            self._k = 0
+        def is_speech_detected(self):
+            return self._cur
+        def accept_waveform(self, w):
+            self._cur = self._after[self._k]
+            self._k += 1
+
+    # falling: start speaking, one window flips to silence
+    eng = AsrEngine()
+    eng._vad = _FakeVad(start=True, after=[False])
+    eng._window = 100
+    eng._buf = np.zeros(0, np.float32)
+    had, rising, falling = eng._vad_state(np.zeros(100, np.float32))
+    assert (had, rising, falling) == (False, False, True)
+
+    # rising: start silent, one window flips to speech
+    eng2 = AsrEngine()
+    eng2._vad = _FakeVad(start=False, after=[True])
+    eng2._window = 100
+    eng2._buf = np.zeros(0, np.float32)
+    had2, rising2, falling2 = eng2._vad_state(np.zeros(100, np.float32))
+    assert (had2, rising2, falling2) == (True, True, False)
