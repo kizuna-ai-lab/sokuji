@@ -186,16 +186,14 @@ class AsrEngine:
         self._audio_q = _queue.Queue()
         self._mode = "always_stream"
         self._stream = self._backend.open_stream()   # always-stream: one long-lived session
-        self._pending = ""           # un-segmented text accumulated from drain()
-        self._utt_text = ""          # current sentence (the partial)
+        self._pending = ""           # text drained since the last cut (the partial)
         self._partial_acc = []       # per-utterance fallback accumulator
         self._utt_start_sample = 0
         self._sample_cursor = 0
-        self._utt_samples = 0        # per-utterance fallback (20s cap)
-        self._silence_samples = 0    # consecutive silence (always-stream restart)
-        self._stream_speech_samples = 0   # speech since last restart (4min safety)
-        self._fed_s = 0.0            # audio seconds fed (backpressure, Task 3)
-        self._delta_count = 0        # tokens drained (backpressure, Task 3)
+        self._utt_samples = 0        # per-utterance fallback (its own cap)
+        self._speech_samples = 0     # speech in the current stream (20s run-on cap)
+        self._fed_s = 0.0            # audio seconds fed to the current stream (backpressure)
+        self._delta_count = 0        # tokens drained from the current stream (backpressure)
         self._stop = False
 
     def feed_stream(self, int16_bytes):
@@ -221,8 +219,14 @@ class AsrEngine:
             else:
                 await self._drive_utterance(send, data)
         if self._mode == "always_stream":
-            if self._utt_text:
-                await send(self._result_event(self._utt_text))
+            if self._stream is not None and self._pending.strip():
+                try:
+                    final = await loop.run_in_executor(None, self._stream.end)
+                except Exception:
+                    final = ""
+                self._stream = None
+                if final.strip():
+                    await send(self._result_event(final))
         elif self._stream is not None:
             await self._finalize(send)
 
@@ -309,70 +313,71 @@ class AsrEngine:
                 "durationMs": int(self._sample_cursor / TARGET_RATE * 1000),
                 "recognitionTimeMs": 0}
 
-    async def _flush_and_restart(self, send):
-        """Flush any un-punctuated pending text as a final, then restart the stream
-        (abort + reopen) — bounds context/VRAM and recovers cleanly during silence."""
-        if self._utt_text:
-            await send(self._result_event(self._utt_text))
+    async def _end_and_reopen(self, send):
+        """Pause-cut: end() the stream to flush the COMPLETE held tail, emit it as the
+        result, then open a fresh stream. Audio arriving during the ~1s end() backs up in
+        _audio_q and feeds the new stream after — no leading loss. Per-stream backpressure
+        counters reset (end()'s flushed tokens aren't counted via drain())."""
+        loop = asyncio.get_running_loop()
         try:
-            self._stream.abort()
-        except Exception:
-            pass
+            final = await loop.run_in_executor(None, self._stream.end)
+        except Exception:                                # end() failed -> drop this final, still recover
+            final = ""
+        if final.strip():
+            await send(self._result_event(final))
         self._stream = self._backend.open_stream()
         self._pending = ""
-        self._utt_text = ""
-        self._silence_samples = 0
-        self._stream_speech_samples = 0
+        self._speech_samples = 0
+        self._fed_s = 0.0
+        self._delta_count = 0
 
     async def _drive_always(self, send, int16_bytes):
-        """Always-stream: feed every buffer (no gating); VAD only for the speech-start cue
-        + the long-silence restart; drain -> accumulate -> cut finals on sentence punctuation."""
-        from .voxtral_stream import split_sentences
+        """Always-stream: feed every buffer (no gating); cut a final on silero's endpoint
+        (the falling edge, governed by the user's min_silence_duration) — or a 20s run-on
+        cap — via end()+reopen, which flushes the COMPLETE held tail. Continuous feed means
+        no leading loss."""
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         self._sample_cursor += len(samples)
         self._fed_s += len(samples) / TARGET_RATE
         self._stream.feed(samples)                       # continuous, never gated
         try:
-            had_speech, rising = self._vad_state(samples)
-        except Exception:                                # VAD failure -> degrade gracefully
-            had_speech, rising = True, False             # assume speech; punctuation finals still work
+            had_speech, rising, falling = self._vad_state(samples)
+        except Exception:                                # VAD failure -> assume speech, no edges
+            had_speech, rising, falling = True, False, False
         if rising:
             await send({"type": "speech_start"})
         if had_speech:
-            self._silence_samples = 0
-            self._stream_speech_samples += len(samples)
-        else:
-            self._silence_samples += len(samples)
+            self._speech_samples += len(samples)
         deltas = self._stream.drain()
         self._delta_count += len(deltas)
         if deltas:
             self._pending += "".join(deltas)
-            sentences, remainder = split_sentences(self._pending)
-            for s in sentences:
-                await send(self._result_event(s))
-            self._pending = remainder
-            # _utt_text is _pending stripped for the partial display + flush; _pending keeps the raw text for split_sentences.
-            self._utt_text = remainder.strip()
-            await send({"type": "partial", "text": self._utt_text})
-        if getattr(self._stream, "aborted", False):      # generate died -> self-heal: flush + restart
-            await self._flush_and_restart(send)
-            return
-        if self._silence_samples >= int(2.5 * TARGET_RATE):
-            await self._flush_and_restart(send)
-        elif self._stream_speech_samples >= 4 * 60 * TARGET_RATE and not self._pending:
-            await self._flush_and_restart(send)
-        lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up
-        if self._mode == "always_stream" and lag > 3.0:
-            if self._utt_text:
-                await send(self._result_event(self._utt_text))
+            await send({"type": "partial", "text": self._pending.strip()})
+        if getattr(self._stream, "aborted", False):      # generate died -> salvage + reopen
+            if self._pending.strip():
+                await send(self._result_event(self._pending))
             try:
                 self._stream.abort()
             except Exception:
                 pass
-            self._stream = None                               # per-utterance opens on next VAD start
+            self._stream = self._backend.open_stream()
+            self._pending = ""; self._speech_samples = 0
+            self._fed_s = 0.0; self._delta_count = 0
+            return
+        if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._pending.strip():
+            await self._end_and_reopen(send)
+            return
+        lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up
+        if self._mode == "always_stream" and lag > 3.0:
+            if self._pending.strip():
+                await send(self._result_event(self._pending))
+            try:
+                self._stream.abort()
+            except Exception:
+                pass
+            self._stream = None
             self._mode = "per_utterance"
             self._pending = ""
-            self._utt_text = ""
 
     def resolves_to_streaming(self, model_id, device):
         """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
