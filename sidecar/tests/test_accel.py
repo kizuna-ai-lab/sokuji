@@ -445,3 +445,46 @@ def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
         assert rtf is not None and rtf < 1.0, f"speech-LLM should be faster than realtime on GPU, rtf={rtf}"
     finally:
         backend.unload()
+
+
+def test_voxtral_realtime_gated_on_voxtral_realtime_module(monkeypatch):
+    import importlib.util as iu
+    from sokuji_sidecar import accel
+    real = iu.find_spec
+
+    def absent(name, *a, **k):
+        if name == "transformers.models.voxtral_realtime":
+            return None
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", absent)
+    assert "voxtral_realtime" not in accel._installed()
+
+    def present(name, *a, **k):
+        if name == "transformers.models.voxtral_realtime":
+            return object()
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
+    assert "voxtral_realtime" in accel._installed()
+
+
+def test_voxtral_resolves_gpu_on_nvidia_with_runtime():
+    from sokuji_sidecar import accel, catalog
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"voxtral_realtime", "transformers"}),
+                      fingerprint="testfp")
+    plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
+    assert [p.device for p in plans] == ["cuda"]
+    assert plans[0].backend == "voxtral_realtime" and plans[0].compute_type == "bfloat16"
+
+
+def test_voxtral_model_unavailable_without_runtime():
+    from sokuji_sidecar import accel, catalog
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),  # no voxtral_realtime
+                      fingerprint="testfp")
+    plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
+    assert plans == []     # GPU-only + runtime absent → no usable deployment

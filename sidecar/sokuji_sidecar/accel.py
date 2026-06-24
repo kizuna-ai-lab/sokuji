@@ -66,7 +66,10 @@ def _installed() -> frozenset:
             "qwen3asr": "transformers.models.qwen3_asr",
             # cohere_transformers needs the native cohere_asr model (mainline since
             # transformers 5.4); present in our 5.13 venv. Same self-gate as qwen3asr.
-            "cohere_transformers": "transformers.models.cohere_asr"}
+            "cohere_transformers": "transformers.models.cohere_asr",
+            # voxtral_realtime needs the native voxtral_realtime model (transformers >=5.2;
+            # present in our 5.13 fork). Same self-gate as qwen3asr/cohere.
+            "voxtral_realtime": "transformers.models.voxtral_realtime"}
     return frozenset(b for b, mod in mods.items() if _has_mod(mod))
 
 
