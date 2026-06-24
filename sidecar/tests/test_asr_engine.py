@@ -569,32 +569,40 @@ def test_asr_init_offline_path_unchanged():
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (uses cached Voxtral-Mini-4B-Realtime; needs CUDA)")
 def test_streaming_end_to_end_real_gpu():
-    import glob, wave, asyncio
+    import wave, asyncio, glob
     from huggingface_hub import snapshot_download
     snapshot_download("mistralai/Voxtral-Mini-4B-Realtime-2602",
                       ignore_patterns=["consolidated.safetensors", "*.gitattributes"])
-    eng = AsrEngine()
-    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en",
-                       sample_rate=16000, device="cuda")
-    wav = glob.glob(os.path.expanduser(
-        "~/.cache/huggingface/hub/models--csukuangfj--sherpa-onnx-sense-voice*/snapshots/*/test_wavs/en.wav"))[0]
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    wav = os.path.join(root, "benchmark", "test-speech-silence-speech.wav")
+    if not os.path.exists(wav):
+        wav = glob.glob(os.path.expanduser(
+            "~/.cache/huggingface/hub/models--csukuangfj--sherpa-onnx-sense-voice*/snapshots/*/test_wavs/en.wav"))[0]
     w = wave.open(wav)
+    sr = w.getframerate()
     pcm = w.readframes(w.getnframes())
+    eng = AsrEngine()
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="cuda")
+    opens = {"n": 0}
+    _orig = eng._backend.open_stream
+    eng._backend.open_stream = lambda: (opens.__setitem__("n", opens["n"] + 1) or _orig())
     sent = []
     async def send(m): sent.append(m)
+    step = int(0.1 * sr) * 2     # 100ms of int16 bytes
     async def feeder():
-        for i in range(0, len(pcm), 3200):       # ~100ms @16k int16
-            eng.feed_stream(pcm[i:i + 3200])
-            await asyncio.sleep(0.1)              # realtime pacing so partials emerge
-        eng.feed_stream(None)                     # end-of-stream sentinel
+        for i in range(0, len(pcm), step):
+            eng.feed_stream(pcm[i:i + step])
+            await asyncio.sleep(0.1)
+        eng.feed_stream(None)
     async def drive():
         await asyncio.gather(feeder(), eng.run_stream(send))
     asyncio.run(drive())
-    types_seen = [m["type"] for m in sent]
-    assert "speech_start" in types_seen and "partial" in types_seen
-    results = [m for m in sent if m["type"] == "result"]
-    assert results and results[-1]["text"].strip()
-    print(f"streaming e2e: {types_seen.count('partial')} partials, final={results[-1]['text']!r}")
+    results = [m["text"] for m in sent if m["type"] == "result"]
+    full = " ".join(results).lower()
+    assert results, "no finals produced"
+    assert "ask" in full and "country" in full, f"unexpected: {results!r}"   # first word present, no leading loss
+    print(f"always-stream e2e: {len([m for m in sent if m['type']=='partial'])} partials, "
+          f"{len(results)} finals, restarts(open_stream calls)={opens['n']}")
     eng.close()
 
 
