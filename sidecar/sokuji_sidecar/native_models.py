@@ -42,6 +42,11 @@ def download_specs(model_id):
         return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
     if model_id == "cohere-transcribe-03-2026":
         return {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
+    if model_id == "voxtral-mini-4b-realtime":
+        # Repo ships model.safetensors (HF, needed) + consolidated.safetensors (Mistral
+        # format, 8.86GB, unused by transformers) — skip the duplicate.
+        return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
+                "ignore": ["consolidated.safetensors"]}
     return {"repos": [model_id], "urls": []}
 
 
@@ -57,10 +62,11 @@ def model_size(model_id):
     specs = download_specs(model_id)
     total = 0
     api = HfApi()
+    ignore = set(specs.get("ignore", []))
     for repo in specs["repos"]:
         try:
             info = api.repo_info(repo, files_metadata=True)
-            total += sum((s.size or 0) for s in (info.siblings or []))
+            total += sum((s.size or 0) for s in (info.siblings or []) if s.rfilename not in ignore)
         except Exception:
             pass
     total += len(specs["urls"]) * _SILERO_VAD_BYTES
@@ -151,10 +157,11 @@ async def download(model_id, send, should_cancel=None):
     cancelled = (lambda: bool(should_cancel and should_cancel()))
     specs = download_specs(model_id)
     api = HfApi()
+    ignore = set(specs.get("ignore", []))
     files = []
     for repo in specs["repos"]:
         try:
-            files.extend((repo, f) for f in api.list_repo_files(repo))
+            files.extend((repo, f) for f in api.list_repo_files(repo) if f not in ignore)
         except Exception:
             pass
     # Never report a no-op download as success: if a model declares repos but none
