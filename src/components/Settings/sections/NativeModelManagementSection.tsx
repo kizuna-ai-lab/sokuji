@@ -155,8 +155,8 @@ const NativeModelCard: React.FC<{
               <button
                 className="model-card__btn model-card__btn--download"
                 onClick={(e) => { e.stopPropagation(); download(spec.downloadId as string); }}
-                disabled={disabled}
-                title={t('models.download', 'Download')}
+                disabled={disabled || hwGated}
+                title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
               >
                 <Download size={14} />
                 <span>{t('models.download', 'Download')}</span>

@@ -267,6 +267,7 @@ export function autoSelectNative(
   current: NativeSelection,
   isDownloaded: (downloadId: string | null) => boolean,
   recalled?: Partial<NativeSelection> | null,
+  isHardwareGated: (downloadId: string | null) => boolean = () => false,
 ): Partial<NativeSelection> | null {
   let { asrModel, translationModel, ttsModel } = current;
   const input = { asrModel, translationModel, ttsModel };
@@ -280,11 +281,15 @@ export function autoSelectNative(
 
   const updates: Partial<NativeSelection> = {};
 
-  // 2+3. ASR — compatible with src (cards are pre-filtered) and downloaded
+  // 2+3. ASR — compatible with src (cards are pre-filtered), downloaded, AND runnable
+  // on this machine. A GPU-only model on a CPU-only box is hardware-gated; auto-selecting
+  // it passes readiness but then resolves to NoUsablePlan and fails at Start, so skip it.
   const asrCards = nativeAsrCards(src);
+  const asrUsable = (c: { downloadId: string | null }) =>
+    isDownloaded(c.downloadId) && !isHardwareGated(c.downloadId);
   const curAsr = asrCards.find((c) => c.selectId === asrModel);
-  if (!(curAsr && isDownloaded(curAsr.downloadId))) {
-    const best = asrCards.find((c) => isDownloaded(c.downloadId));
+  if (!(curAsr && asrUsable(curAsr))) {
+    const best = asrCards.find(asrUsable);
     const newId = best?.selectId ?? '';
     if (newId !== asrModel) updates.asrModel = newId;
   }

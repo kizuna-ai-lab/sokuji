@@ -152,6 +152,23 @@ describe('nativeCatalog', () => {
         { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
+
+    const gatesCohere = (id: string | null) => id === 'cohere-transcribe-03-2026';
+
+    it('never auto-selects a downloaded but hardware-gated ASR (GPU-only on a CPU box)', () => {
+      // cohere (GPU-only, sorted first) + sense-voice both downloaded, but cohere is gated
+      // here → must pick sense-voice, never the unrunnable cohere.
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: '' }),
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen'), null, gatesCohere);
+      expect(r?.asrModel).toBe('sense-voice');
+    });
+
+    it('reconciles away a remembered ASR that is now hardware-gated', () => {
+      // the current selection IS the GPU-only cohere but this machine can't run it → replace it
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'cohere-transcribe-03-2026' }),
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen'), null, gatesCohere);
+      expect(r?.asrModel).toBe('sense-voice');
+    });
   });
 
   it('exposes Granite speech-LLM ASR options with language-specific gating', () => {
