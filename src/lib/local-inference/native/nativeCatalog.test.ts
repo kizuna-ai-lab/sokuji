@@ -72,14 +72,14 @@ describe('nativeCatalog', () => {
     expect(nativeTtsCards('ja')).toHaveLength(0);
   });
 
-  it('includes whisper-large-v3 as an available, non-recommended ASR option', () => {
+  it('includes whisper-large-v3 as the recommended multilingual ASR option', () => {
     const lv3 = NATIVE_ASR.find((m) => m.id === 'whisper-large-v3');
     expect(lv3).toBeTruthy();
     expect(lv3!.languages).toEqual(['multi']);
-    expect(lv3!.recommended).toBeFalsy();
-    // whisper-base stays the recommended multilingual fallback (CPU-real-time)
-    expect(NATIVE_ASR.find((m) => m.id === 'whisper-base')!.recommended).toBe(true);
-    // a non-sense-voice language still leads with cohere (now recommended, sortOrder 0)
+    expect(lv3!.recommended).toBe(true);
+    // base is the light multilingual rung but no longer the recommended one
+    expect(NATIVE_ASR.find((m) => m.id === 'whisper-base')!.recommended).toBeFalsy();
+    // a non-sense-voice language still leads with cohere (recommended, sortOrder 0)
     expect(compatibleNativeAsr('de')[0].id).toBe('cohere-transcribe-03-2026');
   });
 

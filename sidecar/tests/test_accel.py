@@ -165,8 +165,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
         {"tier": "gpu-cuda", "backend": "funasr_sensevoice", "available": False},
         {"tier": "cpu", "backend": "funasr_sensevoice", "available": True},
     ]
-    assert by_id["whisper-large-v3"]["recommended"] is False
-    assert by_id["whisper-base"]["recommended"] is True
+    assert by_id["whisper-large-v3"]["recommended"] is True
+    assert by_id["whisper-base"]["recommended"] is False
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
