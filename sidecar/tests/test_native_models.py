@@ -174,3 +174,65 @@ def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
     # stale leftover: the finalized blob has since landed → ignore the orphan .incomplete
     (blobs / "def456").write_text("now finalized")
     assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+
+
+def test_download_specs_voxtral_skips_consolidated():
+    spec = nm.download_specs("voxtral-mini-4b-realtime")
+    assert spec["repos"] == ["mistralai/Voxtral-Mini-4B-Realtime-2602"]
+    assert spec["urls"] == []
+    assert spec["ignore"] == ["consolidated.safetensors"]
+
+
+def test_existing_specs_have_no_ignore_key():
+    # The ignore key is additive: every pre-existing model omits it (consumers use .get).
+    assert "ignore" not in nm.download_specs("cohere-transcribe-03-2026")
+    assert "ignore" not in nm.download_specs("qwen3-asr-1.7b")
+
+
+def test_download_honors_ignore_list(monkeypatch):
+    """The ignore list keeps consolidated.safetensors out of the fetched file set,
+    so transformers' model.safetensors is fetched but the 8.86GB duplicate is not."""
+    import huggingface_hub
+    fetched = []
+
+    class _Api:
+        def list_repo_files(self, repo):
+            return ["model.safetensors", "consolidated.safetensors", "config.json", "tekken.json"]
+
+    monkeypatch.setattr(nm, "download_specs", lambda m: {
+        "repos": ["r"], "urls": [], "ignore": ["consolidated.safetensors"]})
+    monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname: fetched.append(fname))
+
+    async def send(_m):
+        pass
+
+    status = asyncio.run(nm.download("voxtral-mini-4b-realtime", send))
+    assert status == "ready"
+    assert "consolidated.safetensors" not in fetched
+    assert "model.safetensors" in fetched and "tekken.json" in fetched
+
+
+def test_model_size_excludes_ignored_files(monkeypatch):
+    import huggingface_hub
+
+    class _Sib:
+        def __init__(self, name, size):
+            self.rfilename = name
+            self.size = size
+
+    class _Info:
+        siblings = [_Sib("model.safetensors", 8_000_000_000),
+                    _Sib("consolidated.safetensors", 8_000_000_000),
+                    _Sib("config.json", 1000)]
+
+    class _Api:
+        def repo_info(self, repo, files_metadata=False):
+            return _Info()
+
+    monkeypatch.setattr(nm, "download_specs", lambda m: {
+        "repos": ["r"], "urls": [], "ignore": ["consolidated.safetensors"]})
+    monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
+    nm._SIZE_CACHE.clear()
+    assert nm.model_size("voxtral-mini-4b-realtime") == 8_000_001_000  # consolidated excluded

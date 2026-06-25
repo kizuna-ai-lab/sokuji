@@ -11,7 +11,7 @@ SENSE_VOICE_REPO = os.environ.get(
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -65,6 +65,11 @@ ASR_MODELS: list[AsrModel] = [
               "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
              (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
              recommended=True, sort_order=8),
+    AsrModel("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
+             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
+             (Deployment("voxtral_realtime", "gpu-cuda", "bfloat16",
+                         "mistralai/Voxtral-Mini-4B-Realtime-2602", 1.0),),
+             recommended=True, sort_order=9),
 ]
 
 

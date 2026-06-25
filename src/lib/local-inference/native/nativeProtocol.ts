@@ -21,6 +21,7 @@ export interface ResultMsg { type: 'result'; id: number; sampleRate: number; gen
 export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; }
 export interface TranslationMsg { type: 'translation'; id: number; sourceText: string; translatedText: string; inferenceTimeMs: number; }
 export interface SpeechStartMsg { type: 'speech_start'; }
+export interface AsrPartialMsg { type: 'partial'; text: string; }
 export interface AsrResultMsg { type: 'result'; text: string; startSample?: number; durationMs: number; recognitionTimeMs: number; }
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
@@ -29,4 +30,4 @@ export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number;
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
 export type ModelDownloadStatus = 'ready' | 'cancelled';
 export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: string; status: ModelDownloadStatus; }
-export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg;
+export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg;

@@ -1,4 +1,7 @@
-import os, time
+import asyncio
+import os
+import queue
+import time
 import numpy as np
 
 TARGET_RATE = 16000
@@ -109,7 +112,23 @@ class AsrEngine:
 
     def close(self):
         """Free the loaded ASR model and its GPU memory. Idempotent — called at the start
-        of each init() and when a session connection closes, so VRAM never accumulates."""
+        of each init() and when a session connection closes, so VRAM never accumulates.
+        Also ends any open streaming session (its generate thread holds an independent
+        model reference that unload() alone cannot reclaim)."""
+        self._stop = True
+        stream = getattr(self, "_stream", None)
+        if stream is not None:
+            try:
+                stream.abort()
+            except Exception:
+                pass
+            self._stream = None
+        q = getattr(self, "_audio_q", None)   # unblock run_stream's queue.get promptly
+        if q is not None:
+            try:
+                q.put_nowait(None)
+            except Exception:
+                pass
         backend = self._backend
         self._backend = None
         if backend is not None:
@@ -150,14 +169,304 @@ class AsrEngine:
         self._vad.flush()
         return self._drain()
 
+    # ── Streaming branch (STREAMING backends only; offline path above is unchanged) ──
+
+    def is_streaming(self):
+        return bool(getattr(self._backend, "STREAMING", False))
+
+    def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE,
+                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+        """Like init(), but for a STREAMING backend: resolve+load, set up VAD for
+        endpointing, and prepare the audio queue + always-stream state (default mode)."""
+        import queue as _queue
+        self.close()
+        self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
+        self._backend = self._resolve_streaming_backend(model_id, device)
+        self._language = language or None
+        self._audio_q = _queue.Queue()
+        self._mode = "always_stream"
+        self._stream = self._backend.open_stream()   # always-stream: one long-lived session
+        self._pending = ""           # text drained since the last cut (the partial)
+        self._partial_acc = []       # per-utterance fallback accumulator
+        self._utt_start_sample = 0
+        self._sample_cursor = 0
+        self._utt_samples = 0        # per-utterance fallback (its own cap)
+        self._speech_samples = 0     # speech in the current stream (20s run-on cap)
+        self._fed_s = 0.0            # audio seconds fed to the current stream (backpressure)
+        self._delta_count = 0        # tokens drained from the current stream (backpressure)
+        self._stop = False
+
+    def feed_stream(self, int16_bytes):
+        """Non-blocking: hand raw audio to the streaming loop (called from on_binary).
+        Returns [] — streaming events are pushed asynchronously by run_stream, so there
+        is nothing to send synchronously from the _conn feeder loop."""
+        self._audio_q.put_nowait(int16_bytes)
+        return []
+
+    async def run_stream(self, send):
+        """The asyncio streaming loop (Approach A). Owns VAD endpointing, the stream
+        session lifecycle, and pushes speech_start/partial/result via `send`."""
+        loop = asyncio.get_running_loop()
+        while not self._stop:
+            try:
+                data = await loop.run_in_executor(None, self._audio_q.get, True, 0.1)
+            except queue.Empty:
+                continue
+            if data is None:
+                break
+            if self._mode == "always_stream":
+                await self._drive_always(send, data)
+            else:
+                await self._drive_utterance(send, data)
+        if self._mode == "always_stream":
+            # Flush the last stream if it saw speech (its tail text may still be held by the
+            # model with _pending empty) — gating on speech, not _pending, mirrors the pause-cut.
+            if self._stream is not None and self._speech_samples > 0:
+                try:
+                    final = await loop.run_in_executor(None, self._stream.end)
+                except Exception:
+                    final = ""
+                self._stream = None
+                if final.strip():
+                    await send(self._result_event(final))
+        elif self._stream is not None:
+            await self._finalize(send)
+
+    async def _drive_utterance(self, send, int16_bytes):
+        """Process one audio buffer: VAD → manage session → emit events. Factored so
+        tests can call _drive_once with scripted VAD. Feeds the buffer to the stream
+        ONCE per call — a single buffer spans several VAD windows, so feeding per-event
+        would duplicate the audio and scramble the streaming model's features."""
+        samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
+        events = self._vad_events(samples)
+        if "start" in events:
+            # Defensive: in practice _stream is already None here (an "end" precedes every
+            # "start", and degrade nulls it) — abort + reopen guards against a stale stream
+            # from any source.
+            if self._stream is not None:
+                try:
+                    self._stream.abort()
+                except Exception:
+                    pass
+                self._stream = None
+                self._partial_acc = []
+            self._utt_start_sample = self._sample_cursor
+            self._stream = self._backend.open_stream()
+            await send({"type": "speech_start"})
+        if self._stream is not None and "speech" in events:
+            self._stream.feed(samples)
+            deltas = self._stream.drain()
+            if deltas:
+                self._partial_acc += deltas
+                await send({"type": "partial", "text": "".join(self._partial_acc)})
+        if "end" in events and self._stream is not None:
+            await self._finalize(send)
+        self._sample_cursor += len(samples)
+
+    async def _finalize(self, send):
+        import time as _time
+        t0 = _time.time()
+        loop = asyncio.get_running_loop()
+        final = await loop.run_in_executor(None, self._stream.end)
+        dur_ms = int((self._sample_cursor - self._utt_start_sample) / TARGET_RATE * 1000)
+        if final.strip():
+            await send({"type": "result", "text": final.strip(),
+                        "startSample": int(self._utt_start_sample),
+                        "durationMs": dur_ms,
+                        "recognitionTimeMs": int((_time.time() - t0) * 1000)})
+        self._stream = None
+        self._partial_acc = []
+
+    async def _drive_once(self, send):
+        """Test seam: drive exactly the buffers currently queued, once."""
+        while not self._audio_q.empty():
+            data = self._audio_q.get_nowait()
+            if self._mode == "always_stream":
+                await self._drive_always(send, data)
+            else:
+                await self._drive_utterance(send, data)
+
+    def _vad_state(self, samples):
+        """Run silero VAD over `samples` for STATE only (always-stream): return
+        (had_speech, rising, falling). `falling` = silero's endpoint (is_speech_detected
+        True->False this buffer), governed by the user's min_silence_duration. Does not
+        gate input."""
+        had_speech = False
+        rising = False
+        falling = False
+        self._buf = np.concatenate([self._buf, samples])
+        while len(self._buf) >= self._window:
+            was = self._vad.is_speech_detected()
+            self._vad.accept_waveform(self._buf[:self._window])
+            self._buf = self._buf[self._window:]
+            now = self._vad.is_speech_detected()
+            if now:
+                had_speech = True
+            if not was and now:
+                rising = True
+            if was and not now:
+                falling = True
+        return had_speech, rising, falling
+
+    def _result_event(self, text):
+        """A `result` envelope. startSample/durationMs are approximate in always-stream."""
+        return {"type": "result", "text": text.strip(),
+                "startSample": int(self._utt_start_sample),
+                "durationMs": int(self._sample_cursor / TARGET_RATE * 1000),
+                "recognitionTimeMs": 0}
+
+    async def _end_and_reopen(self, send):
+        """Pause-cut: end() the stream to flush the COMPLETE held tail, emit it as the
+        result, then open a fresh stream. Audio arriving during the ~1s end() backs up in
+        _audio_q and feeds the new stream after — no leading loss. Per-stream backpressure
+        counters reset (end()'s flushed tokens aren't counted via drain())."""
+        loop = asyncio.get_running_loop()
+        try:
+            final = await loop.run_in_executor(None, self._stream.end)
+        except Exception:                                # end() failed -> drop this final, still recover
+            final = ""
+        if final.strip():
+            await send(self._result_event(final))
+        self._stream = self._backend.open_stream()
+        self._pending = ""
+        self._speech_samples = 0
+        self._fed_s = 0.0
+        self._delta_count = 0
+
+    async def _drive_always(self, send, int16_bytes):
+        """Always-stream: feed every buffer (no gating); cut a final on silero's endpoint
+        (the falling edge, governed by the user's min_silence_duration) — or a 20s run-on
+        cap — via end()+reopen, which flushes the COMPLETE held tail. Continuous feed means
+        no leading loss."""
+        samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
+        self._sample_cursor += len(samples)
+        self._fed_s += len(samples) / TARGET_RATE
+        self._stream.feed(samples)                       # continuous, never gated
+        try:
+            had_speech, rising, falling = self._vad_state(samples)
+        except Exception:                                # VAD failure -> assume speech, no edges
+            had_speech, rising, falling = True, False, False
+        if rising:
+            await send({"type": "speech_start"})
+        if had_speech:
+            self._speech_samples += len(samples)
+        deltas = self._stream.drain()
+        self._delta_count += len(deltas)
+        if deltas:
+            self._pending += "".join(deltas)
+            await send({"type": "partial", "text": self._pending.strip()})
+        if getattr(self._stream, "aborted", False):      # generate died -> salvage + reopen
+            if self._pending.strip():
+                await send(self._result_event(self._pending))
+            try:
+                self._stream.abort()
+            except Exception:
+                pass
+            self._stream = self._backend.open_stream()
+            self._pending = ""; self._speech_samples = 0
+            self._fed_s = 0.0; self._delta_count = 0
+            return
+        # Cut on the silero endpoint (or the run-on cap) whenever this stream has SEEN SPEECH —
+        # NOT when _pending has text. The model can hold a short utterance's text until end(),
+        # so gating on _pending would drop/merge short or slow-first-token utterances. end()
+        # flushes the held text and _end_and_reopen's `if final.strip()` skips truly-empty finals.
+        if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._speech_samples > 0:
+            await self._end_and_reopen(send)
+            return
+        lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up
+        if self._mode == "always_stream" and lag > 3.0:
+            if self._pending.strip():
+                await send(self._result_event(self._pending))
+            try:
+                self._stream.abort()
+            except Exception:
+                pass
+            self._stream = None
+            self._mode = "per_utterance"
+            self._pending = ""
+
+    def resolves_to_streaming(self, model_id, device):
+        """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
+
+        Instantiates a bare backend object (no load()) and reads its STREAMING class flag.
+        Only the top-ranked plan is checked. Returns False on any resolution error so the
+        caller can safely fall back to the offline path."""
+        from . import accel, backends
+        try:
+            plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+        except Exception:
+            return False
+        if not plans:
+            return False
+        try:
+            # make_backend() instantiates the class — no model load, no I/O.
+            obj = backends.make_backend(plans[0].backend)
+            return bool(getattr(obj, "STREAMING", False))
+        except Exception:
+            return False
+
+    def _resolve_streaming_backend(self, model_id, device):
+        from . import accel
+        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
+        backend, _plan, _notice = accel.load_with_fallback(plans)
+        return backend
+
+    def _vad_events(self, samples):
+        """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while
+        active, 'end' on endpoint (silence) or the 20s max-utterance cap (bounds VRAM)."""
+        events = []
+        cap = 20 * TARGET_RATE
+        self._buf = np.concatenate([self._buf, samples])
+        while len(self._buf) >= self._window:
+            was = self._vad.is_speech_detected()
+            self._vad.accept_waveform(self._buf[:self._window])
+            self._buf = self._buf[self._window:]
+            now = self._vad.is_speech_detected()
+            if not was and now:
+                self._utt_samples = 0
+                events.append("start")
+            if now:
+                self._utt_samples += self._window
+                events.append("speech")
+                if self._utt_samples >= cap:          # force endpoint to bound VRAM
+                    events.append("end")
+                    self._utt_samples = 0
+            if was and not now:
+                events.append("end")
+        return events
+
 
 async def _h_asr_init(state, msg, _b, conn=None):
+    import asyncio
     eng = state["asr_engine"]
-    ms = eng.init(msg.get("model"), msg.get("language", ""), msg.get("sampleRate", SRC_RATE),
-                  msg.get("vadThreshold"), msg.get("vadMinSilenceDuration"),
-                  msg.get("vadMinSpeechDuration"), msg.get("device", "auto"))
-    if conn is not None:
-        conn.ctx["on_binary"] = eng.feed   # route subsequent binary frames to the recognizer
+    model = msg.get("model")
+    device = msg.get("device", "auto")
+    language = msg.get("language", "")
+    sample_rate = msg.get("sampleRate", SRC_RATE)
+    vad_threshold = msg.get("vadThreshold")
+    vad_min_silence = msg.get("vadMinSilenceDuration")
+    vad_min_speech = msg.get("vadMinSpeechDuration")
+
+    # Cheap pre-check: resolve the backend NAME without loading the model, then read
+    # its STREAMING flag. This ensures each branch loads the model exactly once.
+    is_streaming = (hasattr(eng, "resolves_to_streaming")
+                    and eng.resolves_to_streaming(model, device))
+
+    if is_streaming:
+        # Streaming path: init_streaming resolves+loads the backend once.
+        eng.init_streaming(model, language, sample_rate,
+                           vad_threshold, vad_min_silence, vad_min_speech, device)
+        if conn is not None:
+            conn.ctx["on_binary"] = eng.feed_stream
+            conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
+        ms = 0
+    else:
+        # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
+        ms = eng.init(model, language, sample_rate,
+                      vad_threshold, vad_min_silence, vad_min_speech, device)
+        if conn is not None:
+            conn.ctx["on_binary"] = eng.feed
+
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(eng, "resolved", None)
     if resolved:

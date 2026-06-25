@@ -118,4 +118,17 @@ describe('NativeAsrClient', () => {
     expect(starts).toBe(1);
     expect(results).toEqual(['hi']);
   });
+
+  it('dispatches partial → onPartialResult and id-less result → onResult', () => {
+    const c = new NativeAsrClient();
+    const partials: string[] = [];
+    const finals: string[] = [];
+    c.onPartialResult = (t) => partials.push(t);
+    c.onResult = (r) => finals.push(r.text);
+    // reach the private onMessage via the same path the WS uses
+    (c as any).onMessage(JSON.stringify({ type: 'partial', text: 'he llo' }));
+    (c as any).onMessage(JSON.stringify({ type: 'result', text: 'hello world', durationMs: 1000, recognitionTimeMs: 50 }));
+    expect(partials).toEqual(['he llo']);
+    expect(finals).toEqual(['hello world']);
+  });
 });

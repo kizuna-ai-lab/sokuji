@@ -279,3 +279,72 @@ class CohereTransformersBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+@register_backend
+class VoxtralRealtimeBackend:
+    """Voxtral Mini 4B Realtime via native transformers
+    (VoxtralRealtimeForConditionalGeneration). model_ref is the HF repo; GPU-tier (bf16),
+    loaded with .to(device) (no accelerate). Phase 1 runs the STREAMING model OFFLINE: one
+    whole VAD segment per generate() — audio-only input, transcript-only output (no chat
+    template, no prompt slice). Multilingual auto-detect, so the language arg is recorded,
+    not passed. The processor's tokenizer is mistral_common's, which ignores
+    local_files_only; so load() resolves the snapshot DIR and loads the processor from it."""
+    NAME = "voxtral_realtime"
+    STREAMING = True
+
+    def __init__(self):
+        self._model = None
+        self._proc = None
+        self._device = "cpu"
+        self._dtype = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._proc = None
+        if device == "cpu":
+            raise BackendLoadError("voxtral_realtime is GPU-only")
+        try:
+            import torch
+            from huggingface_hub import snapshot_download
+            from transformers import VoxtralRealtimeForConditionalGeneration, AutoProcessor
+            self._dtype = torch.bfloat16 if compute_type in ("bfloat16", "auto") else torch.float16
+            # mistral_common's tokenizer loader ignores local_files_only / HF_HUB_OFFLINE and
+            # tries to hit the hub; loading from the resolved snapshot DIR makes it read the
+            # cached tekken.json locally. SherpaBackend uses the same dir-resolve idiom.
+            d = snapshot_download(model_ref, local_files_only=True)
+            self._proc = AutoProcessor.from_pretrained(d)
+            self._model = VoxtralRealtimeForConditionalGeneration.from_pretrained(
+                d, dtype=self._dtype, local_files_only=True).to(device).eval()
+            self._device = device
+        except Exception as e:  # missing voxtral_realtime module, no CUDA, OOM → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        import torch
+        inp = self._proc(samples, sampling_rate=TARGET_RATE, return_tensors="pt").to(self._device)
+        if "input_features" in inp:  # features are float32, model is bf16
+            inp["input_features"] = inp["input_features"].to(self._dtype)
+        with torch.inference_mode():
+            out = self._model.generate(**inp, do_sample=False)  # audio-derived auto-length
+        text = self._proc.batch_decode(out, skip_special_tokens=True)[0]
+        return AsrResult(text.strip(), language)
+
+    def unload(self) -> None:
+        self._model = None
+        self._proc = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    def open_stream(self):
+        if self._model is None:
+            raise BackendLoadError("voxtral_realtime not loaded")
+        from .voxtral_stream import VoxtralRealtimeStream
+        return VoxtralRealtimeStream(self._model, self._proc, self._device, self._dtype)
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None

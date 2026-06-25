@@ -66,8 +66,15 @@ def _installed() -> frozenset:
             "qwen3asr": "transformers.models.qwen3_asr",
             # cohere_transformers needs the native cohere_asr model (mainline since
             # transformers 5.4); present in our 5.13 venv. Same self-gate as qwen3asr.
-            "cohere_transformers": "transformers.models.cohere_asr"}
-    return frozenset(b for b, mod in mods.items() if _has_mod(mod))
+            "cohere_transformers": "transformers.models.cohere_asr",
+            # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
+            # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
+            # both so a half-installed env doesn't advertise it in the catalog then fail at load().
+            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common")}
+
+    def _ready(spec):
+        return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
+    return frozenset(b for b, spec in mods.items() if _ready(spec))
 
 
 def _safe(fn, default):
