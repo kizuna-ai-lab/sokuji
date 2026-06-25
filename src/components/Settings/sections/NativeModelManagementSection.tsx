@@ -223,7 +223,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   useEffect(() => {
     refresh(allDownloadIds);
     refreshSizes(allDownloadIds);
-    refreshCatalog();   // per-machine tier availability for the ASR badges
+    refreshCatalog();   // per-machine tier availability for the ASR + translation badges
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 

@@ -75,7 +75,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   refreshCatalog: async (models) => {
     try {
-      const list = await client.modelsCatalog(models);
+      // ASR and translation are separate catalogs sidecar-side; fetch both so
+      // translation cards get tier badges too. Ids never collide, so they merge
+      // into one map. Both share the same per-machine tier-availability data.
+      const [asr, translate] = await Promise.all([
+        client.modelsCatalog(models, 'asr'),
+        client.modelsCatalog(models, 'translate'),
+      ]);
+      const list = [...asr, ...translate];
       set((s) => ({ catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) } }));
     } catch {
       // best-effort — tier badges are cosmetic; sidecar may be down

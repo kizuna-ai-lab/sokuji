@@ -13,11 +13,16 @@ class FakeWS {
   private emit(o: any) { this.onmessage?.({ data: JSON.stringify(o) }); }
   send(d: any) {
     const msg = JSON.parse(d);
-    if (msg.type === 'models_catalog') queueMicrotask(() =>
-      this.emit({ type: 'models_catalog_result', id: msg.id, models: [
-        { id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
-          tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
-      ] }));
+    if (msg.type === 'models_catalog') {
+      // The sidecar returns ASR or translation models depending on `kind` (default asr).
+      const models = msg.kind === 'translate'
+        ? [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
+             tiers: [{ tier: 'gpu-cuda', backend: 'qwen_translate', available: true },
+                     { tier: 'cpu', backend: 'qwen_translate', available: true }] }]
+        : [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
+             tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] }];
+      queueMicrotask(() => this.emit({ type: 'models_catalog_result', id: msg.id, models }));
+    }
     if (msg.type === 'model_delete') queueMicrotask(() =>
       this.emit({ type: 'model_delete_result', id: msg.id, freed: 0 }));
   }
@@ -60,6 +65,16 @@ describe('nativeModelStore.refreshCatalog', () => {
     const cat = useNativeModelStore.getState().catalog;
     expect(cat['sense-voice']).toMatchObject({ recommended: true });
     expect(cat['sense-voice'].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
+  });
+
+  it('also fetches the translation catalog so translation cards get tier badges', async () => {
+    await useNativeModelStore.getState().refreshCatalog();
+    const cat = useNativeModelStore.getState().catalog;
+    // ASR and translation models coexist (ids never collide) in one catalog map.
+    expect(cat['sense-voice']).toBeTruthy();
+    expect(cat['qwen2.5-0.5b']).toBeTruthy();
+    expect(cat['qwen2.5-0.5b'].tiers).toContainEqual(
+      expect.objectContaining({ tier: 'gpu-cuda', available: true }));
   });
 });
 
