@@ -52,8 +52,10 @@ export class LocalNativeClient implements IClient {
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
-    await this.translate.init(config.sourceLanguage, config.targetLanguage, config.translationModelId);
+    const tr = await this.translate.init(
+      config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice);
     const store = useNativeModelStore.getState();
+    store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu' });
     store.setAsrLoading(true);
     try {
       const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {

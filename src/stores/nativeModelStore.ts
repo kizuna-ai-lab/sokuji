@@ -42,8 +42,11 @@ interface NativeModelStore {
   asrLoading: boolean;
   /** The resolved ASR plan from the last session `ready` (device + measured rtf). */
   asrResolved: { model: string; device: string; rtf?: number } | null;
+  /** The resolved translation plan from the last session `ready` (model + device). */
+  translationResolved: { model: string; device: string } | null;
   setAsrLoading: (v: boolean) => void;
   setAsrResolved: (r: { model: string; device: string; rtf?: number } | null) => void;
+  setTranslationResolved: (r: { model: string; device: string } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
@@ -68,6 +71,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   modelPreferences: {},
   asrLoading: false,
   asrResolved: null,
+  translationResolved: null,
 
   refreshCatalog: async (models) => {
     try {
@@ -170,6 +174,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   setAsrLoading: (v) => set({ asrLoading: v }),
   setAsrResolved: (r) => set({ asrResolved: r }),
+  setTranslationResolved: (r) => set({ translationResolved: r }),
 }));
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
@@ -179,3 +184,4 @@ export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);
+export const useNativeTranslationResolved = () => useNativeModelStore((s) => s.translationResolved);
