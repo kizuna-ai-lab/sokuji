@@ -32,7 +32,7 @@ describe('LocalNativeClient', () => {
       asrModelId: 'sense-voice', translationModelId: 'opus-mt-es-en',
     } as any);
     expect(m.asr.init).toHaveBeenCalled();
-    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'opus-mt-es-en');
+    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'opus-mt-es-en', undefined);
 
     await m.asr.onResult({ text: 'hola', durationMs: 100, recognitionTimeMs: 5 });
     await new Promise((r) => setTimeout(r, 0));
@@ -98,7 +98,7 @@ describe('LocalNativeClient', () => {
   });
 
   it('renders partials as one in-progress item and runs the job only on the final', async () => {
-    const translate = { init: async () => {}, translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
+    const translate = { init: async () => ({ device: 'cpu' }), translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
     const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
     const client = new LocalNativeClient({ asr, translate });
     const items: any[] = [];
@@ -115,7 +115,7 @@ describe('LocalNativeClient', () => {
   });
 
   it('drops the stale partial after clearConversationItems so the next final still lands', async () => {
-    const translate = { init: async () => {}, translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
+    const translate = { init: async () => ({ device: 'cpu' }), translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
     const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
     const client = new LocalNativeClient({ asr, translate });
     client.setEventHandlers({ onConversationUpdated() {}, onOpen() {}, onRealtimeEvent() {} } as any);
@@ -137,7 +137,7 @@ const fakeAsr = () => ({
   init: async () => ({ loadTimeMs: 5, device: 'cuda', rtf: 0.02 }),
   feedAudio() {}, flush: async () => {}, dispose() {},
 });
-const fakeTr = () => ({ onError: null as any, init: async () => {}, translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {} });
+const fakeTr = () => ({ onError: null as any, init: async () => ({ device: 'cpu' }), translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {} });
 const fakeTts = () => ({ init: async () => {}, generate: async () => ({ samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 1 }), dispose() {} });
 
 const cfg: any = {

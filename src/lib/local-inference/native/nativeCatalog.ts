@@ -182,6 +182,13 @@ export function formatRtf(rtf: number): string {
   return `${Math.round(1 / rtf)}× realtime`;
 }
 
+/** Human label for a measured translation throughput. tps 130.5 → "130 tok/s".
+ *  Empty string for a non-positive/invalid value (caller omits the metric). */
+export function formatTps(tps: number): string {
+  if (!(tps > 0) || !Number.isFinite(tps)) return '';
+  return `${Math.round(tps)} tok/s`;
+}
+
 /** Display label for a hardware tier string from the sidecar models_catalog. */
 export function tierLabel(tier: string): { label: string; accel: boolean } {
   switch (tier) {

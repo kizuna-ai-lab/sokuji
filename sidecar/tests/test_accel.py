@@ -245,6 +245,34 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
     assert accel._bench_key(m.fingerprint, "whisper-tiny", "ctranslate2", "cpu", "int8") in cache
 
 
+def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+
+    class _FakeBackend:
+        def __init__(self):
+            self.calls = 0
+
+        def translate(self, text, system_prompt, src, tgt, wrap):
+            self.calls += 1
+            return "bonjour le monde", 12  # 12 "generated" tokens
+
+    m = _machine()
+    plan = accel.Plan("qwen_translate", "gpu-cuda", "cuda", "bfloat16", "repo", 1.0)
+    b = _FakeBackend()
+    tps = accel.measure_tps(b, plan, "qwen2.5-0.5b", m)
+    assert tps is not None and tps > 0
+    assert b.calls == 2  # one warmup pass + one timed pass
+
+    # cached under a 'tps:'-namespaced key so it never collides with RTF entries
+    cache = accel.bench_load()
+    assert any(k.startswith("tps:") for k in cache)
+
+    # second call serves from cache — backend untouched, same value
+    b2 = _FakeBackend()
+    assert accel.measure_tps(b2, plan, "qwen2.5-0.5b", m) == tps
+    assert b2.calls == 0
+
+
 def test_apply_bench_demotes_slow_gpu():
     cpu = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     gpu = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)

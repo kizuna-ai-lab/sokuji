@@ -106,3 +106,12 @@ describe('nativeModelStore asr session channel', () => {
     expect(st.asrResolved).toEqual({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.015 });
   });
 });
+
+describe('nativeModelStore translation session channel', () => {
+  it('tracks the resolved translation plan with measured tokens/sec', () => {
+    const s = useNativeModelStore.getState();
+    s.setTranslationResolved({ model: 'qwen3.5-2b', device: 'cuda', tokensPerSec: 59.4 });
+    expect(useNativeModelStore.getState().translationResolved)
+      .toEqual({ model: 'qwen3.5-2b', device: 'cuda', tokensPerSec: 59.4 });
+  });
+});

@@ -56,13 +56,15 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     fake_plan = MagicMock(backend="qwen_translate", device="cuda", compute_type="bfloat16")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
     monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (fake_backend, fake_plan, None))
+    # Isolate from the real tps benchmark/cache so resolved is deterministic here.
+    monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
 
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="cuda")
     assert eng.resolved == {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
     assert eng._backend is fake_backend
 
-    fake_backend.translate.return_value = "hola->hi"
+    fake_backend.translate.return_value = ("hola->hi", 5)   # (text, generated-token count)
     out, ms = eng.translate("hola", wrap_transcript=True)
     fake_backend.translate.assert_called_once_with("hola", "", "ja", "en", True)
     assert out == "hola->hi" and ms >= 0
@@ -87,7 +89,7 @@ def test_translate_delegates_to_backend_when_loaded():
     eng = translate_engine.TranslateEngine()
     eng._opus = None
     eng._backend = MagicMock()
-    eng._backend.translate.return_value = "translated"
+    eng._backend.translate.return_value = ("translated", 5)   # (text, generated-token count)
     eng._src, eng._tgt = "Japanese", "English"
     out, _ = eng.translate("hello", wrap_transcript=True)
     eng._backend.translate.assert_called_once_with("hello", "", "Japanese", "English", True)

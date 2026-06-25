@@ -25,8 +25,10 @@ def _fake_tok(captured):
 
 def _fake_model():
     model = MagicMock()
+    gen_tokens = MagicMock()
+    gen_tokens.shape = [7]                                       # 7 "generated" tokens → int-able count
     gen_out = MagicMock()
-    gen_out.__getitem__ = MagicMock(return_value=MagicMock())  # out[0]
+    gen_out.__getitem__ = MagicMock(return_value=gen_tokens)     # out[0][slice] → gen_tokens
     model.generate.return_value = [gen_out]
     return model
 
@@ -101,8 +103,9 @@ def test_qwen35_text_only_uses_tokenizer_string_content():
     b._tok = _fake_tok(captured)
     b._model = _fake_model()
     b._device = "cpu"
-    out = b.translate("hi", "", "Japanese", "English", wrap=True)
+    out, n_tokens = b.translate("hi", "", "Japanese", "English", wrap=True)
     assert out == "translated"
+    assert n_tokens == 7                                   # generated-token count for the tps benchmark
     sys_msg = next(m for m in captured if m["role"] == "system")
     user_msg = next(m for m in captured if m["role"] == "user")
     # string content, not the multimodal [{"type": "text", ...}] list form

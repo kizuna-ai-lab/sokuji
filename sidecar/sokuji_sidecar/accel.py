@@ -272,6 +272,41 @@ def measure_rtf(backend, plan, model_id: str, machine: Machine, *, force: bool =
         return None
 
 
+# A fixed sentence for the translation throughput benchmark — long enough that decode
+# dominates the first-token/prompt overhead, short enough to keep init snappy.
+BENCH_TRANSLATE_TEXT = "The weather is lovely today, so I think I will go for a long walk in the park this afternoon."
+BENCH_TRANSLATE_SRC = "English"
+BENCH_TRANSLATE_TGT = "French"
+
+
+def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
+    """Best-effort: after one warmup pass, run a fixed sentence through
+    backend.translate and return decode throughput (generated tokens / elapsed
+    seconds). Cached by the same key shape as measure_rtf, namespaced with a
+    'tps:' prefix so it never collides with the RTF entries. One-time per key
+    unless force. Never raises (returns None).
+
+    The warmup matters: the first generation pays one-time CUDA kernel/graph
+    compilation, so timing it would badly understate steady-state throughput."""
+    try:
+        key = "tps:" + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        cache = bench_load()
+        if not force and key in cache:
+            return cache[key]
+        backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)  # warmup
+        t0 = time.time()
+        _text, n_new = backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)
+        dt = time.time() - t0
+        if dt <= 0 or n_new <= 0:
+            return None
+        tps = n_new / dt
+        cache[key] = tps
+        bench_save(cache)
+        return tps
+    except Exception:
+        return None
+
+
 def _apply_bench(plans: list, bench: dict) -> list:
     """Demote any non-cpu plan whose cached RTF is >= the cpu floor's cached RTF
     (proven not faster than CPU). `bench` maps (backend, device, compute_type) -> rtf."""

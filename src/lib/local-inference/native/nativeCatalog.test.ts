@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -268,5 +268,13 @@ describe('nativeCatalog', () => {
     expect(formatRtf(0.015)).toBe('67× realtime');
     expect(formatRtf(1)).toBe('1× realtime');
     expect(formatRtf(0)).toBe('realtime');
+  });
+
+  it('formatTps renders tokens/sec, empty for invalid', () => {
+    expect(formatTps(130.5)).toBe('131 tok/s');
+    expect(formatTps(59.4)).toBe('59 tok/s');
+    expect(formatTps(0)).toBe('');
+    expect(formatTps(NaN)).toBe('');
+    expect(formatTps(-5)).toBe('');
   });
 });

@@ -55,7 +55,7 @@ class QwenTranslateBackend:
         except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver falls back
             raise BackendLoadError(str(e))
 
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> str:
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
         import torch
         sys_p = system_prompt or _default_prompt(src, tgt)
         if "qwen3" in self._ref.lower():        # Qwen3 thinking-mode off; Qwen2.5 ignores it
@@ -68,7 +68,8 @@ class QwenTranslateBackend:
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True))
+        # Return (text, generated-token count) — the count feeds the tokens/sec benchmark.
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
 
     def unload(self) -> None:
         self._model = None
@@ -111,7 +112,7 @@ class Qwen35TranslateBackend:
         except Exception as e:  # missing qwen3_5 class, no CUDA, OOM → resolver falls back
             raise BackendLoadError(str(e))
 
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> str:
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
         import torch
         sys_p = system_prompt or _default_prompt(src, tgt)   # Qwen3.5 is non-thinking by default
         user = f"<transcript>{text}</transcript>" if wrap else text
@@ -122,7 +123,8 @@ class Qwen35TranslateBackend:
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True))
+        # Return (text, generated-token count) — the count feeds the tokens/sec benchmark.
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
 
     def unload(self) -> None:
         self._model = None

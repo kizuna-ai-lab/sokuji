@@ -55,7 +55,7 @@ export class LocalNativeClient implements IClient {
     const tr = await this.translate.init(
       config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice);
     const store = useNativeModelStore.getState();
-    store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu' });
+    store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec });
     store.setAsrLoading(true);
     try {
       const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {

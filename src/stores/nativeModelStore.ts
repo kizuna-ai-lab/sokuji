@@ -43,10 +43,10 @@ interface NativeModelStore {
   /** The resolved ASR plan from the last session `ready` (device + measured rtf). */
   asrResolved: { model: string; device: string; rtf?: number } | null;
   /** The resolved translation plan from the last session `ready` (model + device). */
-  translationResolved: { model: string; device: string } | null;
+  translationResolved: { model: string; device: string; tokensPerSec?: number } | null;
   setAsrLoading: (v: boolean) => void;
   setAsrResolved: (r: { model: string; device: string; rtf?: number } | null) => void;
-  setTranslationResolved: (r: { model: string; device: string } | null) => void;
+  setTranslationResolved: (r: { model: string; device: string; tokensPerSec?: number } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
