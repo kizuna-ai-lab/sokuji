@@ -113,7 +113,7 @@ TRANSLATE_MODELS: list[TranslateModel] = [
 
 
 def translate_models() -> list[TranslateModel]:
-    return TRANSLATE_MODELS
+    return list(TRANSLATE_MODELS)
 
 
 def translate_model(model_id: str) -> TranslateModel | None:
