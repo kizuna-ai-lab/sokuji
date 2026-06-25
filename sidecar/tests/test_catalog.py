@@ -94,3 +94,33 @@ def test_voxtral_realtime_row():
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")
+
+
+def test_translate_models_have_deployments_and_cpu_floor():
+    for m in catalog.translate_models():
+        assert m.deployments, f"{m.id} has no deployments"
+        assert m.languages, f"{m.id} has no languages"
+        assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} lacks a cpu floor"
+        for d in m.deployments:
+            assert d.backend in {"qwen_translate", "qwen35_translate"}
+
+
+def test_translate_model_ids_unique_and_lookup():
+    ids = [m.id for m in catalog.translate_models()]
+    assert len(ids) == len(set(ids))
+    assert catalog.translate_model("does-not-exist") is None
+
+
+def test_translate_rows_map_to_qwen_repos():
+    expected = {
+        "qwen2.5-0.5b": ("qwen_translate", "Qwen/Qwen2.5-0.5B-Instruct"),
+        "qwen3-0.6b": ("qwen_translate", "Qwen/Qwen3-0.6B"),
+        "qwen3.5-0.8b": ("qwen35_translate", "Qwen/Qwen3.5-0.8B"),
+        "qwen3.5-2b": ("qwen35_translate", "Qwen/Qwen3.5-2B"),
+    }
+    for mid, (backend, repo) in expected.items():
+        m = catalog.translate_model(mid)
+        assert m is not None, f"missing {mid}"
+        tiers = [(d.backend, d.tier, d.compute_type, d.artifact) for d in m.deployments]
+        assert (backend, "gpu-cuda", "bfloat16", repo) in tiers
+        assert (backend, "cpu", "float32", repo) in tiers
