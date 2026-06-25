@@ -28,10 +28,17 @@ echo "[setup] venv python: $($PY --version 2>&1)"
 echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, huggingface_hub) + pytest"
 "$PY" -m pip install -q -r requirements.txt pytest
 
-echo "[setup] stage runtimes: torch (CPU), transformers, sherpa-onnx, faster-whisper"
+# torch: CPU wheel by default. The gpu-cuda tiers (SenseVoice/FunASR, Whisper, the
+# speech-LLMs) need a CUDA build — opt in WITHOUT editing this script via:
+#   TORCH_PACKAGES="torch torchaudio" TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128 bash setup.sh
+# A CPU-only torch makes FunASR silently run SenseVoice on CPU; the backend now rejects
+# the cuda plan in that case, so the resolver correctly falls back to the cpu tier.
+TORCH_PACKAGES="${TORCH_PACKAGES:-torch}"
+TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}"
+echo "[setup] stage runtimes: torch ($TORCH_PACKAGES @ $TORCH_INDEX_URL), transformers, sherpa-onnx, faster-whisper, funasr"
 case "$(uname -s)" in
-  Linux) "$PY" -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu ;;
-  *)     "$PY" -m pip install -q torch ;;
+  Linux) "$PY" -m pip install -q $TORCH_PACKAGES --index-url "$TORCH_INDEX_URL" ;;
+  *)     "$PY" -m pip install -q $TORCH_PACKAGES ;;
 esac
 # transformers→tokenizers + Granite/Qwen3 speech-LLMs; faster-whisper→ASR whisper backend;
 # sacremoses→Marian (opus-mt) tokenizer.

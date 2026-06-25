@@ -5,7 +5,11 @@ from sokuji_sidecar import native_models
 from sokuji_sidecar import server
 
 
-def test_download_specs_mapping():
+def test_download_specs_mapping(monkeypatch):
+    # download_specs honours SOKUJI_ASR_REPO / SOKUJI_TRANSLATE_MODEL overrides; clear
+    # them so the default-repo assertions below are deterministic in any environment.
+    monkeypatch.delenv('SOKUJI_ASR_REPO', raising=False)
+    monkeypatch.delenv('SOKUJI_TRANSLATE_MODEL', raising=False)
     assert nm.download_specs('')['repos'] == [nm.QWEN_REPO]
     assert nm.download_specs('qwen')['repos'] == [nm.QWEN_REPO]
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']

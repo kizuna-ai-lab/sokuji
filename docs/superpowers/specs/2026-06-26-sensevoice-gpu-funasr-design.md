@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-26
 **Branch**: `native-sidecar`
-**Status**: Approved design, pending implementation plan
+**Status**: Implemented (PR #268) — plan at `docs/superpowers/plans/2026-06-26-sensevoice-gpu-funasr.md`
 
 ## Summary
 
@@ -89,11 +89,13 @@ handles benchmarking externally.
 ### 2. Tag stripping
 
 SenseVoice prefixes the transcript with `<|lang|><|emotion|><|event|><|withitn|>`.
-For text-only output, strip every leading `<|...|>` token. Capture the first
-token as the language code for `AsrResult.language` (best-effort; `None` if
-absent). Use `funasr.utils.postprocess_utils.rich_transcription_postprocess`
-when available (it also handles emoji/itn normalization), falling back to a
-simple `re.sub(r"<\|[^|]*\|>", "", text)`.
+For text-only output, `_strip_sensevoice_tags()` removes **every** `<|...|>` token
+(`re.sub(r"<\|[^|]*\|>", "", text)`) so no tag can survive anywhere in the output,
+and captures the first tag as the language code for `AsrResult.language` when it
+looks like a lang code (lowercase; `None` otherwise). We deliberately do **not**
+use `funasr.utils.postprocess_utils.rich_transcription_postprocess` — it converts
+non-neutral emotion/event tags into emoji, which would violate the text-only
+contract.
 
 ### 3. Catalog — `catalog.py`
 
@@ -102,7 +104,7 @@ two FunASR deployments:
 
 ```python
 sense-voice → (
-    Deployment("funasr_sensevoice", "gpu-cuda", "float16", "FunAudioLLM/SenseVoiceSmall", rank=0),
+    Deployment("funasr_sensevoice", "gpu-cuda", "float32", "FunAudioLLM/SenseVoiceSmall", rank=0),
     Deployment("funasr_sensevoice", "cpu",      "float32", "FunAudioLLM/SenseVoiceSmall", rank=1),
 )
 ```
@@ -157,7 +159,7 @@ language)`.
   (`<|en|><|NEUTRAL|><|Speech|><|withitn|>hello`, mixed scripts, empty,
   no-tag) → assert clean text + parsed language.
 - **Backend smoke** (gated on funasr + cuda availability): `load("…/SenseVoiceSmall",
-  "gpu-cuda", "float16")` then `transcribe` a synthetic/canned clip → non-empty
+  "cuda", "float32")` then `transcribe` a synthetic/canned clip → non-empty
   text; repeat with `("cpu","float32")`.
 - **Resolver**: `resolve("sense-voice", override="cpu", machine)` returns the
   cpu FunASR plan first; `override="cuda"` returns gpu-cuda first; `"auto"`
