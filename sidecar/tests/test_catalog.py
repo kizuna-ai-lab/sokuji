@@ -41,7 +41,7 @@ def test_sense_voice_row_has_gpu_and_cpu_funasr():
     m = catalog.asr_model("sense-voice")
     assert m.recommended is True and m.sort_order == 1
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("funasr_sensevoice", "gpu-cuda", "float16"),
+        ("funasr_sensevoice", "gpu-cuda", "float32"),
         ("funasr_sensevoice", "cpu", "float32"),
     ]
     assert all(d.artifact == catalog.SENSE_VOICE_REPO for d in m.deployments)

@@ -14,7 +14,7 @@ POCKET_REPO = "KevinAHM/pocket-tts-web"
 POCKET_SUB = "onnx/english_2026-04"
 TRANSLATE = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 ASR_REPO = os.environ.get(
-    "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    "SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 # silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical
 # file lives in the k2-fsa release (same source family as scripts/download-sherpa-wasm.sh).
 VAD_URL = os.environ.get(
