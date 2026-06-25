@@ -241,3 +241,10 @@ def test_model_size_excludes_ignored_files(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     nm._SIZE_CACHE.clear()
     assert nm.model_size("voxtral-mini-4b-realtime") == 8_000_001_000  # consolidated excluded
+
+
+def test_download_specs_fun_asr_mlt_nano(monkeypatch):
+    monkeypatch.delenv('SOKUJI_FUNASR_NANO_REPO', raising=False)
+    spec = nm.download_specs('fun-asr-mlt-nano')
+    assert spec['repos'] == ['FunAudioLLM/Fun-ASR-MLT-Nano-2512']
+    assert spec['urls'] == []

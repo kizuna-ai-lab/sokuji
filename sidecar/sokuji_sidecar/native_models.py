@@ -10,6 +10,7 @@ from .asr_engine import VAD_URL
 
 QWEN_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
 SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
+FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
 
 def _whisper_size(model_id):
@@ -38,6 +39,8 @@ def download_specs(model_id):
         return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
     if model_id == "sense-voice":
         return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [VAD_URL]}
+    if model_id == "fun-asr-mlt-nano":
+        return {"repos": [FUN_ASR_MLT_REPO], "urls": []}
     if model_id == "qwen3-asr-1.7b":
         return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
     if model_id == "cohere-transcribe-03-2026":
