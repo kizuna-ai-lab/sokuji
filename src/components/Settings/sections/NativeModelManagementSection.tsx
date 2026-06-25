@@ -352,6 +352,40 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       </ModelGroup>
 
       <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
+        <div className="model-group__device-control">
+          <div className="model-group__device-label">
+            {t('models.computeDevice', 'Compute device')}
+            <Tooltip
+              content={t('models.computeDeviceTooltip', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+            </Tooltip>
+          </div>
+          {(() => {
+            const gpuAvail = gpuTierAvailable(catalog);
+            const deviceValue = settings.translationDevice === 'cuda' && !gpuAvail ? 'auto' : settings.translationDevice;
+            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
+              ['auto', t('models.deviceAuto', 'Auto')],
+              ['cpu', t('models.deviceCpu', 'CPU')],
+              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
+            ];
+            return (
+              <div className="segmented-control">
+                {opts.map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
+                    onClick={() => { if (deviceValue !== mode) update({ translationDevice: mode }); }}
+                    disabled={isSessionActive}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
         {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
       </ModelGroup>
 
