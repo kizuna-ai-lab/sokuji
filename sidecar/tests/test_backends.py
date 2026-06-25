@@ -713,8 +713,8 @@ def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
     from huggingface_hub import snapshot_download
     snapshot_download("FunAudioLLM/SenseVoiceSmall")  # populate HF cache
     d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-    w = wave.open(f"{d}/test_wavs/en.wav", "rb")
-    audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    with wave.open(f"{d}/test_wavs/en.wav", "rb") as w:
+        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
     dur = len(audio) / 16000.0
 
     for device in ("cuda", "cpu"):

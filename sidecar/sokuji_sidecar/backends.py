@@ -1,6 +1,7 @@
 """ASR backend adapters: one class per inference framework, all sharing the
 load()/transcribe()/unload() contract. The only code that touches a framework's
 real API. Heavy frameworks are imported lazily inside load()."""
+import re
 from dataclasses import dataclass
 
 
@@ -350,12 +351,10 @@ class VoxtralRealtimeBackend:
         return self._model is not None
 
 
-import re
-
 _SV_TAG = re.compile(r"<\|([^|]*)\|>")
 
 
-def _strip_sensevoice_tags(text):
+def _strip_sensevoice_tags(text: str) -> tuple[str, str | None]:
     """SenseVoice prefixes transcripts with <|lang|><|emotion|><|event|><|withitn|>.
     Return (clean_text, language) for text-only output. The first tag is the
     language code (lowercase, e.g. 'en'); emotion/event tags are not lowercase."""
