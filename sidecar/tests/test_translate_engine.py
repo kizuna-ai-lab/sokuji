@@ -5,8 +5,10 @@ from sokuji_sidecar import server, translate_engine
 
 
 class FakeTranslate:
-    def init(self, model_id=None, source_lang="", target_lang=""):
+    def init(self, model_id=None, source_lang="", target_lang="", device="auto"):
         self.langs = (source_lang, target_lang)
+        self.device = device
+        self.resolved = {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
         return 21
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
@@ -23,7 +25,7 @@ def test_translate_init():
     st = make_state()
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja", "targetLang": "en"})))
-    assert reply == {"type": "ready", "id": 1, "loadTimeMs": 21}
+    assert reply["type"] == "ready" and reply["id"] == 1 and reply["loadTimeMs"] == 21
     assert st["translate_engine"].langs == ("ja", "en")
 
 
@@ -36,129 +38,60 @@ def test_translate_returns_translation():
                      "sourceText": "hola", "translatedText": "<hola>", "inferenceTimeMs": 8}
 
 
-def _make_fake_tok(captured_messages):
-    """Build a fake tokenizer that records the messages list passed to
-    apply_chat_template so tests can assert on user content."""
-    tok = MagicMock()
-    def apply_chat_template(messages, **kw):
-        captured_messages.clear()
-        captured_messages.extend(messages)
-        return "PROMPT"
-    tok.apply_chat_template.side_effect = apply_chat_template
-    tok.return_value = {"input_ids": MagicMock(shape=[1, 5])}
-    tok.side_effect = lambda prompt, **kw: {"input_ids": MagicMock(shape=[1, 5])}
-    return tok
+def test_translate_init_echoes_device_and_resolved():
+    st = make_state()
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja",
+                        "targetLang": "en", "device": "cuda"})))
+    assert reply["type"] == "ready" and reply["id"] == 1 and reply["loadTimeMs"] == 21
+    assert reply["backend"] == "qwen_translate"
+    assert reply["device"] == "cuda"
+    assert reply["computeType"] == "bfloat16"
+    assert st["translate_engine"].device == "cuda"
 
 
-def _make_fake_model():
-    """Build a fake causal LM whose generate() returns a tensor-like object."""
-    model = MagicMock()
-    gen_ids = MagicMock()
-    gen_ids.__getitem__ = lambda self, key: MagicMock()  # out[0][...]
-    model.generate.return_value = [gen_ids]
-    return model
-
-
-def _patch_transformers(captured_messages, tok=None, model=None):
-    """Return a context manager patching AutoTokenizer and AutoModelForCausalLM
-    inside translate_engine so no real model files are needed.  Both fakes
-    accept **kwargs (incl. local_files_only) without complaint."""
-    fake_tok = tok or _make_fake_tok(captured_messages)
-    fake_model = model or _make_fake_model()
-
-    class FakeTokClass:
-        @staticmethod
-        def from_pretrained(mid, **kwargs):
-            return fake_tok
-
-    class FakeModelClass:
-        @staticmethod
-        def from_pretrained(mid, **kwargs):
-            return fake_model
-
-    return patch.multiple(
-        "sokuji_sidecar.translate_engine",
-        **{
-            "__import__": None,  # not used; we patch names directly below
-        }
-    )
-
-
-def test_opus_to_qwen_switch_clears_opus(monkeypatch):
-    """After switching from an Opus model back to the default Qwen model,
-    _opus must be None so translate() uses the Qwen path.
-
-    init() imports both opus_mt and transformers lazily via `from … import …`
-    so we patch via sys.modules — the approach that works regardless of whether
-    the symbols are already cached at module level.
-    """
-    import sys
-    captured = []
-    fake_tok = _make_fake_tok(captured)
-    fake_model = _make_fake_model()
-
-    # --- Fake opus_mt sub-module ---
-    fake_opus_instance = MagicMock()
-    fake_opus_class = MagicMock(return_value=fake_opus_instance)
-    fake_opus_mt_mod = MagicMock()
-    fake_opus_mt_mod.OpusMtTranslator = fake_opus_class
-
-    # --- Fake transformers module ---
-    fake_transformers_mod = MagicMock()
-    fake_transformers_mod.AutoTokenizer.from_pretrained = lambda mid, **kw: fake_tok
-    fake_transformers_mod.AutoModelForCausalLM.from_pretrained = lambda mid, **kw: fake_model
-
-    monkeypatch.setitem(sys.modules, "sokuji_sidecar.opus_mt", fake_opus_mt_mod)
-    monkeypatch.setitem(sys.modules, "transformers", fake_transformers_mod)
+def test_init_uses_resolver_and_sets_resolved(monkeypatch):
+    from sokuji_sidecar import accel
+    fake_backend = MagicMock()
+    fake_plan = MagicMock(backend="qwen_translate", device="cuda", compute_type="bfloat16")
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (fake_backend, fake_plan, None))
 
     eng = translate_engine.TranslateEngine()
+    eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="cuda")
+    assert eng.resolved == {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
+    assert eng._backend is fake_backend
 
-    # Step 1: init with opus-mt model → _opus must be set.
-    eng.init(model_id="Xenova/opus-mt-ja-en", source_lang="ja", target_lang="en")
-    assert eng._opus is not None, "_opus should be set after opus-mt init"
-
-    # Step 2: switch to the default Qwen model → _opus must be cleared.
-    eng.init(model_id=None, source_lang="ja", target_lang="en")
-    assert eng._opus is None, "_opus must be cleared after switching to Qwen model"
+    fake_backend.translate.return_value = "hola->hi"
+    out, ms = eng.translate("hola", wrap_transcript=True)
+    fake_backend.translate.assert_called_once_with("hola", "", "ja", "en", True)
+    assert out == "hola->hi" and ms >= 0
 
 
-def test_wrap_transcript_wraps_user_content(monkeypatch):
-    """In the Qwen branch, user message must be <transcript>…</transcript>
-    when wrap_transcript=True, and bare text when False."""
-    captured = []
-    fake_tok = _make_fake_tok(captured)
-    fake_model = _make_fake_model()
-    # Make tok(prompt) return something with input_ids
-    input_ids_mock = MagicMock()
-    input_ids_mock.shape = [1, 5]
-    fake_tok.return_value = {"input_ids": input_ids_mock}
-    # Make model.generate return something indexable
-    gen_out = MagicMock()
-    gen_slice = MagicMock()
-    gen_out.__getitem__ = MagicMock(return_value=gen_slice)
-    gen_slice.__getitem__ = MagicMock(return_value=MagicMock())
-    fake_model.generate.return_value = [gen_out]
-    # Make decode return a string
-    fake_tok.decode.return_value = "translated"
+def test_close_unloads_prior_backend_before_reinit(monkeypatch):
+    from sokuji_sidecar import accel
+    first, second = MagicMock(), MagicMock()
+    plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
+    backends_iter = iter([(first, plan, None), (second, plan, None)])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: next(backends_iter))
 
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en")
+    eng.init(model_id="qwen3-0.6b", source_lang="ja", target_lang="en")
+    first.unload.assert_called_once()   # prior backend freed before loading the next
+    assert eng._backend is second
+
+
+def test_translate_delegates_to_backend_when_loaded():
     eng = translate_engine.TranslateEngine()
     eng._opus = None
-    eng._tok = fake_tok
-    eng._model = fake_model
-    eng._src = "Japanese"
-    eng._tgt = "English"
-
-    # wrap_transcript=True → user content should be wrapped
-    eng.translate("hello", wrap_transcript=True)
-    user_msgs_wrapped = [m for m in captured if m["role"] == "user"]
-    assert user_msgs_wrapped[0]["content"] == "<transcript>hello</transcript>", \
-        f"expected wrapped content, got: {user_msgs_wrapped[0]['content']!r}"
-
-    # wrap_transcript=False → user content should be bare text
-    eng.translate("hello", wrap_transcript=False)
-    user_msgs_bare = [m for m in captured if m["role"] == "user"]
-    assert user_msgs_bare[0]["content"] == "hello", \
-        f"expected bare content, got: {user_msgs_bare[0]['content']!r}"
+    eng._backend = MagicMock()
+    eng._backend.translate.return_value = "translated"
+    eng._src, eng._tgt = "Japanese", "English"
+    out, _ = eng.translate("hello", wrap_transcript=True)
+    eng._backend.translate.assert_called_once_with("hello", "", "Japanese", "English", True)
+    assert out == "translated"
 
 
 def test_wrap_transcript_not_applied_to_opus(monkeypatch):
@@ -172,6 +105,41 @@ def test_wrap_transcript_not_applied_to_opus(monkeypatch):
     result, _ = eng.translate("hello", wrap_transcript=True)
     fake_opus.translate.assert_called_once_with("hello")  # raw, not wrapped
     assert result == "translated"
+
+
+def test_opus_to_qwen_switch_clears_opus(monkeypatch):
+    """After switching from an Opus model back to the default Qwen model,
+    _opus must be None so translate() uses the Qwen path.
+
+    Step 1 patches sys.modules for opus_mt; Step 2 patches accel functions
+    since the Qwen branch now goes through the resolver/backend path.
+    """
+    import sys
+    from sokuji_sidecar import accel
+
+    # --- Fake opus_mt sub-module ---
+    fake_opus_instance = MagicMock()
+    fake_opus_class = MagicMock(return_value=fake_opus_instance)
+    fake_opus_mt_mod = MagicMock()
+    fake_opus_mt_mod.OpusMtTranslator = fake_opus_class
+
+    # --- Fake backend for Qwen path ---
+    fake_backend = MagicMock()
+    fake_plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
+
+    monkeypatch.setitem(sys.modules, "sokuji_sidecar.opus_mt", fake_opus_mt_mod)
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (fake_backend, fake_plan, None))
+
+    eng = translate_engine.TranslateEngine()
+
+    # Step 1: init with opus-mt model → _opus must be set.
+    eng.init(model_id="Xenova/opus-mt-ja-en", source_lang="ja", target_lang="en")
+    assert eng._opus is not None, "_opus should be set after opus-mt init"
+
+    # Step 2: switch to the default Qwen model → _opus must be cleared.
+    eng.init(model_id=None, source_lang="ja", target_lang="en")
+    assert eng._opus is None, "_opus must be cleared after switching to Qwen model"
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_TRANSLATE_MODEL"),
