@@ -236,3 +236,11 @@ def test_model_size_excludes_ignored_files(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     nm._SIZE_CACHE.clear()
     assert nm.model_size("voxtral-mini-4b-realtime") == 8_000_001_000  # consolidated excluded
+
+
+def test_download_specs_qwen_translate_repos():
+    from sokuji_sidecar import native_models as nm
+    assert nm.download_specs("qwen2.5-0.5b")["repos"] == ["Qwen/Qwen2.5-0.5B-Instruct"]
+    assert nm.download_specs("qwen3-0.6b")["repos"] == ["Qwen/Qwen3-0.6B"]
+    assert nm.download_specs("qwen3.5-0.8b")["repos"] == ["Qwen/Qwen3.5-0.8B"]
+    assert nm.download_specs("qwen3.5-2b")["repos"] == ["Qwen/Qwen3.5-2B"]

@@ -537,3 +537,23 @@ def test_resolve_translate_qwen35_self_gates_off():
 def test_resolve_translate_unknown_id_raises():
     with pytest.raises(ValueError):
         accel.resolve_translate("nope", "auto", _machine())
+
+
+def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
+        nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"qwen_translate"})))
+    reply, _ = asyncio.run(accel._h_models_catalog(
+        {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
+    ids = [m["id"] for m in reply["models"]]
+    assert "qwen2.5-0.5b" in ids and "qwen3-0.6b" in ids
+    row = next(m for m in reply["models"] if m["id"] == "qwen2.5-0.5b")
+    tiers = {t["tier"]: t["available"] for t in row["tiers"]}
+    assert tiers["gpu-cuda"] is True and tiers["cpu"] is True
+
+
+def test_models_catalog_kind_defaults_to_asr(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine())
+    reply, _ = asyncio.run(accel._h_models_catalog(
+        {}, {"type": "models_catalog", "id": 2}, None))
+    ids = [m["id"] for m in reply["models"]]
+    assert "sense-voice" in ids       # ASR catalog, unchanged default

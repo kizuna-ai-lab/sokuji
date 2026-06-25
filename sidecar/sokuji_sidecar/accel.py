@@ -300,10 +300,12 @@ async def _h_hardware_info(state, msg, _b, conn=None):
 async def _h_models_catalog(state, msg, _b, conn=None):
     from . import catalog
     m = probe()
+    kind = msg.get("kind", "asr")
+    source = catalog.translate_models() if kind == "translate" else catalog.asr_models()
     wanted = msg.get("models")
     if wanted and not isinstance(wanted, list):
         wanted = [wanted]
-    models = catalog.asr_models()
+    models = source
     if wanted:
         models = [x for x in models if x.id in wanted]
     out = []

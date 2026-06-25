@@ -47,6 +47,14 @@ def download_specs(model_id):
         # format, 8.86GB, unused by transformers) — skip the duplicate.
         return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
                 "ignore": ["consolidated.safetensors"]}
+    if model_id == "qwen2.5-0.5b":
+        return {"repos": ["Qwen/Qwen2.5-0.5B-Instruct"], "urls": []}
+    if model_id == "qwen3-0.6b":
+        return {"repos": ["Qwen/Qwen3-0.6B"], "urls": []}
+    if model_id == "qwen3.5-0.8b":
+        return {"repos": ["Qwen/Qwen3.5-0.8B"], "urls": []}
+    if model_id == "qwen3.5-2b":
+        return {"repos": ["Qwen/Qwen3.5-2B"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 
