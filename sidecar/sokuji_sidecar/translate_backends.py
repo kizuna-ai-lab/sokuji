@@ -42,7 +42,7 @@ class QwenTranslateBackend:
             dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
             self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
             self._model = AutoModelForCausalLM.from_pretrained(
-                model_ref, torch_dtype=dtype, local_files_only=True).to(device).eval()
+                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
             self._device = device
             self._ref = model_ref
         except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver falls back
