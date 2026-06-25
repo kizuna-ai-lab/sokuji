@@ -503,3 +503,13 @@ def test_voxtral_model_unavailable_without_runtime():
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
+
+
+def test_fun_asr_mlt_nano_resolves_gpu_and_cpu():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"funasr_nano"}))
+    # explicit cuda override -> gpu-cuda plan first
+    plan = accel.resolve("fun-asr-mlt-nano", "cuda", m)
+    assert plan[0].backend == "funasr_nano" and plan[0].tier == "gpu-cuda"
+    # explicit cpu override -> cpu plan
+    plan_cpu = accel.resolve("fun-asr-mlt-nano", "cpu", m)
+    assert plan_cpu[0].tier == "cpu"

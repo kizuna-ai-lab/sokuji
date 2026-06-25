@@ -60,6 +60,7 @@ def _has_mod(mod: str) -> bool:
 def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
             "funasr_sensevoice": "funasr",
+            "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
             "transformers": "transformers",
             # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
