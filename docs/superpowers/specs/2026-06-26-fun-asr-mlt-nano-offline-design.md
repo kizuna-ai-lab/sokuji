@@ -208,7 +208,7 @@ any production code lands.
 
 | Risk | Mitigation |
 |------|-----------|
-| `trust_remote_code` executes repo `model.py` | Official Apache-2.0 FunAudioLLM org; accepted, called out |
+| `trust_remote_code` executes repo `model.py` | Official Apache-2.0 FunAudioLLM org; accepted, called out. This is the only arbitrary-code path in the backend set; the download/load pull unpinned `main`. Future hardening: pin a known-good `revision=` (e.g. via a `SOKUJI_FUNASR_NANO_REV` knob) so an unreviewed upstream push can't silently execute new code. |
 | `model.py` pulls unlisted deps | Phase-0 catches → add to `setup.sh` |
 | CPU not real-time (AR decoder) | cpu tier verification-gated; default GPU-only like peers |
 | Exact 31-language list | Pulled verbatim from card / `config.json`, not guessed |

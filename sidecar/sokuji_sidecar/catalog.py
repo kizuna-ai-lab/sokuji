@@ -1,6 +1,7 @@
 """Declarative ASR model catalog: per model, which backends/hardware tiers run
 it and what artifact each needs. Pure data — adding a model is adding a row.
-Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice runs on FunASR with gpu-cuda (float16) + cpu (float32) tiers."""
+Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice
+and Fun-ASR-MLT-Nano run on FunASR with gpu-cuda + cpu tiers (both float32)."""
 import os
 from dataclasses import dataclass
 
