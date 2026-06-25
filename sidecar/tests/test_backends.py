@@ -736,6 +736,53 @@ def test_voxtral_realtime_real_gpu_smoke():
     c.unload()
 
 
+def test_funasr_nano_config_and_load(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, text="你好世界")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    assert b.is_loaded
+    assert cap["init"]["model"] == "FunAudioLLM/Fun-ASR-MLT-Nano-2512"
+    assert cap["init"]["device"] == "cuda:0"
+    assert cap["init"]["trust_remote_code"] is True      # Nano needs remote code
+
+
+def test_funasr_nano_transcribe_feeds_tempwav_path(monkeypatch):
+    # Fun-ASR-Nano takes a file path, not a bare ndarray: transcribe must call
+    # generate(input=[<path>], ...) WITHOUT the SenseVoice fs/cache/batch_size_s kwargs.
+    cap = _install_fake_funasr(monkeypatch, text="你好世界")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    out = b.transcribe(np.zeros(16000, np.float32), "zh")
+    assert out.text == "你好世界" and out.language is None   # passthrough, no tags
+    assert cap["gen"]["n"] == 1                  # input is a 1-element list (a path)
+    assert cap["gen"]["language"] == "zh"
+    assert cap["gen"]["use_itn"] is True
+    assert "fs" not in cap["gen"] and "batch_size_s" not in cap["gen"]
+
+
+def test_funasr_nano_rejects_cuda_without_torch_cuda(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False)
+    b = backends.make_backend("funasr_nano")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    assert "init" not in cap and not b.is_loaded
+
+
+def test_funasr_nano_honors_cpu(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False, text="hi")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cpu", "float32")
+    assert b.is_loaded and cap["init"]["device"] == "cpu"
+
+
+def test_funasr_nano_empty_result_returns_blank(monkeypatch):
+    _install_fake_funasr(monkeypatch, empty=True)
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    out = b.transcribe(np.zeros(16000, np.float32), None)
+    assert out.text == "" and out.language is None
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads FunAudioLLM/SenseVoiceSmall ~900MB + the sherpa sense-voice repo for test_wavs; needs CUDA torch + funasr)")
 def test_funasr_sensevoice_real_gpu_and_cpu_smoke():

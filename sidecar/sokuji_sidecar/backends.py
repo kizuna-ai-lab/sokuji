@@ -459,3 +459,16 @@ class FunAsrSenseVoiceBackend(_FunAsrBackend):
     NAME = "funasr_sensevoice"
     CONFIG = _FunAsrConfig(trust_remote_code=False, feed="ndarray",
                            postprocess=_strip_sensevoice_tags)
+
+
+@register_backend
+class FunAsrNanoBackend(_FunAsrBackend):
+    """FunASR Fun-ASR-Nano family (SenseVoice audio encoder + Qwen3-0.6B LLM
+    decoder). model_ref is the HF repo id (FunAudioLLM/Fun-ASR-MLT-Nano-2512).
+    Serves gpu-cuda (float32) + cpu (float32); both real-time. trust_remote_code
+    loads the fun_asr_nano model code shipped in funasr. Output is clean,
+    natively-punctuated text (no tags). Input is fed as a temp wav because the
+    model's chat-template input is built from a file path, not a bare ndarray."""
+    NAME = "funasr_nano"
+    CONFIG = _FunAsrConfig(trust_remote_code=True, feed="tempwav",
+                           postprocess=_passthrough)
