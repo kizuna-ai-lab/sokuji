@@ -130,6 +130,27 @@ def test_split_sentences():
     assert split_sentences("") == ([], "")
 
 
+def test_generate_exception_unblocks_reader_and_end(monkeypatch):
+    # If model.generate() raises, _read() must still terminate (via streamer.end() in the
+    # except) so it emits the None sentinel and end() returns instead of deadlocking.
+    from sokuji_sidecar import voxtral_stream
+    proc = _fake_proc()
+    streamer = _FakeStreamer()
+    monkeypatch.setattr(voxtral_stream, "TextIteratorStreamer", lambda *a, **k: streamer)
+
+    class _BoomModel:
+        device = "cpu"
+        dtype = "BF16"
+        def generate(self, **kwargs):
+            raise RuntimeError("generate crashed")
+
+    s = voxtral_stream.VoxtralRealtimeStream(_BoomModel(), proc, "cpu", "BF16")
+    s.feed(np.zeros(9000, np.float32))     # >= first chunk -> starts the gen + reader threads
+    final = s.end()                        # must return, not hang
+    assert s.aborted is True
+    assert final == ""                     # nothing generated
+
+
 def test_drain_preserves_completion_sentinel():
     # drain() must NOT consume the None completion sentinel — end() blocks on get() until it
     # sees None, so if drain() removed it (e.g. generate finished/crashed before end()), end()

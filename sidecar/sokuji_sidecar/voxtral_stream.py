@@ -102,6 +102,12 @@ class VoxtralRealtimeStream:
                     num_delay_tokens=first.num_delay_tokens, streamer=streamer)
             except Exception:
                 self.aborted = True
+                try:
+                    streamer.end()   # generate raised before its own streamer.end(); unblock
+                                     # _read()'s iterator so it emits the None sentinel and
+                                     # end() can't deadlock waiting for it.
+                except Exception:
+                    pass
 
         def _read():
             try:
