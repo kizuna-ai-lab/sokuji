@@ -3,6 +3,7 @@ load()/transcribe()/unload() contract. The only code that touches a framework's
 real API. Heavy frameworks are imported lazily inside load()."""
 import re
 from dataclasses import dataclass
+from typing import Callable
 
 
 @dataclass
@@ -363,14 +364,24 @@ def _strip_sensevoice_tags(text: str) -> tuple[str, str | None]:
     return _SV_TAG.sub("", text).strip(), lang
 
 
-@register_backend
-class FunAsrSenseVoiceBackend:
-    """FunASR SenseVoiceSmall (PyTorch). model_ref is the HF repo id
-    (FunAudioLLM/SenseVoiceSmall). Serves BOTH gpu-cuda (float32) and cpu
-    (float32) tiers — honors the device it is given (no GPU-only guard).
-    Non-autoregressive encoder+CTC: one generate() per VAD segment. Output
-    lang/emotion/event tags are stripped to a clean transcript."""
-    NAME = "funasr_sensevoice"
+@dataclass(frozen=True)
+class _FunAsrConfig:
+    trust_remote_code: bool
+    feed: str   # "ndarray" (SenseVoice) | "tempwav" (Fun-ASR-Nano chat-template needs a path)
+    postprocess: Callable[[str], "tuple[str, str | None]"]
+
+
+def _passthrough(text: str) -> "tuple[str, None]":
+    """Fun-ASR-Nano emits clean, natively-punctuated text with no tags."""
+    return text.strip(), None
+
+
+class _FunAsrBackend:
+    """Shared FunASR AutoModel offline backend. Subclasses set NAME + CONFIG.
+    Honors the device given; the cuda guard rejects cuda when torch has no CUDA
+    runtime (FunASR would silently run on CPU) so load_with_fallback steps to the
+    correctly-labelled cpu plan. One generate() per VAD segment."""
+    CONFIG: _FunAsrConfig
 
     def __init__(self):
         self._m = None
@@ -380,10 +391,6 @@ class FunAsrSenseVoiceBackend:
         try:
             from funasr import AutoModel
             if device == "cuda":
-                # FunASR's AutoModel silently falls back to CPU when torch has no
-                # CUDA runtime; reject the cuda plan here so load_with_fallback steps
-                # to the (correctly labelled) cpu plan instead of mislabelling a CPU
-                # run as cuda. Only an explicit, generic "cuda" maps to cuda:0.
                 import torch
                 if not torch.cuda.is_available():
                     raise BackendLoadError("cuda requested but torch has no CUDA runtime")
@@ -391,6 +398,7 @@ class FunAsrSenseVoiceBackend:
             else:
                 dev = device
             self._m = AutoModel(model=model_ref, hub="hf", device=dev,
+                                trust_remote_code=self.CONFIG.trust_remote_code,
                                 disable_update=True)
         except BackendLoadError:
             raise
@@ -398,13 +406,35 @@ class FunAsrSenseVoiceBackend:
             raise BackendLoadError(str(e))
 
     def transcribe(self, samples, language) -> AsrResult:
-        res = self._m.generate(input=samples, fs=TARGET_RATE, cache={},
-                               language=(language or "auto"), use_itn=True,
-                               batch_size_s=60)
+        if self.CONFIG.feed == "tempwav":
+            res = self._generate_tempwav(samples, language)
+        else:
+            res = self._m.generate(input=samples, fs=TARGET_RATE, cache={},
+                                   language=(language or "auto"), use_itn=True,
+                                   batch_size_s=60)
         if not res or not isinstance(res, list) or "text" not in res[0]:
-            return AsrResult("", None)  # funasr returned nothing (e.g. empty/silent segment)
-        text, lang = _strip_sensevoice_tags(res[0]["text"])
+            return AsrResult("", None)  # funasr returned nothing (empty/silent segment)
+        text, lang = self.CONFIG.postprocess(res[0]["text"])
         return AsrResult(text, lang)
+
+    def _generate_tempwav(self, samples, language):
+        # Fun-ASR-Nano's data_template builds its chat-style input from a FILE PATH;
+        # a bare ndarray raises in data_template. Write the VAD segment to a temp wav
+        # and pass the path (the official, verified contract). soundfile ships via librosa.
+        import os
+        import tempfile
+        import soundfile as sf
+        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        tmp.close()
+        try:
+            sf.write(tmp.name, samples, TARGET_RATE)
+            return self._m.generate(input=[tmp.name],
+                                    language=(language or "auto"), use_itn=True)
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
 
     def unload(self) -> None:
         self._m = None
@@ -417,3 +447,15 @@ class FunAsrSenseVoiceBackend:
     @property
     def is_loaded(self) -> bool:
         return self._m is not None
+
+
+@register_backend
+class FunAsrSenseVoiceBackend(_FunAsrBackend):
+    """FunASR SenseVoiceSmall (PyTorch). model_ref is the HF repo id
+    (FunAudioLLM/SenseVoiceSmall). Serves BOTH gpu-cuda (float32) and cpu
+    (float32) tiers — honors the device it is given (no GPU-only guard).
+    Non-autoregressive encoder+CTC: one generate() per VAD segment. Output
+    lang/emotion/event tags are stripped to a clean transcript."""
+    NAME = "funasr_sensevoice"
+    CONFIG = _FunAsrConfig(trust_remote_code=False, feed="ndarray",
+                           postprocess=_strip_sensevoice_tags)

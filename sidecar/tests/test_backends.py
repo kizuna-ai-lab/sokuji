@@ -612,14 +612,15 @@ def _install_fake_funasr(monkeypatch, *, text="<|en|><|NEUTRAL|><|Speech|><|with
     cap = {}
 
     class FakeAutoModel:
-        def __init__(self, model, hub, device, disable_update):
+        def __init__(self, model, hub, device, disable_update, trust_remote_code=False):
             if fail:
                 raise RuntimeError("funasr load failed")
-            cap["init"] = dict(model=model, hub=hub, device=device, disable_update=disable_update)
+            cap["init"] = dict(model=model, hub=hub, device=device,
+                               disable_update=disable_update,
+                               trust_remote_code=trust_remote_code)
 
-        def generate(self, input, fs, cache, language, use_itn, batch_size_s):
-            cap["gen"] = dict(n=len(input), fs=fs, language=language,
-                              use_itn=use_itn, batch_size_s=batch_size_s)
+        def generate(self, input, **kw):
+            cap["gen"] = dict(n=len(input), **kw)
             return [] if empty else [{"text": text}]
 
     fmod = types.ModuleType("funasr")
