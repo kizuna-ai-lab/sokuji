@@ -348,3 +348,59 @@ class VoxtralRealtimeBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+import re
+
+_SV_TAG = re.compile(r"<\|([^|]*)\|>")
+
+
+def _strip_sensevoice_tags(text):
+    """SenseVoice prefixes transcripts with <|lang|><|emotion|><|event|><|withitn|>.
+    Return (clean_text, language) for text-only output. The first tag is the
+    language code (lowercase, e.g. 'en'); emotion/event tags are not lowercase."""
+    tags = _SV_TAG.findall(text)
+    lang = tags[0] if tags and tags[0].islower() else None
+    return _SV_TAG.sub("", text).strip(), lang
+
+
+@register_backend
+class FunAsrSenseVoiceBackend:
+    """FunASR SenseVoiceSmall (PyTorch). model_ref is the HF repo id
+    (FunAudioLLM/SenseVoiceSmall). Serves BOTH gpu-cuda (float16) and cpu
+    (float32) tiers — honors the device it is given (no GPU-only guard).
+    Non-autoregressive encoder+CTC: one generate() per VAD segment. Output
+    lang/emotion/event tags are stripped to a clean transcript."""
+    NAME = "funasr_sensevoice"
+
+    def __init__(self):
+        self._m = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._m = None
+        try:
+            from funasr import AutoModel
+            dev = "cuda:0" if device.startswith("cuda") else device
+            self._m = AutoModel(model=model_ref, hub="hf", device=dev,
+                                disable_update=True)
+        except Exception as e:  # missing funasr, no CUDA, OOM → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        res = self._m.generate(input=samples, fs=TARGET_RATE, cache={},
+                               language=(language or "auto"), use_itn=True,
+                               batch_size_s=60)
+        text, lang = _strip_sensevoice_tags(res[0]["text"])
+        return AsrResult(text, lang)
+
+    def unload(self) -> None:
+        self._m = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._m is not None

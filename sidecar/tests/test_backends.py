@@ -597,6 +597,82 @@ def test_voxtral_realtime_load_failure_raises(monkeypatch):
         b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
 
 
+def test_strip_sensevoice_tags():
+    raw = "<|en|><|NEUTRAL|><|Speech|><|withitn|>hello world"
+    assert backends._strip_sensevoice_tags(raw) == ("hello world", "en")
+    assert backends._strip_sensevoice_tags("<|yue|><|HAPPY|><|Speech|>呢几个字") == ("呢几个字", "yue")
+    # no tags → no language
+    assert backends._strip_sensevoice_tags("  plain text  ") == ("plain text", None)
+    # leading tag that is not a language code (not lowercase) → language None
+    assert backends._strip_sensevoice_tags("<|NEUTRAL|>x") == ("x", None)
+
+
+def _install_fake_funasr(monkeypatch, *, text="<|en|><|NEUTRAL|><|Speech|><|withitn|>hello world", fail=False):
+    cap = {}
+
+    class FakeAutoModel:
+        def __init__(self, model, hub, device, disable_update):
+            if fail:
+                raise RuntimeError("funasr load failed")
+            cap["init"] = dict(model=model, hub=hub, device=device, disable_update=disable_update)
+
+        def generate(self, input, fs, cache, language, use_itn, batch_size_s):
+            cap["gen"] = dict(n=len(input), fs=fs, language=language,
+                              use_itn=use_itn, batch_size_s=batch_size_s)
+            return [{"text": text}]
+
+    fmod = types.ModuleType("funasr")
+    fmod.AutoModel = FakeAutoModel
+    monkeypatch.setitem(sys.modules, "funasr", fmod)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None, is_available=lambda: True)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_funasr_sensevoice_load_and_transcribe_gpu(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    assert not b.is_loaded
+    b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float16")
+    assert b.is_loaded
+    assert cap["init"]["model"] == "FunAudioLLM/SenseVoiceSmall"
+    assert cap["init"]["hub"] == "hf"
+    assert cap["init"]["device"] == "cuda:0"        # "cuda" tier → cuda:0
+    assert cap["init"]["disable_update"] is True
+    out = b.transcribe(np.zeros(16000, np.float32), None)
+    assert out.text == "hello world" and out.language == "en"   # tags stripped, lang parsed
+    assert cap["gen"]["fs"] == 16000                # TARGET_RATE
+    assert cap["gen"]["use_itn"] is True
+    assert cap["gen"]["language"] == "auto"         # None → "auto"
+    b.unload()
+    assert not b.is_loaded
+
+
+def test_funasr_sensevoice_honors_cpu_device(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cpu", "float32")  # must NOT raise (honors cpu)
+    assert b.is_loaded
+    assert cap["init"]["device"] == "cpu"
+
+
+def test_funasr_sensevoice_passes_language_through(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float16")
+    b.transcribe(np.zeros(16000, np.float32), "zh")
+    assert cap["gen"]["language"] == "zh"           # explicit language passed through
+
+
+def test_funasr_sensevoice_load_failure_raises(monkeypatch):
+    _install_fake_funasr(monkeypatch, fail=True)
+    b = backends.make_backend("funasr_sensevoice")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float16")
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads mistralai/Voxtral-Mini-4B-Realtime-2602 ~8.9GB; needs CUDA + mistral-common[audio])")
 def test_voxtral_realtime_real_gpu_smoke():
