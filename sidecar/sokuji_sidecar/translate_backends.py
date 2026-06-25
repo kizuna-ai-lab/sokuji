@@ -90,17 +90,21 @@ class Qwen35TranslateBackend:
 
     def __init__(self):
         self._model = None
-        self._proc = None
+        self._tok = None
         self._device = "cpu"
 
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
         self._model = None
-        self._proc = None
+        self._tok = None
         try:
             import torch
-            from transformers import Qwen3_5ForConditionalGeneration, AutoProcessor
+            from transformers import Qwen3_5ForConditionalGeneration, AutoTokenizer
             dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-            self._proc = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
+            # Text-only: drive a plain tokenizer, NOT AutoProcessor. Qwen3.5 is a VLM and
+            # its AutoProcessor eagerly builds Qwen3VLVideoProcessor, which hard-requires
+            # torchvision (no wheel for the sidecar's torch build). The tokenizer carries
+            # the chat template and is all text-only generation needs.
+            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
             self._model = Qwen3_5ForConditionalGeneration.from_pretrained(
                 model_ref, dtype=dtype, local_files_only=True).to(device).eval()
             self._device = device
@@ -111,18 +115,18 @@ class Qwen35TranslateBackend:
         import torch
         sys_p = system_prompt or _default_prompt(src, tgt)   # Qwen3.5 is non-thinking by default
         user = f"<transcript>{text}</transcript>" if wrap else text
-        messages = [{"role": "system", "content": [{"type": "text", "text": sys_p}]},
-                    {"role": "user", "content": [{"type": "text", "text": user}]}]
-        prompt = self._proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self._proc(text=prompt, return_tensors="pt").to(self._device)
+        messages = [{"role": "system", "content": sys_p},
+                    {"role": "user", "content": user}]
+        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
-        return _clean_output(self._proc.batch_decode([gen], skip_special_tokens=True)[0])
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True))
 
     def unload(self) -> None:
         self._model = None
-        self._proc = None
+        self._tok = None
         try:
             import torch
             torch.cuda.empty_cache()

@@ -92,6 +92,24 @@ def test_qwen35_load_raises_when_class_missing(monkeypatch):
         b.load("Qwen/Qwen3.5-0.8B", "cuda", "bfloat16")
 
 
+def test_qwen35_text_only_uses_tokenizer_string_content():
+    # Qwen3.5 is a VLM, but we translate text only. The backend must drive a plain
+    # tokenizer with string ChatML content — NOT AutoProcessor, whose video processor
+    # hard-requires torchvision (unavailable for the sidecar's torch build).
+    captured = []
+    b = tb.Qwen35TranslateBackend()
+    b._tok = _fake_tok(captured)
+    b._model = _fake_model()
+    b._device = "cpu"
+    out = b.translate("hi", "", "Japanese", "English", wrap=True)
+    assert out == "translated"
+    sys_msg = next(m for m in captured if m["role"] == "system")
+    user_msg = next(m for m in captured if m["role"] == "user")
+    # string content, not the multimodal [{"type": "text", ...}] list form
+    assert isinstance(sys_msg["content"], str)
+    assert user_msg["content"] == "<transcript>hi</transcript>"
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads models + needs CUDA)")
 @pytest.mark.parametrize("model_id", ["qwen2.5-0.5b", "qwen3-0.6b"])
