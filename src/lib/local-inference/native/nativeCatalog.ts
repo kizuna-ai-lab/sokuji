@@ -22,14 +22,15 @@ export function supportsLanguage(opt: { languages?: string[] }, lang: string): b
 export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'cohere-transcribe-03-2026', label: 'Cohere Transcribe', languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'], recommended: true, sortOrder: 0 },
   { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 1 },
-  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 2 },
-  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 3 },
-  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 4 },
-  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 5 },
-  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 6 },
-  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 7 },
-  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 8 },
-  { id: 'voxtral-mini-4b-realtime', label: 'Voxtral Mini 4B Realtime', languages: ['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko'], recommended: true, sortOrder: 9 },
+  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 2 },
+  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], recommended: true, sortOrder: 3 },
+  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 4 },
+  { id: 'whisper-medium', label: 'Whisper medium', languages: ['multi'], sortOrder: 5 },
+  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], sortOrder: 6 },
+  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 7 },
+  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 8 },
+  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 9 },
+  { id: 'voxtral-mini-4b-realtime', label: 'Voxtral Mini 4B Realtime', languages: ['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko'], recommended: true, sortOrder: 10 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [

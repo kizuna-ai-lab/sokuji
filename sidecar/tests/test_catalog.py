@@ -47,7 +47,7 @@ def test_qwen3_asr_row():
     assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
                            "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
     assert m.recommended is True         # Phase 2: native runtime available → recommended
-    assert m.sort_order == 8
+    assert m.sort_order == 9
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B")
@@ -69,7 +69,7 @@ def test_cohere_asr_row():
 def test_cohere_is_first_qwen3_shifted():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # inserted first in the list
-    assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 8   # shifted +1 from 7
+    assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 9   # 7 → 8 (cohere) → 9 (whisper-medium)
     assert catalog.asr_model("sense-voice").sort_order == 1      # shifted +1 from 0
 
 
@@ -79,7 +79,7 @@ def test_voxtral_realtime_row():
     assert m.name == "Voxtral Mini 4B Realtime"
     assert m.languages == ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko")
     assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
-    assert m.sort_order == 9             # appended after Qwen3 (8); no existing rows shift
+    assert m.sort_order == 10            # after whisper-medium inserted: Qwen3 → 9, Voxtral → 10
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")

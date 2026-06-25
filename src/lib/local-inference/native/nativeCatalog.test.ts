@@ -189,7 +189,7 @@ describe('nativeCatalog', () => {
     expect(q).toBeTruthy();
     expect(q!.languages).toEqual(['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
     expect(q!.recommended).toBe(true);
-    expect(q!.sortOrder).toBe(8);
+    expect(q!.sortOrder).toBe(9);   // 8 → 9 after whisper-medium was inserted
     // recommended, but its high sortOrder keeps Cohere first
     expect(nativeAsrCards('zh')[0].selectId).toBe('cohere-transcribe-03-2026');
     expect(nativeAsrCards('de')[0].selectId).toBe('cohere-transcribe-03-2026');
@@ -210,12 +210,12 @@ describe('nativeCatalog', () => {
     expect(nativeAsrCards('yue')[0].selectId).toBe('sense-voice');
   });
 
-  it('includes Voxtral Mini 4B Realtime (recommended, sortOrder 9, 13 langs)', () => {
+  it('includes Voxtral Mini 4B Realtime (recommended, sortOrder 10, 13 langs)', () => {
     const v = NATIVE_ASR.find((m) => m.id === 'voxtral-mini-4b-realtime');
     expect(v).toBeDefined();
     expect(v!.label).toBe('Voxtral Mini 4B Realtime');
     expect(v!.recommended).toBe(true);
-    expect(v!.sortOrder).toBe(9);
+    expect(v!.sortOrder).toBe(10);   // 9 → 10 after whisper-medium was inserted
     expect(v!.languages).toEqual(['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko']);
     // listed for a supported language (ja), behind the recommended rows
     expect(compatibleNativeAsr('ja').map((m) => m.id)).toContain('voxtral-mini-4b-realtime');
