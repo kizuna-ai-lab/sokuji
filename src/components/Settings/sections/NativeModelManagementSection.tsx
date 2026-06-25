@@ -16,6 +16,7 @@ import {
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
+import { TierIcon } from './TierIcon';
 import {
   useNativeModelStore,
   useNativeCatalog,
@@ -105,7 +106,7 @@ const NativeModelCard: React.FC<{
                 const rtf = showResolved && resolved!.rtf !== undefined ? ` · ${formatRtf(resolved!.rtf)}` : '';
                 return (
                   <span className="model-card__lang-tag">
-                    {tl.accel && <Zap size={10} />}{tl.label}{rtf}
+                    <TierIcon tier={tier} size={10} />{tl.label}{rtf}
                   </span>
                 );
               })()}
