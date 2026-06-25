@@ -6,7 +6,11 @@ transcribe(). Registered into the shared backends registry on import.
   qwen35_translate  — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
 
 Both support CPU (float32) and GPU (bfloat16) via .to(device)."""
+import re
+
 from .backends import register_backend, BackendLoadError
+
+_TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
 
 
 def _default_prompt(src: str, tgt: str) -> str:
@@ -16,10 +20,13 @@ def _default_prompt(src: str, tgt: str) -> str:
             "Output only the translation, no explanations, no refusal.")
 
 
-def _strip_think(text: str) -> str:
-    """Defensive: drop any <think>…</think> reasoning block a model emits."""
+def _clean_output(text: str) -> str:
+    """Clean a model's raw translation output: drop any <think>…</think> reasoning
+    block, then strip stray <transcript>/</transcript> tags. Small Qwen models echo
+    the wrapped input's framing (e.g. trailing '</transcript>') into the output."""
     if "</think>" in text:
-        return text.split("</think>", 1)[1].strip()
+        text = text.split("</think>", 1)[1]
+    text = _TRANSCRIPT_TAG.sub("", text)
     return text.strip()
 
 
@@ -61,7 +68,7 @@ class QwenTranslateBackend:
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
-        return _strip_think(self._tok.decode(gen, skip_special_tokens=True))
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True))
 
     def unload(self) -> None:
         self._model = None
@@ -111,7 +118,7 @@ class Qwen35TranslateBackend:
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
-        return _strip_think(self._proc.batch_decode([gen], skip_special_tokens=True)[0])
+        return _clean_output(self._proc.batch_decode([gen], skip_special_tokens=True)[0])
 
     def unload(self) -> None:
         self._model = None

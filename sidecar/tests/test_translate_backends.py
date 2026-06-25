@@ -41,9 +41,16 @@ def test_default_prompt_mentions_langs():
     assert "Japanese" in p and "English" in p and "only" in p.lower()
 
 
-def test_strip_think_removes_block():
-    assert tb._strip_think("<think>reasoning</think>  hello") == "hello"
-    assert tb._strip_think("plain") == "plain"
+def test_clean_output_removes_think_block():
+    assert tb._clean_output("<think>reasoning</think>  hello") == "hello"
+    assert tb._clean_output("plain") == "plain"
+
+
+def test_clean_output_strips_transcript_tags():
+    # Small Qwen models echo the input's <transcript> framing into the output.
+    assert tb._clean_output("The weather today is nice.</transcript>") == "The weather today is nice."
+    assert tb._clean_output("<transcript>hi</transcript>") == "hi"
+    assert tb._clean_output("<think>x</think> Hello</transcript>") == "Hello"
 
 
 def test_qwen3_appends_no_think_and_wraps():
