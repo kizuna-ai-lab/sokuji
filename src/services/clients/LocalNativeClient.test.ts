@@ -113,6 +113,21 @@ describe('LocalNativeClient', () => {
     const userItems = items.filter((i) => i.id.startsWith('user'));
     expect(new Set(userItems.map((i) => i.id)).size).toBe(1);  // one user item across partials+final
   });
+
+  it('drops the stale partial after clearConversationItems so the next final still lands', async () => {
+    const translate = { init: async () => {}, translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const client = new LocalNativeClient({ asr, translate });
+    client.setEventHandlers({ onConversationUpdated() {}, onOpen() {}, onRealtimeEvent() {} } as any);
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    asr.onPartialResult('hel');                 // a partial user item is in progress
+    client.clearConversationItems();            // user clears the conversation mid-utterance
+    asr.onResult({ text: 'hello' });            // the final then arrives
+    await new Promise((r) => setTimeout(r, 0));
+    const userItems = client.getConversationItems().filter((i: any) => i.id.startsWith('user'));
+    expect(userItems.length).toBe(1);                                   // the final landed as a fresh item
+    expect(userItems[0].formatted?.transcript).toBe('hello');           // not lost on the detached item
+  });
 });
 
 // ── Task 3: loading flag + resolved plan ──────────────────────────────────────

@@ -131,8 +131,10 @@ class VoxtralRealtimeStream:
                 v = self._deltas.get_nowait()
             except queue.Empty:
                 break
-            if v is not None:
-                out.append(v)
+            if v is None:
+                self._deltas.put(v)   # preserve the completion sentinel so end() can observe it
+                break
+            out.append(v)
         return out
 
     def abort(self):

@@ -414,7 +414,7 @@ def test_always_stream_cuts_on_endpoint_with_complete_tail(monkeypatch):
     eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "country can do for you."          # partial: the tail is MISSING here
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
+    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
 
     sent = []
@@ -444,13 +444,45 @@ def test_always_stream_endpoint_with_no_text_does_not_cut(monkeypatch):
     eng._pending = ""                                  # nothing transcribed
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
-    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint, but no text
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint, no speech
 
     sent = []
     async def send(m): sent.append(m)
     asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
-    assert not [m for m in sent if m["type"] == "result"]   # min-utterance guard: no cut
+    assert not [m for m in sent if m["type"] == "result"]   # no speech this stream: no cut
     assert opened["n"] == 0
+
+
+def test_always_stream_endpoint_flushes_held_text_with_empty_pending(monkeypatch):
+    # A short utterance whose text the model still HOLDS (so _pending is empty at the falling
+    # edge) must still cut + end()-flush. Gating on speech, not on _pending text — otherwise
+    # short commands / slow-first-token utterances get dropped or merged into the next one.
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+    opened = {"n": 0}
+
+    class _FakeStream:
+        def feed(self, s): pass
+        def drain(self): return []                       # nothing emitted yet (text held by the model)
+        def end(self): return "ok"                       # end() flushes the held short utterance
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _FakeStream()
+    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._pending = ""                                    # held text not yet drained
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    eng._fed_s = 0.0; eng._delta_count = 0
+    eng._speech_samples = 8000                           # ~0.5s of speech happened in prior buffers
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
+
+    sent = []
+    async def send(m): sent.append(m)
+    asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
+    results = [m for m in sent if m["type"] == "result"]
+    assert results and results[-1]["text"] == "ok"       # end() flushed the held utterance
+    assert opened["n"] == 1                              # reopened
 
 
 def test_always_stream_runon_cap_forces_cut(monkeypatch):
@@ -666,7 +698,7 @@ def test_always_stream_endpoint_end_failure_still_reopens(monkeypatch):
     eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "some words"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
+    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
 
     sent = []

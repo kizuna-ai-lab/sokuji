@@ -314,6 +314,16 @@ def test_installed_includes_transformers():
     assert "transformers" in accel._installed()
 
 
+def test_voxtral_readiness_requires_mistral_common(monkeypatch):
+    # VoxtralRealtimeBackend.load() needs both the transformers voxtral_realtime model AND
+    # mistral_common (processor/tokenizer). A half-installed env (model present, mistral_common
+    # missing) must NOT advertise voxtral_realtime, else the catalog shows it but load() fails.
+    monkeypatch.setattr(accel, "_has_mod", lambda m: m != "mistral_common")  # all present except mistral_common
+    assert "voxtral_realtime" not in accel._installed()
+    monkeypatch.setattr(accel, "_has_mod", lambda m: True)                   # both present
+    assert "voxtral_realtime" in accel._installed()
+
+
 def test_granite_resolves_gpu_only_on_nvidia_with_transformers():
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"transformers"}))
     plans = accel.resolve("granite-speech-4.1-2b", machine=m)

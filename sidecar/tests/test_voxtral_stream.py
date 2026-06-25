@@ -128,3 +128,18 @@ def test_split_sentences():
     assert split_sentences("country.") == ([], "country.")       # no trailing space -> held for flush
     assert split_sentences("a. b! c? d") == (["a.", "b!", "c?"], "d")
     assert split_sentences("") == ([], "")
+
+
+def test_drain_preserves_completion_sentinel():
+    # drain() must NOT consume the None completion sentinel — end() blocks on get() until it
+    # sees None, so if drain() removed it (e.g. generate finished/crashed before end()), end()
+    # would hang forever. drain() should requeue the sentinel and stop.
+    import queue
+    from sokuji_sidecar import voxtral_stream
+    s = voxtral_stream.VoxtralRealtimeStream(object(), _fake_proc(), "cpu", "BF16")
+    s._deltas.put("a ")
+    s._deltas.put("b ")
+    s._deltas.put(None)                          # generation finished
+    assert s.drain() == ["a ", "b "]             # real deltas returned
+    assert s.drain() == []                       # nothing left but the preserved sentinel
+    assert s._deltas.get_nowait() is None        # sentinel still there for end()

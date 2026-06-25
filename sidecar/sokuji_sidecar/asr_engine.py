@@ -219,7 +219,9 @@ class AsrEngine:
             else:
                 await self._drive_utterance(send, data)
         if self._mode == "always_stream":
-            if self._stream is not None and self._pending.strip():
+            # Flush the last stream if it saw speech (its tail text may still be held by the
+            # model with _pending empty) — gating on speech, not _pending, mirrors the pause-cut.
+            if self._stream is not None and self._speech_samples > 0:
                 try:
                     final = await loop.run_in_executor(None, self._stream.end)
                 except Exception:
@@ -364,7 +366,11 @@ class AsrEngine:
             self._pending = ""; self._speech_samples = 0
             self._fed_s = 0.0; self._delta_count = 0
             return
-        if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._pending.strip():
+        # Cut on the silero endpoint (or the run-on cap) whenever this stream has SEEN SPEECH —
+        # NOT when _pending has text. The model can hold a short utterance's text until end(),
+        # so gating on _pending would drop/merge short or slow-first-token utterances. end()
+        # flushes the held text and _end_and_reopen's `if final.strip()` skips truly-empty finals.
+        if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._speech_samples > 0:
             await self._end_and_reopen(send)
             return
         lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up

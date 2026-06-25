@@ -163,7 +163,7 @@ export class LocalNativeClient implements IClient {
   updateSession(_config: Partial<SessionConfig>): void {}
   reset(): void { this.items = []; this.partialUserItem = null; }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
-  clearConversationItems(): void { this.items = []; }
+  clearConversationItems(): void { this.items = []; this.partialUserItem = null; }  // drop the in-progress partial too, else the next final mutates a detached item
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }
 }
