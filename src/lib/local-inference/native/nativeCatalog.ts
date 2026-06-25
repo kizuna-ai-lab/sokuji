@@ -34,8 +34,11 @@ export const NATIVE_ASR: NativeModelOption[] = [
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
-  { id: '', label: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
-  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 1 },
+  { id: '', label: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
+  { id: 'qwen3-0.6b', label: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
+  { id: 'qwen3.5-0.8b', label: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
+  { id: 'qwen3.5-2b', label: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
+  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 5 },
 ];
 
 /** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */
@@ -226,8 +229,13 @@ export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec
 
 export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
   return [
-    { selectId: '', downloadId: 'qwen', name: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
-    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 1 },
+    // Qwen 2.5 0.5B keeps selectId ''/downloadId 'qwen' for back-compat (persisted
+    // settings + legacy download id both resolve to Qwen/Qwen2.5-0.5B-Instruct).
+    { selectId: '', downloadId: 'qwen', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
+    { selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b', name: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
+    { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
+    { selectId: 'qwen3.5-2b', downloadId: 'qwen3.5-2b', name: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
+    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 5 },
   ];
 }
 

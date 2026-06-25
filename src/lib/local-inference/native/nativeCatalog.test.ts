@@ -32,9 +32,15 @@ describe('nativeCatalog', () => {
     expect(resolveNativeTranslation('Qwen/Qwen2.5-0.5B-Instruct', 'a', 'b')).toBe('Qwen/Qwen2.5-0.5B-Instruct');
   });
 
+  it('exposes the four Qwen translation versions plus opus-mt', () => {
+    const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
+    // '' is the Qwen 2.5 0.5B default (back-compat); the rest are explicit versions
+    expect(ids).toEqual(['', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
+  });
+
   it('exposes ASR + translation options', () => {
     expect(NATIVE_ASR.map((m) => m.id)).toContain('sense-voice');
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['', 'opus-mt']);
+    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
   });
 
   it('language compatibility + ASR auto-select', () => {
@@ -60,8 +66,9 @@ describe('nativeCatalog', () => {
     expect(nativeAsrCards('de').map((c) => c.selectId)).not.toContain('sense-voice');
 
     const tr = nativeTranslationCards('zh', 'en');
-    expect(tr[0]).toMatchObject({ selectId: '', downloadId: 'qwen' });
-    expect(tr[1]).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
+    expect(tr[0]).toMatchObject({ selectId: '', downloadId: 'qwen' });            // Qwen 2.5 0.5B default (unchanged ids)
+    expect(tr[1]).toMatchObject({ selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b' });
+    expect(tr[tr.length - 1]).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
 
     const tts = nativeTtsCards('en');
     expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low', recommended: true });
