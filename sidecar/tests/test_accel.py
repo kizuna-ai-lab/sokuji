@@ -503,3 +503,37 @@ def test_voxtral_model_unavailable_without_runtime():
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
+
+
+def test_resolve_translate_prefers_gpu():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
+    assert [p.device for p in plans] == ["cuda", "cpu"]
+    assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct"
+
+
+def test_resolve_translate_cpu_only_machine():
+    m = _machine(installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen3-0.6b", "auto", m)
+    assert [p.device for p in plans] == ["cpu"]
+
+
+def test_resolve_translate_override_cpu_pins_front():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen3-0.6b", "cpu", m)
+    assert [p.device for p in plans] == ["cpu", "cuda"]
+
+
+def test_resolve_translate_qwen35_self_gates_off():
+    # transformers lacks qwen3_5 → qwen35_translate not installed → no plan.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    with pytest.raises(accel.NoUsablePlan):
+        accel.resolve_translate("qwen3.5-0.8b", "auto", m)
+
+
+def test_resolve_translate_unknown_id_raises():
+    with pytest.raises(ValueError):
+        accel.resolve_translate("nope", "auto", _machine())

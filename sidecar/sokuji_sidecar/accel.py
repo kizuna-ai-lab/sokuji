@@ -71,7 +71,11 @@ def _installed() -> frozenset:
             # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
             # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
             # both so a half-installed env doesn't advertise it in the catalog then fail at load().
-            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common")}
+            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common"),
+            # translation: 2.5/3 are CausalLM (always present with transformers); 3.5 is the
+            # qwen3_5 VLM class (self-gates off until transformers ships it), used text-only.
+            "qwen_translate": "transformers",
+            "qwen35_translate": "transformers.models.qwen3_5"}
 
     def _ready(spec):
         return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
@@ -163,24 +167,34 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
     return plans
 
 
+def _resolve_model(model, model_id: str, override: str, machine: Machine) -> list[Plan]:
+    cache = bench_load()
+    bench = {}
+    for d in model.deployments:
+        device = TIER_DEVICE[d.tier]
+        key = _bench_key(machine.fingerprint, model_id, d.backend, device, d.compute_type)
+        if key in cache:
+            bench[(d.backend, device, d.compute_type)] = cache[key]
+    plans = resolve_deployments(model, machine, override, bench=bench or None)
+    if not plans:
+        raise NoUsablePlan(model_id)
+    return plans
+
+
 def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    m = machine or probe()
-    fp = m.fingerprint
-    cache = bench_load()
-    bench = {}
-    for d in model.deployments:
-        device = TIER_DEVICE[d.tier]
-        key = _bench_key(fp, model_id, d.backend, device, d.compute_type)
-        if key in cache:
-            bench[(d.backend, device, d.compute_type)] = cache[key]
-    plans = resolve_deployments(model, m, override, bench=bench or None)
-    if not plans:
-        raise NoUsablePlan(model_id)
-    return plans
+    return _resolve_model(model, model_id, override, machine or probe())
+
+
+def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+    from . import catalog
+    model = catalog.translate_model(model_id)
+    if model is None:
+        raise ValueError(f"unknown translate model: {model_id}")
+    return _resolve_model(model, model_id, override, machine or probe())
 
 
 class AllPlansFailed(Exception):
