@@ -9,7 +9,7 @@ import os
 from .asr_engine import VAD_URL
 
 QWEN_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
-SENSE_VOICE_REPO = "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
+SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
 
 
 def _whisper_size(model_id):

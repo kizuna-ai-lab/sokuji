@@ -597,6 +597,113 @@ def test_voxtral_realtime_load_failure_raises(monkeypatch):
         b.load("mistralai/Voxtral-Mini-4B-Realtime-2602", "cuda", "bfloat16")
 
 
+def test_strip_sensevoice_tags():
+    raw = "<|en|><|NEUTRAL|><|Speech|><|withitn|>hello world"
+    assert backends._strip_sensevoice_tags(raw) == ("hello world", "en")
+    assert backends._strip_sensevoice_tags("<|yue|><|HAPPY|><|Speech|>呢几个字") == ("呢几个字", "yue")
+    # no tags → no language
+    assert backends._strip_sensevoice_tags("  plain text  ") == ("plain text", None)
+    # leading tag that is not a language code (not lowercase) → language None
+    assert backends._strip_sensevoice_tags("<|NEUTRAL|>x") == ("x", None)
+
+
+def _install_fake_funasr(monkeypatch, *, text="<|en|><|NEUTRAL|><|Speech|><|withitn|>hello world",
+                         fail=False, cuda_available=True, empty=False):
+    cap = {}
+
+    class FakeAutoModel:
+        def __init__(self, model, hub, device, disable_update):
+            if fail:
+                raise RuntimeError("funasr load failed")
+            cap["init"] = dict(model=model, hub=hub, device=device, disable_update=disable_update)
+
+        def generate(self, input, fs, cache, language, use_itn, batch_size_s):
+            cap["gen"] = dict(n=len(input), fs=fs, language=language,
+                              use_itn=use_itn, batch_size_s=batch_size_s)
+            return [] if empty else [{"text": text}]
+
+    fmod = types.ModuleType("funasr")
+    fmod.AutoModel = FakeAutoModel
+    monkeypatch.setitem(sys.modules, "funasr", fmod)
+
+    torch_mod = types.ModuleType("torch")
+    torch_mod.cuda = types.SimpleNamespace(empty_cache=lambda: None,
+                                           is_available=lambda: cuda_available)
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    return cap
+
+
+def test_funasr_sensevoice_load_and_transcribe_gpu(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    assert not b.is_loaded
+    b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float16")
+    assert b.is_loaded
+    assert cap["init"]["model"] == "FunAudioLLM/SenseVoiceSmall"
+    assert cap["init"]["hub"] == "hf"
+    assert cap["init"]["device"] == "cuda:0"        # "cuda" tier → cuda:0
+    assert cap["init"]["disable_update"] is True
+    out = b.transcribe(np.zeros(16000, np.float32), None)
+    assert out.text == "hello world" and out.language == "en"   # tags stripped, lang parsed
+    assert cap["gen"]["fs"] == 16000                # TARGET_RATE
+    assert cap["gen"]["use_itn"] is True
+    assert cap["gen"]["language"] == "auto"         # None → "auto"
+    b.unload()
+    assert not b.is_loaded
+
+
+def test_funasr_sensevoice_honors_cpu_device(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cpu", "float32")  # must NOT raise (honors cpu)
+    assert b.is_loaded
+    assert cap["init"]["device"] == "cpu"
+
+
+def test_funasr_sensevoice_passes_language_through(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float16")
+    b.transcribe(np.zeros(16000, np.float32), "zh")
+    assert cap["gen"]["language"] == "zh"           # explicit language passed through
+
+
+def test_funasr_sensevoice_load_failure_raises(monkeypatch):
+    _install_fake_funasr(monkeypatch, fail=True)
+    b = backends.make_backend("funasr_sensevoice")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float32")
+
+
+def test_funasr_sensevoice_rejects_cuda_without_torch_cuda(monkeypatch):
+    # FunASR silently runs on CPU when torch has no CUDA; the backend must reject
+    # the cuda plan so the resolver falls back to the (correctly labelled) cpu plan
+    # instead of mislabelling a CPU run as cuda.
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False)
+    b = backends.make_backend("funasr_sensevoice")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("FunAudioLLM/SenseVoiceSmall", "cuda", "float32")
+    assert "init" not in cap          # rejected before AutoModel was constructed
+    assert not b.is_loaded
+
+
+def test_funasr_sensevoice_cpu_unaffected_by_missing_cuda(monkeypatch):
+    # The cuda guard must NOT block the cpu tier when torch has no CUDA.
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cpu", "float32")
+    assert b.is_loaded and cap["init"]["device"] == "cpu"
+
+
+def test_funasr_sensevoice_empty_result_returns_blank(monkeypatch):
+    # funasr can return [] for an empty/silent segment; transcribe must not raise.
+    _install_fake_funasr(monkeypatch, empty=True)
+    b = backends.make_backend("funasr_sensevoice")
+    b.load("FunAudioLLM/SenseVoiceSmall", "cpu", "float32")
+    out = b.transcribe(np.zeros(16000, np.float32), "en")
+    assert out.text == "" and out.language is None
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads mistralai/Voxtral-Mini-4B-Realtime-2602 ~8.9GB; needs CUDA + mistral-common[audio])")
 def test_voxtral_realtime_real_gpu_smoke():
@@ -626,3 +733,31 @@ def test_voxtral_realtime_real_gpu_smoke():
     c.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
     assert c.is_loaded
     c.unload()
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads FunAudioLLM/SenseVoiceSmall ~900MB + the sherpa sense-voice repo for test_wavs; needs CUDA torch + funasr)")
+def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
+    # Real flow: manager downloads first, backend loads from cache. Use a known
+    # English clip (sense-voice test wav) → a non-empty transcript on cuda AND cpu.
+    import wave
+    from huggingface_hub import snapshot_download
+    snapshot_download("FunAudioLLM/SenseVoiceSmall")  # populate HF cache
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    with wave.open(f"{d}/test_wavs/en.wav", "rb") as w:
+        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    dur = len(audio) / 16000.0
+
+    for device in ("cuda", "cpu"):
+        b = backends.make_backend("funasr_sensevoice")
+        b.load("FunAudioLLM/SenseVoiceSmall", device, "float32")
+        assert b.is_loaded
+        b.transcribe(audio, "en")          # warmup (excluded from RTF)
+        t0 = time.perf_counter()
+        r = b.transcribe(audio, "en")
+        rtf = (time.perf_counter() - t0) / dur
+        assert isinstance(r.text, str) and r.text.strip(), f"empty transcript on {device}: {r.text!r}"
+        assert "<|" not in r.text, f"tags not stripped on {device}: {r.text!r}"
+        assert r.language == "en"
+        print(f"funasr sensevoice {device} RTF={rtf:.4f} text={r.text!r}")
+        b.unload()

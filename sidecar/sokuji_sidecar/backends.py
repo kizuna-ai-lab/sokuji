@@ -1,6 +1,7 @@
 """ASR backend adapters: one class per inference framework, all sharing the
 load()/transcribe()/unload() contract. The only code that touches a framework's
 real API. Heavy frameworks are imported lazily inside load()."""
+import re
 from dataclasses import dataclass
 
 
@@ -348,3 +349,71 @@ class VoxtralRealtimeBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+_SV_TAG = re.compile(r"<\|([^|]*)\|>")
+
+
+def _strip_sensevoice_tags(text: str) -> tuple[str, str | None]:
+    """SenseVoice prefixes transcripts with <|lang|><|emotion|><|event|><|withitn|>.
+    Return (clean_text, language) for text-only output. The first tag is the
+    language code (lowercase, e.g. 'en'); emotion/event tags are not lowercase."""
+    tags = _SV_TAG.findall(text)
+    lang = tags[0] if tags and tags[0].islower() else None
+    return _SV_TAG.sub("", text).strip(), lang
+
+
+@register_backend
+class FunAsrSenseVoiceBackend:
+    """FunASR SenseVoiceSmall (PyTorch). model_ref is the HF repo id
+    (FunAudioLLM/SenseVoiceSmall). Serves BOTH gpu-cuda (float32) and cpu
+    (float32) tiers — honors the device it is given (no GPU-only guard).
+    Non-autoregressive encoder+CTC: one generate() per VAD segment. Output
+    lang/emotion/event tags are stripped to a clean transcript."""
+    NAME = "funasr_sensevoice"
+
+    def __init__(self):
+        self._m = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._m = None
+        try:
+            from funasr import AutoModel
+            if device == "cuda":
+                # FunASR's AutoModel silently falls back to CPU when torch has no
+                # CUDA runtime; reject the cuda plan here so load_with_fallback steps
+                # to the (correctly labelled) cpu plan instead of mislabelling a CPU
+                # run as cuda. Only an explicit, generic "cuda" maps to cuda:0.
+                import torch
+                if not torch.cuda.is_available():
+                    raise BackendLoadError("cuda requested but torch has no CUDA runtime")
+                dev = "cuda:0"
+            else:
+                dev = device
+            self._m = AutoModel(model=model_ref, hub="hf", device=dev,
+                                disable_update=True)
+        except BackendLoadError:
+            raise
+        except Exception as e:  # missing funasr, OOM, bad repo → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def transcribe(self, samples, language) -> AsrResult:
+        res = self._m.generate(input=samples, fs=TARGET_RATE, cache={},
+                               language=(language or "auto"), use_itn=True,
+                               batch_size_s=60)
+        if not res or not isinstance(res, list) or "text" not in res[0]:
+            return AsrResult("", None)  # funasr returned nothing (e.g. empty/silent segment)
+        text, lang = _strip_sensevoice_tags(res[0]["text"])
+        return AsrResult(text, lang)
+
+    def unload(self) -> None:
+        self._m = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._m is not None
