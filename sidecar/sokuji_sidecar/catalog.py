@@ -4,14 +4,12 @@ Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; sherpa 
 import os
 from dataclasses import dataclass
 
-SENSE_VOICE_REPO = os.environ.get(
-    "SOKUJI_ASR_REPO",
-    "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -39,7 +37,8 @@ ASR_MODELS: list[AsrModel] = [
                          "AEmotionStudio/cohere-transcribe-03-2026-models", 1.0),),
              recommended=True, sort_order=0),
     AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
-             (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
+             (Deployment("funasr_sensevoice", "gpu-cuda", "float16", SENSE_VOICE_REPO, 1.0),
+              Deployment("funasr_sensevoice", "cpu", "float32", SENSE_VOICE_REPO, 1.0)),
              recommended=True, sort_order=1),
     AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
              (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),

@@ -6,7 +6,8 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr", "cohere_transformers", "voxtral_realtime"}
+            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
+                                 "cohere_transformers", "voxtral_realtime", "funasr_sensevoice"}
 
 
 def test_system_has_a_cpu_floor():
@@ -31,9 +32,19 @@ def test_language_regression_fixtures():
     assert catalog.asr_model("whisper-large-v3").languages == ("multi",)
 
 
-def test_sense_voice_uses_sherpa_whisper_uses_ctranslate2():
-    assert catalog.asr_model("sense-voice").deployments[0].backend == "sherpa"
+def test_sense_voice_uses_funasr_whisper_uses_ctranslate2():
+    assert catalog.asr_model("sense-voice").deployments[0].backend == "funasr_sensevoice"
     assert catalog.asr_model("whisper-tiny").deployments[0].backend == "ctranslate2"
+
+
+def test_sense_voice_row_has_gpu_and_cpu_funasr():
+    m = catalog.asr_model("sense-voice")
+    assert m.recommended is True and m.sort_order == 1
+    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
+        ("funasr_sensevoice", "gpu-cuda", "float16"),
+        ("funasr_sensevoice", "cpu", "float32"),
+    ]
+    assert all(d.artifact == catalog.SENSE_VOICE_REPO for d in m.deployments)
 
 
 def test_granite_language_regression():
