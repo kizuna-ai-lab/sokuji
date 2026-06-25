@@ -196,6 +196,7 @@ export interface LocalNativeSettings {
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
   asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
+  translationDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's translation device selection
 }
 
 // Cache Entry
@@ -391,6 +392,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   useTemplateMode: true,
   systemPrompt: '',
   asrDevice: 'auto',
+  translationDevice: 'auto',
 };
 
 // ==================== Store Definition ====================
@@ -736,6 +738,7 @@ function createLocalNativeSessionConfig(
     turnDetectionMode: settings.turnDetectionMode,
     wrapTranscript,
     asrDevice: settings.asrDevice,
+    translationDevice: settings.translationDevice,
   };
 }
 
