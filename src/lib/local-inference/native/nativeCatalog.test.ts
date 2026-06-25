@@ -84,8 +84,8 @@ describe('nativeCatalog', () => {
   });
 
   it('splits ASR into compatible / incompatible for a language', () => {
-    // 'de' is not a sense-voice language: sense-voice is incompatible, whisper-* compatible
-    expect(incompatibleNativeAsr('de').map((m) => m.id)).toEqual(['sense-voice']);
+    // 'de' is not a sense-voice language: sense-voice and fun-asr-mlt-nano are incompatible, whisper-* compatible
+    expect(incompatibleNativeAsr('de').map((m) => m.id)).toEqual(['sense-voice', 'fun-asr-mlt-nano']);
     expect(nativeAsrIncompatibleCards('de')[0]).toMatchObject({ selectId: 'sense-voice', downloadId: 'sense-voice' });
     // for a sense-voice language, sense-voice and whisper are compatible; Granite models (no zh) are incompatible
     expect(incompatibleNativeAsr('zh').map((m) => m.id)).toContain('granite-speech-4.1-2b');
@@ -223,6 +223,15 @@ describe('nativeCatalog', () => {
     expect(compatibleNativeAsr('th').map((m) => m.id)).not.toContain('voxtral-mini-4b-realtime');
     // does not displace cohere as the recommended leader for a shared language
     expect(compatibleNativeAsr('zh')[0].id).toBe('cohere-transcribe-03-2026');
+  });
+
+  it('includes fun-asr-mlt-nano as a recommended 31-language ASR option', () => {
+    const m = NATIVE_ASR.find((x) => x.id === 'fun-asr-mlt-nano');
+    expect(m).toBeTruthy();
+    expect(m!.label).toBe('Fun-ASR MLT Nano');
+    expect(m!.recommended).toBe(true);
+    expect(m!.languages).toHaveLength(31);
+    expect(m!.languages.slice(0, 5)).toEqual(['zh', 'en', 'yue', 'ja', 'ko']);
   });
 
   it('maps hardware tiers to display labels', () => {

@@ -31,6 +31,7 @@ export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 8 },
   { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 9 },
   { id: 'voxtral-mini-4b-realtime', label: 'Voxtral Mini 4B Realtime', languages: ['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko'], recommended: true, sortOrder: 10 },
+  { id: 'fun-asr-mlt-nano', label: 'Fun-ASR MLT Nano', languages: ['zh', 'en', 'yue', 'ja', 'ko', 'vi', 'id', 'th', 'ms', 'fil', 'ar', 'hi', 'bg', 'hr', 'cs', 'da', 'nl', 'et', 'fi', 'el', 'hu', 'ga', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv'], recommended: true, sortOrder: 11 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
