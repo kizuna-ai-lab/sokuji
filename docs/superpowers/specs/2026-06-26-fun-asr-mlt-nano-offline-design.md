@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-26
 **Branch**: `feat/fun-asr-mlt-nano` (off `native-sidecar`)
-**Status**: Approved — implementation plan to follow
+**Status**: Approved; Phase-0 verified — plan at `docs/superpowers/plans/2026-06-26-fun-asr-mlt-nano-offline.md`
 
 ## Summary
 
@@ -120,20 +120,18 @@ class FunAsrNanoBackend(_FunAsrBackend):
 ```python
 AsrModel("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
          (<31-language tuple, pulled verbatim from the model card/config>),
-         (Deployment("funasr_nano", "gpu-cuda", "<dtype from Phase-0>", FUN_ASR_MLT_REPO, 1.0),
-          # cpu tier added ONLY if Phase-0 RTF shows it viable (see Phase 0)
-         ),
-         recommended=True, sort_order=<advisory>)
+         (Deployment("funasr_nano", "gpu-cuda", "float32", FUN_ASR_MLT_REPO, 1.0),
+          Deployment("funasr_nano", "cpu", "float32", FUN_ASR_MLT_REPO, 1.0)),
+         recommended=True, sort_order=11)   # values confirmed by Phase-0 (below)
 ```
 
 - `FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")`
   — mirrors the `SENSE_VOICE_REPO` override pattern.
-- **`compute_type` labelled from Phase-0's measured dtype**, not guessed (the same
-  honesty fix applied to SenseVoice — no float16-that's-really-float32 label).
-- **Tiers**: `gpu-cuda` is definite. An autoregressive 0.6B decoder is likely not
-  CPU-real-time (peers Qwen3/Granite/Cohere/Voxtral are GPU-only), so the `cpu`
-  tier is **verification-gated**: included only if Phase-0 RTF is acceptable,
-  otherwise GPU-only.
+- **`compute_type` is `float32`** (both tiers) — Phase-0 measured the loaded model
+  at fp32, 869M params (no float16-that's-really-float32 label, the SenseVoice fix).
+- **Tiers**: both `gpu-cuda` AND `cpu` ship. Phase-0 measured CPU RTF 0.22–0.32
+  (real-time) — contrary to the autoregressive-is-GPU-only assumption, the small
+  Qwen3-0.6B decoder on short VAD segments is CPU-viable, so the cpu tier stays in.
 - `recommended=True` (strong Apache-2.0 multilingual, competes with Qwen3-ASR-1.7B
   at half the size). `sort_order` is advisory (the renderer owns card ordering).
 
@@ -162,9 +160,23 @@ Mirror the sidecar row:
 with a matching `nativeCatalog.test.ts` assertion — same lockstep discipline as the
 catalog/renderer pairs already in the tree.
 
-## Phase 0 — verification spike (de-risk gate, matches the SenseVoice pattern)
+## Phase 0 — verification spike (COMPLETED ✅)
 
-Before production code, prove it on the dev GPU (reusing the provisioned venv):
+Run on the dev RTX 4070 (funasr 1.3.14, torch 2.11.0+cu128), feeding the cached
+sherpa SenseVoice test clips (zh/en/ja/ko/yue) as temp wavs:
+
+| device | RTF | load | VRAM | correctness |
+|--------|-----|------|------|-------------|
+| cuda:0 | 0.047–0.100 | ~17 s | 3579 MB peak | all 5 langs correct |
+| cpu    | 0.223–0.317 | ~18 s | —    | all 5 langs correct |
+
+Results: loads via `trust_remote_code=True` (no `remote_code` needed — funasr 1.3.14
+ships `fun_asr_nano/model.py`); **float32, 869M params**; output is clean punctuated
+text with **no `<|tags|>`**; `language="auto"` auto-detects all 5; **input must be a
+file path** (bare ndarray raises in `data_template`) → feed a temp wav; `tiktoken`
+(the `multilingual.tiktoken` tokenizer) is already present via funasr — no new dep.
+
+What was checked (all green):
 
 1. `AutoModel(model="FunAudioLLM/Fun-ASR-MLT-Nano-2512", hub="hf", trust_remote_code=True, device="cuda:0")`
    loads — confirms `model.py` fetch + no missing deps.
