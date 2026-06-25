@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+import os
 import pytest
 from sokuji_sidecar import translate_backends as tb
 from sokuji_sidecar import backends
@@ -82,3 +83,28 @@ def test_qwen35_load_raises_when_class_missing(monkeypatch):
     b = tb.Qwen35TranslateBackend()
     with pytest.raises(backends.BackendLoadError):
         b.load("Qwen/Qwen3.5-0.8B", "cuda", "bfloat16")
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads models + needs CUDA)")
+@pytest.mark.parametrize("model_id", ["qwen2.5-0.5b", "qwen3-0.6b"])
+def test_qwen_translate_real_gpu(model_id):
+    from sokuji_sidecar import translate_engine
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id=model_id, source_lang="Spanish", target_lang="English", device="cuda")
+    assert eng.resolved["device"] == "cuda"
+    out, ms = eng.translate("Hola, ¿cómo estás?")
+    assert isinstance(out, str) and out.strip() and ms >= 0
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads models + needs CUDA + qwen3_5)")
+def test_qwen35_translate_real_gpu_if_available():
+    import importlib.util
+    if importlib.util.find_spec("transformers.models.qwen3_5") is None:
+        pytest.skip("transformers lacks qwen3_5 — Qwen3.5 rows self-gate off")
+    from sokuji_sidecar import translate_engine
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="qwen3.5-0.8b", source_lang="Spanish", target_lang="English", device="cuda")
+    out, _ = eng.translate("Hola, ¿cómo estás?")
+    assert isinstance(out, str) and out.strip()
