@@ -34,13 +34,13 @@ describe('nativeCatalog', () => {
 
   it('exposes the four Qwen translation versions plus opus-mt', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // '' is the Qwen 2.5 0.5B default (back-compat); the rest are explicit versions
-    expect(ids).toEqual(['', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + opus-mt
+    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
   });
 
   it('exposes ASR + translation options', () => {
     expect(NATIVE_ASR.map((m) => m.id)).toContain('sense-voice');
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
+    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
   });
 
   it('language compatibility + ASR auto-select', () => {
@@ -66,7 +66,7 @@ describe('nativeCatalog', () => {
     expect(nativeAsrCards('de').map((c) => c.selectId)).not.toContain('sense-voice');
 
     const tr = nativeTranslationCards('zh', 'en');
-    expect(tr[0]).toMatchObject({ selectId: '', downloadId: 'qwen' });            // Qwen 2.5 0.5B default (unchanged ids)
+    expect(tr[0]).toMatchObject({ selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b' });            // Qwen 2.5 0.5B recommended default
     expect(tr[1]).toMatchObject({ selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b' });
     expect(tr[tr.length - 1]).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
 
@@ -101,17 +101,17 @@ describe('nativeCatalog', () => {
   });
 
   describe('autoSelectNative', () => {
-    const cur = (over = {}) => ({ asrModel: 'sense-voice', translationModel: '', ttsModel: '', ...over });
+    const cur = (over = {}) => ({ asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: '', ...over });
     const downloaded = (...ids: string[]) => (id: string | null) => id === null || ids.includes(id);
     const none = () => false;
 
     it('keeps a valid, downloaded selection (no change)', () => {
-      expect(autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen'))).toBeNull();
+      expect(autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen2.5-0.5b'))).toBeNull();
     });
 
     it('drops an ASR model that no longer supports the source language', () => {
       // sense-voice does not support German → switch to the best downloaded compatible (whisper-base)
-      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-base', 'qwen'));
+      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-base', 'qwen2.5-0.5b'));
       expect(r).toMatchObject({ asrModel: 'whisper-base' });
     });
 
@@ -121,9 +121,9 @@ describe('nativeCatalog', () => {
     });
 
     it('falls back from a not-downloaded opus-mt to whatever is downloaded for this pair', () => {
-      // user picked opus-mt zh→en but only qwen is cached → revert to Qwen ('')
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'opus-mt' }), downloaded('sense-voice', 'qwen'));
-      expect(r).toMatchObject({ translationModel: '' });
+      // user picked opus-mt zh→en but only qwen2.5 is cached → revert to Qwen 2.5
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'opus-mt' }), downloaded('sense-voice', 'qwen2.5-0.5b'));
+      expect(r).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
     });
 
     it('reverse pair: opus-mt downloaded one way is absent the other way', () => {
@@ -133,30 +133,30 @@ describe('nativeCatalog', () => {
       expect(autoSelectNative('zh', 'en', cur({ translationModel: 'opus-mt' }), isDl)).toBeNull();
       // reverse direction: downloadId becomes opus-mt-en-zh (absent) → reverts to Qwen
       const rev = autoSelectNative('en', 'zh', cur({ asrModel: 'whisper-base', translationModel: 'opus-mt' }), downloaded('whisper-base', 'Xenova/opus-mt-zh-en'));
-      expect(rev).toMatchObject({ translationModel: '' });
+      expect(rev).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
     });
 
     it('resets a stale cross-language TTS voice to Auto', () => {
-      const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen'));
+      const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen2.5-0.5b'));
       expect(r?.ttsModel).toBe('');
     });
 
     it('migrates a legacy "off" TTS choice to Auto', () => {
-      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'off' }), downloaded('sense-voice', 'qwen'));
+      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'off' }), downloaded('sense-voice', 'qwen2.5-0.5b'));
       expect(r?.ttsModel).toBe('');
     });
 
     it('applies recalled history when its models are downloaded for this pair', () => {
       // history for zh→en prefers whisper-small; it is downloaded → recall overrides the default
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-small', 'qwen'),
-        { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-small', 'qwen2.5-0.5b'),
+        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' });
       expect(r).toMatchObject({ asrModel: 'whisper-small' });
     });
 
     it('ignores recalled history whose model is not downloaded', () => {
       // recall wants whisper-small but only sense-voice is cached → keep sense-voice
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('sense-voice', 'qwen'),
-        { asrModel: 'whisper-small', translationModel: '', ttsModel: '' });
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
+        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' });
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
 
@@ -166,14 +166,14 @@ describe('nativeCatalog', () => {
       // cohere (GPU-only, sorted first) + sense-voice both downloaded, but cohere is gated
       // here → must pick sense-voice, never the unrunnable cohere.
       const r = autoSelectNative('zh', 'en', cur({ asrModel: '' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen'), null, gatesCohere);
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere);
       expect(r?.asrModel).toBe('sense-voice');
     });
 
     it('reconciles away a remembered ASR that is now hardware-gated', () => {
       // the current selection IS the GPU-only cohere but this machine can't run it → replace it
       const r = autoSelectNative('zh', 'en', cur({ asrModel: 'cohere-transcribe-03-2026' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen'), null, gatesCohere);
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere);
       expect(r?.asrModel).toBe('sense-voice');
     });
   });

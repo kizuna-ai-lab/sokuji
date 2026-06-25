@@ -23,7 +23,7 @@ def _vad_cache_path():
 
 def download_specs(model_id):
     """Map a model id to its download sources: {repos: [..], urls: [..]}."""
-    if not model_id or model_id == "qwen":
+    if not model_id:
         return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS

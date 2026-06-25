@@ -380,7 +380,7 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
 
 const defaultLocalNativeSettings: LocalNativeSettings = {
   asrModel: 'sense-voice',
-  translationModel: '',  // auto: opus-mt for the language pair
+  translationModel: 'qwen2.5-0.5b',  // explicit default LLM; opus-mt selectable per language pair
   ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
   sourceLanguage: 'ja',
   targetLanguage: 'en',

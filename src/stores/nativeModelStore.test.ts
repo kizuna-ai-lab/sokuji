@@ -45,7 +45,7 @@ describe('requiredNativeModels', () => {
   it('lists asr + translation(+qwen default) + tts when speech on', () => {
     // en target -> piper TTS; '' translation -> qwen
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en')).toEqual([
-      'sense-voice', 'qwen', 'csukuangfj/vits-piper-en_US-amy-low',
+      'sense-voice', 'qwen2.5-0.5b', 'csukuangfj/vits-piper-en_US-amy-low',
     ]);
     // opus-mt translation, ja target -> no TTS
     expect(requiredNativeModels('whisper-tiny', 'opus-mt', '', 'zh', 'ja')).toEqual([

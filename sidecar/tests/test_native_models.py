@@ -6,8 +6,11 @@ from sokuji_sidecar import server
 
 
 def test_download_specs_mapping():
+    # Empty id is the implicit default → Qwen 2.5 0.5B; the explicit id maps the same.
     assert nm.download_specs('')['repos'] == [nm.QWEN_REPO]
-    assert nm.download_specs('qwen')['repos'] == [nm.QWEN_REPO]
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == [nm.QWEN_REPO]
+    # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
+    assert nm.download_specs('qwen')['repos'] == ['qwen']
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
