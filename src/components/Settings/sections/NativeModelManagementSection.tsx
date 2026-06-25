@@ -356,7 +356,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           <div className="model-group__device-label">
             {t('models.computeDevice', 'Compute device')}
             <Tooltip
-              content={t('models.computeDeviceTooltip', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
+              content={t('models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
