@@ -702,3 +702,31 @@ def test_voxtral_realtime_real_gpu_smoke():
     c.load("AEmotionStudio/cohere-transcribe-03-2026-models", "cuda", "bfloat16")
     assert c.is_loaded
     c.unload()
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads FunAudioLLM/SenseVoiceSmall ~900MB; needs CUDA torch + funasr)")
+def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
+    # Real flow: manager downloads first, backend loads from cache. Use a known
+    # English clip (sense-voice test wav) → a non-empty transcript on cuda AND cpu.
+    import wave
+    from huggingface_hub import snapshot_download
+    snapshot_download("FunAudioLLM/SenseVoiceSmall")  # populate HF cache
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    w = wave.open(f"{d}/test_wavs/en.wav", "rb")
+    audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    dur = len(audio) / 16000.0
+
+    for device in ("cuda", "cpu"):
+        b = backends.make_backend("funasr_sensevoice")
+        b.load("FunAudioLLM/SenseVoiceSmall", device, "float16" if device == "cuda" else "float32")
+        assert b.is_loaded
+        b.transcribe(audio, "en")          # warmup (excluded from RTF)
+        t0 = time.perf_counter()
+        r = b.transcribe(audio, "en")
+        rtf = (time.perf_counter() - t0) / dur
+        assert isinstance(r.text, str) and r.text.strip(), f"empty transcript on {device}: {r.text!r}"
+        assert "<|" not in r.text, f"tags not stripped on {device}: {r.text!r}"
+        assert r.language == "en"
+        print(f"funasr sensevoice {device} RTF={rtf:.4f} text={r.text!r}")
+        b.unload()

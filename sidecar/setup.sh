@@ -41,7 +41,7 @@ esac
 # cannot shift the installed code under us (unlike a mutable branch archive). Swap to a
 # released 'transformers>=5.13' from PyPI once huggingface/transformers PR #43838 merges.
 TRANSFORMERS_REF="git+https://github.com/mbtariq82/transformers@a2ec912647e42dee56eb89e64b0ec539ad9e7b65"
-"$PY" -m pip install -q "$TRANSFORMERS_REF" sherpa-onnx faster-whisper sacremoses librosa "mistral-common[audio]>=1.9.0"
+"$PY" -m pip install -q "$TRANSFORMERS_REF" sherpa-onnx faster-whisper sacremoses librosa "mistral-common[audio]>=1.9.0" funasr
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
