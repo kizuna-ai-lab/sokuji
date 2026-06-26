@@ -291,13 +291,12 @@
     gap: 3px;
     padding: 1px 6px;
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid currentColor;
     border-radius: 3px;
     font-size: vars.$font-caption;
     color: vars.$text-muted;
   }
 
-  &__lang-tag--live { font-weight: 600; }           // highlighted (neutral): chosen-CPU
+  &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
   &__lang-tag--accel { border-color: #10a37f; color: #10a37f; }  // GPU live
   &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
 
