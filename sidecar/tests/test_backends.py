@@ -814,12 +814,15 @@ def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_ASR_MODEL"),
                     reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads/loads Fun-ASR-MLT-Nano, needs CUDA)")
 def test_funasr_nano_real_transcribe_smoke():
-    import soundfile as sf
-    wav = ("/home/jiangzhuo/.cache/huggingface/hub/"
-           "models--csukuangfj--sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/"
-           "snapshots/2365baeacb507f821a0c8120fcee3d484dba7a07/test_wavs/en.wav")
-    samples, sr = sf.read(wav, dtype="float32")
-    assert sr == 16000
+    # Same idiom as the sensevoice smoke above: snapshot_download the sherpa
+    # sense-voice repo for its test_wavs/en.wav (portable across machines — no
+    # hardcoded cache path), read it via wave, transcribe on cuda.
+    import wave
+    from huggingface_hub import snapshot_download
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    with wave.open(f"{d}/test_wavs/en.wav", "rb") as w:
+        assert w.getframerate() == 16000
+        samples = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
     b = backends.make_backend("funasr_nano")
     b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
     out = b.transcribe(samples, "auto")

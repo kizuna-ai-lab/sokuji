@@ -412,7 +412,7 @@ class _FunAsrBackend:
             res = self._m.generate(input=samples, fs=TARGET_RATE, cache={},
                                    language=(language or "auto"), use_itn=True,
                                    batch_size_s=60)
-        if not res or not isinstance(res, list) or "text" not in res[0]:
+        if not res or not isinstance(res, list) or not isinstance(res[0], dict) or "text" not in res[0]:
             return AsrResult("", None)  # funasr returned nothing (empty/silent segment)
         text, lang = self.CONFIG.postprocess(res[0]["text"])
         return AsrResult(text, lang)
