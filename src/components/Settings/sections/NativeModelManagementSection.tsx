@@ -100,14 +100,26 @@ const NativeModelCard: React.FC<{
   const bytes = noDownload ? 0 : sizes[spec.downloadId as string];
   const sizeMb = bytes && bytes > 0 ? Math.round(bytes / 1e6) : null;
 
+  // The chosen variant (pinned, else recommended) for a multi-variant card — drives
+  // both the resolved label and which repo the download button fetches.
+  const chosenVariant = useMemo(() => {
+    if (!variantProps) return undefined;
+    const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
+    return variantProps.variants.find((v) => v.id === chosenId);
+  }, [variantProps]);
+
   // Resolved variant label shown post-download: "FP8 · 7.8 GB"
   const resolvedVariantLabel = useMemo(() => {
-    if (!variantProps || !ready || sizeMb === null) return null;
-    const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-    const chosen = variantProps.variants.find((v) => v.id === chosenId);
-    if (!chosen) return null;
-    return `${chosen.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
-  }, [variantProps, ready, sizeMb]);
+    if (!chosenVariant || !ready || sizeMb === null) return null;
+    return `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
+  }, [chosenVariant, ready, sizeMb]);
+
+  // The download button fetches the chosen variant's repo (undefined → default repo,
+  // for single-variant cards). Keeps download in lock-step with the variant load.
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    download(spec.downloadId as string, chosenVariant?.repo);
+  };
 
   return (
     <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
@@ -252,7 +264,7 @@ const NativeModelCard: React.FC<{
             ) : (
               <button
                 className="model-card__btn model-card__btn--download"
-                onClick={(e) => { e.stopPropagation(); download(spec.downloadId as string); }}
+                onClick={handleDownload}
                 disabled={disabled || hwGated}
                 title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
               >

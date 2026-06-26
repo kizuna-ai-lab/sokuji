@@ -83,7 +83,7 @@ def test_download_raises_when_no_files_resolved(monkeypatch):
         def list_repo_files(self, repo):
             raise RuntimeError(f"RepositoryNotFoundError: {repo}")
 
-    monkeypatch.setattr(nm, 'download_specs', lambda m: {'repos': ['bogus/repo'], 'urls': []})
+    monkeypatch.setattr(nm, 'download_specs', lambda m, repo=None: {'repos': ['bogus/repo'], 'urls': []})
     monkeypatch.setattr(huggingface_hub, 'HfApi', _Api)
 
     sent = []
@@ -142,7 +142,7 @@ def test_delete_handler_shape(monkeypatch):
 def test_download_is_nonblocking_and_pushes_completion(monkeypatch):
     # download runs as a background task; the handler returns nothing (completion
     # is pushed) so the connection stays free to receive model_cancel.
-    async def fake_download(model_id, send, should_cancel=None):
+    async def fake_download(model_id, send, should_cancel=None, repo=None):
         await send({'type': 'model_progress', 'model': model_id, 'downloaded': 1, 'total': 1})
         return 'ready'
     monkeypatch.setattr(nm, 'download', fake_download)
@@ -168,7 +168,7 @@ def test_download_is_nonblocking_and_pushes_completion(monkeypatch):
 
 def test_model_cancel_stops_download_at_file_boundary(monkeypatch):
     # a multi-file download checks should_cancel between files and stops promptly
-    async def fake_download(model_id, send, should_cancel=None):
+    async def fake_download(model_id, send, should_cancel=None, repo=None):
         while True:
             if should_cancel and should_cancel():
                 return 'cancelled'
@@ -242,7 +242,7 @@ def test_download_honors_ignore_list(monkeypatch):
         def list_repo_files(self, repo):
             return ["model.safetensors", "consolidated.safetensors", "config.json", "tekken.json"]
 
-    monkeypatch.setattr(nm, "download_specs", lambda m: {
+    monkeypatch.setattr(nm, "download_specs", lambda m, repo=None: {
         "repos": ["r"], "urls": [], "ignore": ["consolidated.safetensors"]})
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
@@ -311,3 +311,54 @@ def test_download_specs_variant_repo_override():
     from sokuji_sidecar import native_models as nm
     spec = nm.download_specs("hy-mt2-7b", repo="tencent/Hy-MT2-7B-FP8")
     assert spec["repos"] == ["tencent/Hy-MT2-7B-FP8"]
+
+
+def test_download_fetches_chosen_variant_repo(monkeypatch):
+    """download(model, send, repo=...) must fetch files from the CHOSEN variant repo,
+    not the model's default — the end-to-end wiring that makes the FP8 quant load."""
+    import huggingface_hub
+    fetched = []
+
+    class _Api:
+        def list_repo_files(self, repo):
+            return [f"{repo}/model.safetensors", "config.json"]
+
+    monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname: fetched.append((repo, fname)))
+
+    async def send(_m):
+        pass
+
+    status = asyncio.run(nm.download("hy-mt2-7b", send, repo="tencent/Hy-MT2-7B-FP8"))
+    assert status == "ready"
+    # Every fetched file came from the FP8 repo, NOT the default bf16 tencent/Hy-MT2-7B.
+    assert fetched and all(repo == "tencent/Hy-MT2-7B-FP8" for repo, _ in fetched)
+
+
+def test_h_model_download_passes_repo_through(monkeypatch):
+    """The model_download handler reads msg['repo'] and threads it to download(),
+    so the renderer's chosen variant repo reaches the fetch."""
+    captured = {}
+
+    async def fake_download(model_id, send, should_cancel=None, repo=None):
+        captured["repo"] = repo
+        await send({"type": "model_progress", "model": model_id, "downloaded": 1, "total": 1})
+        return "ready"
+    monkeypatch.setattr(nm, "download", fake_download)
+
+    class FakeWS:
+        def __init__(self): self.sent = []
+        async def send(self, d): self.sent.append(d)
+
+    async def scenario():
+        st = {}
+        nm.register(st)
+        conn = server.Conn(FakeWS())
+        await server.handle_message(
+            st, json.dumps({"type": "model_download", "id": 1, "model": "hy-mt2-7b",
+                            "repo": "tencent/Hy-MT2-7B-FP8"}), None, conn)
+        await st["download_tasks"]["hy-mt2-7b"]
+
+    asyncio.run(scenario())
+    assert captured["repo"] == "tencent/Hy-MT2-7B-FP8"

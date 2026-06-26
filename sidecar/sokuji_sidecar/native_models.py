@@ -182,8 +182,12 @@ def _download_url(url):
         urllib.request.urlretrieve(url, dst)
 
 
-async def download(model_id, send, should_cancel=None):
+async def download(model_id, send, should_cancel=None, repo=None):
     """Download every file for a model, awaiting `send({model_progress})` per file.
+
+    `repo` overrides the model's default repo with a chosen variant's repo (e.g. an
+    FP8 quant) — threaded through to `download_specs` so the fetched repo matches
+    exactly what the deterministic load-path `select_variant` will load.
 
     Returns 'ready' when complete or 'cancelled' if `should_cancel()` became true
     between files. hf_hub_download runs in a worker thread that cannot be killed
@@ -194,7 +198,7 @@ async def download(model_id, send, should_cancel=None):
     import asyncio
     from huggingface_hub import HfApi, hf_hub_download
     cancelled = (lambda: bool(should_cancel and should_cancel()))
-    specs = download_specs(model_id)
+    specs = download_specs(model_id, repo)
     api = HfApi()
     ignore = set(specs.get("ignore", []))
     files = []
@@ -236,12 +240,14 @@ async def _h_model_sizes(state, msg, _b, conn=None):
     return {"type": "model_sizes_result", "id": msg.get("id"), "sizes": sizes}, None
 
 
-async def _run_download(state, model, conn):
+async def _run_download(state, model, conn, repo=None):
     """Background download task: streams progress, then pushes a terminal
-    model_download_done (status ready|cancelled) or an error tagged with `model`."""
+    model_download_done (status ready|cancelled) or an error tagged with `model`.
+    `repo` selects a chosen variant's repo when set (default keeps the model's
+    default repo)."""
     event = state.get("cancels", {}).get(model)
     try:
-        status = await download(model, conn.send, should_cancel=(event.is_set if event else None))
+        status = await download(model, conn.send, should_cancel=(event.is_set if event else None), repo=repo)
         await conn.send({"type": "model_download_done", "model": model, "status": status})
     except Exception as e:
         await conn.send({"type": "error", "model": model, "message": str(e)})
@@ -255,10 +261,11 @@ async def _h_model_download(state, msg, _b, conn=None):
     to model_cancel. Completion is pushed via model_download_done, not returned."""
     import asyncio
     model = msg.get("model")
+    repo = msg.get("repo")  # chosen variant's repo (None → model's default repo)
     if conn is None:
         return {"type": "error", "id": msg.get("id"), "message": "no connection"}, None
     state.setdefault("cancels", {})[model] = asyncio.Event()
-    state.setdefault("download_tasks", {})[model] = asyncio.create_task(_run_download(state, model, conn))
+    state.setdefault("download_tasks", {})[model] = asyncio.create_task(_run_download(state, model, conn, repo))
     return None, None
 
 

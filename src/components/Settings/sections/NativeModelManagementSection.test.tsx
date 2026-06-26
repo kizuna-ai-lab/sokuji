@@ -10,7 +10,7 @@
  * Follows the TierIcon.test.tsx idiom: render, query, assert — no snapshot files.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -53,6 +53,7 @@ const mockStatuses: Record<string, string> = {};
 const mockSizes: Record<string, number> = {};
 
 const mockListVariants = vi.fn();
+const mockDownload = vi.fn();
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -80,7 +81,7 @@ vi.mock('../../../stores/nativeModelStore', () => ({
       progress: {},
       errors: {},
       catalog: {},
-      download: vi.fn(),
+      download: mockDownload,
       deleteModel: vi.fn(),
       cancelDownload: vi.fn(),
       refresh: vi.fn().mockResolvedValue(undefined),
@@ -112,6 +113,7 @@ beforeEach(() => {
   Object.keys(mockStatuses).forEach((k) => delete mockStatuses[k]);
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
+  mockDownload.mockReset();
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
@@ -165,5 +167,24 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
     expect(within(card7b).queryByTestId('variant-row-fp8')).not.toBeInTheDocument();
     expect(within(card7b).queryByTestId('variant-row-bfloat16')).not.toBeInTheDocument();
+  });
+
+  it('downloads the chosen (recommended FP8) variant repo, not the default', async () => {
+    // Pre-download state for hy-mt2-7b; FP8 is recommended.
+    render(<NativeModelManagementSection />);
+
+    // Wait for the variant data to land so the download button knows the chosen repo.
+    const card7b = await waitFor(() => {
+      const c = screen.getByTestId('model-card-hy-mt2-7b');
+      within(c).getByTestId('variant-row-fp8'); // throws until variants render
+      return c;
+    });
+
+    // Click the card's Download button.
+    const downloadBtn = within(card7b).getByRole('button', { name: /Download/i });
+    fireEvent.click(downloadBtn);
+
+    // Download must be called with the model's catalog id AND the FP8 variant's repo.
+    expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8');
   });
 });

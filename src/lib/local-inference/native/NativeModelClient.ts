@@ -141,12 +141,17 @@ export class NativeModelClient {
   }
 
   /** Start a download; resolves 'ready' on completion or 'cancelled' if cancel()
-   *  stopped it. Rejects on a sidecar error tagged with this model. */
-  async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<ModelDownloadStatus> {
+   *  stopped it. Rejects on a sidecar error tagged with this model. `repo` selects
+   *  a chosen variant's repo (the sidecar fetches that repo instead of the model's
+   *  default — keeps download in lock-step with the deterministic variant load). */
+  async download(model: string, onProgress?: (p: ModelProgressMsg) => void, repo?: string): Promise<ModelDownloadStatus> {
     await this.connect();
     return new Promise<ModelDownloadStatus>((resolve, reject) => {
       this.downloads.set(model, { onProgress, resolve, reject });
-      this.ws!.send(JSON.stringify({ type: 'model_download', model, id: this.nextId++ }));
+      const payload: { type: 'model_download'; model: string; id: number; repo?: string } =
+        { type: 'model_download', model, id: this.nextId++ };
+      if (repo) payload.repo = repo;
+      this.ws!.send(JSON.stringify(payload));
     });
   }
 
