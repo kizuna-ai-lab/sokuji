@@ -11,12 +11,14 @@ class TranslateEngine:
         self._tgt = ""
         self.resolved = None
 
-    def init(self, model_id=None, source_lang="", target_lang="", device="auto"):
+    def init(self, model_id=None, source_lang="", target_lang="", device="auto",
+             reserved_bytes=0, pin=None):
         t0 = time.time()
         self.close()                       # VRAM hygiene: free any prior model first
         self._src, self._tgt = source_lang, target_lang
         from . import accel
-        plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto")
+        plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto",
+                                        reserved_bytes=reserved_bytes, pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans)
         tps = accel.measure_tps(self._backend, plan, model_id or "qwen2.5-0.5b", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
@@ -48,9 +50,15 @@ class TranslateEngine:
 
 
 async def _h_translate_init(state, msg, _b, conn=None):
+    from . import native_models
+    reserve = 0
+    for k in ("asrModel", "ttsModel"):
+        mid = msg.get(k)
+        if mid:
+            reserve += native_models.model_size(mid) or 0
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
-        msg.get("device", "auto"))
+        msg.get("device", "auto"), reserved_bytes=reserve, pin=msg.get("variant"))
     # This connection owns the translate model: closing it frees the model from VRAM
     # (mirrors the ASR streaming connection's on_binary ownership in server._conn).
     if conn is not None:

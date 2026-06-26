@@ -5,7 +5,8 @@ from sokuji_sidecar import server, translate_engine
 
 
 class FakeTranslate:
-    def init(self, model_id=None, source_lang="", target_lang="", device="auto"):
+    def init(self, model_id=None, source_lang="", target_lang="", device="auto",
+             reserved_bytes=0, pin=None):
         self.langs = (source_lang, target_lang)
         self.device = device
         self.resolved = {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
@@ -54,7 +55,7 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     from sokuji_sidecar import accel
     fake_backend = MagicMock()
     fake_plan = MagicMock(backend="qwen_translate", device="cuda", compute_type="bfloat16")
-    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
@@ -75,7 +76,7 @@ def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     first, second = MagicMock(), MagicMock()
     plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
     backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
-    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans: next(backends_iter))
 
     eng = translate_engine.TranslateEngine()
@@ -99,7 +100,7 @@ def test_init_stores_memory_and_fallback_reason(monkeypatch):
     from sokuji_sidecar import accel
     from unittest.mock import MagicMock
     fake_plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
-    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
                         lambda plans: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
@@ -107,6 +108,26 @@ def test_init_stores_memory_and_fallback_reason(monkeypatch):
     eng.init(model_id="qwen3.5-2b", source_lang="ja", target_lang="en")
     assert eng.resolved["memoryBytes"] == 4_200_000_000
     assert "using CPU" in eng.resolved["fallbackReason"]
+
+
+def test_translate_init_forwards_reserved_bytes(monkeypatch):
+    import asyncio
+    from sokuji_sidecar import translate_engine as te, native_models as nm
+    seen = {}
+    def fake_init(self, model_id=None, source_lang="", target_lang="", device="auto",
+                  reserved_bytes=0, pin=None):
+        seen["reserved_bytes"] = reserved_bytes
+        self.resolved = {"backend": "x", "device": "cpu", "computeType": "fp8"}
+        return 0
+    monkeypatch.setattr(te.TranslateEngine, "init", fake_init)
+    monkeypatch.setattr(nm, "model_size", lambda mid: {"voxtral-mini-4b-realtime": 8 * 1024**3,
+                                                       "piper-en": 100 * 1024**2}.get(mid, 0))
+    state = {"translate_engine": te.TranslateEngine()}
+    msg = {"type": "translate_init", "id": 1, "model": "hy-mt2-7b",
+           "asrModel": "voxtral-mini-4b-realtime", "ttsModel": "piper-en"}
+    reply, _ = asyncio.run(te._h_translate_init(state, msg, None, None))
+    assert reply["type"] == "ready"
+    assert seen["reserved_bytes"] == 8 * 1024**3 + 100 * 1024**2
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_TRANSLATE_MODEL"),
