@@ -125,6 +125,41 @@ def test_qwen_translate_real_gpu(model_id):
     assert isinstance(out, str) and out.strip() and ms >= 0
 
 
+def test_hunyuan_registered():
+    assert backends._BACKENDS.get("hunyuan_translate") is tb.HunyuanTranslateBackend
+
+
+def test_hunyuan_prompt_mentions_target_only():
+    p = tb._hunyuan_prompt("English")
+    assert "into English" in p and "only output" in p.lower()
+
+
+def test_hunyuan_single_user_message_with_target_and_wrap():
+    captured = []
+    b = tb.HunyuanTranslateBackend()
+    b._tok = _fake_tok(captured)
+    b._model = _fake_model()
+    b._device = "cpu"
+    out, n = b.translate("hi", "", "Japanese", "English", wrap=True)
+    assert out == "translated" and n == 7
+    # HY-MT2 format: a single user turn, instruction + (wrapped) text concatenated.
+    assert len(captured) == 1 and captured[0]["role"] == "user"
+    content = captured[0]["content"]
+    assert isinstance(content, str)
+    assert content.startswith("Translate the following text into English.")
+    assert content.endswith("<transcript>hi</transcript>")
+
+
+def test_hunyuan_load_raises_on_failure(monkeypatch):
+    import sys
+    fake = MagicMock()
+    fake.AutoModelForCausalLM.from_pretrained.side_effect = RuntimeError("no weights")
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+    b = tb.HunyuanTranslateBackend()
+    with pytest.raises(backends.BackendLoadError):
+        b.load("tencent/Hy-MT2-1.8B", "cuda", "bfloat16")
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads models + needs CUDA + qwen3_5)")
 def test_qwen35_translate_real_gpu_if_available():
@@ -136,3 +171,15 @@ def test_qwen35_translate_real_gpu_if_available():
     eng.init(model_id="qwen3.5-0.8b", source_lang="Spanish", target_lang="English", device="cuda")
     out, _ = eng.translate("Hola, ¿cómo estás?")
     assert isinstance(out, str) and out.strip()
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads Hy-MT2-1.8B + needs CUDA)")
+def test_hunyuan_translate_real_gpu():
+    from sokuji_sidecar import translate_engine
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="hy-mt2-1.8b", source_lang="Chinese", target_lang="English", device="cuda")
+    assert eng.resolved["device"] == "cuda"
+    out, ms = eng.translate("你好，最近怎么样？")
+    assert isinstance(out, str) and out.strip() and ms >= 0
+    eng.close()

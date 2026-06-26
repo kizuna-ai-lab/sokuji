@@ -2,10 +2,11 @@
 backends' load()/unload() contract but expose translate() instead of
 transcribe(). Registered into the shared backends registry on import.
 
-  qwen_translate    — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
-  qwen35_translate  — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
+  qwen_translate     — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
+  qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
+  hunyuan_translate  — HY-MT2 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
 
-Both support CPU (float32) and GPU (bfloat16) via .to(device)."""
+All support CPU (float32) and GPU (bfloat16) via .to(device)."""
 import re
 
 from .backends import register_backend, BackendLoadError
@@ -124,6 +125,64 @@ class Qwen35TranslateBackend:
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
         # Return (text, generated-token count) — the count feeds the tokens/sec benchmark.
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
+
+    def unload(self) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+
+def _hunyuan_prompt(tgt: str) -> str:
+    t = tgt or "the target language"
+    # HY-MT2's documented English instruction; the model auto-detects the source.
+    return (f"Translate the following text into {t}. Note that you should only "
+            "output the translated result without any additional explanation: ")
+
+
+@register_backend
+class HunyuanTranslateBackend:
+    NAME = "hunyuan_translate"
+
+    def __init__(self):
+        self._model = None
+        self._tok = None
+        self._device = "cpu"
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            # hunyuan_v1_dense is native to transformers 5.13 (no auto_map, no
+            # modeling_*.py in the repo) → plain AutoModelForCausalLM, no trust_remote_code.
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
+            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
+            self._model = AutoModelForCausalLM.from_pretrained(
+                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
+            self._device = device
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
+        import torch
+        instr = system_prompt or _hunyuan_prompt(tgt)
+        body = f"<transcript>{text}</transcript>" if wrap else text
+        messages = [{"role": "user", "content": f"{instr}{body}"}]
+        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
+        with torch.inference_mode():
+            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
+        gen = out[0][inputs["input_ids"].shape[1]:]
         return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
 
     def unload(self) -> None:
