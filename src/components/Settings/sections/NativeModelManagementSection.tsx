@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -49,6 +49,93 @@ type VariantCardProps = {
   recommendedVariantId: string;
   pinnedVariantId?: string;
   onPinVariant: (id: string) => void;
+};
+
+/**
+ * Compact quant-variant picker shown in a card header (in place of the size). A trigger
+ * shows the chosen variant + size (e.g. "FP8 · 8.0 GB"); clicking opens a menu listing all
+ * variants with sizes — unsupported ones disabled with a reason, plus a "runs on CPU" note
+ * when no GPU variant fits. A dropdown (rather than an inline button stack) keeps the card
+ * short and scales as more quant formats are added.
+ */
+const VariantDropdown: React.FC<{
+  variantProps: VariantCardProps;
+  chosenVariant?: VariantInfo;
+  disabled: boolean;
+  selectId: string;
+}> = ({ variantProps, chosenVariant, disabled, selectId }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const gpuFits = variantProps.variants.some((v) => v.supported);
+  const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
+  const triggerLabel = chosenVariant
+    ? `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round(chosenVariant.sizeBytes / 1e6))}`
+    : 'CPU';
+
+  return (
+    <div className="model-card__variant-dd" ref={ref} onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className="model-card__variant-trigger"
+        data-testid={`variant-dd-${selectId}`}
+        disabled={disabled}
+        aria-expanded={open}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+      >
+        <span className="model-card__variant-trigger-value">{triggerLabel}</span>
+        <ChevronDown size={12} />
+      </button>
+      {open && (
+        <div className="model-card__variant-menu" role="listbox">
+          {variantProps.variants.map((v) => {
+            const isChosen = v.supported && v.id === chosenId;
+            const isRec = v.supported && v.id === variantProps.recommendedVariantId;
+            const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
+            return (
+              <button
+                key={v.id}
+                type="button"
+                role="option"
+                aria-selected={isChosen}
+                data-testid={`variant-row-${v.id}`}
+                className={'model-card__variant-item'
+                  + (isChosen ? ' model-card__variant-item--chosen' : '')
+                  + (!v.supported ? ' model-card__variant-item--unsupported' : '')}
+                disabled={!v.supported}
+                title={v.supported ? undefined : v.reason}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (v.supported) { variantProps.onPinVariant(v.id); setOpen(false); }
+                }}
+              >
+                <span className="model-card__variant-name">
+                  {isChosen && <span className="model-card__variant-check" aria-label="selected">✓ </span>}
+                  {v.computeType.toUpperCase()}
+                  <span className="model-card__variant-size"> · {sizeLabel}</span>
+                </span>
+                {isRec && (
+                  <span className="model-card__variant-recommended">recommended</span>
+                )}
+                {!v.supported && (
+                  <span className="model-card__variant-unavailable">{v.reason || "won't fit"}</span>
+                )}
+              </button>
+            );
+          })}
+          {!gpuFits && (
+            <span className="model-card__variant-cpu-note">No GPU variant fits — runs on CPU.</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
@@ -138,14 +225,15 @@ const NativeModelCard: React.FC<{
                 >
                   {resolvedVariantLabel}
                 </span>
-              ) : variantProps ? (
-                // Pre-download multi-variant card: show the chosen variant's size in the
-                // standard model-card__size spot, consistent with single-variant cards.
-                chosenVariant ? (
-                  <span className="model-card__size" data-testid={`variant-size-${spec.selectId}`}>
-                    {formatMemMb(Math.round(chosenVariant.sizeBytes / 1e6))}
-                  </span>
-                ) : null
+              ) : variantProps && !ready ? (
+                // Pre-download multi-variant card: compact dropdown picker, shown in the
+                // standard header size slot (trigger displays the chosen variant + size).
+                <VariantDropdown
+                  variantProps={variantProps}
+                  chosenVariant={chosenVariant}
+                  disabled={disabled}
+                  selectId={spec.selectId}
+                />
               ) : (
                 // Normal single-variant card: raw MB when available.
                 sizeMb !== null && (
@@ -211,49 +299,7 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
-          {/* Variant chooser: shown pre-download for multi-quant cards. ALL variants are
-              listed with their sizes; ones that don't fit this machine are disabled with a
-              reason, so the choice (and why a variant is unavailable) is transparent. */}
-          {variantProps && !ready && variantProps.variants.length > 0 && (() => {
-            const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-            const gpuFits = variantProps.variants.some((v) => v.supported);
-            return (
-              <div className="model-card__variant-list">
-                {variantProps.variants.map((v) => {
-                  const isChosen = v.supported && v.id === chosenId;
-                  const isRec = v.supported && v.id === variantProps.recommendedVariantId;
-                  const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
-                  return (
-                    <button
-                      key={v.id}
-                      data-testid={`variant-row-${v.id}`}
-                      className={'model-card__variant-row'
-                        + (isChosen ? ' model-card__variant-row--chosen' : '')
-                        + (!v.supported ? ' model-card__variant-row--unsupported' : '')}
-                      onClick={(e) => { e.stopPropagation(); if (v.supported) variantProps.onPinVariant(v.id); }}
-                      disabled={disabled || !v.supported}
-                      title={v.supported ? undefined : v.reason}
-                    >
-                      <span className="model-card__variant-name">
-                        {isChosen && <span className="model-card__variant-check" aria-label="selected">✓ </span>}
-                        {v.computeType.toUpperCase()}
-                        <span className="model-card__variant-size"> · {sizeLabel}</span>
-                      </span>
-                      {isRec && (
-                        <span className="model-card__variant-recommended">recommended</span>
-                      )}
-                      {!v.supported && (
-                        <span className="model-card__variant-unavailable">{v.reason || "won't fit"}</span>
-                      )}
-                    </button>
-                  );
-                })}
-                {!gpuFits && (
-                  <span className="model-card__variant-cpu-note">No GPU variant fits — will run on CPU.</span>
-                )}
-              </div>
-            );
-          })()}
+          {/* The quant-variant picker now lives in the header (VariantDropdown). */}
 
           <div className="model-card__actions">
             {noDownload ? null : status === 'downloading' ? (

@@ -54,6 +54,7 @@ const mockSizes: Record<string, number> = {};
 
 const mockListVariants = vi.fn();
 const mockDownload = vi.fn();
+const mockUpdate = vi.fn();
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -70,7 +71,7 @@ vi.mock('../../Tooltip/Tooltip', () => ({
 
 vi.mock('../../../stores/settingsStore', () => ({
   useLocalNativeSettings: () => mockSettings,
-  useUpdateLocalNative: () => vi.fn(),
+  useUpdateLocalNative: () => mockUpdate,
 }));
 
 vi.mock('../../../stores/nativeModelStore', () => ({
@@ -114,40 +115,53 @@ beforeEach(() => {
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
   mockDownload.mockReset();
+  mockUpdate.mockReset();
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
-  it('shows supported FP8 variant (enabled, recommended) and the unsupported bfloat16 variant (disabled, with reason) before download', async () => {
+  it('header dropdown shows the chosen variant + size; opening it lists supported (enabled) and unsupported (disabled) variants', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection />);
-
-    // After the async listVariants effect resolves, the FP8 variant row must appear.
     const fp8SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
 
-    await waitFor(() => {
-      // There must be a variant-row button for fp8 on the hy-mt2-7b card.
-      expect(screen.getAllByTestId('variant-row-fp8').length).toBeGreaterThan(0);
+    // The compact dropdown trigger appears in the header, showing the chosen variant + size.
+    const trigger = await waitFor(() => {
+      const card = screen.getByTestId('model-card-hy-mt2-7b');
+      return within(card).getByTestId('variant-dd-hy-mt2-7b');
     });
+    expect(trigger).toHaveTextContent('FP8');
+    expect(trigger).toHaveTextContent(fp8SizeLabel);
 
-    // The hy-mt2-7b card specifically should have the FP8 row.
+    // Variant rows are NOT rendered until the dropdown is opened (keeps the card short).
+    expect(screen.queryByTestId('variant-row-fp8')).not.toBeInTheDocument();
+
+    // Open the menu.
+    fireEvent.click(trigger);
+
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
     const fp8Row = within(card7b).getByTestId('variant-row-fp8');
-    expect(fp8Row).toBeInTheDocument();
-
-    // The row should display the size label.
     expect(fp8Row).toHaveTextContent(fp8SizeLabel);
-
-    // The "recommended" badge should be visible on the FP8 row.
     expect(within(fp8Row).getByText('recommended')).toBeInTheDocument();
-
-    // The supported fp8 row is enabled (clickable to pin).
     expect(fp8Row).toBeEnabled();
 
-    // bfloat16 is unsupported → its row IS shown (so the user sees the option + why),
-    // but disabled and labelled with the reason.
+    // bfloat16 is unsupported → listed (so the user sees the option + why) but disabled.
     const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
     expect(bf16Row).toBeDisabled();
     expect(bf16Row).toHaveTextContent('exceeds budget');
+  });
+
+  it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {
+    render(<NativeModelManagementSection />);
+    const trigger = await waitFor(() =>
+      within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-dd-hy-mt2-7b'));
+    fireEvent.click(trigger); // open the menu
+
+    const fp8Row = within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-row-fp8');
+    fireEvent.click(fp8Row);
+
+    // The pin reaches settings (single source of truth feeding both download repo and load).
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ translationModel: 'hy-mt2-7b', translationVariant: 'fp8' }));
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
@@ -182,7 +196,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     // Wait for the variant data to land so the download button knows the chosen repo.
     const card7b = await waitFor(() => {
       const c = screen.getByTestId('model-card-hy-mt2-7b');
-      within(c).getByTestId('variant-row-fp8'); // throws until variants render
+      within(c).getByTestId('variant-dd-hy-mt2-7b'); // throws until variant data lands
       return c;
     });
 
