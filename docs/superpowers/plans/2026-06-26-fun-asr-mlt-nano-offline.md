@@ -441,7 +441,14 @@ and inside `download_specs`, before the generic/fallthrough return:
 ```
 
 > NOTE: match the exact branching style already used for `sense-voice` in this
-> function (if/elif chain vs dict). No VAD url — the engine segments upstream.
+> function (if/elif chain vs dict).
+>
+> **CORRECTION (PR #270 review):** the `"urls": []` above is wrong. The engine's
+> silero VAD (`silero_vad.onnx`) is a *downloaded* artifact `AsrEngine._init_vad()`
+> loads for every ASR model, so an offline-only install of this model needs it.
+> The shipped code treats the VAD as a shared dependency: `download_specs` appends
+> `VAD_URL` for any ASR-catalog model and `delete_model` keeps the shared file.
+> See the design doc's "Post-implementation correction" note.
 
 - [ ] **Step 4: Run the native_models suite**
 

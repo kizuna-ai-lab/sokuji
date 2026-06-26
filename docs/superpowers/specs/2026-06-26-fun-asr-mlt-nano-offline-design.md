@@ -56,7 +56,7 @@ deferred to a future spike if it ever proves worthwhile.
 | Output | `res[0]["text"]` is plain text with **native punctuation, no `<\|tags\|>`** | Simpler than SenseVoice — no tag regex; skip `rich_transcription_postprocess` (it injects emoji) to stay text-only |
 | `language` | accepts `"auto"`, ISO (`"zh"`/`"en"`), or names (`"Chinese"`); optional | Pass the renderer's ISO source language through, or `"auto"` |
 | Input | `generate(input=samples, use_itn=True)` accepts a float32 ndarray | Same shape the engine already feeds |
-| VAD / length | without VAD, input capped ~30 s | The engine already segments with silero VAD and feeds short segments — no funasr VAD needed (same as SenseVoice) |
+| VAD / length | without VAD, input capped ~30 s | The engine already segments with silero VAD and feeds short segments — no funasr *internal* VAD needed (same as SenseVoice). **But** that silero VAD (`silero_vad.onnx`) is a downloaded artifact `AsrEngine._init_vad()` loads for every ASR model, so the model's `download_specs` MUST include `VAD_URL` for an offline-only install — see the correction note below. |
 | `trust_remote_code` | `AutoModel` fetches + executes `model.py` from the HF snapshot | The one real wrinkle vs SenseVoice — the download must pull custom code, and we accept running official Apache-2.0 repo code |
 
 ## Design
@@ -145,13 +145,27 @@ AsrModel("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
 ### 4. Download spec (`native_models.py`)
 
 ```python
-download_specs("fun-asr-mlt-nano") -> {"repos": [FUN_ASR_MLT_REPO], "urls": []}
+download_specs("fun-asr-mlt-nano") -> {"repos": [FUN_ASR_MLT_REPO], "urls": [VAD_URL]}
 ```
 
 `snapshot_download` already fetches **all** repo files including `model.py` +
 custom code (which `trust_remote_code` then loads from the local snapshot) — no
 special handling, no ignore-list. Existing `model_status` / `model_size` /
 `model_download` / `model_delete` handle it like every other model.
+
+> **Post-implementation correction (PR #270 review).** The original design said
+> `"urls": []` here, reasoning that "the engine segments upstream, so no VAD
+> download is needed." That was wrong: `AsrEngine._init_vad()` loads
+> `silero_vad.onnx` for **every** ASR model (offline *and* streaming), and it's a
+> downloaded artifact — so a user who installed only this model and went offline
+> had no VAD and failed at session start. Worse, only SenseVoice declared the VAD,
+> and `delete_model` treated SenseVoice as its "owner" (deleting SenseVoice yanked
+> the VAD out from under the other ASR models). The shipped fix treats the silero
+> VAD as a **shared dependency of all ASR models**: `download_specs` appends
+> `VAD_URL` for any ASR-catalog model (matched via `catalog.asr_model(id)`), and
+> `delete_model` never removes the 643 KB shared singleton. This also closed the
+> identical pre-existing offline gap for whisper / qwen3-asr / cohere / granite /
+> voxtral.
 
 ### 5. Renderer catalog (`nativeCatalog.ts` + test)
 
