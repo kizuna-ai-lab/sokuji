@@ -639,11 +639,18 @@ def test_fun_asr_mlt_nano_resolves_gpu_and_cpu():
     # explicit cpu override -> cpu plan
     plan_cpu = accel.resolve("fun-asr-mlt-nano", "cpu", m)
     assert plan_cpu[0].tier == "cpu"
-def test_resolve_translate_prefers_gpu():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+
+
+def test_resolve_translate_prefers_gpu(monkeypatch):
+    # select_variant requires known VRAM + capability to prefer a GPU; the old
+    # stub (vram_mb=0, capability=None) correctly falls back to CPU now.
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
                  installed=frozenset({"qwen_translate"}))
     plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]
+    assert plans[0].device == "cuda"
+    assert plans[-1].device == "cpu"
     assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct"
 
 
@@ -796,3 +803,21 @@ def test_select_variant_conservative_when_no_vram(monkeypatch):
     m = _gpu_machine(0, None)                                 # probe couldn't read VRAM
     d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0)
     assert d.tier == "cpu"                                    # never gamble → cpu floor
+
+
+def test_resolve_translate_uses_selected_variant(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(16 * 1024, (8, 9)))
+    plans = accel.resolve_translate("hy-mt2-7b", override="auto", reserved_bytes=2 * 1024**3)
+    # chosen GPU variant first (fp8), CPU floor last
+    assert plans[0].compute_type == "fp8" and plans[0].device == "cuda"
+    assert plans[-1].device == "cpu"
+
+
+def test_resolve_translate_explicit_device_override_unchanged(monkeypatch):
+    # device override ("cuda"/"cpu") keeps prior tier-pinning behavior, not variant selection
+    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(12 * 1024, (8, 9)))
+    plans = accel.resolve_translate("hy-mt2-7b", override="cpu")
+    assert plans[0].device == "cpu"

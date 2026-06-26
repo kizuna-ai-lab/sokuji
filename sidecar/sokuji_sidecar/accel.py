@@ -210,12 +210,25 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     return _resolve_model(model, model_id, override, machine or probe())
 
 
-def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None,
+                      reserved_bytes: int = 0, pin: str | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.translate_model(model_id)
     if model is None:
         raise ValueError(f"unknown translate model: {model_id}")
-    return _resolve_model(model, model_id, override, machine or probe())
+    machine = machine or probe()
+    if override == "auto":
+        chosen = select_variant(model, machine, reserved_bytes, pin)
+        cpu = next((d for d in model.deployments if d.tier == "cpu"), None)
+        picks = [chosen] + ([cpu] if cpu is not None and cpu is not chosen else [])
+        # Keep only deployments whose backend is actually installed on this machine.
+        picks = [d for d in picks if d is not None and d.backend in machine.installed]
+        if not picks:
+            raise NoUsablePlan(model_id)
+        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+                for d in picks]
+    # explicit device override: unchanged tier-pinning path
+    return _resolve_model(model, model_id, override, machine)
 
 
 class AllPlansFailed(Exception):
