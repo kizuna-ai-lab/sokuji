@@ -490,9 +490,12 @@
     &:disabled { cursor: not-allowed; opacity: 0.6; }
   }
 
+  // Calm, matches the muted "size" slot on sibling cards; green is reserved for
+  // the chosen row inside the menu, not the always-visible trigger.
   &__variant-trigger-value {
-    color: vars.$color-primary;
+    color: vars.$text-secondary;
     font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
   }
 
   &__variant-menu {
@@ -541,34 +544,37 @@
 
   &__variant-check {
     color: vars.$color-primary;
-    font-weight: bold;
+    font-weight: vars.$weight-semibold;
   }
 
+  // Compute type is the primary label of the row → bright + tracked; the chosen
+  // row turns green to reinforce selection.
   &__variant-name {
     font-size: vars.$font-caption;
-    color: vars.$text-secondary;
+    color: vars.$text-primary;
     font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
 
     .model-card__variant-item--chosen & {
       color: vars.$color-primary;
     }
   }
 
+  // Secondary metadata: the size trails the compute type, muted and lighter so the
+  // eye lands on the precision first.
   &__variant-size {
     color: vars.$text-muted;
     font-weight: vars.$weight-normal;
+    letter-spacing: normal;
   }
 
-  // Reuses the same green accent as the model-ok (primary) color token.
+  // Plain green text (not a filled pill) keeps the accent meaningful and the menu calm.
   &__variant-recommended {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 5px;
-    background: rgba(vars.$color-primary, 0.15);
-    border-radius: 3px;
     font-size: 10px;
     color: vars.$color-primary;
     font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 
