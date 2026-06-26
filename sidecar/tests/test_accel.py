@@ -821,3 +821,18 @@ def test_resolve_translate_explicit_device_override_unchanged(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(12 * 1024, (8, 9)))
     plans = accel.resolve_translate("hy-mt2-7b", override="cpu")
     assert plans[0].device == "cpu"
+
+
+def test_list_variants_marks_supported_and_recommended(monkeypatch):
+    from sokuji_sidecar import native_models as nm
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(12 * 1024, (8, 9)))
+    monkeypatch.setattr(nm, "model_size", lambda repo: 8 * 1024**3)
+    msg = {"type": "list_variants", "id": 1, "model": "hy-mt2-7b", "asrId": None, "ttsId": None}
+    reply, _ = asyncio.run(accel._h_list_variants({}, msg, None, None))
+    by = {v["computeType"]: v for v in reply["variants"]}
+    assert by["fp8"]["supported"] is True and by["fp8"]["repo"] == "tencent/Hy-MT2-7B-FP8"
+    assert by["bfloat16"]["supported"] is False           # 15GB > 12GB budget
+    assert reply["recommended"] == "fp8"

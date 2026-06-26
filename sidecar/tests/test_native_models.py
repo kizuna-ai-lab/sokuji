@@ -305,3 +305,9 @@ def test_download_specs_new_translate_models():
     h7 = nm.download_specs("hy-mt2-7b")
     assert h7["repos"] == ["tencent/Hy-MT2-7B"]
     assert h7["ignore"] == ["train/*"]
+
+
+def test_download_specs_variant_repo_override():
+    from sokuji_sidecar import native_models as nm
+    spec = nm.download_specs("hy-mt2-7b", repo="tencent/Hy-MT2-7B-FP8")
+    assert spec["repos"] == ["tencent/Hy-MT2-7B-FP8"]

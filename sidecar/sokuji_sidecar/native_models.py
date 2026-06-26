@@ -73,13 +73,19 @@ def _base_specs(model_id):
     return {"repos": [model_id], "urls": []}
 
 
-def download_specs(model_id):
+def download_specs(model_id, repo=None):
     """Map a model id to its download sources: {repos: [..], urls: [..]}.
 
     Every ASR-catalog model gets the shared silero VAD appended (see module
     docstring); non-ASR ids (translation, TTS) do not. The id is matched against
     the ASR catalog by exact id, so a bare HF repo id (e.g. the raw SenseVoice
-    repo passed to model_status) is treated as non-ASR and gets no VAD."""
+    repo passed to model_status) is treated as non-ASR and gets no VAD.
+
+    `repo` overrides the model's default repo with a chosen variant's repo (the
+    variant id resolves to a sibling repo). Variants are translation-only and
+    never need the VAD, so the override short-circuits before the VAD logic."""
+    if repo:
+        return {"repos": [repo], "urls": []}
     spec = _base_specs(model_id)
     if _asr_model(model_id) is not None and VAD_URL not in spec["urls"]:
         spec = {**spec, "urls": [*spec["urls"], VAD_URL]}

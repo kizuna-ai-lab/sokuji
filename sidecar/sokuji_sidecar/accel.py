@@ -540,6 +540,41 @@ def _apply_bench(plans: list, bench: dict) -> list:
     return fast + slow
 
 
+async def _h_list_variants(state, msg, _b, conn=None):
+    from . import catalog, native_models
+    m = probe()
+    model = catalog.translate_model(msg.get("model"))
+    if model is None:
+        return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
+    reserve = sum((native_models.model_size(msg.get(k)) or 0)
+                  for k in ("asrId", "ttsId") if msg.get(k))
+    chosen = select_variant(model, m, reserve, pin=msg.get("pin"))
+    gpu = m.nvidia[0] if m.nvidia else None
+    budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
+    variants = []
+    for d in model.deployments:
+        if d.tier == "cpu":
+            continue
+        need = _est_bytes(d)
+        if d.backend not in m.installed or not _format_ready(d.compute_type):
+            supported, reason = False, "runtime not installed"
+        elif gpu is None or not gpu.vram_mb or gpu.capability is None:
+            supported, reason = False, "no usable GPU"
+        elif d.min_capability is not None and gpu.capability < d.min_capability:
+            supported, reason = False, f"needs compute capability {d.min_capability}"
+        elif need is None:
+            supported, reason = False, "size unknown"
+        elif need * _VRAM_WEIGHT_FACTOR > budget:
+            supported, reason = False, "too big for available VRAM"
+        else:
+            supported, reason = True, "fits"
+        variants.append({"id": d.compute_type, "computeType": d.compute_type,
+                         "repo": d.artifact, "sizeBytes": need or 0,
+                         "supported": supported, "reason": reason})
+    return {"type": "list_variants_result", "id": msg.get("id"),
+            "variants": variants, "recommended": chosen.compute_type}, None
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
     return {"type": "hardware_info_result", "id": msg.get("id"),
@@ -572,4 +607,5 @@ async def _h_models_catalog(state, msg, _b, conn=None):
 
 def register(state: dict):
     state.setdefault("handlers", {}).update(
-        {"hardware_info": _h_hardware_info, "models_catalog": _h_models_catalog})
+        {"hardware_info": _h_hardware_info, "models_catalog": _h_models_catalog,
+         "list_variants": _h_list_variants})
