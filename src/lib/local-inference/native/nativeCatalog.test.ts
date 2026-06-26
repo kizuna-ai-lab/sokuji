@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -296,5 +296,56 @@ describe('nativeCatalog', () => {
     expect(formatTps(0)).toBe('');
     expect(formatTps(NaN)).toBe('');
     expect(formatTps(-5)).toBe('');
+  });
+
+  describe('estimateNativeMemoryByDevice', () => {
+    const MB = 1_048_576;
+    const tier = (t: string, available = true) => ({ tier: t, backend: 'x', available });
+    const info = (id: string, tiers: { tier: string; backend: string; available: boolean }[]): NativeModelInfo =>
+      ({ id, name: id, languages: [], recommended: false, tiers });
+    const gpuCatalog = {
+      voxtral: info('voxtral', [tier('gpu-cuda')]),                 // GPU-only, available
+      qwen: info('qwen', [tier('gpu-cuda'), tier('cpu')]),          // GPU + CPU floor
+      opus: info('opus', [tier('cpu')]),                            // CPU-only
+    };
+
+    it('routes auto GPU-capable models to VRAM and CPU-only models to RAM', () => {
+      const sizes = { voxtral: 8000 * MB, qwen: 4000 * MB, piper: 60 * MB };
+      const est = estimateNativeMemoryByDevice(
+        [{ id: 'voxtral', device: 'auto' }, { id: 'qwen', device: 'auto' }, { id: 'piper', device: 'cpu' }],
+        sizes, gpuCatalog,
+      );
+      expect(est).toEqual({ vramMb: 12000, ramMb: 60 }); // voxtral+qwen → VRAM, piper → RAM
+    });
+
+    it('honors an explicit cpu override (auto-GPU model counted as RAM)', () => {
+      const est = estimateNativeMemoryByDevice(
+        [{ id: 'qwen', device: 'cpu' }], { qwen: 4000 * MB }, gpuCatalog,
+      );
+      expect(est).toEqual({ vramMb: 0, ramMb: 4000 });
+    });
+
+    it('honors an explicit cuda override even without a catalog entry', () => {
+      const est = estimateNativeMemoryByDevice(
+        [{ id: 'unknown', device: 'cuda' }], { unknown: 2000 * MB }, {},
+      );
+      expect(est).toEqual({ vramMb: 2000, ramMb: 0 });
+    });
+
+    it('treats auto models with no usable GPU tier as RAM (CPU-only machine)', () => {
+      const cpuOnly = { qwen: info('qwen', [tier('gpu-cuda', false), tier('cpu', true)]) };
+      const est = estimateNativeMemoryByDevice(
+        [{ id: 'qwen', device: 'auto' }], { qwen: 4000 * MB }, cpuOnly,
+      );
+      expect(est).toEqual({ vramMb: 0, ramMb: 4000 });
+    });
+
+    it('skips missing ids and zero/unmeasured sizes', () => {
+      const est = estimateNativeMemoryByDevice(
+        [{ id: undefined, device: 'auto' }, { id: 'qwen', device: 'auto' }],
+        { /* qwen size not yet measured */ }, gpuCatalog,
+      );
+      expect(est).toEqual({ vramMb: 0, ramMb: 0 });
+    });
   });
 });

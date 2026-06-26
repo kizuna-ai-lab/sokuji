@@ -44,13 +44,14 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
-import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore } from '../../../stores/nativeModelStore';
+import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog } from '../../../stores/nativeModelStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
   nativeTtsVoices,
   resolveNativeTts,
+  estimateNativeMemoryByDevice,
 } from '../../../lib/local-inference/native/nativeCatalog';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
@@ -112,8 +113,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const localNativeSettings = useLocalNativeSettings();
   const nativeModelStatuses = useNativeModelStatuses();
   const nativeModelSizes = useNativeModelSizes();
+  const nativeCatalog = useNativeCatalog();
   const nativeRefresh = useNativeModelStore(s => s.refresh);
   const nativeRefreshSizes = useNativeModelStore(s => s.refreshSizes);
+  const nativeRefreshCatalog = useNativeModelStore(s => s.refreshCatalog);
 
   // The sidecar download ids the current native selection maps to (ASR id is its
   // own download id; translation/TTS resolve through the catalog). Shared by the
@@ -134,17 +137,29 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     if (provider !== Provider.LOCAL_NATIVE || nativeActiveDownloadIds.length === 0) return;
     nativeRefresh(nativeActiveDownloadIds);
     nativeRefreshSizes(nativeActiveDownloadIds);
+    nativeRefreshCatalog(nativeActiveDownloadIds);  // tiers drive the VRAM/RAM split below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, nativeIdsKey]);
 
   // Memory estimate for native — same "footprint ≈ on-disk model size" heuristic
-  // as LOCAL_INFERENCE, summed over the active sidecar models. Sidecar inference
-  // runs on CPU (sherpa/onnxruntime), so the whole figure is reported as RAM.
+  // as LOCAL_INFERENCE, but split into VRAM vs RAM per stage: a model lands in
+  // VRAM when its device is forced to cuda, or left on auto AND the sidecar
+  // reports an available GPU tier for it (so the resolver would run it on the
+  // GPU). TTS has no device override and runs on CPU → RAM.
   const nativeMemoryEstimate = useMemo(() => {
     if (provider !== Provider.LOCAL_NATIVE) return null;
-    const bytes = nativeActiveDownloadIds.reduce((sum, id) => sum + (nativeModelSizes[id] || 0), 0);
-    return { ramMb: Math.round(bytes / 1_048_576) };
-  }, [provider, nativeActiveDownloadIds, nativeModelSizes]);
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+    return estimateNativeMemoryByDevice([
+      { id: localNativeSettings.asrModel, device: localNativeSettings.asrDevice },
+      { id: trCard?.downloadId, device: localNativeSettings.translationDevice },
+      { id: ttsId, device: 'cpu' },
+    ], nativeModelSizes, nativeCatalog);
+  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
+    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    localNativeSettings.asrDevice, localNativeSettings.translationDevice,
+    nativeModelSizes, nativeCatalog]);
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
@@ -530,10 +545,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
-            {nativeMemoryEstimate && nativeMemoryEstimate.ramMb > 0 && (
+            {nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
               <div className="memory-estimate">
                 <Cpu size={11} />
-                <span>RAM ~{nativeMemoryEstimate.ramMb >= 1024 ? `${(nativeMemoryEstimate.ramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.ramMb} MB`}</span>
+                {nativeMemoryEstimate.vramMb > 0 && (
+                  <span>VRAM ~{nativeMemoryEstimate.vramMb >= 1024 ? `${(nativeMemoryEstimate.vramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.vramMb} MB`}</span>
+                )}
+                {nativeMemoryEstimate.ramMb > 0 && (
+                  <span>RAM ~{nativeMemoryEstimate.ramMb >= 1024 ? `${(nativeMemoryEstimate.ramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.ramMb} MB`}</span>
+                )}
               </div>
             )}
           </div>

@@ -193,6 +193,42 @@ export function hardwareGated(info: NativeModelInfo | undefined): boolean {
   return !!info && info.tiers.length > 0 && !info.tiers.some((t) => t.available);
 }
 
+/** One active native stage for the memory estimate: the model's download id and
+ *  the device override chosen for that stage ('auto' resolves to GPU when one is
+ *  available). TTS has no device override, so callers pass 'cpu'. */
+export interface NativeMemoryStage { id?: string | null; device: 'auto' | 'cpu' | 'cuda'; }
+
+/**
+ * Split the active native models into VRAM vs RAM, mirroring LOCAL_INFERENCE's
+ * `estimateModelMemoryByDevice`: same "footprint ≈ on-disk size" heuristic, but
+ * the GPU/CPU split comes from the per-stage device override and the sidecar's
+ * tier availability instead of a static manifest flag.
+ *
+ * A stage counts toward VRAM when the user forced `cuda`, OR left it on `auto`
+ * AND the model has an available non-cpu tier on this machine (so the resolver
+ * would land it on the GPU). Everything else — explicit `cpu`, an auto model
+ * with no usable GPU tier, or an unknown model (no catalog entry) — counts as
+ * RAM. Sizes come from the sidecar's on-disk byte counts; a missing/zero size is
+ * skipped so a not-yet-measured model doesn't show a phantom 0.
+ */
+export function estimateNativeMemoryByDevice(
+  stages: NativeMemoryStage[],
+  sizes: Record<string, number>,
+  catalog: Record<string, NativeModelInfo>,
+): { vramMb: number; ramMb: number } {
+  let vramMb = 0;
+  let ramMb = 0;
+  for (const { id, device } of stages) {
+    if (!id) continue;
+    const mb = Math.round((sizes[id] || 0) / 1_048_576);
+    if (mb === 0) continue;
+    const gpuAvailable = !!catalog[id]?.tiers.some((t) => t.available && t.tier !== 'cpu');
+    const usesGpu = device === 'cuda' || (device === 'auto' && gpuAvailable);
+    if (usesGpu) vramMb += mb; else ramMb += mb;
+  }
+  return { vramMb, ramMb };
+}
+
 /** Human label for a measured RTF (process-time / audio-seconds): how many times
  *  faster than real-time. rtf 0.015 → "67× realtime". */
 export function formatRtf(rtf: number): string {
