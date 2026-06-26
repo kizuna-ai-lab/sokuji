@@ -459,6 +459,71 @@
     display: flex;
     align-items: center;
   }
+
+  // --- Variant chooser (pre-download quant selection for multi-variant models) ---
+
+  &__variant-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px 0 2px;
+  }
+
+  &__variant-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    transition: border-color vars.$transition-fast, background vars.$transition-fast;
+    text-align: left;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: vars.$border-default;
+    }
+
+    &--chosen {
+      border-color: rgba(vars.$color-primary, 0.6);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__variant-name {
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    font-weight: vars.$weight-medium;
+
+    .model-card__variant-row--chosen & {
+      color: vars.$color-primary;
+    }
+  }
+
+  &__variant-size {
+    color: vars.$text-muted;
+    font-weight: vars.$weight-normal;
+  }
+
+  // Reuses the same green accent as the model-ok (primary) color token.
+  &__variant-recommended {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    background: rgba(vars.$color-primary, 0.15);
+    border-radius: 3px;
+    font-size: 10px;
+    color: vars.$color-primary;
+    font-weight: vars.$weight-medium;
+    white-space: nowrap;
+  }
 }
 
 .model-management__storage {

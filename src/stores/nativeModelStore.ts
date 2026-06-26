@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -183,6 +183,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   setAsrResolved: (r) => set({ asrResolved: r }),
   setTranslationResolved: (r) => set({ translationResolved: r }),
 }));
+
+/** Best-effort call to the sidecar's list_variants endpoint.
+ *  Exported at this module boundary so the renderer can mock it in tests. */
+export async function nativeListVariants(
+  model: string, asrId: string | null, ttsId: string | null, pin?: string,
+): Promise<{ variants: VariantInfo[]; recommended: string }> {
+  return client.listVariants(model, asrId, ttsId, pin);
+}
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);

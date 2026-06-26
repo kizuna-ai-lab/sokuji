@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -29,7 +29,9 @@ import {
   useNativeModelErrors,
   useNativeAsrResolved,
   useNativeTranslationResolved,
+  nativeListVariants,
 } from '../../../stores/nativeModelStore';
+import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
 // The resolved plan a card may display: device + one speed metric + optional memory
 // footprint and fallback reason. ASR carries rtf ("Nx realtime"), translation carries
@@ -40,6 +42,14 @@ import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManage
 
 type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
 
+/** Props bundle for the optional variant chooser on multi-quant translation cards. */
+type VariantCardProps = {
+  variants: VariantInfo[];
+  recommendedVariantId: string;
+  pinnedVariantId?: string;
+  onPinVariant: (id: string) => void;
+};
+
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
 const NativeModelCard: React.FC<{
   spec: NativeModelCardSpec;
@@ -49,7 +59,9 @@ const NativeModelCard: React.FC<{
   incompatible?: boolean;
   resolved?: CardResolved | null;
   onSelect: () => void;
-}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect }) => {
+  /** Present only for translation cards that expose multiple quant variants (hy-mt2-*). */
+  variantProps?: VariantCardProps;
+}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps }) => {
   const { t } = useTranslation();
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
@@ -88,15 +100,37 @@ const NativeModelCard: React.FC<{
   const bytes = noDownload ? 0 : sizes[spec.downloadId as string];
   const sizeMb = bytes && bytes > 0 ? Math.round(bytes / 1e6) : null;
 
+  // Resolved variant label shown post-download: "FP8 · 7.8 GB"
+  const resolvedVariantLabel = useMemo(() => {
+    if (!variantProps || !ready || sizeMb === null) return null;
+    const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
+    const chosen = variantProps.variants.find((v) => v.id === chosenId);
+    if (!chosen) return null;
+    return `${chosen.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
+  }, [variantProps, ready, sizeMb]);
+
   return (
-    <div className={classNames} onClick={handleClick}>
+    <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
       <div className="model-card__top-row">
         <div className="model-card__radio" />
         <div className="model-card__content">
           <div className="model-card__info">
             <div className="model-card__header">
               <span className="model-card__name">{spec.name}</span>
-              {sizeMb !== null && <span className="model-card__size">{sizeMb} MB</span>}
+              {resolvedVariantLabel !== null ? (
+                // Post-download variant card: show resolved compute type + actual size.
+                <span
+                  className="model-card__size"
+                  data-testid={`variant-resolved-${spec.selectId}`}
+                >
+                  {resolvedVariantLabel}
+                </span>
+              ) : (
+                // Normal card (no variants) or pre-download: show raw MB when available.
+                !variantProps && sizeMb !== null && (
+                  <span className="model-card__size">{sizeMb} MB</span>
+                )
+              )}
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">
@@ -156,6 +190,35 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
+          {/* Variant chooser: shown only pre-download for multi-quant cards. */}
+          {variantProps && !ready && variantProps.variants.some((v) => v.supported) && (
+            <div className="model-card__variant-list">
+              {variantProps.variants.filter((v) => v.supported).map((v) => {
+                const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
+                const isChosen = v.id === chosenId;
+                const isRec = v.id === variantProps.recommendedVariantId;
+                const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
+                return (
+                  <button
+                    key={v.id}
+                    data-testid={`variant-row-${v.id}`}
+                    className={'model-card__variant-row' + (isChosen ? ' model-card__variant-row--chosen' : '')}
+                    onClick={(e) => { e.stopPropagation(); variantProps.onPinVariant(v.id); }}
+                    disabled={disabled}
+                  >
+                    <span className="model-card__variant-name">
+                      {v.computeType.toUpperCase()}
+                      <span className="model-card__variant-size"> · {sizeLabel}</span>
+                    </span>
+                    {isRec && (
+                      <span className="model-card__variant-recommended">recommended</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="model-card__actions">
             {noDownload ? null : status === 'downloading' ? (
               <div className="model-card__progress">
@@ -240,6 +303,11 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   });
   const [showAllAsr, setShowAllAsr] = useState(false);
 
+  // Variant quant data for multi-variant translation cards (hy-mt2-*), keyed by selectId.
+  const [variantData, setVariantData] = useState<Record<string, { variants: VariantInfo[]; recommended: string }>>({});
+  // User-pinned variant choice per card selectId (overrides the algorithm's recommendation).
+  const [pinnedVariants, setPinnedVariants] = useState<Record<string, string>>({});
+
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage), [settings.sourceLanguage]);
   const asrIncompatibleCards = useMemo(
     () => nativeAsrIncompatibleCards(settings.sourceLanguage), [settings.sourceLanguage]);
@@ -247,6 +315,31 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage),
     [settings.sourceLanguage, settings.targetLanguage]);
   const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage), [settings.targetLanguage]);
+
+  // Identify translation cards with multiple quant variants (hy-mt2-*).
+  const hyMt2Ids = useMemo(
+    () => translationCards.filter((c) => c.selectId.startsWith('hy-mt2')).map((c) => c.selectId),
+    [translationCards],
+  );
+
+  // Fetch variant availability for each hy-mt2 card whenever the pipeline context changes
+  // (asrModel/ttsModel determine how much VRAM is reserved for other stages).
+  const variantFetchKey = [hyMt2Ids.join('|'), settings.asrModel, settings.ttsModel].join('::');
+  useEffect(() => {
+    if (hyMt2Ids.length === 0) return;
+    let cancelled = false;
+    for (const id of hyMt2Ids) {
+      nativeListVariants(id, settings.asrModel || null, settings.ttsModel || null)
+        .then((result) => {
+          if (!cancelled) setVariantData((prev) => ({ ...prev, [id]: result }));
+        })
+        .catch(() => {
+          // best-effort: sidecar may be down; variant chooser simply not shown
+        });
+    }
+    return () => { cancelled = true; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [variantFetchKey]);
 
   const allDownloadIds = useMemo(
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
@@ -299,8 +392,20 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
+  // Pin a variant choice for a specific translation card (overrides the algorithm's recommendation).
+  const handlePinVariant = useCallback((selectId: string, variantId: string) => {
+    setPinnedVariants((prev) => ({ ...prev, [selectId]: variantId }));
+  }, []);
+
   // Recommended / Others split via the shared primitive; cards stay native-specific.
-  const renderCards = (cards: NativeModelCardSpec[], isSelected: (c: NativeModelCardSpec) => boolean, field: Stage) => {
+  const renderCards = (
+    cards: NativeModelCardSpec[],
+    isSelected: (c: NativeModelCardSpec) => boolean,
+    field: Stage,
+    variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
+    pinnedMap?: Record<string, string>,
+    onPin?: (selectId: string, variantId: string) => void,
+  ) => {
     // Feed each card the resolved plan for its stage so the active model shows the
     // measured device + speed metric (ASR rtf / translation tok/s). TTS has none.
     const resolvedForField = field === 'asrModel' ? asrResolved
@@ -309,11 +414,21 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       <RecommendedOthers
         items={cards}
         isRecommended={(c) => !!c.recommended}
-        renderItem={(c) => (
-          <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
-            selected={isSelected(c)} autoSelected={autoSelectedStages[field]} resolved={resolvedForField}
-            onSelect={() => selectCard(field, c.selectId)} />
-        )}
+        renderItem={(c) => {
+          const vd = variantMap?.[c.selectId];
+          const vProps: VariantCardProps | undefined = vd ? {
+            variants: vd.variants,
+            recommendedVariantId: vd.recommended,
+            pinnedVariantId: pinnedMap?.[c.selectId],
+            onPinVariant: (id: string) => onPin?.(c.selectId, id),
+          } : undefined;
+          return (
+            <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
+              selected={isSelected(c)} autoSelected={autoSelectedStages[field]} resolved={resolvedForField}
+              onSelect={() => selectCard(field, c.selectId)}
+              variantProps={vProps} />
+          );
+        }}
       />
     );
   };
@@ -425,7 +540,14 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             );
           })()}
         </div>
-        {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
+        {renderCards(
+          translationCards,
+          (c) => settings.translationModel === c.selectId,
+          'translationModel',
+          variantData,
+          pinnedVariants,
+          handlePinVariant,
+        )}
       </ModelGroup>
 
       <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
