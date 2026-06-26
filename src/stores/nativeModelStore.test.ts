@@ -52,9 +52,9 @@ describe('requiredNativeModels', () => {
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en')).toEqual([
       'sense-voice', 'qwen2.5-0.5b', 'csukuangfj/vits-piper-en_US-amy-low',
     ]);
-    // opus-mt translation, ja target -> no TTS
-    expect(requiredNativeModels('whisper-tiny', 'opus-mt', '', 'zh', 'ja')).toEqual([
-      'whisper-tiny', 'Xenova/opus-mt-zh-ja',
+    // explicit translation model, ja target -> no TTS
+    expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', '', 'zh', 'ja')).toEqual([
+      'whisper-tiny', 'translategemma-4b',
     ]);
   });
 });

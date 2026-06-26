@@ -182,7 +182,7 @@ export interface LocalInferenceSettings {
  */
 export interface LocalNativeSettings {
   asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
-  translationModel: string;  // '' (auto) | 'opus-mt-zh-en' | LLM id
+  translationModel: string;  // '' (auto) | LLM id (e.g. 'qwen2.5-0.5b')
   ttsModel: string;          // '' = Auto (default voice) | a specific piper voice id
   sourceLanguage: string;
   targetLanguage: string;
@@ -729,7 +729,7 @@ function createLocalNativeSessionConfig(
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
-    translationModelId: resolveNativeTranslation(settings.translationModel, settings.sourceLanguage, settings.targetLanguage),
+    translationModelId: resolveNativeTranslation(settings.translationModel),
     ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,

@@ -4,7 +4,7 @@ import { useNativeModelStore } from '../../stores/nativeModelStore';
 
 const LOCAL_NATIVE_CONFIG: any = {
   provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
-  asrModelId: 'sense-voice', translationModelId: 'opus-mt-es-en',
+  asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
 };
 
 function mocks() {
@@ -29,10 +29,10 @@ describe('LocalNativeClient', () => {
     c.setEventHandlers({ onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }) });
     await c.connect({
       provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
-      asrModelId: 'sense-voice', translationModelId: 'opus-mt-es-en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
     } as any);
     expect(m.asr.init).toHaveBeenCalled();
-    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'opus-mt-es-en', undefined);
+    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'qwen2.5-0.5b', undefined);
 
     await m.asr.onResult({ text: 'hola', durationMs: 100, recognitionTimeMs: 5 });
     await new Promise((r) => setTimeout(r, 0));

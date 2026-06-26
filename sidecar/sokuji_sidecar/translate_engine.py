@@ -6,7 +6,6 @@ class TranslateEngine:
     def __init__(self):
         self._tok = None
         self._model = None
-        self._opus = None
         self._backend = None
         self._src = ""
         self._tgt = ""
@@ -16,13 +15,6 @@ class TranslateEngine:
         t0 = time.time()
         self.close()                       # VRAM hygiene: free any prior model first
         self._src, self._tgt = source_lang, target_lang
-        if model_id and "opus-mt" in model_id:
-            from .opus_mt import OpusMtTranslator
-            onnx_repo = model_id if "/" in model_id else f"Xenova/{model_id}"
-            self._opus = OpusMtTranslator(onnx_repo)
-            self.resolved = {"backend": "opus_mt", "device": "cpu", "computeType": "int8"}
-            return int((time.time() - t0) * 1000)
-        self._opus = None
         from . import accel
         plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto")
         self._backend, plan, notice, mem = accel.load_measured(plans)
@@ -41,8 +33,6 @@ class TranslateEngine:
         t0 = time.time()
         if not text.strip():
             return "", 0
-        if self._opus is not None:
-            return self._opus.translate(text), int((time.time() - t0) * 1000)
         out, _n_tokens = self._backend.translate(text, system_prompt, self._src, self._tgt, wrap_transcript)
         return out, int((time.time() - t0) * 1000)
 
@@ -53,7 +43,6 @@ class TranslateEngine:
             except Exception:
                 pass
             self._backend = None
-        self._opus = None
         self._tok = None
         self._model = None
 

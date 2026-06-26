@@ -87,61 +87,12 @@ def test_close_unloads_prior_backend_before_reinit(monkeypatch):
 
 def test_translate_delegates_to_backend_when_loaded():
     eng = translate_engine.TranslateEngine()
-    eng._opus = None
     eng._backend = MagicMock()
     eng._backend.translate.return_value = ("translated", 5)   # (text, generated-token count)
     eng._src, eng._tgt = "Japanese", "English"
     out, _ = eng.translate("hello", wrap_transcript=True)
     eng._backend.translate.assert_called_once_with("hello", "", "Japanese", "English", True)
     assert out == "translated"
-
-
-def test_wrap_transcript_not_applied_to_opus(monkeypatch):
-    """Opus-MT branch must receive raw text regardless of wrap_transcript."""
-    fake_opus = MagicMock()
-    fake_opus.translate.return_value = "translated"
-    eng = translate_engine.TranslateEngine()
-    eng._opus = fake_opus
-    eng._src = "ja"
-    eng._tgt = "en"
-    result, _ = eng.translate("hello", wrap_transcript=True)
-    fake_opus.translate.assert_called_once_with("hello")  # raw, not wrapped
-    assert result == "translated"
-
-
-def test_opus_to_qwen_switch_clears_opus(monkeypatch):
-    """After switching from an Opus model back to the default Qwen model,
-    _opus must be None so translate() uses the Qwen path.
-
-    Step 1 patches sys.modules for opus_mt; Step 2 patches accel functions
-    since the Qwen branch now goes through the resolver/backend path.
-    """
-    import sys
-    from sokuji_sidecar import accel
-
-    # --- Fake opus_mt sub-module ---
-    fake_opus_instance = MagicMock()
-    fake_opus_class = MagicMock(return_value=fake_opus_instance)
-    fake_opus_mt_mod = MagicMock()
-    fake_opus_mt_mod.OpusMtTranslator = fake_opus_class
-
-    # --- Fake backend for Qwen path ---
-    fake_backend = MagicMock()
-    fake_plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
-
-    monkeypatch.setitem(sys.modules, "sokuji_sidecar.opus_mt", fake_opus_mt_mod)
-    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
-
-    eng = translate_engine.TranslateEngine()
-
-    # Step 1: init with opus-mt model → _opus must be set.
-    eng.init(model_id="Xenova/opus-mt-ja-en", source_lang="ja", target_lang="en")
-    assert eng._opus is not None, "_opus should be set after opus-mt init"
-
-    # Step 2: switch to the default Qwen model → _opus must be cleared.
-    eng.init(model_id=None, source_lang="ja", target_lang="en")
-    assert eng._opus is None, "_opus must be cleared after switching to Qwen model"
 
 
 def test_init_stores_memory_and_fallback_reason(monkeypatch):
@@ -165,13 +116,3 @@ def test_real_llm_translates():
     eng.init(source_lang="Spanish", target_lang="English")
     out, ms = eng.translate("Hola, ¿cómo estás?")
     assert isinstance(out, str) and len(out) > 0 and ms >= 0
-
-
-@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_OPUS_MODEL"),
-                    reason="set SOKUJI_RUN_OPUS_MODEL=1 (downloads opus-mt ONNX + tokenizer)")
-def test_real_opus_mt_translates():
-    eng = translate_engine.TranslateEngine()
-    eng.init(model_id="Xenova/opus-mt-zh-en", source_lang="Chinese", target_lang="English")
-    out, ms = eng.translate("你好，你今天好吗？")
-    assert isinstance(out, str) and out.strip() and ms >= 0
-    assert any(c.isascii() and c.isalpha() for c in out), f"expected English: {out!r}"

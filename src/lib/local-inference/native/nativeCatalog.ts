@@ -56,7 +56,6 @@ export const NATIVE_TRANSLATION: NativeModelOption[] = [
   { id: 'qwen3-0.6b', label: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
   { id: 'qwen3.5-0.8b', label: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
   { id: 'qwen3.5-2b', label: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
-  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 5 },
   { id: 'translategemma-4b', label: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
   { id: 'hy-mt2-1.8b', label: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
   { id: 'hy-mt2-7b', label: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
@@ -156,12 +155,10 @@ export function resolveNativeTts(choice: string, targetLanguage: string): string
 
 /**
  * Resolve the translation model id from the settings choice:
- *  - 'opus-mt'      -> Xenova/opus-mt-<src>-<tgt> (onnxruntime, torch-free)
- *  - a Qwen id      -> passed through unchanged (e.g. 'qwen2.5-0.5b', 'qwen3-0.6b')
+ *  - a model id     -> passed through unchanged (e.g. 'qwen2.5-0.5b', 'qwen3-0.6b')
  *  - '' (no choice) -> undefined; the sidecar then defaults to qwen2.5-0.5b
  */
-export function resolveNativeTranslation(choice: string, src: string, tgt: string): string | undefined {
-  if (choice === 'opus-mt') return `Xenova/opus-mt-${src}-${tgt}`;
+export function resolveNativeTranslation(choice: string): string | undefined {
   return choice || undefined;
 }
 
@@ -171,10 +168,10 @@ export function resolveNativeTranslation(choice: string, src: string, tgt: strin
  * An empty translation choice falls back to the qwen2.5-0.5b download id.
  */
 export function requiredNativeModels(
-  asrModel: string, translationChoice: string, ttsChoice: string, src: string, tgt: string,
+  asrModel: string, translationChoice: string, ttsChoice: string, _src: string, tgt: string,
   textOnly = false
 ): string[] {
-  const ids = [asrModel, resolveNativeTranslation(translationChoice, src, tgt) || 'qwen2.5-0.5b'];
+  const ids = [asrModel, resolveNativeTranslation(translationChoice) || 'qwen2.5-0.5b'];
   // TTS is only required when speech output is on (text-only skips it entirely).
   if (!textOnly) {
     const tts = resolveNativeTts(ttsChoice, tgt);
@@ -303,8 +300,8 @@ export function tierLabel(tier: string): { label: string; accel: boolean } {
  * A selectable + downloadable model card for the native settings UI.
  * `selectId` is written to localNative.{asr,translation,tts}Model; `downloadId`
  * is the id the sidecar downloads/reports status for (null = nothing to download,
- * e.g. the TTS "Off" option). The two differ for choices like Opus-MT (selectId
- * 'opus-mt' → downloadId is the pair-specific repo).
+ * e.g. the TTS "Off" option). The two may differ for a card whose download id is
+ * not its select id; they're equal for every current model.
  */
 export interface NativeModelCardSpec {
   selectId: string;
@@ -333,13 +330,12 @@ export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec
   return incompatibleNativeAsr(srcLang).map(asrToCard);
 }
 
-export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
+export function nativeTranslationCards(_src: string, _tgt: string): NativeModelCardSpec[] {
   return [
     { selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
     { selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b', name: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
     { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
     { selectId: 'qwen3.5-2b', downloadId: 'qwen3.5-2b', name: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
-    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 5 },
     { selectId: 'translategemma-4b', downloadId: 'translategemma-4b', name: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
     { selectId: 'hy-mt2-1.8b', downloadId: 'hy-mt2-1.8b', name: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
     { selectId: 'hy-mt2-7b', downloadId: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
@@ -372,11 +368,6 @@ export interface NativeSelection {
  *   3. an invalid choice falls back to the best *downloaded* card, else the
  *      recommended card (translation), else '' (ASR — nothing until downloaded).
  * Returns only the changed fields (null if nothing changed).
- *
- * Directionality: `nativeTranslationCards(src, tgt)` builds opus-mt's downloadId
- * as `Xenova/opus-mt-${src}-${tgt}`, so after a src↔tgt swap the *reverse* repo's
- * download state is what gets validated — a model downloaded only one way is
- * correctly treated as absent for the other direction.
  */
 export function autoSelectNative(
   src: string,

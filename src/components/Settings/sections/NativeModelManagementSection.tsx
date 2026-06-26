@@ -214,9 +214,8 @@ const NativeModelCard: React.FC<{
  *
  * Auto-select + history parity: an effect calls nativeModelStore.autoSelect on
  * status/language change, which applies the catalog reconciler + per-direction
- * remembered history (so a src↔tgt swap recalls the reverse pair, and directional
- * opus-mt repos are validated for the *current* direction). Selecting a card also
- * records the choice for that direction.
+ * remembered history (so a src↔tgt swap recalls the reverse pair). Selecting a
+ * card also records the choice for that direction.
  */
 export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessionActive = false }) => {
   const { t } = useTranslation();

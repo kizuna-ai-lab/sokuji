@@ -27,20 +27,19 @@ describe('nativeCatalog', () => {
   });
 
   it('resolves translation choices', () => {
-    expect(resolveNativeTranslation('opus-mt', 'zh', 'en')).toBe('Xenova/opus-mt-zh-en');
-    expect(resolveNativeTranslation('', 'zh', 'en')).toBeUndefined();
-    expect(resolveNativeTranslation('Qwen/Qwen2.5-0.5B-Instruct', 'a', 'b')).toBe('Qwen/Qwen2.5-0.5B-Instruct');
+    expect(resolveNativeTranslation('')).toBeUndefined();
+    expect(resolveNativeTranslation('Qwen/Qwen2.5-0.5B-Instruct')).toBe('Qwen/Qwen2.5-0.5B-Instruct');
   });
 
-  it('exposes the four Qwen translation versions plus opus-mt and the speech-LLM translators', () => {
+  it('exposes the four Qwen translation versions plus the speech-LLM translators', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + opus-mt + TranslateGemma/HY-MT2
-    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2
+    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
   });
 
   it('exposes ASR + translation options', () => {
     expect(NATIVE_ASR.map((m) => m.id)).toContain('sense-voice');
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
+    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
   });
 
   it('language compatibility + ASR auto-select', () => {
@@ -79,7 +78,8 @@ describe('nativeCatalog', () => {
     const tr = nativeTranslationCards('zh', 'en');
     expect(tr[0]).toMatchObject({ selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b' });            // Qwen 2.5 0.5B recommended default
     expect(tr[1]).toMatchObject({ selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b' });
-    expect(tr.find((c) => c.selectId === 'opus-mt')).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
+    // every native translation card's downloadId equals its selectId
+    expect(tr.every((c) => c.downloadId === c.selectId)).toBe(true);
 
     const tts = nativeTtsCards('en');
     expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low', recommended: true });
@@ -131,20 +131,10 @@ describe('nativeCatalog', () => {
       expect(r?.asrModel).toBe('');
     });
 
-    it('falls back from a not-downloaded opus-mt to whatever is downloaded for this pair', () => {
-      // user picked opus-mt zh→en but only qwen2.5 is cached → revert to Qwen 2.5
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'opus-mt' }), downloaded('sense-voice', 'qwen2.5-0.5b'));
+    it('falls back from a not-downloaded translation model to whatever is downloaded for this pair', () => {
+      // user picked translategemma but only qwen2.5 is cached → revert to Qwen 2.5
+      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'translategemma-4b' }), downloaded('sense-voice', 'qwen2.5-0.5b'));
       expect(r).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
-    });
-
-    it('reverse pair: opus-mt downloaded one way is absent the other way', () => {
-      // zh→en repo is cached; after swap to en→zh the en-zh repo is absent → opus-mt invalid
-      const isDl = downloaded('sense-voice', 'Xenova/opus-mt-zh-en');
-      // forward direction: opus-mt is valid and kept
-      expect(autoSelectNative('zh', 'en', cur({ translationModel: 'opus-mt' }), isDl)).toBeNull();
-      // reverse direction: downloadId becomes opus-mt-en-zh (absent) → reverts to Qwen
-      const rev = autoSelectNative('en', 'zh', cur({ asrModel: 'whisper-base', translationModel: 'opus-mt' }), downloaded('whisper-base', 'Xenova/opus-mt-zh-en'));
-      expect(rev).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
     });
 
     it('resets a stale cross-language TTS voice to Auto', () => {
@@ -306,7 +296,7 @@ describe('nativeCatalog', () => {
     const gpuCatalog = {
       voxtral: info('voxtral', [tier('gpu-cuda')]),                 // GPU-only, available
       qwen: info('qwen', [tier('gpu-cuda'), tier('cpu')]),          // GPU + CPU floor
-      opus: info('opus', [tier('cpu')]),                            // CPU-only
+      cpuonly: info('cpuonly', [tier('cpu')]),                      // CPU-only
     };
 
     it('routes auto GPU-capable models to VRAM and CPU-only models to RAM', () => {

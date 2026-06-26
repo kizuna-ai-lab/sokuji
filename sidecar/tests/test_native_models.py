@@ -20,9 +20,6 @@ def test_download_specs_mapping(monkeypatch):
     sv = nm.download_specs('sense-voice')
     assert sv['repos'] == [nm.SENSE_VOICE_REPO] and sv['urls'] == [nm.VAD_URL]
     assert sv['repos'] == ['FunAudioLLM/SenseVoiceSmall']
-    opus = nm.download_specs('Xenova/opus-mt-zh-en')
-    assert opus['repos'] == ['Xenova/opus-mt-zh-en', 'Helsinki-NLP/opus-mt-zh-en']
-    assert opus['urls'] == []  # translation model: no shared VAD
     # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
     assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
@@ -45,7 +42,7 @@ def test_download_specs_appends_shared_vad_for_asr_models():
     for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-tiny', 'qwen3-asr-1.7b',
                    'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
         assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
-    for non_asr in ('', 'qwen', 'Xenova/opus-mt-zh-en', 'csukuangfj/vits-piper-en_US-amy-low'):
+    for non_asr in ('', 'qwen', 'translategemma-4b', 'csukuangfj/vits-piper-en_US-amy-low'):
         assert nm.download_specs(non_asr)['urls'] == [], non_asr
     # voxtral keeps its ignore list alongside the appended VAD url.
     assert nm.download_specs('voxtral-mini-4b-realtime').get('ignore') == ['consolidated.safetensors']

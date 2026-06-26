@@ -37,9 +37,6 @@ def _base_specs(model_id):
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
         return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
-    if model_id.startswith("Xenova/opus-mt-"):
-        name = model_id.split("/")[-1]
-        return {"repos": [model_id, f"Helsinki-NLP/{name}"], "urls": []}
     if "whisper" in model_id:
         return {"repos": [f"Systran/faster-whisper-{_whisper_size(model_id)}"], "urls": []}
     if model_id.startswith("granite-speech"):
