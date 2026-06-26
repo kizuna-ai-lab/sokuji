@@ -44,7 +44,7 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
-import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog } from '../../../stores/nativeModelStore';
+import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved } from '../../../stores/nativeModelStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
@@ -52,6 +52,8 @@ import {
   nativeTtsVoices,
   resolveNativeTts,
   estimateNativeMemoryByDevice,
+  actualNativeMemoryByDevice,
+  formatMemMb,
 } from '../../../lib/local-inference/native/nativeCatalog';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
@@ -160,6 +162,25 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
     localNativeSettings.asrDevice, localNativeSettings.translationDevice,
     nativeModelSizes, nativeCatalog]);
+
+  const asrResolved = useNativeAsrResolved();
+  const translationResolved = useNativeTranslationResolved();
+  // Once a session resolves, replace the pre-session estimate with what's REALLY
+  // in use — but only when the resolved stages still match the current selection
+  // (else a prior session's numbers would mislead). Resolution carries the real
+  // device, so a VRAM-degraded translation correctly shows up under RAM.
+  const nativeActual = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const asrMatch = !!asrResolved && asrResolved.model === localNativeSettings.asrModel;
+    const trMatch = !!translationResolved && translationResolved.model === trCard?.downloadId;
+    if (!asrMatch || !trMatch) return null;
+    const mem = actualNativeMemoryByDevice(asrResolved, translationResolved);
+    const degraded = [asrResolved, translationResolved].some(r => r?.device === 'cpu' && r?.fallbackReason);
+    return { ...mem, degraded };
+  }, [provider, asrResolved, translationResolved, localNativeSettings.asrModel,
+    localNativeSettings.translationModel, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage]);
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
@@ -545,15 +566,22 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
-            {nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
+            {nativeActual ? (
               <div className="memory-estimate">
                 <Cpu size={11} />
-                {nativeMemoryEstimate.vramMb > 0 && (
-                  <span>VRAM ~{nativeMemoryEstimate.vramMb >= 1024 ? `${(nativeMemoryEstimate.vramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.vramMb} MB`}</span>
+                <span className="memory-estimate__label">In use</span>
+                {nativeActual.vramMb > 0 && <span>VRAM {formatMemMb(nativeActual.vramMb)}</span>}
+                {nativeActual.ramMb > 0 && <span>RAM {formatMemMb(nativeActual.ramMb)}</span>}
+                {nativeActual.degraded && (
+                  <span className="memory-estimate__warn">Translation on CPU — not enough VRAM</span>
                 )}
-                {nativeMemoryEstimate.ramMb > 0 && (
-                  <span>RAM ~{nativeMemoryEstimate.ramMb >= 1024 ? `${(nativeMemoryEstimate.ramMb / 1024).toFixed(1)} GB` : `${nativeMemoryEstimate.ramMb} MB`}</span>
-                )}
+              </div>
+            ) : nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
+              <div className="memory-estimate">
+                <Cpu size={11} />
+                <span className="memory-estimate__label">Estimated</span>
+                {nativeMemoryEstimate.vramMb > 0 && <span>VRAM ~{formatMemMb(nativeMemoryEstimate.vramMb)}</span>}
+                {nativeMemoryEstimate.ramMb > 0 && <span>RAM ~{formatMemMb(nativeMemoryEstimate.ramMb)}</span>}
               </div>
             )}
           </div>
