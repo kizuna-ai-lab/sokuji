@@ -42,8 +42,11 @@ interface NativeModelStore {
   asrLoading: boolean;
   /** The resolved ASR plan from the last session `ready` (device + measured rtf). */
   asrResolved: { model: string; device: string; rtf?: number } | null;
+  /** The resolved translation plan from the last session `ready` (model + device). */
+  translationResolved: { model: string; device: string; tokensPerSec?: number } | null;
   setAsrLoading: (v: boolean) => void;
   setAsrResolved: (r: { model: string; device: string; rtf?: number } | null) => void;
+  setTranslationResolved: (r: { model: string; device: string; tokensPerSec?: number } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
@@ -68,10 +71,18 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   modelPreferences: {},
   asrLoading: false,
   asrResolved: null,
+  translationResolved: null,
 
   refreshCatalog: async (models) => {
     try {
-      const list = await client.modelsCatalog(models);
+      // ASR and translation are separate catalogs sidecar-side; fetch both so
+      // translation cards get tier badges too. Ids never collide, so they merge
+      // into one map. Both share the same per-machine tier-availability data.
+      const [asr, translate] = await Promise.all([
+        client.modelsCatalog(models, 'asr'),
+        client.modelsCatalog(models, 'translate'),
+      ]);
+      const list = [...asr, ...translate];
       set((s) => ({ catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) } }));
     } catch {
       // best-effort — tier badges are cosmetic; sidecar may be down
@@ -170,6 +181,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   setAsrLoading: (v) => set({ asrLoading: v }),
   setAsrResolved: (r) => set({ asrResolved: r }),
+  setTranslationResolved: (r) => set({ translationResolved: r }),
 }));
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
@@ -179,3 +191,4 @@ export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);
+export const useNativeTranslationResolved = () => useNativeModelStore((s) => s.translationResolved);

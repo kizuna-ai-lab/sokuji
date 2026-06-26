@@ -13,6 +13,7 @@ import {
   hardwareGated,
   gpuTierAvailable,
   formatRtf,
+  formatTps,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -25,7 +26,12 @@ import {
   useNativeModelSizes,
   useNativeModelErrors,
   useNativeAsrResolved,
+  useNativeTranslationResolved,
 } from '../../../stores/nativeModelStore';
+
+// The resolved plan a card may display: device + one speed metric. ASR carries an
+// rtf ("Nx realtime"), translation carries tokensPerSec ("N tok/s"); never both.
+type CardResolved = { model: string; device: string; rtf?: number; tokensPerSec?: number };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 
 type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
@@ -37,8 +43,9 @@ const NativeModelCard: React.FC<{
   autoSelected: boolean;
   disabled: boolean;
   incompatible?: boolean;
+  resolved?: CardResolved | null;
   onSelect: () => void;
-}> = ({ spec, selected, autoSelected, disabled, incompatible = false, onSelect }) => {
+}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect }) => {
   const { t } = useTranslation();
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
@@ -49,7 +56,6 @@ const NativeModelCard: React.FC<{
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const noDownload = spec.downloadId === null;
-  const resolved = useNativeAsrResolved();
   const catalog = useNativeCatalog();
   const info = noDownload ? undefined : catalog[spec.downloadId as string];
   const activeTier = info?.tiers.find((x) => x.available) ?? info?.tiers[0];
@@ -94,19 +100,27 @@ const NativeModelCard: React.FC<{
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
               {(() => {
-                // One tier tag: for the model that just ran, show the RESOLVED device + measured
-                // rtf (ground truth — also catches a GPU→CPU fallback); otherwise the catalog's
-                // capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
-                const showResolved = !!resolved && resolved.model === spec.selectId;
+                // One tier tag: for the model that just ran, show the RESOLVED device + its measured
+                // speed metric (ground truth — also catches a GPU→CPU fallback); otherwise the
+                // catalog's capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
+                // Speed metric differs by stage: ASR shows rtf ("Nx realtime"), translation shows
+                // tokensPerSec ("N tok/s"); the resolved object carries whichever applies.
+                // Match selectId OR downloadId: translation resolves to the artifact id, so Opus-MT's
+                // resolved model is its HF repo (= downloadId), not the 'opus-mt' selectId.
+                const showResolved = !!resolved && (resolved.model === spec.selectId || resolved.model === spec.downloadId);
                 const tier = showResolved
                   ? (resolved!.device === 'cpu' ? 'cpu' : `gpu-${resolved!.device}`)
                   : activeTier?.tier;
                 if (!tier) return null;
                 const tl = tierLabel(tier);
-                const rtf = showResolved && resolved!.rtf !== undefined ? ` · ${formatRtf(resolved!.rtf)}` : '';
+                let metric = '';
+                if (showResolved) {
+                  if (resolved!.rtf !== undefined) metric = ` · ${formatRtf(resolved!.rtf)}`;
+                  else if (resolved!.tokensPerSec !== undefined) metric = ` · ${formatTps(resolved!.tokensPerSec)}`;
+                }
                 return (
                   <span className="model-card__lang-tag">
-                    <TierIcon tier={tier} size={10} />{tl.label}{rtf}
+                    <TierIcon tier={tier} size={10} />{tl.label}{metric}
                   </span>
                 );
               })()}
@@ -194,6 +208,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const catalog = useNativeCatalog();
   const statuses = useNativeModelStatuses();
   const sizes = useNativeModelSizes();
+  // Per-stage resolved plan (device + speed metric) from the last session ready.
+  const asrResolved = useNativeAsrResolved();
+  const translationResolved = useNativeTranslationResolved();
   const refresh = useNativeModelStore((s) => s.refresh);
   const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
@@ -223,7 +240,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   useEffect(() => {
     refresh(allDownloadIds);
     refreshSizes(allDownloadIds);
-    refreshCatalog();   // per-machine tier availability for the ASR badges
+    refreshCatalog();   // per-machine tier availability for the ASR + translation badges
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 
@@ -267,17 +284,23 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   };
 
   // Recommended / Others split via the shared primitive; cards stay native-specific.
-  const renderCards = (cards: NativeModelCardSpec[], isSelected: (c: NativeModelCardSpec) => boolean, field: Stage) => (
-    <RecommendedOthers
-      items={cards}
-      isRecommended={(c) => !!c.recommended}
-      renderItem={(c) => (
-        <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
-          selected={isSelected(c)} autoSelected={autoSelectedStages[field]}
-          onSelect={() => selectCard(field, c.selectId)} />
-      )}
-    />
-  );
+  const renderCards = (cards: NativeModelCardSpec[], isSelected: (c: NativeModelCardSpec) => boolean, field: Stage) => {
+    // Feed each card the resolved plan for its stage so the active model shows the
+    // measured device + speed metric (ASR rtf / translation tok/s). TTS has none.
+    const resolvedForField = field === 'asrModel' ? asrResolved
+      : field === 'translationModel' ? translationResolved : null;
+    return (
+      <RecommendedOthers
+        items={cards}
+        isRecommended={(c) => !!c.recommended}
+        renderItem={(c) => (
+          <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
+            selected={isSelected(c)} autoSelected={autoSelectedStages[field]} resolved={resolvedForField}
+            onSelect={() => selectCard(field, c.selectId)} />
+        )}
+      />
+    );
+  };
 
   // Storage footer: bytes used ≈ sum of download sizes for cached models (deduped by repo id).
   const usedBytes = useMemo(() => {
@@ -352,6 +375,40 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       </ModelGroup>
 
       <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
+        <div className="model-group__device-control">
+          <div className="model-group__device-label">
+            {t('models.computeDevice', 'Compute device')}
+            <Tooltip
+              content={t('models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+            </Tooltip>
+          </div>
+          {(() => {
+            const gpuAvail = gpuTierAvailable(catalog);
+            const deviceValue = settings.translationDevice === 'cuda' && !gpuAvail ? 'auto' : settings.translationDevice;
+            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
+              ['auto', t('models.deviceAuto', 'Auto')],
+              ['cpu', t('models.deviceCpu', 'CPU')],
+              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
+            ];
+            return (
+              <div className="segmented-control">
+                {opts.map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
+                    onClick={() => { if (deviceValue !== mode) update({ translationDevice: mode }); }}
+                    disabled={isSessionActive}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
         {renderCards(translationCards, (c) => settings.translationModel === c.selectId, 'translationModel')}
       </ModelGroup>
 

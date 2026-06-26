@@ -52,8 +52,11 @@ export const NATIVE_ASR: NativeModelOption[] = [
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
-  { id: '', label: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
-  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 1 },
+  { id: 'qwen2.5-0.5b', label: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
+  { id: 'qwen3-0.6b', label: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
+  { id: 'qwen3.5-0.8b', label: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
+  { id: 'qwen3.5-2b', label: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
+  { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 5 },
 ];
 
 /** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */
@@ -150,8 +153,9 @@ export function resolveNativeTts(choice: string, targetLanguage: string): string
 
 /**
  * Resolve the translation model id from the settings choice:
- *  - 'opus-mt'  -> Xenova/opus-mt-<src>-<tgt> (onnxruntime, torch-free)
- *  - ''         -> undefined (sidecar defaults to the Qwen LLM)
+ *  - 'opus-mt'      -> Xenova/opus-mt-<src>-<tgt> (onnxruntime, torch-free)
+ *  - a Qwen id      -> passed through unchanged (e.g. 'qwen2.5-0.5b', 'qwen3-0.6b')
+ *  - '' (no choice) -> undefined; the sidecar then defaults to qwen2.5-0.5b
  */
 export function resolveNativeTranslation(choice: string, src: string, tgt: string): string | undefined {
   if (choice === 'opus-mt') return `Xenova/opus-mt-${src}-${tgt}`;
@@ -160,14 +164,14 @@ export function resolveNativeTranslation(choice: string, src: string, tgt: strin
 
 /**
  * The native model ids a given config requires (for download/readiness). Always
- * an ASR model + a translation model (Qwen LLM default), plus a TTS model when
- * speech output is on. '' translation resolves to the 'qwen' download id.
+ * an ASR model + a translation model, plus a TTS model when speech output is on.
+ * An empty translation choice falls back to the qwen2.5-0.5b download id.
  */
 export function requiredNativeModels(
   asrModel: string, translationChoice: string, ttsChoice: string, src: string, tgt: string,
   textOnly = false
 ): string[] {
-  const ids = [asrModel, resolveNativeTranslation(translationChoice, src, tgt) || 'qwen'];
+  const ids = [asrModel, resolveNativeTranslation(translationChoice, src, tgt) || 'qwen2.5-0.5b'];
   // TTS is only required when speech output is on (text-only skips it entirely).
   if (!textOnly) {
     const tts = resolveNativeTts(ttsChoice, tgt);
@@ -194,6 +198,13 @@ export function hardwareGated(info: NativeModelInfo | undefined): boolean {
 export function formatRtf(rtf: number): string {
   if (!(rtf > 0) || !Number.isFinite(rtf)) return 'realtime';
   return `${Math.round(1 / rtf)}× realtime`;
+}
+
+/** Human label for a measured translation throughput. tps 130.5 → "131 tok/s".
+ *  Empty string for a non-positive/invalid value (caller omits the metric). */
+export function formatTps(tps: number): string {
+  if (!(tps > 0) || !Number.isFinite(tps)) return '';
+  return `${Math.round(tps)} tok/s`;
 }
 
 /** Display label for a hardware tier string from the sidecar models_catalog. */
@@ -244,8 +255,11 @@ export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec
 
 export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
   return [
-    { selectId: '', downloadId: 'qwen', name: 'Qwen LLM', languages: ['multi'], recommended: true, sortOrder: 0 },
-    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 1 },
+    { selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
+    { selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b', name: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
+    { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
+    { selectId: 'qwen3.5-2b', downloadId: 'qwen3.5-2b', name: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
+    { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 5 },
   ];
 }
 

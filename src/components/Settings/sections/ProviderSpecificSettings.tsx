@@ -1832,8 +1832,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // The speed slider is meaningful only when the target language has a native
     // voice (text-only is the common textOnly toggle, not a per-stage Off option).
     const ttsActive = hasNativeTts(localNativeSettings.targetLanguage);
-    // Custom prompts only reach the Qwen LLM path; Opus-MT ('opus-mt') ignores them.
-    const promptSupported = localNativeSettings.translationModel === '';
+    // Custom prompts reach the Qwen LLM path (every Qwen version card); only Opus-MT
+    // ignores them. Exclude opus-mt rather than enumerate Qwen ids so future versions stay supported.
+    const promptSupported = localNativeSettings.translationModel !== 'opus-mt';
 
     return (
       <>

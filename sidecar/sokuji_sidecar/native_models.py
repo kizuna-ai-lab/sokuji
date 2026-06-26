@@ -32,7 +32,7 @@ def _vad_cache_path():
 
 def _base_specs(model_id):
     """Per-model repos/ignore, WITHOUT the shared VAD (download_specs adds that)."""
-    if not model_id or model_id == "qwen":
+    if not model_id:
         return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
@@ -58,6 +58,15 @@ def _base_specs(model_id):
         # format, 8.86GB, unused by transformers) — skip the duplicate.
         return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
                 "ignore": ["consolidated.safetensors"]}
+    if model_id == "qwen2.5-0.5b":
+        # Honour SOKUJI_TRANSLATE_MODEL so download matches what the catalog/runtime loads.
+        return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
+    if model_id == "qwen3-0.6b":
+        return {"repos": ["Qwen/Qwen3-0.6B"], "urls": []}
+    if model_id == "qwen3.5-0.8b":
+        return {"repos": ["Qwen/Qwen3.5-0.8B"], "urls": []}
+    if model_id == "qwen3.5-2b":
+        return {"repos": ["Qwen/Qwen3.5-2B"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 

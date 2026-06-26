@@ -72,7 +72,11 @@ def _installed() -> frozenset:
             # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
             # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
             # both so a half-installed env doesn't advertise it in the catalog then fail at load().
-            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common")}
+            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common"),
+            # translation: 2.5/3 are CausalLM (always present with transformers); 3.5 is the
+            # qwen3_5 VLM class (self-gates off until transformers ships it), used text-only.
+            "qwen_translate": "transformers",
+            "qwen35_translate": "transformers.models.qwen3_5"}
 
     def _ready(spec):
         return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
@@ -164,24 +168,34 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
     return plans
 
 
+def _resolve_model(model, model_id: str, override: str, machine: Machine) -> list[Plan]:
+    cache = bench_load()
+    bench = {}
+    for d in model.deployments:
+        device = TIER_DEVICE[d.tier]
+        key = _bench_key(machine.fingerprint, model_id, d.backend, device, d.compute_type)
+        if key in cache:
+            bench[(d.backend, device, d.compute_type)] = cache[key]
+    plans = resolve_deployments(model, machine, override, bench=bench or None)
+    if not plans:
+        raise NoUsablePlan(model_id)
+    return plans
+
+
 def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    m = machine or probe()
-    fp = m.fingerprint
-    cache = bench_load()
-    bench = {}
-    for d in model.deployments:
-        device = TIER_DEVICE[d.tier]
-        key = _bench_key(fp, model_id, d.backend, device, d.compute_type)
-        if key in cache:
-            bench[(d.backend, device, d.compute_type)] = cache[key]
-    plans = resolve_deployments(model, m, override, bench=bench or None)
-    if not plans:
-        raise NoUsablePlan(model_id)
-    return plans
+    return _resolve_model(model, model_id, override, machine or probe())
+
+
+def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+    from . import catalog
+    model = catalog.translate_model(model_id)
+    if model is None:
+        raise ValueError(f"unknown translate model: {model_id}")
+    return _resolve_model(model, model_id, override, machine or probe())
 
 
 class AllPlansFailed(Exception):
@@ -259,6 +273,41 @@ def measure_rtf(backend, plan, model_id: str, machine: Machine, *, force: bool =
         return None
 
 
+# A fixed sentence for the translation throughput benchmark — long enough that decode
+# dominates the first-token/prompt overhead, short enough to keep init snappy.
+BENCH_TRANSLATE_TEXT = "The weather is lovely today, so I think I will go for a long walk in the park this afternoon."
+BENCH_TRANSLATE_SRC = "English"
+BENCH_TRANSLATE_TGT = "French"
+
+
+def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
+    """Best-effort: after one warmup pass, run a fixed sentence through
+    backend.translate and return decode throughput (generated tokens / elapsed
+    seconds). Cached by the same key shape as measure_rtf, namespaced with a
+    'tps:' prefix so it never collides with the RTF entries. One-time per key
+    unless force. Never raises (returns None).
+
+    The warmup matters: the first generation pays one-time CUDA kernel/graph
+    compilation, so timing it would badly understate steady-state throughput."""
+    try:
+        key = "tps:" + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        cache = bench_load()
+        if not force and key in cache:
+            return cache[key]
+        backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)  # warmup
+        t0 = time.time()
+        _text, n_new = backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)
+        dt = time.time() - t0
+        if dt <= 0 or n_new <= 0:
+            return None
+        tps = n_new / dt
+        cache[key] = tps
+        bench_save(cache)
+        return tps
+    except Exception:
+        return None
+
+
 def _apply_bench(plans: list, bench: dict) -> list:
     """Demote any non-cpu plan whose cached RTF is >= the cpu floor's cached RTF
     (proven not faster than CPU). `bench` maps (backend, device, compute_type) -> rtf."""
@@ -287,10 +336,12 @@ async def _h_hardware_info(state, msg, _b, conn=None):
 async def _h_models_catalog(state, msg, _b, conn=None):
     from . import catalog
     m = probe()
+    kind = msg.get("kind", "asr")
+    source = catalog.translate_models() if kind == "translate" else catalog.asr_models()
     wanted = msg.get("models")
     if wanted and not isinstance(wanted, list):
         wanted = [wanted]
-    models = catalog.asr_models()
+    models = source
     if wanted:
         models = [x for x in models if x.id in wanted]
     out = []

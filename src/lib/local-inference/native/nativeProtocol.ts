@@ -1,7 +1,7 @@
 // WS message contract between the renderer and the python sidecar (TTS, translation, ASR, model management, hardware info).
 export interface ReadyMsg {
-  type: 'ready'; id: number; sampleRate: number; loadTimeMs: number;
-  backend?: string; device?: string; computeType?: string; rtf?: number; fallbackReason?: string;
+  type: 'ready'; id: number; sampleRate?: number; loadTimeMs: number;   // sampleRate only on audio (ASR/TTS) ready; translate_init omits it
+  backend?: string; device?: string; computeType?: string; rtf?: number; tokensPerSec?: number; fallbackReason?: string;
 }
 export interface NativeTier { tier: string; backend: string; available: boolean; }
 export interface NativeModelInfo {

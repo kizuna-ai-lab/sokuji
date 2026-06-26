@@ -196,6 +196,7 @@ export interface LocalNativeSettings {
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
   asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
+  translationDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's translation device selection
 }
 
 // Cache Entry
@@ -379,7 +380,7 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
 
 const defaultLocalNativeSettings: LocalNativeSettings = {
   asrModel: 'sense-voice',
-  translationModel: '',  // auto: opus-mt for the language pair
+  translationModel: 'qwen2.5-0.5b',  // explicit default LLM; opus-mt selectable per language pair
   ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
   sourceLanguage: 'ja',
   targetLanguage: 'en',
@@ -391,6 +392,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   useTemplateMode: true,
   systemPrompt: '',
   asrDevice: 'auto',
+  translationDevice: 'auto',
 };
 
 // ==================== Store Definition ====================
@@ -736,6 +738,7 @@ function createLocalNativeSessionConfig(
     turnDetectionMode: settings.turnDetectionMode,
     wrapTranscript,
     asrDevice: settings.asrDevice,
+    translationDevice: settings.translationDevice,
   };
 }
 

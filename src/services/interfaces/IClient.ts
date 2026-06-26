@@ -206,6 +206,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   wrapTranscript?: boolean;
   asrDevice?: string;
+  translationDevice?: string;
 }
 
 /**

@@ -7,11 +7,14 @@ from dataclasses import dataclass
 
 SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
+# The default Qwen 2.5 translation repo honours SOKUJI_TRANSLATE_MODEL so the runtime
+# loads the same repo the download/prefetch path fetched (keep these two in sync).
+QWEN25_REPO = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice" | "qwen_translate" | "qwen35_translate"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -90,3 +93,40 @@ def asr_models() -> list[AsrModel]:
 
 def asr_model(model_id: str) -> AsrModel | None:
     return next((m for m in ASR_MODELS if m.id == model_id), None)
+
+
+@dataclass(frozen=True)
+class TranslateModel:
+    id: str
+    name: str
+    languages: tuple[str, ...]   # ("multi",) means any language
+    deployments: tuple[Deployment, ...]
+    recommended: bool = False
+    sort_order: int = 99
+
+
+def _qwen_translate_row(mid, name, repo, backend, sort_order, recommended=False):
+    return TranslateModel(mid, name, ("multi",), (
+        Deployment(backend, "gpu-cuda", "bfloat16", repo, 1.0),
+        Deployment(backend, "cpu", "float32", repo, 1.0),
+    ), recommended=recommended, sort_order=sort_order)
+
+
+TRANSLATE_MODELS: list[TranslateModel] = [
+    _qwen_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
+                        QWEN25_REPO, "qwen_translate", 1, recommended=True),
+    _qwen_translate_row("qwen3-0.6b", "Qwen 3 0.6B",
+                        "Qwen/Qwen3-0.6B", "qwen_translate", 2, recommended=True),
+    _qwen_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B",
+                        "Qwen/Qwen3.5-0.8B", "qwen35_translate", 3),
+    _qwen_translate_row("qwen3.5-2b", "Qwen 3.5 2B",
+                        "Qwen/Qwen3.5-2B", "qwen35_translate", 4),
+]
+
+
+def translate_models() -> list[TranslateModel]:
+    return list(TRANSLATE_MODELS)
+
+
+def translate_model(model_id: str) -> TranslateModel | None:
+    return next((m for m in TRANSLATE_MODELS if m.id == model_id), None)
