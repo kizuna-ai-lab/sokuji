@@ -54,12 +54,12 @@ export class NativeTranslateClient {
   }
 
   async init(sourceLang: string, targetLang: string, modelId?: string, device?: string):
-      Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; tokensPerSec?: number }> {
+      Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string }> {
     await this.connect();
     this.onStatus?.('[native-translate] init…');
     const msg = await this.send({ type: 'translate_init', sourceLang, targetLang, model: modelId, device });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
-    return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec };
+    return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }
 
   async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<TranslationResult> {

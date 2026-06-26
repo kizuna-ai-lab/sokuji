@@ -67,7 +67,7 @@ export class NativeAsrClient {
     language = '', modelId?: string, sampleRate = 24000,
     vad?: { threshold?: number; minSilence?: number; minSpeech?: number },
     device?: string,
-  ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; rtf?: number }> {
+  ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string }> {
     await this.connect();
     this.onStatus?.('[native-asr] init…');
     const msg = await this.send({
@@ -75,7 +75,7 @@ export class NativeAsrClient {
       vadThreshold: vad?.threshold, vadMinSilenceDuration: vad?.minSilence, vadMinSpeechDuration: vad?.minSpeech,
     });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
-    return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf };
+    return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }
 
   feedAudio(samples: Int16Array, _sampleRate: number): void {
