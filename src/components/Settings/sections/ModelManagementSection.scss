@@ -511,6 +511,10 @@
     background: #1f2225;
     border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
+    // The selectable .model-card sets cursor:pointer, which `cursor` inheritance
+    // leaks onto the menu's plain text (e.g. the CPU note). Reset it here; the
+    // item buttons re-assert their own pointer/not-allowed cursor.
+    cursor: default;
   }
 
   &__variant-item {
