@@ -157,3 +157,26 @@ def test_new_llm_translate_rows():
         gpu = next(d for d in h.deployments if d.tier == "gpu-cuda")
         cpu = next(d for d in h.deployments if d.tier == "cpu")
         assert gpu.compute_type == "bfloat16" and cpu.compute_type == "float32"
+
+
+def test_hymt2_has_fp8_variant():
+    from sokuji_sidecar import catalog
+    for mid, fp8_repo in [("hy-mt2-7b", "tencent/Hy-MT2-7B-FP8"),
+                          ("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B-FP8")]:
+        m = catalog.translate_model(mid)
+        fp8 = [d for d in m.deployments if d.compute_type == "fp8"]
+        assert len(fp8) == 1
+        assert fp8[0].tier == "gpu-cuda"
+        assert fp8[0].backend == "hunyuan_translate"
+        assert fp8[0].artifact == fp8_repo
+        assert fp8[0].min_capability == (8, 9)
+        # bf16 + cpu still present, bf16 has no capability gate
+        bf16 = next(d for d in m.deployments if d.tier == "gpu-cuda" and d.compute_type == "bfloat16")
+        assert bf16.min_capability is None
+        assert any(d.tier == "cpu" for d in m.deployments)
+
+
+def test_gemma_has_no_fp8_variant():
+    from sokuji_sidecar import catalog
+    g = catalog.translate_model("translategemma-4b")
+    assert not any(d.compute_type == "fp8" for d in g.deployments)
