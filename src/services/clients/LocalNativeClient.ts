@@ -52,20 +52,35 @@ export class LocalNativeClient implements IClient {
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
-    const tr = await this.translate.init(
-      config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice);
     const store = useNativeModelStore.getState();
-    store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec });
-    store.setAsrLoading(true);
-    try {
-      const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
-        threshold: config.vadThreshold,
-        minSilence: config.vadMinSilenceDuration,
-        minSpeech: config.vadMinSpeechDuration,
-      }, config.asrDevice);
-      store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf });
-    } finally {
-      store.setAsrLoading(false);
+    const initTranslate = async () => {
+      const tr = await this.translate.init(
+        config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice);
+      store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec });
+    };
+    const initAsr = async () => {
+      store.setAsrLoading(true);
+      try {
+        const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
+          threshold: config.vadThreshold,
+          minSilence: config.vadMinSilenceDuration,
+          minSpeech: config.vadMinSpeechDuration,
+        }, config.asrDevice);
+        store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf });
+      } finally {
+        store.setAsrLoading(false);
+      }
+    };
+    // Load the GPU-priority stage first so it claims VRAM before the flexible
+    // stage. With two Auto models that can't co-reside (e.g. a GPU-only Voxtral +
+    // a 2B Qwen translation), whoever loads first wins the card; the flexible
+    // model then degrades to CPU instead of the GPU-only one hard-failing.
+    if (this.asrLoadsFirst(config.asrModelId, config.translationModelId ?? '')) {
+      await initAsr();
+      await initTranslate();
+    } else {
+      await initTranslate();
+      await initAsr();
     }
     // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
     // (Pocket) need a reference clip and stay off until a reference-voice UX.
@@ -78,6 +93,31 @@ export class LocalNativeClient implements IClient {
     this.connected = true;
     this.emitEvent('local.native.init.ready', 'client', { ttsEnabled: this.ttsEnabled });
     this.handlers.onOpen?.();
+  }
+
+  /**
+   * Decide which stage loads first so the model that most needs the GPU claims
+   * VRAM before the other. A model is "GPU-only" when the sidecar catalog lists
+   * tiers for it but none is `cpu` (e.g. Voxtral) — that stage MUST get the GPU,
+   * so it goes first. When both or neither are GPU-only, the larger model (by
+   * download size) leads. Falls back to ASR-first when catalog/size data isn't
+   * loaded yet — ASR is the only stage that can be GPU-only today, so leading
+   * with it is the safe default. Never throws; ordering is best-effort.
+   */
+  private asrLoadsFirst(asrId: string, translationId: string): boolean {
+    try {
+      const { catalog, sizes } = useNativeModelStore.getState();
+      const gpuOnly = (id: string): boolean => {
+        const info = catalog[id];
+        return !!info && info.tiers.length > 0 && !info.tiers.some((t) => t.tier === 'cpu');
+      };
+      const asrGpuOnly = gpuOnly(asrId);
+      const trGpuOnly = gpuOnly(translationId);
+      if (asrGpuOnly !== trGpuOnly) return asrGpuOnly;
+      return (sizes[asrId] ?? 0) >= (sizes[translationId] ?? 0);
+    } catch {
+      return true;
+    }
   }
 
   private nextId(p: string): string { return `${p}_${Date.now()}_${++this.idCounter}`; }

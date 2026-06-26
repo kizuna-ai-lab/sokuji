@@ -202,18 +202,101 @@ class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
 
 
+def _cuda_free_bytes():
+    """Free VRAM (bytes) on the default CUDA device, or None when torch/CUDA is
+    absent. Best-effort: any failure degrades to None so callers skip gating."""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return None
+        return int(torch.cuda.mem_get_info()[0])
+    except Exception:
+        return None
+
+
+# Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
+# negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF safetensors.
+_WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf")
+
+
+def _model_weight_bytes(artifact: str):
+    """Best-effort on-disk size of a model's weight files, read from the local
+    HF cache (the model is already downloaded by the time we load it). Returns
+    None when it can't be determined — a local dir without weight files, an
+    artifact not present in the cache, or no huggingface_hub — so the VRAM gate
+    stays inert rather than guessing."""
+    try:
+        path = artifact if os.path.isdir(artifact) else None
+        if path is None:
+            from huggingface_hub import snapshot_download
+            path = snapshot_download(artifact, local_files_only=True)
+        total = 0
+        for root, _dirs, files in os.walk(path):
+            for fn in files:
+                if fn.endswith(_WEIGHT_EXTS):
+                    total += os.path.getsize(os.path.realpath(os.path.join(root, fn)))
+        return total or None
+    except Exception:
+        return None
+
+
+# Free VRAM must clear weights x this factor (transient activation/workspace) plus
+# a fixed slab for the CUDA context before we commit a GPU load proactively.
+_VRAM_WEIGHT_FACTOR = 1.2
+_VRAM_CONTEXT_BYTES = 1 << 30  # ~1 GiB
+
+
+def _gib(n: float) -> str:
+    return f"{n / (1 << 30):.1f}"
+
+
 def load_with_fallback(plans: list):
     """Try plans in order; return (backend, plan, notice). `notice` is set when a
-    higher-ranked plan was skipped. Raises AllPlansFailed if none load."""
+    higher-ranked plan was skipped. Raises AllPlansFailed if none load.
+
+    Two VRAM-aware safeguards layer on top of plain try/next:
+      • Proactive gate — before a CUDA plan that still has a CPU plan after it,
+        skip the GPU attempt when free VRAM clearly can't hold the weights. A
+        flexible model (e.g. translation) thus routes to CPU without provoking an
+        OOM when a larger GPU-only model (e.g. Voxtral) already claimed the card.
+      • Honest exhaustion — if every plan failed on a CUDA OOM and there was no
+        CPU floor (a GPU-only model that lost the VRAM race), raise a message that
+        names the shortfall instead of the misleading 'falling back'."""
     notice = None
-    for plan in plans:
+    oom = False
+    oom_need = oom_free = None  # weights estimate + free VRAM seen just before an OOM
+    for i, plan in enumerate(plans):
+        has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
+        # Read free VRAM and weights estimate ONCE per cuda plan; both the
+        # proactive gate and the honest OOM message reuse them. Capturing free
+        # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
+        free = _cuda_free_bytes() if plan.device == "cuda" else None
+        need = _model_weight_bytes(plan.artifact) if plan.device == "cuda" else None
+        budget = (need * _VRAM_WEIGHT_FACTOR + _VRAM_CONTEXT_BYTES) if need is not None else None
+        if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
+            if free < budget:
+                notice = (f"cuda skipped (needs ~{_gib(budget)} GiB, "
+                          f"{_gib(free)} GiB free); using CPU")
+                continue
         try:
             backend = make_backend(plan.backend)
             backend.load(plan.artifact, plan.device, plan.compute_type)
             return backend, plan, notice
         except BackendLoadError as e:
             notice = f"{plan.device} unavailable ({e.reason}); falling back"
+            if "out of memory" in e.reason.lower():
+                oom, oom_need, oom_free = True, budget, free
             continue
+    if oom:
+        if oom_need is not None and oom_free is not None:
+            short = f" It needs ~{_gib(oom_need)} GiB but only {_gib(oom_free)} GiB is free."
+        elif oom_free is not None:
+            short = f" Only {_gib(oom_free)} GiB GPU memory is free."
+        else:
+            short = ""
+        raise AllPlansFailed(
+            f"Not enough GPU memory to load this model.{short} Another model is using "
+            f"the GPU — switch a stage (ASR or translation) to CPU, or pick a smaller model.")
     raise AllPlansFailed(notice or "no plans to load")
 
 

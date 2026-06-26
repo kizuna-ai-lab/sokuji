@@ -131,6 +131,64 @@ def test_fallback_all_fail_raises(monkeypatch):
         accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
 
 
+_GIB = 1 << 30
+
+
+def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
+    # A flexible model (cuda + cpu floor) whose weights can't fit free VRAM is
+    # routed straight to CPU — the cuda plan is never even attempted (no OOM).
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 2 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
+    attempted = []
+    class FakeBackend:
+        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    assert plan.device == "cpu" and attempted == ["cpu"]
+    assert notice and "CPU" in notice
+
+
+def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 10 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
+    class FakeBackend:
+        def load(self, a, device, ct): self.device = device; self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    assert plan.device == "cuda" and notice is None
+
+
+def test_vram_gate_inert_without_estimates(monkeypatch):
+    # No CUDA / unknown footprint → gate stays out of the way; the existing
+    # try/except path still steps cuda → cpu on a real OOM.
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
+    class FakeBackend:
+        def __init__(self, ok): self.ok = ok
+        def load(self, a, device, ct):
+            if not self.ok: raise backends.BackendLoadError("CUDA out of memory")
+            self.loaded = True
+    seq = iter([FakeBackend(False), FakeBackend(True)])
+    monkeypatch.setattr(accel, "make_backend", lambda name: next(seq))
+    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    assert plan.device == "cpu"
+
+
+def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
+    # A GPU-only model (no cpu plan) that OOMs must NOT claim it is "falling
+    # back" — there is nowhere to fall back to. Surface an honest VRAM message.
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 1 * _GIB)
+    class FakeBackend:
+        def load(self, a, device, ct):
+            raise backends.BackendLoadError("CUDA out of memory. Tried to allocate 54.00 MiB")
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    import pytest
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_plan("cuda")])
+    msg = str(ei.value)
+    assert "GPU memory" in msg and "falling back" not in msg
+
+
 def test_hardware_info_handler(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)

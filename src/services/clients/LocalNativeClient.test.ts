@@ -158,3 +158,59 @@ describe('LocalNativeClient session channel', () => {
     expect(st.asrResolved).toEqual({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.02 });
   });
 });
+
+// ── Load order: GPU-priority stage claims VRAM first ──────────────────────────
+
+const orderRecordingDeps = (order: string[]) => ({
+  asr: {
+    onResult: null as any, onError: null as any,
+    init: async () => { order.push('asr'); return { device: 'cuda', rtf: 0.02 }; },
+    feedAudio() {}, flush: async () => {}, dispose() {},
+  },
+  translate: {
+    onError: null as any,
+    init: async () => { order.push('translate'); return { device: 'cpu' }; },
+    translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {},
+  },
+  tts: fakeTts(),
+});
+
+describe('LocalNativeClient load order', () => {
+  beforeEach(() => useNativeModelStore.setState({ catalog: {}, sizes: {} } as any));
+
+  it('loads a GPU-only ASR model before the flexible translation model', async () => {
+    useNativeModelStore.setState({
+      catalog: {
+        'voxtral-mini-4b-realtime': { id: 'voxtral-mini-4b-realtime', name: '', languages: [], recommended: false,
+          tiers: [{ tier: 'gpu-cuda', backend: 'voxtral_realtime', available: true }] },
+        'qwen3.5-2b': { id: 'qwen3.5-2b', name: '', languages: [], recommended: false,
+          tiers: [{ tier: 'gpu-cuda', backend: 'qwen35_translate', available: true },
+                  { tier: 'cpu', backend: 'qwen35_translate', available: true }] },
+      },
+    } as any);
+    const order: string[] = [];
+    const c = new LocalNativeClient(orderRecordingDeps(order));
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'voxtral-mini-4b-realtime', translationModelId: 'qwen3.5-2b', textOnly: true } as any);
+    expect(order).toEqual(['asr', 'translate']);
+  });
+
+  it('loads the larger model first when neither stage is GPU-only', async () => {
+    useNativeModelStore.setState({
+      catalog: {
+        'sense-voice': { id: 'sense-voice', name: '', languages: [], recommended: false,
+          tiers: [{ tier: 'gpu-cuda', backend: 'x', available: true }, { tier: 'cpu', backend: 'x', available: true }] },
+        'qwen3.5-2b': { id: 'qwen3.5-2b', name: '', languages: [], recommended: false,
+          tiers: [{ tier: 'gpu-cuda', backend: 'x', available: true }, { tier: 'cpu', backend: 'x', available: true }] },
+      },
+      sizes: { 'sense-voice': 900_000_000, 'qwen3.5-2b': 4_000_000_000 },
+    } as any);
+    const order: string[] = [];
+    const c = new LocalNativeClient(orderRecordingDeps(order));
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'sense-voice', translationModelId: 'qwen3.5-2b', textOnly: true } as any);
+    expect(order).toEqual(['translate', 'asr']);
+  });
+});
