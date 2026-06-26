@@ -487,14 +487,35 @@
       border-color: vars.$border-default;
     }
 
+    // Strong, unmistakable selection: filled tint + full-color border + left accent bar.
     &--chosen {
-      border-color: rgba(vars.$color-primary, 0.6);
+      border-color: vars.$color-primary;
+      background: rgba(vars.$color-primary, 0.12);
+      box-shadow: inset 2px 0 0 vars.$color-primary;
+    }
+
+    // A variant the machine can't run: greyed and not clickable (the row stays visible
+    // with its size + reason so the user understands why).
+    &--unsupported {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     &:disabled {
-      opacity: 0.6;
       cursor: not-allowed;
     }
+  }
+
+  &__variant-unavailable {
+    font-size: 10px;
+    color: vars.$text-muted;
+    white-space: nowrap;
+  }
+
+  &__variant-cpu-note {
+    font-size: 10px;
+    color: vars.$text-muted;
+    padding: 2px 2px 0;
   }
 
   &__variant-name {

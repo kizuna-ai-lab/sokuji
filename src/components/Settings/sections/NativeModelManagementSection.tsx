@@ -203,34 +203,48 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
-          {/* Variant chooser: shown only pre-download for multi-quant cards. */}
-          {variantProps && !ready && variantProps.variants.some((v) => v.supported) && (
-            <div className="model-card__variant-list">
-              {variantProps.variants.filter((v) => v.supported).map((v) => {
-                const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-                const isChosen = v.id === chosenId;
-                const isRec = v.id === variantProps.recommendedVariantId;
-                const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
-                return (
-                  <button
-                    key={v.id}
-                    data-testid={`variant-row-${v.id}`}
-                    className={'model-card__variant-row' + (isChosen ? ' model-card__variant-row--chosen' : '')}
-                    onClick={(e) => { e.stopPropagation(); variantProps.onPinVariant(v.id); }}
-                    disabled={disabled}
-                  >
-                    <span className="model-card__variant-name">
-                      {v.computeType.toUpperCase()}
-                      <span className="model-card__variant-size"> · {sizeLabel}</span>
-                    </span>
-                    {isRec && (
-                      <span className="model-card__variant-recommended">recommended</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {/* Variant chooser: shown pre-download for multi-quant cards. ALL variants are
+              listed with their sizes; ones that don't fit this machine are disabled with a
+              reason, so the choice (and why a variant is unavailable) is transparent. */}
+          {variantProps && !ready && variantProps.variants.length > 0 && (() => {
+            const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
+            const gpuFits = variantProps.variants.some((v) => v.supported);
+            return (
+              <div className="model-card__variant-list">
+                {variantProps.variants.map((v) => {
+                  const isChosen = v.supported && v.id === chosenId;
+                  const isRec = v.supported && v.id === variantProps.recommendedVariantId;
+                  const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
+                  return (
+                    <button
+                      key={v.id}
+                      data-testid={`variant-row-${v.id}`}
+                      className={'model-card__variant-row'
+                        + (isChosen ? ' model-card__variant-row--chosen' : '')
+                        + (!v.supported ? ' model-card__variant-row--unsupported' : '')}
+                      onClick={(e) => { e.stopPropagation(); if (v.supported) variantProps.onPinVariant(v.id); }}
+                      disabled={disabled || !v.supported}
+                      title={v.supported ? undefined : v.reason}
+                    >
+                      <span className="model-card__variant-name">
+                        {v.computeType.toUpperCase()}
+                        <span className="model-card__variant-size"> · {sizeLabel}</span>
+                      </span>
+                      {isRec && (
+                        <span className="model-card__variant-recommended">recommended</span>
+                      )}
+                      {!v.supported && (
+                        <span className="model-card__variant-unavailable">{v.reason || "won't fit"}</span>
+                      )}
+                    </button>
+                  );
+                })}
+                {!gpuFits && (
+                  <span className="model-card__variant-cpu-note">No GPU variant fits — will run on CPU.</span>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="model-card__actions">
             {noDownload ? null : status === 'downloading' ? (

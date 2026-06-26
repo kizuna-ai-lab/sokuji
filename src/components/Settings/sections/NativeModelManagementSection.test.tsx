@@ -117,7 +117,7 @@ beforeEach(() => {
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
-  it('shows supported FP8 variant with size and recommended badge before download; bfloat16 (unsupported) is not offered', async () => {
+  it('shows supported FP8 variant (enabled, recommended) and the unsupported bfloat16 variant (disabled, with reason) before download', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection />);
 
@@ -140,8 +140,14 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     // The "recommended" badge should be visible on the FP8 row.
     expect(within(fp8Row).getByText('recommended')).toBeInTheDocument();
 
-    // bfloat16 is unsupported → its row must not appear anywhere on the page.
-    expect(screen.queryByTestId('variant-row-bfloat16')).not.toBeInTheDocument();
+    // The supported fp8 row is enabled (clickable to pin).
+    expect(fp8Row).toBeEnabled();
+
+    // bfloat16 is unsupported → its row IS shown (so the user sees the option + why),
+    // but disabled and labelled with the reason.
+    const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
+    expect(bf16Row).toBeDisabled();
+    expect(bf16Row).toHaveTextContent('exceeds budget');
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
