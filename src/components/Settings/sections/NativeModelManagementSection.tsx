@@ -244,9 +244,10 @@ const NativeModelCard: React.FC<{
                   selectId={spec.selectId}
                 />
               ) : (
-                // Normal single-variant card: raw MB when available.
+                // Normal single-variant card: GB-aware label (formatMemMb switches
+                // to GB at >= 1024 MB) — never a bare four-digit "MB".
                 sizeMb !== null && (
-                  <span className="model-card__size">{sizeMb} MB</span>
+                  <span className="model-card__size">{formatMemMb(sizeMb)}</span>
                 )
               )}
             </div>
