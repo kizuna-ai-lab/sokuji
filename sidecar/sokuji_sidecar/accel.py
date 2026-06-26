@@ -321,6 +321,15 @@ def _model_weight_bytes(artifact: str):
 _VRAM_WEIGHT_FACTOR = 1.2
 _VRAM_CONTEXT_BYTES = 1 << 30  # ~1 GiB
 
+# FP8 (compressed-tensors naive-quantized) has no FP8 matmul kernel in transformers,
+# so weights are dequantized per-forward at inference — peak VRAM ~1.5x weights, not
+# the 1.2x that applies to bf16/f16. Per-format override table; missing → _VRAM_WEIGHT_FACTOR.
+_VARIANT_WEIGHT_FACTOR = {"fp8": 1.5}
+
+
+def _weight_factor(compute_type: str) -> float:
+    return _VARIANT_WEIGHT_FACTOR.get(compute_type, _VRAM_WEIGHT_FACTOR)
+
 
 def _gib(n: float) -> str:
     return f"{n / (1 << 30):.1f}"
@@ -348,7 +357,7 @@ def load_with_fallback(plans: list):
         # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
         free = _cuda_free_bytes() if plan.device == "cuda" else None
         need = _model_weight_bytes(plan.artifact) if plan.device == "cuda" else None
-        budget = (need * _VRAM_WEIGHT_FACTOR + _VRAM_CONTEXT_BYTES) if need is not None else None
+        budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
                 notice = (f"cuda skipped (needs ~{_gib(budget)} GiB, "
@@ -512,7 +521,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
         if need is None:
             return False
         budget = gpu.vram_mb * 1024 * 1024 - reserved_bytes - _VRAM_CONTEXT_BYTES
-        return need * _VRAM_WEIGHT_FACTOR <= budget
+        return need * _weight_factor(d.compute_type) <= budget
 
     cands = [d for d in model.deployments if candidate(d)]
     if pin is not None:
@@ -568,7 +577,7 @@ async def _h_list_variants(state, msg, _b, conn=None):
             supported, reason = False, f"needs compute capability {d.min_capability}"
         elif need is None:
             supported, reason = False, "size unknown"
-        elif need * _VRAM_WEIGHT_FACTOR > budget:
+        elif need * _weight_factor(d.compute_type) > budget:
             supported, reason = False, "too big for available VRAM"
         else:
             supported, reason = True, "fits"

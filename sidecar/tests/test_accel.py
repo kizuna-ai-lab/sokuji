@@ -828,11 +828,45 @@ def test_list_variants_marks_supported_and_recommended(monkeypatch):
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes",
                         lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
-    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(12 * 1024, (8, 9)))
+    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(16 * 1024, (8, 9)))
     monkeypatch.setattr(nm, "model_size", lambda repo: 8 * 1024**3)
     msg = {"type": "list_variants", "id": 1, "model": "hy-mt2-7b", "asrId": None, "ttsId": None}
     reply, _ = asyncio.run(accel._h_list_variants({}, msg, None, None))
     by = {v["computeType"]: v for v in reply["variants"]}
     assert by["fp8"]["supported"] is True and by["fp8"]["repo"] == "tencent/Hy-MT2-7B-FP8"
-    assert by["bfloat16"]["supported"] is False           # 15GB > 12GB budget
+    assert by["bfloat16"]["supported"] is False           # 15GB*1.2=18GB > 15GB budget (16GiB - 1GiB ctx)
     assert reply["recommended"] == "fp8"
+
+
+def test_fp8_weight_factor_larger_than_bf16_in_select_variant(monkeypatch):
+    # FP8 dequantizes at inference time, so peak VRAM is ~1.5x weights (vs 1.2x for bf16).
+    # On 12GiB Ada with no reserve: budget = 12-1 = 11GiB.
+    # fp8 (8GiB * 1.5 = 12GiB) > 11GiB → must fall back to cpu floor.
+    # On 16GiB Ada: budget = 15GiB; fp8 (12GiB) ≤ 15GiB → fp8 chosen.
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+
+    m12 = _gpu_machine(12 * 1024, (8, 9))
+    d12 = accel.select_variant(_hymt2_7b(), m12, reserved_bytes=0)
+    assert d12.tier == "cpu"  # fp8 8GB*1.5=12GB exceeds 11GB budget
+
+    m16 = _gpu_machine(16 * 1024, (8, 9))
+    d16 = accel.select_variant(_hymt2_7b(), m16, reserved_bytes=0)
+    assert d16.compute_type == "fp8"  # fp8 12GB ≤ 15GB budget on 16GB card
+
+
+def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
+    # An fp8 plan should use factor 1.5; on a 12GiB free machine with 8GiB weights:
+    # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → cuda proactively skipped.
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 12 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 * _GIB)
+    fp8_plan = accel.Plan("hunyuan_translate", "gpu-cuda", "cuda", "fp8", "repo", 1.0)
+    cpu_pl = _plan("cpu")
+    attempted = []
+    class FakeBackend:
+        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    backend, plan, notice = accel.load_with_fallback([fp8_plan, cpu_pl])
+    assert plan.device == "cpu" and attempted == ["cpu"]
+    assert notice and "CPU" in notice

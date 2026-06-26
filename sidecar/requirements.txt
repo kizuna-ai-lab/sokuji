@@ -4,3 +4,4 @@ websockets==13.1
 sentencepiece==0.2.0
 huggingface_hub==0.26.2
 compressed-tensors
+psutil
