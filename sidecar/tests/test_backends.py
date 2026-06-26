@@ -612,14 +612,15 @@ def _install_fake_funasr(monkeypatch, *, text="<|en|><|NEUTRAL|><|Speech|><|with
     cap = {}
 
     class FakeAutoModel:
-        def __init__(self, model, hub, device, disable_update):
+        def __init__(self, model, hub, device, disable_update, trust_remote_code=False):
             if fail:
                 raise RuntimeError("funasr load failed")
-            cap["init"] = dict(model=model, hub=hub, device=device, disable_update=disable_update)
+            cap["init"] = dict(model=model, hub=hub, device=device,
+                               disable_update=disable_update,
+                               trust_remote_code=trust_remote_code)
 
-        def generate(self, input, fs, cache, language, use_itn, batch_size_s):
-            cap["gen"] = dict(n=len(input), fs=fs, language=language,
-                              use_itn=use_itn, batch_size_s=batch_size_s)
+        def generate(self, input, **kw):
+            cap["gen"] = dict(n=len(input), **kw)
             return [] if empty else [{"text": text}]
 
     fmod = types.ModuleType("funasr")
@@ -735,6 +736,53 @@ def test_voxtral_realtime_real_gpu_smoke():
     c.unload()
 
 
+def test_funasr_nano_config_and_load(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, text="你好世界")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    assert b.is_loaded
+    assert cap["init"]["model"] == "FunAudioLLM/Fun-ASR-MLT-Nano-2512"
+    assert cap["init"]["device"] == "cuda:0"
+    assert cap["init"]["trust_remote_code"] is True      # Nano needs remote code
+
+
+def test_funasr_nano_transcribe_feeds_tempwav_path(monkeypatch):
+    # Fun-ASR-Nano takes a file path, not a bare ndarray: transcribe must call
+    # generate(input=[<path>], ...) WITHOUT the SenseVoice fs/cache/batch_size_s kwargs.
+    cap = _install_fake_funasr(monkeypatch, text="你好世界")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    out = b.transcribe(np.zeros(16000, np.float32), "zh")
+    assert out.text == "你好世界" and out.language is None   # passthrough, no tags
+    assert cap["gen"]["n"] == 1                  # input is a 1-element list (a path)
+    assert cap["gen"]["language"] == "zh"
+    assert cap["gen"]["use_itn"] is True
+    assert "fs" not in cap["gen"] and "batch_size_s" not in cap["gen"]
+
+
+def test_funasr_nano_rejects_cuda_without_torch_cuda(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False)
+    b = backends.make_backend("funasr_nano")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    assert "init" not in cap and not b.is_loaded
+
+
+def test_funasr_nano_honors_cpu(monkeypatch):
+    cap = _install_fake_funasr(monkeypatch, cuda_available=False, text="hi")
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cpu", "float32")
+    assert b.is_loaded and cap["init"]["device"] == "cpu"
+
+
+def test_funasr_nano_empty_result_returns_blank(monkeypatch):
+    _install_fake_funasr(monkeypatch, empty=True)
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    out = b.transcribe(np.zeros(16000, np.float32), None)
+    assert out.text == "" and out.language is None
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads FunAudioLLM/SenseVoiceSmall ~900MB + the sherpa sense-voice repo for test_wavs; needs CUDA torch + funasr)")
 def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
@@ -761,3 +809,22 @@ def test_funasr_sensevoice_real_gpu_and_cpu_smoke():
         assert r.language == "en"
         print(f"funasr sensevoice {device} RTF={rtf:.4f} text={r.text!r}")
         b.unload()
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_ASR_MODEL"),
+                    reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads/loads Fun-ASR-MLT-Nano, needs CUDA)")
+def test_funasr_nano_real_transcribe_smoke():
+    # Same idiom as the sensevoice smoke above: snapshot_download the sherpa
+    # sense-voice repo for its test_wavs/en.wav (portable across machines — no
+    # hardcoded cache path), read it via wave, transcribe on cuda.
+    import wave
+    from huggingface_hub import snapshot_download
+    d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
+    with wave.open(f"{d}/test_wavs/en.wav", "rb") as w:
+        assert w.getframerate() == 16000
+        samples = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    b = backends.make_backend("funasr_nano")
+    b.load("FunAudioLLM/Fun-ASR-MLT-Nano-2512", "cuda", "float32")
+    out = b.transcribe(samples, "auto")
+    b.unload()
+    assert out.text and "tribal" in out.text.lower()   # verified transcript content

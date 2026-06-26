@@ -7,7 +7,8 @@ def test_models_have_deployments_and_languages():
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
             assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
-                                 "cohere_transformers", "voxtral_realtime", "funasr_sensevoice"}
+                                 "cohere_transformers", "voxtral_realtime", "funasr_sensevoice",
+                                 "funasr_nano"}
 
 
 def test_system_has_a_cpu_floor():
@@ -96,6 +97,17 @@ def test_voxtral_realtime_row():
         ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")
 
 
+def test_fun_asr_mlt_nano_row():
+    m = catalog.asr_model("fun-asr-mlt-nano")
+    assert m is not None and m.name == "Fun-ASR MLT Nano"
+    assert m.recommended is True
+    assert len(m.languages) == 31
+    assert m.languages[:6] == ("zh", "en", "yue", "ja", "ko", "vi")
+    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
+        ("funasr_nano", "gpu-cuda", "float32"),
+        ("funasr_nano", "cpu", "float32"),
+    ]
+    assert all(d.artifact == catalog.FUN_ASR_MLT_REPO for d in m.deployments)
 def test_translate_models_have_deployments_and_cpu_floor():
     for m in catalog.translate_models():
         assert m.deployments, f"{m.id} has no deployments"

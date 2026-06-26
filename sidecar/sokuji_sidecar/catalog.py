@@ -1,10 +1,12 @@
 """Declarative ASR model catalog: per model, which backends/hardware tiers run
 it and what artifact each needs. Pure data — adding a model is adding a row.
-Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice runs on FunASR with gpu-cuda (float16) + cpu (float32) tiers."""
+Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice
+and Fun-ASR-MLT-Nano run on FunASR with gpu-cuda + cpu tiers (both float32)."""
 import os
 from dataclasses import dataclass
 
 SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
+FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 # The default Qwen 2.5 translation repo honours SOKUJI_TRANSLATE_MODEL so the runtime
 # loads the same repo the download/prefetch path fetched (keep these two in sync).
 QWEN25_REPO = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
@@ -75,6 +77,13 @@ ASR_MODELS: list[AsrModel] = [
              (Deployment("voxtral_realtime", "gpu-cuda", "bfloat16",
                          "mistralai/Voxtral-Mini-4B-Realtime-2602", 1.0),),
              recommended=True, sort_order=10),
+    AsrModel("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
+             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
+              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
+              "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
+             (Deployment("funasr_nano", "gpu-cuda", "float32", FUN_ASR_MLT_REPO, 1.0),
+              Deployment("funasr_nano", "cpu", "float32", FUN_ASR_MLT_REPO, 1.0)),
+             recommended=True, sort_order=11),
 ]
 
 

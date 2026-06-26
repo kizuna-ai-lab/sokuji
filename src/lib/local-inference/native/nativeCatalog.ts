@@ -14,9 +14,26 @@ export interface NativeModelOption {
   sortOrder?: number;
 }
 
-/** `['multi']` matches any language; otherwise the language must be listed. */
+/**
+ * Aliases between the app's source-language values (src/utils/languages.ts) and
+ * the ISO codes the model catalogs use. The picker emits `cantonese`/`tl`, while
+ * catalog rows use `yue`/`fil` (SenseVoice, Qwen3-ASR, Fun-ASR-MLT-Nano). Without
+ * this, selecting Cantonese or Tagalog would mark those models incompatible even
+ * though they support the language. Canonicalize both sides so the convention a
+ * given row uses doesn't matter.
+ */
+const LANG_ALIASES: Record<string, string> = {
+  cantonese: 'yue',
+  tl: 'fil',
+};
+const canonLang = (l: string): string => LANG_ALIASES[l] ?? l;
+
+/** `['multi']` matches any language; otherwise the language must be listed (alias-aware). */
 export function supportsLanguage(opt: { languages?: string[] }, lang: string): boolean {
-  return !!opt.languages && (opt.languages.includes('multi') || opt.languages.includes(lang));
+  if (!opt.languages) return false;
+  if (opt.languages.includes('multi')) return true;
+  const want = canonLang(lang);
+  return opt.languages.some((l) => canonLang(l) === want);
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
@@ -31,6 +48,7 @@ export const NATIVE_ASR: NativeModelOption[] = [
   { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 8 },
   { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 9 },
   { id: 'voxtral-mini-4b-realtime', label: 'Voxtral Mini 4B Realtime', languages: ['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko'], recommended: true, sortOrder: 10 },
+  { id: 'fun-asr-mlt-nano', label: 'Fun-ASR MLT Nano', languages: ['zh', 'en', 'yue', 'ja', 'ko', 'vi', 'id', 'th', 'ms', 'fil', 'ar', 'hi', 'bg', 'hr', 'cs', 'da', 'nl', 'et', 'fi', 'el', 'hu', 'ga', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv'], recommended: true, sortOrder: 11 },
 ];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
