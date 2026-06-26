@@ -67,6 +67,12 @@ def _base_specs(model_id):
         return {"repos": ["Qwen/Qwen3.5-0.8B"], "urls": []}
     if model_id == "qwen3.5-2b":
         return {"repos": ["Qwen/Qwen3.5-2B"], "urls": []}
+    if model_id == "translategemma-4b":
+        return {"repos": ["google/translategemma-4b-it"], "urls": []}
+    if model_id in ("hy-mt2-1.8b", "hy-mt2-7b"):
+        # train/ holds only training scripts (deepspeed/llama-factory) — skip; weights only.
+        repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
+        return {"repos": [repo], "urls": [], "ignore": ["train/*"]}
     return {"repos": [model_id], "urls": []}
 
 

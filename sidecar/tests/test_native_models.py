@@ -297,3 +297,14 @@ def test_download_specs_qwen_translate_repos():
     assert nm.download_specs("qwen3-0.6b")["repos"] == ["Qwen/Qwen3-0.6B"]
     assert nm.download_specs("qwen3.5-0.8b")["repos"] == ["Qwen/Qwen3.5-0.8B"]
     assert nm.download_specs("qwen3.5-2b")["repos"] == ["Qwen/Qwen3.5-2B"]
+
+
+def test_download_specs_new_translate_models():
+    from sokuji_sidecar import native_models as nm
+    assert nm.download_specs("translategemma-4b")["repos"] == ["google/translategemma-4b-it"]
+    h18 = nm.download_specs("hy-mt2-1.8b")
+    assert h18["repos"] == ["tencent/Hy-MT2-1.8B"]
+    assert h18["ignore"] == ["train/*"]
+    h7 = nm.download_specs("hy-mt2-7b")
+    assert h7["repos"] == ["tencent/Hy-MT2-7B"]
+    assert h7["ignore"] == ["train/*"]
