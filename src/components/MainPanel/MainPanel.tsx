@@ -331,7 +331,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.LOCAL_INFERENCE;
+           provider === Provider.LOCAL_INFERENCE ||
+           provider === Provider.LOCAL_NATIVE;
   }, [provider]);
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
