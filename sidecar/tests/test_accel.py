@@ -189,6 +189,46 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     assert "GPU memory" in msg and "falling back" not in msg
 
 
+def test_load_measured_reports_vram_delta_for_cuda(monkeypatch):
+    free = iter([10 * _GIB, 2 * _GIB])  # before, after -> 8 GiB used
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: next(free))
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: 1000)
+    monkeypatch.setattr(accel, "load_with_fallback",
+                        lambda plans: ("BE", _plan("cuda"), None))
+    backend, plan, notice, mem = accel.load_measured([_plan("cuda")])
+    assert backend == "BE" and plan.device == "cuda" and notice is None
+    assert mem == 8 * _GIB
+
+
+def test_load_measured_reports_rss_delta_for_cpu(monkeypatch):
+    rss = iter([1000 * _GIB // 1000, 1400 * _GIB // 1000])  # +400/1000 GiB
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: next(rss))
+    monkeypatch.setattr(accel, "load_with_fallback",
+                        lambda plans: ("BE", _plan("cpu"), "cuda skipped; using CPU"))
+    _b, plan, notice, mem = accel.load_measured([_plan("cpu")])
+    assert plan.device == "cpu" and notice == "cuda skipped; using CPU"
+    assert mem == 400 * _GIB // 1000
+
+
+def test_load_measured_omits_memory_when_unmeasurable(monkeypatch):
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
+    monkeypatch.setattr(accel, "load_with_fallback",
+                        lambda plans: ("BE", _plan("cuda"), None))
+    _b, _p, _n, mem = accel.load_measured([_plan("cuda")])
+    assert mem is None
+
+
+def test_load_measured_omits_nonpositive_delta(monkeypatch):
+    free = iter([2 * _GIB, 3 * _GIB])  # "after" higher than "before" -> delta < 0
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: next(free))
+    monkeypatch.setattr(accel, "load_with_fallback",
+                        lambda plans: ("BE", _plan("cuda"), None))
+    _b, _p, _n, mem = accel.load_measured([_plan("cuda")])
+    assert mem is None
+
+
 def test_hardware_info_handler(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)

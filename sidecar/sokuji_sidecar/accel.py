@@ -214,6 +214,49 @@ def _cuda_free_bytes():
         return None
 
 
+def _rss_bytes():
+    """Best-effort resident set size of this process, in bytes. Linux reads
+    /proc/self/status (VmRSS, KiB); other platforms fall back to
+    resource.getrusage (ru_maxrss: KiB on Linux, bytes on macOS). None on
+    failure, so the memory readout degrades to 'unknown' rather than guessing."""
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) * 1024
+    except Exception:
+        pass
+    try:
+        import resource
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return rss if platform.system() == "Darwin" else rss * 1024
+    except Exception:
+        return None
+
+
+def load_measured(plans: list):
+    """load_with_fallback + measure the loaded model's footprint on its RESOLVED
+    device: reserved-VRAM delta for cuda, RSS delta for cpu. Best-effort — memory
+    is None when unmeasurable or non-positive (e.g. no CUDA, allocator noise, a
+    failed-then-freed GPU attempt during a degrade). Returns
+    (backend, plan, notice, memory_bytes)."""
+    vram_before = _cuda_free_bytes()
+    rss_before = _rss_bytes()
+    backend, plan, notice = load_with_fallback(plans)
+    memory = None
+    if plan.device == "cuda" and vram_before is not None:
+        vram_after = _cuda_free_bytes()
+        if vram_after is not None:
+            delta = vram_before - vram_after
+            memory = delta if delta > 0 else None
+    elif plan.device == "cpu" and rss_before is not None:
+        rss_after = _rss_bytes()
+        if rss_after is not None:
+            delta = rss_after - rss_before
+            memory = delta if delta > 0 else None
+    return backend, plan, notice, memory
+
+
 # Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
 # negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF safetensors.
 _WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf")
