@@ -124,7 +124,8 @@ const VariantDropdown: React.FC<{
                   <span className="model-card__variant-recommended">recommended</span>
                 )}
                 {!v.supported && (
-                  <span className="model-card__variant-unavailable">{v.reason || "won't fit"}</span>
+                  // Terse at-a-glance state; the full reason lives in the row's title tooltip.
+                  <span className="model-card__variant-unavailable">Won't fit</span>
                 )}
               </button>
             );

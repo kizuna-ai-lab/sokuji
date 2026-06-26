@@ -503,8 +503,7 @@
     top: calc(100% + 4px);
     right: 0;
     z-index: 20;
-    min-width: 230px;
-    max-width: 320px;
+    min-width: 210px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -512,13 +511,11 @@
     background: #1f2225;
     border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
 
   &__variant-item {
     display: flex;
-    // Top-align so a wrapped reason sits neatly beside the one-line name.
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
     padding: 5px 8px;
@@ -582,19 +579,15 @@
     font-weight: vars.$weight-medium;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    padding-top: 1px;
   }
 
-  // Verbose reasons ("too big for available VRAM") wrap on the right rather than
-  // forcing the precision/size to break.
+  // Terse fixed state — full reason is in the row's title tooltip, so this stays
+  // short and never wraps.
   &__variant-unavailable {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 0 0 auto;
     font-size: 10px;
-    line-height: 1.3;
     color: vars.$text-muted;
-    text-align: right;
-    padding-top: 1px;
+    white-space: nowrap;
   }
 
   &__variant-cpu-note {

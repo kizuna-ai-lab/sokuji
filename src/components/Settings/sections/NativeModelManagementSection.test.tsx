@@ -144,10 +144,12 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     expect(within(fp8Row).getByText('recommended')).toBeInTheDocument();
     expect(fp8Row).toBeEnabled();
 
-    // bfloat16 is unsupported → listed (so the user sees the option + why) but disabled.
+    // bfloat16 is unsupported → listed (so the user sees the option) but disabled.
+    // Inline shows a terse "Won't fit"; the full reason lives in the title tooltip.
     const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
     expect(bf16Row).toBeDisabled();
-    expect(bf16Row).toHaveTextContent('exceeds budget');
+    expect(bf16Row).toHaveTextContent("Won't fit");
+    expect(bf16Row).toHaveAttribute('title', 'exceeds budget');
   });
 
   it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {
