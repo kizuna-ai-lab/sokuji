@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp, Ban } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { useLocalNativeSettings, useUpdateLocalNative, type LocalNativeSettings } from '../../../stores/settingsStore';
 import {
@@ -124,8 +124,11 @@ const VariantDropdown: React.FC<{
                   <span className="model-card__variant-recommended">recommended</span>
                 )}
                 {!v.supported && (
-                  // Terse at-a-glance state; the full reason lives in the row's title tooltip.
-                  <span className="model-card__variant-unavailable">Won't fit</span>
+                  // Muted "blocked" glyph mirrors the green "recommended" slot; the full
+                  // reason lives in the row's title tooltip.
+                  <span className="model-card__variant-unavailable" aria-label="won't fit">
+                    <Ban size={13} />
+                  </span>
                 )}
               </button>
             );

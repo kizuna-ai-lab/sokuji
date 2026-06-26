@@ -145,10 +145,10 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     expect(fp8Row).toBeEnabled();
 
     // bfloat16 is unsupported → listed (so the user sees the option) but disabled.
-    // Inline shows a terse "Won't fit"; the full reason lives in the title tooltip.
+    // A muted "blocked" icon marks it; the full reason lives in the title tooltip.
     const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
     expect(bf16Row).toBeDisabled();
-    expect(bf16Row).toHaveTextContent("Won't fit");
+    expect(within(bf16Row).getByLabelText("won't fit")).toBeInTheDocument();
     expect(bf16Row).toHaveAttribute('title', 'exceeds budget');
   });
 

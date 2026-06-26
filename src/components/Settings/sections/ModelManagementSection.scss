@@ -581,13 +581,13 @@
     white-space: nowrap;
   }
 
-  // Terse fixed state — full reason is in the row's title tooltip, so this stays
-  // short and never wraps.
+  // Muted "blocked" icon — full reason is in the row's title tooltip. Mirrors the
+  // green "recommended" slot on the opposite end of the state spectrum.
   &__variant-unavailable {
     flex: 0 0 auto;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
     color: vars.$text-muted;
-    white-space: nowrap;
   }
 
   &__variant-cpu-note {
