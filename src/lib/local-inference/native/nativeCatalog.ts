@@ -229,6 +229,47 @@ export function estimateNativeMemoryByDevice(
   return { vramMb, ramMb };
 }
 
+/** A resolved stage as stored after a session — device + the measured footprint
+ *  on that device, plus the gate's fallback notice when it was moved off GPU. */
+export interface NativeResolved { model: string; device: string; memoryBytes?: number; fallbackReason?: string; }
+
+/** Format a megabyte figure: GB (one decimal) at/over 1024 MB, MB below. */
+export function formatMemMb(mb: number): string {
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
+}
+
+/** Sum the ACTUAL measured footprint of the resolved stages by their real
+ *  device — VRAM for cuda, RAM otherwise. Stages with no measured bytes are
+ *  skipped (so a not-yet-measured stage doesn't show a phantom 0). Replaces the
+ *  pre-session estimate once a session has resolved. */
+export function actualNativeMemoryByDevice(
+  ...resolveds: (NativeResolved | null | undefined)[]
+): { vramMb: number; ramMb: number } {
+  let vramMb = 0;
+  let ramMb = 0;
+  for (const r of resolveds) {
+    if (!r?.memoryBytes) continue;
+    const mb = Math.round(r.memoryBytes / 1_048_576);
+    if (r.device === 'cpu') ramMb += mb; else vramMb += mb;
+  }
+  return { vramMb, ramMb };
+}
+
+/** Derive the model-card "live" tier badge from a resolved stage: the real tier,
+ *  whether it degraded (CPU with a fallback reason — the gate moved it off GPU),
+ *  and the measured memory in MB. null when nothing has resolved yet (the card
+ *  then shows the catalog capability tier instead). */
+export function resolvedTierState(
+  resolved: NativeResolved | null | undefined,
+): { tier: string; degraded: boolean; memoryMb?: number } | null {
+  if (!resolved) return null;
+  return {
+    tier: resolved.device === 'cpu' ? 'cpu' : `gpu-${resolved.device}`,
+    degraded: resolved.device === 'cpu' && !!resolved.fallbackReason,
+    memoryMb: resolved.memoryBytes ? Math.round(resolved.memoryBytes / 1_048_576) : undefined,
+  };
+}
+
 /** Human label for a measured RTF (process-time / audio-seconds): how many times
  *  faster than real-time. rtf 0.015 → "67× realtime". */
 export function formatRtf(rtf: number): string {

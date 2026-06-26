@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -346,6 +346,46 @@ describe('nativeCatalog', () => {
         { /* qwen size not yet measured */ }, gpuCatalog,
       );
       expect(est).toEqual({ vramMb: 0, ramMb: 0 });
+    });
+  });
+
+  describe('formatMemMb', () => {
+    it('renders GB at/over 1024 MB, MB below', () => {
+      expect(formatMemMb(8294)).toBe('8.1 GB');
+      expect(formatMemMb(120)).toBe('120 MB');
+      expect(formatMemMb(1024)).toBe('1.0 GB');
+    });
+  });
+
+  describe('actualNativeMemoryByDevice', () => {
+    const MB = 1_048_576;
+    it('sums memoryBytes by real device (degraded translation lands in RAM)', () => {
+      const asr = { model: 'voxtral', device: 'cuda', memoryBytes: 8000 * MB };
+      const tr = { model: 'qwen', device: 'cpu', memoryBytes: 4000 * MB, fallbackReason: 'low VRAM' };
+      expect(actualNativeMemoryByDevice(asr, tr)).toEqual({ vramMb: 8000, ramMb: 4000 });
+    });
+    it('skips stages with no measured bytes', () => {
+      const asr = { model: 'voxtral', device: 'cuda' };
+      expect(actualNativeMemoryByDevice(asr, null)).toEqual({ vramMb: 0, ramMb: 0 });
+    });
+  });
+
+  describe('resolvedTierState', () => {
+    const MB = 1_048_576;
+    it('maps a live GPU plan to a non-degraded gpu tier with memory', () => {
+      expect(resolvedTierState({ model: 'v', device: 'cuda', memoryBytes: 8294 * MB }))
+        .toEqual({ tier: 'gpu-cuda', degraded: false, memoryMb: 8294 });
+    });
+    it('flags a CPU plan WITH a fallback reason as degraded', () => {
+      expect(resolvedTierState({ model: 'q', device: 'cpu', memoryBytes: 4000 * MB, fallbackReason: 'low VRAM' }))
+        .toEqual({ tier: 'cpu', degraded: true, memoryMb: 4000 });
+    });
+    it('a CPU plan WITHOUT a reason is chosen-CPU, not degraded', () => {
+      expect(resolvedTierState({ model: 'q', device: 'cpu' }))
+        .toEqual({ tier: 'cpu', degraded: false, memoryMb: undefined });
+    });
+    it('returns null for no resolved', () => {
+      expect(resolvedTierState(null)).toBeNull();
     });
   });
 });
