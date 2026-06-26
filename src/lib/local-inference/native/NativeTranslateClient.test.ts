@@ -13,7 +13,9 @@ class FakeWS {
   send(d: any) {
     const msg = JSON.parse(d);
     if (msg.type === 'translate_init') queueMicrotask(() =>
-      this.onmessage?.({ data: JSON.stringify({ type: 'ready', id: msg.id, loadTimeMs: 3 }) }));
+      this.onmessage?.({ data: JSON.stringify({
+        type: 'ready', id: msg.id, loadTimeMs: 3,
+        backend: 'qwen_translate', device: msg.device ?? 'auto', computeType: 'bfloat16' }) }));
     if (msg.type === 'translate') queueMicrotask(() =>
       this.onmessage?.({ data: JSON.stringify({
         type: 'translation', id: msg.id, sourceText: msg.text,
@@ -47,9 +49,18 @@ describe('NativeTranslateClient', () => {
   it('inits with langs and translates', async () => {
     const c = new NativeTranslateClient();
     const r = await c.init('es', 'en');
-    expect(r).toEqual({ loadTimeMs: 3 });
+    expect(r.loadTimeMs).toBe(3);
     const res = await c.translate('hola');
     expect(res).toEqual({ sourceText: 'hola', translatedText: 'HOLA', inferenceTimeMs: 4 });
+  });
+
+  it('sends device and returns resolved fields', async () => {
+    const c = new NativeTranslateClient();
+    const r = await c.init('es', 'en', 'qwen3-0.6b', 'cuda');
+    expect(r.loadTimeMs).toBe(3);
+    expect(r.device).toBe('cuda');
+    expect(r.backend).toBe('qwen_translate');
+    expect(r.computeType).toBe('bfloat16');
   });
 });
 

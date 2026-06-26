@@ -245,6 +245,34 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
     assert accel._bench_key(m.fingerprint, "whisper-tiny", "ctranslate2", "cpu", "int8") in cache
 
 
+def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+
+    class _FakeBackend:
+        def __init__(self):
+            self.calls = 0
+
+        def translate(self, text, system_prompt, src, tgt, wrap):
+            self.calls += 1
+            return "bonjour le monde", 12  # 12 "generated" tokens
+
+    m = _machine()
+    plan = accel.Plan("qwen_translate", "gpu-cuda", "cuda", "bfloat16", "repo", 1.0)
+    b = _FakeBackend()
+    tps = accel.measure_tps(b, plan, "qwen2.5-0.5b", m)
+    assert tps is not None and tps > 0
+    assert b.calls == 2  # one warmup pass + one timed pass
+
+    # cached under a 'tps:'-namespaced key so it never collides with RTF entries
+    cache = accel.bench_load()
+    assert any(k.startswith("tps:") for k in cache)
+
+    # second call serves from cache — backend untouched, same value
+    b2 = _FakeBackend()
+    assert accel.measure_tps(b2, plan, "qwen2.5-0.5b", m) == tps
+    assert b2.calls == 0
+
+
 def test_apply_bench_demotes_slow_gpu():
     cpu = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     gpu = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
@@ -503,3 +531,57 @@ def test_voxtral_model_unavailable_without_runtime():
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
+
+
+def test_resolve_translate_prefers_gpu():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
+    assert [p.device for p in plans] == ["cuda", "cpu"]
+    assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct"
+
+
+def test_resolve_translate_cpu_only_machine():
+    m = _machine(installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen3-0.6b", "auto", m)
+    assert [p.device for p in plans] == ["cpu"]
+
+
+def test_resolve_translate_override_cpu_pins_front():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    plans = accel.resolve_translate("qwen3-0.6b", "cpu", m)
+    assert [p.device for p in plans] == ["cpu", "cuda"]
+
+
+def test_resolve_translate_qwen35_self_gates_off():
+    # transformers lacks qwen3_5 → qwen35_translate not installed → no plan.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"qwen_translate"}))
+    with pytest.raises(accel.NoUsablePlan):
+        accel.resolve_translate("qwen3.5-0.8b", "auto", m)
+
+
+def test_resolve_translate_unknown_id_raises():
+    with pytest.raises(ValueError):
+        accel.resolve_translate("nope", "auto", _machine())
+
+
+def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
+        nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"qwen_translate"})))
+    reply, _ = asyncio.run(accel._h_models_catalog(
+        {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
+    ids = [m["id"] for m in reply["models"]]
+    assert "qwen2.5-0.5b" in ids and "qwen3-0.6b" in ids
+    row = next(m for m in reply["models"] if m["id"] == "qwen2.5-0.5b")
+    tiers = {t["tier"]: t["available"] for t in row["tiers"]}
+    assert tiers["gpu-cuda"] is True and tiers["cpu"] is True
+
+
+def test_models_catalog_kind_defaults_to_asr(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine())
+    reply, _ = asyncio.run(accel._h_models_catalog(
+        {}, {"type": "models_catalog", "id": 2}, None))
+    ids = [m["id"] for m in reply["models"]]
+    assert "sense-voice" in ids       # ASR catalog, unchanged default

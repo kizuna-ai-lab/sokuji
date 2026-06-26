@@ -10,8 +10,11 @@ def test_download_specs_mapping(monkeypatch):
     # them so the default-repo assertions below are deterministic in any environment.
     monkeypatch.delenv('SOKUJI_ASR_REPO', raising=False)
     monkeypatch.delenv('SOKUJI_TRANSLATE_MODEL', raising=False)
+    # Empty id is the implicit default → Qwen 2.5 0.5B; the explicit id maps the same.
     assert nm.download_specs('')['repos'] == [nm.QWEN_REPO]
-    assert nm.download_specs('qwen')['repos'] == [nm.QWEN_REPO]
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == [nm.QWEN_REPO]
+    # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
+    assert nm.download_specs('qwen')['repos'] == ['qwen']
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
@@ -31,6 +34,14 @@ def test_download_specs_mapping(monkeypatch):
 def test_download_specs_cohere():
     assert native_models.download_specs("cohere-transcribe-03-2026") == \
         {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
+
+
+def test_download_specs_qwen25_honours_translate_model_env(monkeypatch):
+    # SOKUJI_TRANSLATE_MODEL overrides the default Qwen 2.5 repo for BOTH the implicit
+    # default ('') and the explicit id, so download matches what the catalog/runtime loads.
+    monkeypatch.setenv('SOKUJI_TRANSLATE_MODEL', 'acme/custom-translate')
+    assert nm.download_specs('')['repos'] == ['acme/custom-translate']
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == ['acme/custom-translate']
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
@@ -241,3 +252,11 @@ def test_model_size_excludes_ignored_files(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     nm._SIZE_CACHE.clear()
     assert nm.model_size("voxtral-mini-4b-realtime") == 8_000_001_000  # consolidated excluded
+
+
+def test_download_specs_qwen_translate_repos():
+    from sokuji_sidecar import native_models as nm
+    assert nm.download_specs("qwen2.5-0.5b")["repos"] == ["Qwen/Qwen2.5-0.5B-Instruct"]
+    assert nm.download_specs("qwen3-0.6b")["repos"] == ["Qwen/Qwen3-0.6B"]
+    assert nm.download_specs("qwen3.5-0.8b")["repos"] == ["Qwen/Qwen3.5-0.8B"]
+    assert nm.download_specs("qwen3.5-2b")["repos"] == ["Qwen/Qwen3.5-2B"]

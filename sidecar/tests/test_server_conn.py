@@ -132,3 +132,82 @@ def test_feeder_exception_sends_error_and_keeps_connection():
         reply = json.loads(sent)
         assert reply["type"] == "error"
         assert "feeder failed" in reply["message"]
+
+
+def test_translate_connection_close_frees_engine():
+    """A connection that ran translate_init owns the translate model; closing it must
+    free that model from VRAM (mirrors the ASR on_binary ownership)."""
+    from sokuji_sidecar import translate_engine
+
+    closed = {"n": 0}
+
+    class FakeTranslate:
+        resolved = {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
+
+        def init(self, *a, **k):
+            return 5
+
+        def close(self):
+            closed["n"] += 1
+
+    state = {"translate_engine": FakeTranslate(), "handlers": {}}
+    translate_engine.register(state)
+
+    class IterWS:
+        def __init__(self, messages):
+            self._msgs = iter(messages)
+            self.sent = []
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            try:
+                return next(self._msgs)
+            except StopIteration:
+                raise StopAsyncIteration
+
+        async def send(self, d):
+            self.sent.append(d)
+
+    ws = IterWS([json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja", "targetLang": "en"})])
+    asyncio.run(_conn(state, ws))
+    assert closed["n"] == 1  # translate model freed when its connection closed
+
+
+def test_non_translate_connection_does_not_free_engine():
+    """A connection that never ran translate_init (e.g. model-management) must NOT
+    close the shared translate engine on disconnect."""
+    from sokuji_sidecar import translate_engine
+
+    closed = {"n": 0}
+
+    class FakeTranslate:
+        def close(self):
+            closed["n"] += 1
+
+    async def _ping(state, msg, _b, conn=None):
+        return {"type": "pong", "id": msg.get("id")}, None
+
+    state = {"translate_engine": FakeTranslate(), "handlers": {"noop": _ping}}
+
+    class IterWS:
+        def __init__(self, messages):
+            self._msgs = iter(messages)
+            self.sent = []
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            try:
+                return next(self._msgs)
+            except StopIteration:
+                raise StopAsyncIteration
+
+        async def send(self, d):
+            self.sent.append(d)
+
+    ws = IterWS([json.dumps({"type": "noop", "id": 1})])
+    asyncio.run(_conn(state, ws))
+    assert closed["n"] == 0  # engine untouched — this connection never owned it

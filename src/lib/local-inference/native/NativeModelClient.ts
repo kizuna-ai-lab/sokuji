@@ -105,10 +105,15 @@ export class NativeModelClient {
     return msg as Extract<ServerMsg, { type: 'hardware_info_result' }>;
   }
 
-  /** Query the per-machine model catalog (languages, recommended, tier availability). */
-  async modelsCatalog(models?: string[]): Promise<NativeModelInfo[]> {
+  /** Query the per-machine model catalog (languages, recommended, tier availability).
+   *  `kind` selects the ASR catalog (default) or the translation catalog — they are
+   *  separate model lists sidecar-side, so callers fetch each independently. */
+  async modelsCatalog(models?: string[], kind?: 'asr' | 'translate'): Promise<NativeModelInfo[]> {
     await this.connect();
-    const msg = await this.send(models ? { type: 'models_catalog', models } : { type: 'models_catalog' });
+    const payload: { type: 'models_catalog'; models?: string[]; kind?: 'asr' | 'translate' } = { type: 'models_catalog' };
+    if (models) payload.models = models;
+    if (kind) payload.kind = kind;
+    const msg = await this.send(payload);
     return (msg as Extract<ServerMsg, { type: 'models_catalog_result' }>).models;
   }
 
