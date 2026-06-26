@@ -189,3 +189,8 @@ Change a model and it reverts to the estimate until the next connect.
   omitted when unmeasurable.
 - **TTS excluded** from actuals; the actual total can differ from the estimate
   total by the (~60 MB) TTS figure. Flagged in the readout scope, not hidden.
+- **Opus-MT translation has no measured memory** (it loads via `OpusMtTranslator`,
+  not `load_with_fallback`, so no `memoryBytes`). Like TTS, it is simply skipped
+  in the "In use" readout. Combined with the TTS omission, "In use" RAM can read
+  lower than "Estimated" RAM even when nothing degraded — acceptable while TTS/
+  Opus-MT memory reporting is deferred.
