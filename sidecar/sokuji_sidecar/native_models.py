@@ -48,7 +48,8 @@ def download_specs(model_id):
         return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
                 "ignore": ["consolidated.safetensors"]}
     if model_id == "qwen2.5-0.5b":
-        return {"repos": ["Qwen/Qwen2.5-0.5B-Instruct"], "urls": []}
+        # Honour SOKUJI_TRANSLATE_MODEL so download matches what the catalog/runtime loads.
+        return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
     if model_id == "qwen3-0.6b":
         return {"repos": ["Qwen/Qwen3-0.6B"], "urls": []}
     if model_id == "qwen3.5-0.8b":

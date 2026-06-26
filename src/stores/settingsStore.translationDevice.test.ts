@@ -24,8 +24,8 @@ describe('translationDevice setting', () => {
   it('defaults to auto', () => {
     expect(useSettingsStore.getState().localNative.translationDevice).toBe('auto');
   });
-  it('is updatable', () => {
-    useSettingsStore.getState().updateLocalNative({ translationDevice: 'cuda' });
+  it('is updatable', async () => {
+    await useSettingsStore.getState().updateLocalNative({ translationDevice: 'cuda' });
     expect(useSettingsStore.getState().localNative.translationDevice).toBe('cuda');
   });
 });

@@ -105,7 +105,9 @@ const NativeModelCard: React.FC<{
                 // catalog's capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
                 // Speed metric differs by stage: ASR shows rtf ("Nx realtime"), translation shows
                 // tokensPerSec ("N tok/s"); the resolved object carries whichever applies.
-                const showResolved = !!resolved && resolved.model === spec.selectId;
+                // Match selectId OR downloadId: translation resolves to the artifact id, so Opus-MT's
+                // resolved model is its HF repo (= downloadId), not the 'opus-mt' selectId.
+                const showResolved = !!resolved && (resolved.model === spec.selectId || resolved.model === spec.downloadId);
                 const tier = showResolved
                   ? (resolved!.device === 'cpu' ? 'cpu' : `gpu-${resolved!.device}`)
                   : activeTier?.tier;

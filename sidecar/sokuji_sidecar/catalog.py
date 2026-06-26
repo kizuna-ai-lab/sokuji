@@ -5,6 +5,9 @@ import os
 from dataclasses import dataclass
 
 SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
+# The default Qwen 2.5 translation repo honours SOKUJI_TRANSLATE_MODEL so the runtime
+# loads the same repo the download/prefetch path fetched (keep these two in sync).
+QWEN25_REPO = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 
 
 @dataclass(frozen=True)
@@ -102,7 +105,7 @@ def _qwen_translate_row(mid, name, repo, backend, sort_order, recommended=False)
 
 TRANSLATE_MODELS: list[TranslateModel] = [
     _qwen_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
-                        "Qwen/Qwen2.5-0.5B-Instruct", "qwen_translate", 1, recommended=True),
+                        QWEN25_REPO, "qwen_translate", 1, recommended=True),
     _qwen_translate_row("qwen3-0.6b", "Qwen 3 0.6B",
                         "Qwen/Qwen3-0.6B", "qwen_translate", 2, recommended=True),
     _qwen_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B",

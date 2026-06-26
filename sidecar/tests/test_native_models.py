@@ -36,6 +36,14 @@ def test_download_specs_cohere():
         {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
 
 
+def test_download_specs_qwen25_honours_translate_model_env(monkeypatch):
+    # SOKUJI_TRANSLATE_MODEL overrides the default Qwen 2.5 repo for BOTH the implicit
+    # default ('') and the explicit id, so download matches what the catalog/runtime loads.
+    monkeypatch.setenv('SOKUJI_TRANSLATE_MODEL', 'acme/custom-translate')
+    assert nm.download_specs('')['repos'] == ['acme/custom-translate']
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == ['acme/custom-translate']
+
+
 def test_download_raises_when_no_files_resolved(monkeypatch):
     """A repo whose files cannot be listed must NOT silently report 'ready'.
 

@@ -58,6 +58,10 @@ async def _h_translate_init(state, msg, _b, conn=None):
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
         msg.get("device", "auto"))
+    # This connection owns the translate model: closing it frees the model from VRAM
+    # (mirrors the ASR streaming connection's on_binary ownership in server._conn).
+    if conn is not None:
+        conn.ctx["owns_translate"] = True
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(state["translate_engine"], "resolved", None)
     if resolved:
