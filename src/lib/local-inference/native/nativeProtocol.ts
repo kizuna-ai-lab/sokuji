@@ -16,6 +16,17 @@ export interface HardwareInfoResultMsg {
 export interface ModelsCatalogResultMsg {
   type: 'models_catalog_result'; id: number; models: NativeModelInfo[];
 }
+export interface VariantInfo {
+  id: string;
+  computeType: string;
+  repo: string;
+  sizeBytes: number;
+  supported: boolean;
+  reason: string;
+}
+export interface ListVariantsResultMsg {
+  type: 'list_variants_result'; id: number; variants: VariantInfo[]; recommended: string;
+}
 export interface OkMsg { type: 'ok'; id: number; }
 export interface ResultMsg { type: 'result'; id: number; sampleRate: number; generationTimeMs: number; samples: number; }
 export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; }
@@ -30,4 +41,4 @@ export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number;
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
 export type ModelDownloadStatus = 'ready' | 'cancelled';
 export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: string; status: ModelDownloadStatus; }
-export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg;
+export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg;

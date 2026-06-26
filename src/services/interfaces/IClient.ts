@@ -207,6 +207,8 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   wrapTranscript?: boolean;
   asrDevice?: string;
   translationDevice?: string;
+  /** Pinned quant variant for the translation model (e.g. 'fp8'). Undefined → sidecar auto-selects. */
+  translationVariant?: string;
 }
 
 /**

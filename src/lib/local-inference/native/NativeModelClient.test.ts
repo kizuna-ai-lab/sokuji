@@ -39,6 +39,10 @@ class FakeWS {
         { id: 'sense-voice', name: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'],
           recommended: true, tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
       ] }));
+    if (msg.type === 'list_variants') queueMicrotask(() =>
+      this.emit({ type: 'list_variants_result', id: msg.id,
+        variants: [{ id: 'fp8', computeType: 'fp8', repo: 'tencent/Hy-MT2-7B-FP8', sizeBytes: 8e9, supported: true, reason: 'fits' }],
+        recommended: 'fp8' }));
   }
   close() {}
   static cancelled = new Set<string>();
@@ -105,6 +109,16 @@ describe('NativeModelClient', () => {
     expect(models).toHaveLength(1);
     expect(models[0]).toMatchObject({ id: 'sense-voice', recommended: true });
     expect(models[0].tiers[0]).toMatchObject({ tier: 'cpu', available: true });
+  });
+
+  it('listVariants returns variants + recommended from the sidecar', async () => {
+    const c = new NativeModelClient();
+    const r = await c.listVariants('hy-mt2-7b', 'voxtral-mini-4b-realtime', null);
+    expect(r.recommended).toBe('fp8');
+    expect(r.variants[0].supported).toBe(true);
+    expect(r.variants[0].id).toBe('fp8');
+    expect(r.variants[0].computeType).toBe('fp8');
+    expect(r.variants[0].sizeBytes).toBe(8e9);
   });
 });
 

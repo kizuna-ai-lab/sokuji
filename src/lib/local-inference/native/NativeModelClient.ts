@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo, VariantInfo } from './nativeProtocol';
 
 interface DownloadHandle {
   onProgress?: (p: ModelProgressMsg) => void;
@@ -115,6 +115,21 @@ export class NativeModelClient {
     if (kind) payload.kind = kind;
     const msg = await this.send(payload);
     return (msg as Extract<ServerMsg, { type: 'models_catalog_result' }>).models;
+  }
+
+  /** Query available variants (quant levels) for a model, with hardware feasibility info.
+   *  `asrId`/`ttsId` tell the sidecar what is already loaded so it can compute the
+   *  remaining VRAM reserve when evaluating each variant. `pin` pins a specific variant. */
+  async listVariants(model: string, asrId: string | null, ttsId: string | null, pin?: string)
+    : Promise<{ variants: VariantInfo[]; recommended: string }> {
+    await this.connect();
+    const payload: { type: 'list_variants'; model: string; asrId?: string; ttsId?: string; pin?: string } = { type: 'list_variants', model };
+    if (asrId) payload.asrId = asrId;
+    if (ttsId) payload.ttsId = ttsId;
+    if (pin) payload.pin = pin;
+    const msg = await this.send(payload);
+    const r = msg as Extract<ServerMsg, { type: 'list_variants_result' }>;
+    return { variants: r.variants, recommended: r.recommended };
   }
 
   /** Remove a model from the sidecar's cache; resolves to the bytes freed. */
