@@ -14,6 +14,8 @@ import {
   gpuTierAvailable,
   formatRtf,
   formatTps,
+  resolvedTierState,
+  formatMemMb,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -29,9 +31,11 @@ import {
   useNativeTranslationResolved,
 } from '../../../stores/nativeModelStore';
 
-// The resolved plan a card may display: device + one speed metric. ASR carries an
-// rtf ("Nx realtime"), translation carries tokensPerSec ("N tok/s"); never both.
-type CardResolved = { model: string; device: string; rtf?: number; tokensPerSec?: number };
+// The resolved plan a card may display: device + one speed metric + optional memory
+// footprint and fallback reason. ASR carries rtf ("Nx realtime"), translation carries
+// tokensPerSec ("N tok/s"); never both. memoryBytes and fallbackReason come from the
+// native gate when it measured VRAM or moved the model off GPU.
+type CardResolved = { model: string; device: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 
 type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
@@ -100,28 +104,41 @@ const NativeModelCard: React.FC<{
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
               {(() => {
-                // One tier tag: for the model that just ran, show the RESOLVED device + its measured
-                // speed metric (ground truth — also catches a GPU→CPU fallback); otherwise the
-                // catalog's capability tier. Avoids two redundant "GPU CUDA" tags on the active card.
-                // Speed metric differs by stage: ASR shows rtf ("Nx realtime"), translation shows
-                // tokensPerSec ("N tok/s"); the resolved object carries whichever applies.
-                // Match selectId OR downloadId: translation resolves to the artifact id, so Opus-MT's
-                // resolved model is its HF repo (= downloadId), not the 'opus-mt' selectId.
+                // The active card shows the RESOLVED device as a LIVE badge (highlighted,
+                // colored: green when accelerated, warn when the gate moved it to CPU),
+                // with the measured speed + memory. Idle cards show the muted catalog
+                // capability tier. Match selectId OR downloadId (translation resolves to
+                // its artifact id = downloadId).
                 const showResolved = !!resolved && (resolved.model === spec.selectId || resolved.model === spec.downloadId);
-                const tier = showResolved
-                  ? (resolved!.device === 'cpu' ? 'cpu' : `gpu-${resolved!.device}`)
-                  : activeTier?.tier;
+                const view = showResolved ? resolvedTierState(resolved) : null;
+                const tier = view ? view.tier : activeTier?.tier;
                 if (!tier) return null;
                 const tl = tierLabel(tier);
                 let metric = '';
-                if (showResolved) {
-                  if (resolved!.rtf !== undefined) metric = ` · ${formatRtf(resolved!.rtf)}`;
-                  else if (resolved!.tokensPerSec !== undefined) metric = ` · ${formatTps(resolved!.tokensPerSec)}`;
+                if (showResolved && resolved) {
+                  if (resolved.rtf !== undefined) metric = ` · ${formatRtf(resolved.rtf)}`;
+                  else if (resolved.tokensPerSec !== undefined) metric = ` · ${formatTps(resolved.tokensPerSec)}`;
+                  if (view?.memoryMb) metric += ` · ${formatMemMb(view.memoryMb)}`;
                 }
+                // --live = highlighted (any resolved stage); --accel = green (a GPU
+                // tier, via tierLabel().accel); --warn = red (degraded CPU). A
+                // chosen-CPU stage gets --live only → highlighted but neutral.
+                const cls = 'model-card__lang-tag'
+                  + (view ? ' model-card__lang-tag--live' : '')
+                  + (view && !view.degraded && tl.accel ? ' model-card__lang-tag--accel' : '')
+                  + (view?.degraded ? ' model-card__lang-tag--warn' : '');
                 return (
-                  <span className="model-card__lang-tag">
-                    <TierIcon tier={tier} size={10} />{tl.label}{metric}
-                  </span>
+                  <>
+                    <span className={cls}>
+                      <TierIcon tier={tier} size={10} />{tl.label}{metric}
+                    </span>
+                    {view?.degraded && (
+                      <span className="model-card__lang-tag model-card__lang-tag--warn"
+                            title={resolved!.fallbackReason}>
+                        ⚠ Low VRAM → CPU
+                      </span>
+                    )}
+                  </>
                 );
               })()}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
