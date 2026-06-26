@@ -128,7 +128,7 @@ def test_engine_init_uses_resolver(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (_FakeBackend(), fake_plan, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     ms = eng.init(model_id="whisper-tiny", language="en", device="auto")
     assert isinstance(ms, int)
@@ -204,7 +204,7 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (_FakeBackend(), fake_plan, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
     eng.init(model_id="whisper-tiny", language="en", device="auto")
     assert eng.resolved["device"] == "cuda"
@@ -217,7 +217,7 @@ def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (_FakeBackend(), fake_plan, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)  # benchmark failed
     eng.init(model_id="whisper-tiny", device="auto")
     assert "rtf" not in eng.resolved
@@ -268,10 +268,10 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     def fake_load(plans):
         b = _UnloadBackend()
         backends.append(b)
-        return b, fake_plan, None
+        return b, fake_plan, None, None
 
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_with_fallback", fake_load)
+    monkeypatch.setattr(accel, "load_measured", fake_load)
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
 
     eng.init(model_id="whisper-tiny")
@@ -282,6 +282,33 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     eng.close()                                       # close frees the current
     assert backends[1].unloaded is True
     assert eng._backend is None
+
+
+def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
+    from sokuji_sidecar import accel, asr_engine
+    fake_plan = type("P", (), {"backend": "ctranslate2", "device": "cpu", "compute_type": "int8"})()
+    monkeypatch.setattr(accel, "resolve", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "load_measured",
+                        lambda plans: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
+    monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
+    eng = asr_engine.AsrEngine()
+    eng.init("sense-voice", "en", 16000, None, None, None, "auto")
+    assert eng.resolved["memoryBytes"] == 4_200_000_000
+    assert "using CPU" in eng.resolved["fallbackReason"]
+
+
+def test_streaming_init_sets_resolved_device_and_memory(monkeypatch):
+    from sokuji_sidecar import asr_engine
+    eng = asr_engine.AsrEngine()
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: object(),
+                             "unload": lambda self: None})()
+    fake_plan = type("P", (), {"backend": "voxtral_realtime", "device": "cuda", "compute_type": "bfloat16"})()
+    monkeypatch.setattr(eng, "_resolve_streaming_backend",
+                        lambda model, device: (backend, fake_plan, None, 8_000_000_000))
+    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="auto")
+    assert eng.resolved["device"] == "cuda"
+    assert eng.resolved["memoryBytes"] == 8_000_000_000
 
 
 def test_conn_close_frees_asr_model():
@@ -365,7 +392,10 @@ def _streaming_engine(monkeypatch, fake_stream, vad_segments):
     backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: fake_stream,
                              "unload": lambda self: None})()
     # bypass real resolve/VAD: inject the backend + a fake VAD endpoint generator
-    monkeypatch.setattr(eng, "_resolve_streaming_backend", lambda model, device: backend)
+    fake_plan = type("P", (), {"backend": "voxtral_realtime",
+                               "device": "cuda", "compute_type": "bfloat16"})()
+    monkeypatch.setattr(eng, "_resolve_streaming_backend",
+                        lambda model, device: (backend, fake_plan, None, None))
     monkeypatch.setattr(eng, "_vad_events", lambda samples: vad_segments)  # ['start'|'speech'|'end']
     return eng
 

@@ -93,13 +93,17 @@ class AsrEngine:
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
         plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
-        self._backend, plan, _notice = accel.load_with_fallback(plans)
+        self._backend, plan, notice, mem = accel.load_measured(plans)
         self._language = language or None
         rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
         if rtf is not None:
             self.resolved["rtf"] = round(rtf, 3)
+        if mem is not None:
+            self.resolved["memoryBytes"] = mem
+        if notice:
+            self.resolved["fallbackReason"] = notice
         # Surface the ACTUAL backend/device the session resolved to. A non-'auto'
         # compute-device choice only reorders plans, so a GPU-only model still loads
         # on CUDA even when 'cpu' was requested — this line makes that visible.
@@ -181,7 +185,13 @@ class AsrEngine:
         import queue as _queue
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
-        self._backend = self._resolve_streaming_backend(model_id, device)
+        self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device)
+        self.resolved = {"backend": plan.backend, "device": plan.device,
+                         "computeType": plan.compute_type}
+        if mem is not None:
+            self.resolved["memoryBytes"] = mem
+        if notice:
+            self.resolved["fallbackReason"] = notice
         self._language = language or None
         self._audio_q = _queue.Queue()
         self._mode = "always_stream"
@@ -408,8 +418,7 @@ class AsrEngine:
     def _resolve_streaming_backend(self, model_id, device):
         from . import accel
         plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
-        backend, _plan, _notice = accel.load_with_fallback(plans)
-        return backend
+        return accel.load_measured(plans)   # (backend, plan, notice, memory_bytes)
 
     def _vad_events(self, samples):
         """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while
