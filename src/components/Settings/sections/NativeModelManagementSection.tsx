@@ -108,8 +108,11 @@ const VariantDropdown: React.FC<{
                 className={'model-card__variant-item'
                   + (isChosen ? ' model-card__variant-item--chosen' : '')
                   + (!v.supported ? ' model-card__variant-item--unsupported' : '')}
-                disabled={!v.supported}
-                title={v.supported ? undefined : v.reason}
+                // aria-disabled (not the `disabled` attribute) so the row stays
+                // hoverable — a disabled <button> suppresses pointer events for its
+                // whole subtree, which would block the icon's tooltip. The click
+                // handler already no-ops for unsupported variants.
+                aria-disabled={!v.supported}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (v.supported) { variantProps.onPinVariant(v.id); setOpen(false); }
@@ -125,10 +128,12 @@ const VariantDropdown: React.FC<{
                 )}
                 {!v.supported && (
                   // Muted "blocked" glyph mirrors the green "recommended" slot; the full
-                  // reason lives in the row's title tooltip.
-                  <span className="model-card__variant-unavailable" aria-label="won't fit">
-                    <Ban size={13} />
-                  </span>
+                  // reason shows in an instant (0ms) tooltip on hover.
+                  <Tooltip content={v.reason || "Won't fit"} position="top" icon="none" openDelay={0}>
+                    <span className="model-card__variant-unavailable" aria-label="won't fit">
+                      <Ban size={13} />
+                    </span>
+                  </Tooltip>
                 )}
               </button>
             );

@@ -144,12 +144,12 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     expect(within(fp8Row).getByText('recommended')).toBeInTheDocument();
     expect(fp8Row).toBeEnabled();
 
-    // bfloat16 is unsupported → listed (so the user sees the option) but disabled.
-    // A muted "blocked" icon marks it; the full reason lives in the title tooltip.
+    // bfloat16 is unsupported → listed (so the user sees the option) but not
+    // selectable. It uses aria-disabled (not the disabled attribute) so the row
+    // stays hoverable for the instant tooltip; a muted "blocked" icon marks it.
     const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
-    expect(bf16Row).toBeDisabled();
+    expect(bf16Row).toHaveAttribute('aria-disabled', 'true');
     expect(within(bf16Row).getByLabelText("won't fit")).toBeInTheDocument();
-    expect(bf16Row).toHaveAttribute('title', 'exceeds budget');
   });
 
   it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {

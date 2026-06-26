@@ -527,7 +527,9 @@
     width: 100%;
     transition: background vars.$transition-fast;
 
-    &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+    // Hover highlight only on selectable rows (unsupported rows use aria-disabled,
+    // not the :disabled pseudo-class, so exclude them by class).
+    &:hover:not(:disabled):not(#{&}--unsupported) { background: rgba(255, 255, 255, 0.06); }
 
     // Selected variant: filled tint + left accent bar — unmistakable.
     &--chosen {
@@ -535,8 +537,8 @@
       box-shadow: inset 2px 0 0 vars.$color-primary;
     }
 
-    // Unsupported: greyed, not clickable (still listed with its size + reason).
-    &--unsupported { opacity: 0.5; }
+    // Unsupported: greyed, not clickable (still listed with its size + blocked icon).
+    &--unsupported { opacity: 0.5; cursor: not-allowed; }
 
     &:disabled { cursor: not-allowed; }
   }
