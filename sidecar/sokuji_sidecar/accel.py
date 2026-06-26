@@ -19,6 +19,7 @@ class Gpu:
     vendor: str
     name: str
     vram_mb: int
+    capability: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -33,10 +34,24 @@ class Machine:
     fingerprint: str
 
 
-def _nvidia_gpus() -> tuple[Gpu, ...]:
+def _cuda_count() -> int:
     from ctranslate2 import get_cuda_device_count
-    n = get_cuda_device_count()
-    return tuple(Gpu("nvidia", "", 0) for _ in range(n))
+    return get_cuda_device_count()
+
+
+def _nvidia_gpus() -> tuple[Gpu, ...]:
+    n = _cuda_count()
+    gpus = []
+    for i in range(n):
+        vram_mb, cap = 0, None
+        try:
+            import torch
+            vram_mb = int(torch.cuda.get_device_properties(i).total_memory // (1024 * 1024))
+            cap = tuple(torch.cuda.get_device_capability(i))  # (major, minor)
+        except Exception:
+            pass
+        gpus.append(Gpu("nvidia", "", vram_mb, cap))
+    return tuple(gpus)
 
 
 def _apple_silicon() -> bool:

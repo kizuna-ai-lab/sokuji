@@ -703,3 +703,27 @@ def test_new_translate_backends_installed_and_resolvable():
     assert any(p.backend == "hunyuan_translate" for p in plans)
     g = accel.resolve_translate("translategemma-4b", "auto")
     assert any(p.backend == "gemma_translate" for p in g)
+
+
+def test_nvidia_gpus_populates_vram_and_capability(monkeypatch):
+    import types, sys
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(
+            get_device_properties=lambda i: types.SimpleNamespace(total_memory=12 * 1024**3),
+            get_device_capability=lambda i: (8, 9),
+        )
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
+    gpus = accel._nvidia_gpus()
+    assert len(gpus) == 1
+    assert gpus[0].vram_mb == 12 * 1024  # 12 GiB in MB
+    assert gpus[0].capability == (8, 9)
+
+
+def test_nvidia_gpus_degrades_when_torch_fails(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "torch", None)  # import torch → TypeError/ImportError
+    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
+    gpus = accel._nvidia_gpus()
+    assert len(gpus) == 1 and gpus[0].vram_mb == 0 and gpus[0].capability is None
