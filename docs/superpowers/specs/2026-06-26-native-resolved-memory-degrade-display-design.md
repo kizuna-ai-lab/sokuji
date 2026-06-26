@@ -32,7 +32,8 @@ session is live.
 - No new live-session status panel/banner. Reuse the estimate area + cards.
 - No per-model RAM attribution beyond a best-effort RSS delta.
 - TTS memory is not measured (no `resolved` entry; ~60 MB). It stays out of
-  the actual readout.
+  the actual readout — deferred until the TTS stage is reworked to support
+  more models, at which point its device/memory reporting is done together.
 - No capture of runtime activation/KV growth — the load-time footprint
   (reserved VRAM / RSS delta) is the reported number.
 
