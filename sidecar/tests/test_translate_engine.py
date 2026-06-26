@@ -55,7 +55,7 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     fake_backend = MagicMock()
     fake_plan = MagicMock(backend="qwen_translate", device="cuda", compute_type="bfloat16")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (fake_backend, fake_plan, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
 
@@ -74,9 +74,9 @@ def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     from sokuji_sidecar import accel
     first, second = MagicMock(), MagicMock()
     plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
-    backends_iter = iter([(first, plan, None), (second, plan, None)])
+    backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: next(backends_iter))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: next(backends_iter))
 
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en")
@@ -131,7 +131,7 @@ def test_opus_to_qwen_switch_clears_opus(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "sokuji_sidecar.opus_mt", fake_opus_mt_mod)
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
-    monkeypatch.setattr(accel, "load_with_fallback", lambda plans: (fake_backend, fake_plan, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
 
     eng = translate_engine.TranslateEngine()
 
@@ -142,6 +142,20 @@ def test_opus_to_qwen_switch_clears_opus(monkeypatch):
     # Step 2: switch to the default Qwen model → _opus must be cleared.
     eng.init(model_id=None, source_lang="ja", target_lang="en")
     assert eng._opus is None, "_opus must be cleared after switching to Qwen model"
+
+
+def test_init_stores_memory_and_fallback_reason(monkeypatch):
+    from sokuji_sidecar import accel
+    from unittest.mock import MagicMock
+    fake_plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "load_measured",
+                        lambda plans: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
+    monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="qwen3.5-2b", source_lang="ja", target_lang="en")
+    assert eng.resolved["memoryBytes"] == 4_200_000_000
+    assert "using CPU" in eng.resolved["fallbackReason"]
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_TRANSLATE_MODEL"),

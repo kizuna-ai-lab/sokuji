@@ -25,12 +25,16 @@ class TranslateEngine:
         self._opus = None
         from . import accel
         plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto")
-        self._backend, plan, _notice = accel.load_with_fallback(plans)
+        self._backend, plan, notice, mem = accel.load_measured(plans)
         tps = accel.measure_tps(self._backend, plan, model_id or "qwen2.5-0.5b", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
         if tps is not None:
             self.resolved["tokensPerSec"] = round(tps, 1)
+        if mem is not None:
+            self.resolved["memoryBytes"] = mem
+        if notice:
+            self.resolved["fallbackReason"] = notice
         return int((time.time() - t0) * 1000)
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
