@@ -503,7 +503,8 @@
     top: calc(100% + 4px);
     right: 0;
     z-index: 20;
-    min-width: 200px;
+    min-width: 230px;
+    max-width: 320px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -516,7 +517,8 @@
 
   &__variant-item {
     display: flex;
-    align-items: center;
+    // Top-align so a wrapped reason sits neatly beside the one-line name.
+    align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
     padding: 5px 8px;
@@ -549,7 +551,11 @@
 
   // Compute type is the primary label of the row → bright + tracked; the chosen
   // row turns green to reinforce selection.
+  // Precision + size is the primary info → never wraps; the secondary reason on the
+  // right wraps instead. flex-shrink:0 protects it from the reason column.
   &__variant-name {
+    flex: 0 0 auto;
+    white-space: nowrap;
     font-size: vars.$font-caption;
     color: vars.$text-primary;
     font-weight: vars.$weight-medium;
@@ -570,18 +576,25 @@
 
   // Plain green text (not a filled pill) keeps the accent meaningful and the menu calm.
   &__variant-recommended {
+    flex: 0 0 auto;
     font-size: 10px;
     color: vars.$color-primary;
     font-weight: vars.$weight-medium;
     letter-spacing: 0.02em;
-    text-transform: uppercase;
     white-space: nowrap;
+    padding-top: 1px;
   }
 
+  // Verbose reasons ("too big for available VRAM") wrap on the right rather than
+  // forcing the precision/size to break.
   &__variant-unavailable {
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: 10px;
+    line-height: 1.3;
     color: vars.$text-muted;
-    white-space: nowrap;
+    text-align: right;
+    padding-top: 1px;
   }
 
   &__variant-cpu-note {
