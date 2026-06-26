@@ -138,9 +138,17 @@ const NativeModelCard: React.FC<{
                 >
                   {resolvedVariantLabel}
                 </span>
+              ) : variantProps ? (
+                // Pre-download multi-variant card: show the chosen variant's size in the
+                // standard model-card__size spot, consistent with single-variant cards.
+                chosenVariant ? (
+                  <span className="model-card__size" data-testid={`variant-size-${spec.selectId}`}>
+                    {formatMemMb(Math.round(chosenVariant.sizeBytes / 1e6))}
+                  </span>
+                ) : null
               ) : (
-                // Normal card (no variants) or pre-download: show raw MB when available.
-                !variantProps && sizeMb !== null && (
+                // Normal single-variant card: raw MB when available.
+                sizeMb !== null && (
                   <span className="model-card__size">{sizeMb} MB</span>
                 )
               )}
@@ -227,6 +235,7 @@ const NativeModelCard: React.FC<{
                       title={v.supported ? undefined : v.reason}
                     >
                       <span className="model-card__variant-name">
+                        {isChosen && <span className="model-card__variant-check" aria-label="selected">✓ </span>}
                         {v.computeType.toUpperCase()}
                         <span className="model-card__variant-size"> · {sizeLabel}</span>
                       </span>

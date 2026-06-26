@@ -518,6 +518,11 @@
     padding: 2px 2px 0;
   }
 
+  &__variant-check {
+    color: vars.$color-primary;
+    font-weight: bold;
+  }
+
   &__variant-name {
     font-size: vars.$font-caption;
     color: vars.$text-secondary;
