@@ -727,3 +727,72 @@ def test_nvidia_gpus_degrades_when_torch_fails(monkeypatch):
     monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
     gpus = accel._nvidia_gpus()
     assert len(gpus) == 1 and gpus[0].vram_mb == 0 and gpus[0].capability is None
+
+
+# ── select_variant tests ────────────────────────────────────────────────────
+
+
+def _gpu_machine(vram_mb, cap, installed=("hunyuan_translate",)):
+    g = accel.Gpu("nvidia", "", vram_mb, cap)
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=(g,),
+                         apple_silicon=False, dml_adapters=(), installed=frozenset(installed),
+                         fingerprint="t")
+
+
+def _hymt2_7b():
+    from sokuji_sidecar import catalog
+    return catalog.translate_model("hy-mt2-7b")
+
+
+def test_select_variant_picks_fp8_on_ada_when_bf16_too_big(monkeypatch):
+    # est_bytes: bf16 ~15GB, fp8 ~8GB. 16GB Ada, 2GB reserve → budget 13GB; bf16 needs 18GB, fp8 needs 9.6GB
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+    m = _gpu_machine(16 * 1024, (8, 9))                       # 16GB Ada (e.g. RTX 4080)
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=2 * 1024**3)
+    assert d.compute_type == "fp8"                            # bf16 (15×1.2=18GB) won't fit, fp8 (8×1.2=9.6GB) does
+
+
+def test_select_variant_excludes_fp8_on_ampere(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+    m = _gpu_machine(12 * 1024, (8, 6))                       # Ampere sm_86 → no FP8
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0)
+    assert d.tier == "cpu"                                    # bf16 too big, fp8 arch-excluded → cpu floor
+
+
+def test_select_variant_fp8_dropped_when_compressed_tensors_absent(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: ct != "fp8")
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
+    m = _gpu_machine(12 * 1024, (8, 9))
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0)
+    assert d.tier == "cpu"                                    # fp8 ungated off, bf16 too big → cpu
+
+
+def test_select_variant_prefers_bf16_when_it_fits(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 4, "fp8": 2, "float32": 4}[d.compute_type] * 1024**3)
+    m = _gpu_machine(24 * 1024, (8, 9))
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0)
+    assert d.compute_type == "bfloat16"                       # both fit → highest quality
+
+
+def test_select_variant_pin_honored_when_valid(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes",
+                        lambda d: {"bfloat16": 4, "fp8": 2, "float32": 4}[d.compute_type] * 1024**3)
+    m = _gpu_machine(24 * 1024, (8, 9))
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0, pin="fp8")
+    assert d.compute_type == "fp8"                            # pinned despite bf16 fitting
+
+
+def test_select_variant_conservative_when_no_vram(monkeypatch):
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes", lambda d: 4 * 1024**3)
+    m = _gpu_machine(0, None)                                 # probe couldn't read VRAM
+    d = accel.select_variant(_hymt2_7b(), m, reserved_bytes=0)
+    assert d.tier == "cpu"                                    # never gamble → cpu floor

@@ -454,6 +454,63 @@ def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool =
         return None
 
 
+# Higher = better quality. Future formats slot in (int4, nvfp4) without touching callers.
+_VARIANT_QUALITY = {"bfloat16": 3.0, "float16": 3.0, "fp8": 2.0, "int4": 1.5, "nvfp4": 1.8}
+
+# Extra runtime/library a compute_type needs beyond its backend NAME being installed.
+_FORMAT_MODULE = {"fp8": "compressed_tensors"}
+
+
+def _format_ready(compute_type: str) -> bool:
+    """Return True when the runtime library required by `compute_type` is importable.
+    Most compute types need nothing extra; fp8 requires compressed_tensors."""
+    mod = _FORMAT_MODULE.get(compute_type)
+    return True if mod is None else _has_mod(mod)
+
+
+def _est_bytes(d) -> int | None:
+    """Return the estimated VRAM footprint of deployment `d` in bytes.
+    Uses d.est_bytes when set, otherwise falls back to native_models.model_size
+    (reads the artifact's on-disk weight files). Returns None when unknown."""
+    from . import native_models
+    if d.est_bytes is not None:
+        return d.est_bytes
+    return native_models.model_size(d.artifact)
+
+
+def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None):
+    """Pick the best downloadable variant of `model` for this machine. Deterministic:
+    same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
+    CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
+    runtime is missing. `pin` (a compute_type) forces that variant when it's valid."""
+    gpu = machine.nvidia[0] if machine.nvidia else None
+    cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
+
+    def candidate(d) -> bool:
+        if d.tier == "cpu":
+            return False
+        if d.backend not in machine.installed or not _format_ready(d.compute_type):
+            return False
+        if gpu is None or not gpu.vram_mb or gpu.capability is None:
+            return False
+        if d.min_capability is not None and gpu.capability < d.min_capability:
+            return False
+        need = _est_bytes(d)
+        if need is None:
+            return False
+        budget = gpu.vram_mb * 1024 * 1024 - reserved_bytes - _VRAM_CONTEXT_BYTES
+        return need * _VRAM_WEIGHT_FACTOR <= budget
+
+    cands = [d for d in model.deployments if candidate(d)]
+    if pin is not None:
+        pinned = next((d for d in cands if d.compute_type == pin), None)
+        if pinned is not None:
+            return pinned
+    if cands:
+        return max(cands, key=lambda d: (_VARIANT_QUALITY.get(d.compute_type, 0.0), d.rank))
+    return cpu_floor
+
+
 def _apply_bench(plans: list, bench: dict) -> list:
     """Demote any non-cpu plan whose cached RTF is >= the cpu floor's cached RTF
     (proven not faster than CPU). `bench` maps (backend, device, compute_type) -> rtf."""
