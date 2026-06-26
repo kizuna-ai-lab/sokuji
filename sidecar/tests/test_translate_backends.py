@@ -183,3 +183,58 @@ def test_hunyuan_translate_real_gpu():
     out, ms = eng.translate("你好，最近怎么样？")
     assert isinstance(out, str) and out.strip() and ms >= 0
     eng.close()
+
+
+def test_gemma_registered():
+    assert backends._BACKENDS.get("gemma_translate") is tb.GemmaTranslateBackend
+
+
+def test_gemma_code_maps_names_and_passes_through():
+    assert tb._gemma_code("Japanese") == "ja"
+    assert tb._gemma_code("English") == "en"
+    assert tb._gemma_code("Klingon") == "Klingon"   # unknown → pass through
+    assert tb._gemma_code("zh") == "zh"             # already a code → pass through
+
+
+def test_gemma_text_only_message_with_bcp47_codes():
+    captured = []
+    b = tb.GemmaTranslateBackend()
+    b._tok = _fake_tok(captured)
+    b._model = _fake_model()
+    b._device = "cpu"
+    out, n = b.translate("hi", "", "Japanese", "English", wrap=False)
+    assert out == "translated" and n == 7
+    assert len(captured) == 1 and captured[0]["role"] == "user"
+    content = captured[0]["content"]
+    # TranslateGemma's multimodal-style content list with per-message lang codes.
+    assert isinstance(content, list) and len(content) == 1
+    entry = content[0]
+    assert entry["type"] == "text"
+    assert entry["source_lang_code"] == "ja"
+    assert entry["target_lang_code"] == "en"
+    assert entry["text"] == "hi"
+
+
+def test_gemma_load_raises_when_class_missing(monkeypatch):
+    import sys
+    fake = MagicMock()
+    del fake.Gemma3ForConditionalGeneration   # attribute access raises AttributeError
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+    b = tb.GemmaTranslateBackend()
+    with pytest.raises(backends.BackendLoadError):
+        b.load("google/translategemma-4b-it", "cuda", "bfloat16")
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (downloads TranslateGemma-4B + needs CUDA + Gemma license)")
+def test_gemma_translate_real_gpu():
+    # Also the validation gate for the AutoTokenizer chat-template path: if the
+    # tokenizer lacks the template, this fails and the backend needs the manual-prompt
+    # fallback noted in the spec.
+    from sokuji_sidecar import translate_engine
+    eng = translate_engine.TranslateEngine()
+    eng.init(model_id="translategemma-4b", source_lang="Japanese", target_lang="English", device="cuda")
+    assert eng.resolved["device"] == "cuda"
+    out, ms = eng.translate("こんにちは、お元気ですか？")
+    assert isinstance(out, str) and out.strip() and ms >= 0
+    eng.close()

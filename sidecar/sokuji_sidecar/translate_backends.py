@@ -5,6 +5,7 @@ transcribe(). Registered into the shared backends registry on import.
   qwen_translate     — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
   qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
   hunyuan_translate  — HY-MT2 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
+  gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
 
 All support CPU (float32) and GPU (bfloat16) via .to(device)."""
 import re
@@ -182,6 +183,80 @@ class HunyuanTranslateBackend:
         inputs = self._tok(prompt, return_tensors="pt").to(self._device)
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
+        gen = out[0][inputs["input_ids"].shape[1]:]
+        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
+
+    def unload(self) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+
+# Full English language name -> BCP-47 code for TranslateGemma's chat-template
+# source_lang_code/target_lang_code fields. The engine passes full names; unknown
+# names (or values that are already codes) pass through unchanged.
+_GEMMA_LANG_CODE = {
+    "English": "en", "Chinese": "zh", "Japanese": "ja", "Korean": "ko",
+    "French": "fr", "German": "de", "Spanish": "es", "Portuguese": "pt",
+    "Italian": "it", "Russian": "ru", "Arabic": "ar", "Hindi": "hi",
+    "Dutch": "nl", "Vietnamese": "vi", "Thai": "th", "Indonesian": "id",
+    "Turkish": "tr", "Polish": "pl", "Ukrainian": "uk", "Greek": "el",
+}
+
+
+def _gemma_code(name: str) -> str:
+    return _GEMMA_LANG_CODE.get(name, name)
+
+
+@register_backend
+class GemmaTranslateBackend:
+    NAME = "gemma_translate"
+
+    def __init__(self):
+        self._model = None
+        self._tok = None
+        self._device = "cpu"
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            # Text-only: drive AutoTokenizer + the text model class, NOT AutoProcessor.
+            # TranslateGemma is a Gemma-3 VLM; AutoProcessor builds an image/video
+            # processor that hard-requires torchvision (no wheel for this torch build).
+            from transformers import Gemma3ForConditionalGeneration, AutoTokenizer
+            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
+            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
+            self._model = Gemma3ForConditionalGeneration.from_pretrained(
+                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
+            self._device = device
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
+        import torch
+        # TranslateGemma is driven by per-message source/target language codes, not a
+        # free-text instruction — system_prompt is not applicable to its template.
+        body = f"<transcript>{text}</transcript>" if wrap else text
+        messages = [{"role": "user", "content": [{
+            "type": "text",
+            "source_lang_code": _gemma_code(src),
+            "target_lang_code": _gemma_code(tgt),
+            "text": body,
+        }]}]
+        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
+        with torch.inference_mode():
+            out = self._model.generate(**inputs, max_new_tokens=256, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
         return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
 
