@@ -57,6 +57,9 @@ export const NATIVE_TRANSLATION: NativeModelOption[] = [
   { id: 'qwen3.5-0.8b', label: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
   { id: 'qwen3.5-2b', label: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
   { id: 'opus-mt', label: 'Opus-MT (fast)', sortOrder: 5 },
+  { id: 'translategemma-4b', label: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
+  { id: 'hy-mt2-1.8b', label: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
+  { id: 'hy-mt2-7b', label: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
 ];
 
 /** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */

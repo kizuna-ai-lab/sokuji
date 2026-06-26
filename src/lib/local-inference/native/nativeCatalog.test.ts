@@ -40,7 +40,7 @@ describe('nativeCatalog', () => {
 
   it('exposes ASR + translation options', () => {
     expect(NATIVE_ASR.map((m) => m.id)).toContain('sense-voice');
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
+    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
   });
 
   it('language compatibility + ASR auto-select', () => {
@@ -386,6 +386,15 @@ describe('nativeCatalog', () => {
     });
     it('returns null for no resolved', () => {
       expect(resolvedTierState(null)).toBeNull();
+    });
+  });
+
+  describe('NATIVE_TRANSLATION new models', () => {
+    it('includes TranslateGemma and HY-MT2 with ids matching the sidecar catalog', () => {
+      const byId = Object.fromEntries(NATIVE_TRANSLATION.map((m) => [m.id, m]));
+      expect(byId['translategemma-4b']?.label).toBe('TranslateGemma 4B');
+      expect(byId['hy-mt2-1.8b']?.label).toBe('Hunyuan-MT2 1.8B');
+      expect(byId['hy-mt2-7b']?.label).toBe('Hunyuan-MT2 7B');
     });
   });
 });
