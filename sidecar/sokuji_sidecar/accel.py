@@ -549,6 +549,10 @@ async def _h_list_variants(state, msg, _b, conn=None):
     reserve = sum((native_models.model_size(msg.get(k)) or 0)
                   for k in ("asrId", "ttsId") if msg.get(k))
     chosen = select_variant(model, m, reserve, pin=msg.get("pin"))
+    # select_variant can return None for a model with no cpu floor (none today, but
+    # resolve_translate guards the same case) — never dereference chosen.compute_type then.
+    if chosen is None:
+        return {"type": "error", "id": msg.get("id"), "message": "no runnable variant"}, None
     gpu = m.nvidia[0] if m.nvidia else None
     budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
     variants = []

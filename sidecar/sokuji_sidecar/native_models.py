@@ -202,9 +202,9 @@ async def download(model_id, send, should_cancel=None, repo=None):
     api = HfApi()
     ignore = set(specs.get("ignore", []))
     files = []
-    for repo in specs["repos"]:
+    for r in specs["repos"]:  # `r`, not `repo`, so the variant `repo` param is not shadowed
         try:
-            files.extend((repo, f) for f in api.list_repo_files(repo) if f not in ignore)
+            files.extend((r, f) for f in api.list_repo_files(r) if f not in ignore)
         except Exception:
             pass
     # Never report a no-op download as success: if a model declares repos but none
@@ -215,10 +215,10 @@ async def download(model_id, send, should_cancel=None, repo=None):
             f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
     total = len(files) + len(specs["urls"])
     done = 0
-    for repo, fname in files:
+    for r, fname in files:
         if cancelled():
             return "cancelled"
-        await asyncio.to_thread(hf_hub_download, repo, fname)
+        await asyncio.to_thread(hf_hub_download, r, fname)
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
     for url in specs["urls"]:

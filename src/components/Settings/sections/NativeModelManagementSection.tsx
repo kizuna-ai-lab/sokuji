@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
+import { useLocalNativeSettings, useUpdateLocalNative, type LocalNativeSettings } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
   nativeTtsCards,
   pickNativeTts,
+  resolveNativeTts,
   tierLabel,
   hardwareGated,
   gpuTierAvailable,
@@ -317,8 +318,10 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   // Variant quant data for multi-variant translation cards (hy-mt2-*), keyed by selectId.
   const [variantData, setVariantData] = useState<Record<string, { variants: VariantInfo[]; recommended: string }>>({});
-  // User-pinned variant choice per card selectId (overrides the algorithm's recommendation).
-  const [pinnedVariants, setPinnedVariants] = useState<Record<string, string>>({});
+  // The manual variant pin lives in settings.translationVariant (scoped to the SELECTED
+  // translation model) so it reaches BOTH download (repo) and load (select_variant pin) —
+  // a local-only pin would leave load on the recommended variant and fail a local_files_only
+  // load of the pinned repo. Non-selected cards show no pin (recommended) until selected.
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage), [settings.sourceLanguage]);
   const asrIncompatibleCards = useMemo(
@@ -335,13 +338,17 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   );
 
   // Fetch variant availability for each hy-mt2 card whenever the pipeline context changes
-  // (asrModel/ttsModel determine how much VRAM is reserved for other stages).
-  const variantFetchKey = [hyMt2Ids.join('|'), settings.asrModel, settings.ttsModel].join('::');
+  // (asrModel/ttsModel determine how much VRAM is reserved for other stages). Pass the
+  // RESOLVED tts id (e.g. 'piper-en') — the same id LOAD's _h_translate_init reserves on —
+  // so download-time and load-time select_variant compute the identical reserve, else a
+  // razor VRAM edge could flip the variant between the two.
+  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage) || null;
+  const variantFetchKey = [hyMt2Ids.join('|'), settings.asrModel, reserveTtsId].join('::');
   useEffect(() => {
     if (hyMt2Ids.length === 0) return;
     let cancelled = false;
     for (const id of hyMt2Ids) {
-      nativeListVariants(id, settings.asrModel || null, settings.ttsModel || null)
+      nativeListVariants(id, settings.asrModel || null, reserveTtsId)
         .then((result) => {
           if (!cancelled) setVariantData((prev) => ({ ...prev, [id]: result }));
         })
@@ -395,7 +402,14 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // Explicit user selection: write the choice, clear the Auto-selected flag, and
   // remember the full selection for this direction (mirrors ModelManagementSection).
   const selectCard = (field: Stage, selectId: string) => {
-    update({ [field]: selectId });
+    const updates: Partial<LocalNativeSettings> = { [field]: selectId };
+    // Selecting a DIFFERENT translation model clears the variant pin so a stale pin from
+    // the previously-selected model can't leak into the new model's load (which would
+    // resolve a repo that was never downloaded). Re-selecting the same model keeps its pin.
+    if (field === 'translationModel' && selectId !== settings.translationModel) {
+      updates.translationVariant = undefined;
+    }
+    update(updates);
     setAutoSelectedStages((prev) => ({ ...prev, [field]: false }));
     const sel: NativeSelection = {
       asrModel: settings.asrModel, translationModel: settings.translationModel, ttsModel: settings.ttsModel,
@@ -404,10 +418,16 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
-  // Pin a variant choice for a specific translation card (overrides the algorithm's recommendation).
+  // Pin a variant: select that translation model AND record the variant in settings, so
+  // download (chosen repo) and load (select_variant pin) agree. Mirrors selectCard's
+  // badge-clear + history-remember so a pinned model is treated like a selected one.
   const handlePinVariant = useCallback((selectId: string, variantId: string) => {
-    setPinnedVariants((prev) => ({ ...prev, [selectId]: variantId }));
-  }, []);
+    update({ translationModel: selectId, translationVariant: variantId });
+    setAutoSelectedStages((prev) => ({ ...prev, translationModel: false }));
+    rememberModels(settings.sourceLanguage, settings.targetLanguage, {
+      asrModel: settings.asrModel, translationModel: selectId, ttsModel: settings.ttsModel,
+    });
+  }, [update, rememberModels, settings.asrModel, settings.ttsModel, settings.sourceLanguage, settings.targetLanguage]);
 
   // Recommended / Others split via the shared primitive; cards stay native-specific.
   const renderCards = (
@@ -415,7 +435,6 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     isSelected: (c: NativeModelCardSpec) => boolean,
     field: Stage,
     variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
-    pinnedMap?: Record<string, string>,
     onPin?: (selectId: string, variantId: string) => void,
   ) => {
     // Feed each card the resolved plan for its stage so the active model shows the
@@ -428,10 +447,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
         isRecommended={(c) => !!c.recommended}
         renderItem={(c) => {
           const vd = variantMap?.[c.selectId];
+          // The pin only applies to the SELECTED translation model (the one that loads);
+          // other cards show the recommended variant. Reading from settings keeps download
+          // and load on the same variant.
+          const pinnedVariantId = c.selectId === settings.translationModel
+            ? settings.translationVariant : undefined;
           const vProps: VariantCardProps | undefined = vd ? {
             variants: vd.variants,
             recommendedVariantId: vd.recommended,
-            pinnedVariantId: pinnedMap?.[c.selectId],
+            pinnedVariantId,
             onPinVariant: (id: string) => onPin?.(c.selectId, id),
           } : undefined;
           return (
@@ -557,7 +581,6 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           (c) => settings.translationModel === c.selectId,
           'translationModel',
           variantData,
-          pinnedVariants,
           handlePinVariant,
         )}
       </ModelGroup>
