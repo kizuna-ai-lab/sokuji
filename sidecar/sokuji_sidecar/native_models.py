@@ -3,10 +3,18 @@
 Each native model id maps to a set of HuggingFace repos (+ the VAD url). status
 checks they're fully cached; download fetches them file-by-file with progress.
 Mirrors LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
+
+The silero VAD (silero_vad.onnx) is a shared runtime dependency of EVERY ASR
+model: AsrEngine._init_vad() loads it for both the offline and streaming paths,
+independent of which recognizer runs. So download_specs() appends it for any
+ASR-catalog model (not just SenseVoice), guaranteeing a single-model offline
+install is self-sufficient. It's a 643KB global singleton at sokuji-vad/, so
+delete_model() never removes it — another installed model may still need it.
 """
 import os
 
 from .asr_engine import VAD_URL
+from .catalog import asr_model as _asr_model
 
 QWEN_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
 SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
@@ -22,8 +30,8 @@ def _vad_cache_path():
     return os.path.join(cache, "silero_vad.onnx")
 
 
-def download_specs(model_id):
-    """Map a model id to its download sources: {repos: [..], urls: [..]}."""
+def _base_specs(model_id):
+    """Per-model repos/ignore, WITHOUT the shared VAD (download_specs adds that)."""
     if not model_id or model_id == "qwen":
         return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
     if "piper" in model_id or "vits" in model_id:
@@ -38,7 +46,7 @@ def download_specs(model_id):
         # Granite speech-LLM ids (catalog) live under the ibm-granite/ org on HF.
         return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
     if model_id == "sense-voice":
-        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [VAD_URL]}
+        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": []}
     if model_id == "fun-asr-mlt-nano":
         return {"repos": [FUN_ASR_MLT_REPO], "urls": []}
     if model_id == "qwen3-asr-1.7b":
@@ -51,6 +59,19 @@ def download_specs(model_id):
         return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
                 "ignore": ["consolidated.safetensors"]}
     return {"repos": [model_id], "urls": []}
+
+
+def download_specs(model_id):
+    """Map a model id to its download sources: {repos: [..], urls: [..]}.
+
+    Every ASR-catalog model gets the shared silero VAD appended (see module
+    docstring); non-ASR ids (translation, TTS) do not. The id is matched against
+    the ASR catalog by exact id, so a bare HF repo id (e.g. the raw SenseVoice
+    repo passed to model_status) is treated as non-ASR and gets no VAD."""
+    spec = _base_specs(model_id)
+    if _asr_model(model_id) is not None and VAD_URL not in spec["urls"]:
+        spec = {**spec, "urls": [*spec["urls"], VAD_URL]}
+    return spec
 
 
 _SILERO_VAD_BYTES = 643854  # silero_vad.onnx (k2-fsa release)
@@ -105,12 +126,16 @@ def model_status(model_id):
 
 
 def delete_model(model_id):
-    """Remove a model's cached repos (+ its VAD file) from the HF cache.
+    """Remove a model's cached repos from the HF cache.
 
     Returns the number of bytes freed. Repos are deleted via the hub's cache
     scanner so we only touch fully-managed revisions; a repo shared with another
     still-needed model is deleted here too — callers should only delete models
     the user explicitly removed.
+
+    The shared silero VAD (sokuji-vad/) is deliberately NOT removed: every ASR
+    model depends on it, so deleting one model must not strand the others
+    offline. It's a 643KB singleton — cheaper to keep than to refcount.
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id)
@@ -128,13 +153,6 @@ def delete_model(model_id):
                 revisions.extend(rev.commit_hash for rev in repo.revisions)
         if revisions:
             cache.delete_revisions(*revisions).execute()
-    # Drop the shared VAD file only when removing the model that owns it.
-    if specs["urls"] and os.path.exists(_vad_cache_path()):
-        try:
-            freed += os.path.getsize(_vad_cache_path())
-            os.remove(_vad_cache_path())
-        except OSError:
-            pass
     return freed
 
 

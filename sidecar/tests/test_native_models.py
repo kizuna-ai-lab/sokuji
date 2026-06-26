@@ -15,10 +15,11 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
-    assert sv['repos'] == [nm.SENSE_VOICE_REPO] and len(sv['urls']) == 1
+    assert sv['repos'] == [nm.SENSE_VOICE_REPO] and sv['urls'] == [nm.VAD_URL]
     assert sv['repos'] == ['FunAudioLLM/SenseVoiceSmall']
     opus = nm.download_specs('Xenova/opus-mt-zh-en')
     assert opus['repos'] == ['Xenova/opus-mt-zh-en', 'Helsinki-NLP/opus-mt-zh-en']
+    assert opus['urls'] == []  # translation model: no shared VAD
     # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
     assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
@@ -29,8 +30,37 @@ def test_download_specs_mapping(monkeypatch):
 
 
 def test_download_specs_cohere():
+    # Cohere is an ASR-catalog model, so the shared silero VAD is appended.
     assert native_models.download_specs("cohere-transcribe-03-2026") == \
-        {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
+        {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": [nm.VAD_URL]}
+
+
+def test_download_specs_appends_shared_vad_for_asr_models():
+    """The silero VAD is a shared dependency of EVERY ASR model (AsrEngine._init_vad
+    loads it for offline + streaming). download_specs must append it for any ASR
+    model, not just SenseVoice; non-ASR ids (translation/TTS) must NOT get it."""
+    for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-tiny', 'qwen3-asr-1.7b',
+                   'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
+        assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
+    for non_asr in ('', 'qwen', 'Xenova/opus-mt-zh-en', 'csukuangfj/vits-piper-en_US-amy-low'):
+        assert nm.download_specs(non_asr)['urls'] == [], non_asr
+    # voxtral keeps its ignore list alongside the appended VAD url.
+    assert nm.download_specs('voxtral-mini-4b-realtime').get('ignore') == ['consolidated.safetensors']
+
+
+def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
+    """Deleting an ASR model must NOT remove the shared silero VAD — another
+    installed ASR model still depends on it."""
+    vad = tmp_path / 'silero_vad.onnx'
+    vad.write_bytes(b'x' * 16)
+
+    def _no_cache():
+        raise RuntimeError('no HF cache in this env')
+
+    monkeypatch.setattr(nm, '_vad_cache_path', lambda: str(vad))
+    monkeypatch.setattr('huggingface_hub.scan_cache_dir', _no_cache)
+    nm.delete_model('fun-asr-mlt-nano')
+    assert vad.exists()  # VAD survives the delete
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
@@ -184,7 +214,7 @@ def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
 def test_download_specs_voxtral_skips_consolidated():
     spec = nm.download_specs("voxtral-mini-4b-realtime")
     assert spec["repos"] == ["mistralai/Voxtral-Mini-4B-Realtime-2602"]
-    assert spec["urls"] == []
+    assert spec["urls"] == [nm.VAD_URL]  # ASR model → shared VAD appended
     assert spec["ignore"] == ["consolidated.safetensors"]
 
 
@@ -247,4 +277,6 @@ def test_download_specs_fun_asr_mlt_nano(monkeypatch):
     monkeypatch.delenv('SOKUJI_FUNASR_NANO_REPO', raising=False)
     spec = nm.download_specs('fun-asr-mlt-nano')
     assert spec['repos'] == ['FunAudioLLM/Fun-ASR-MLT-Nano-2512']
-    assert spec['urls'] == []
+    # AsrEngine._init_vad() loads silero for the offline path too, so a Nano-only
+    # offline install must pre-fetch the shared VAD (not rely on a session-time download).
+    assert spec['urls'] == [nm.VAD_URL]
