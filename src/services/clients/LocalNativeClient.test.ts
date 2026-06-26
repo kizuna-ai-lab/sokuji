@@ -157,6 +157,25 @@ describe('LocalNativeClient session channel', () => {
     expect(st.asrLoading).toBe(false);
     expect(st.asrResolved).toEqual({ model: 'granite-speech-4.1-2b', device: 'cuda', rtf: 0.02 });
   });
+
+  it('stores measured memory + fallback reason from the resolved plan', async () => {
+    const asr = {
+      onResult: null as any, onError: null as any,
+      init: async () => ({ loadTimeMs: 5, device: 'cuda', rtf: 0.02, memoryBytes: 8_000_000_000 }),
+      feedAudio() {}, flush: async () => {}, dispose() {},
+    };
+    const translate = {
+      onError: null as any,
+      init: async () => ({ device: 'cpu', memoryBytes: 4_200_000_000, fallbackReason: 'cuda skipped; using CPU' }),
+      translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {},
+    };
+    const c = new LocalNativeClient({ asr, translate, tts: fakeTts() });
+    c.setEventHandlers({});
+    await c.connect(cfg);
+    const st = useNativeModelStore.getState();
+    expect(st.asrResolved).toMatchObject({ device: 'cuda', memoryBytes: 8_000_000_000 });
+    expect(st.translationResolved).toMatchObject({ device: 'cpu', memoryBytes: 4_200_000_000, fallbackReason: 'cuda skipped; using CPU' });
+  });
 });
 
 // ── Load order: GPU-priority stage claims VRAM first ──────────────────────────

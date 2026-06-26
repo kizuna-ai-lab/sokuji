@@ -56,7 +56,7 @@ export class LocalNativeClient implements IClient {
     const initTranslate = async () => {
       const tr = await this.translate.init(
         config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice);
-      store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec });
+      store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec, memoryBytes: tr.memoryBytes, fallbackReason: tr.fallbackReason });
     };
     const initAsr = async () => {
       store.setAsrLoading(true);
@@ -66,7 +66,7 @@ export class LocalNativeClient implements IClient {
           minSilence: config.vadMinSilenceDuration,
           minSpeech: config.vadMinSpeechDuration,
         }, config.asrDevice);
-        store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf });
+        store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
       } finally {
         store.setAsrLoading(false);
       }
