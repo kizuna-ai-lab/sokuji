@@ -691,3 +691,15 @@ def test_models_catalog_kind_defaults_to_asr(monkeypatch):
         {}, {"type": "models_catalog", "id": 2}, None))
     ids = [m["id"] for m in reply["models"]]
     assert "sense-voice" in ids       # ASR catalog, unchanged default
+
+
+def test_new_translate_backends_installed_and_resolvable():
+    # transformers 5.13 ships gemma3 + hunyuan_v1_dense, so both backends self-gate ON here.
+    inst = accel._installed()
+    assert "gemma_translate" in inst
+    assert "hunyuan_translate" in inst
+    # and the resolver now produces plans instead of raising NoUsablePlan
+    plans = accel.resolve_translate("hy-mt2-1.8b", "auto")
+    assert any(p.backend == "hunyuan_translate" for p in plans)
+    g = accel.resolve_translate("translategemma-4b", "auto")
+    assert any(p.backend == "gemma_translate" for p in g)

@@ -76,7 +76,12 @@ def _installed() -> frozenset:
             # translation: 2.5/3 are CausalLM (always present with transformers); 3.5 is the
             # qwen3_5 VLM class (self-gates off until transformers ships it), used text-only.
             "qwen_translate": "transformers",
-            "qwen35_translate": "transformers.models.qwen3_5"}
+            "qwen35_translate": "transformers.models.qwen3_5",
+            # TranslateGemma uses the Gemma-3 multimodal class (text-only here); HY-MT2 is the
+            # native hunyuan_v1_dense CausalLM. Both ship in transformers 5.13; self-gate off on
+            # an older transformers that lacks the module.
+            "gemma_translate": "transformers.models.gemma3",
+            "hunyuan_translate": "transformers.models.hunyuan_v1_dense"}
 
     def _ready(spec):
         return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
