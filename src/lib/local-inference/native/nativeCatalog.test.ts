@@ -43,6 +43,17 @@ describe('nativeCatalog', () => {
     expect(supportsLanguage({ languages: ['zh', 'en'] }, 'de')).toBe(false);
     expect(supportsLanguage({ languages: ['multi'] }, 'de')).toBe(true);
 
+    // Alias-aware: the picker emits app codes (cantonese/tl) while catalog rows use
+    // ISO codes (yue/fil). Both must resolve to the same model.
+    expect(supportsLanguage({ languages: ['yue'] }, 'cantonese')).toBe(true);
+    expect(supportsLanguage({ languages: ['yue'] }, 'yue')).toBe(true);
+    expect(supportsLanguage({ languages: ['fil'] }, 'tl')).toBe(true);
+    expect(supportsLanguage({ languages: ['fil'] }, 'fil')).toBe(true);
+    // sense-voice (yue) is reachable when the picker selects Cantonese (cantonese)
+    expect(compatibleNativeAsr('cantonese').map((m) => m.id)).toContain('sense-voice');
+    // fun-asr-mlt-nano (fil) is reachable when the picker selects Tagalog (tl)
+    expect(compatibleNativeAsr('tl').map((m) => m.id)).toContain('fun-asr-mlt-nano');
+
     // for a sense-voice language, cohere now leads (recommended, sortOrder 0)
     expect(compatibleNativeAsr('zh').map((m) => m.id)[0]).toBe('cohere-transcribe-03-2026');
     // for an unsupported language, sense-voice drops out → cohere leads (supports de)

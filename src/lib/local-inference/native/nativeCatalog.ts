@@ -14,9 +14,26 @@ export interface NativeModelOption {
   sortOrder?: number;
 }
 
-/** `['multi']` matches any language; otherwise the language must be listed. */
+/**
+ * Aliases between the app's source-language values (src/utils/languages.ts) and
+ * the ISO codes the model catalogs use. The picker emits `cantonese`/`tl`, while
+ * catalog rows use `yue`/`fil` (SenseVoice, Qwen3-ASR, Fun-ASR-MLT-Nano). Without
+ * this, selecting Cantonese or Tagalog would mark those models incompatible even
+ * though they support the language. Canonicalize both sides so the convention a
+ * given row uses doesn't matter.
+ */
+const LANG_ALIASES: Record<string, string> = {
+  cantonese: 'yue',
+  tl: 'fil',
+};
+const canonLang = (l: string): string => LANG_ALIASES[l] ?? l;
+
+/** `['multi']` matches any language; otherwise the language must be listed (alias-aware). */
 export function supportsLanguage(opt: { languages?: string[] }, lang: string): boolean {
-  return !!opt.languages && (opt.languages.includes('multi') || opt.languages.includes(lang));
+  if (!opt.languages) return false;
+  if (opt.languages.includes('multi')) return true;
+  const want = canonLang(lang);
+  return opt.languages.some((l) => canonLang(l) === want);
 }
 
 export const NATIVE_ASR: NativeModelOption[] = [
