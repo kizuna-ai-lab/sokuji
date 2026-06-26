@@ -114,7 +114,7 @@ def test_translate_models_have_deployments_and_cpu_floor():
         assert m.languages, f"{m.id} has no languages"
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} lacks a cpu floor"
         for d in m.deployments:
-            assert d.backend in {"qwen_translate", "qwen35_translate"}
+            assert d.backend in {"qwen_translate", "qwen35_translate", "gemma_translate", "hunyuan_translate"}
 
 
 def test_translate_model_ids_unique_and_lookup():
@@ -136,3 +136,24 @@ def test_translate_rows_map_to_qwen_repos():
         tiers = [(d.backend, d.tier, d.compute_type, d.artifact) for d in m.deployments]
         assert (backend, "gpu-cuda", "bfloat16", repo) in tiers
         assert (backend, "cpu", "float32", repo) in tiers
+
+
+def test_new_llm_translate_rows():
+    from sokuji_sidecar import catalog
+    g = catalog.translate_model("translategemma-4b")
+    assert g is not None
+    assert g.name == "TranslateGemma 4B"
+    assert {d.tier for d in g.deployments} == {"gpu-cuda", "cpu"}
+    assert all(d.backend == "gemma_translate" for d in g.deployments)
+    assert g.deployments[0].artifact == "google/translategemma-4b-it"
+
+    for mid, repo in [("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B"),
+                      ("hy-mt2-7b", "tencent/Hy-MT2-7B")]:
+        h = catalog.translate_model(mid)
+        assert h is not None and all(d.backend == "hunyuan_translate" for d in h.deployments)
+        assert h.deployments[0].artifact == repo
+        assert {d.tier for d in h.deployments} == {"gpu-cuda", "cpu"}
+        # bf16 on GPU, float32 on CPU (mirrors the Qwen rows)
+        gpu = next(d for d in h.deployments if d.tier == "gpu-cuda")
+        cpu = next(d for d in h.deployments if d.tier == "cpu")
+        assert gpu.compute_type == "bfloat16" and cpu.compute_type == "float32"

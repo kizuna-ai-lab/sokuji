@@ -105,7 +105,7 @@ class TranslateModel:
     sort_order: int = 99
 
 
-def _qwen_translate_row(mid, name, repo, backend, sort_order, recommended=False):
+def _llm_translate_row(mid, name, repo, backend, sort_order, recommended=False):
     return TranslateModel(mid, name, ("multi",), (
         Deployment(backend, "gpu-cuda", "bfloat16", repo, 1.0),
         Deployment(backend, "cpu", "float32", repo, 1.0),
@@ -113,14 +113,20 @@ def _qwen_translate_row(mid, name, repo, backend, sort_order, recommended=False)
 
 
 TRANSLATE_MODELS: list[TranslateModel] = [
-    _qwen_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
-                        QWEN25_REPO, "qwen_translate", 1, recommended=True),
-    _qwen_translate_row("qwen3-0.6b", "Qwen 3 0.6B",
-                        "Qwen/Qwen3-0.6B", "qwen_translate", 2, recommended=True),
-    _qwen_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B",
-                        "Qwen/Qwen3.5-0.8B", "qwen35_translate", 3),
-    _qwen_translate_row("qwen3.5-2b", "Qwen 3.5 2B",
-                        "Qwen/Qwen3.5-2B", "qwen35_translate", 4),
+    _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
+                       QWEN25_REPO, "qwen_translate", 1, recommended=True),
+    _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B",
+                       "Qwen/Qwen3-0.6B", "qwen_translate", 2, recommended=True),
+    _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B",
+                       "Qwen/Qwen3.5-0.8B", "qwen35_translate", 3),
+    _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B",
+                       "Qwen/Qwen3.5-2B", "qwen35_translate", 4),
+    _llm_translate_row("translategemma-4b", "TranslateGemma 4B",
+                       "google/translategemma-4b-it", "gemma_translate", 5),
+    _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B",
+                       "tencent/Hy-MT2-1.8B", "hunyuan_translate", 6),
+    _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B",
+                       "tencent/Hy-MT2-7B", "hunyuan_translate", 7),
 ]
 
 
