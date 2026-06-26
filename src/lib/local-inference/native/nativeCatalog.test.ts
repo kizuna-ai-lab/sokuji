@@ -32,10 +32,10 @@ describe('nativeCatalog', () => {
     expect(resolveNativeTranslation('Qwen/Qwen2.5-0.5B-Instruct', 'a', 'b')).toBe('Qwen/Qwen2.5-0.5B-Instruct');
   });
 
-  it('exposes the four Qwen translation versions plus opus-mt', () => {
+  it('exposes the four Qwen translation versions plus opus-mt and the speech-LLM translators', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + opus-mt
-    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt']);
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + opus-mt + TranslateGemma/HY-MT2
+    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'opus-mt', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
   });
 
   it('exposes ASR + translation options', () => {
@@ -79,7 +79,7 @@ describe('nativeCatalog', () => {
     const tr = nativeTranslationCards('zh', 'en');
     expect(tr[0]).toMatchObject({ selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b' });            // Qwen 2.5 0.5B recommended default
     expect(tr[1]).toMatchObject({ selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b' });
-    expect(tr[tr.length - 1]).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
+    expect(tr.find((c) => c.selectId === 'opus-mt')).toMatchObject({ selectId: 'opus-mt', downloadId: 'Xenova/opus-mt-zh-en' });
 
     const tts = nativeTtsCards('en');
     expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low', recommended: true });
@@ -395,6 +395,16 @@ describe('nativeCatalog', () => {
       expect(byId['translategemma-4b']?.label).toBe('TranslateGemma 4B');
       expect(byId['hy-mt2-1.8b']?.label).toBe('Hunyuan-MT2 1.8B');
       expect(byId['hy-mt2-7b']?.label).toBe('Hunyuan-MT2 7B');
+    });
+
+    it('nativeTranslationCards exposes TranslateGemma + HY-MT2 as selectable cards', () => {
+      const ids = nativeTranslationCards('Japanese', 'English').map((c) => c.selectId);
+      expect(ids).toEqual(expect.arrayContaining(['translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']));
+      const byId = Object.fromEntries(nativeTranslationCards('Japanese', 'English').map((c) => [c.selectId, c]));
+      expect(byId['translategemma-4b'].name).toBe('TranslateGemma 4B');
+      expect(byId['hy-mt2-1.8b'].name).toBe('Hunyuan-MT2 1.8B');
+      expect(byId['hy-mt2-7b'].name).toBe('Hunyuan-MT2 7B');
+      expect(byId['translategemma-4b'].downloadId).toBe('translategemma-4b'); // selectId == downloadId, like the qwen cards
     });
   });
 });

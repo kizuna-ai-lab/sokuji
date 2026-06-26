@@ -340,6 +340,9 @@ export function nativeTranslationCards(src: string, tgt: string): NativeModelCar
     { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
     { selectId: 'qwen3.5-2b', downloadId: 'qwen3.5-2b', name: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
     { selectId: 'opus-mt', downloadId: `Xenova/opus-mt-${src}-${tgt}`, name: 'Opus-MT (fast)', languages: [src, tgt], sortOrder: 5 },
+    { selectId: 'translategemma-4b', downloadId: 'translategemma-4b', name: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
+    { selectId: 'hy-mt2-1.8b', downloadId: 'hy-mt2-1.8b', name: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
+    { selectId: 'hy-mt2-7b', downloadId: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
   ];
 }
 
