@@ -870,3 +870,15 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     backend, plan, notice = accel.load_with_fallback([fp8_plan, cpu_pl])
     assert plan.device == "cpu" and attempted == ["cpu"]
     assert notice and "CPU" in notice
+
+
+def test_opus_translate_self_gates_on_transformers(monkeypatch):
+    from sokuji_sidecar import accel
+    real = accel.importlib.util.find_spec
+
+    def present(name, *a, **k):
+        if name == "transformers":
+            return object()
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
+    assert "opus_translate" in accel._installed()
