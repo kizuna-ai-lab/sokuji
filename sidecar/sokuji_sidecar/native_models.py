@@ -70,6 +70,8 @@ def _base_specs(model_id):
         # train/ holds only training scripts (deepspeed/llama-factory) — skip; weights only.
         repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
         return {"repos": [repo], "urls": [], "ignore": ["train/*"]}
+    if model_id.startswith("opus-mt-"):
+        return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": []}
     return {"repos": [model_id], "urls": []}
 
 

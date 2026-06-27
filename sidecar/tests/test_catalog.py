@@ -114,7 +114,8 @@ def test_translate_models_have_deployments_and_cpu_floor():
         assert m.languages, f"{m.id} has no languages"
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} lacks a cpu floor"
         for d in m.deployments:
-            assert d.backend in {"qwen_translate", "qwen35_translate", "gemma_translate", "hunyuan_translate"}
+            assert d.backend in {"qwen_translate", "qwen35_translate", "gemma_translate",
+                                 "hunyuan_translate", "opus_translate"}
 
 
 def test_translate_model_ids_unique_and_lookup():
@@ -180,3 +181,33 @@ def test_gemma_has_no_fp8_variant():
     from sokuji_sidecar import catalog
     g = catalog.translate_model("translategemma-4b")
     assert not any(d.compute_type == "fp8" for d in g.deployments)
+
+
+def test_opus_rows_present_with_expected_shape():
+    from sokuji_sidecar import catalog
+    m = catalog.translate_model("opus-mt-zh-en")
+    assert m is not None
+    assert m.name == "Opus-MT (zh → en)"
+    backends = {d.backend for d in m.deployments}
+    tiers = [d.tier for d in m.deployments]
+    assert backends == {"opus_translate"}
+    assert tiers == ["gpu-cuda", "cpu"]            # no fp8 variant
+    assert all(d.artifact == "Helsinki-NLP/opus-mt-zh-en" for d in m.deployments)
+
+
+def test_opus_en_ja_uses_jap_repo_but_ja_display():
+    from sokuji_sidecar import catalog
+    m = catalog.translate_model("opus-mt-en-jap")
+    assert m is not None
+    assert m.name == "Opus-MT (en → ja)"           # display maps jap→ja
+    assert m.deployments[0].artifact == "Helsinki-NLP/opus-mt-en-jap"
+
+
+def test_all_13_opus_pairs_registered():
+    from sokuji_sidecar import catalog
+    ids = {m.id for m in catalog.translate_models()}
+    for pid in ["opus-mt-ru-en", "opus-mt-zh-en", "opus-mt-en-zh", "opus-mt-hu-en",
+                "opus-mt-en-es", "opus-mt-en-ar", "opus-mt-en-ru", "opus-mt-es-en",
+                "opus-mt-en-vi", "opus-mt-ar-en", "opus-mt-ja-en", "opus-mt-en-jap",
+                "opus-mt-ko-en"]:
+        assert pid in ids, pid

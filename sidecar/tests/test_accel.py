@@ -882,3 +882,18 @@ def test_opus_translate_self_gates_on_transformers(monkeypatch):
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", present)
     assert "opus_translate" in accel._installed()
+
+
+def test_resolve_translate_opus_prefers_gpu_then_cpu(monkeypatch):
+    from sokuji_sidecar import accel
+    # Same fixture shape as test_resolve_translate_prefers_gpu: stub format
+    # readiness + size estimate so select_variant picks the GPU deterministically
+    # without a network size lookup.
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
+                 installed=frozenset({"opus_translate"}))
+    plans = accel.resolve_translate("opus-mt-zh-en", "auto", m)
+    assert [p.device for p in plans] == ["cuda", "cpu"]
+    assert all(p.backend == "opus_translate" for p in plans)
+    assert plans[0].artifact == "Helsinki-NLP/opus-mt-zh-en"

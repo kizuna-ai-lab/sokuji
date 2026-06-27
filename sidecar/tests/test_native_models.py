@@ -362,3 +362,9 @@ def test_h_model_download_passes_repo_through(monkeypatch):
 
     asyncio.run(scenario())
     assert captured["repo"] == "tencent/Hy-MT2-7B-FP8"
+
+
+def test_download_specs_opus_maps_to_helsinki_repo():
+    from sokuji_sidecar import native_models as nm
+    assert nm.download_specs("opus-mt-zh-en") == {"repos": ["Helsinki-NLP/opus-mt-zh-en"], "urls": []}
+    assert nm.download_specs("opus-mt-en-jap") == {"repos": ["Helsinki-NLP/opus-mt-en-jap"], "urls": []}
