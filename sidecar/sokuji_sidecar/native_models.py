@@ -79,6 +79,10 @@ def _base_specs(model_id):
         # README images (imgs/) — weights + tokenizer + config only.
         repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
         return {"repos": [repo], "urls": [], "ignore": ["train/*", "imgs/*"]}
+    if model_id in ("hy-mt15-1.8b", "hy-mt15-7b"):
+        # HY-MT1.5 repos carry only weights + tokenizer + config (no train/imgs).
+        repo = "tencent/HY-MT1.5-1.8B" if model_id == "hy-mt15-1.8b" else "tencent/HY-MT1.5-7B"
+        return {"repos": [repo], "urls": []}
     if model_id.startswith("opus-mt-"):
         # Helsinki repos ship the SAME model in 4 frameworks; the opus_translate
         # backend loads only pytorch_model.bin. Skip the TF/Rust/Flax weights

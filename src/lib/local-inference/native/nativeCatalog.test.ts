@@ -33,13 +33,13 @@ describe('nativeCatalog', () => {
 
   it('exposes the four Qwen translation versions plus the speech-LLM translators', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2 + opus-mt pair
-    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'opus-mt-zh-en']);
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2/HY-MT1.5 + opus-mt pair
+    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'hy-mt15-1.8b', 'hy-mt15-7b', 'opus-mt-zh-en']);
   });
 
   it('exposes ASR + translation options', () => {
     expect(NATIVE_ASR.map((m) => m.id)).toContain('sense-voice');
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
+    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'hy-mt15-1.8b', 'hy-mt15-7b']);
   });
 
   it('language compatibility + ASR auto-select', () => {
@@ -408,6 +408,17 @@ describe('nativeCatalog', () => {
   });
 
   describe('NATIVE_TRANSLATION new models', () => {
+    it('exposes HY-MT1.5 1.8B + 7B as selectable multilingual cards', () => {
+      const byId = Object.fromEntries(NATIVE_TRANSLATION.map((m) => [m.id, m]));
+      expect(byId['hy-mt15-1.8b']?.label).toBe('Hunyuan-MT1.5 1.8B');
+      expect(byId['hy-mt15-7b']?.label).toBe('Hunyuan-MT1.5 7B');
+      expect(byId['hy-mt15-1.8b']?.languages).toEqual(['multi']);
+      const cards = nativeTranslationCards('zh', 'en');
+      const c = Object.fromEntries(cards.map((x) => [x.selectId, x]));
+      expect(c['hy-mt15-1.8b']).toMatchObject({ selectId: 'hy-mt15-1.8b', downloadId: 'hy-mt15-1.8b' });
+      expect(c['hy-mt15-7b']).toMatchObject({ selectId: 'hy-mt15-7b', downloadId: 'hy-mt15-7b' });
+    });
+
     it('includes TranslateGemma and HY-MT2 with ids matching the sidecar catalog', () => {
       const byId = Object.fromEntries(NATIVE_TRANSLATION.map((m) => [m.id, m]));
       expect(byId['translategemma-4b']?.label).toBe('TranslateGemma 4B');

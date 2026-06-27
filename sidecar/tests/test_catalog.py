@@ -212,3 +212,28 @@ def test_all_13_opus_pairs_registered():
                 "opus-mt-en-vi", "opus-mt-ar-en", "opus-mt-ja-en", "opus-mt-en-jap",
                 "opus-mt-ko-en"]:
         assert pid in ids, pid
+
+
+def test_hymt15_translate_rows():
+    from sokuji_sidecar import catalog
+    for mid, repo in [("hy-mt15-1.8b", "tencent/HY-MT1.5-1.8B"),
+                      ("hy-mt15-7b", "tencent/HY-MT1.5-7B")]:
+        h = catalog.translate_model(mid)
+        assert h is not None and all(d.backend == "hunyuan_translate" for d in h.deployments)
+        assert h.deployments[0].artifact == repo
+        gpu = next(d for d in h.deployments if d.tier == "gpu-cuda" and d.compute_type == "bfloat16")
+        cpu = next(d for d in h.deployments if d.tier == "cpu")
+        assert gpu.compute_type == "bfloat16" and cpu.compute_type == "float32"
+
+
+def test_hymt15_has_fp8_variant():
+    from sokuji_sidecar import catalog
+    for mid, fp8_repo in [("hy-mt15-1.8b", "tencent/HY-MT1.5-1.8B-FP8"),
+                          ("hy-mt15-7b", "tencent/HY-MT1.5-7B-FP8")]:
+        m = catalog.translate_model(mid)
+        fp8 = [d for d in m.deployments if d.compute_type == "fp8"]
+        assert len(fp8) == 1
+        assert fp8[0].tier == "gpu-cuda"
+        assert fp8[0].backend == "hunyuan_translate"
+        assert fp8[0].artifact == fp8_repo
+        assert fp8[0].min_capability == (8, 9)
