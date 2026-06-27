@@ -86,9 +86,9 @@ export class NativeModelClient {
     return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
-  async status(models: string[]): Promise<Record<string, NativeModelState>> {
+  async status(models: string[], repos?: Record<string, string>): Promise<Record<string, NativeModelState>> {
     await this.connect();
-    const msg = await this.send({ type: 'model_status', models });
+    const msg = await this.send({ type: 'model_status', models, repos });
     return (msg as Extract<ServerMsg, { type: 'model_status_result' }>).statuses;
   }
 
@@ -132,10 +132,12 @@ export class NativeModelClient {
     return { variants: r.variants, recommended: r.recommended };
   }
 
-  /** Remove a model from the sidecar's cache; resolves to the bytes freed. */
-  async delete(model: string): Promise<number> {
+  /** Remove a model from the sidecar's cache; resolves to the bytes freed.
+   *  `repo` targets a chosen variant's repo (mirrors download/status), so an
+   *  FP8-only HY-MT card frees the FP8 cache, not the unused bf16 default. */
+  async delete(model: string, repo?: string): Promise<number> {
     await this.connect();
-    const msg = await this.send({ type: 'model_delete', model });
+    const msg = await this.send({ type: 'model_delete', model, repo });
     if (msg.type === 'error') throw new Error(msg.message);
     return (msg as Extract<ServerMsg, { type: 'model_delete_result' }>).freed;
   }

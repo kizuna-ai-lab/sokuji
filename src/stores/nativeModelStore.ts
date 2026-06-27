@@ -16,8 +16,12 @@ interface NativeModelStore {
   catalog: Record<string, NativeModelInfo>;
   /** Query the sidecar for the per-machine model catalog (best-effort). */
   refreshCatalog: (models?: string[]) => Promise<void>;
+  /** Cached per-model repo overrides (variant repos) pushed by the management section,
+   *  so every refresh() caller (gate, ProviderSection) is automatically variant-aware. */
+  statusRepos: Record<string, string>;
+  setStatusRepos: (repos: Record<string, string>) => void;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
-  refresh: (models: string[]) => Promise<void>;
+  refresh: (models: string[], repos?: Record<string, string>) => Promise<void>;
   /** Query the sidecar for download sizes (bytes) of these models (best-effort). */
   refreshSizes: (models: string[]) => Promise<void>;
   /** Download one model, streaming progress into the store. `repo` selects a chosen
@@ -26,7 +30,7 @@ interface NativeModelStore {
   /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
   cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
-  deleteModel: (model: string) => Promise<void>;
+  deleteModel: (model: string, repo?: string) => Promise<void>;
   /** True only if every listed model is cached. */
   isReady: (models: string[]) => boolean;
   /** Persist the chosen models for a language pair/direction. */
@@ -70,6 +74,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   errors: {},
   catalog: {},
   modelPreferences: {},
+  statusRepos: {},
   asrLoading: false,
   asrResolved: null,
   translationResolved: null,
@@ -90,10 +95,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     }
   },
 
-  refresh: async (models) => {
+  setStatusRepos: (repos) => set({ statusRepos: repos }),
+
+  refresh: async (models, repos) => {
     if (!models.length) return;
     try {
-      const result = await client.status(models);
+      const result = await client.status(models, repos ?? get().statusRepos);
       set((s) => ({ statuses: { ...s.statuses, ...result } }));
     } catch {
       // sidecar not available — leave statuses untouched
@@ -140,13 +147,13 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     await client.cancel(model);
   },
 
-  deleteModel: async (model) => {
+  deleteModel: async (model, repo) => {
     // Optimistic: hide the model immediately. The sidecar delete is a WS round-trip
     // + an rm of a multi-GB dir, so awaiting it first would freeze the card on
     // "Downloaded" for a noticeable beat (mirrors download()'s optimistic 'downloading').
     set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     try {
-      await client.delete(model);
+      await client.delete(model, repo);
     } catch {
       // sidecar refused/unavailable — keep the best-effort 'absent' (the model is
       // hidden either way; readiness re-checks against the real cache on next refresh).

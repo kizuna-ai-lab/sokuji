@@ -4,7 +4,7 @@
  * config share one source of truth. TTS languages are limited to the sherpa
  * piper repos confirmed to exist.
  */
-import type { NativeModelInfo } from './nativeProtocol';
+import type { NativeModelInfo, VariantInfo } from './nativeProtocol';
 export interface NativeModelOption {
   id: string;
   label: string;
@@ -277,6 +277,27 @@ export function resolvedTierState(
 export function formatRtf(rtf: number): string {
   if (!(rtf > 0) || !Number.isFinite(rtf)) return 'realtime';
   return `${Math.round(1 / rtf)}× realtime`;
+}
+
+/**
+ * The per-model status repo overrides: each card's CHOSEN variant repo (pinned,
+ * else recommended). Cards without variant data are omitted → the sidecar checks
+ * their default repo. Feeds the variant-aware model_status query.
+ */
+export function statusReposFor(
+  ids: string[],
+  variantData: Record<string, { variants: VariantInfo[]; recommended: string }>,
+  variantByModel: Record<string, string>,
+): Record<string, string> {
+  const repos: Record<string, string> = {};
+  for (const id of ids) {
+    const vd = variantData[id];
+    if (!vd) continue;
+    const chosenId = variantByModel[id] ?? vd.recommended;
+    const repo = vd.variants.find((v) => v.id === chosenId)?.repo;
+    if (repo) repos[id] = repo;
+  }
+  return repos;
 }
 
 /** Human label for a measured translation throughput. tps 130.5 → "131 tok/s".

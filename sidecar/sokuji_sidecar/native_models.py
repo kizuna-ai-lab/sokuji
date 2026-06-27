@@ -135,22 +135,25 @@ def model_size(model_id):
     return total
 
 
-def model_status(model_id):
-    """'ready' only if every repo + url is cached locally AND complete, else 'absent'."""
+def model_status(model_id, repo=None):
+    """'ready' only if every repo + url is cached locally AND complete, else 'absent'.
+
+    `repo` overrides the model's default repo with a chosen variant's repo (mirrors
+    download_specs), so status reflects the variant the card actually downloads."""
     import glob
     from huggingface_hub import snapshot_download
     from huggingface_hub.constants import HF_HUB_CACHE
-    specs = download_specs(model_id)
+    specs = download_specs(model_id, repo)
     try:
-        for repo in specs["repos"]:
-            snapshot_download(repo_id=repo, local_files_only=True)
+        for r in specs["repos"]:
+            snapshot_download(repo_id=r, local_files_only=True)
             # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
             # it can't know the repo's full file list, so an interrupted download (e.g. a session
             # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
             # leaves a '<sha>.<etag>.incomplete' in blobs/. But a *stale* leftover can coexist with
             # the finalized '<sha>' blob (a later resume re-fetched under a different temp name), so
             # only treat it as not-ready when the finalized blob is actually missing.
-            blobs = os.path.join(HF_HUB_CACHE, f"models--{repo.replace('/', '--')}", "blobs")
+            blobs = os.path.join(HF_HUB_CACHE, f"models--{r.replace('/', '--')}", "blobs")
             for inc in glob.glob(os.path.join(blobs, "*.incomplete")):
                 if not os.path.exists(os.path.join(blobs, os.path.basename(inc).split(".")[0])):
                     return "absent"
@@ -162,8 +165,12 @@ def model_status(model_id):
         return "absent"
 
 
-def delete_model(model_id):
+def delete_model(model_id, repo=None):
     """Remove a model's cached repos from the HF cache.
+
+    `repo` overrides the model's default repo with a chosen variant's repo
+    (mirrors download_specs / model_status), so deleting an FP8-only HY-MT card
+    actually frees the FP8 cache instead of the unused bf16 default.
 
     Returns the number of bytes freed. Repos are deleted via the hub's cache
     scanner so we only touch fully-managed revisions; a repo shared with another
@@ -175,7 +182,7 @@ def delete_model(model_id):
     offline. It's a 643KB singleton — cheaper to keep than to refcount.
     """
     from huggingface_hub import scan_cache_dir
-    specs = download_specs(model_id)
+    specs = download_specs(model_id, repo)
     wanted = set(specs["repos"])
     freed = 0
     try:
@@ -250,7 +257,8 @@ async def download(model_id, send, should_cancel=None, repo=None):
 
 
 async def _h_model_status(state, msg, _b, conn=None):
-    statuses = {m: model_status(m) for m in (msg.get("models") or [])}
+    repos = msg.get("repos") or {}
+    statuses = {m: model_status(m, repos.get(m)) for m in (msg.get("models") or [])}
     return {"type": "model_status_result", "id": msg.get("id"), "statuses": statuses}, None
 
 
@@ -299,7 +307,8 @@ async def _h_model_cancel(state, msg, _b, conn=None):
 async def _h_model_delete(state, msg, _b, conn=None):
     import asyncio
     model = msg.get("model")
-    freed = await asyncio.to_thread(delete_model, model)
+    repo = msg.get("repo")  # chosen variant's repo (None → model's default repo)
+    freed = await asyncio.to_thread(delete_model, model, repo)
     return {"type": "model_delete_result", "id": msg.get("id"), "model": model, "freed": freed}, None
 
 

@@ -96,7 +96,7 @@ def test_download_raises_when_no_files_resolved(monkeypatch):
 
 
 def test_status_handler_shape(monkeypatch):
-    monkeypatch.setattr(nm, 'model_status', lambda m: 'ready' if m == 'sense-voice' else 'absent')
+    monkeypatch.setattr(nm, 'model_status', lambda m, repo=None: 'ready' if m == 'sense-voice' else 'absent')
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
@@ -131,12 +131,41 @@ def test_real_size_of_sense_voice():
 
 
 def test_delete_handler_shape(monkeypatch):
-    monkeypatch.setattr(nm, 'delete_model', lambda m: 4096)
+    monkeypatch.setattr(nm, 'delete_model', lambda m, repo=None: 4096)
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-tiny'})))
     assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-tiny', 'freed': 4096}
+
+
+def test_delete_model_honors_variant_repo(monkeypatch):
+    """delete_model must free the CHOSEN variant's repo, not the model's default —
+    otherwise an FP8-only HY-MT download can never be removed (status keeps
+    reporting it cached against the FP8 repo)."""
+    from sokuji_sidecar import native_models as nm
+    seen = {}
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda model_id, repo=None: (seen.update(repo=repo), {"repos": [repo or "default"], "urls": []})[1])
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: (_ for _ in ()).throw(RuntimeError("no cache")))
+    nm.delete_model("hy-mt2-7b", repo="tencent/Hy-MT2-7B-FP8")
+    assert seen["repo"] == "tencent/Hy-MT2-7B-FP8"   # the variant repo, not the bf16 default
+
+
+def test_h_model_delete_forwards_repo(monkeypatch):
+    """The model_delete handler threads the per-card chosen-variant repo through
+    to delete_model (mirrors model_status's repo override)."""
+    from sokuji_sidecar import native_models as nm
+    calls = []
+    monkeypatch.setattr(nm, "delete_model",
+                        lambda model_id, repo=None: (calls.append((model_id, repo)), 4096)[1])
+    st = {'handlers': {}}
+    nm.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'hy-mt2-7b',
+                        'repo': 'tencent/Hy-MT2-7B-FP8'})))
+    assert ('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8') in calls
+    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'hy-mt2-7b', 'freed': 4096}
 
 
 def test_download_is_nonblocking_and_pushes_completion(monkeypatch):
@@ -427,3 +456,31 @@ def test_download_specs_hymt15():
     assert "ignore" not in nm.download_specs("hy-mt15-7b")
     # FP8 variant download rides the repo-override path
     assert nm.download_specs("hy-mt15-7b", repo="tencent/HY-MT1.5-7B-FP8")["repos"] == ["tencent/HY-MT1.5-7B-FP8"]
+
+
+def test_model_status_repo_override(monkeypatch):
+    from sokuji_sidecar import native_models as nm
+    seen = {}
+
+    def fake_snapshot(repo_id, local_files_only):
+        seen["repo"] = repo_id
+        return "/cache"
+    monkeypatch.setattr("huggingface_hub.snapshot_download", fake_snapshot)
+    # no .incomplete files → ready; we only assert which repo was checked
+    monkeypatch.setattr("glob.glob", lambda *a, **k: [])
+    nm.model_status("hy-mt2-1.8b", repo="tencent/Hy-MT2-1.8B-FP8")
+    assert seen["repo"] == "tencent/Hy-MT2-1.8B-FP8"   # the variant repo, not the bf16 default
+
+
+def test_h_model_status_applies_repos_map(monkeypatch):
+    import asyncio
+    from sokuji_sidecar import native_models as nm
+    calls = []
+    monkeypatch.setattr(nm, "model_status",
+                        lambda mid, repo=None: (calls.append((mid, repo)), "ready")[1])
+    msg = {"id": 1, "models": ["hy-mt2-1.8b", "sense-voice"],
+           "repos": {"hy-mt2-1.8b": "tencent/Hy-MT2-1.8B-FP8"}}
+    reply, _ = asyncio.run(nm._h_model_status(None, msg, None))
+    assert ("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B-FP8") in calls
+    assert ("sense-voice", None) in calls          # no override → default repo
+    assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
