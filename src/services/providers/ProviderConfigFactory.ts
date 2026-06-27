@@ -44,7 +44,7 @@ export class ProviderConfigFactory {
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
       // Native (Electron sidecar) local inference — Electron only
-      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig() as any);
+      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
     }
 
     // Only register Volcengine Speech Translate if the feature flag is enabled
