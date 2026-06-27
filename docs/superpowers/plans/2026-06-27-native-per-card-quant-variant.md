@@ -383,3 +383,128 @@ git commit -m "feat(native): variant-aware download status (per-card chosen-vari
 - **`model_status` loop body is unchanged** in Task 1 — only the signature, docstring, and the `download_specs(model_id, repo)` call. Don't rewrite the `.incomplete` cache checks.
 - **`VariantInfo`** is defined in `nativeProtocol.ts` (fields incl. `id`, `repo`, `computeType`, `sizeBytes`, `supported`, `reason`).
 - The decouple (Task 2) is the user-visible bug fix on its own; Task 3 makes the downloaded-badge tell the truth about the chosen quant.
+
+---
+
+### Task 4: Make ALL status refreshes variant-aware (fix the readiness-gate Critical)
+
+**Why:** Task 3 wired variant-aware status into only the management section's `refresh(..., statusRepos)`. But `statuses` is a shared map and two other callers refresh it variant-BLIND: the readiness gate (`settingsStore.ts:1295` → `refresh(models)` then `isReady`) and `ProviderSection.tsx`. So a downloaded non-default quant reads as `absent` at the gate → Start stays blocked, and badges flicker. Fix: cache the derived repos in the store so every `refresh(models)` caller is variant-aware automatically — no cross-store coupling.
+
+**Files:**
+- Modify: `src/stores/nativeModelStore.ts` (add `statusRepos` cache + `setStatusRepos`; `refresh` falls back to it)
+- Modify: `src/components/Settings/sections/NativeModelManagementSection.tsx` (push `statusRepos` to the store; fix the stale comment)
+- Test: `src/stores/nativeModelStore.test.ts`
+
+**Interfaces:**
+- Produces: store `statusRepos: Record<string,string>` + `setStatusRepos(repos)`; `refresh(models, repos?)` uses `repos ?? get().statusRepos`.
+
+- [ ] **Step 1: Write the failing store test**
+
+In `src/stores/nativeModelStore.test.ts`, extend `FakeWS.send` to capture+answer `model_status` (add inside the `send` method, after the existing `model_delete` block):
+
+```javascript
+    if (msg.type === 'model_status') {
+      (globalThis as any).__lastStatusRepos = msg.repos;
+      queueMicrotask(() => this.emit({ type: 'model_status_result', id: msg.id,
+        statuses: Object.fromEntries((msg.models || []).map((m: string) => [m, 'ready'])) }));
+    }
+```
+
+Append a new describe block:
+
+```javascript
+describe('nativeModelStore.refresh — variant-aware via cached statusRepos', () => {
+  it('falls back to the cached statusRepos when the caller passes none (gate path)', async () => {
+    useNativeModelStore.getState().setStatusRepos({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+    await useNativeModelStore.getState().refresh(['hy-mt2-1.8b']);   // no repos arg — the gate's call shape
+    expect((globalThis as any).__lastStatusRepos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+  });
+
+  it('an explicit repos arg overrides the cache', async () => {
+    useNativeModelStore.getState().setStatusRepos({ 'hy-mt2-1.8b': 'cached' });
+    await useNativeModelStore.getState().refresh(['hy-mt2-1.8b'], { 'hy-mt2-1.8b': 'explicit' });
+    expect((globalThis as any).__lastStatusRepos).toEqual({ 'hy-mt2-1.8b': 'explicit' });
+  });
+});
+```
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `npx vitest run src/stores/nativeModelStore.test.ts`
+Expected: FAIL — `setStatusRepos` is not a function.
+
+- [ ] **Step 3: Add the cache + fallback in the store**
+
+In `src/stores/nativeModelStore.ts`, add to the store interface (near `refresh:`):
+
+```typescript
+  statusRepos: Record<string, string>;
+  setStatusRepos: (repos: Record<string, string>) => void;
+```
+
+Add to the store state (near `statuses: {}`):
+
+```typescript
+  statusRepos: {},
+  setStatusRepos: (repos) => set({ statusRepos: repos }),
+```
+
+Change `refresh` to fall back to the cache:
+
+```typescript
+  refresh: async (models, repos) => {
+    if (!models.length) return;
+    try {
+      const result = await client.status(models, repos ?? get().statusRepos);
+      set((s) => ({ statuses: { ...s.statuses, ...result } }));
+    } catch {
+      // sidecar not available — leave statuses untouched
+    }
+  },
+```
+
+- [ ] **Step 4: Run the store test to verify it passes**
+
+Run: `npx vitest run src/stores/nativeModelStore.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Push statusRepos to the store from the component + fix the stale comment**
+
+In `src/components/Settings/sections/NativeModelManagementSection.tsx`:
+
+Pull the action (near the other `useNativeModelStore((s) => …)` lines, ~387):
+
+```typescript
+  const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
+```
+
+In the refresh effect (the one calling `refresh(allDownloadIds, statusRepos)`), publish the map to the store so the gate/ProviderSection refreshes see it — add as the FIRST line of the effect body:
+
+```typescript
+    setStatusRepos(statusRepos);
+```
+
+Replace the now-stale comment above the variant-map memo (the line referencing `settings.translationVariant` "scoped to the SELECTED translation model") with:
+
+```typescript
+  // The manual variant pin is a per-model map (settings.translationVariantByModel),
+  // keyed by model id. Each card reads its own entry; download + load use the same value.
+```
+
+- [ ] **Step 6: Run renderer suites + scoped typecheck**
+
+Run: `npx vitest run src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.test.tsx src/lib/local-inference/native/nativeCatalog.test.ts`
+Expected: PASS.
+Run: `npx tsc --noEmit 2>&1 | grep -E "nativeModelStore.ts|NativeModelManagementSection.tsx" | grep -v "onClearAll" || echo "no new errors in changed files"`
+Expected: `no new errors in changed files`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/stores/nativeModelStore.ts src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.tsx
+git commit -m "fix(native): readiness gate honors the chosen quant (cached statusRepos)"
+```
+
+## Note on the residual auto-select bounce (final-review Important #2)
+
+Re-picking the ACTIVE model's quant to an UNdownloaded variant now (correctly) flips its status to `absent`, which can trigger the `autoSelectNative` reconcile to switch the active model. This reduces to the explicitly out-of-scope "not-downloaded manual selection reverts" behavior and is NOT fixed here — the primary flow (pick a quant on a non-active card → download → select → Start) works end-to-end after Task 4. Documented as a known residual for a future auto-select pass.
