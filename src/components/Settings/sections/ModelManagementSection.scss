@@ -535,10 +535,10 @@
     // not the :disabled pseudo-class, so exclude them by class).
     &:hover:not(:disabled):not(#{&}--unsupported) { background: rgba(255, 255, 255, 0.06); }
 
-    // Selected variant: filled tint + left accent bar — unmistakable.
+    // Selected variant: filled tint only (no accent-bar shadow, by preference) —
+    // still unmistakable via the green name + check.
     &--chosen {
       background: rgba(vars.$color-primary, 0.12);
-      box-shadow: inset 2px 0 0 vars.$color-primary;
     }
 
     // Unsupported: greyed, not clickable (still listed with its size + blocked icon).
