@@ -71,7 +71,12 @@ def _base_specs(model_id):
         repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
         return {"repos": [repo], "urls": [], "ignore": ["train/*"]}
     if model_id.startswith("opus-mt-"):
-        return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": []}
+        # Helsinki repos ship the SAME model in 4 frameworks; the opus_translate
+        # backend loads only pytorch_model.bin. Skip the TF/Rust/Flax weights
+        # (exact filenames — the download filter is `f not in ignore`, not glob),
+        # which are 50-80% of the repo (e.g. en-zh: 1446MB → 301MB).
+        return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": [],
+                "ignore": ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]}
     return {"repos": [model_id], "urls": []}
 
 

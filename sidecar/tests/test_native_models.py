@@ -366,5 +366,11 @@ def test_h_model_download_passes_repo_through(monkeypatch):
 
 def test_download_specs_opus_maps_to_helsinki_repo():
     from sokuji_sidecar import native_models as nm
-    assert nm.download_specs("opus-mt-zh-en") == {"repos": ["Helsinki-NLP/opus-mt-zh-en"], "urls": []}
-    assert nm.download_specs("opus-mt-en-jap") == {"repos": ["Helsinki-NLP/opus-mt-en-jap"], "urls": []}
+    _ignore = ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]
+    assert nm.download_specs("opus-mt-zh-en") == {
+        "repos": ["Helsinki-NLP/opus-mt-zh-en"], "urls": [], "ignore": _ignore}
+    assert nm.download_specs("opus-mt-en-jap") == {
+        "repos": ["Helsinki-NLP/opus-mt-en-jap"], "urls": [], "ignore": _ignore}
+    # The non-PyTorch framework weights are excluded from the download file list.
+    for f in _ignore:
+        assert f in nm.download_specs("opus-mt-zh-en")["ignore"]
