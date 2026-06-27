@@ -135,12 +135,15 @@ def model_size(model_id):
     return total
 
 
-def model_status(model_id):
-    """'ready' only if every repo + url is cached locally AND complete, else 'absent'."""
+def model_status(model_id, repo=None):
+    """'ready' only if every repo + url is cached locally AND complete, else 'absent'.
+
+    `repo` overrides the model's default repo with a chosen variant's repo (mirrors
+    download_specs), so status reflects the variant the card actually downloads."""
     import glob
     from huggingface_hub import snapshot_download
     from huggingface_hub.constants import HF_HUB_CACHE
-    specs = download_specs(model_id)
+    specs = download_specs(model_id, repo)
     try:
         for repo in specs["repos"]:
             snapshot_download(repo_id=repo, local_files_only=True)
@@ -250,7 +253,8 @@ async def download(model_id, send, should_cancel=None, repo=None):
 
 
 async def _h_model_status(state, msg, _b, conn=None):
-    statuses = {m: model_status(m) for m in (msg.get("models") or [])}
+    repos = msg.get("repos") or {}
+    statuses = {m: model_status(m, repos.get(m)) for m in (msg.get("models") or [])}
     return {"type": "model_status_result", "id": msg.get("id"), "statuses": statuses}, None
 
 

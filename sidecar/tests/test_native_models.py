@@ -96,7 +96,7 @@ def test_download_raises_when_no_files_resolved(monkeypatch):
 
 
 def test_status_handler_shape(monkeypatch):
-    monkeypatch.setattr(nm, 'model_status', lambda m: 'ready' if m == 'sense-voice' else 'absent')
+    monkeypatch.setattr(nm, 'model_status', lambda m, repo=None: 'ready' if m == 'sense-voice' else 'absent')
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
@@ -427,3 +427,31 @@ def test_download_specs_hymt15():
     assert "ignore" not in nm.download_specs("hy-mt15-7b")
     # FP8 variant download rides the repo-override path
     assert nm.download_specs("hy-mt15-7b", repo="tencent/HY-MT1.5-7B-FP8")["repos"] == ["tencent/HY-MT1.5-7B-FP8"]
+
+
+def test_model_status_repo_override(monkeypatch):
+    from sokuji_sidecar import native_models as nm
+    seen = {}
+
+    def fake_snapshot(repo_id, local_files_only):
+        seen["repo"] = repo_id
+        return "/cache"
+    monkeypatch.setattr("huggingface_hub.snapshot_download", fake_snapshot)
+    # no .incomplete files → ready; we only assert which repo was checked
+    monkeypatch.setattr("glob.glob", lambda *a, **k: [])
+    nm.model_status("hy-mt2-1.8b", repo="tencent/Hy-MT2-1.8B-FP8")
+    assert seen["repo"] == "tencent/Hy-MT2-1.8B-FP8"   # the variant repo, not the bf16 default
+
+
+def test_h_model_status_applies_repos_map(monkeypatch):
+    import asyncio
+    from sokuji_sidecar import native_models as nm
+    calls = []
+    monkeypatch.setattr(nm, "model_status",
+                        lambda mid, repo=None: (calls.append((mid, repo)), "ready")[1])
+    msg = {"id": 1, "models": ["hy-mt2-1.8b", "sense-voice"],
+           "repos": {"hy-mt2-1.8b": "tencent/Hy-MT2-1.8B-FP8"}}
+    reply, _ = asyncio.run(nm._h_model_status(None, msg, None))
+    assert ("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B-FP8") in calls
+    assert ("sense-voice", None) in calls          # no override → default repo
+    assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
