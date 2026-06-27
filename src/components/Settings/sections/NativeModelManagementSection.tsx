@@ -335,7 +335,7 @@ const NativeModelCard: React.FC<{
                 <span>{t('models.downloaded', 'Downloaded')}</span>
                 <button
                   className="model-card__btn model-card__btn--delete"
-                  onClick={(e) => { e.stopPropagation(); deleteModel(spec.downloadId as string); }}
+                  onClick={(e) => { e.stopPropagation(); deleteModel(spec.downloadId as string, chosenVariant?.repo); }}
                   disabled={disabled}
                   title={t('models.delete', 'Delete')}
                 >
@@ -450,13 +450,24 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     [allDownloadIds, variantData, settings.translationVariantByModel],
   );
   const refreshKey = allDownloadIds.join('|');
+  // Variant-aware status: re-check downloaded state whenever the model list or the
+  // chosen-variant repos change. Only publish/pass an override once we've actually
+  // resolved repos — an empty {} would poison nativeModelStore's `repos ?? cache`
+  // fallback (and the readiness gate that reads that cache), masking an
+  // already-downloaded non-default quant until — or permanently if — variants load.
   useEffect(() => {
-    setStatusRepos(statusRepos);
-    refresh(allDownloadIds, statusRepos);
-    refreshSizes(allDownloadIds);
-    refreshCatalog();   // per-machine tier availability for the ASR + translation badges
+    const hasOverride = Object.keys(statusRepos).length > 0;
+    if (hasOverride) setStatusRepos(statusRepos);
+    refresh(allDownloadIds, hasOverride ? statusRepos : undefined);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey, JSON.stringify(statusRepos)]);
+  // Sizes + per-machine tier availability are variant-independent — refresh them
+  // only when the model list changes, not on every quant pick.
+  useEffect(() => {
+    refreshSizes(allDownloadIds);
+    refreshCatalog();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [refreshKey]);
 
   // Auto-select / recall: reconcile the selection whenever statuses or the
   // language pair change, then apply only the fields that actually differ.
@@ -670,7 +681,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       <ModelStorageFooter
         usedMb={usedMb}
         hasModels={readyIds.length > 0}
-        onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id)))}
+        onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id, statusRepos[id])))}
         disabled={isSessionActive}
       />
     </div>

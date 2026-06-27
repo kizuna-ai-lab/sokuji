@@ -55,7 +55,10 @@ const mockSizes: Record<string, number> = {};
 
 const mockListVariants = vi.fn();
 const mockDownload = vi.fn();
+const mockDeleteModel = vi.fn();
 const mockUpdate = vi.fn();
+const mockRefresh = vi.fn().mockResolvedValue(undefined);
+const mockSetStatusRepos = vi.fn();
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -84,12 +87,12 @@ vi.mock('../../../stores/nativeModelStore', () => ({
       errors: {},
       catalog: {},
       download: mockDownload,
-      deleteModel: vi.fn(),
+      deleteModel: mockDeleteModel,
       cancelDownload: vi.fn(),
-      refresh: vi.fn().mockResolvedValue(undefined),
+      refresh: mockRefresh,
       refreshSizes: vi.fn().mockResolvedValue(undefined),
       refreshCatalog: vi.fn().mockResolvedValue(undefined),
-      setStatusRepos: vi.fn(),
+      setStatusRepos: mockSetStatusRepos,
       autoSelect: vi.fn().mockReturnValue(null),
       rememberModels: vi.fn(),
       asrLoading: false,
@@ -117,7 +120,11 @@ beforeEach(() => {
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
   mockDownload.mockReset();
+  mockDeleteModel.mockReset();
   mockUpdate.mockReset();
+  mockRefresh.mockReset();
+  mockRefresh.mockResolvedValue(undefined);
+  mockSetStatusRepos.mockReset();
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
@@ -203,6 +210,38 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
     expect(within(card7b).queryByTestId('variant-row-fp8')).not.toBeInTheDocument();
     expect(within(card7b).queryByTestId('variant-row-bfloat16')).not.toBeInTheDocument();
+  });
+
+  it('deletes the resolved variant repo, not the default (FP8-only download is removable)', async () => {
+    // Downloaded state: the card collapses to the resolved variant and shows Delete.
+    mockStatuses['hy-mt2-7b'] = 'ready';
+    mockSizes['hy-mt2-7b'] = 8_000_000_000;
+
+    render(<NativeModelManagementSection />);
+    const card7b = await waitFor(() => {
+      const c = screen.getByTestId('model-card-hy-mt2-7b');
+      within(c).getByTestId('variant-resolved-hy-mt2-7b'); // throws until variant data lands
+      return c;
+    });
+
+    fireEvent.click(within(card7b).getByRole('button', { name: /Delete/i }));
+
+    // Delete must target the FP8 repo so the FP8 cache is actually freed.
+    expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8');
+  });
+
+  it('does not push an empty statusRepos override while variant metadata is still loading', async () => {
+    // listVariants never resolves → variantData stays empty → statusReposFor → {}.
+    mockListVariants.mockReturnValue(new Promise<never>(() => {}));
+
+    render(<NativeModelManagementSection />);
+    await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+
+    // refresh must never get an empty {} override (which would defeat the store's
+    // `repos ?? cache` fallback and mask an already-downloaded non-default quant)…
+    expect(mockRefresh.mock.calls.every(([, repos]) => repos === undefined)).toBe(true);
+    // …and the empty map must not be persisted into the shared cache the gate reads.
+    expect(mockSetStatusRepos).not.toHaveBeenCalled();
   });
 
   it('downloads the chosen (recommended FP8) variant repo, not the default', async () => {

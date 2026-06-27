@@ -30,7 +30,7 @@ interface NativeModelStore {
   /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
   cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
-  deleteModel: (model: string) => Promise<void>;
+  deleteModel: (model: string, repo?: string) => Promise<void>;
   /** True only if every listed model is cached. */
   isReady: (models: string[]) => boolean;
   /** Persist the chosen models for a language pair/direction. */
@@ -147,13 +147,13 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     await client.cancel(model);
   },
 
-  deleteModel: async (model) => {
+  deleteModel: async (model, repo) => {
     // Optimistic: hide the model immediately. The sidecar delete is a WS round-trip
     // + an rm of a multi-GB dir, so awaiting it first would freeze the card on
     // "Downloaded" for a noticeable beat (mirrors download()'s optimistic 'downloading').
     set((s) => ({ statuses: { ...s.statuses, [model]: 'absent' } }));
     try {
-      await client.delete(model);
+      await client.delete(model, repo);
     } catch {
       // sidecar refused/unavailable — keep the best-effort 'absent' (the model is
       // hidden either way; readiness re-checks against the real cache on next refresh).
