@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage, statusReposFor } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -1291,8 +1291,28 @@ const useSettingsStore = create<SettingsStore>()(
           // Gate on the selected stage models being downloaded into the sidecar cache.
           // TTS is dropped from the requirement when text-only is on.
           const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, get().textOnly);
-          const { useNativeModelStore } = await import('./nativeModelStore');
-          await useNativeModelStore.getState().refresh(models);
+          const { useNativeModelStore, nativeListVariants } = await import('./nativeModelStore');
+          // Resolve the active translation model's CHOSEN variant repo (pin ??
+          // recommended) so the gate checks the right quant even on cold start —
+          // the Settings panel, which normally publishes statusRepos, may never
+          // have mounted this session. Only HY-MT-family cards ship multiple
+          // quants; everything else uses its single default repo (no override).
+          let statusRepos: Record<string, string> | undefined;
+          if (s.translationModel.startsWith('hy-mt')) {
+            try {
+              const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage) || null;
+              const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);
+              const resolved = statusReposFor([s.translationModel], { [s.translationModel]: vd }, s.translationVariantByModel);
+              // Only override when resolution actually produced a repo; an empty
+              // map ({}) is truthy and would defeat refresh's `repos ?? cache`
+              // fallback (e.g. a malformed listVariants response).
+              if (Object.keys(resolved).length > 0) statusRepos = resolved;
+            } catch {
+              // Best-effort: sidecar metadata unavailable → fall back to the
+              // store's statusRepos cache (default-variant status).
+            }
+          }
+          await useNativeModelStore.getState().refresh(models, statusRepos);
           ready = asrCompatible && useNativeModelStore.getState().isReady(models);
           message = ready ? ''
             : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')

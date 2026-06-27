@@ -508,3 +508,29 @@ git commit -m "fix(native): readiness gate honors the chosen quant (cached statu
 ## Note on the residual auto-select bounce (final-review Important #2)
 
 Re-picking the ACTIVE model's quant to an UNdownloaded variant now (correctly) flips its status to `absent`, which can trigger the `autoSelectNative` reconcile to switch the active model. This reduces to the explicitly out-of-scope "not-downloaded manual selection reverts" behavior and is NOT fixed here — the primary flow (pick a quant on a non-active card → download → select → Start) works end-to-end after Task 4. Documented as a known residual for a future auto-select pass.
+
+## Task 5 — Cold-start: the gate self-resolves the chosen-variant repo
+
+**Found by the re-review after Task 4.** Task 4's store `statusRepos` cache is only
+published by `NativeModelManagementSection` (mounted only while Settings is open).
+On cold start (app restart with Settings closed), `SettingsInitializer` fires
+`validateApiKey()` for `LOCAL_NATIVE` with the cache still `{}`, so the gate's
+`refresh(models)` checked the catalog DEFAULT (bf16) repo. This gated Start for a
+user who downloaded only the chosen quant — and also broke the AUTOMATIC case
+(recommended = fp8, but a no-override `model_status` checks bf16). The cache is
+necessary but not sufficient; the gate must be self-sufficient.
+
+**Fix:** in `validateApiKey`'s `LOCAL_NATIVE` branch (`settingsStore.ts`), for an
+HY-MT-family active translation model, resolve its chosen variant
+(`pin ?? recommended`) repo via `nativeListVariants` and pass it explicitly to
+`refresh(models, statusRepos)` — reusing the same `statusReposFor` mapping the
+component uses, and the same `resolveNativeTts` reserve id so download/load/gate
+agree. Best-effort: if the sidecar metadata call fails, fall back to the cache.
+
+- [ ] **Step 1 (RED):** `src/stores/settingsStore.nativeGate.test.ts` — gate passes
+  the recommended repo when no pin, the pinned repo when pinned, and no override
+  (→ cache) for a non-HY-MT model.
+- [ ] **Step 2 (GREEN):** import `statusReposFor`; pull `nativeListVariants` from the
+  dynamic `./nativeModelStore` import; resolve + pass `statusRepos` to `refresh`.
+- [ ] **Step 3:** `npx vitest run` the gate test + the Task-1..4 suites — all green.
+- [ ] **Step 4: Commit.**
