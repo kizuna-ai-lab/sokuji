@@ -21,25 +21,25 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 const { default: useSettingsStore, createLocalNativeSessionConfig } = await import('./settingsStore');
 
 describe('translationVariant pin reaches the session config (download/load agree)', () => {
-  it('is undefined (automatic) by default', () => {
-    expect(useSettingsStore.getState().localNative.translationVariant).toBeUndefined();
+  it('is undefined (automatic) by default — empty per-model map', () => {
+    expect(useSettingsStore.getState().localNative.translationVariantByModel).toEqual({});
     const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
     expect(cfg.translationVariant).toBeUndefined();
   });
 
-  it('a pinned variant is forwarded as config.translationVariant for load select_variant(pin)', async () => {
+  it('forwards the active model\'s chosen quant as config.translationVariant', async () => {
     await useSettingsStore.getState().updateLocalNative({
-      translationModel: 'hy-mt2-7b', translationVariant: 'fp8',
+      translationModel: 'hy-mt2-7b', translationVariantByModel: { 'hy-mt2-7b': 'fp8' },
     });
     const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
-    // Load's _h_translate_init pins on config.translationVariant; it MUST equal the variant
-    // the download fetched (fp8), else local_files_only load of the recommended repo fails.
     expect(cfg.translationVariant).toBe('fp8');
   });
 
-  it('clearing the pin (undefined) returns the config to automatic', async () => {
-    await useSettingsStore.getState().updateLocalNative({ translationVariant: undefined });
+  it('a quant chosen for a NON-active model does not affect the active config', async () => {
+    await useSettingsStore.getState().updateLocalNative({
+      translationModel: 'qwen2.5-0.5b', translationVariantByModel: { 'hy-mt2-7b': 'fp8' },
+    });
     const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
-    expect(cfg.translationVariant).toBeUndefined();
+    expect(cfg.translationVariant).toBeUndefined();   // active model has no entry
   });
 });

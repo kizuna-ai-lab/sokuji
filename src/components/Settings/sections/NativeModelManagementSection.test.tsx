@@ -27,6 +27,7 @@ const mockSettings = {
   ttsModel: '',
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
+  translationVariantByModel: {},
 };
 
 const mockVariants: VariantInfo[] = [
@@ -163,7 +164,10 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     // The pin reaches settings (single source of truth feeding both download repo and load).
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ translationModel: 'hy-mt2-7b', translationVariant: 'fp8' }));
+      expect.objectContaining({ translationVariantByModel: { 'hy-mt2-7b': 'fp8' } }));
+    // and it must NOT switch the active model
+    expect(mockUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ translationModel: expect.anything() }));
   });
 
   it('HY-MT1.5 cards also expose the quant-variant picker (the gate is the HY-MT family, not only hy-mt2)', async () => {

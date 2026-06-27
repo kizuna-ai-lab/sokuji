@@ -183,10 +183,10 @@ export interface LocalInferenceSettings {
 export interface LocalNativeSettings {
   asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
   translationModel: string;  // '' (auto) | LLM id (e.g. 'qwen2.5-0.5b')
-  // Manual quant-variant pin for the SELECTED translation model (e.g. 'fp8'). undefined
-  // = automatic (the sidecar's select_variant picks the recommended variant). Scoped to
-  // translationModel: changing the model resets this so a stale pin can't leak.
-  translationVariant?: string;
+  // Per-model chosen quant variant (e.g. { 'hy-mt2-1.8b': 'fp8' }). A model with no
+  // entry uses the sidecar's recommended variant. Keyed by model id (global across
+  // language directions); drives which repo the card downloads AND the load pin.
+  translationVariantByModel: Record<string, string>;
   ttsModel: string;          // '' = Auto (default voice) | a specific piper voice id
   sourceLanguage: string;
   targetLanguage: string;
@@ -397,6 +397,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   systemPrompt: '',
   asrDevice: 'auto',
   translationDevice: 'auto',
+  translationVariantByModel: {},
 };
 
 // ==================== Store Definition ====================
@@ -736,7 +737,7 @@ export function createLocalNativeSessionConfig(
     translationModelId: resolveNativeTranslation(settings.translationModel),
     // Manual variant pin → load's select_variant(pin=...) so LOAD resolves the same
     // variant DOWNLOAD fetched (else local_files_only load fails on a missing repo).
-    translationVariant: settings.translationVariant,
+    translationVariant: settings.translationVariantByModel[settings.translationModel],
     ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,
