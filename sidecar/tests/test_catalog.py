@@ -192,6 +192,7 @@ def test_opus_rows_present_with_expected_shape():
     tiers = [d.tier for d in m.deployments]
     assert backends == {"opus_translate"}
     assert tiers == ["gpu-cuda", "cpu"]            # no fp8 variant
+    assert [d.compute_type for d in m.deployments] == ["bfloat16", "float32"]
     assert all(d.artifact == "Helsinki-NLP/opus-mt-zh-en" for d in m.deployments)
 
 

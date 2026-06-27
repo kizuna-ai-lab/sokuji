@@ -312,7 +312,9 @@ class OpusTranslateBackend:
         # tgt and wrap are intentionally ignored. generate() emits only the
         # translation tokens (no input prefix to slice off).
         import torch
-        inputs = self._tok(text, return_tensors="pt").to(self._device)
+        # Marian's learned positional embeddings cap at 512 — truncate over-long
+        # input rather than crash (real-time ASR segments are short; this is a hedge).
+        inputs = self._tok(text, return_tensors="pt", truncation=True).to(self._device)
         with torch.inference_mode():
             out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
         seq = out[0]
