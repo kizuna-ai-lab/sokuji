@@ -106,14 +106,19 @@ the renderer.
 
 ## Download mapping
 
-`download_specs(model_id)` for an `opus-mt-*` id returns the single Helsinki repo:
+`download_specs(model_id)` for an `opus-mt-*` id returns the single Helsinki repo
+plus an `ignore` list that skips the non-PyTorch framework weights (Helsinki repos
+ship the same model in 4 frameworks; the backend loads only `pytorch_model.bin`):
 
 ```python
 if model_id.startswith("opus-mt-"):
-    return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": []}
+    return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": [],
+            "ignore": ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]}
 ```
 
 No VAD url (translation, not ASR). One repo carries both weights and tokenizer.
+The `ignore` patterns are honored by the download filter (`native_models._ignored`,
+fnmatch-based), cutting each pair's download by 50-80% (e.g. en-zh: 1446MB → 301MB).
 
 ## Backend: `OpusTranslateBackend` (NAME = `opus_translate`)
 
