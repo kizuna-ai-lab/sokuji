@@ -33,8 +33,8 @@ describe('nativeCatalog', () => {
 
   it('exposes the four Qwen translation versions plus the speech-LLM translators', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2
-    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']);
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2 + opus-mt pair
+    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'opus-mt-zh-en']);
   });
 
   it('exposes ASR + translation options', () => {
@@ -376,6 +376,34 @@ describe('nativeCatalog', () => {
     });
     it('returns null for no resolved', () => {
       expect(resolvedTierState(null)).toBeNull();
+    });
+  });
+
+  describe('Opus-MT pair cards', () => {
+    it('appends the matching pair card after the multilingual models', () => {
+      const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
+      expect(ids).toContain('opus-mt-zh-en');
+      expect(ids.indexOf('opus-mt-zh-en')).toBeGreaterThan(ids.indexOf('hy-mt2-7b')); // opt-in, after defaults
+    });
+
+    it('shows only the pair matching the active direction', () => {
+      const enJa = nativeTranslationCards('en', 'ja').map((c) => c.selectId);
+      expect(enJa).toContain('opus-mt-en-jap');   // id keeps Helsinki "jap"
+      expect(enJa).not.toContain('opus-mt-ja-en'); // reverse direction hidden
+      const jaEn = nativeTranslationCards('ja', 'en').map((c) => c.selectId);
+      expect(jaEn).toContain('opus-mt-ja-en');
+      expect(jaEn).not.toContain('opus-mt-en-jap');
+    });
+
+    it('shows no Opus-MT card for an unsupported pair', () => {
+      const ids = nativeTranslationCards('de', 'fr').map((c) => c.selectId);
+      expect(ids.some((id) => id.startsWith('opus-mt-'))).toBe(false);
+    });
+
+    it('opus cards keep downloadId === selectId', () => {
+      const opus = nativeTranslationCards('zh', 'en').filter((c) => c.selectId.startsWith('opus-mt-'));
+      expect(opus.length).toBeGreaterThan(0);
+      expect(opus.every((c) => c.downloadId === c.selectId)).toBe(true);
     });
   });
 

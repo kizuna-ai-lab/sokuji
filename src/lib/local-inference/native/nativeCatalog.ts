@@ -330,8 +330,30 @@ export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec
   return incompatibleNativeAsr(srcLang).map(asrToCard);
 }
 
-export function nativeTranslationCards(_src: string, _tgt: string): NativeModelCardSpec[] {
-  return [
+/**
+ * Opus-MT pair models (PostHog-used pairs). One pair = one card; opt-in, shown
+ * only when the active source→target matches. `src`/`tgt` are canonical bare
+ * codes for matching the picker; `id` matches the sidecar catalog id (keeps the
+ * Helsinki "jap" token for en→ja). Sorted after the multilingual models.
+ */
+const NATIVE_OPUS_PAIRS: { id: string; name: string; src: string; tgt: string; sortOrder: number }[] = [
+  { id: 'opus-mt-ru-en', name: 'Opus-MT (ru → en)', src: 'ru', tgt: 'en', sortOrder: 20 },
+  { id: 'opus-mt-zh-en', name: 'Opus-MT (zh → en)', src: 'zh', tgt: 'en', sortOrder: 21 },
+  { id: 'opus-mt-en-zh', name: 'Opus-MT (en → zh)', src: 'en', tgt: 'zh', sortOrder: 22 },
+  { id: 'opus-mt-hu-en', name: 'Opus-MT (hu → en)', src: 'hu', tgt: 'en', sortOrder: 23 },
+  { id: 'opus-mt-en-es', name: 'Opus-MT (en → es)', src: 'en', tgt: 'es', sortOrder: 24 },
+  { id: 'opus-mt-en-ar', name: 'Opus-MT (en → ar)', src: 'en', tgt: 'ar', sortOrder: 25 },
+  { id: 'opus-mt-en-ru', name: 'Opus-MT (en → ru)', src: 'en', tgt: 'ru', sortOrder: 26 },
+  { id: 'opus-mt-es-en', name: 'Opus-MT (es → en)', src: 'es', tgt: 'en', sortOrder: 27 },
+  { id: 'opus-mt-en-vi', name: 'Opus-MT (en → vi)', src: 'en', tgt: 'vi', sortOrder: 28 },
+  { id: 'opus-mt-ar-en', name: 'Opus-MT (ar → en)', src: 'ar', tgt: 'en', sortOrder: 29 },
+  { id: 'opus-mt-ja-en', name: 'Opus-MT (ja → en)', src: 'ja', tgt: 'en', sortOrder: 30 },
+  { id: 'opus-mt-en-jap', name: 'Opus-MT (en → ja)', src: 'en', tgt: 'ja', sortOrder: 31 },
+  { id: 'opus-mt-ko-en', name: 'Opus-MT (ko → en)', src: 'ko', tgt: 'en', sortOrder: 32 },
+];
+
+export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
+  const base: NativeModelCardSpec[] = [
     { selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
     { selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b', name: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
     { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
@@ -340,6 +362,15 @@ export function nativeTranslationCards(_src: string, _tgt: string): NativeModelC
     { selectId: 'hy-mt2-1.8b', downloadId: 'hy-mt2-1.8b', name: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
     { selectId: 'hy-mt2-7b', downloadId: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
   ];
+  const wantSrc = canonLang(src);
+  const wantTgt = canonLang(tgt);
+  const opus: NativeModelCardSpec[] = NATIVE_OPUS_PAIRS
+    .filter((p) => canonLang(p.src) === wantSrc && canonLang(p.tgt) === wantTgt)
+    .map((p) => ({
+      selectId: p.id, downloadId: p.id, name: p.name,
+      languages: [p.src, p.tgt], sortOrder: p.sortOrder,
+    }));
+  return [...base, ...opus];
 }
 
 export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
