@@ -59,6 +59,8 @@ export const NATIVE_TRANSLATION: NativeModelOption[] = [
   { id: 'translategemma-4b', label: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
   { id: 'hy-mt2-1.8b', label: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
   { id: 'hy-mt2-7b', label: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
+  { id: 'hy-mt15-1.8b', label: 'Hunyuan-MT1.5 1.8B', languages: ['multi'], sortOrder: 9 },
+  { id: 'hy-mt15-7b', label: 'Hunyuan-MT1.5 7B', languages: ['multi'], sortOrder: 10 },
 ];
 
 /** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */
@@ -361,6 +363,8 @@ export function nativeTranslationCards(src: string, tgt: string): NativeModelCar
     { selectId: 'translategemma-4b', downloadId: 'translategemma-4b', name: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
     { selectId: 'hy-mt2-1.8b', downloadId: 'hy-mt2-1.8b', name: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
     { selectId: 'hy-mt2-7b', downloadId: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
+    { selectId: 'hy-mt15-1.8b', downloadId: 'hy-mt15-1.8b', name: 'Hunyuan-MT1.5 1.8B', languages: ['multi'], sortOrder: 9 },
+    { selectId: 'hy-mt15-7b', downloadId: 'hy-mt15-7b', name: 'Hunyuan-MT1.5 7B', languages: ['multi'], sortOrder: 10 },
   ];
   const wantSrc = canonLang(src);
   const wantTgt = canonLang(tgt);
