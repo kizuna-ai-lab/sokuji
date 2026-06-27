@@ -166,6 +166,15 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
       expect.objectContaining({ translationModel: 'hy-mt2-7b', translationVariant: 'fp8' }));
   });
 
+  it('HY-MT1.5 cards also expose the quant-variant picker (the gate is the HY-MT family, not only hy-mt2)', async () => {
+    render(<NativeModelManagementSection />);
+    // hy-mt15-7b is a multilingual card always present; after the family-prefix
+    // gate it fetches variants and shows the same FP8 dropdown as hy-mt2.
+    const trigger = await waitFor(() =>
+      within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b'));
+    expect(trigger).toHaveTextContent('FP8');
+  });
+
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
     // Mark hy-mt2-7b as downloaded with a known byte count.
     const downloadedBytes = 8_000_000_000;
