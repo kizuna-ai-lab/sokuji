@@ -23,6 +23,11 @@ class FakeWS {
              tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] }];
       queueMicrotask(() => this.emit({ type: 'models_catalog_result', id: msg.id, models }));
     }
+    if (msg.type === 'model_status') {
+      (globalThis as any).__lastStatusRepos = msg.repos;
+      queueMicrotask(() => this.emit({ type: 'model_status_result', id: msg.id,
+        statuses: Object.fromEntries((msg.models || []).map((m: string) => [m, 'ready'])) }));
+    }
     if (msg.type === 'model_delete') queueMicrotask(() =>
       this.emit({ type: 'model_delete_result', id: msg.id, freed: 0 }));
   }
@@ -113,5 +118,19 @@ describe('nativeModelStore translation session channel', () => {
     s.setTranslationResolved({ model: 'qwen3.5-2b', device: 'cuda', tokensPerSec: 59.4 });
     expect(useNativeModelStore.getState().translationResolved)
       .toEqual({ model: 'qwen3.5-2b', device: 'cuda', tokensPerSec: 59.4 });
+  });
+});
+
+describe('nativeModelStore.refresh — variant-aware via cached statusRepos', () => {
+  it('falls back to the cached statusRepos when the caller passes none (gate path)', async () => {
+    useNativeModelStore.getState().setStatusRepos({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+    await useNativeModelStore.getState().refresh(['hy-mt2-1.8b']);   // no repos arg — the gate's call shape
+    expect((globalThis as any).__lastStatusRepos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+  });
+
+  it('an explicit repos arg overrides the cache', async () => {
+    useNativeModelStore.getState().setStatusRepos({ 'hy-mt2-1.8b': 'cached' });
+    await useNativeModelStore.getState().refresh(['hy-mt2-1.8b'], { 'hy-mt2-1.8b': 'explicit' });
+    expect((globalThis as any).__lastStatusRepos).toEqual({ 'hy-mt2-1.8b': 'explicit' });
   });
 });

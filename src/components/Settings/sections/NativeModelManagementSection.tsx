@@ -384,6 +384,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
   const refresh = useNativeModelStore((s) => s.refresh);
+  const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
   const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
   const autoSelect = useNativeModelStore((s) => s.autoSelect);
@@ -398,10 +399,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   // Variant quant data for multi-variant translation cards (HY-MT: hy-mt2-*/hy-mt15-*), keyed by selectId.
   const [variantData, setVariantData] = useState<Record<string, { variants: VariantInfo[]; recommended: string }>>({});
-  // The manual variant pin lives in settings.translationVariant (scoped to the SELECTED
-  // translation model) so it reaches BOTH download (repo) and load (select_variant pin) —
-  // a local-only pin would leave load on the recommended variant and fail a local_files_only
-  // load of the pinned repo. Non-selected cards show no pin (recommended) until selected.
+  // The manual variant pin is a per-model map (settings.translationVariantByModel),
+  // keyed by model id. Each card reads its own entry; download + load use the same value.
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage), [settings.sourceLanguage]);
   const asrIncompatibleCards = useMemo(
@@ -452,6 +451,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   );
   const refreshKey = allDownloadIds.join('|');
   useEffect(() => {
+    setStatusRepos(statusRepos);
     refresh(allDownloadIds, statusRepos);
     refreshSizes(allDownloadIds);
     refreshCatalog();   // per-machine tier availability for the ASR + translation badges
