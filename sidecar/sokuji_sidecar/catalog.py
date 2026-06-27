@@ -123,6 +123,25 @@ def _with_fp8(row, fp8_repo):
                           recommended=row.recommended, sort_order=row.sort_order)
 
 
+# Opus-MT display: the en→ja repo keeps Helsinki's "jap" token, but the card
+# should read "ja". Only this one code is remapped for the label.
+_OPUS_DISP = {"jap": "ja"}
+
+
+def _opus_disp(code):
+    return _OPUS_DISP.get(code, code)
+
+
+def _opus_row(src, tgt, sort_order):
+    mid = f"opus-mt-{src}-{tgt}"
+    repo = f"Helsinki-NLP/{mid}"
+    name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
+    return TranslateModel(mid, name, (src, tgt), (
+        Deployment("opus_translate", "gpu-cuda", "bfloat16", repo, 1.0),
+        Deployment("opus_translate", "cpu", "float32", repo, 1.0),
+    ), sort_order=sort_order)
+
+
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
                        QWEN25_REPO, "qwen_translate", 1, recommended=True),
@@ -140,6 +159,19 @@ TRANSLATE_MODELS: list[TranslateModel] = [
     _with_fp8(_llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B",
                                  "tencent/Hy-MT2-7B", "hunyuan_translate", 7),
               "tencent/Hy-MT2-7B-FP8"),
+    _opus_row("ru", "en", 20),
+    _opus_row("zh", "en", 21),
+    _opus_row("en", "zh", 22),
+    _opus_row("hu", "en", 23),
+    _opus_row("en", "es", 24),
+    _opus_row("en", "ar", 25),
+    _opus_row("en", "ru", 26),
+    _opus_row("es", "en", 27),
+    _opus_row("en", "vi", 28),
+    _opus_row("ar", "en", 29),
+    _opus_row("ja", "en", 30),
+    _opus_row("en", "jap", 31),
+    _opus_row("ko", "en", 32),
 ]
 
 

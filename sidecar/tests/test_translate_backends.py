@@ -271,3 +271,29 @@ def test_gemma_translate_real_gpu():
     out, ms = eng.translate("こんにちは、お元気ですか？")
     assert isinstance(out, str) and out.strip() and ms >= 0
     eng.close()
+
+
+def test_opus_backend_registered():
+    assert backends._BACKENDS.get("opus_translate") is tb.OpusTranslateBackend
+
+
+def test_opus_translate_runs_seq2seq_and_ignores_prompt():
+    import torch  # noqa: F401  (translate imports torch internally)
+    b = tb.OpusTranslateBackend()
+    # Seq2seq generate returns the translation tokens directly (no input slice).
+    seq = MagicMock()
+    seq.shape = [4]                     # 4 output tokens → int-able count
+    model = MagicMock()
+    model.generate.return_value = [seq]
+    tok = MagicMock()
+    tok.side_effect = lambda text, **kw: FakeInputs(input_ids=MagicMock(shape=[1, 3]))
+    tok.decode.return_value = "  translated  "
+    b._model = model
+    b._tok = tok
+    b._device = "cpu"
+    out, n = b.translate("hello", "ignored-prompt", "ja", "en", True)
+    assert out == "translated"          # stripped
+    assert n == 4
+    assert model.generate.called
+    # Marian is pair-baked: no chat template is ever applied.
+    assert not tok.apply_chat_template.called

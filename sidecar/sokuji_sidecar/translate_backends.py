@@ -6,6 +6,7 @@ transcribe(). Registered into the shared backends registry on import.
   qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
   hunyuan_translate  — HY-MT2 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
   gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
+  opus_translate     — MarianMT seq2seq, AutoModelForSeq2SeqLM (pair-baked direction).
 
 All support CPU (float32) and GPU (bfloat16) via .to(device)."""
 import re
@@ -266,6 +267,59 @@ class GemmaTranslateBackend:
             out = self._model.generate(**inputs, max_new_tokens=256, do_sample=False)
         gen = out[0][inputs["input_ids"].shape[1]:]
         return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
+
+    def unload(self) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+
+@register_backend
+class OpusTranslateBackend:
+    NAME = "opus_translate"
+
+    def __init__(self):
+        self._model = None
+        self._tok = None
+        self._device = "cpu"
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._model = None
+        self._tok = None
+        try:
+            import torch
+            # MarianMT is a small seq2seq model, core to transformers (no
+            # trust_remote_code, no VLM processor). bf16 on GPU, float32 on CPU.
+            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
+            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
+            self._model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
+            self._device = device
+        except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver falls back
+            raise BackendLoadError(str(e))
+
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
+        # The translation direction is baked into the model — system_prompt, src,
+        # tgt and wrap are intentionally ignored. generate() emits only the
+        # translation tokens (no input prefix to slice off).
+        import torch
+        # Marian's learned positional embeddings cap at 512 — truncate over-long
+        # input rather than crash (real-time ASR segments are short; this is a hedge).
+        # max_length is explicit so we don't depend on the tokenizer's model_max_length.
+        inputs = self._tok(text, return_tensors="pt", truncation=True, max_length=512).to(self._device)
+        with torch.inference_mode():
+            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
+        seq = out[0]
+        return self._tok.decode(seq, skip_special_tokens=True).strip(), int(seq.shape[-1])
 
     def unload(self) -> None:
         self._model = None

@@ -11,10 +11,18 @@ ASR-catalog model (not just SenseVoice), guaranteeing a single-model offline
 install is self-sufficient. It's a 643KB global singleton at sokuji-vad/, so
 delete_model() never removes it — another installed model may still need it.
 """
+import fnmatch
 import os
 
 from .asr_engine import VAD_URL
 from .catalog import asr_model as _asr_model
+
+
+def _ignored(filename, patterns):
+    """True if `filename` matches any ignore pattern. fnmatch globs (`*` spans
+    `/`, so `train/*` matches `train/a/b.py`); an exact filename like
+    `tf_model.h5` matches only itself. Used to filter the download + size file set."""
+    return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
 QWEN_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
 SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
@@ -67,9 +75,16 @@ def _base_specs(model_id):
     if model_id == "translategemma-4b":
         return {"repos": ["google/translategemma-4b-it"], "urls": []}
     if model_id in ("hy-mt2-1.8b", "hy-mt2-7b"):
-        # train/ holds only training scripts (deepspeed/llama-factory) — skip; weights only.
+        # Skip the training scripts (train/, deepspeed/llama-factory) and the
+        # README images (imgs/) — weights + tokenizer + config only.
         repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
-        return {"repos": [repo], "urls": [], "ignore": ["train/*"]}
+        return {"repos": [repo], "urls": [], "ignore": ["train/*", "imgs/*"]}
+    if model_id.startswith("opus-mt-"):
+        # Helsinki repos ship the SAME model in 4 frameworks; the opus_translate
+        # backend loads only pytorch_model.bin. Skip the TF/Rust/Flax weights
+        # (exact filenames), which are 50-80% of the repo (en-zh: 1446MB → 301MB).
+        return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": [],
+                "ignore": ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]}
     return {"repos": [model_id], "urls": []}
 
 
@@ -108,7 +123,7 @@ def model_size(model_id):
     for repo in specs["repos"]:
         try:
             info = api.repo_info(repo, files_metadata=True)
-            total += sum((s.size or 0) for s in (info.siblings or []) if s.rfilename not in ignore)
+            total += sum((s.size or 0) for s in (info.siblings or []) if not _ignored(s.rfilename, ignore))
         except Exception:
             pass
     total += len(specs["urls"]) * _SILERO_VAD_BYTES
@@ -204,7 +219,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
     files = []
     for r in specs["repos"]:  # `r`, not `repo`, so the variant `repo` param is not shadowed
         try:
-            files.extend((r, f) for f in api.list_repo_files(r) if f not in ignore)
+            files.extend((r, f) for f in api.list_repo_files(r) if not _ignored(f, ignore))
         except Exception:
             pass
     # Never report a no-op download as success: if a model declares repos but none

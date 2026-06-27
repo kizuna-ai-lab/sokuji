@@ -92,6 +92,9 @@ def _installed() -> frozenset:
             # qwen3_5 VLM class (self-gates off until transformers ships it), used text-only.
             "qwen_translate": "transformers",
             "qwen35_translate": "transformers.models.qwen3_5",
+            # Opus-MT MarianMT: AutoModelForSeq2SeqLM is core transformers (always
+            # present with transformers), so this self-gates on transformers alone.
+            "opus_translate": "transformers",
             # TranslateGemma uses the Gemma-3 multimodal class (text-only here); HY-MT2 is the
             # native hunyuan_v1_dense CausalLM. Both ship in transformers 5.13; self-gate off on
             # an older transformers that lacks the module.
