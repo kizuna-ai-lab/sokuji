@@ -17,6 +17,7 @@ import {
   formatTps,
   resolvedTierState,
   formatMemMb,
+  statusReposFor,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -445,13 +446,17 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
       .map((c) => c.downloadId).filter((x): x is string => !!x),
     [asrCards, asrIncompatibleCards, translationCards, ttsCards]);
+  const statusRepos = useMemo(
+    () => statusReposFor(allDownloadIds, variantData, settings.translationVariantByModel),
+    [allDownloadIds, variantData, settings.translationVariantByModel],
+  );
   const refreshKey = allDownloadIds.join('|');
   useEffect(() => {
-    refresh(allDownloadIds);
+    refresh(allDownloadIds, statusRepos);
     refreshSizes(allDownloadIds);
     refreshCatalog();   // per-machine tier availability for the ASR + translation badges
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [refreshKey]);
+  }, [refreshKey, JSON.stringify(statusRepos)]);
 
   // Auto-select / recall: reconcile the selection whenever statuses or the
   // language pair change, then apply only the fields that actually differ.

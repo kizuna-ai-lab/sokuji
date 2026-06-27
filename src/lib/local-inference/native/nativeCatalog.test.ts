@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -434,6 +434,23 @@ describe('nativeCatalog', () => {
       expect(byId['hy-mt2-1.8b'].name).toBe('Hunyuan-MT2 1.8B');
       expect(byId['hy-mt2-7b'].name).toBe('Hunyuan-MT2 7B');
       expect(byId['translategemma-4b'].downloadId).toBe('translategemma-4b'); // selectId == downloadId, like the qwen cards
+    });
+  });
+
+  describe('statusReposFor', () => {
+    const vd = {
+      'hy-mt2-1.8b': { variants: [
+        { id: 'bfloat16', repo: 'tencent/Hy-MT2-1.8B', computeType: 'bfloat16', sizeBytes: 0, supported: true, reason: '' },
+        { id: 'fp8', repo: 'tencent/Hy-MT2-1.8B-FP8', computeType: 'fp8', sizeBytes: 0, supported: true, reason: '' },
+      ], recommended: 'bfloat16' },
+    };
+    it('maps a card to its chosen variant repo (pinned)', () => {
+      const repos = statusReposFor(['hy-mt2-1.8b', 'sense-voice'], vd, { 'hy-mt2-1.8b': 'fp8' });
+      expect(repos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });   // sense-voice has no variants → omitted
+    });
+    it('falls back to the recommended variant repo when unpinned', () => {
+      const repos = statusReposFor(['hy-mt2-1.8b'], vd, {});
+      expect(repos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B' });
     });
   });
 });

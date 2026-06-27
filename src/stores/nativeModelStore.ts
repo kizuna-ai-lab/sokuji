@@ -17,7 +17,7 @@ interface NativeModelStore {
   /** Query the sidecar for the per-machine model catalog (best-effort). */
   refreshCatalog: (models?: string[]) => Promise<void>;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
-  refresh: (models: string[]) => Promise<void>;
+  refresh: (models: string[], repos?: Record<string, string>) => Promise<void>;
   /** Query the sidecar for download sizes (bytes) of these models (best-effort). */
   refreshSizes: (models: string[]) => Promise<void>;
   /** Download one model, streaming progress into the store. `repo` selects a chosen
@@ -90,10 +90,10 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     }
   },
 
-  refresh: async (models) => {
+  refresh: async (models, repos) => {
     if (!models.length) return;
     try {
-      const result = await client.status(models);
+      const result = await client.status(models, repos);
       set((s) => ({ statuses: { ...s.statuses, ...result } }));
     } catch {
       // sidecar not available — leave statuses untouched

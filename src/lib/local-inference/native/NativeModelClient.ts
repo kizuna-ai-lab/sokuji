@@ -86,9 +86,9 @@ export class NativeModelClient {
     return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
-  async status(models: string[]): Promise<Record<string, NativeModelState>> {
+  async status(models: string[], repos?: Record<string, string>): Promise<Record<string, NativeModelState>> {
     await this.connect();
-    const msg = await this.send({ type: 'model_status', models });
+    const msg = await this.send({ type: 'model_status', models, repos });
     return (msg as Extract<ServerMsg, { type: 'model_status_result' }>).statuses;
   }
 
