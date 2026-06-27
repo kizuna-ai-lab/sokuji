@@ -33,7 +33,7 @@ describe('nativeCatalog', () => {
 
   it('exposes the four Qwen translation versions plus the speech-LLM translators', () => {
     const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2 + opus-mt pair
+    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2/HY-MT1.5 + opus-mt pair
     expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'hy-mt15-1.8b', 'hy-mt15-7b', 'opus-mt-zh-en']);
   });
 

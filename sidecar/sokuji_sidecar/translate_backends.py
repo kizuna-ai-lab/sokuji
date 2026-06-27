@@ -4,7 +4,7 @@ transcribe(). Registered into the shared backends registry on import.
 
   qwen_translate     — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
   qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
-  hunyuan_translate  — HY-MT2 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
+  hunyuan_translate  — HY-MT2 / HY-MT1.5 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
   gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
   opus_translate     — MarianMT seq2seq, AutoModelForSeq2SeqLM (pair-baked direction).
 

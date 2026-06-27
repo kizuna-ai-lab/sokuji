@@ -422,7 +422,8 @@ def test_download_specs_hymt15():
     from sokuji_sidecar import native_models as nm
     assert nm.download_specs("hy-mt15-1.8b") == {"repos": ["tencent/HY-MT1.5-1.8B"], "urls": []}
     assert nm.download_specs("hy-mt15-7b") == {"repos": ["tencent/HY-MT1.5-7B"], "urls": []}
-    # clean repos → no ignore key
+    # clean repos → no ignore key (both sizes)
     assert "ignore" not in nm.download_specs("hy-mt15-1.8b")
+    assert "ignore" not in nm.download_specs("hy-mt15-7b")
     # FP8 variant download rides the repo-override path
     assert nm.download_specs("hy-mt15-7b", repo="tencent/HY-MT1.5-7B-FP8")["repos"] == ["tencent/HY-MT1.5-7B-FP8"]
