@@ -897,3 +897,16 @@ def test_resolve_translate_opus_prefers_gpu_then_cpu(monkeypatch):
     assert [p.device for p in plans] == ["cuda", "cpu"]
     assert all(p.backend == "opus_translate" for p in plans)
     assert plans[0].artifact == "Helsinki-NLP/opus-mt-zh-en"
+
+
+def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
+    monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
+                 installed=frozenset({"hunyuan_translate"}))
+    plans = accel.resolve_translate("hy-mt15-1.8b", "auto", m)
+    assert plans[0].device == "cuda"
+    assert plans[-1].device == "cpu"
+    assert all(p.backend == "hunyuan_translate" for p in plans)
+    assert plans[0].artifact.startswith("tencent/HY-MT1.5-1.8B")  # bf16 or FP8 variant
