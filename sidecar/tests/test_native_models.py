@@ -232,6 +232,23 @@ def test_existing_specs_have_no_ignore_key():
     assert "ignore" not in nm.download_specs("qwen3-asr-1.7b")
 
 
+def test_hy_mt2_ignores_train_and_imgs_dirs():
+    # HY-MT2 repos ship training scripts (train/) + README images (imgs/) the
+    # CausalLM never loads; both are directory globs.
+    for mid in ("hy-mt2-1.8b", "hy-mt2-7b"):
+        assert nm.download_specs(mid)["ignore"] == ["train/*", "imgs/*"]
+
+
+def test_ignored_filter_is_glob_aware():
+    # Directory globs match nested files (fnmatch '*' spans '/'); exact filenames
+    # match only themselves; non-matches pass through.
+    assert nm._ignored("train/deepspeed/train.py", ["train/*", "imgs/*"])
+    assert nm._ignored("imgs/overview.png", ["train/*", "imgs/*"])
+    assert not nm._ignored("model.safetensors", ["train/*", "imgs/*"])
+    assert nm._ignored("tf_model.h5", ["tf_model.h5", "rust_model.ot"])     # exact
+    assert not nm._ignored("pytorch_model.bin", ["tf_model.h5", "rust_model.ot"])
+
+
 def test_download_honors_ignore_list(monkeypatch):
     """The ignore list keeps consolidated.safetensors out of the fetched file set,
     so transformers' model.safetensors is fetched but the 8.86GB duplicate is not."""
@@ -255,6 +272,31 @@ def test_download_honors_ignore_list(monkeypatch):
     assert status == "ready"
     assert "consolidated.safetensors" not in fetched
     assert "model.safetensors" in fetched and "tekken.json" in fetched
+
+
+def test_download_glob_excludes_nested_dirs(monkeypatch):
+    """A directory glob (train/*) keeps nested training files out of the fetch —
+    the exact-match filter this replaced would have downloaded them."""
+    import huggingface_hub
+    fetched = []
+
+    class _Api:
+        def list_repo_files(self, repo):
+            return ["model.safetensors", "config.json",
+                    "train/train.py", "train/deepspeed/ds.json", "imgs/overview.png"]
+
+    monkeypatch.setattr(nm, "download_specs", lambda m, repo=None: {
+        "repos": ["r"], "urls": [], "ignore": ["train/*", "imgs/*"]})
+    monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname: fetched.append(fname))
+
+    async def send(_m):
+        pass
+
+    status = asyncio.run(nm.download("hy-mt2-1.8b", send))
+    assert status == "ready"
+    assert fetched == ["model.safetensors", "config.json"]   # nested train/ + imgs/ excluded
 
 
 def test_model_size_excludes_ignored_files(monkeypatch):
@@ -301,10 +343,10 @@ def test_download_specs_new_translate_models():
     assert nm.download_specs("translategemma-4b")["repos"] == ["google/translategemma-4b-it"]
     h18 = nm.download_specs("hy-mt2-1.8b")
     assert h18["repos"] == ["tencent/Hy-MT2-1.8B"]
-    assert h18["ignore"] == ["train/*"]
+    assert h18["ignore"] == ["train/*", "imgs/*"]
     h7 = nm.download_specs("hy-mt2-7b")
     assert h7["repos"] == ["tencent/Hy-MT2-7B"]
-    assert h7["ignore"] == ["train/*"]
+    assert h7["ignore"] == ["train/*", "imgs/*"]
 
 
 def test_download_specs_variant_repo_override():
