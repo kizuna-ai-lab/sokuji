@@ -459,6 +459,148 @@
     display: flex;
     align-items: center;
   }
+
+  // --- Variant chooser (pre-download quant selection for multi-variant models) ---
+
+  // Dropdown wrapper lives in the header (where the size sits); menu is absolutely
+  // positioned so opening it never grows the card.
+  &__variant-dd {
+    position: relative;
+  }
+
+  &__variant-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: inherit;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: vars.$border-default;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &:disabled { cursor: not-allowed; opacity: 0.6; }
+  }
+
+  // Calm, matches the muted "size" slot on sibling cards; green is reserved for
+  // the chosen row inside the menu, not the always-visible trigger.
+  &__variant-trigger-value {
+    color: vars.$text-secondary;
+    font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+  }
+
+  &__variant-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    min-width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    background: #1f2225;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    // The selectable .model-card sets cursor:pointer, which `cursor` inheritance
+    // leaks onto the menu's plain text (e.g. the CPU note). Reset it here; the
+    // item buttons re-assert their own pointer/not-allowed cursor.
+    cursor: default;
+  }
+
+  &__variant-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background vars.$transition-fast;
+
+    // Hover highlight only on selectable rows (unsupported rows use aria-disabled,
+    // not the :disabled pseudo-class, so exclude them by class).
+    &:hover:not(:disabled):not(#{&}--unsupported) { background: rgba(255, 255, 255, 0.06); }
+
+    // Selected variant: filled tint + left accent bar — unmistakable.
+    &--chosen {
+      background: rgba(vars.$color-primary, 0.12);
+      box-shadow: inset 2px 0 0 vars.$color-primary;
+    }
+
+    // Unsupported: greyed, not clickable (still listed with its size + blocked icon).
+    &--unsupported { opacity: 0.5; cursor: not-allowed; }
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__variant-check {
+    color: vars.$color-primary;
+    font-weight: vars.$weight-semibold;
+  }
+
+  // Compute type is the primary label of the row → bright + tracked; the chosen
+  // row turns green to reinforce selection.
+  // Precision + size is the primary info → never wraps; the secondary reason on the
+  // right wraps instead. flex-shrink:0 protects it from the reason column.
+  &__variant-name {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: vars.$font-caption;
+    color: vars.$text-primary;
+    font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+
+    .model-card__variant-item--chosen & {
+      color: vars.$color-primary;
+    }
+  }
+
+  // Secondary metadata: the size trails the compute type, muted and lighter so the
+  // eye lands on the precision first.
+  &__variant-size {
+    color: vars.$text-muted;
+    font-weight: vars.$weight-normal;
+    letter-spacing: normal;
+  }
+
+  // Plain green text (not a filled pill) keeps the accent meaningful and the menu calm.
+  &__variant-recommended {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: vars.$color-primary;
+    font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  // Muted "blocked" icon — full reason is in the row's title tooltip. Mirrors the
+  // green "recommended" slot on the opposite end of the state spectrum.
+  &__variant-unavailable {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    color: vars.$text-muted;
+  }
+
+  &__variant-cpu-note {
+    font-size: 10px;
+    color: vars.$text-muted;
+    padding: 2px 4px;
+  }
 }
 
 .model-management__storage {

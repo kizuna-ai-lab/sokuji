@@ -166,10 +166,17 @@ class HunyuanTranslateBackend:
             # hunyuan_v1_dense is native to transformers 5.13 (no auto_map, no
             # modeling_*.py in the repo) → plain AutoModelForCausalLM, no trust_remote_code.
             from transformers import AutoModelForCausalLM, AutoTokenizer
-            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
             self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            self._model = AutoModelForCausalLM.from_pretrained(
-                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
+            if compute_type == "fp8":
+                # Pre-quantized compressed-tensors checkpoint: let its quantization_config
+                # drive loading (dtype="auto"); forcing a dtype would fight the quant.
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_ref, dtype="auto", local_files_only=True)
+            else:
+                dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_ref, dtype=dtype, local_files_only=True)
+            self._model = model.to(device).eval()
             self._device = device
         except Exception as e:
             raise BackendLoadError(str(e))

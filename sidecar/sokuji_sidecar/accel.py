@@ -19,6 +19,7 @@ class Gpu:
     vendor: str
     name: str
     vram_mb: int
+    capability: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -33,10 +34,24 @@ class Machine:
     fingerprint: str
 
 
-def _nvidia_gpus() -> tuple[Gpu, ...]:
+def _cuda_count() -> int:
     from ctranslate2 import get_cuda_device_count
-    n = get_cuda_device_count()
-    return tuple(Gpu("nvidia", "", 0) for _ in range(n))
+    return get_cuda_device_count()
+
+
+def _nvidia_gpus() -> tuple[Gpu, ...]:
+    n = _cuda_count()
+    gpus = []
+    for i in range(n):
+        vram_mb, cap = 0, None
+        try:
+            import torch
+            vram_mb = int(torch.cuda.get_device_properties(i).total_memory // (1024 * 1024))
+            cap = tuple(torch.cuda.get_device_capability(i))  # (major, minor)
+        except Exception:
+            pass
+        gpus.append(Gpu("nvidia", "", vram_mb, cap))
+    return tuple(gpus)
 
 
 def _apple_silicon() -> bool:
@@ -195,12 +210,25 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     return _resolve_model(model, model_id, override, machine or probe())
 
 
-def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None,
+                      reserved_bytes: int = 0, pin: str | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.translate_model(model_id)
     if model is None:
         raise ValueError(f"unknown translate model: {model_id}")
-    return _resolve_model(model, model_id, override, machine or probe())
+    machine = machine or probe()
+    if override == "auto":
+        chosen = select_variant(model, machine, reserved_bytes, pin)
+        cpu = next((d for d in model.deployments if d.tier == "cpu"), None)
+        picks = [chosen] + ([cpu] if cpu is not None and cpu is not chosen else [])
+        # Keep only deployments whose backend is actually installed on this machine.
+        picks = [d for d in picks if d is not None and d.backend in machine.installed]
+        if not picks:
+            raise NoUsablePlan(model_id)
+        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+                for d in picks]
+    # explicit device override: unchanged tier-pinning path
+    return _resolve_model(model, model_id, override, machine)
 
 
 class AllPlansFailed(Exception):
@@ -293,6 +321,15 @@ def _model_weight_bytes(artifact: str):
 _VRAM_WEIGHT_FACTOR = 1.2
 _VRAM_CONTEXT_BYTES = 1 << 30  # ~1 GiB
 
+# FP8 (compressed-tensors naive-quantized) has no FP8 matmul kernel in transformers,
+# so weights are dequantized per-forward at inference — peak VRAM ~1.5x weights, not
+# the 1.2x that applies to bf16/f16. Per-format override table; missing → _VRAM_WEIGHT_FACTOR.
+_VARIANT_WEIGHT_FACTOR = {"fp8": 1.5}
+
+
+def _weight_factor(compute_type: str) -> float:
+    return _VARIANT_WEIGHT_FACTOR.get(compute_type, _VRAM_WEIGHT_FACTOR)
+
 
 def _gib(n: float) -> str:
     return f"{n / (1 << 30):.1f}"
@@ -320,7 +357,7 @@ def load_with_fallback(plans: list):
         # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
         free = _cuda_free_bytes() if plan.device == "cuda" else None
         need = _model_weight_bytes(plan.artifact) if plan.device == "cuda" else None
-        budget = (need * _VRAM_WEIGHT_FACTOR + _VRAM_CONTEXT_BYTES) if need is not None else None
+        budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
                 notice = (f"cuda skipped (needs ~{_gib(budget)} GiB, "
@@ -439,6 +476,63 @@ def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool =
         return None
 
 
+# Higher = better quality. Future formats slot in (int4, nvfp4) without touching callers.
+_VARIANT_QUALITY = {"bfloat16": 3.0, "float16": 3.0, "fp8": 2.0, "int4": 1.5, "nvfp4": 1.8}
+
+# Extra runtime/library a compute_type needs beyond its backend NAME being installed.
+_FORMAT_MODULE = {"fp8": "compressed_tensors"}
+
+
+def _format_ready(compute_type: str) -> bool:
+    """Return True when the runtime library required by `compute_type` is importable.
+    Most compute types need nothing extra; fp8 requires compressed_tensors."""
+    mod = _FORMAT_MODULE.get(compute_type)
+    return True if mod is None else _has_mod(mod)
+
+
+def _est_bytes(d) -> int | None:
+    """Return the estimated VRAM footprint of deployment `d` in bytes.
+    Uses d.est_bytes when set, otherwise falls back to native_models.model_size
+    (reads the artifact's on-disk weight files). Returns None when unknown."""
+    from . import native_models
+    if d.est_bytes is not None:
+        return d.est_bytes
+    return native_models.model_size(d.artifact)
+
+
+def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None):
+    """Pick the best downloadable variant of `model` for this machine. Deterministic:
+    same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
+    CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
+    runtime is missing. `pin` (a compute_type) forces that variant when it's valid."""
+    gpu = machine.nvidia[0] if machine.nvidia else None
+    cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
+
+    def candidate(d) -> bool:
+        if d.tier == "cpu":
+            return False
+        if d.backend not in machine.installed or not _format_ready(d.compute_type):
+            return False
+        if gpu is None or not gpu.vram_mb or gpu.capability is None:
+            return False
+        if d.min_capability is not None and gpu.capability < d.min_capability:
+            return False
+        need = _est_bytes(d)
+        if need is None:
+            return False
+        budget = gpu.vram_mb * 1024 * 1024 - reserved_bytes - _VRAM_CONTEXT_BYTES
+        return need * _weight_factor(d.compute_type) <= budget
+
+    cands = [d for d in model.deployments if candidate(d)]
+    if pin is not None:
+        pinned = next((d for d in cands if d.compute_type == pin), None)
+        if pinned is not None:
+            return pinned
+    if cands:
+        return max(cands, key=lambda d: (_VARIANT_QUALITY.get(d.compute_type, 0.0), d.rank))
+    return cpu_floor
+
+
 def _apply_bench(plans: list, bench: dict) -> list:
     """Demote any non-cpu plan whose cached RTF is >= the cpu floor's cached RTF
     (proven not faster than CPU). `bench` maps (backend, device, compute_type) -> rtf."""
@@ -453,6 +547,45 @@ def _apply_bench(plans: list, bench: dict) -> list:
         rtf = bench.get((p.backend, p.device, p.compute_type))
         (slow if (p.tier != "cpu" and rtf is not None and rtf >= cpu_rtf) else fast).append(p)
     return fast + slow
+
+
+async def _h_list_variants(state, msg, _b, conn=None):
+    from . import catalog, native_models
+    m = probe()
+    model = catalog.translate_model(msg.get("model"))
+    if model is None:
+        return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
+    reserve = sum((native_models.model_size(msg.get(k)) or 0)
+                  for k in ("asrId", "ttsId") if msg.get(k))
+    chosen = select_variant(model, m, reserve, pin=msg.get("pin"))
+    # select_variant can return None for a model with no cpu floor (none today, but
+    # resolve_translate guards the same case) — never dereference chosen.compute_type then.
+    if chosen is None:
+        return {"type": "error", "id": msg.get("id"), "message": "no runnable variant"}, None
+    gpu = m.nvidia[0] if m.nvidia else None
+    budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
+    variants = []
+    for d in model.deployments:
+        if d.tier == "cpu":
+            continue
+        need = _est_bytes(d)
+        if d.backend not in m.installed or not _format_ready(d.compute_type):
+            supported, reason = False, "runtime not installed"
+        elif gpu is None or not gpu.vram_mb or gpu.capability is None:
+            supported, reason = False, "no usable GPU"
+        elif d.min_capability is not None and gpu.capability < d.min_capability:
+            supported, reason = False, f"needs compute capability {d.min_capability}"
+        elif need is None:
+            supported, reason = False, "size unknown"
+        elif need * _weight_factor(d.compute_type) > budget:
+            supported, reason = False, "too big for available VRAM"
+        else:
+            supported, reason = True, "fits"
+        variants.append({"id": d.compute_type, "computeType": d.compute_type,
+                         "repo": d.artifact, "sizeBytes": need or 0,
+                         "supported": supported, "reason": reason})
+    return {"type": "list_variants_result", "id": msg.get("id"),
+            "variants": variants, "recommended": chosen.compute_type}, None
 
 
 async def _h_hardware_info(state, msg, _b, conn=None):
@@ -487,4 +620,5 @@ async def _h_models_catalog(state, msg, _b, conn=None):
 
 def register(state: dict):
     state.setdefault("handlers", {}).update(
-        {"hardware_info": _h_hardware_info, "models_catalog": _h_models_catalog})
+        {"hardware_info": _h_hardware_info, "models_catalog": _h_models_catalog,
+         "list_variants": _h_list_variants})

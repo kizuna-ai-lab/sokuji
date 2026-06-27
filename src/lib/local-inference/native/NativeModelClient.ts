@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo, VariantInfo } from './nativeProtocol';
 
 interface DownloadHandle {
   onProgress?: (p: ModelProgressMsg) => void;
@@ -117,6 +117,21 @@ export class NativeModelClient {
     return (msg as Extract<ServerMsg, { type: 'models_catalog_result' }>).models;
   }
 
+  /** Query available variants (quant levels) for a model, with hardware feasibility info.
+   *  `asrId`/`ttsId` tell the sidecar what is already loaded so it can compute the
+   *  remaining VRAM reserve when evaluating each variant. `pin` pins a specific variant. */
+  async listVariants(model: string, asrId: string | null, ttsId: string | null, pin?: string)
+    : Promise<{ variants: VariantInfo[]; recommended: string }> {
+    await this.connect();
+    const payload: { type: 'list_variants'; model: string; asrId?: string; ttsId?: string; pin?: string } = { type: 'list_variants', model };
+    if (asrId) payload.asrId = asrId;
+    if (ttsId) payload.ttsId = ttsId;
+    if (pin) payload.pin = pin;
+    const msg = await this.send(payload);
+    const r = msg as Extract<ServerMsg, { type: 'list_variants_result' }>;
+    return { variants: r.variants, recommended: r.recommended };
+  }
+
   /** Remove a model from the sidecar's cache; resolves to the bytes freed. */
   async delete(model: string): Promise<number> {
     await this.connect();
@@ -126,12 +141,17 @@ export class NativeModelClient {
   }
 
   /** Start a download; resolves 'ready' on completion or 'cancelled' if cancel()
-   *  stopped it. Rejects on a sidecar error tagged with this model. */
-  async download(model: string, onProgress?: (p: ModelProgressMsg) => void): Promise<ModelDownloadStatus> {
+   *  stopped it. Rejects on a sidecar error tagged with this model. `repo` selects
+   *  a chosen variant's repo (the sidecar fetches that repo instead of the model's
+   *  default — keeps download in lock-step with the deterministic variant load). */
+  async download(model: string, onProgress?: (p: ModelProgressMsg) => void, repo?: string): Promise<ModelDownloadStatus> {
     await this.connect();
     return new Promise<ModelDownloadStatus>((resolve, reject) => {
       this.downloads.set(model, { onProgress, resolve, reject });
-      this.ws!.send(JSON.stringify({ type: 'model_download', model, id: this.nextId++ }));
+      const payload: { type: 'model_download'; model: string; id: number; repo?: string } =
+        { type: 'model_download', model, id: this.nextId++ };
+      if (repo) payload.repo = repo;
+      this.ws!.send(JSON.stringify(payload));
     });
   }
 

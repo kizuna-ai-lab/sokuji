@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -20,8 +20,9 @@ interface NativeModelStore {
   refresh: (models: string[]) => Promise<void>;
   /** Query the sidecar for download sizes (bytes) of these models (best-effort). */
   refreshSizes: (models: string[]) => Promise<void>;
-  /** Download one model, streaming progress into the store. */
-  download: (model: string) => Promise<void>;
+  /** Download one model, streaming progress into the store. `repo` selects a chosen
+   *  variant's repo (the sidecar fetches it instead of the model's default repo). */
+  download: (model: string, repo?: string) => Promise<void>;
   /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
   cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
@@ -109,7 +110,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     }
   },
 
-  download: async (model) => {
+  download: async (model, repo) => {
     set((s) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
@@ -117,7 +118,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     }));
     try {
       const status = await client.download(model, (p) =>
-        set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })));
+        set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })), repo);
       // 'cancelled' (or a partial fetch) leaves the model incomplete → absent.
       set((s) => ({
         statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' },
@@ -183,6 +184,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   setAsrResolved: (r) => set({ asrResolved: r }),
   setTranslationResolved: (r) => set({ translationResolved: r }),
 }));
+
+/** Best-effort call to the sidecar's list_variants endpoint.
+ *  Exported at this module boundary so the renderer can mock it in tests. */
+export async function nativeListVariants(
+  model: string, asrId: string | null, ttsId: string | null, pin?: string,
+): Promise<{ variants: VariantInfo[]; recommended: string }> {
+  return client.listVariants(model, asrId, ttsId, pin);
+}
 
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);

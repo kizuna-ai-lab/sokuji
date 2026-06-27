@@ -173,6 +173,39 @@ def test_qwen35_translate_real_gpu_if_available():
     assert isinstance(out, str) and out.strip()
 
 
+def test_hunyuan_fp8_loads_without_forced_dtype(monkeypatch):
+    import sys
+    captured = {}
+    fake = MagicMock()
+    def from_pretrained(ref, **kw):
+        captured.update(kw)
+        return MagicMock(to=lambda d: MagicMock(eval=lambda: MagicMock()))
+    fake.AutoModelForCausalLM.from_pretrained.side_effect = from_pretrained
+    fake.AutoTokenizer.from_pretrained.return_value = MagicMock()
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+    b = tb.HunyuanTranslateBackend()
+    b.load("tencent/Hy-MT2-7B-FP8", "cuda", "fp8")
+    # fp8 → dtype="auto", NOT a forced torch dtype; no trust_remote_code
+    assert captured.get("dtype") == "auto"
+    assert "trust_remote_code" not in captured
+
+
+def test_hunyuan_bf16_still_forces_dtype(monkeypatch):
+    import sys, types
+    captured = {}
+    fake = MagicMock()
+    def from_pretrained(ref, **kw):
+        captured.update(kw)
+        return MagicMock(to=lambda d: MagicMock(eval=lambda: MagicMock()))
+    fake.AutoModelForCausalLM.from_pretrained.side_effect = from_pretrained
+    fake.AutoTokenizer.from_pretrained.return_value = MagicMock()
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+    monkeypatch.setitem(sys.modules, "torch", types.SimpleNamespace(bfloat16="BF16", float32="F32"))
+    b = tb.HunyuanTranslateBackend()
+    b.load("tencent/Hy-MT2-7B", "cuda", "bfloat16")
+    assert captured.get("dtype") == "BF16"
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
                     reason="set SOKUJI_RUN_GPU=1 (downloads Hy-MT2-1.8B + needs CUDA)")
 def test_hunyuan_translate_real_gpu():

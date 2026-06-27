@@ -53,11 +53,19 @@ export class NativeTranslateClient {
     return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
   }
 
-  async init(sourceLang: string, targetLang: string, modelId?: string, device?: string):
-      Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string }> {
+  async init(
+    sourceLang: string, targetLang: string, modelId?: string, device?: string,
+    asrModel?: string | null, ttsModel?: string | null, variant?: string,
+  ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string }> {
     await this.connect();
     this.onStatus?.('[native-translate] init…');
-    const msg = await this.send({ type: 'translate_init', sourceLang, targetLang, model: modelId, device });
+    const payload: Record<string, unknown> = { type: 'translate_init', sourceLang, targetLang, model: modelId, device };
+    // Pass co-loaded stage IDs and the chosen variant so the sidecar can account
+    // for their VRAM when reserving memory for the translation model.
+    if (asrModel) payload.asrModel = asrModel;
+    if (ttsModel) payload.ttsModel = ttsModel;
+    if (variant) payload.variant = variant;
+    const msg = await this.send(payload);
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }

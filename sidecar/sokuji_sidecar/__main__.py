@@ -1,3 +1,7 @@
+import os
+# Reduce CUDA allocator fragmentation when loading large quantized models (e.g. FP8).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import asyncio, json, sys
 from .server import serve
 

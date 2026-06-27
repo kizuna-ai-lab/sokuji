@@ -19,6 +19,8 @@ class Deployment:
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
     rank: float         # tie-breaker within a tier (higher = preferred)
+    min_capability: tuple[int, int] | None = None   # min CUDA compute cap for a GPU variant
+    est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
 
 
 @dataclass(frozen=True)
@@ -112,6 +114,15 @@ def _llm_translate_row(mid, name, repo, backend, sort_order, recommended=False):
     ), recommended=recommended, sort_order=sort_order)
 
 
+def _with_fp8(row, fp8_repo):
+    """Return a copy of a TranslateModel row with a gpu-cuda fp8 variant appended."""
+    fp8 = Deployment(row.deployments[0].backend, "gpu-cuda", "fp8", fp8_repo, 1.0,
+                     min_capability=(8, 9))
+    return TranslateModel(row.id, row.name, row.languages,
+                          row.deployments + (fp8,),
+                          recommended=row.recommended, sort_order=row.sort_order)
+
+
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
                        QWEN25_REPO, "qwen_translate", 1, recommended=True),
@@ -123,10 +134,12 @@ TRANSLATE_MODELS: list[TranslateModel] = [
                        "Qwen/Qwen3.5-2B", "qwen35_translate", 4),
     _llm_translate_row("translategemma-4b", "TranslateGemma 4B",
                        "google/translategemma-4b-it", "gemma_translate", 5),
-    _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B",
-                       "tencent/Hy-MT2-1.8B", "hunyuan_translate", 6),
-    _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B",
-                       "tencent/Hy-MT2-7B", "hunyuan_translate", 7),
+    _with_fp8(_llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B",
+                                 "tencent/Hy-MT2-1.8B", "hunyuan_translate", 6),
+              "tencent/Hy-MT2-1.8B-FP8"),
+    _with_fp8(_llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B",
+                                 "tencent/Hy-MT2-7B", "hunyuan_translate", 7),
+              "tencent/Hy-MT2-7B-FP8"),
 ]
 
 
