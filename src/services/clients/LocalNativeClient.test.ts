@@ -32,7 +32,8 @@ describe('LocalNativeClient', () => {
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
     } as any);
     expect(m.asr.init).toHaveBeenCalled();
-    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'qwen2.5-0.5b', undefined);
+    // init signature: (src, tgt, translationModelId, translationDevice, asrModelId, ttsModelId, translationVariant)
+    expect(m.translate.init).toHaveBeenCalledWith('es', 'en', 'qwen2.5-0.5b', undefined, 'sense-voice', undefined, undefined);
 
     await m.asr.onResult({ text: 'hola', durationMs: 100, recognitionTimeMs: 5 });
     await new Promise((r) => setTimeout(r, 0));
