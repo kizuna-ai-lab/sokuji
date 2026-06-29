@@ -43,3 +43,21 @@ def test_moss_onnx_cpu_streaming_smoke():
     full, gen_ms = b.generate("hello world", 1.0)
     assert full.size > 0 and gen_ms >= 0
     b.unload(); assert b.is_loaded is False
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (CUDA + MOSS ONNX assets)")
+def test_moss_onnx_cuda_streaming_smoke():
+    import time
+    from huggingface_hub import snapshot_download
+    snapshot_download("OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX")
+    snapshot_download("OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
+    b = backends.make_backend("moss_onnx")
+    b.load("OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX", "cuda", "fp32")
+    t0 = time.perf_counter()
+    chunks = list(b.generate_stream("The weather is lovely today.", 1.0))
+    audio_s = sum(c.size for c in chunks) / b.sample_rate
+    rtf = (time.perf_counter() - t0) / max(audio_s, 1e-6)
+    print(f"moss-onnx cuda streaming RTF={rtf:.4f} (~{1/rtf:.1f}x realtime)")
+    assert chunks and rtf < 1.0          # must be real-time on the GPU
+    b.unload()
