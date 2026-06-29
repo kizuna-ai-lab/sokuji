@@ -177,7 +177,14 @@ async def _h_tts_cancel(state, msg, _b, conn=None):
     return {"type": "ok", "id": msg.get("id")}, None
 
 
+async def _h_list_tts_voices(state, msg, _b, conn=None):
+    from . import tts_voices
+    voices = tts_voices.list_builtin_voice_names(msg.get("model"))
+    return {"type": "list_tts_voices_result", "id": msg.get("id"), "voices": voices}, None
+
+
 def register(state: dict):
     state.setdefault("handlers", {}).update(
         {"tts_init": _h_tts_init, "set_voice": _h_set_voice,
-         "tts_generate": _h_tts_generate, "tts_cancel": _h_tts_cancel})
+         "tts_generate": _h_tts_generate, "tts_cancel": _h_tts_cancel,
+         "list_tts_voices": _h_list_tts_voices})
