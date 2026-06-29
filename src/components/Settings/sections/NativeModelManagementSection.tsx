@@ -31,6 +31,7 @@ import {
   useNativeModelErrors,
   useNativeAsrResolved,
   useNativeTranslationResolved,
+  useNativeTtsResolved,
   nativeListVariants,
 } from '../../../stores/nativeModelStore';
 import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -383,6 +384,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // Per-stage resolved plan (device + speed metric) from the last session ready.
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
+  const ttsResolved = useNativeTtsResolved();
   const refresh = useNativeModelStore((s) => s.refresh);
   const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
   const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
@@ -524,9 +526,10 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     onPin?: (selectId: string, variantId: string) => void,
   ) => {
     // Feed each card the resolved plan for its stage so the active model shows the
-    // measured device + speed metric (ASR rtf / translation tok/s). TTS has none.
+    // measured device + speed metric (ASR rtf / translation tok/s or tts rtf).
     const resolvedForField = field === 'asrModel' ? asrResolved
-      : field === 'translationModel' ? translationResolved : null;
+      : field === 'translationModel' ? translationResolved
+      : field === 'ttsModel' ? ttsResolved : null;
     return (
       <RecommendedOthers
         items={cards}

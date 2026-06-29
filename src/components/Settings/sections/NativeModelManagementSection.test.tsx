@@ -52,6 +52,8 @@ const mockVariants: VariantInfo[] = [
 // Mutable store state — mutated per test in beforeEach
 const mockStatuses: Record<string, string> = {};
 const mockSizes: Record<string, number> = {};
+// mockTtsResolved starts with "mock" so vitest hoists it with vi.mock; reassigned per test.
+let mockTtsResolved: { model: string; device: string; rtf?: number } | null = null;
 
 const mockListVariants = vi.fn();
 const mockDownload = vi.fn();
@@ -107,6 +109,7 @@ vi.mock('../../../stores/nativeModelStore', () => ({
   useNativeAsrLoading: () => false,
   useNativeAsrResolved: () => null,
   useNativeTranslationResolved: () => null,
+  useNativeTtsResolved: () => mockTtsResolved,
   nativeListVariants: (...args: unknown[]) => mockListVariants(...args),
 }));
 
@@ -118,6 +121,7 @@ beforeEach(() => {
   // Reset mutable state so tests are independent.
   Object.keys(mockStatuses).forEach((k) => delete mockStatuses[k]);
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
+  mockTtsResolved = null;
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
   mockDownload.mockReset();
   mockDeleteModel.mockReset();
@@ -261,5 +265,39 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     // Download must be called with the model's catalog id AND the FP8 variant's repo.
     expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8');
+  });
+});
+
+describe('NativeModelManagementSection — TTS model card resolved badge', () => {
+  // The default TTS voice for targetLanguage:'en' (mockSettings) is Amy
+  // (csukuangfj/vits-piper-en_US-amy-low) — first entry in NATIVE_TTS_BY_LANG['en'].
+  // With ttsModel:'' the component treats Amy as selected via pickNativeTts('en').
+  const AMY_ID = 'csukuangfj/vits-piper-en_US-amy-low';
+
+  it('shows the live device badge on the Amy card when ttsResolved matches its id', () => {
+    mockTtsResolved = { model: AMY_ID, device: 'cpu', rtf: 0.44 };
+
+    render(<NativeModelManagementSection />);
+
+    // The Amy card must exist in the TTS group.
+    const amyCard = screen.getByTestId(`model-card-${AMY_ID}`);
+
+    // The resolved badge must appear (device chip with --live CSS class).
+    const liveBadge = amyCard.querySelector('.model-card__lang-tag--live');
+    expect(liveBadge).not.toBeNull();
+
+    // Badge text must include "CPU" (from tierLabel('cpu').label).
+    expect(liveBadge).toHaveTextContent('CPU');
+  });
+
+  it('shows no live badge on TTS cards when ttsResolved is null', () => {
+    mockTtsResolved = null;
+
+    render(<NativeModelManagementSection />);
+
+    // The whole TTS section must not contain any live badge.
+    const ttsSection = document.getElementById('model-tts-section')!;
+    expect(ttsSection).not.toBeNull();
+    expect(ttsSection.querySelector('.model-card__lang-tag--live')).toBeNull();
   });
 });
