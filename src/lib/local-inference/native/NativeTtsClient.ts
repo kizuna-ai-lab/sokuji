@@ -42,7 +42,17 @@ export class NativeTtsClient {
   private onMessage(data: any) {
     if (data instanceof ArrayBuffer) { this.lastBinary = data; return; }
     const msg = JSON.parse(data) as ServerMsg;
-    if (msg.type === 'error') { this.onError?.(msg.message); if (msg.id) this.reject(msg.id); return; }
+    if (msg.type === 'error') {
+      this.onError?.(msg.message);
+      const eid = (msg as any).id as number | undefined;
+      if (eid !== undefined) {
+        this.pendingJson.get(eid)?.(msg);
+        this.pendingJson.delete(eid);
+        this.pendingBinary.delete(eid);
+        this.streamHandlers.delete(eid);
+      }
+      return;
+    }
     const id = (msg as any).id as number;
     if (msg.type === 'tts_chunk') {                       // binary frame precedes this chunk meta
       const onChunk = this.streamHandlers.get(id);
@@ -60,10 +70,6 @@ export class NativeTtsClient {
     }
     this.pendingJson.get(id)?.(msg);
     this.pendingJson.delete(id);
-  }
-
-  private reject(id: number) {
-    this.pendingJson.delete(id); this.pendingBinary.delete(id); this.streamHandlers.delete(id);
   }
 
   private send(payload: object, expectBinary = false): Promise<{ msg: ServerMsg; binary?: ArrayBuffer; id: number }> {
@@ -109,8 +115,8 @@ export class NativeTtsClient {
       const d = done as Extract<ServerMsg, { type: 'tts_done' }>;
       return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: d.generationTimeMs };
     }
-    const { msg, binary, id } = await this.send({ type: 'tts_generate', text, speed }, true);
-    this.inFlightId = id;
+    this.inFlightId = this.nextId;
+    const { msg, binary } = await this.send({ type: 'tts_generate', text, speed }, true);
     const r = msg as Extract<ServerMsg, { type: 'result' }>;
     return { samples: new Float32Array(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
   }

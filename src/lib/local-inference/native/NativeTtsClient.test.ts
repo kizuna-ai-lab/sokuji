@@ -11,7 +11,26 @@ class FakeWS {
   sent: any[] = [];
   // when true, tts_generate replies with a 3-chunk stream + tts_done; else one-shot result
   static streaming = false;
+  // when set, tts_generate replies with an error instead of result/done
+  static errorMessage: string | null = null;
+  // when true, tts_generate response is deferred (must call FakeWS.last.flushDeferred() to send it)
+  static deferResponse = false;
+  private deferredBinary: any = null;
+  private deferredResponse: any = null;
+
   constructor(public url: string) { FakeWS.last = this; setTimeout(() => this.onopen?.(), 0); }
+
+  flushDeferred() {
+    if (this.deferredBinary) {
+      this.onmessage?.(this.deferredBinary);
+      this.deferredBinary = null;
+    }
+    if (this.deferredResponse) {
+      this.onmessage?.(this.deferredResponse);
+      this.deferredResponse = null;
+    }
+  }
+
   send(d: any) {
     this.sent.push(d);
     const msg = typeof d === 'string' ? JSON.parse(d) : null;
@@ -20,7 +39,14 @@ class FakeWS {
         device: 'cpu', backend: 'moss_onnx', rtf: 0.44,
         streaming: FakeWS.streaming, clones: FakeWS.streaming }) }));
     if (msg?.type === 'tts_generate') {
-      if (FakeWS.streaming) {
+      if (FakeWS.errorMessage) {
+        const errorResp = { data: JSON.stringify({ type: 'error', id: msg.id, message: FakeWS.errorMessage }) };
+        if (FakeWS.deferResponse) {
+          this.deferredResponse = errorResp;
+        } else {
+          queueMicrotask(() => this.onmessage?.(errorResp));
+        }
+      } else if (FakeWS.streaming) {
         for (let i = 0; i < 3; i++) {
           const pcm = new Float32Array([i / 10, i / 10, i / 10]);
           queueMicrotask(() => this.onmessage?.({ data: pcm.buffer }));
@@ -30,9 +56,16 @@ class FakeWS {
           { type: 'tts_done', id: msg.id, totalSamples: 9, generationTimeMs: 7 }) }));
       } else {
         const pcm = new Float32Array([0.1, 0.2, 0.3]);
-        queueMicrotask(() => this.onmessage?.({ data: pcm.buffer }));
-        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(
-          { type: 'result', id: msg.id, sampleRate: 24000, generationTimeMs: 7, samples: 3 }) }));
+        const resultResp = { data: pcm.buffer };
+        const metaResp = { data: JSON.stringify(
+          { type: 'result', id: msg.id, sampleRate: 24000, generationTimeMs: 7, samples: 3 }) };
+        if (FakeWS.deferResponse) {
+          this.deferredBinary = resultResp;
+          this.deferredResponse = metaResp;
+        } else {
+          queueMicrotask(() => this.onmessage?.(resultResp));
+          queueMicrotask(() => this.onmessage?.(metaResp));
+        }
       }
     }
   }
@@ -41,6 +74,8 @@ class FakeWS {
 
 beforeEach(() => {
   FakeWS.streaming = false;
+  FakeWS.errorMessage = null;
+  FakeWS.deferResponse = false;
   (globalThis as any).WebSocket = FakeWS as any;
   (globalThis as any).window = { electron: { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) } };
 });
@@ -80,5 +115,29 @@ describe('NativeTtsClient', () => {
     c.cancel();
     await p;
     expect(FakeWS.last.sent.some((s) => typeof s === 'string' && JSON.parse(s).type === 'tts_cancel')).toBe(true);
+  });
+
+  it('one-shot cancel sends tts_cancel for the in-flight id', async () => {
+    FakeWS.deferResponse = true;
+    const c = new NativeTtsClient();
+    await c.init();
+    const p = c.generate('hi');
+    c.cancel();
+    FakeWS.last.flushDeferred();
+    await p;
+    const cancelMsg = FakeWS.last.sent.find((s) => typeof s === 'string' && JSON.parse(s).type === 'tts_cancel');
+    expect(cancelMsg).toBeDefined();
+    const generateMsg = FakeWS.last.sent.find((s) => typeof s === 'string' && JSON.parse(s).type === 'tts_generate');
+    const generateId = JSON.parse(generateMsg).id;
+    const cancelId = JSON.parse(cancelMsg).id;
+    expect(cancelId).toBe(generateId);
+    expect(cancelId).toBeGreaterThan(0);
+  });
+
+  it('a server error message rejects the pending generate (no hang)', async () => {
+    FakeWS.errorMessage = 'boom';
+    const c = new NativeTtsClient();
+    await c.init();
+    await expect(c.generate('hi')).rejects.toThrow('boom');
   });
 });
