@@ -108,6 +108,35 @@ def test_fun_asr_mlt_nano_row():
         ("funasr_nano", "cpu", "float32"),
     ]
     assert all(d.artifact == catalog.FUN_ASR_MLT_REPO for d in m.deployments)
+
+
+def test_tts_models_have_deployments_languages_and_repos():
+    assert catalog.tts_models(), "no tts models"
+    for m in catalog.tts_models():
+        assert m.deployments, f"{m.id} has no deployments"
+        assert m.languages, f"{m.id} has no languages"
+        assert m.repos, f"{m.id} has no download repos"
+        for d in m.deployments:
+            assert d.backend in {"sherpa_tts", "moss_onnx"}
+
+
+def test_tts_system_has_cpu_floor_and_unique_ids():
+    ids = [m.id for m in catalog.tts_models()]
+    assert len(ids) == len(set(ids)), "duplicate tts model ids"
+    for m in catalog.tts_models():
+        assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no cpu floor"
+
+
+def test_tts_moss_nano_is_streaming_cloning():
+    m = catalog.tts_model("moss-tts-nano")
+    assert m is not None and m.streaming and m.clones
+    assert len(m.repos) == 2  # LM ONNX + audio-tokenizer ONNX
+
+
+def test_tts_model_unknown_returns_none():
+    assert catalog.tts_model("does-not-exist") is None
+
+
 def test_translate_models_have_deployments_and_cpu_floor():
     for m in catalog.translate_models():
         assert m.deployments, f"{m.id} has no deployments"

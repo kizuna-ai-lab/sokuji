@@ -187,3 +187,55 @@ def translate_models() -> list[TranslateModel]:
 
 def translate_model(model_id: str) -> TranslateModel | None:
     return next((m for m in TRANSLATE_MODELS if m.id == model_id), None)
+
+
+@dataclass(frozen=True)
+class TtsModel:
+    id: str
+    name: str
+    languages: tuple[str, ...]
+    deployments: tuple[Deployment, ...]
+    repos: tuple[str, ...] = ()      # HF repos to download
+    urls: tuple[str, ...] = ()       # extra files (e.g. a vocoder .onnx)
+    clones: bool = False             # zero-shot voice cloning from a reference clip
+    streaming: bool = False          # intra-utterance audio-delta streaming
+    sample_rate: int = 24000         # native rate (engine resamples to 24k)
+    recommended: bool = False
+    sort_order: int = 99
+
+
+def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False):
+    return TtsModel(mid, name, langs, (
+        Deployment("sherpa_tts", "gpu-cuda", "fp32", repo, 1.0),
+        Deployment("sherpa_tts", "cpu", "fp32", repo, 1.0),
+    ), repos=(repo,), urls=tuple(urls), sample_rate=sr,
+       recommended=recommended, sort_order=sort_order)
+
+
+_MOSS_NANO_LM_REPO = os.environ.get(
+    "SOKUJI_MOSS_TTS_NANO_REPO", "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX")
+_MOSS_NANO_TOK_REPO = os.environ.get(
+    "SOKUJI_MOSS_TTS_NANO_TOK_REPO", "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
+
+TTS_MODELS: list[TtsModel] = [
+    TtsModel("moss-tts-nano", "MOSS-TTS-Nano (100M)",
+             ("zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru",
+              "ar", "pl", "cs", "da", "sv", "el", "tr", "hu", "fa", "nl"),
+             (Deployment("moss_onnx", "gpu-cuda", "fp32", _MOSS_NANO_LM_REPO, 1.0),
+              Deployment("moss_onnx", "cpu", "fp32", _MOSS_NANO_LM_REPO, 1.0)),
+             repos=(_MOSS_NANO_LM_REPO, _MOSS_NANO_TOK_REPO),
+             clones=True, streaming=True, sample_rate=48000,
+             recommended=True, sort_order=0),
+    _sherpa_tts_row("piper-en-amy", "Piper (en-US Amy)", ("en",),
+                    "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True),
+    _sherpa_tts_row("vits-icefall-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
+                    "csukuangfj/vits-icefall-zh-aishell3", 11, 16000),
+]
+
+
+def tts_models() -> list[TtsModel]:
+    return list(TTS_MODELS)
+
+
+def tts_model(model_id: str) -> TtsModel | None:
+    return next((m for m in TTS_MODELS if m.id == model_id), None)
