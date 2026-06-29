@@ -9,8 +9,8 @@
  *      built-in and custom voice groups.
  *   2. Supertonic capability (`upload` only) hides the Record button.
  */
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import VoiceLibrarySection from './VoiceLibrarySection';
 
 const base = {
@@ -49,5 +49,35 @@ describe('VoiceLibrarySection', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: /record/i })).toBeNull();
+    // List mode (default): selection is rendered as buttons, not a <select>.
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('renders a dropdown with optgroups and fires onSelect on change (Supertonic)', () => {
+    const onSelect = vi.fn();
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId="preset:0"
+        onSelect={onSelect}
+        voices={[
+          { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false, meta: { gender: 'F' } },
+          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
+        ]}
+        capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown' }}
+      />,
+    );
+
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+
+    // Built-in entries under "Presets", custom entries under "My Voices".
+    const presets = within(select).getByRole('group', { name: 'Presets' });
+    expect(within(presets).getByRole('option', { name: 'Sarah (F)' })).toBeInTheDocument();
+    const myVoices = within(select).getByRole('group', { name: 'My Voices' });
+    expect(within(myVoices).getByRole('option', { name: 'Mine' })).toBeInTheDocument();
+
+    fireEvent.change(select, { target: { value: 'custom:1' } });
+    expect(onSelect).toHaveBeenCalledWith('custom:1');
   });
 });

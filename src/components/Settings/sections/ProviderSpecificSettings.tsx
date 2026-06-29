@@ -1975,7 +1975,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     onImport={handleImportVoice}
                     onRename={(id, name) => handleRenameVoice(sidFromVoiceId(id), name)}
                     onDelete={(id) => handleDeleteVoice(sidFromVoiceId(id))}
-                    capability={{ importModes: ['upload'], curation: false }}
+                    capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown' }}
                     isSessionActive={isSessionActive}
                   />
                   <div className="voice-library-info">

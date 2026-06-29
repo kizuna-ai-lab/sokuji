@@ -35,6 +35,10 @@ export interface VoiceLibraryCapability {
   /** `accept` filter for the upload file input. Defaults to the JSON voice-card
    *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
   accept?: string;
+  /** How voice SELECTION is presented. `'list'` (default) renders a clickable
+   *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
+   *  original Supertonic affordance). Curation does not apply in dropdown mode. */
+  presentation?: 'list' | 'dropdown';
 }
 
 export interface VoiceLibrarySectionProps {
@@ -92,9 +96,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
+  const isDropdown = capability.presentation === 'dropdown';
 
   const builtins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
   const customs = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
+  // Manage list (dropdown mode) shows user-owned voices that can be renamed/deleted.
+  const removableVoices = useMemo(() => voices.filter((v) => v.removable), [voices]);
 
   // Curation: when on, non-curated builtins hide behind the "show all" expander.
   const curatedBuiltins = useMemo(
@@ -250,6 +257,155 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     );
   };
 
+  // Manage-list row for dropdown mode: name + rename/delete only (selection
+  // happens through the <select>, not these rows). Mirrors the original
+  // Supertonic "Manage imported voices" rows.
+  const renderManageRow = (v: VoiceEntry) => {
+    const isEditing = editingId === v.id;
+    return (
+      <li key={v.id} className="voice-manage-row">
+        {isEditing ? (
+          <input
+            autoFocus
+            className="voice-name-edit"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={() => void commitEdit(v.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void commitEdit(v.id);
+              if (e.key === 'Escape') setEditingId(null);
+            }}
+          />
+        ) : (
+          <span className="voice-name">{v.label}</span>
+        )}
+        <button
+          type="button"
+          className="voice-row-btn"
+          disabled={isEditing}
+          onClick={() => startEdit(v.id, v.label)}
+        >
+          {t('voiceLibrary.rename', 'Rename')}
+        </button>
+        <button
+          type="button"
+          className="voice-row-btn voice-row-btn-danger"
+          onClick={() => void confirmAndDelete(v.id, v.label)}
+        >
+          {t('voiceLibrary.delete', 'Delete')}
+        </button>
+      </li>
+    );
+  };
+
+  // Shared import toolbar (upload / record affordances), reused by both
+  // presentations so the dropdown path stays in sync with the list path.
+  const importToolbar = (
+    <div className="voice-library-manage-toolbar">
+      {canUpload && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Plus size={14} />
+          {t('voiceLibrary.importVoice', 'Import voice…')}
+        </button>
+      )}
+      {canRecord && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          onClick={() => (isRecording ? void stopRecording() : void startRecording())}
+        >
+          <Mic size={14} />
+          {isRecording
+            ? t('voiceLibrary.stopRecording', 'Stop recording')
+            : t('voiceLibrary.recordVoice', 'Record voice…')}
+        </button>
+      )}
+      {canUpload && (
+        <span className="voice-library-drop-hint">
+          <Upload size={12} />
+          {t('voiceLibrary.dropHint', 'or drop a voice file here')}
+        </span>
+      )}
+      {canUpload && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={capability.accept ?? 'application/json,.json'}
+          style={{ display: 'none' }}
+          multiple
+          onChange={(e) => void handleFiles(e.target.files)}
+        />
+      )}
+    </div>
+  );
+
+  // Dropdown presentation: restore the original Supertonic <select> + optgroups
+  // for selection and a collapsible "manage" list for imported voices.
+  if (isDropdown) {
+    return (
+      <div className="voice-library-section">
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>{t('voiceLibrary.voice', 'Voice')}</span>
+          </div>
+          <select
+            className="select-dropdown"
+            value={selectedId}
+            onChange={(e) => onSelect(e.target.value)}
+            disabled={isSessionActive}
+          >
+            <optgroup label={t('voiceLibrary.presets', 'Presets')}>
+              {builtins.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
+                </option>
+              ))}
+            </optgroup>
+            {customs.length > 0 && (
+              <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
+                {customs.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
+
+        {(canUpload || canRecord) && (
+          <details className="voice-library-manage">
+            <summary>
+              {t('voiceLibrary.manageImported', 'Manage imported voices')}
+              {removableVoices.length > 0 && (
+                <span className="voice-library-manage-count"> ({removableVoices.length})</span>
+              )}
+            </summary>
+            <div
+              className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
+              onDrop={canUpload ? onDrop : undefined}
+              onDragOver={canUpload ? onDragOver : undefined}
+              onDragLeave={canUpload ? onDragLeave : undefined}
+            >
+              {importToolbar}
+              {removableVoices.length === 0 ? (
+                <div className="voice-library-empty">
+                  {t('voiceLibrary.emptyHint', 'No imported voices yet.')}
+                </div>
+              ) : (
+                <ul className="voice-manage-list">{removableVoices.map(renderManageRow)}</ul>
+              )}
+            </div>
+          </details>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="voice-library-section">
       <div className="setting-item">
@@ -296,46 +452,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           onDragOver={canUpload ? onDragOver : undefined}
           onDragLeave={canUpload ? onDragLeave : undefined}
         >
-          <div className="voice-library-manage-toolbar">
-            {canUpload && (
-              <button
-                type="button"
-                className="voice-import-btn"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Plus size={14} />
-                {t('voiceLibrary.importVoice', 'Import voice…')}
-              </button>
-            )}
-            {canRecord && (
-              <button
-                type="button"
-                className="voice-import-btn"
-                onClick={() => (isRecording ? void stopRecording() : void startRecording())}
-              >
-                <Mic size={14} />
-                {isRecording
-                  ? t('voiceLibrary.stopRecording', 'Stop recording')
-                  : t('voiceLibrary.recordVoice', 'Record voice…')}
-              </button>
-            )}
-            {canUpload && (
-              <span className="voice-library-drop-hint">
-                <Upload size={12} />
-                {t('voiceLibrary.dropHint', 'or drop a voice file here')}
-              </span>
-            )}
-            {canUpload && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={capability.accept ?? 'application/json,.json'}
-                style={{ display: 'none' }}
-                multiple
-                onChange={(e) => void handleFiles(e.target.files)}
-              />
-            )}
-          </div>
+          {importToolbar}
         </div>
       )}
     </div>
