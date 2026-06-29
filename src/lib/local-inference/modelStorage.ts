@@ -1,10 +1,11 @@
 /**
  * Model Storage — IndexedDB wrapper for persisting model files as Blobs.
  *
- * Database: 'sokuji-models', version 2
- *   Store 'files':        key = '{modelId}/{filename}' → Blob
- *   Store 'metadata':     key = modelId → ModelMetadata
- *   Store 'voice_styles': key = auto-increment id → StoredVoice (Task 17)
+ * Database: 'sokuji-models', version 3
+ *   Store 'files':         key = '{modelId}/{filename}' → Blob
+ *   Store 'metadata':      key = modelId → ModelMetadata
+ *   Store 'voice_styles':  key = auto-increment id → StoredVoice (Task 17)
+ *   Store 'native_voices': key = auto-increment id → StoredNativeVoice (Task 8)
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
@@ -38,12 +39,18 @@ interface SokujiModelsDB {
     value: unknown;
     indexes: { engine: string };
   };
+  native_voices: {
+    // Auto-increment primary key. Voice records are owned by nativeVoiceStorage.ts;
+    // schema kept loose here so modelStorage stays agnostic.
+    key: number;
+    value: unknown;
+  };
 }
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
 const DB_NAME = 'sokuji-models';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<SokujiModelsDB>> | null = null;
 
@@ -63,6 +70,9 @@ export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
             autoIncrement: true,
           });
           store.createIndex('engine', 'engine', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('native_voices')) {
+          db.createObjectStore('native_voices', { keyPath: 'id', autoIncrement: true });
         }
       },
     });
@@ -160,13 +170,14 @@ export async function deleteModel(modelId: string): Promise<void> {
   await deleteMetadata(modelId);
 }
 
-/** Clear all data from both files and metadata stores */
+/** Clear all data from all stores */
 export async function clearAll(): Promise<void> {
   const db = await getDb();
-  const tx = db.transaction(['files', 'metadata', 'voice_styles'], 'readwrite');
+  const tx = db.transaction(['files', 'metadata', 'voice_styles', 'native_voices'], 'readwrite');
   await tx.objectStore('files').clear();
   await tx.objectStore('metadata').clear();
   await tx.objectStore('voice_styles').clear();
+  await tx.objectStore('native_voices').clear();
   await tx.done;
 }
 
