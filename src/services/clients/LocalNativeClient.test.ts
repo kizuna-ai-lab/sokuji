@@ -234,3 +234,81 @@ describe('LocalNativeClient load order', () => {
     expect(order).toEqual(['translate', 'asr']);
   });
 });
+
+// ── Task 4: ttsResolved + streaming flag ──────────────────────────────────────
+
+function tts4Deps(over: any = {}) {
+  return {
+    asr: {
+      onResult: null as any, onError: null as any, onPartialResult: null as any,
+      init: vi.fn().mockResolvedValue({ loadTimeMs: 1, device: 'cpu' }),
+      feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
+    },
+    translate: {
+      onError: null as any,
+      init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+      translate: vi.fn().mockResolvedValue({ translatedText: 'x', inferenceTimeMs: 1 }),
+      dispose: vi.fn(),
+    },
+    tts: {
+      init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 2, device: 'cpu', rtf: 0.44, streaming: true, clones: true }),
+      generate: vi.fn(), cancel: vi.fn(), dispose: vi.fn(),
+    },
+    ...over,
+  };
+}
+
+describe('LocalNativeClient TTS connect', () => {
+  beforeEach(() => useNativeModelStore.setState({ ttsResolved: null, ttsLoading: false }));
+
+  it('surfaces ttsResolved from the TTS init', async () => {
+    const deps = tts4Deps();
+    const c = new LocalNativeClient(deps);
+    c.setEventHandlers({});
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
+      ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false,
+    } as any);
+    expect(deps.tts.init).toHaveBeenCalledWith('moss-tts-nano');
+    expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ model: 'moss-tts-nano', device: 'cpu', rtf: 0.44 });
+  });
+
+  it('sets ttsLoading true then false around init', async () => {
+    const loadingStates: boolean[] = [];
+    let resolveTtsInit!: (v: any) => void;
+    const slowTts = {
+      init: vi.fn().mockReturnValue(new Promise((res) => { resolveTtsInit = res; })),
+      generate: vi.fn(), cancel: vi.fn(), dispose: vi.fn(),
+    };
+    const deps = tts4Deps({ tts: slowTts });
+    const c = new LocalNativeClient(deps);
+    c.setEventHandlers({});
+    const connectPromise = c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
+      ttsModelId: 'piper-en-amy', ttsSpeed: 1.0, textOnly: false,
+    } as any);
+    // Allow ASR + translate to finish but TTS init still pending
+    await new Promise((r) => setTimeout(r, 0));
+    loadingStates.push(useNativeModelStore.getState().ttsLoading);
+    resolveTtsInit({ sampleRate: 22050, loadTimeMs: 3, device: 'cpu', rtf: 0.3, streaming: false });
+    await connectPromise;
+    loadingStates.push(useNativeModelStore.getState().ttsLoading);
+    expect(loadingStates[0]).toBe(true);
+    expect(loadingStates[1]).toBe(false);
+  });
+
+  it('does NOT init TTS for pocket models', async () => {
+    const deps = tts4Deps();
+    const c = new LocalNativeClient(deps);
+    c.setEventHandlers({});
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
+      ttsModelId: 'pocket-tts-v1', ttsSpeed: 1.0, textOnly: false,
+    } as any);
+    expect(deps.tts.init).not.toHaveBeenCalled();
+    expect(useNativeModelStore.getState().ttsResolved).toBeNull();
+  });
+});

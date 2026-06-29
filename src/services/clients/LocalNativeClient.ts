@@ -30,6 +30,7 @@ export class LocalNativeClient implements IClient {
   private idCounter = 0;
   private cfg: any = null;
   private ttsEnabled = false;
+  private ttsStreaming = false;
   private ttsSpeed = 1.0;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
@@ -84,13 +85,23 @@ export class LocalNativeClient implements IClient {
       await initTranslate();
       await initAsr();
     }
-    // Enable TTS for non-cloning models (e.g. sherpa piper). Cloning models
-    // (Pocket) need a reference clip and stay off until a reference-voice UX.
+    // Enable native TTS for piper (one-shot) and MOSS (streaming/cloning). Pocket
+    // voice-cloning stays off until the Plan B reference-voice UX.
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly
       && !String(config.ttsModelId).includes('pocket');
     if (this.ttsEnabled) {
-      try { await this.tts.init(config.ttsModelId); }
-      catch (e) { this.ttsEnabled = false; this.handlers.onError?.(`native TTS init failed: ${e}`); }
+      store.setTtsLoading(true);
+      try {
+        const r = await this.tts.init(config.ttsModelId);
+        this.ttsStreaming = !!r.streaming;
+        store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu',
+          rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
+      } catch (e) {
+        this.ttsEnabled = false;
+        this.handlers.onError?.(`native TTS init failed: ${e}`);
+      } finally {
+        store.setTtsLoading(false);
+      }
     }
     this.connected = true;
     this.emitEvent('local.native.init.ready', 'client', { ttsEnabled: this.ttsEnabled });
