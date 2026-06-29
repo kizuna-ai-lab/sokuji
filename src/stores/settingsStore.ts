@@ -202,6 +202,7 @@ export interface LocalNativeSettings {
   asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
   translationDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's translation device selection
   ttsDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's tts device selection
+  ttsVoice: string;                   // override the sidecar's tts voice selection ('' = per-language default)
 }
 
 // Cache Entry
@@ -399,6 +400,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   asrDevice: 'auto',
   translationDevice: 'auto',
   ttsDevice: 'auto',
+  ttsVoice: '',
   translationVariantByModel: {},
 };
 
@@ -750,6 +752,7 @@ export function createLocalNativeSessionConfig(
     asrDevice: settings.asrDevice,
     translationDevice: settings.translationDevice,
     ttsDevice: settings.ttsDevice,
+    ttsVoice: settings.ttsVoice,
   };
 }
 
