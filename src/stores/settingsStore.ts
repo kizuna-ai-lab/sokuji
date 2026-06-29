@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage, statusReposFor } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage, statusReposFor, nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -1294,6 +1294,14 @@ const useSettingsStore = create<SettingsStore>()(
           // be downloaded (parity with LOCAL_INFERENCE, which gates on language).
           const asrOpt = NATIVE_ASR.find((m) => m.id === s.asrModel);
           const asrCompatible = !!asrOpt && supportsLanguage(asrOpt, s.sourceLanguage);
+          // The selected translation must be a valid card for THIS language pair
+          // (parity with the ASR check). A stale selection left over from a language
+          // swap — e.g. the zh→en Opus-MT card after reversing to en→zh — is still
+          // "downloaded" so isReady() passes, but it can't translate the new pair;
+          // the UI already shows it as "None". Gate Start on it. (qwen* cards are
+          // multilingual and valid for every pair, so the common path stays ready.)
+          const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage)
+            .some((c) => c.selectId === s.translationModel);
           // Gate on the selected stage models being downloaded into the sidecar cache.
           // TTS is dropped from the requirement when text-only is on.
           const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, get().textOnly);
@@ -1319,9 +1327,10 @@ const useSettingsStore = create<SettingsStore>()(
             }
           }
           await useNativeModelStore.getState().refresh(models, statusRepos);
-          ready = asrCompatible && useNativeModelStore.getState().isReady(models);
+          ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
           message = ready ? ''
             : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
+            : !trCompatible ? i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair')
             : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
         }
         set({

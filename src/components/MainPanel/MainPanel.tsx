@@ -1399,12 +1399,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Re-validate before starting session to catch stale button state.
       // validateApiKey is the single authority for session readiness — it handles
       // auto-select, model readiness, and API key validation for all providers.
-      if (provider === Provider.LOCAL_INFERENCE) {
+      if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
         const result = await useSettingsStore.getState().validateApiKey();
         if (!result.valid) {
           setIsInitializing(false);
           addRealtimeEvent(
-            { type: 'session.init_error', data: { message: t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
+            { type: 'session.init_error', data: { message: result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
             'client', 'session.init_error'
           );
           return;

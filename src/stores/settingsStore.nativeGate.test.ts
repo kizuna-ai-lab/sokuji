@@ -103,3 +103,31 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     expect(reposArg()).toBeUndefined();
   });
 });
+
+describe('LOCAL_NATIVE gate rejects a translation model incompatible with the pair', () => {
+  // Repro: zh→en with Opus-MT (zh→en), then reverse to en→zh. The stale
+  // 'opus-mt-zh-en' selection is not a card for en→zh, so the UI shows "None" —
+  // but the model is still downloaded, so isReady() is true. The gate must NOT
+  // report ready, else Start stays enabled with no usable translation model.
+  it('is not ready when the selected translation is stale for the reversed pair (even if downloaded)', async () => {
+    mockIsReady.mockReturnValue(true); // models "downloaded"
+    setNative({ sourceLanguage: 'en', targetLanguage: 'zh', translationModel: 'opus-mt-zh-en' });
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(false);
+    expect(useSettingsStore.getState().isApiKeyValid).toBe(false);
+  });
+
+  it('stays ready for a direction-correct Opus-MT card (does not over-block)', async () => {
+    mockIsReady.mockReturnValue(true);
+    setNative({ sourceLanguage: 'zh', targetLanguage: 'en', translationModel: 'opus-mt-zh-en' });
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(true);
+  });
+
+  it('stays ready for a multilingual qwen card on any pair', async () => {
+    mockIsReady.mockReturnValue(true);
+    setNative({ sourceLanguage: 'en', targetLanguage: 'zh', translationModel: 'qwen2.5-0.5b' });
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(true);
+  });
+});
