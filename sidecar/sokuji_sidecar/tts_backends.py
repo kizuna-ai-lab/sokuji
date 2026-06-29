@@ -99,7 +99,11 @@ class MossOnnxTtsBackend:
     NAME = "moss_onnx"
     STREAMING = True
     CLONES = True
-    PRESET_VOICE = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Junhao")
+    # Default to "Ava": MOSS-TTS-Nano-100M has a silence-token attractor that the
+    # speaker prompt strongly modulates; the Chinese "Junhao" voice triggers long
+    # mid-sentence silences on English text almost every time, while "Ava" is the
+    # most reliably clean preset for English. See issue #277 (silence governance).
+    PRESET_VOICE = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Ava")
 
     def __init__(self):
         self._rt = None
