@@ -27,6 +27,7 @@ const mockSettings = {
   ttsModel: '',
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
+  ttsDevice: 'auto' as const,
   translationVariantByModel: {},
 };
 

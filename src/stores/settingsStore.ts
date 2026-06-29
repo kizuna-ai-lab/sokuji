@@ -201,6 +201,7 @@ export interface LocalNativeSettings {
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
   asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
   translationDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's translation device selection
+  ttsDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's tts device selection
 }
 
 // Cache Entry
@@ -397,6 +398,7 @@ const defaultLocalNativeSettings: LocalNativeSettings = {
   systemPrompt: '',
   asrDevice: 'auto',
   translationDevice: 'auto',
+  ttsDevice: 'auto',
   translationVariantByModel: {},
 };
 
@@ -747,6 +749,7 @@ export function createLocalNativeSessionConfig(
     wrapTranscript,
     asrDevice: settings.asrDevice,
     translationDevice: settings.translationDevice,
+    ttsDevice: settings.ttsDevice,
   };
 }
 

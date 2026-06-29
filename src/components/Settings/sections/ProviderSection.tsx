@@ -147,7 +147,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // as LOCAL_INFERENCE, but split into VRAM vs RAM per stage: a model lands in
   // VRAM when its device is forced to cuda, or left on auto AND the sidecar
   // reports an available GPU tier for it (so the resolver would run it on the
-  // GPU). TTS has no device override and runs on CPU → RAM.
+  // GPU). Each stage (ASR/translation/TTS) carries its own device override.
   const nativeMemoryEstimate = useMemo(() => {
     if (provider !== Provider.LOCAL_NATIVE) return null;
     const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
@@ -156,11 +156,11 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     return estimateNativeMemoryByDevice([
       { id: localNativeSettings.asrModel, device: localNativeSettings.asrDevice },
       { id: trCard?.downloadId, device: localNativeSettings.translationDevice },
-      { id: ttsId, device: 'cpu' },
+      { id: ttsId, device: localNativeSettings.ttsDevice },
     ], nativeModelSizes, nativeCatalog);
   }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
     localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
-    localNativeSettings.asrDevice, localNativeSettings.translationDevice,
+    localNativeSettings.asrDevice, localNativeSettings.translationDevice, localNativeSettings.ttsDevice,
     nativeModelSizes, nativeCatalog]);
 
   const asrResolved = useNativeAsrResolved();

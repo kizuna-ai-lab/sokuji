@@ -57,12 +57,23 @@ describe('LocalNativeClient', () => {
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy',
     } as any);
-    expect(m.tts.init).toHaveBeenCalledWith('piper-en-amy');
+    expect(m.tts.init).toHaveBeenCalledWith('piper-en-amy', undefined);
     await m.asr.onResult({ text: 'hi', durationMs: 10, recognitionTimeMs: 1 });
     await new Promise((r) => setTimeout(r, 0));
     expect(deltas.length).toBe(1);
     expect(deltas[0].role).toBe('assistant');
     expect(deltas[0].len).toBe(24000); // 16k resampled to 24k
+  });
+
+  it('forwards the ttsDevice override to tts.init', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 16000, loadTimeMs: 1 });
+    const c = new LocalNativeClient(m);
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsDevice: 'cuda',
+    } as any);
+    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', 'cuda');
   });
 
   it('returns a fresh array from getConversationItems (so setItems re-renders)', async () => {
@@ -474,7 +485,7 @@ describe('LocalNativeClient TTS connect', () => {
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
       ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false,
     } as any);
-    expect(deps.tts.init).toHaveBeenCalledWith('moss-tts-nano');
+    expect(deps.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined);
     expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ model: 'moss-tts-nano', device: 'cpu', rtf: 0.44 });
   });
 

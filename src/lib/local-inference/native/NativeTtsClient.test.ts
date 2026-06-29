@@ -91,6 +91,14 @@ describe('NativeTtsClient', () => {
     expect(r).toMatchObject({ sampleRate: 24000, loadTimeMs: 5, device: 'cpu', rtf: 0.44, streaming: false, clones: false });
   });
 
+  it('forwards the device override in the tts_init message', async () => {
+    const c = new NativeTtsClient();
+    await c.init('moss-tts-nano', 'cuda');
+    const initMsg = JSON.parse(FakeWS.last.sent[0]);
+    expect(initMsg.type).toBe('tts_init');
+    expect(initMsg.device).toBe('cuda');
+  });
+
   it('one-shot generate sends tts_generate and returns binary PCM', async () => {
     const c = new NativeTtsClient();
     await c.init();

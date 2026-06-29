@@ -96,10 +96,10 @@ export class NativeTtsClient {
     });
   }
 
-  async init(model?: string): Promise<TtsReady> {
+  async init(model?: string, device?: string): Promise<TtsReady> {
     await this.connect();
     this.onStatus?.('[native-tts] init…');
-    const { msg } = await this.send({ type: 'tts_init', model });
+    const { msg } = await this.send({ type: 'tts_init', model, device });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
     return {
