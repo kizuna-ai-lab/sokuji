@@ -46,10 +46,12 @@ function downmixToMono(buffer: AudioBuffer): Float32Array {
 
 /**
  * Native (Electron sidecar) adapter over the generalized VoiceLibrarySection.
- * Builds a normalized VoiceEntry[] for MOSS voices — built-in presets (curated
- * first, the rest behind the "show all" expander; ids `builtin:<Name>`) plus the
- * user's recorded/imported custom voices (ids `custom:<id>`) — and writes the
- * chosen opaque id back as `ttsVoice`.
+ * Uses the same dropdown presentation as Supertonic: built-in voices (ordered
+ * curated-first; ids `builtin:<Name>`) fill the "Presets" optgroup and the user's
+ * recorded/imported custom voices (ids `custom:<id>`) fill "My Voices", with a
+ * manage list (rename/delete). The chosen opaque id is written back as `ttsVoice`.
+ * The only difference from Supertonic is import: record OR upload (audio), vs
+ * Supertonic's upload-only voice file.
  *
  * Built-in NAMES come from the sidecar (`list_tts_voices`, fetched by the
  * parent); `[]` when the model isn't downloaded yet, in which case only the
@@ -187,7 +189,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         onRecord={handleRecord}
         onRename={onRename}
         onDelete={onDelete}
-        capability={{ importModes: ['record', 'upload'], curation: true, accept: 'audio/*' }}
+        capability={{ importModes: ['record', 'upload'], curation: false, presentation: 'dropdown', accept: 'audio/*' }}
         isSessionActive={isSessionActive}
       />
       {captureError && (

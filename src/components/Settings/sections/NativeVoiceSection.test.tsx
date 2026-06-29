@@ -19,19 +19,26 @@ vi.mock('../../../lib/local-inference/nativeVoiceStorage', () => ({
   addNativeVoice: vi.fn().mockResolvedValue({ id: 1 }),
 }));
 
+// Captures the capability the adapter passes down, so we can assert the unified
+// dropdown presentation + record/upload import without rendering the real component.
+let lastCapability: any = null;
+
 // Thin harness: renders selectable voices and exposes capture triggers.
 vi.mock('./VoiceLibrarySection', () => ({
   __esModule: true,
-  default: ({ voices, onSelect, onRecord, onImport }: any) => (
-    <div>
-      {voices.map((v: any) => (
-        <button key={v.id} onClick={() => onSelect(v.id)}>{v.label}</button>
-      ))}
-      <button onClick={() => onRecord(new Float32Array(8000), 16000)}>rec-short</button>
-      <button onClick={() => onRecord(new Float32Array(16000 * 5).fill(0.3), 16000)}>rec-ok</button>
-      <button onClick={() => onImport(new File([new Uint8Array(8)], 'voice.wav'))}>import-bad</button>
-    </div>
-  ),
+  default: ({ voices, onSelect, onRecord, onImport, capability }: any) => {
+    lastCapability = capability;
+    return (
+      <div>
+        {voices.map((v: any) => (
+          <button key={v.id} onClick={() => onSelect(v.id)}>{v.label}</button>
+        ))}
+        <button onClick={() => onRecord(new Float32Array(8000), 16000)}>rec-short</button>
+        <button onClick={() => onRecord(new Float32Array(16000 * 5).fill(0.3), 16000)}>rec-ok</button>
+        <button onClick={() => onImport(new File([new Uint8Array(8)], 'voice.wav'))}>import-bad</button>
+      </div>
+    );
+  },
 }));
 
 const baseProps = {
@@ -66,6 +73,13 @@ describe('NativeVoiceSection', () => {
     expect(screen.getByText('Ava')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Bella'));
     expect(onSelect).toHaveBeenCalledWith('builtin:Bella');
+  });
+
+  it('uses the unified dropdown presentation with record + upload import (audio)', () => {
+    render(<NativeVoiceSection {...baseProps} />);
+    expect(lastCapability.presentation).toBe('dropdown');
+    expect(lastCapability.importModes).toEqual(['record', 'upload']);
+    expect(lastCapability.accept).toBe('audio/*');
   });
 
   it('rejects a too-short recording without storing it and surfaces an error', async () => {
