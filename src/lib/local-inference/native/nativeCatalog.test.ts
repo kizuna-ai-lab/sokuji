@@ -3,14 +3,15 @@ import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolve
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
-  it('maps the 7 verified piper languages and nothing else', () => {
+  it('maps the 7 verified piper languages plus MOSS-Nano multilingual support', () => {
     for (const l of ['en', 'de', 'es', 'fr', 'it', 'ru', 'zh']) {
       expect(pickNativeTts(l)).toContain('vits-piper');
       expect(hasNativeTts(l)).toBe(true);
       expect(nativeTtsVoices(l).length).toBeGreaterThan(0);
     }
+    // Japanese has no piper voice, but MOSS supports it
     expect(pickNativeTts('ja')).toBe('');
-    expect(hasNativeTts('ja')).toBe(false);
+    expect(hasNativeTts('ja')).toBe(true);
   });
 
   it('resolves the TTS choice against the target language', () => {
@@ -86,8 +87,10 @@ describe('nativeCatalog', () => {
     // no Off card — voice picker only (text-only is the common textOnly toggle)
     expect(tts.every((c) => c.selectId !== 'off')).toBe(true);
 
-    // language with no piper voice -> empty list (UI shows a text-only notice)
-    expect(nativeTtsCards('ja')).toHaveLength(0);
+    // language with no piper voice but MOSS support -> MOSS card only
+    const jaCards = nativeTtsCards('ja');
+    expect(jaCards).toHaveLength(1);
+    expect(jaCards[0]).toMatchObject({ selectId: 'moss-tts-nano', downloadId: 'moss-tts-nano', recommended: true });
   });
 
   it('includes whisper-large-v3 as the recommended multilingual ASR option', () => {
@@ -451,6 +454,29 @@ describe('nativeCatalog', () => {
     it('falls back to the recommended variant repo when unpinned', () => {
       const repos = statusReposFor(['hy-mt2-1.8b'], vd, {});
       expect(repos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B' });
+    });
+  });
+
+  describe('MOSS-Nano native TTS', () => {
+    it('appears as a voice for supported languages with capability flags', () => {
+      const en = nativeTtsVoices('en');
+      const moss = en.find((v) => v.id === 'moss-tts-nano');
+      expect(moss).toBeTruthy();
+      expect(moss!.streaming).toBe(true);
+      expect(moss!.clones).toBe(true);
+      expect(nativeTtsVoices('zh').some((v) => v.id === 'moss-tts-nano')).toBe(true);
+      expect(nativeTtsVoices('ja').some((v) => v.id === 'moss-tts-nano')).toBe(true);
+    });
+
+    it('is exposed as a TTS card carrying the streaming/clones flags', () => {
+      const card = nativeTtsCards('en').find((c) => c.selectId === 'moss-tts-nano');
+      expect(card).toBeTruthy();
+      expect(card!.streaming).toBe(true);
+      expect(card!.clones).toBe(true);
+    });
+
+    it('does not appear for an unsupported language', () => {
+      expect(nativeTtsVoices('th').some((v) => v.id === 'moss-tts-nano')).toBe(false);
     });
   });
 });

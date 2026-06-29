@@ -12,6 +12,8 @@ export interface NativeModelOption {
   languages?: string[];
   recommended?: boolean;
   sortOrder?: number;
+  streaming?: boolean;
+  clones?: boolean;
 }
 
 /**
@@ -128,9 +130,21 @@ export const NATIVE_TTS_BY_LANG: Record<string, NativeModelOption[]> = {
   ],
 };
 
+// MOSS-TTS-Nano: one multilingual model (sidecar catalog id `moss-tts-nano`),
+// streaming + voice-cloning capable. Surfaced as a TTS voice for each language
+// it supports, alongside the per-language piper voices.
+const MOSS_NANO_LANGS = ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru',
+  'ar', 'pl', 'cs', 'da', 'sv', 'el', 'tr', 'hu', 'fa', 'nl'];
+const MOSS_NANO_TTS: NativeModelOption = {
+  id: 'moss-tts-nano', label: 'MOSS-TTS-Nano (multilingual)',
+  languages: MOSS_NANO_LANGS, recommended: false, sortOrder: 50,
+  streaming: true, clones: true,
+};
+
 /** Voice options for a target language (empty = no native voice → text only). */
 export function nativeTtsVoices(targetLanguage: string): NativeModelOption[] {
-  return NATIVE_TTS_BY_LANG[targetLanguage] || [];
+  const piper = NATIVE_TTS_BY_LANG[targetLanguage] || [];
+  return MOSS_NANO_LANGS.includes(targetLanguage) ? [...piper, MOSS_NANO_TTS] : piper;
 }
 
 /** Default native TTS model for the target language ('' = no speech output). */
@@ -334,6 +348,8 @@ export interface NativeModelCardSpec {
   recommended?: boolean;
   sortOrder?: number;
   note?: string;
+  streaming?: boolean;
+  clones?: boolean;
 }
 
 function asrToCard(m: NativeModelOption): NativeModelCardSpec {
@@ -405,6 +421,7 @@ export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
   return nativeTtsVoices(tgt).map((v, i) => ({
     selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
     recommended: i === 0, sortOrder: i,
+    streaming: v.streaming, clones: v.clones,
   }));
 }
 
