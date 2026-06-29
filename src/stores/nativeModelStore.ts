@@ -49,9 +49,15 @@ interface NativeModelStore {
   asrResolved: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
   /** The resolved translation plan from the last session `ready` (model + device + memory). */
   translationResolved: { model: string; device: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null;
+  /** True while a native TTS session is loading its model (init→ready). */
+  ttsLoading: boolean;
+  /** The resolved TTS plan from the last session `ready` (device + measured rtf + memory). */
+  ttsResolved: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
   setAsrLoading: (v: boolean) => void;
   setAsrResolved: (r: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
   setTranslationResolved: (r: { model: string; device: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
+  setTtsLoading: (v: boolean) => void;
+  setTtsResolved: (r: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
@@ -78,6 +84,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   asrLoading: false,
   asrResolved: null,
   translationResolved: null,
+  ttsLoading: false,
+  ttsResolved: null,
 
   refreshCatalog: async (models) => {
     try {
@@ -190,6 +198,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   setAsrLoading: (v) => set({ asrLoading: v }),
   setAsrResolved: (r) => set({ asrResolved: r }),
   setTranslationResolved: (r) => set({ translationResolved: r }),
+  setTtsLoading: (v) => set({ ttsLoading: v }),
+  setTtsResolved: (r) => set({ ttsResolved: r }),
 }));
 
 /** Best-effort call to the sidecar's list_variants endpoint.
@@ -208,3 +218,5 @@ export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);
 export const useNativeTranslationResolved = () => useNativeModelStore((s) => s.translationResolved);
+export const useNativeTtsLoading = () => useNativeModelStore((s) => s.ttsLoading);
+export const useNativeTtsResolved = () => useNativeModelStore((s) => s.ttsResolved);

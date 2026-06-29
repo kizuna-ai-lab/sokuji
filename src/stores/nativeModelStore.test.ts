@@ -135,3 +135,17 @@ describe('nativeModelStore.refresh — variant-aware via cached statusRepos', ()
     expect((globalThis as any).__lastStatusRepos).toEqual({ 'hy-mt2-1.8b': 'explicit' });
   });
 });
+
+describe('nativeModelStore TTS resolved', () => {
+  beforeEach(() => { useNativeModelStore.setState({ ttsLoading: false, ttsResolved: null }); });
+
+  it('setTtsResolved stores the resolved plan', () => {
+    useNativeModelStore.getState().setTtsResolved({ model: 'moss-tts-nano', device: 'cpu', rtf: 0.44 });
+    expect(useNativeModelStore.getState().ttsResolved).toEqual({ model: 'moss-tts-nano', device: 'cpu', rtf: 0.44 });
+  });
+
+  it('setTtsLoading toggles the connecting flag', () => {
+    useNativeModelStore.getState().setTtsLoading(true);
+    expect(useNativeModelStore.getState().ttsLoading).toBe(true);
+  });
+});
