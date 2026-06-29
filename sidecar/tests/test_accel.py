@@ -942,6 +942,37 @@ def test_resolve_tts_unknown_model_raises():
         accel.resolve_tts("nope")
 
 
+def test_resolve_tts_arbitrary_sherpa_repo_synthesizes_model():
+    # The renderer's piper voice cards carry full HF repo paths as ids
+    # (e.g. csukuangfj/vits-piper-en_US-libritts_r-medium); these are not in
+    # the short sidecar catalog, but SherpaTtsBackend downloads/loads any repo,
+    # so resolve_tts must synthesize an ad-hoc sherpa_tts model instead of raising.
+    from sokuji_sidecar import accel
+    repo = "csukuangfj/vits-piper-en_US-libritts_r-medium"
+    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                            nvidia=(accel.Gpu("nvidia", "", 12000, (8, 9)),),
+                            apple_silicon=False, dml_adapters=(),
+                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
+                            fingerprint="testfp-piper")
+    plans = accel.resolve_tts(repo, override="auto", machine=machine)
+    assert plans, "expected at least one plan for an arbitrary sherpa repo"
+    assert all(p.backend == "sherpa_tts" for p in plans)
+    assert all(p.artifact == repo for p in plans)
+    assert plans[-1].tier == "cpu"  # cpu floor survives
+
+
+def test_resolve_tts_unknown_non_sherpa_id_still_raises():
+    from sokuji_sidecar import accel
+    import pytest
+    # An id with no sherpa-family hint must still raise (no blind synthesis).
+    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                            nvidia=(), apple_silicon=False, dml_adapters=(),
+                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
+                            fingerprint="testfp-bad")
+    with pytest.raises(ValueError):
+        accel.resolve_tts("some-org/random-llm-model", machine=machine)
+
+
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     from sokuji_sidecar import accel
     import numpy as np
