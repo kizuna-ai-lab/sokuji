@@ -484,3 +484,19 @@ def test_h_model_status_applies_repos_map(monkeypatch):
     assert ("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B-FP8") in calls
     assert ("sense-voice", None) in calls          # no override → default repo
     assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
+
+
+def test_download_specs_for_tts_moss_nano_has_two_repos_no_vad():
+    from sokuji_sidecar import native_models
+    spec = native_models.download_specs("moss-tts-nano")
+    assert len(spec["repos"]) == 2
+    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
+    assert any("MOSS-Audio-Tokenizer-Nano-ONNX" in r for r in spec["repos"])
+    assert spec["urls"] == []          # TTS gets no silero VAD
+
+
+def test_download_specs_for_tts_sherpa_single_repo():
+    from sokuji_sidecar import native_models
+    spec = native_models.download_specs("piper-en-amy")
+    assert spec["repos"] == ["csukuangfj/vits-piper-en_US-amy-low"]
+    assert spec["urls"] == []
