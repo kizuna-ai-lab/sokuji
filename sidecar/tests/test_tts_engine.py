@@ -84,3 +84,61 @@ def test_generate_stream_honors_cancel(monkeypatch):
     asyncio.run(eng.generate_stream("hi", 1.0, send, lambda: True, msg_id="m2"))
     chunks = [o for o, _ in sent if o and o.get("type") == "tts_chunk"]
     assert len(chunks) == 0  # cancelled before first emit
+
+
+class _FakeConn:
+    def __init__(self): self.ctx = {}; self.sent = []
+    async def send(self, obj=None, binary=None): self.sent.append((obj, binary))
+
+
+def _state(backend, monkeypatch, model_id):
+    _patch(monkeypatch, backend, model_id)
+    st = {"tts_engine": tts_engine.TtsEngine(), "handlers": {}}
+    tts_engine.register(st)
+    return st
+
+
+def test_handler_tts_init_ready_sets_ownership(monkeypatch):
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+    reply, _ = asyncio.run(st["handlers"]["tts_init"](
+        st, {"type": "tts_init", "id": 1, "model": "moss-tts-nano"}, None, conn))
+    assert reply["type"] == "ready" and reply["sampleRate"] == 24000
+    assert reply["streaming"] is True and reply["clones"] is True
+    assert conn.ctx.get("owns_tts") is True
+
+
+def test_handler_set_voice_buffers_binary(monkeypatch):
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "moss-tts-nano"}, None, conn))
+    ref = np.ones(2400, np.float32).tobytes()
+    reply, _ = asyncio.run(st["handlers"]["set_voice"](
+        st, {"type": "set_voice", "id": 2, "sampleRate": 24000}, ref, conn))
+    assert reply["type"] == "ok"
+    assert st["tts_engine"]._backend.voice == (2400, 24000)
+
+
+def test_handler_tts_generate_streaming_pushes_chunks(monkeypatch):
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "moss-tts-nano"}, None, conn))
+    reply, _ = asyncio.run(st["handlers"]["tts_generate"](
+        st, {"type": "tts_generate", "id": "g1", "text": "hello"}, None, conn))
+    assert reply is None  # streamed via conn.send, not returned
+    kinds = [o.get("type") for o, _ in conn.sent if o]
+    assert kinds.count("tts_chunk") == 3 and kinds.count("tts_done") == 1
+
+
+def test_handler_tts_generate_oneshot_returns_result(monkeypatch):
+    st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "piper-en-amy"}, None, conn))
+    reply, binary = asyncio.run(st["handlers"]["tts_generate"](
+        st, {"type": "tts_generate", "id": "g2", "text": "hello"}, None, conn))
+    assert reply["type"] == "result" and reply["id"] == "g2"
+    assert reply["sampleRate"] == 24000 and binary is not None
+    assert reply["samples"] == len(binary) // 2

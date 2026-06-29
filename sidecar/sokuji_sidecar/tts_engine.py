@@ -117,3 +117,54 @@ class TtsEngine:
                 torch.cuda.empty_cache()
             except Exception:
                 pass
+
+
+async def _h_tts_init(state, msg, _b, conn=None):
+    eng = state["tts_engine"]
+    ms = eng.init(msg.get("model"), msg.get("device", "auto"), msg.get("language", ""))
+    if conn is not None:
+        conn.ctx["owns_tts"] = True
+    reply = {"type": "ready", "id": msg.get("id"), "sampleRate": eng.sample_rate,
+             "loadTimeMs": ms}
+    if eng.resolved:
+        reply.update(eng.resolved)
+    return reply, None
+
+
+async def _h_set_voice(state, msg, binary_in, conn=None):
+    audio = np.frombuffer(binary_in, dtype=np.float32) if binary_in else np.zeros(0, np.float32)
+    state["tts_engine"].set_voice(audio, int(msg.get("sampleRate", 24000)))
+    return {"type": "ok", "id": msg.get("id")}, None
+
+
+async def _h_tts_generate(state, msg, _b, conn=None):
+    eng = state["tts_engine"]
+    text = msg.get("text", "")
+    speed = float(msg.get("speed", 1.0))
+    mid = msg.get("id")
+    if eng.streaming and conn is not None:
+        cancels = state.setdefault("tts_cancels", {})
+        cancels[mid] = False
+        try:
+            await eng.generate_stream(text, speed, conn.send,
+                                      lambda: cancels.get(mid, False), mid)
+        finally:
+            cancels.pop(mid, None)
+        return None, None                  # streamed via conn.send
+    pcm, gen_ms = eng.generate(text, speed)
+    reply = {"type": "result", "id": mid, "sampleRate": eng.sample_rate,
+             "generationTimeMs": gen_ms, "samples": len(pcm) // 2}
+    return reply, pcm
+
+
+async def _h_tts_cancel(state, msg, _b, conn=None):
+    cancels = state.get("tts_cancels") or {}
+    if msg.get("id") in cancels:
+        cancels[msg.get("id")] = True
+    return {"type": "ok", "id": msg.get("id")}, None
+
+
+def register(state: dict):
+    state.setdefault("handlers", {}).update(
+        {"tts_init": _h_tts_init, "set_voice": _h_set_voice,
+         "tts_generate": _h_tts_generate, "tts_cancel": _h_tts_cancel})
