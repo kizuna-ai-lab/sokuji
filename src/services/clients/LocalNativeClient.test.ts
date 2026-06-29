@@ -17,7 +17,7 @@ function mocks() {
     translate: vi.fn().mockResolvedValue({ sourceText: 'hola', translatedText: 'hello', inferenceTimeMs: 2 }),
     dispose: vi.fn(),
   };
-  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn() };
+  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn() };
   return { asr, translate, tts };
 }
 
@@ -525,5 +525,32 @@ describe('LocalNativeClient TTS connect', () => {
     } as any);
     expect(deps.tts.init).not.toHaveBeenCalled();
     expect(useNativeModelStore.getState().ttsResolved).toBeNull();
+  });
+});
+
+// ── Task 7: built-in voice applied at connect ─────────────────────────────────
+
+describe('LocalNativeClient voice selection', () => {
+  it('applies the selected builtin voice after init', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, streaming: true });
+    m.tts.setVoice = vi.fn().mockResolvedValue(undefined);
+    const c = new LocalNativeClient(m);
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsVoice: 'builtin:Bella',
+    } as any);
+    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined);
+    expect(m.tts.setVoice).toHaveBeenCalledWith('Bella');
+  });
+
+  it('empty ttsVoice resolves to the per-language default builtin', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setVoice = vi.fn().mockResolvedValue(undefined);
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano' } as any);
+    expect(m.tts.setVoice).toHaveBeenCalledWith('Ava');
   });
 });

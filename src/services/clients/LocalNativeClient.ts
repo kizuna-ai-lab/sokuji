@@ -6,6 +6,7 @@ import { NativeAsrClient } from '../../lib/local-inference/native/NativeAsrClien
 import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
+import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
 import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
@@ -99,6 +100,13 @@ export class LocalNativeClient implements IClient {
         this.ttsStreaming = !!r.streaming;
         store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu',
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
+        // Apply the selected voice (next-session semantics). Custom ids resolve
+        // against the stored library; the custom-clip path lands in Task 11.
+        const customIds: number[] = [];
+        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage);
+        if (voice.startsWith('builtin:')) {
+          await this.tts.setVoice?.(voice.slice('builtin:'.length));
+        }
       } catch (e) {
         this.ttsEnabled = false;
         this.handlers.onError?.(`native TTS init failed: ${e}`);
