@@ -28,7 +28,7 @@ Give the native (Electron Python sidecar) TTS stage a user-facing **Voice** expe
 - No dependency on #277 (silence governance). Unstable built-in voices remain reachable but flagged.
 - Selected voice applies on next session only; never hot-swap mid-session.
 - Sidecar `list_tts_voices` must not load the heavy ONNX model — read names from the snapshot manifest only.
-- All sidecar protocol changes stay backward-compatible (new fields optional; absence = current behavior).
+- The sidecar has never been released, so its WS protocol carries **no backward-compatibility obligation**. Prefer the cleanest design; freely rename/reshape messages and fields (and update the renderer in lockstep) rather than bolting on optional fields for compatibility. "Optional" should mean a field is genuinely optional in the domain (e.g. "no voice override → default voice"), not a compatibility shim.
 
 ## Architecture Overview
 
@@ -37,15 +37,16 @@ When the selected native TTS model is **voice-capable**, the TTS group in `Nativ
 1. **Built-in voices** — curated subset per target language + "show all" expander; default per language (en → `Ava`).
 2. **Custom voices** — a library of cloned voices (record / upload), rename/delete.
 
-The selected voice is stored in `settings.ttsVoice` and carried in the session config. At session start, `LocalNativeClient` applies it: built-in → passed to `tts_init`; custom → loaded from storage and sent via `set_voice`. MOSS then synthesizes with that voice (`_voice_rows` for custom, the session preset for built-in).
+The selected voice is stored in `settings.ttsVoice` and carried in the session config. At session start, `LocalNativeClient` calls `tts.init` then applies the voice via the unified `set_voice`: built-in → `set_voice { voice: name }`; custom → loaded from storage and sent as a clip. MOSS then synthesizes from `_voice_rows` (set either way).
 
 ```
 Settings: record/upload ─► nativeVoiceStorage.add ─► library list
           select voice    ─► settings.ttsVoice ('builtin:<Name>' | 'custom:<id>')
 Session start: createSessionConfig → ttsVoice → LocalNativeClient.connect
-   builtin  → tts.init(model, device, voiceName)         → sidecar sets session preset
-   custom   → tts.init(model, device); load clip; tts.setReferenceVoice(clip, sr)
-Generate: MOSS uses _voice_rows (custom) or session preset (builtin)
+   tts.init(model, device)            (no voice on init)
+   builtin  → tts.setVoice(name)          → set_voice { voice }   → _voice_rows from manifest
+   custom   → load clip; tts.setReferenceVoice(clip, sr) → set_voice + binary → _voice_rows from clip
+Generate: MOSS uses _voice_rows (set every session; default preset only if set_voice never called)
 ```
 
 ## Components
@@ -57,15 +58,16 @@ Generate: MOSS uses _voice_rows (custom) or session preset (builtin)
   - Must not instantiate `OnnxTtsRuntime` / load ONNX sessions.
   - If the model is not downloaded (`snapshot_download` raises) → return `{ voices: [] }` (not an error).
   - Optional `model` field on the request selects which TTS model's voices to list; defaults to the catalog's voice-capable MOSS model.
-- **`tts_init` gains optional `voice: string`** (built-in name).
-  - `TtsEngine.init(model_id, device, language, voice="")` sets the backend's per-instance preset voice for this session when `voice` is non-empty. Replace `MossOnnxTtsBackend.PRESET_VOICE` (class/env) usage with an instance attribute (`self.preset_voice`) defaulting to the env/`"Ava"` value; `_resolve_prompt_audio_codes` uses `self.preset_voice` when `_voice_rows is None`.
-  - Unknown/empty `voice` → keep the default preset (no error).
-- **`set_voice` (existing)** — unchanged; sets `_voice_rows` from the clip, overriding the preset for the session.
+- **`set_voice` becomes the single, unified voice setter** (two payload forms):
+  - **built-in by name:** `{ type: 'set_voice', voice: '<Name>' }` (no binary frame) → backend looks the name up in `list_builtin_voices()` and sets `_voice_rows` from that voice's `prompt_audio_codes`.
+  - **custom clone:** binary frame (Float32 PCM) + `{ type: 'set_voice', sampleRate }` → backend encodes the clip and sets `_voice_rows` (existing path).
+  - Unknown built-in name → reply with an error (the renderer only sends names from `list_tts_voices`, so this is a guard, not a normal path); the session keeps its current/default voice.
+- **`tts_init` does NOT carry a voice.** The backend keeps a default preset (`self.preset_voice`, an instance attribute defaulting to env/`"Ava"`) used by `_resolve_prompt_audio_codes` only when `set_voice` was never called this session. `MossOnnxTtsBackend.PRESET_VOICE` (class/env) becomes that instance default. The renderer always calls `set_voice` (built-in or custom) after `init`, so `_voice_rows` is normally set every session; the default preset covers the no-`set_voice` case (e.g. proto/tests/direct generate).
 
 ### 2. Renderer protocol & client
 
-- `nativeProtocol.ts`: add `list_tts_voices` (client msg) and `list_tts_voices_result` (server msg); `tts_init` carries optional `voice`.
-- `NativeTtsClient.init(model?, device?, voice?)` includes `voice` in `tts_init`. `setReferenceVoice` already exists.
+- `nativeProtocol.ts`: add `list_tts_voices` (client msg) and `list_tts_voices_result` (server msg). `tts_init` is unchanged (no voice field).
+- `NativeTtsClient.setVoice(name)` → sends `{ type: 'set_voice', voice: name }`. `setReferenceVoice(clip, sr)` (existing) → binary + `{ type: 'set_voice', sampleRate }`. `init(model?, device?)` is unchanged from the current signature.
 - A settings-time query path for `list_tts_voices` analogous to `NativeModelClient.list_variants` (so the picker can populate without a running session).
 
 ### 3. Built-in voice catalog/curation (`nativeCatalog.ts`)
@@ -93,9 +95,9 @@ Generate: MOSS uses _voice_rows (custom) or session preset (builtin)
 
 ### 7. Session wiring (`LocalNativeClient.ts`)
 
-- In `connect`, after determining the TTS model is enabled: `const voice = reconcileTtsVoice(config.ttsVoice, ids, config.targetLanguage)`.
-  - `builtin:<Name>` → `await this.tts.init(config.ttsModelId, config.ttsDevice, name)`.
-  - `custom:<id>` → `await this.tts.init(config.ttsModelId, config.ttsDevice)`, then load the clip via `nativeVoiceStorage.getNativeVoice(id)` and `await this.tts.setReferenceVoice(float32, sampleRate)`.
+- In `connect`, after determining the TTS model is enabled: `await this.tts.init(config.ttsModelId, config.ttsDevice)`, then `const voice = reconcileTtsVoice(config.ttsVoice, ids, config.targetLanguage)`:
+  - `builtin:<Name>` → `await this.tts.setVoice(name)`.
+  - `custom:<id>` → load the clip via `nativeVoiceStorage.getNativeVoice(id)` and `await this.tts.setReferenceVoice(float32, sampleRate)`.
 - Applied before any generation; no mid-session changes.
 
 ### 8. UI — generalized `VoiceLibrarySection`
@@ -114,7 +116,7 @@ Generate: MOSS uses _voice_rows (custom) or session preset (builtin)
 
 1. **Library management (Settings):** record/upload → validate → `nativeVoiceStorage.add` → list refreshes. Rename/delete operate on custom entries.
 2. **Selection (Settings):** picking any voice sets `settings.ttsVoice`. Built-in list is the dynamic `list_tts_voices` result annotated/curated by `nativeCatalog`.
-3. **Session start:** `createSessionConfig` carries `ttsVoice`; `LocalNativeClient.connect` reconciles and applies it (init `voice` for built-in, `set_voice` for custom).
+3. **Session start:** `createSessionConfig` carries `ttsVoice`; `LocalNativeClient.connect` calls `tts.init`, reconciles, and applies the voice via `set_voice` (`{voice}` for built-in, clip for custom).
 4. **Generation:** unchanged; MOSS uses the session's `_voice_rows`/preset.
 
 ## Error Handling
@@ -130,20 +132,21 @@ Generate: MOSS uses _voice_rows (custom) or session preset (builtin)
 
 Sidecar (pytest):
 - `list_tts_voices` reads names from `browser_poc_manifest.json` without loading ONNX; returns `[]` when the snapshot is absent.
-- `tts_init` with `voice` sets the session preset; empty/unknown keeps default; `set_voice` still overrides.
+- `set_voice` with `{ voice: '<Name>' }` sets `_voice_rows` from the built-in's `prompt_audio_codes`; with a binary clip sets `_voice_rows` from the clip; unknown name → error and the current/default voice is retained.
+- When `set_voice` is never called, generation uses the default preset (`self.preset_voice`).
 
 Renderer (vitest):
 - `nativeVoiceStorage` CRUD + name uniquification.
 - `reconcileTtsVoice`: deleted custom → default; `''` → default; valid → pass-through.
 - `settingsStore`: `ttsVoice` default `''`, updatable, session config carries the resolved concrete value.
-- `NativeTtsClient`: `init` forwards `voice` in `tts_init`; `setReferenceVoice` sends binary + `set_voice`.
-- `LocalNativeClient`: built-in path calls `tts.init(model, device, name)`; custom path calls `init` then `setReferenceVoice` with the stored clip; deleted-custom path falls back.
+- `NativeTtsClient`: `setVoice(name)` sends `{ set_voice, voice }`; `setReferenceVoice` sends binary + `{ set_voice, sampleRate }`.
+- `LocalNativeClient`: built-in path calls `tts.init` then `tts.setVoice(name)`; custom path calls `tts.init` then `setReferenceVoice` with the stored clip; deleted-custom path falls back to the default built-in.
 - `nativeCatalog`: `defaultTtsVoice` per language; `curatedBuiltinVoices` split/order; `nativeTtsModelIsVoiceCapable`.
 - Generalized `VoiceLibrarySection`: renders built-in + custom groups; curation expander appears only with `curation:true`; record button only when `'record' ∈ importModes`; Supertonic adapter regression tests stay green.
 
 ## Build Order (for the plan)
 
-1. Sidecar `list_tts_voices` + `tts_init` voice param (per-instance preset).
+1. Sidecar `list_tts_voices` + unified `set_voice` (built-in `{voice}` form alongside the existing clip form; instance default preset).
 2. Renderer protocol/client (`list_tts_voices`, `init(voice)`), `nativeCatalog` curation/default/capability.
 3. `settingsStore.ttsVoice` + session config + `IClient`.
 4. `LocalNativeClient` built-in voice wiring (built-in picker end-to-end shippable here).
