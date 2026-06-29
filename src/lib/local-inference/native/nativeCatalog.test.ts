@@ -9,9 +9,17 @@ describe('nativeCatalog', () => {
       expect(hasNativeTts(l)).toBe(true);
       expect(nativeTtsVoices(l).length).toBeGreaterThan(0);
     }
-    // Japanese has no piper voice, but MOSS supports it
-    expect(pickNativeTts('ja')).toBe('');
+    // Japanese has no piper voice but MOSS supports it → pickNativeTts returns MOSS as default
+    expect(pickNativeTts('ja')).toBe('moss-tts-nano');
     expect(hasNativeTts('ja')).toBe(true);
+    // Piper languages still default to the first piper voice
+    expect(pickNativeTts('en')).toBe('csukuangfj/vits-piper-en_US-amy-low');
+    // MOSS-only: all 13 non-piper MOSS languages get 'moss-tts-nano' as default
+    for (const l of ['ko', 'pt', 'ar', 'pl', 'cs', 'da', 'sv', 'el', 'tr', 'hu', 'fa', 'nl']) {
+      expect(pickNativeTts(l)).toBe('moss-tts-nano');
+    }
+    // Language with no voice at all (e.g. 'th') still returns ''
+    expect(pickNativeTts('th')).toBe('');
   });
 
   it('resolves the TTS choice against the target language', () => {
@@ -23,8 +31,12 @@ describe('nativeCatalog', () => {
     expect(resolveNativeTts('csukuangfj/vits-piper-en_US-ryan-low', 'en')).toBe('csukuangfj/vits-piper-en_US-ryan-low');
     // a stale cross-language voice falls back to the language default
     expect(resolveNativeTts('csukuangfj/vits-piper-en_US-ryan-low', 'de')).toBe('csukuangfj/vits-piper-de_DE-thorsten-low');
-    // language without a voice -> undefined
-    expect(resolveNativeTts('', 'ja')).toBeUndefined();
+    // MOSS-only language (ja): Auto resolves to moss-tts-nano (Fix 2)
+    expect(resolveNativeTts('', 'ja')).toBe('moss-tts-nano');
+    // MOSS voice explicitly chosen for ja is valid
+    expect(resolveNativeTts('moss-tts-nano', 'ja')).toBe('moss-tts-nano');
+    // language with NO voice at all -> undefined
+    expect(resolveNativeTts('', 'th')).toBeUndefined();
   });
 
   it('resolves translation choices', () => {

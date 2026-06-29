@@ -1,6 +1,17 @@
 import type { TtsResult } from '../engine/TtsEngine';
 import type { ServerMsg } from './nativeProtocol';
 
+/**
+ * The sidecar emits binary PCM as Int16 mono @ 24 kHz.
+ * Convert Int16 bytes to Float32 samples (range [-1, 1]).
+ */
+function int16ToFloat32(buf: ArrayBuffer): Float32Array {
+  const i16 = new Int16Array(buf);
+  const f32 = new Float32Array(i16.length);
+  for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+  return f32;
+}
+
 interface ElectronInvoke { invoke(channel: string, data?: unknown): Promise<any>; }
 function electron(): ElectronInvoke {
   const e = (window as unknown as { electron?: ElectronInvoke }).electron;
@@ -56,7 +67,7 @@ export class NativeTtsClient {
     const id = (msg as any).id as number;
     if (msg.type === 'tts_chunk') {                       // binary frame precedes this chunk meta
       const onChunk = this.streamHandlers.get(id);
-      if (onChunk && this.lastBinary) { onChunk(new Float32Array(this.lastBinary), msg.seq); this.lastBinary = null; }
+      if (onChunk && this.lastBinary) { onChunk(int16ToFloat32(this.lastBinary), msg.seq); this.lastBinary = null; }
       return;                                             // do NOT resolve pendingJson; wait for tts_done
     }
     if (msg.type === 'tts_done') {
@@ -118,7 +129,7 @@ export class NativeTtsClient {
     this.inFlightId = this.nextId;
     const { msg, binary } = await this.send({ type: 'tts_generate', text, speed }, true);
     const r = msg as Extract<ServerMsg, { type: 'result' }>;
-    return { samples: new Float32Array(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
+    return { samples: int16ToFloat32(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
   }
 
   cancel(): void {

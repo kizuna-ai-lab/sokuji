@@ -228,32 +228,41 @@ export class LocalNativeClient implements IClient {
         const textEnd = pos >= 0 ? pos + sentence.length : searchFrom + sentence.length;
         searchFrom = textEnd;
 
-        if (this.ttsStreaming) {
-          // Pre-set audioTextEnd so every chunk delta already carries current karaoke
-          // metadata — mirrors LocalInferenceClient streaming path (LIC line 647).
-          item.formatted!.audioTextEnd = textEnd;
-          let chunkSampleCount = 0;
-          await this.tts.generate(sentence, this.ttsSpeed, (pcm: Float32Array) => {
-            const int16 = float32ToInt16(resampleFloat32(pcm, 24000, 24000));
-            chunkSampleCount += int16.length;
+        try {
+          if (this.ttsStreaming) {
+            // Pre-set audioTextEnd so every chunk delta already carries current karaoke
+            // metadata — mirrors LocalInferenceClient streaming path (LIC line 647).
+            item.formatted!.audioTextEnd = textEnd;
+            let chunkSampleCount = 0;
+            await this.tts.generate(sentence, this.ttsSpeed, (pcm: Float32Array) => {
+              const int16 = float32ToInt16(resampleFloat32(pcm, 24000, 24000));
+              chunkSampleCount += int16.length;
+              if (this.keepReplayAudio) this.appendItemAudio(item, int16);
+              this.emit(item, { audio: int16 });
+            });
+            cumulativeAudioDuration += chunkSampleCount / 24000;
+            item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
+            // Bare emit (no delta) publishes finalized segment metadata to the renderer
+            // — mirrors LocalInferenceClient line 687: onConversationUpdated({ item }).
+            this.emit(item);
+          } else {
+            // Set audioTextEnd before generate so metadata is current when the audio
+            // delta fires — mirrors LocalInferenceClient non-streaming path (LIC line 713).
+            item.formatted!.audioTextEnd = textEnd;
+            const res = await this.tts.generate(sentence, this.ttsSpeed);
+            const int16 = float32ToInt16(resampleFloat32(res.samples as Float32Array, res.sampleRate, 24000));
+            cumulativeAudioDuration += int16.length / 24000;
+            item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
             if (this.keepReplayAudio) this.appendItemAudio(item, int16);
             this.emit(item, { audio: int16 });
+          }
+        } catch (ttsError) {
+          // Mirror LocalInferenceClient lines 751-757: log + skip failed sentence,
+          // loop continues so the item still reaches status='completed'.
+          console.warn('[LocalNative] TTS failed for sentence, skipping:', ttsError);
+          this.emitEvent('local.native.tts.error', 'client', {
+            error: ttsError instanceof Error ? ttsError.message : String(ttsError),
           });
-          cumulativeAudioDuration += chunkSampleCount / 24000;
-          item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
-          // Bare emit (no delta) publishes finalized segment metadata to the renderer
-          // — mirrors LocalInferenceClient line 687: onConversationUpdated({ item }).
-          this.emit(item);
-        } else {
-          // Set audioTextEnd before generate so metadata is current when the audio
-          // delta fires — mirrors LocalInferenceClient non-streaming path (LIC line 713).
-          item.formatted!.audioTextEnd = textEnd;
-          const res = await this.tts.generate(sentence, this.ttsSpeed);
-          const int16 = float32ToInt16(resampleFloat32(res.samples as Float32Array, res.sampleRate, 24000));
-          cumulativeAudioDuration += int16.length / 24000;
-          item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
-          if (this.keepReplayAudio) this.appendItemAudio(item, int16);
-          this.emit(item, { audio: int16 });
         }
       }
 

@@ -58,8 +58,16 @@ describe('requiredNativeModels', () => {
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en')).toEqual([
       'sense-voice', 'qwen2.5-0.5b', 'csukuangfj/vits-piper-en_US-amy-low',
     ]);
-    // explicit translation model, ja target -> no TTS
+    // explicit translation model, ja target → MOSS TTS (Fix 2: ja now gets moss-tts-nano as default)
     expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', '', 'zh', 'ja')).toEqual([
+      'whisper-tiny', 'translategemma-4b', 'moss-tts-nano',
+    ]);
+    // 'off' tts choice -> no TTS regardless of language
+    expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', 'off', 'zh', 'ja')).toEqual([
+      'whisper-tiny', 'translategemma-4b',
+    ]);
+    // language with no voice (th) -> no TTS
+    expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', '', 'zh', 'th')).toEqual([
       'whisper-tiny', 'translategemma-4b',
     ]);
   });

@@ -147,9 +147,14 @@ export function nativeTtsVoices(targetLanguage: string): NativeModelOption[] {
   return MOSS_NANO_LANGS.includes(targetLanguage) ? [...piper, MOSS_NANO_TTS] : piper;
 }
 
-/** Default native TTS model for the target language ('' = no speech output). */
+/**
+ * Default native TTS model for the target language ('' = no speech output).
+ * Falls back to the first entry of nativeTtsVoices so MOSS-only languages
+ * (e.g. ja, ko, pt) get 'moss-tts-nano' as the default instead of ''.
+ * Piper languages still return the first piper voice since it is listed first.
+ */
 export function pickNativeTts(targetLanguage: string): string {
-  return NATIVE_TTS_BY_LANG[targetLanguage]?.[0]?.id || '';
+  return nativeTtsVoices(targetLanguage)[0]?.id || '';
 }
 
 /** Whether a target language has native speech output available. */
@@ -416,8 +421,8 @@ export function nativeTranslationCards(src: string, tgt: string): NativeModelCar
 
 export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
   // Voice picker only — there's no "Off" card; text-only is the common textOnly
-  // toggle. Languages without a piper voice simply yield an empty list (the UI
-  // shows a "text only" notice).
+  // toggle. Languages supported by MOSS always have at least the MOSS voice;
+  // languages without any voice yield an empty list (the UI shows a "text only" notice).
   return nativeTtsVoices(tgt).map((v, i) => ({
     selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
     recommended: i === 0, sortOrder: i,

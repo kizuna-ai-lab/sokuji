@@ -308,6 +308,42 @@ describe('LocalNativeClient TTS playback parity', () => {
     expect(deltas.length).toBe(2);                                // one delta per streamed chunk
   });
 
+  it('per-sentence TTS error skips the failing sentence and still completes the item', async () => {
+    // translate returns 'Hello there. How are you?' (two sentences via fakeDeps)
+    // first sentence generate() throws → should be skipped; second sentence plays → delta emitted
+    let callCount = 0;
+    const tts = {
+      init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: false, clones: false }),
+      generate: vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) throw new Error('tts boom');
+        return { samples: new Float32Array(2400), sampleRate: 24000, generationTimeMs: 3 };
+      }),
+      cancel: vi.fn(), dispose: vi.fn(),
+    };
+    const deps = fakeDeps({ tts });
+    const c = new LocalNativeClient(deps as any);
+    const deltas: any[] = [];
+    let completedItem: any = null;
+    c.setEventHandlers({
+      onConversationUpdated: (e: any) => {
+        if (e.delta?.audio) deltas.push(e);
+        if (e.item.role === 'assistant' && e.item.status === 'completed') completedItem = e.item;
+      },
+    });
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'q',
+      ttsModelId: 'csukuangfj/vits-piper-en_US-amy-low', ttsSpeed: 1.0, textOnly: false,
+    } as any);
+    await (c as any).runJob('hola');
+    // first sentence failed (skipped), second sentence's audio still emitted
+    expect(deltas.length).toBe(1);
+    // item must reach completed — not stranded in_progress
+    expect(completedItem).toBeDefined();
+    expect(completedItem.status).toBe('completed');
+  });
+
   it('cancelResponse cancels the in-flight TTS stream', async () => {
     const deps = fakeDeps({
       tts: {

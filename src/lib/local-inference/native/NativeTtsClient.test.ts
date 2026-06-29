@@ -47,15 +47,18 @@ class FakeWS {
           queueMicrotask(() => this.onmessage?.(errorResp));
         }
       } else if (FakeWS.streaming) {
+        // Sidecar emits Int16 PCM — each chunk is a small Int16Array buffer.
         for (let i = 0; i < 3; i++) {
-          const pcm = new Float32Array([i / 10, i / 10, i / 10]);
+          const val = Math.round((i / 10) * 32767);
+          const pcm = new Int16Array([val, val, val]);
           queueMicrotask(() => this.onmessage?.({ data: pcm.buffer }));
           queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ type: 'tts_chunk', id: msg.id, seq: i }) }));
         }
         queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(
           { type: 'tts_done', id: msg.id, totalSamples: 9, generationTimeMs: 7 }) }));
       } else {
-        const pcm = new Float32Array([0.1, 0.2, 0.3]);
+        // Sidecar emits Int16 PCM: ≈ [0.1, 0.2, 0.3] × 32767 = [3277, 6554, 9831]
+        const pcm = new Int16Array([3277, 6554, 9831]);
         const resultResp = { data: pcm.buffer };
         const metaResp = { data: JSON.stringify(
           { type: 'result', id: msg.id, sampleRate: 24000, generationTimeMs: 7, samples: 3 }) };
@@ -94,7 +97,11 @@ describe('NativeTtsClient', () => {
     const res = await c.generate('hi');
     expect(JSON.parse(FakeWS.last.sent.find((s) => typeof s === 'string' && JSON.parse(s).type === 'tts_generate')).type).toBe('tts_generate');
     expect(res.sampleRate).toBe(24000);
-    expect(Array.from(res.samples as Float32Array).map((x) => +x.toFixed(1))).toEqual([0.1, 0.2, 0.3]);
+    // Int16 wire → decoded Float32 ≈ [0.1, 0.2, 0.3] within int16 quantization tolerance (~0.001)
+    const samples = Array.from(res.samples as Float32Array);
+    expect(samples[0]).toBeCloseTo(0.1, 2);
+    expect(samples[1]).toBeCloseTo(0.2, 2);
+    expect(samples[2]).toBeCloseTo(0.3, 2);
   });
 
   it('streaming generate delivers chunks via onChunk and resolves on tts_done', async () => {
