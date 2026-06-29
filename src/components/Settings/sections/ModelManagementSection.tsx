@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, ExternalLink } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -28,6 +28,14 @@ import {
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
+import LocalInferenceVoiceSection from './LocalInferenceVoiceSection';
+import { type VoiceEntry } from './VoiceLibrarySection';
+import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
+import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
+import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
+import type { Voice } from '../../../lib/edge-tts/edgeTts';
+import useLogStore from '../../../stores/logStore';
+import { isElectron } from '../../../utils/environment';
 import './ModelManagementSection.scss';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
@@ -54,6 +62,7 @@ function ModelCard({
   onDownload,
   onCancel,
   onDelete,
+  children,
 }: {
   entry: ModelManifestEntry | null; // null = "None" card
   status: ModelStatus;
@@ -70,6 +79,7 @@ function ModelCard({
   onDownload: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  children?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const isNone = entry === null;
@@ -111,7 +121,7 @@ function ModelCard({
   }
 
   return (
-    <div className={classNames} onClick={handleClick}>
+    <div className={classNames} data-testid={`model-card-${entry.id}`} onClick={handleClick}>
       <div className="model-card__top-row">
         {showRadio && <div className="model-card__radio" />}
         <div className="model-card__content">
@@ -223,6 +233,13 @@ function ModelCard({
           </div>
         </div>
       </div>
+      {isSelected && children && (
+        // stopPropagation so interacting with the body (e.g. the voice picker's
+        // dropdown/buttons) does not bubble to the card root's onClick and re-select.
+        <div className="model-card__body" onClick={(e) => e.stopPropagation()}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -440,6 +457,156 @@ export function ModelManagementSection({
     [ttsModels, targetLanguage],
   );
 
+  // ── Voice / speaker state (embedded in the selected TTS card) ──────────
+  // Relocated verbatim from ProviderSpecificSettings so the WASM voice control
+  // lives inside the selected TTS card (mirrors NativeModelManagementSection).
+
+  // Edge TTS voice picker state
+  const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
+  const [edgeTtsVoiceStatus, setEdgeTtsVoiceStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const isEdgeTtsSelected = settings.ttsModel === 'edge-tts';
+
+  useEffect(() => {
+    if (!isEdgeTtsSelected) return;
+    let cancelled = false;
+    setEdgeTtsVoiceStatus('loading');
+    getEdgeTtsVoices()
+      .then(voices => {
+        if (cancelled) return;
+        setEdgeTtsVoices(voices);
+        setEdgeTtsVoiceStatus('loaded');
+      })
+      .catch(err => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn('[EdgeTTS] Failed to fetch voice list:', err);
+        useLogStore.getState().addLog(
+          `Failed to fetch Edge TTS voice list: ${message}`,
+          'error',
+        );
+        setEdgeTtsVoiceStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, [isEdgeTtsSelected]);
+
+  const filteredVoices = useMemo(
+    () => filterVoicesByLanguage(edgeTtsVoices, settings.targetLanguage),
+    [edgeTtsVoices, settings.targetLanguage],
+  );
+
+  // edge voice list shape consumed by LocalInferenceVoiceSection
+  const edgeVoices = useMemo(
+    () => filteredVoices.map((v) => ({ ShortName: v.ShortName, label: getVoiceDisplayName(v) })),
+    [filteredVoices],
+  );
+
+  // Supertonic imported voice state
+  const [importedVoices, setImportedVoices] = useState<voiceStorage.StoredVoice[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  const isSupertonicTts = getManifestEntry(settings.ttsModel)?.engine === 'supertonic';
+
+  const refreshImportedVoices = useCallback(async () => {
+    if (!isSupertonicTts) return;
+    try {
+      const list = await voiceStorage.listVoices('supertonic-3');
+      setImportedVoices(list);
+    } catch (err) {
+      console.warn('Failed to list imported voices:', err);
+    }
+  }, [isSupertonicTts]);
+
+  useEffect(() => {
+    void refreshImportedVoices();
+  }, [refreshImportedVoices]);
+
+  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(settings.ttsModel) : undefined;
+
+  const supertonicVoices = useMemo(() => {
+    if (!isSupertonicTts || !supertonicTtsEntry) return [];
+    const presets = supertonicTtsEntry.ttsConfig?.presetVoices ?? [];
+    const presetVoices = presets.map(p => ({
+      sid: p.sid,
+      name: p.name,
+      source: 'preset' as const,
+      gender: p.gender as 'M' | 'F',
+    }));
+    const importedAsVoices = importedVoices.map(v => ({
+      sid: importedSidFromDbKey(v.id),
+      name: v.name,
+      source: 'imported' as const,
+      gender: undefined,
+    }));
+    return [...presetVoices, ...importedAsVoices];
+  }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
+
+  // Adapter: map the sid-based Supertonic voice model onto the normalized,
+  // capability-driven VoiceLibrarySection props. Ids encode the sid so the
+  // sid-based callbacks recover it; the component treats them as opaque.
+  const supertonicVoiceEntries = useMemo<VoiceEntry[]>(
+    () => supertonicVoices.map((v) => ({
+      id: `${v.source === 'preset' ? 'preset' : 'custom'}:${v.sid}`,
+      label: v.name,
+      group: v.source === 'preset' ? 'builtin' : 'custom',
+      removable: v.source === 'imported',
+      meta: v.gender ? { gender: v.gender } : undefined,
+    })),
+    [supertonicVoices],
+  );
+
+  const supertonicSelectedId = useMemo(() => {
+    const match = supertonicVoices.find((v) => v.sid === settings.ttsSpeakerId);
+    const source = match?.source === 'imported' ? 'custom' : 'preset';
+    return `${source}:${settings.ttsSpeakerId}`;
+  }, [supertonicVoices, settings.ttsSpeakerId]);
+
+  const handleImportVoice = useCallback(async (file: File) => {
+    try {
+      const fallbackName = file.name.replace(/\.json$/i, '');
+      await voiceStorage.addVoice('supertonic-3', fallbackName, file);
+      setImportError(null);
+      await refreshImportedVoices();
+      setHasPendingChanges(true);
+    } catch (err) {
+      const msg = err instanceof voiceStorage.VoiceImportError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error ? err.message : String(err);
+      setImportError(msg);
+      throw err;
+    }
+  }, [refreshImportedVoices]);
+
+  const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
+    await voiceStorage.renameVoice(dbKey, newName);
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [refreshImportedVoices]);
+
+  const handleDeleteVoice = useCallback(async (sid: number) => {
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
+    await voiceStorage.deleteVoice(dbKey);
+    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
+    if (settings.ttsSpeakerId === sid) {
+      updateLocalInference({ ttsSpeakerId: defaultSid });
+    }
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [supertonicTtsEntry, settings.ttsSpeakerId, updateLocalInference, refreshImportedVoices]);
+
+  // Auto-select first voice when target language changes or no voice selected
+  useEffect(() => {
+    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
+    const currentVoice = settings.edgeTtsVoice;
+    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
+    if (!isCurrentValid) {
+      updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
+    }
+  }, [isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+
   if (!initialized) return null;
 
   // ── Handlers ──────────────────────────────────────────────────────────
@@ -461,6 +628,7 @@ export function ModelManagementSection({
     entry: ModelManifestEntry,
     selectedId: string | undefined,
     onSelect: (id: string) => void,
+    renderBody?: (entry: ModelManifestEntry) => React.ReactNode,
   ) => {
     const { hint, incompatible } = getVariantHint(entry);
     return (
@@ -480,7 +648,9 @@ export function ModelManagementSection({
         onDownload={() => handleDownload(entry.id)}
         onCancel={() => cancelDownload(entry.id)}
         onDelete={() => deleteModel(entry.id)}
-      />
+      >
+        {renderBody?.(entry)}
+      </ModelCard>
     );
   };
 
@@ -489,11 +659,12 @@ export function ModelManagementSection({
     models: ModelManifestEntry[],
     selectedId: string | undefined,
     onSelect: (id: string) => void,
+    renderBody?: (entry: ModelManifestEntry) => React.ReactNode,
   ) => (
     <RecommendedOthers
       items={models}
       isRecommended={(m) => !!m.recommended}
-      renderItem={(m) => renderCard(m, selectedId, onSelect)}
+      renderItem={(m) => renderCard(m, selectedId, onSelect, renderBody)}
     />
   );
 
@@ -642,6 +813,66 @@ export function ModelManagementSection({
               updateLocalInference({ ttsModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, id);
             },
+            // Voice control embedded in the selected TTS card only. The card's
+            // `isSelected && children` gate is the real guard; the id check just
+            // avoids building the body for non-selected cards.
+            (entry) => entry.id === ttsModel ? (
+              <>
+                <LocalInferenceVoiceSection
+                  ttsModel={ttsModel}
+                  isSessionActive={isSessionActive}
+                  edgeVoices={edgeVoices}
+                  edgeVoiceStatus={edgeTtsVoiceStatus}
+                  edgeTtsVoice={settings.edgeTtsVoice}
+                  supertonicVoices={supertonicVoiceEntries}
+                  supertonicSelectedId={supertonicSelectedId}
+                  onImportVoice={handleImportVoice}
+                  onRenameVoice={handleRenameVoice}
+                  onDeleteVoice={handleDeleteVoice}
+                  ttsSpeakerId={settings.ttsSpeakerId}
+                  numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(ttsModel)?.numSpeakers ?? 1}
+                  onUpdate={(patch) => updateLocalInference(patch)}
+                />
+                {isSupertonicTts && (
+                  <>
+                    <div className="voice-library-info">
+                      {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
+                      <a
+                        href="https://supertonic.supertone.ai/voice-builder"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const url = 'https://supertonic.supertone.ai/voice-builder';
+                          if (isElectron() && (window as any).electron?.invoke) {
+                            (window as any).electron.invoke('open-external', url);
+                          } else {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
+                      >
+                        {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
+                        <ExternalLink size={14} />
+                      </a>
+                      <div className="voice-library-info-sub">
+                        {t(
+                          'voiceLibrary.voiceBuilderDisclaimer',
+                          'Paid Supertone service. Sokuji is not involved in that transaction.',
+                        )}
+                      </div>
+                    </div>
+                    {importError && (
+                      <div className="setting-item error">
+                        {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
+                      </div>
+                    )}
+                    {hasPendingChanges && (
+                      <div className="setting-item info">
+                        {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : null,
           )
         ) : (
           <div className="model-card__no-model-warning">

@@ -1,4 +1,4 @@
-import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useEffect, useMemo } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
@@ -53,19 +53,13 @@ import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
-import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
-import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
-import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
-import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
-import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
-import type { Voice } from '../../../lib/edge-tts/edgeTts';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -224,143 +218,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
   }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
 
-  // Edge TTS voice picker state
-  const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
-  const [edgeTtsVoiceStatus, setEdgeTtsVoiceStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const [edgeTtsVoiceError, setEdgeTtsVoiceError] = useState<string | null>(null);
-  const isEdgeTtsSelected = localInferenceSettings.ttsModel === 'edge-tts';
-
-  useEffect(() => {
-    if (!isEdgeTtsSelected) return;
-    let cancelled = false;
-    setEdgeTtsVoiceStatus('loading');
-    setEdgeTtsVoiceError(null);
-    getEdgeTtsVoices()
-      .then(voices => {
-        if (cancelled) return;
-        setEdgeTtsVoices(voices);
-        setEdgeTtsVoiceStatus('loaded');
-      })
-      .catch(err => {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn('[EdgeTTS] Failed to fetch voice list:', err);
-        useLogStore.getState().addLog(
-          `Failed to fetch Edge TTS voice list: ${message}`,
-          'error',
-        );
-        setEdgeTtsVoiceError(message);
-        setEdgeTtsVoiceStatus('error');
-      });
-    return () => { cancelled = true; };
-  }, [isEdgeTtsSelected]);
-
-  const filteredVoices = useMemo(
-    () => filterVoicesByLanguage(edgeTtsVoices, localInferenceSettings.targetLanguage),
-    [edgeTtsVoices, localInferenceSettings.targetLanguage],
-  );
-
-  // Supertonic imported voice state
-  const [importedVoices, setImportedVoices] = useState<voiceStorage.StoredVoice[]>([]);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
-
-  const isSupertonicTts = getManifestEntry(localInferenceSettings.ttsModel)?.engine === 'supertonic';
-
-  const refreshImportedVoices = useCallback(async () => {
-    if (!isSupertonicTts) return;
-    try {
-      const list = await voiceStorage.listVoices('supertonic-3');
-      setImportedVoices(list);
-    } catch (err) {
-      console.warn('Failed to list imported voices:', err);
-    }
-  }, [isSupertonicTts]);
-
-  useEffect(() => {
-    void refreshImportedVoices();
-  }, [refreshImportedVoices]);
-
-  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(localInferenceSettings.ttsModel) : undefined;
-
-  const supertonicVoices = useMemo(() => {
-    if (!isSupertonicTts || !supertonicTtsEntry) return [];
-    const presets = supertonicTtsEntry.ttsConfig?.presetVoices ?? [];
-    const presetVoices = presets.map(p => ({
-      sid: p.sid,
-      name: p.name,
-      source: 'preset' as const,
-      gender: p.gender as 'M' | 'F',
-    }));
-    const importedAsVoices = importedVoices.map(v => ({
-      sid: importedSidFromDbKey(v.id),
-      name: v.name,
-      source: 'imported' as const,
-      gender: undefined,
-    }));
-    return [...presetVoices, ...importedAsVoices];
-  }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
-
-  // Adapter: map the sid-based Supertonic voice model onto the normalized,
-  // capability-driven VoiceLibrarySection props. Ids encode the sid so the
-  // sid-based callbacks below can recover it; the component treats them as opaque.
-  const supertonicVoiceEntries = useMemo<VoiceEntry[]>(
-    () => supertonicVoices.map((v) => ({
-      id: `${v.source === 'preset' ? 'preset' : 'custom'}:${v.sid}`,
-      label: v.name,
-      group: v.source === 'preset' ? 'builtin' : 'custom',
-      removable: v.source === 'imported',
-      meta: v.gender ? { gender: v.gender } : undefined,
-    })),
-    [supertonicVoices],
-  );
-
-  const supertonicSelectedId = useMemo(() => {
-    const match = supertonicVoices.find((v) => v.sid === localInferenceSettings.ttsSpeakerId);
-    const source = match?.source === 'imported' ? 'custom' : 'preset';
-    return `${source}:${localInferenceSettings.ttsSpeakerId}`;
-  }, [supertonicVoices, localInferenceSettings.ttsSpeakerId]);
-
-  // The adapter id scheme is `<group>:<sid>`; recover the numeric sid for the
-  // existing sid-based handlers.
-  const sidFromVoiceId = (id: string): number => Number(id.slice(id.indexOf(':') + 1));
-
-  const handleImportVoice = useCallback(async (file: File) => {
-    try {
-      const fallbackName = file.name.replace(/\.json$/i, '');
-      await voiceStorage.addVoice('supertonic-3', fallbackName, file);
-      setImportError(null);
-      await refreshImportedVoices();
-      setHasPendingChanges(true);
-    } catch (err) {
-      const msg = err instanceof voiceStorage.VoiceImportError
-        ? `${err.code}: ${err.message}`
-        : err instanceof Error ? err.message : String(err);
-      setImportError(msg);
-      throw err;
-    }
-  }, [refreshImportedVoices]);
-
-  const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
-    const dbKey = dbKeyFromImportedSid(sid);
-    if (dbKey === null) return;
-    await voiceStorage.renameVoice(dbKey, newName);
-    await refreshImportedVoices();
-    setHasPendingChanges(true);
-  }, [refreshImportedVoices]);
-
-  const handleDeleteVoice = useCallback(async (sid: number) => {
-    const dbKey = dbKeyFromImportedSid(sid);
-    if (dbKey === null) return;
-    await voiceStorage.deleteVoice(dbKey);
-    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
-    if (localInferenceSettings.ttsSpeakerId === sid) {
-      updateLocalInferenceSettings({ ttsSpeakerId: defaultSid });
-    }
-    await refreshImportedVoices();
-    setHasPendingChanges(true);
-  }, [supertonicTtsEntry, localInferenceSettings.ttsSpeakerId, updateLocalInferenceSettings, refreshImportedVoices]);
-
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. Participant's worker type is derived via
   // modelStore.getParticipantModelStatus, which consults modelPreferences recall
@@ -392,16 +249,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   ]);
   const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
   const localPromptSupported = isQwenFamily(speakerWorkerType) || isQwenFamily(participantWorkerType);
-
-  // Auto-select first voice when target language changes or no voice selected
-  useEffect(() => {
-    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
-    const currentVoice = localInferenceSettings.edgeTtsVoice;
-    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
-    if (!isCurrentValid) {
-      updateLocalInferenceSettings({ edgeTtsVoice: filteredVoices[0].ShortName });
-    }
-  }, [isEdgeTtsSelected, filteredVoices, localInferenceSettings.edgeTtsVoice, updateLocalInferenceSettings]);
 
   // Get current provider's settings
   const currentProviderSettings = getCurrentProviderSettings();
@@ -1918,120 +1765,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       <>
         <ModelManagementSection isSessionActive={isSessionActive} />
 
+        {/* Voice / speaker selection now lives inside the selected TTS card
+            (see ModelManagementSection → LocalInferenceVoiceSection). */}
         <TtsSpeedControl
           value={localInferenceSettings.ttsSpeed}
           onChange={(ttsSpeed) => updateLocalInferenceSettings({ ttsSpeed })}
           disabled={isSessionActive}
-        >
-          {(() => {
-            const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
-            if (ttsEntry?.engine === 'edge-tts') {
-              // Voice picker for Edge TTS. Distinguish loading / error /
-              // no-voices-for-language from the happy path so users get
-              // actionable feedback instead of a perpetual "Loading..." label.
-              let placeholder: string | null = null;
-              if (edgeTtsVoiceStatus === 'loading' || edgeTtsVoiceStatus === 'idle') {
-                placeholder = t('settings.loadingVoices', 'Loading voices...');
-              } else if (edgeTtsVoiceStatus === 'error') {
-                placeholder = t('settings.edgeTtsVoiceLoadError', 'Failed to load voices — check LogsPanel');
-              } else if (filteredVoices.length === 0) {
-                placeholder = t('settings.edgeTtsNoVoicesForLanguage', 'No voices available for this language');
-              }
-
-              return (
-                <div className="setting-item">
-                  <div className="setting-label">
-                    <span>{t('settings.edgeTtsVoice', 'Voice')}</span>
-                  </div>
-                  <select
-                    value={localInferenceSettings.edgeTtsVoice}
-                    onChange={(e) => updateLocalInferenceSettings({ edgeTtsVoice: e.target.value })}
-                    disabled={isSessionActive || filteredVoices.length === 0}
-                    className="select-dropdown"
-                    title={edgeTtsVoiceError ?? undefined}
-                  >
-                    {placeholder && <option value="">{placeholder}</option>}
-                    {filteredVoices.map(voice => (
-                      <option key={voice.ShortName} value={voice.ShortName}>
-                        {getVoiceDisplayName(voice)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            }
-            // Speaker selection: VoiceLibrarySection for Supertonic, slider for other local models
-            if (isSupertonicTts) {
-              return (
-                <>
-                  <VoiceLibrarySection
-                    voices={supertonicVoiceEntries}
-                    selectedId={supertonicSelectedId}
-                    onSelect={(id) => updateLocalInferenceSettings({ ttsSpeakerId: sidFromVoiceId(id) })}
-                    onImport={handleImportVoice}
-                    onRename={(id, name) => handleRenameVoice(sidFromVoiceId(id), name)}
-                    onDelete={(id) => handleDeleteVoice(sidFromVoiceId(id))}
-                    capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown' }}
-                    isSessionActive={isSessionActive}
-                  />
-                  <div className="voice-library-info">
-                    {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
-                    <a
-                      href="https://supertonic.supertone.ai/voice-builder"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const url = 'https://supertonic.supertone.ai/voice-builder';
-                        if (isElectron() && (window as any).electron?.invoke) {
-                          (window as any).electron.invoke('open-external', url);
-                        } else {
-                          window.open(url, '_blank', 'noopener,noreferrer');
-                        }
-                      }}
-                    >
-                      {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
-                      <ExternalLink size={14} />
-                    </a>
-                    <div className="voice-library-info-sub">
-                      {t(
-                        'voiceLibrary.voiceBuilderDisclaimer',
-                        'Paid Supertone service. Sokuji is not involved in that transaction.',
-                      )}
-                    </div>
-                  </div>
-                  {importError && (
-                    <div className="setting-item error">
-                      {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
-                    </div>
-                  )}
-                  {hasPendingChanges && (
-                    <div className="setting-item info">
-                      {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
-                    </div>
-                  )}
-                </>
-              );
-            }
-            const numSpeakers = ttsEntry?.numSpeakers ?? 1;
-            return numSpeakers > 1 ? (
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-              <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max={numSpeakers - 1}
-              step="1"
-              value={Math.min(localInferenceSettings.ttsSpeakerId, numSpeakers - 1)}
-              onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-            ) : null;
-          })()}
-        </TtsSpeedControl>
+        />
 
         <SpeechModeControl
           value={localInferenceSettings.turnDetectionMode}

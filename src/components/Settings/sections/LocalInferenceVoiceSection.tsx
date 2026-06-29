@@ -98,7 +98,7 @@ const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
     <div className="setting-item">
       <div className="setting-label">
         <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-        <span className="setting-value">{Math.min(ttsSpeakerId, numSpeakers - 1)}</span>
+        <span className="setting-value">{ttsSpeakerId}</span>
       </div>
       <input
         type="range"
