@@ -238,3 +238,31 @@ def test_owns_tts_closes_engine_on_disconnect():
             server.Conn = orig
     asyncio.run(run())
     assert closed["v"] is True
+
+
+def test_server_accepts_large_binary_frame():
+    """A reference-voice clip (set_voice) arrives as one large binary frame; it can
+    exceed the websockets 1 MiB default max_size. The server must accept it rather
+    than closing the connection with 1009 (message too big)."""
+    import websockets
+
+    async def run():
+        state = {"handlers": {}}
+
+        async def _probe(st, msg, binary_in, conn=None):
+            return {"type": "probe_result", "id": msg.get("id"), "n": len(binary_in or b"")}, None
+
+        state["handlers"]["probe"] = _probe
+        port, srv = await server.serve(state)
+        try:
+            async with websockets.connect(f"ws://127.0.0.1:{port}") as ws:
+                big = b"\x00" * (2 * 1024 * 1024)   # 2 MiB > 1 MiB default
+                await ws.send(big)                  # buffered as pending_binary
+                await ws.send(json.dumps({"type": "probe", "id": 1}))
+                reply = json.loads(await ws.recv())
+                assert reply == {"type": "probe_result", "id": 1, "n": 2 * 1024 * 1024}
+        finally:
+            srv.close()
+            await srv.wait_closed()
+
+    asyncio.run(run())

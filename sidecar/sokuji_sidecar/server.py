@@ -91,9 +91,18 @@ async def _conn(state, ws):
                     pass
 
 
+# A voice-clone reference clip (set_voice) is sent as ONE binary frame of raw
+# Float32 PCM — up to ~20s, which at 48kHz is ~3.8 MB, far over the websockets
+# 1 MiB default max_size. Raise the per-message limit so reference clips aren't
+# rejected with 1009 (message too big). The sidecar is localhost-only, so a
+# generous bound is safe; ASR still streams in small chunks well under this.
+MAX_WS_MESSAGE_BYTES = 64 * 1024 * 1024  # 64 MiB
+
+
 async def serve(state=None, host="127.0.0.1", port=0):
     state = state if state is not None else {}
-    server = await websockets.serve(lambda ws: _conn(state, ws), host, port)
+    server = await websockets.serve(
+        lambda ws: _conn(state, ws), host, port, max_size=MAX_WS_MESSAGE_BYTES)
     bound_port = server.sockets[0].getsockname()[1]
     state["_server"] = server
     return bound_port, server
