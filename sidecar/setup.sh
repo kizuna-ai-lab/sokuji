@@ -40,6 +40,22 @@ case "$(uname -s)" in
   Linux) "$PY" -m pip install -q $TORCH_PACKAGES --index-url "$TORCH_INDEX_URL" ;;
   *)     "$PY" -m pip install -q $TORCH_PACKAGES ;;
 esac
+
+# onnxruntime: the MOSS speech-LLM TTS runs on onnxruntime. Track the torch build —
+# when opting into a CUDA torch (TORCH_INDEX_URL pointing at a cuXXX wheel index) install
+# onnxruntime-gpu so MOSS can use CUDA; it reuses torch's bundled CUDA/cuDNN libs (the
+# onnxruntime CUDA major must match torch's, so keep both on CUDA 12 / both on CUDA 13).
+# onnxruntime-gpu has no macOS wheels, so never select it there. Override explicitly with
+# ONNXRUNTIME_PACKAGE=onnxruntime-gpu==1.20.1 (or a CPU pin) to bypass this heuristic.
+if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
+  case "$(uname -s):$TORCH_INDEX_URL" in
+    Darwin:*)   ONNXRUNTIME_PACKAGE="onnxruntime==1.20.1" ;;
+    *:*"/cu"*)  ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.20.1" ;;
+    *)          ONNXRUNTIME_PACKAGE="onnxruntime==1.20.1" ;;
+  esac
+fi
+echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
+"$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
 # transformers→tokenizers + Granite/Qwen3 speech-LLMs; faster-whisper→ASR whisper backend;
 # mistral-common[audio]→VoxtralRealtimeProcessor tokenizer (MistralCommonBackend).
 # transformers is pinned to an IMMUTABLE commit SHA on the PR #43838 fork (native Qwen3-ASR
