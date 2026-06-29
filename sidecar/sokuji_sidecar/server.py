@@ -79,6 +79,13 @@ async def _conn(state, ws):
                     teng.close()
                 except Exception:
                     pass
+        if conn.ctx.get("owns_tts"):
+            teng = state.get("tts_engine")
+            if teng is not None:
+                try:
+                    teng.close()
+                except Exception:
+                    pass
 
 
 async def serve(state=None, host="127.0.0.1", port=0):

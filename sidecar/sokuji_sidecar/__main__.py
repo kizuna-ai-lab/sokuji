@@ -7,17 +7,17 @@ from .server import serve
 
 
 async def _run():
-    from .tts_engine import TtsEngine, register as register_tts
+    from . import tts_engine
     from .translate_engine import TranslateEngine, register as register_translate
     from .asr_engine import AsrEngine, register as register_asr
     from .native_models import register as register_models
     from .accel import register as register_accel
     state = {
-        "engine": TtsEngine(),
+        "tts_engine": tts_engine.TtsEngine(),
         "translate_engine": TranslateEngine(),
         "asr_engine": AsrEngine(),
     }
-    register_tts(state)
+    tts_engine.register(state)
     register_translate(state)
     register_asr(state)
     register_models(state)
