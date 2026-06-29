@@ -99,17 +99,17 @@ class MossOnnxTtsBackend:
     NAME = "moss_onnx"
     STREAMING = True
     CLONES = True
-    # Default to "Ava": MOSS-TTS-Nano-100M has a silence-token attractor that the
-    # speaker prompt strongly modulates; the Chinese "Junhao" voice triggers long
-    # mid-sentence silences on English text almost every time, while "Ava" is the
-    # most reliably clean preset for English. See issue #277 (silence governance).
-    PRESET_VOICE = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Ava")
 
     def __init__(self):
         self._rt = None
         self._sp = None             # sentencepiece text tokenizer
         self._voice_rows = None     # prompt_audio_codes from set_voice (None -> preset)
         self.sample_rate = 24000
+        # Default to "Ava": MOSS-TTS-Nano-100M has a silence-token attractor that the
+        # speaker prompt strongly modulates; the Chinese "Junhao" voice triggers long
+        # mid-sentence silences on English text almost every time, while "Ava" is the
+        # most reliably clean preset for English. See issue #277 (silence governance).
+        self.preset_voice = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Ava")
 
     # ---- loading -----------------------------------------------------------
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
@@ -164,6 +164,13 @@ class MossOnnxTtsBackend:
                 shutil.copy2(src, dst)       # cross-filesystem fallback
 
     # ---- voice cloning -----------------------------------------------------
+    def set_builtin_voice(self, name: str) -> None:
+        voices = self._rt.list_builtin_voices()
+        match = next((v for v in voices if v.get("voice") == name), None)
+        if match is None:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        self._voice_rows = list(match["prompt_audio_codes"])
+
     def set_voice(self, audio, sr):
         self._voice_rows = self._encode_reference(np.asarray(audio, dtype=np.float32), int(sr))
 
@@ -213,7 +220,7 @@ class MossOnnxTtsBackend:
         if self._voice_rows is not None:
             return self._voice_rows
         voices = self._rt.list_builtin_voices()
-        voice = next((v for v in voices if v.get("voice") == self.PRESET_VOICE), voices[0])
+        voice = next((v for v in voices if v.get("voice") == self.preset_voice), voices[0])
         return list(voice["prompt_audio_codes"])
 
     def _iter_chunks(self, text):

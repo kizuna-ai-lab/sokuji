@@ -64,6 +64,9 @@ class TtsEngine:
     def set_voice(self, audio, sr):
         self._backend.set_voice(np.asarray(audio, dtype=np.float32), int(sr))
 
+    def set_builtin_voice(self, name):
+        self._backend.set_builtin_voice(name)
+
     def generate(self, text, speed=1.0):
         samples, gen_ms = self._backend.generate(text, speed)
         return _to_int16_24k_mono(samples, self._native_sr), gen_ms
@@ -134,8 +137,12 @@ async def _h_tts_init(state, msg, _b, conn=None):
 
 
 async def _h_set_voice(state, msg, binary_in, conn=None):
-    audio = np.frombuffer(binary_in, dtype=np.float32) if binary_in else np.zeros(0, np.float32)
-    state["tts_engine"].set_voice(audio, int(msg.get("sampleRate", 24000)))
+    name = msg.get("voice")
+    if name:                                  # built-in by name (no binary frame)
+        state["tts_engine"].set_builtin_voice(str(name))
+    else:                                     # custom clone from clip
+        audio = np.frombuffer(binary_in, dtype=np.float32) if binary_in else np.zeros(0, np.float32)
+        state["tts_engine"].set_voice(audio, int(msg.get("sampleRate", 24000)))
     return {"type": "ok", "id": msg.get("id")}, None
 
 

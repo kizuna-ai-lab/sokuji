@@ -192,6 +192,18 @@ def test_tts_generate_streaming_dispatches_task_and_returns_immediately(monkeypa
     asyncio.run(run())
 
 
+def test_h_set_voice_builtin_name_path():
+    import asyncio
+    from sokuji_sidecar import tts_engine
+    called = {}
+    class FakeEng:
+        def set_builtin_voice(self, n): called["builtin"] = n
+        def set_voice(self, a, sr): called["clip"] = (len(a), sr)
+    state = {"tts_engine": FakeEng()}; tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["set_voice"](state, {"id": 1, "voice": "Ava"}, None, None))
+    assert reply["type"] == "ok" and called == {"builtin": "Ava"}
+
+
 def test_tts_cancel_stops_inflight_stream(monkeypatch):
     """tts_cancel flips the cancel flag while the stream task runs; the stream task
     respects the flag and stops early, then still emits tts_done.

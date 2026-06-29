@@ -61,3 +61,25 @@ def test_moss_onnx_cuda_streaming_smoke():
     print(f"moss-onnx cuda streaming RTF={rtf:.4f} (~{1/rtf:.1f}x realtime)")
     assert chunks and rtf < 1.0          # must be real-time on the GPU
     b.unload()
+
+
+def test_set_builtin_voice_sets_voice_rows_from_manifest(monkeypatch):
+    from sokuji_sidecar.tts_backends import MossOnnxTtsBackend
+    b = MossOnnxTtsBackend()
+    class FakeRt:
+        def list_builtin_voices(self):
+            return [{"voice": "Ava", "prompt_audio_codes": [[1, 2]]},
+                    {"voice": "Bella", "prompt_audio_codes": [[3, 4]]}]
+    b._rt = FakeRt()
+    b.set_builtin_voice("Bella")
+    assert b._voice_rows == [[3, 4]]
+
+def test_set_builtin_voice_unknown_name_raises():
+    from sokuji_sidecar.tts_backends import MossOnnxTtsBackend, BackendLoadError
+    b = MossOnnxTtsBackend()
+    class FakeRt:
+        def list_builtin_voices(self): return [{"voice": "Ava", "prompt_audio_codes": [[1]]}]
+    b._rt = FakeRt()
+    import pytest
+    with pytest.raises(Exception):
+        b.set_builtin_voice("Nope")
