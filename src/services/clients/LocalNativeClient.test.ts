@@ -553,4 +553,19 @@ describe('LocalNativeClient voice selection', () => {
       asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano' } as any);
     expect(m.tts.setVoice).toHaveBeenCalledWith('Ava');
   });
+
+  it('applies a custom cloned voice via setReferenceVoice', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    // Stub the storage read the client uses (inject via deps or vi.mock the module).
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([{ id: 7, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 }]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 7, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 });
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsVoice: 'custom:7' } as any);
+    expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000);
+  });
 });

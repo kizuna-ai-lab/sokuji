@@ -474,8 +474,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     return () => { cancelled = true; };
   }, [ttsVoiceCapable, reserveTtsId, reloadCustomVoices]);
 
-  // Custom-voice rename/delete operate on the opaque `custom:<id>` (capture lands
-  // in Task 11); built-in entries are not removable so only custom ids arrive here.
+  // Custom-voice rename/delete operate on the opaque `custom:<id>`; built-in
+  // entries are not removable so only custom ids arrive here. Capture itself
+  // lives in NativeVoiceSection, which calls reloadCustomVoices on success.
   const handleVoiceRename = useCallback(async (id: string, name: string) => {
     const numId = Number(id.replace(/^custom:/, ''));
     if (!Number.isFinite(numId)) return;
@@ -767,9 +768,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             targetLanguage={settings.targetLanguage}
             isSessionActive={isSessionActive}
             onSelect={(id) => update({ ttsVoice: id })}
-            // Capture (record/upload) wiring lands in Task 11; no-op stubs for now.
-            onImport={async () => {}}
-            onRecord={async () => {}}
+            onCaptured={reloadCustomVoices}
             onRename={handleVoiceRename}
             onDelete={handleVoiceDelete}
           />

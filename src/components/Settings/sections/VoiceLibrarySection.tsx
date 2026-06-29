@@ -32,6 +32,9 @@ export interface VoiceLibraryCapability {
   /** When true, only curated builtins are shown by default with a "show all"
    *  expander revealing the rest. When false, all builtins are shown. */
   curation: boolean;
+  /** `accept` filter for the upload file input. Defaults to the JSON voice-card
+   *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
+  accept?: string;
 }
 
 export interface VoiceLibrarySectionProps {
@@ -326,7 +329,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/json,.json"
+                accept={capability.accept ?? 'application/json,.json'}
                 style={{ display: 'none' }}
                 multiple
                 onChange={(e) => void handleFiles(e.target.files)}

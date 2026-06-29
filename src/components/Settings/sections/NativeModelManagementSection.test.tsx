@@ -112,6 +112,7 @@ vi.mock('../../../stores/nativeModelStore', () => ({
   useNativeTranslationResolved: () => null,
   useNativeTtsResolved: () => mockTtsResolved,
   nativeListVariants: (...args: unknown[]) => mockListVariants(...args),
+  nativeListTtsVoices: () => Promise.resolve([]),
 }));
 
 // ---------------------------------------------------------------------------
