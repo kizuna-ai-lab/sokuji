@@ -168,7 +168,10 @@ class MossOnnxTtsBackend:
         target_sr = int(cfg["sample_rate"])
         target_ch = int(cfg["channels"])
         num_quantizers = int(cfg["num_quantizers"])
-        mono = audio.reshape(-1).astype(np.float32)
+        if audio.ndim > 1:
+            mono = audio.mean(axis=0).astype(np.float32)   # channel-first average
+        else:
+            mono = audio.astype(np.float32)
         if mono.size and sr != target_sr:
             mono = self._resample(mono, sr, target_sr)
         # (1, channels, samples): replicate mono across the codec's channel count.
@@ -276,7 +279,10 @@ class MossOnnxTtsBackend:
                     raise item
                 yield item
         finally:
-            thread.join()
+            thread.join(timeout=60)
+            if thread.is_alive():
+                import logging
+                logging.warning("moss_onnx generate worker did not finish within 60s")
 
     def unload(self) -> None:
         self._rt = None
