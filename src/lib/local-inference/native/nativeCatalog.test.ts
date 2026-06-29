@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
 import type { NativeModelInfo } from './nativeProtocol';
 
 describe('nativeCatalog', () => {
@@ -490,5 +490,23 @@ describe('nativeCatalog', () => {
     it('does not appear for an unsupported language', () => {
       expect(nativeTtsVoices('th').some((v) => v.id === 'moss-tts-nano')).toBe(false);
     });
+  });
+
+  it('defaultTtsVoice returns Ava for English and a builtin: prefix', () => {
+    expect(defaultTtsVoice('en')).toBe('builtin:Ava');
+  });
+  it('defaultTtsVoice falls back to Ava for unknown language', () => {
+    expect(defaultTtsVoice('xx')).toBe('builtin:Ava');
+  });
+  it('curatedBuiltinVoices splits curated vs rest preserving membership', () => {
+    const all = ['Ava', 'Adam', 'Bella', 'Junhao'];
+    const { curated, rest } = curatedBuiltinVoices('en', all);
+    expect(curated).toContain('Ava');
+    expect([...curated, ...rest].sort()).toEqual([...all].sort());
+    expect(curated.every((v) => all.includes(v))).toBe(true);
+  });
+  it('only MOSS is voice-capable', () => {
+    expect(nativeTtsModelIsVoiceCapable('moss-tts-nano')).toBe(true);
+    expect(nativeTtsModelIsVoiceCapable('csukuangfj/vits-piper-en_US-amy-low')).toBe(false);
   });
 });
