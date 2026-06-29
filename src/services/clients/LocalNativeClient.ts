@@ -6,6 +6,7 @@ import { NativeAsrClient } from '../../lib/local-inference/native/NativeAsrClien
 import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
+import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
 interface Deps {
@@ -32,6 +33,7 @@ export class LocalNativeClient implements IClient {
   private ttsEnabled = false;
   private ttsStreaming = false;
   private ttsSpeed = 1.0;
+  private keepReplayAudio: boolean = false;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
 
@@ -53,6 +55,7 @@ export class LocalNativeClient implements IClient {
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
+    this.keepReplayAudio = config.keepReplayAudio ?? false;
     const store = useNativeModelStore.getState();
     const initTranslate = async () => {
       const tr = await this.translate.init(
@@ -144,6 +147,24 @@ export class LocalNativeClient implements IClient {
     this.handlers.onRealtimeEvent?.({ source, event: { type, data } } as any);
   }
 
+  /**
+   * Accumulate a TTS audio chunk onto the item so the inline replay button has
+   * a complete buffer. Gated on `keepReplayAudio`; real-time playback (via the
+   * audio delta) is unaffected when this is skipped.
+   */
+  private appendItemAudio(item: ConversationItem, chunk: Int16Array): void {
+    if (!item.formatted) item.formatted = {};
+    const prev = item.formatted.audio;
+    if (prev instanceof Int16Array && prev.length > 0) {
+      const combined = new Int16Array(prev.length + chunk.length);
+      combined.set(prev);
+      combined.set(chunk, prev.length);
+      item.formatted.audio = combined;
+    } else {
+      item.formatted.audio = new Int16Array(chunk);
+    }
+  }
+
   private onAsrPartial(text: string): void {
     if (!text) return;
     if (!this.partialUserItem) {
@@ -194,10 +215,43 @@ export class LocalNativeClient implements IClient {
     this.emit(item);
     if (this.ttsEnabled) {
       this.emitEvent('local.native.tts.start', 'client', {});
-      const res = await this.tts.generate(tr.translatedText, this.ttsSpeed);
-      const int16 = float32ToInt16(resampleFloat32(res.samples, res.sampleRate, 24000));
-      this.emitEvent('local.native.tts.end', 'server', { generationTimeMs: res.generationTimeMs, samples: int16.length });
-      this.emit(item, { audio: int16 });
+      const displayText = tr.translatedText;
+      const sentences = splitSentences(displayText, this.cfg?.targetLanguage);
+      item.formatted!.audioSegments = [];
+      let searchFrom = 0;
+      let cumulativeAudioDuration = 0;
+
+      for (const sentence of sentences) {
+        if (!sentence.trim()) continue;
+
+        const pos = displayText.indexOf(sentence, searchFrom);
+        const textEnd = pos >= 0 ? pos + sentence.length : searchFrom + sentence.length;
+        searchFrom = textEnd;
+
+        if (this.ttsStreaming) {
+          let chunkSampleCount = 0;
+          await this.tts.generate(sentence, this.ttsSpeed, (pcm: Float32Array) => {
+            const int16 = float32ToInt16(resampleFloat32(pcm, 24000, 24000));
+            chunkSampleCount += int16.length;
+            if (this.keepReplayAudio) this.appendItemAudio(item, int16);
+            this.emit(item, { audio: int16 });
+          });
+          cumulativeAudioDuration += chunkSampleCount / 24000;
+        } else {
+          const res = await this.tts.generate(sentence, this.ttsSpeed);
+          const int16 = float32ToInt16(resampleFloat32(res.samples as Float32Array, res.sampleRate, 24000));
+          cumulativeAudioDuration += int16.length / 24000;
+          if (this.keepReplayAudio) this.appendItemAudio(item, int16);
+          this.emit(item, { audio: int16 });
+        }
+
+        item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
+        item.formatted!.audioTextEnd = textEnd;
+      }
+
+      // Ensure trailing whitespace is covered
+      item.formatted!.audioTextEnd = displayText.length;
+      this.emitEvent('local.native.tts.end', 'server', { samples: Math.round(cumulativeAudioDuration * 24000) });
     }
     item.status = 'completed';
     this.emit(item);
@@ -206,7 +260,7 @@ export class LocalNativeClient implements IClient {
   appendInputAudio(audioData: Int16Array): void { if (this.connected) this.asr.feedAudio(audioData, 24000); }
   appendInputText(text: string): void { this.onAsrResult({ text }); }
   createResponse(_config?: ResponseConfig): void { this.asr.flush?.(); }
-  cancelResponse(): void {}
+  cancelResponse(): void { try { this.tts?.cancel?.(); } catch (_) {} }
   async disconnect(): Promise<void> {
     this.connected = false;
     this.partialUserItem = null;

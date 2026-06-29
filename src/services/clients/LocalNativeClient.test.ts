@@ -235,6 +235,95 @@ describe('LocalNativeClient load order', () => {
   });
 });
 
+// ── Task 5: per-sentence TTS playback parity ─────────────────────────────────
+
+function fakeDeps(over: { tts?: any; translate?: any } = {}) {
+  return {
+    asr: {
+      onResult: null as any, onError: null as any, onPartialResult: null as any,
+      init: vi.fn().mockResolvedValue({ loadTimeMs: 1, device: 'cpu' }),
+      feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
+    },
+    translate: over.translate ?? {
+      onError: null as any,
+      init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+      translate: vi.fn().mockResolvedValue({ translatedText: 'Hello there. How are you?', inferenceTimeMs: 1 }),
+      dispose: vi.fn(),
+    },
+    tts: over.tts ?? {
+      init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: false }),
+      generate: vi.fn().mockResolvedValue({ samples: new Float32Array(2400), sampleRate: 24000, generationTimeMs: 3 }),
+      cancel: vi.fn(), dispose: vi.fn(),
+    },
+  };
+}
+
+describe('LocalNativeClient TTS playback parity', () => {
+  beforeEach(() => useNativeModelStore.setState({ ttsResolved: null, ttsLoading: false } as any));
+
+  it('one-shot piper: splits sentences and emits a delta + karaoke segment per sentence', async () => {
+    const deltas: any[] = [];
+    const deps = fakeDeps({
+      tts: {
+        init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: false, clones: false }),
+        generate: vi.fn().mockResolvedValue({ samples: new Float32Array(2400), sampleRate: 24000, generationTimeMs: 3 }),
+        cancel: vi.fn(), dispose: vi.fn(),
+      },
+    });
+    const c = new LocalNativeClient(deps as any);
+    c.setEventHandlers({ onConversationUpdated: (e: any) => { if (e.delta?.audio) deltas.push(e); } });
+    // translate returns 'Hello there. How are you?' (two sentences)
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'q', ttsModelId: 'csukuangfj/vits-piper-en_US-amy-low', ttsSpeed: 1.0, textOnly: false } as any);
+    await (c as any).runJob('hola');
+    expect(deps.tts.generate).toHaveBeenCalledTimes(2);          // one per sentence
+    expect(deltas.length).toBe(2);                                // one audio delta per sentence
+    const item = deltas[deltas.length - 1].item;
+    expect(item.formatted.audioSegments.length).toBe(2);         // karaoke segment per sentence
+  });
+
+  it('streaming MOSS: emits one delta per chunk via onChunk', async () => {
+    const deltas: any[] = [];
+    const deps = fakeDeps({
+      tts: {
+        init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: true, clones: true }),
+        generate: vi.fn().mockImplementation(async (_t: string, _s: number, onChunk: any) => {
+          onChunk(new Float32Array(800)); onChunk(new Float32Array(800));
+          return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 4 };
+        }),
+        cancel: vi.fn(), dispose: vi.fn(),
+      },
+      translate: {
+        onError: null as any,
+        init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+        translate: vi.fn().mockResolvedValue({ translatedText: 'Hi.', inferenceTimeMs: 1 }),
+        dispose: vi.fn(),
+      },
+    });
+    const c = new LocalNativeClient(deps as any);
+    c.setEventHandlers({ onConversationUpdated: (e: any) => { if (e.delta?.audio) deltas.push(e); } });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'a', translationModelId: 't', ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false } as any);
+    await (c as any).runJob('hi');
+    expect(deltas.length).toBe(2);                                // one delta per streamed chunk
+  });
+
+  it('cancelResponse cancels the in-flight TTS stream', async () => {
+    const deps = fakeDeps({
+      tts: {
+        init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: true, clones: true }),
+        generate: vi.fn(), cancel: vi.fn(), dispose: vi.fn(),
+      },
+    });
+    const c = new LocalNativeClient(deps as any);
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'a', translationModelId: 't', ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false } as any);
+    c.cancelResponse();
+    expect(deps.tts.cancel).toHaveBeenCalled();
+  });
+});
+
 // ── Task 4: ttsResolved + streaming flag ──────────────────────────────────────
 
 function tts4Deps(over: any = {}) {
