@@ -38,6 +38,8 @@ class FakeWS {
       { type: 'ready', id: msg.id, sampleRate: 24000, loadTimeMs: 5,
         device: 'cpu', backend: 'moss_onnx', rtf: 0.44,
         streaming: FakeWS.streaming, clones: FakeWS.streaming }) }));
+    if (msg?.type === 'set_voice') queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(
+      { type: 'ok', id: msg.id }) }));
     if (msg?.type === 'tts_generate') {
       if (FakeWS.errorMessage) {
         const errorResp = { data: JSON.stringify({ type: 'error', id: msg.id, message: FakeWS.errorMessage }) };
@@ -154,5 +156,14 @@ describe('NativeTtsClient', () => {
     const c = new NativeTtsClient();
     await c.init();
     await expect(c.generate('hi')).rejects.toThrow('boom');
+  });
+
+  it('setVoice sends a builtin set_voice message', async () => {
+    const c = new NativeTtsClient();
+    await c.init('moss-tts-nano');
+    await c.setVoice('Ava');
+    const sent = FakeWS.last.sent.map((s) => typeof s === 'string' ? JSON.parse(s) : s);
+    const sv = sent.find((m) => m && m.type === 'set_voice');
+    expect(sv.voice).toBe('Ava');
   });
 });

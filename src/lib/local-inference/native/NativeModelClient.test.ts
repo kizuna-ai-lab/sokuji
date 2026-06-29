@@ -43,6 +43,8 @@ class FakeWS {
       this.emit({ type: 'list_variants_result', id: msg.id,
         variants: [{ id: 'fp8', computeType: 'fp8', repo: 'tencent/Hy-MT2-7B-FP8', sizeBytes: 8e9, supported: true, reason: 'fits' }],
         recommended: 'fp8' }));
+    if (msg.type === 'list_tts_voices') queueMicrotask(() =>
+      this.emit({ type: 'list_tts_voices_result', id: msg.id, voices: ['Ava', 'Bella'] }));
   }
   close() {}
   static cancelled = new Set<string>();
@@ -119,6 +121,11 @@ describe('NativeModelClient', () => {
     expect(r.variants[0].id).toBe('fp8');
     expect(r.variants[0].computeType).toBe('fp8');
     expect(r.variants[0].sizeBytes).toBe(8e9);
+  });
+
+  it('listTtsVoices returns voice names', async () => {
+    const c = new NativeModelClient();
+    expect(await c.listTtsVoices('moss-tts-nano')).toEqual(['Ava', 'Bella']);
   });
 });
 

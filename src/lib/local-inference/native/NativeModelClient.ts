@@ -132,6 +132,15 @@ export class NativeModelClient {
     return { variants: r.variants, recommended: r.recommended };
   }
 
+  /** Built-in TTS voice names for a voice-capable model (empty if not downloaded). */
+  async listTtsVoices(model?: string): Promise<string[]> {
+    await this.connect();
+    const payload: { type: 'list_tts_voices'; model?: string } = { type: 'list_tts_voices' };
+    if (model) payload.model = model;
+    const msg = await this.send(payload);
+    return (msg as Extract<ServerMsg, { type: 'list_tts_voices_result' }>).voices;
+  }
+
   /** Remove a model from the sidecar's cache; resolves to the bytes freed.
    *  `repo` targets a chosen variant's repo (mirrors download/status), so an
    *  FP8-only HY-MT card frees the FP8 cache, not the unused bf16 default. */

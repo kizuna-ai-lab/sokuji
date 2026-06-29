@@ -109,6 +109,11 @@ export class NativeTtsClient {
     };
   }
 
+  /** Select a built-in voice by name (applies to subsequent generate calls). */
+  async setVoice(name: string): Promise<void> {
+    await this.send({ type: 'set_voice', voice: name });
+  }
+
   async setReferenceVoice(audio: Float32Array, sampleRate: number): Promise<void> {
     this.ws!.send(audio.buffer);                          // binary frame precedes the control message
     await this.send({ type: 'set_voice', sampleRate });
