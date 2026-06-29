@@ -130,13 +130,15 @@ export const NATIVE_TTS_BY_LANG: Record<string, NativeModelOption[]> = {
   ],
 };
 
-// MOSS-TTS-Nano: one multilingual model (sidecar catalog id `moss-tts-nano`),
-// streaming + voice-cloning capable. Surfaced as a TTS voice for each language
-// it supports, alongside the per-language piper voices.
+// MOSS-TTS-Nano: one model covering 20 languages (sidecar catalog id
+// `moss-tts-nano`), streaming + voice-cloning capable. Surfaced as a TTS voice
+// for each language it supports, alongside the per-language piper voices. The
+// 20-language list matches the model's README (OpenMOSS/MOSS-TTS-Nano); the card
+// shows these as language tags rather than a vague "multilingual" label.
 const MOSS_NANO_LANGS = ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru',
   'ar', 'pl', 'cs', 'da', 'sv', 'el', 'tr', 'hu', 'fa', 'nl'];
 const MOSS_NANO_TTS: NativeModelOption = {
-  id: 'moss-tts-nano', label: 'MOSS-TTS-Nano (multilingual)',
+  id: 'moss-tts-nano', label: 'MOSS-TTS-Nano',
   languages: MOSS_NANO_LANGS, recommended: false, sortOrder: 50,
   streaming: true, clones: true,
 };
