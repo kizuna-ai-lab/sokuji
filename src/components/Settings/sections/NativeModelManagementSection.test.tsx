@@ -303,3 +303,33 @@ describe('NativeModelManagementSection — TTS model card resolved badge', () =>
     expect(ttsSection.querySelector('.model-card__lang-tag--live')).toBeNull();
   });
 });
+
+describe('NativeModelManagementSection — embedded voice section on the selected MOSS card', () => {
+  // moss-tts-nano is voice-cloning capable (clones: true) for en/zh/ja. Selecting it
+  // (ttsModel) makes ttsSelected('moss-tts-nano') true and ttsVoiceCapable true, so the
+  // voice picker is rendered as the selected card's body — not as a separate block below.
+  it('embeds the voice picker inside the selected MOSS card and nowhere else', async () => {
+    const prevTtsModel = mockSettings.ttsModel;
+    mockSettings.ttsModel = 'moss-tts-nano';
+    try {
+      render(<NativeModelManagementSection />);
+
+      // Wait for the selected MOSS card; its body must contain the voice library UI.
+      const mossCard = await waitFor(() => {
+        const card = screen.getByTestId('model-card-moss-tts-nano');
+        if (!card.querySelector('.voice-library-section')) throw new Error('voice section not yet rendered');
+        return card;
+      });
+      const body = mossCard.querySelector('.model-card__body');
+      expect(body).not.toBeNull();
+      expect(within(body as HTMLElement).getByText('Voice')).toBeInTheDocument();
+
+      // The TTS section must contain exactly one voice-library-section, and it must live
+      // inside the MOSS card (no separate below-cards block remains).
+      const ttsSection = document.getElementById('model-tts-section')!;
+      expect(ttsSection.querySelectorAll('.voice-library-section')).toHaveLength(1);
+    } finally {
+      mockSettings.ttsModel = prevTtsModel;
+    }
+  });
+});

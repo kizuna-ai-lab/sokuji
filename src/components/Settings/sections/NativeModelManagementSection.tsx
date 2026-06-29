@@ -169,7 +169,9 @@ const NativeModelCard: React.FC<{
   onSelect: () => void;
   /** Present only for translation cards that expose multiple quant variants (HY-MT family: hy-mt2, hy-mt15). */
   variantProps?: VariantCardProps;
-}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps }) => {
+  /** Optional body rendered inside the card (below the top row) only while the card is selected. */
+  children?: React.ReactNode;
+}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps, children }) => {
   const { t } = useTranslation();
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
@@ -369,6 +371,13 @@ const NativeModelCard: React.FC<{
           )}
         </div>
       </div>
+      {selected && children && (
+        // stopPropagation so interacting with the body (e.g. the voice picker's
+        // dropdown/buttons) does not bubble to the card root's onClick and re-select.
+        <div className="model-card__body" onClick={(e) => e.stopPropagation()}>
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -571,6 +580,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     field: Stage,
     variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
     onPin?: (selectId: string, variantId: string) => void,
+    renderBody?: (c: NativeModelCardSpec) => React.ReactNode,
   ) => {
     // Feed each card the resolved plan for its stage so the active model shows the
     // measured device + speed metric (ASR rtf / translation tok/s or tts rtf).
@@ -594,7 +604,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
               selected={isSelected(c)} autoSelected={autoSelectedStages[field]} resolved={resolvedForField}
               onSelect={() => selectCard(field, c.selectId)}
-              variantProps={vProps} />
+              variantProps={vProps}>
+              {renderBody?.(c)}
+            </NativeModelCard>
           );
         }}
       />
@@ -753,25 +765,34 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           })()}
         </div>
         {ttsCards.length > 0 ? (
-          renderCards(ttsCards, (c) => ttsSelected(c.selectId), 'ttsModel')
+          // The voice picker is embedded inside the selected, voice-capable (MOSS) card via
+          // renderBody. NativeModelCard only renders the body when the card is selected, and
+          // ttsVoiceCapable reflects the resolved (selected) model, so only that card shows it.
+          renderCards(
+            ttsCards,
+            (c) => ttsSelected(c.selectId),
+            'ttsModel',
+            undefined,
+            undefined,
+            () => (ttsVoiceCapable ? (
+              <NativeVoiceSection
+                builtinVoices={builtinVoices}
+                customVoices={customVoices}
+                selected={settings.ttsVoice}
+                targetLanguage={settings.targetLanguage}
+                isSessionActive={isSessionActive}
+                onSelect={(id) => update({ ttsVoice: id })}
+                onCaptured={reloadCustomVoices}
+                onRename={handleVoiceRename}
+                onDelete={handleVoiceDelete}
+              />
+            ) : null),
+          )
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
             {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
           </div>
-        )}
-        {ttsVoiceCapable && (
-          <NativeVoiceSection
-            builtinVoices={builtinVoices}
-            customVoices={customVoices}
-            selected={settings.ttsVoice}
-            targetLanguage={settings.targetLanguage}
-            isSessionActive={isSessionActive}
-            onSelect={(id) => update({ ttsVoice: id })}
-            onCaptured={reloadCustomVoices}
-            onRename={handleVoiceRename}
-            onDelete={handleVoiceDelete}
-          />
         )}
       </ModelGroup>
 

@@ -204,6 +204,15 @@
     gap: 8px;
   }
 
+  // Embedded body slot (e.g. the TTS voice picker on the selected MOSS card). Block
+  // layout, full width, left-aligned; small top separation without a divider line.
+  &__body {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding-top: 8px;
+  }
+
   &__radio {
     display: flex;
     align-items: center;
