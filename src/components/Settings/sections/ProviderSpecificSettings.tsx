@@ -56,7 +56,7 @@ import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
-import VoiceLibrarySection from './VoiceLibrarySection';
+import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
@@ -300,6 +300,30 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }));
     return [...presetVoices, ...importedAsVoices];
   }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
+
+  // Adapter: map the sid-based Supertonic voice model onto the normalized,
+  // capability-driven VoiceLibrarySection props. Ids encode the sid so the
+  // sid-based callbacks below can recover it; the component treats them as opaque.
+  const supertonicVoiceEntries = useMemo<VoiceEntry[]>(
+    () => supertonicVoices.map((v) => ({
+      id: `${v.source === 'preset' ? 'preset' : 'custom'}:${v.sid}`,
+      label: v.name,
+      group: v.source === 'preset' ? 'builtin' : 'custom',
+      removable: v.source === 'imported',
+      meta: v.gender ? { gender: v.gender } : undefined,
+    })),
+    [supertonicVoices],
+  );
+
+  const supertonicSelectedId = useMemo(() => {
+    const match = supertonicVoices.find((v) => v.sid === localInferenceSettings.ttsSpeakerId);
+    const source = match?.source === 'imported' ? 'custom' : 'preset';
+    return `${source}:${localInferenceSettings.ttsSpeakerId}`;
+  }, [supertonicVoices, localInferenceSettings.ttsSpeakerId]);
+
+  // The adapter id scheme is `<group>:<sid>`; recover the numeric sid for the
+  // existing sid-based handlers.
+  const sidFromVoiceId = (id: string): number => Number(id.slice(id.indexOf(':') + 1));
 
   const handleImportVoice = useCallback(async (file: File) => {
     try {
@@ -1945,15 +1969,39 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               return (
                 <>
                   <VoiceLibrarySection
-                    voices={supertonicVoices}
-                    selectedSid={localInferenceSettings.ttsSpeakerId}
-                    onSelect={(sid) => updateLocalInferenceSettings({ ttsSpeakerId: sid })}
+                    voices={supertonicVoiceEntries}
+                    selectedId={supertonicSelectedId}
+                    onSelect={(id) => updateLocalInferenceSettings({ ttsSpeakerId: sidFromVoiceId(id) })}
                     onImport={handleImportVoice}
-                    onRename={handleRenameVoice}
-                    onDelete={handleDeleteVoice}
-                    isReloading={false}
+                    onRename={(id, name) => handleRenameVoice(sidFromVoiceId(id), name)}
+                    onDelete={(id) => handleDeleteVoice(sidFromVoiceId(id))}
+                    capability={{ importModes: ['upload'], curation: false }}
                     isSessionActive={isSessionActive}
                   />
+                  <div className="voice-library-info">
+                    {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
+                    <a
+                      href="https://supertonic.supertone.ai/voice-builder"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const url = 'https://supertonic.supertone.ai/voice-builder';
+                        if (isElectron() && (window as any).electron?.invoke) {
+                          (window as any).electron.invoke('open-external', url);
+                        } else {
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                    >
+                      {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
+                      <ExternalLink size={14} />
+                    </a>
+                    <div className="voice-library-info-sub">
+                      {t(
+                        'voiceLibrary.voiceBuilderDisclaimer',
+                        'Paid Supertone service. Sokuji is not involved in that transaction.',
+                      )}
+                    </div>
+                  </div>
                   {importError && (
                     <div className="setting-item error">
                       {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
