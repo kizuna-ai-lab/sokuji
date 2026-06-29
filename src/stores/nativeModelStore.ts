@@ -210,6 +210,18 @@ export async function nativeListVariants(
   return client.listVariants(model, asrId, ttsId, pin);
 }
 
+/** Best-effort built-in TTS voice names for a voice-capable model. Returns []
+ *  when the model isn't downloaded or the sidecar is unavailable (the voice
+ *  picker then shows a "download the model first" hint instead of crashing).
+ *  Exported at this module boundary so the renderer can mock it in tests. */
+export async function nativeListTtsVoices(model?: string): Promise<string[]> {
+  try {
+    return await client.listTtsVoices(model);
+  } catch {
+    return [];
+  }
+}
+
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);

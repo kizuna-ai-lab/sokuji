@@ -10,6 +10,7 @@ import {
   nativeTtsCards,
   pickNativeTts,
   resolveNativeTts,
+  nativeTtsModelIsVoiceCapable,
   tierLabel,
   hardwareGated,
   gpuTierAvailable,
@@ -33,8 +34,16 @@ import {
   useNativeTranslationResolved,
   useNativeTtsResolved,
   nativeListVariants,
+  nativeListTtsVoices,
 } from '../../../stores/nativeModelStore';
 import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import NativeVoiceSection from './NativeVoiceSection';
+import {
+  listNativeVoices,
+  renameNativeVoice,
+  deleteNativeVoice,
+  type StoredNativeVoice,
+} from '../../../lib/local-inference/nativeVoiceStorage';
 
 // The resolved plan a card may display: device + one speed metric + optional memory
 // footprint and fallback reason. ASR carries rtf ("Nx realtime"), translation carries
@@ -443,6 +452,43 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [variantFetchKey]);
 
+  // Built-in voice picker (MOSS): shown only when the resolved TTS model clones
+  // voices. Built-in names come from the sidecar (best-effort; [] when the model
+  // isn't downloaded → the section shows a "download first" hint); custom voices
+  // come from the IndexedDB library.
+  const ttsVoiceCapable = !!reserveTtsId && nativeTtsModelIsVoiceCapable(reserveTtsId);
+  const [builtinVoices, setBuiltinVoices] = useState<string[]>([]);
+  const [customVoices, setCustomVoices] = useState<StoredNativeVoice[]>([]);
+  const reloadCustomVoices = useCallback(() => {
+    listNativeVoices()
+      .then(setCustomVoices)
+      .catch(() => { /* best-effort: storage unavailable */ });
+  }, []);
+  useEffect(() => {
+    if (!ttsVoiceCapable) { setBuiltinVoices([]); return; }
+    let cancelled = false;
+    nativeListTtsVoices(reserveTtsId || undefined)
+      .then((voices) => { if (!cancelled) setBuiltinVoices(voices); })
+      .catch(() => { if (!cancelled) setBuiltinVoices([]); });
+    reloadCustomVoices();
+    return () => { cancelled = true; };
+  }, [ttsVoiceCapable, reserveTtsId, reloadCustomVoices]);
+
+  // Custom-voice rename/delete operate on the opaque `custom:<id>` (capture lands
+  // in Task 11); built-in entries are not removable so only custom ids arrive here.
+  const handleVoiceRename = useCallback(async (id: string, name: string) => {
+    const numId = Number(id.replace(/^custom:/, ''));
+    if (!Number.isFinite(numId)) return;
+    await renameNativeVoice(numId, name);
+    reloadCustomVoices();
+  }, [reloadCustomVoices]);
+  const handleVoiceDelete = useCallback(async (id: string) => {
+    const numId = Number(id.replace(/^custom:/, ''));
+    if (!Number.isFinite(numId)) return;
+    await deleteNativeVoice(numId);
+    reloadCustomVoices();
+  }, [reloadCustomVoices]);
+
   const allDownloadIds = useMemo(
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
       .map((c) => c.downloadId).filter((x): x is string => !!x),
@@ -712,6 +758,21 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             <AlertTriangle size={14} />
             {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
           </div>
+        )}
+        {ttsVoiceCapable && (
+          <NativeVoiceSection
+            builtinVoices={builtinVoices}
+            customVoices={customVoices}
+            selected={settings.ttsVoice}
+            targetLanguage={settings.targetLanguage}
+            isSessionActive={isSessionActive}
+            onSelect={(id) => update({ ttsVoice: id })}
+            // Capture (record/upload) wiring lands in Task 11; no-op stubs for now.
+            onImport={async () => {}}
+            onRecord={async () => {}}
+            onRename={handleVoiceRename}
+            onDelete={handleVoiceDelete}
+          />
         )}
       </ModelGroup>
 
