@@ -18,6 +18,24 @@ def test_resample_16k_mono_to_24k():
     assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2
 
 
+def test_importing_tts_engine_registers_tts_backends():
+    # Production startup imports tts_engine (__main__.py:10) and never imports
+    # tts_backends directly; that import must register sherpa_tts + moss_onnx so
+    # make_backend() can find them at load time. Run in a subprocess so sibling
+    # test modules that import tts_backends directly cannot mask the wiring.
+    import subprocess, sys
+    code = (
+        "from sokuji_sidecar import tts_engine\n"
+        "from sokuji_sidecar import backends\n"
+        "names = set(backends._BACKENDS)\n"
+        "assert 'sherpa_tts' in names, names\n"
+        "assert 'moss_onnx' in names, names\n"
+        "print('ok')\n"
+    )
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
 class _FakeOneShot:
     NAME = "fake_oneshot"; STREAMING = False; CLONES = False; sample_rate = 16000
     def __init__(self): self._loaded = True

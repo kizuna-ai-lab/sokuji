@@ -7,6 +7,8 @@ import time
 
 import numpy as np
 
+from . import tts_backends  # noqa: F401 — registers sherpa_tts/moss_onnx backends
+
 TARGET_RATE = 24000
 
 
