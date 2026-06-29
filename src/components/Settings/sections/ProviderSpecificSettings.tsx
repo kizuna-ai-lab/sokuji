@@ -1916,11 +1916,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        <ModelManagementSection
-          isSessionActive={isSessionActive}
-          localInferenceSettings={localInferenceSettings}
-          onUpdateSettings={updateLocalInferenceSettings}
-        />
+        <ModelManagementSection isSessionActive={isSessionActive} />
 
         <TtsSpeedControl
           value={localInferenceSettings.ttsSpeed}

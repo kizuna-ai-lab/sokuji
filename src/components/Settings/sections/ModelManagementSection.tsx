@@ -26,6 +26,7 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
+import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import './ModelManagementSection.scss';
 
@@ -33,8 +34,6 @@ import './ModelManagementSection.scss';
 
 interface ModelManagementSectionProps {
   isSessionActive: boolean;
-  localInferenceSettings: LocalInferenceSettings;
-  onUpdateSettings: (updates: Partial<LocalInferenceSettings>) => void;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -260,10 +259,10 @@ const sortTtsModels = createModelSorter((a, b) =>
 
 export function ModelManagementSection({
   isSessionActive,
-  localInferenceSettings,
-  onUpdateSettings,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
+  const settings = useLocalInferenceSettings();
+  const updateLocalInference = useUpdateLocalInference();
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
   const downloadErrors = useDownloadErrors();
@@ -306,7 +305,7 @@ export function ModelManagementSection({
     initialize();
   }, [initialize]);
 
-  const { sourceLanguage, targetLanguage, asrModel, ttsModel, translationModel } = localInferenceSettings;
+  const { sourceLanguage, targetLanguage, asrModel, ttsModel, translationModel } = settings;
 
   // Auto-select models: fix incompatible or missing selections after language change / model download
   useEffect(() => {
@@ -360,7 +359,7 @@ export function ModelManagementSection({
     }
 
     if (Object.keys(updates).length > 0) {
-      onUpdateSettings(updates);
+      updateLocalInference(updates);
     }
 
     // Remember the final model selection for this language pair
@@ -370,7 +369,7 @@ export function ModelManagementSection({
     if (finalAsr) {
       useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, finalAsr, finalTranslation, finalTts);
     }
-  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, onUpdateSettings]);
+  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, updateLocalInference]);
 
   // ── Memoized model lists ──────────────────────────────────────────────
 
@@ -508,7 +507,7 @@ export function ModelManagementSection({
             compatibleAsrModels,
             asrModel,
             (id) => {
-              onUpdateSettings({ asrModel: id });
+              updateLocalInference({ asrModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, id, translationModel, ttsModel);
             },
           )
@@ -545,7 +544,7 @@ export function ModelManagementSection({
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
                 onSelect={() => {
-                  onUpdateSettings({ asrModel: entry.id });
+                  updateLocalInference({ asrModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);
                 }}
                 onDownload={() => handleDownload(entry.id)}
@@ -569,7 +568,7 @@ export function ModelManagementSection({
             compatibleTranslationModels,
             translationModel,
             (id) => {
-              onUpdateSettings({ translationModel: id });
+              updateLocalInference({ translationModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, id, ttsModel);
             },
           )
@@ -613,7 +612,7 @@ export function ModelManagementSection({
                     : t('settings.langMismatch', 'language mismatch')
                 }
                 onSelect={() => {
-                  onUpdateSettings({ translationModel: entry.id });
+                  updateLocalInference({ translationModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, entry.id, ttsModel);
                 }}
                 onDownload={() => handleDownload(entry.id)}
@@ -640,7 +639,7 @@ export function ModelManagementSection({
             compatibleTtsModels,
             ttsModel,
             (id) => {
-              onUpdateSettings({ ttsModel: id });
+              updateLocalInference({ ttsModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, id);
             },
           )
@@ -677,7 +676,7 @@ export function ModelManagementSection({
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
                 onSelect={() => {
-                  onUpdateSettings({ ttsModel: entry.id });
+                  updateLocalInference({ ttsModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, entry.id);
                 }}
                 onDownload={() => handleDownload(entry.id)}
