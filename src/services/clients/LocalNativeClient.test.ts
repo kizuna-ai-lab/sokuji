@@ -322,6 +322,85 @@ describe('LocalNativeClient TTS playback parity', () => {
     c.cancelResponse();
     expect(deps.tts.cancel).toHaveBeenCalled();
   });
+
+  // ── Karaoke timing parity (Fix 1 + Fix 2) ───────────────────────────────────
+
+  it('streaming: pre-sets audioTextEnd before chunks and emits bare update after sentence stream', async () => {
+    // 'Hi.' is a single sentence — simplifies the event sequence.
+    const events: Array<{ hasDeltaAudio: boolean; audioTextEnd?: number; segCount: number; status: string }> = [];
+    const tts = {
+      init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: true }),
+      generate: vi.fn().mockImplementation(async (_t: string, _s: number, onChunk: any) => {
+        onChunk(new Float32Array(800)); // one chunk per sentence
+      }),
+      cancel: vi.fn(), dispose: vi.fn(),
+    };
+    const translate = {
+      onError: null as any,
+      init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+      translate: vi.fn().mockResolvedValue({ translatedText: 'Hi.', inferenceTimeMs: 1 }),
+      dispose: vi.fn(),
+    };
+    const deps = fakeDeps({ tts, translate });
+    const c = new LocalNativeClient(deps as any);
+    c.setEventHandlers({
+      onConversationUpdated: (e: any) => events.push({
+        hasDeltaAudio: !!e.delta?.audio,
+        audioTextEnd: e.item.formatted?.audioTextEnd,
+        segCount: e.item.formatted?.audioSegments?.length ?? 0,
+        status: e.item.status,
+      }),
+    });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'a', translationModelId: 't', ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false } as any);
+    await (c as any).runJob('hi');
+
+    // The bare emit after the sentence stream has audioSegments populated and status still in_progress.
+    const bareSegmentEmit = events.find((e) => !e.hasDeltaAudio && e.segCount >= 1 && e.status !== 'completed');
+    expect(bareSegmentEmit).toBeDefined();                   // bare emit fired (Fix 2)
+    expect(bareSegmentEmit!.audioTextEnd).toBeGreaterThan(0); // audioTextEnd was set (Fix 2)
+
+    // Every chunk delta should already carry the pre-set audioTextEnd (non-zero).
+    const chunkDeltas = events.filter((e) => e.hasDeltaAudio);
+    expect(chunkDeltas.length).toBeGreaterThan(0);
+    expect(chunkDeltas[0].audioTextEnd).toBeGreaterThan(0);  // pre-set before generate (Fix 2)
+  });
+
+  it('one-shot: audioTextEnd set before generate and audioSegments pushed before audio delta', async () => {
+    // generate mock captures audioTextEnd on the item at call time; event handler
+    // records audioSegments.length when each audio delta fires.
+    let capturedItem: any = null;
+    let audioTextEndAtFirstGenerate: number | undefined;
+    const deltaSegCounts: number[] = [];
+
+    const tts = {
+      init: vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, device: 'cpu', streaming: false }),
+      generate: vi.fn().mockImplementation(async () => {
+        if (audioTextEndAtFirstGenerate === undefined) {
+          audioTextEndAtFirstGenerate = capturedItem?.formatted?.audioTextEnd;
+        }
+        return { samples: new Float32Array(2400), sampleRate: 24000 };
+      }),
+      cancel: vi.fn(), dispose: vi.fn(),
+    };
+    // fakeDeps translate returns 'Hello there. How are you?' (two sentences)
+    const deps = fakeDeps({ tts });
+    const c = new LocalNativeClient(deps as any);
+    c.setEventHandlers({
+      onConversationUpdated: (e: any) => {
+        if (e.item.role === 'assistant') {
+          capturedItem = e.item;
+          if (e.delta?.audio) deltaSegCounts.push(e.item.formatted?.audioSegments?.length ?? 0);
+        }
+      },
+    });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'q', ttsModelId: 'csukuangfj/vits-piper-en_US-amy-low', ttsSpeed: 1.0, textOnly: false } as any);
+    await (c as any).runJob('hola');
+
+    expect(audioTextEndAtFirstGenerate).toBeGreaterThan(0); // audioTextEnd set before first generate (Fix 1)
+    expect(deltaSegCounts).toEqual([1, 2]);                 // segment pushed before each delta (Fix 1)
+  });
 });
 
 // ── Task 4: ttsResolved + streaming flag ──────────────────────────────────────
