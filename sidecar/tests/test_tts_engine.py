@@ -121,13 +121,19 @@ def test_handler_set_voice_buffers_binary(monkeypatch):
 
 
 def test_handler_tts_generate_streaming_pushes_chunks(monkeypatch):
+    """Handler dispatches a background task and pushes chunks via that task."""
     st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
     conn = _FakeConn()
-    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
-                "model": "moss-tts-nano"}, None, conn))
-    reply, _ = asyncio.run(st["handlers"]["tts_generate"](
-        st, {"type": "tts_generate", "id": "g1", "text": "hello"}, None, conn))
-    assert reply is None  # streamed via conn.send, not returned
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "moss-tts-nano"}, None, conn)
+        reply, _ = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "g1", "text": "hello"}, None, conn)
+        assert reply is None  # dispatched as background task
+        await conn.ctx["tts_stream_task"]  # wait for completion
+
+    asyncio.run(run())
     kinds = [o.get("type") for o, _ in conn.sent if o]
     assert kinds.count("tts_chunk") == 3 and kinds.count("tts_done") == 1
 
@@ -142,3 +148,95 @@ def test_handler_tts_generate_oneshot_returns_result(monkeypatch):
     assert reply["type"] == "result" and reply["id"] == "g2"
     assert reply["sampleRate"] == 24000 and binary is not None
     assert reply["samples"] == len(binary) // 2
+
+
+def test_tts_generate_streaming_dispatches_task_and_returns_immediately(monkeypatch):
+    """Streaming handler returns (None, None) immediately and stores an asyncio.Task
+    in conn.ctx['tts_stream_task']; awaiting that task delivers all chunks + done."""
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "moss-tts-nano"}, None, conn)
+        reply, binary = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "g3", "text": "hello"}, None, conn)
+        # Must return immediately with (None, None) — read loop stays live
+        assert reply is None and binary is None
+        task = conn.ctx.get("tts_stream_task")
+        assert task is not None and isinstance(task, asyncio.Task)
+        # Await to completion and verify the task ran the full stream
+        await task
+        kinds = [o.get("type") for o, _ in conn.sent if o]
+        assert kinds.count("tts_chunk") == 3
+        assert kinds.count("tts_done") == 1
+
+    asyncio.run(run())
+
+
+def test_tts_cancel_stops_inflight_stream(monkeypatch):
+    """tts_cancel flips the cancel flag while the stream task runs; the stream task
+    respects the flag and stops early, then still emits tts_done.
+
+    The fake backend gates between chunk 0 and chunk 1 via a threading.Event so the
+    cancel is injected deterministically: the test waits until chunk 0 is done
+    (before_gate fires), then sets the cancel flag and releases the gate.  The worker
+    thread sees should_cancel()=True before yielding chunk 1 and breaks.
+    """
+    import threading
+
+    class _FakePausedStream:
+        NAME = "fake_paused_stream"
+        STREAMING = True
+        CLONES = True
+        sample_rate = 24000
+
+        def __init__(self):
+            self._loaded = True
+            self.gate = threading.Event()         # released by test to allow chunk 1+
+            self.before_gate = threading.Event()  # set just before gate.wait()
+
+        def generate_stream(self, text, speed=1.0):
+            yield np.ones(8000, np.float32)   # chunk 0 — always produced
+            self.before_gate.set()             # signal: chunk 0 queued, about to block
+            self.gate.wait()                   # block until test releases
+            yield np.ones(8000, np.float32)   # chunk 1 (skipped when cancelled)
+            yield np.ones(8000, np.float32)   # chunk 2 (skipped when cancelled)
+
+        def unload(self):
+            self._loaded = False
+
+    b = _FakePausedStream()
+    st = _state(b, monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "moss-tts-nano"}, None, conn)
+        reply, _ = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "g4", "text": "hello"}, None, conn)
+        assert reply is None
+        task = conn.ctx.get("tts_stream_task")
+        assert task is not None and isinstance(task, asyncio.Task)
+
+        # Wait (off the event loop via executor) until chunk 0 is queued
+        # and the fake is about to block on gate — cancel flag can now be set safely.
+        await loop.run_in_executor(None, b.before_gate.wait)
+
+        # Set the cancel flag via the handler (this is what the real client sends)
+        await st["handlers"]["tts_cancel"](
+            st, {"type": "tts_cancel", "id": "g4"}, None, conn)
+        assert st.get("tts_cancels", {}).get("g4") is True
+
+        # Release the gate: worker resumes, checks should_cancel()=True, breaks
+        b.gate.set()
+
+        await asyncio.wait_for(task, timeout=5.0)
+
+        kinds = [o.get("type") for o, _ in conn.sent if o]
+        # Fewer than 3 chunks (cancel stopped chunk 1 and 2); tts_done always fires
+        assert kinds.count("tts_chunk") < 3
+        assert kinds.count("tts_done") == 1
+
+    asyncio.run(run())

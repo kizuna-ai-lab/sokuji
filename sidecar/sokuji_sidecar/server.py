@@ -80,6 +80,9 @@ async def _conn(state, ws):
                 except Exception:
                     pass
         if conn.ctx.get("owns_tts"):
+            task = conn.ctx.get("tts_stream_task")
+            if task is not None:
+                task.cancel()
             teng = state.get("tts_engine")
             if teng is not None:
                 try:

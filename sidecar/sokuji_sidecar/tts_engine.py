@@ -143,14 +143,25 @@ async def _h_tts_generate(state, msg, _b, conn=None):
     speed = float(msg.get("speed", 1.0))
     mid = msg.get("id")
     if eng.streaming and conn is not None:
+        # Cancel any prior in-flight stream on this connection (one active stream per conn)
+        prior = conn.ctx.get("tts_stream_task")
+        if prior is not None and not prior.done():
+            prior.cancel()
+
         cancels = state.setdefault("tts_cancels", {})
         cancels[mid] = False
-        try:
-            await eng.generate_stream(text, speed, conn.send,
-                                      lambda: cancels.get(mid, False), mid)
-        finally:
-            cancels.pop(mid, None)
-        return None, None                  # streamed via conn.send
+
+        async def _run_tts_stream():
+            try:
+                await eng.generate_stream(text, speed, conn.send,
+                                          lambda: cancels.get(mid, False), mid)
+            finally:
+                cancels.pop(mid, None)
+                if conn.ctx.get("tts_stream_task") is asyncio.current_task():
+                    conn.ctx.pop("tts_stream_task", None)
+
+        conn.ctx["tts_stream_task"] = asyncio.create_task(_run_tts_stream())
+        return None, None                  # dispatched; read loop stays live for tts_cancel
     pcm, gen_ms = eng.generate(text, speed)
     reply = {"type": "result", "id": mid, "sampleRate": eng.sample_rate,
              "generationTimeMs": gen_ms, "samples": len(pcm) // 2}
