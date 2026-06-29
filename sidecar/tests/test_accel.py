@@ -910,3 +910,47 @@ def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
     assert plans[-1].device == "cpu"
     assert all(p.backend == "hunyuan_translate" for p in plans)
     assert plans[0].artifact.startswith("tencent/HY-MT1.5-1.8B")  # bf16 or FP8 variant
+
+
+def test_resolve_tts_orders_gpu_over_cpu(monkeypatch):
+    from sokuji_sidecar import accel, catalog
+    # a machine with an NVIDIA GPU and both tts backends installed
+    gpu = accel.Gpu("nvidia", "", 12000, (8, 9))
+    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                            nvidia=(gpu,), apple_silicon=False, dml_adapters=(),
+                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
+                            fingerprint="testfp")
+    plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=machine)
+    assert plans[0].tier == "gpu-cuda" and plans[0].device == "cuda"
+    assert plans[-1].tier == "cpu"  # cpu floor survives
+
+
+def test_resolve_tts_cpu_only_machine(monkeypatch):
+    from sokuji_sidecar import accel
+    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                            nvidia=(), apple_silicon=False, dml_adapters=(),
+                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
+                            fingerprint="testfp2")
+    plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=machine)
+    assert [p.tier for p in plans] == ["cpu"]
+
+
+def test_resolve_tts_unknown_model_raises():
+    from sokuji_sidecar import accel
+    import pytest
+    with pytest.raises(ValueError):
+        accel.resolve_tts("nope")
+
+
+def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
+    from sokuji_sidecar import accel
+    import numpy as np
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    class FakeBackend:
+        sample_rate = 24000
+        def generate(self, text, speed=1.0):
+            return np.zeros(24000, np.float32), 100  # 1.0s audio, 100ms gen
+    plan = accel.Plan("moss_onnx", "cpu", "cpu", "fp32", "repo", 1.0)
+    m = accel.probe()
+    rtf = accel.measure_rtf_tts(FakeBackend(), plan, "moss-tts-nano", m)
+    assert rtf is not None and rtf > 0

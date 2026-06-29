@@ -74,6 +74,8 @@ def _has_mod(mod: str) -> bool:
 
 def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
+            "sherpa_tts": "sherpa_onnx",
+            "moss_onnx": "onnxruntime",
             "funasr_sensevoice": "funasr",
             "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
@@ -234,6 +236,14 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
     return _resolve_model(model, model_id, override, machine)
 
 
+def resolve_tts(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+    from . import catalog
+    model = catalog.tts_model(model_id)
+    if model is None:
+        raise ValueError(f"unknown tts model: {model_id}")
+    return _resolve_model(model, model_id, override, machine or probe())
+
+
 class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
 
@@ -295,7 +305,7 @@ def load_measured(plans: list):
 
 # Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
 # negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF safetensors.
-_WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf")
+_WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx")
 
 
 def _model_weight_bytes(artifact: str):
@@ -475,6 +485,30 @@ def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool =
         cache[key] = tps
         bench_save(cache)
         return tps
+    except Exception:
+        return None
+
+
+BENCH_TTS_TEXT = "The weather is lovely today, so I will go for a walk in the park."
+
+
+def measure_rtf_tts(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
+    """Best-effort: synth a fixed sentence, return RTF (gen_seconds / audio_seconds),
+    cached under a 'tts:'-namespaced key. Never raises (returns None)."""
+    try:
+        key = "tts:" + _bench_key(machine.fingerprint, model_id, plan.backend,
+                                  plan.device, plan.compute_type)
+        cache = bench_load()
+        if not force and key in cache:
+            return cache[key]
+        samples, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
+        audio_s = len(samples) / float(getattr(backend, "sample_rate", 24000))
+        if audio_s <= 0:
+            return None
+        rtf = (gen_ms / 1000.0) / audio_s
+        cache[key] = rtf
+        bench_save(cache)
+        return rtf
     except Exception:
         return None
 
