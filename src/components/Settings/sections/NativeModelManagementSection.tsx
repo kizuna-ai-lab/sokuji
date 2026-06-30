@@ -33,6 +33,7 @@ import {
   useNativeAsrResolved,
   useNativeTranslationResolved,
   useNativeTtsResolved,
+  useNativeSidecarStatus,
   nativeListVariants,
   nativeListTtsVoices,
 } from '../../../stores/nativeModelStore';
@@ -403,18 +404,14 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
   const ttsResolved = useNativeTtsResolved();
+  const sidecarStatus = useNativeSidecarStatus();
   const refresh = useNativeModelStore((s) => s.refresh);
   const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
   const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
-  const autoSelect = useNativeModelStore((s) => s.autoSelect);
   const rememberModels = useNativeModelStore((s) => s.rememberModels);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
-  // Track which stages were last set by the reconciler (drives the Auto-selected badge).
-  const [autoSelectedStages, setAutoSelectedStages] = useState<Record<Stage, boolean>>({
-    asrModel: false, translationModel: false, ttsModel: false,
-  });
   const [showAllAsr, setShowAllAsr] = useState(false);
 
   // Variant quant data for multi-variant translation cards (HY-MT: hy-mt2-*/hy-mt15-*), keyed by selectId.
@@ -527,39 +524,16 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 
-  // Auto-select / recall: reconcile the selection whenever statuses or the
-  // language pair change, then apply only the fields that actually differ.
-  const statusKey = allDownloadIds.map((id) => `${id}:${statuses[id] || 'absent'}`).join('|');
-  useEffect(() => {
-    const current: NativeSelection = {
-      asrModel: settings.asrModel, translationModel: settings.translationModel, ttsModel: settings.ttsModel,
-    };
-    const updates = autoSelect(settings.sourceLanguage, settings.targetLanguage, current);
-    if (!updates) return;
-    const filtered: Partial<NativeSelection> = {};
-    (Object.keys(updates) as Stage[]).forEach((k) => {
-      if (updates[k] !== current[k]) filtered[k] = updates[k];
-    });
-    if (Object.keys(filtered).length === 0) return;
-    update(filtered);
-    setAutoSelectedStages((prev) => {
-      const next = { ...prev };
-      (Object.keys(filtered) as Stage[]).forEach((k) => { next[k] = true; });
-      return next;
-    });
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [statusKey, settings.sourceLanguage, settings.targetLanguage, settings.asrModel, settings.translationModel, settings.ttsModel]);
-
   // TTS '' (default) highlights the default voice for the target language.
   const ttsSelected = (selectId: string) =>
     settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage, catalog));
 
-  // Explicit user selection: write the choice, clear the Auto-selected flag, and
-  // remember the full selection for this direction (mirrors ModelManagementSection).
+  // Explicit user selection: write the choice and remember the full selection for
+  // this direction (mirrors ModelManagementSection). Auto-select reconciliation is
+  // owned by the global gate (validateApiKey / Task 10), not this panel.
   const selectCard = (field: Stage, selectId: string) => {
     const updates: Partial<LocalNativeSettings> = { [field]: selectId };
     update(updates);
-    setAutoSelectedStages((prev) => ({ ...prev, [field]: false }));
     const sel: NativeSelection = {
       asrModel: settings.asrModel, translationModel: settings.translationModel, ttsModel: settings.ttsModel,
       [field]: selectId,
@@ -602,7 +576,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           } : undefined;
           return (
             <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
-              selected={isSelected(c)} autoSelected={autoSelectedStages[field]} resolved={resolvedForField}
+              selected={isSelected(c)} autoSelected={false} resolved={resolvedForField}
               onSelect={() => selectCard(field, c.selectId)}
               variantProps={vProps}>
               {renderBody?.(c)}
@@ -626,6 +600,21 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const readyIds = useMemo(
     () => [...new Set(allDownloadIds.filter((id) => statuses[id] === 'ready'))],
     [allDownloadIds, statuses]);
+
+  // Lifecycle gate — all hooks above; early returns are safe here.
+  if (sidecarStatus === 'starting' || sidecarStatus === 'idle') {
+    return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine…')}</div>;
+  }
+  if (sidecarStatus === 'unavailable') {
+    return (
+      <div className="native-models-error">
+        <span>{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</span>
+        <button type="button" onClick={() => useNativeModelStore.getState().retrySidecar()}>
+          {t('common.retry', 'Retry')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div id="model-management-section" className="settings-section model-management-section">

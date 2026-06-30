@@ -55,6 +55,8 @@ const mockStatuses: Record<string, string> = {};
 const mockSizes: Record<string, number> = {};
 // mockTtsResolved starts with "mock" so vitest hoists it with vi.mock; reassigned per test.
 let mockTtsResolved: { model: string; device: string; rtf?: number } | null = null;
+// mockSidecarStatus starts with "mock" so vitest hoists it alongside vi.mock factories.
+let mockSidecarStatus = 'ready';
 
 const mockListVariants = vi.fn();
 const mockDownload = vi.fn();
@@ -62,6 +64,7 @@ const mockDeleteModel = vi.fn();
 const mockUpdate = vi.fn();
 const mockRefresh = vi.fn().mockResolvedValue(undefined);
 const mockSetStatusRepos = vi.fn();
+const mockRetrySidecar = vi.fn();
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -81,39 +84,48 @@ vi.mock('../../../stores/settingsStore', () => ({
   useUpdateLocalNative: () => mockUpdate,
 }));
 
-vi.mock('../../../stores/nativeModelStore', () => ({
-  useNativeModelStore: (sel: Function) =>
-    sel({
-      statuses: mockStatuses,
-      sizes: mockSizes,
-      progress: {},
-      errors: {},
-      catalog: {},
-      download: mockDownload,
-      deleteModel: mockDeleteModel,
-      cancelDownload: vi.fn(),
-      refresh: mockRefresh,
-      refreshSizes: vi.fn().mockResolvedValue(undefined),
-      refreshCatalog: vi.fn().mockResolvedValue(undefined),
-      setStatusRepos: mockSetStatusRepos,
-      autoSelect: vi.fn().mockReturnValue(null),
-      rememberModels: vi.fn(),
-      asrLoading: false,
-      asrResolved: null,
-      translationResolved: null,
-    }),
-  useNativeModelStatuses: () => ({ ...mockStatuses }),
-  useNativeModelProgress: () => ({}),
-  useNativeModelSizes: () => ({ ...mockSizes }),
-  useNativeModelErrors: () => ({}),
-  useNativeCatalog: () => ({}),
-  useNativeAsrLoading: () => false,
-  useNativeAsrResolved: () => null,
-  useNativeTranslationResolved: () => null,
-  useNativeTtsResolved: () => mockTtsResolved,
-  nativeListVariants: (...args: unknown[]) => mockListVariants(...args),
-  nativeListTtsVoices: () => Promise.resolve([]),
-}));
+vi.mock('../../../stores/nativeModelStore', () => {
+  const mockStoreState = () => ({
+    statuses: mockStatuses,
+    sizes: mockSizes,
+    progress: {},
+    errors: {},
+    catalog: {},
+    sidecarStatus: mockSidecarStatus,
+    download: mockDownload,
+    deleteModel: mockDeleteModel,
+    cancelDownload: vi.fn(),
+    refresh: mockRefresh,
+    refreshSizes: vi.fn().mockResolvedValue(undefined),
+    refreshCatalog: vi.fn().mockResolvedValue(undefined),
+    setStatusRepos: mockSetStatusRepos,
+    autoSelect: vi.fn().mockReturnValue(null),
+    rememberModels: vi.fn(),
+    retrySidecar: mockRetrySidecar,
+    asrLoading: false,
+    asrResolved: null,
+    translationResolved: null,
+  });
+  const useNativeModelStore = Object.assign(
+    (sel: Function) => sel(mockStoreState()),
+    { getState: () => mockStoreState() },
+  );
+  return {
+    useNativeModelStore,
+    useNativeModelStatuses: () => ({ ...mockStatuses }),
+    useNativeModelProgress: () => ({}),
+    useNativeModelSizes: () => ({ ...mockSizes }),
+    useNativeModelErrors: () => ({}),
+    useNativeCatalog: () => ({}),
+    useNativeAsrLoading: () => false,
+    useNativeAsrResolved: () => null,
+    useNativeTranslationResolved: () => null,
+    useNativeTtsResolved: () => mockTtsResolved,
+    useNativeSidecarStatus: () => mockSidecarStatus,
+    nativeListVariants: (...args: unknown[]) => mockListVariants(...args),
+    nativeListTtsVoices: () => Promise.resolve([]),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -124,6 +136,7 @@ beforeEach(() => {
   Object.keys(mockStatuses).forEach((k) => delete mockStatuses[k]);
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockTtsResolved = null;
+  mockSidecarStatus = 'ready';
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
   mockDownload.mockReset();
   mockDeleteModel.mockReset();
@@ -131,6 +144,7 @@ beforeEach(() => {
   mockRefresh.mockReset();
   mockRefresh.mockResolvedValue(undefined);
   mockSetStatusRepos.mockReset();
+  mockRetrySidecar.mockReset();
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
@@ -301,6 +315,21 @@ describe('NativeModelManagementSection — TTS model card resolved badge', () =>
     const ttsSection = document.getElementById('model-tts-section')!;
     expect(ttsSection).not.toBeNull();
     expect(ttsSection.querySelector('.model-card__lang-tag--live')).toBeNull();
+  });
+});
+
+describe('NativeModelManagementSection — sidecar lifecycle states', () => {
+  it('shows a starting placeholder while the sidecar warms', () => {
+    mockSidecarStatus = 'starting';
+    render(<NativeModelManagementSection />);
+    expect(screen.getByText(/starting the local engine/i)).toBeInTheDocument();
+  });
+
+  it('shows an error + retry when the sidecar is unavailable', () => {
+    mockSidecarStatus = 'unavailable';
+    render(<NativeModelManagementSection />);
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(mockRetrySidecar).toHaveBeenCalled();
   });
 });
 
