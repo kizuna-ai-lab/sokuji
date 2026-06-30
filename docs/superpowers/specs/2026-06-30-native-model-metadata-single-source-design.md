@@ -72,12 +72,49 @@ sidecar becomes the ordering authority.
 4. **Custom (cloned) voices stay frontend-owned (out of scope for
    single-sourcing).** See the dedicated section below.
 
+## TTS models vs voices: the speaker-id model
+
+A TTS card is a TTS **model**. A model's *voice* is a **speaker id**, and models
+fall into three shapes by how many speaker ids they expose:
+
+- **single** — one speaker (most piper repos, e.g. `…amy-low`). No voice control;
+  the model *is* the voice. `num_speakers == 1`.
+- **range** — a numeric speaker range `0..N-1` (multi-speaker VITS, e.g.
+  `…libritts_r-medium`, `vits-icefall-zh-aishell3`). Voice control is a
+  speaker-id slider. `num_speakers > 1`, `clones == false`.
+- **list** — a discrete named voice list (MOSS built-in speakers Ava/Bella/…)
+  plus user clones. Voice control is a dropdown (`VoiceLibrarySection`).
+  `clones == true`.
+
+This is the same abstraction the WASM side already ships in
+`LocalInferenceVoiceSection` (edge/supertonic = list, other engines = speaker-id
+slider when `numSpeakers > 1`, else nothing). Native is brought to parity:
+multi-speaker VITS models (today flattened to speaker 0) gain the slider.
+
+Each piper repo is therefore a *model*, not a voice — they belong in the sidecar
+TTS catalog exactly like ASR/translation models. The frontend's
+`NATIVE_TTS_BY_LANG` (the ~22 piper repos) moves into `catalog.py`'s
+`TTS_MODELS`, using the **repo path as the model id** (= today's `selectId` /
+persisted `ttsModel`, so no settings migration). The two vestigial short-id
+entries (`piper-en-amy`, `vits-icefall-zh-aishell3`) are reconciled to repo-path
+ids (the frontend never used the short ids).
+
+`ttsVoice` encodes the in-model selection across all three shapes:
+- list → `builtin:<Name>` / `custom:<id>` (existing)
+- range → `sid:<n>` (new)
+- single → `''` (sid 0)
+
 ## Sidecar protocol changes
 
 ### `models_catalog` becomes the sole model-list source
 
 - Add a `kind=tts` branch to `_h_models_catalog` (today it handles only
   `asr` / `translate`). Source from `catalog.tts_models()`.
+- Complete the TTS catalog first: port all piper models from the frontend's
+  `NATIVE_TTS_BY_LANG` into `catalog.py` `TTS_MODELS` (repo-path ids).
+- Add `num_speakers: int = 1` to the `TtsModel` dataclass. Single-speaker piper =
+  1; multi-speaker counts are read once via `sherpa_onnx.OfflineTts.num_speakers`
+  and hardcoded (a catalog fact — the picker needs the slider max before load).
 - Extend each model entry in the payload with:
   - `order: number` — from the model's `sort_order` (the sidecar becomes the
     ordering authority; remove the `catalog.py:36-38` "renderer owns ordering"
@@ -86,8 +123,18 @@ sidecar becomes the ordering authority.
     TTS `repos[0]`.
   - `kind: 'asr' | 'translate' | 'tts'` — so the renderer can group without a
     second round of `kind`-scoped requests.
+  - TTS only: `numSpeakers: number`, `clones: boolean`, `streaming: boolean` —
+    so the renderer picks the single/range/list voice control.
 - `NativeModelInfo` (TS type) gains `order: number`, `repo: string`,
-  `kind: 'asr' | 'translate' | 'tts'`.
+  `kind: 'asr' | 'translate' | 'tts'`, and optional
+  `numSpeakers?: number`, `clones?: boolean`, `streaming?: boolean`.
+
+### Runtime: speaker-id selection for sherpa
+
+`SherpaTtsBackend.generate` hardcodes `sid=0`. Add `set_speaker(sid: int)` (stores
+the selected sid) and have `generate` / `generate_stream` pass it. `_h_set_voice`
+gains a third form: a payload carrying `sid` → `backend.set_speaker(int(sid))`
+(alongside the existing built-in-name and binary-clip forms).
 
 ### `list_tts_voices` returns rich descriptors
 
@@ -146,7 +193,22 @@ A partial catalog (e.g. TTS fetched but translate timed out) is treated as
   read the rich voice descriptors (`curated` / `language` / `default`) instead of
   the deleted map.
 - The renderer keeps only presentation: i18n strings, perf badges, tier labels,
-  and the `builtin:` / `custom:` id encoding.
+  and the `builtin:` / `custom:` / `sid:` id encoding.
+
+### Capability-driven native voice control
+
+`NativeVoiceSection` becomes capability-driven, mirroring
+`LocalInferenceVoiceSection`. It switches on the selected TTS model's catalog
+facts:
+- `clones` → **list**: `VoiceLibrarySection` dropdown (built-in descriptors from
+  `list_tts_voices` + custom clones). Writes `ttsVoice = builtin:<Name>` /
+  `custom:<id>`.
+- else `numSpeakers > 1` → **range**: speaker-id slider `0..numSpeakers-1`. Writes
+  `ttsVoice = sid:<n>`.
+- else **single**: no control. `ttsVoice = ''`.
+
+`reconcileTtsVoice` (session start) resolves `sid:<n>` to the speaker id passed to
+the sidecar via `set_voice` `{ sid }`; `builtin:` / `custom:` resolve as today.
 
 ## The six UI surfaces subscribe to `sidecarStatus`
 
@@ -215,10 +277,19 @@ stateful about user data. Revisit only if cross-device voice sync becomes a goal
 ## Testing strategy
 
 - **Sidecar (pytest):**
+  - `catalog.tts_models()` enumerates all piper models with repo-path ids and a
+    `num_speakers` field.
   - `_h_models_catalog` `kind=tts` returns TTS models; every kind carries
-    `order` and `repo`.
+    `order` / `repo` / `kind`; TTS entries carry `numSpeakers` / `clones` /
+    `streaming`.
   - `list_tts_voices` returns rich descriptors with correct
     `name` / `language` / `curated` / `unstable` / `default`.
+  - `SherpaTtsBackend.set_speaker(sid)` makes `generate` emit with that sid;
+    `_h_set_voice` `{ sid }` routes to `set_speaker`.
+- **Renderer voice control:** `NativeVoiceSection` renders the right control per
+  shape — dropdown for `clones`, slider for `numSpeakers > 1`, nothing for single
+  — and writes the matching `ttsVoice` encoding; `reconcileTtsVoice` resolves
+  `sid:<n>`.
 - **Store:** `ensureCatalog` state machine (`starting` → `ready`,
   `starting` → `unavailable`, idempotent no-refetch when `ready`); `retrySidecar`.
 - **`nativeCatalog.ts`:** convert the existing ~29 KB test suite from reading the
