@@ -33,13 +33,13 @@ class FakeWS {
       if (msg.kind === 'translate') {
         models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
              tiers: [{ tier: 'gpu-cuda', backend: 'qwen_translate', available: true },
-                     { tier: 'cpu', backend: 'qwen_translate', available: true }] }];
+                     { tier: 'cpu', backend: 'qwen_translate', available: true }], sizeBytes: 999604126 }];
       } else if (msg.kind === 'tts') {
         models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', languages: ['ja', 'zh'], recommended: true,
-             tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }] }];
+             tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];
       } else {
         models = [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
-             tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] }];
+             tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }], sizeBytes: 944624033 }];
       }
       queueMicrotask(() => this.emit({ type: 'models_catalog_result', id: msg.id, models }));
     }
@@ -61,7 +61,7 @@ beforeEach(() => {
   (globalThis as any).__lastStatusRepos = undefined;
   _shouldReject = false;
   _catalogCallCount = 0;
-  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle' } as any);
+  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {} } as any);
 });
 
 describe('nativeModelStore.isReady', () => {
@@ -125,6 +125,14 @@ describe('nativeModelStore.refreshCatalog', () => {
     expect(cat['qwen2.5-0.5b']).toBeTruthy();
     expect(cat['qwen2.5-0.5b'].tiers).toContainEqual(
       expect.objectContaining({ tier: 'gpu-cuda', available: true }));
+  });
+
+  it('populates sizes from each model sizeBytes — no separate model_sizes round-trip', async () => {
+    await useNativeModelStore.getState().refreshCatalog();
+    const sizes = useNativeModelStore.getState().sizes;
+    expect(sizes['sense-voice']).toBe(944624033);
+    expect(sizes['qwen2.5-0.5b']).toBe(999604126);
+    expect(sizes['moss-tts-nano']).toBe(763206064);
   });
 });
 
@@ -204,6 +212,9 @@ describe('nativeModelStore sidecar lifecycle', () => {
     await p;
     expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
     expect(Object.keys(useNativeModelStore.getState().catalog).length).toBeGreaterThan(0);
+    // Sizes arrive with the catalog response (sizeBytes per model) — no separate
+    // model_sizes round-trip needed for the panel to show a download size.
+    expect(useNativeModelStore.getState().sizes['sense-voice']).toBe(944624033);
   });
 
   it('ensureCatalog goes to unavailable when the catalog fetch throws', async () => {

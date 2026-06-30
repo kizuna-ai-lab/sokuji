@@ -9,6 +9,7 @@ export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
   numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
+  sizeBytes?: number;   // total download size; 0/absent = unknown
 }
 export interface NativeVoiceInfo {
   name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;

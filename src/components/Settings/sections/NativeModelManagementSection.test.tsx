@@ -46,6 +46,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 0,
     repo: 'sense-voice',
     kind: 'asr',
+    sizeBytes: 944624033,
   },
   'qwen2.5-0.5b': {
     id: 'qwen2.5-0.5b',
@@ -56,6 +57,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 0,
     repo: 'qwen2.5-0.5b',
     kind: 'translate',
+    sizeBytes: 999604126,
   },
   'hy-mt2-7b': {
     id: 'hy-mt2-7b',
@@ -66,6 +68,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 1,
     repo: 'hy-mt2-7b',
     kind: 'translate',
+    sizeBytes: 16075624007,
   },
   'hy-mt15-7b': {
     id: 'hy-mt15-7b',
@@ -76,6 +79,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 2,
     repo: 'hy-mt15-7b',
     kind: 'translate',
+    sizeBytes: 16075608305,
   },
   'csukuangfj/vits-piper-en_US-amy-low': {
     id: 'csukuangfj/vits-piper-en_US-amy-low',
@@ -87,6 +91,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     repo: 'csukuangfj/vits-piper-en_US-amy-low',
     kind: 'tts',
     numSpeakers: 1,
+    sizeBytes: 81105784,
   },
   'moss-tts-nano': {
     id: 'moss-tts-nano',
@@ -100,6 +105,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     numSpeakers: 1,
     clones: true,
     streaming: true,
+    sizeBytes: 763206064,
   },
 };
 

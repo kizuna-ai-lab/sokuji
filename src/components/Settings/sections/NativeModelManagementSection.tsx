@@ -407,7 +407,6 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const sidecarStatus = useNativeSidecarStatus();
   const refresh = useNativeModelStore((s) => s.refresh);
   const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
-  const refreshSizes = useNativeModelStore((s) => s.refreshSizes);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
   const rememberModels = useNativeModelStore((s) => s.rememberModels);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -516,10 +515,10 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     refresh(allDownloadIds, hasOverride ? statusRepos : undefined);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey, JSON.stringify(statusRepos)]);
-  // Sizes + per-machine tier availability are variant-independent — refresh them
-  // only when the model list changes, not on every quant pick.
+  // Per-machine tier availability (and sizes, which ride along with the catalog
+  // response) are variant-independent — refresh them only when the model list
+  // changes, not on every quant pick.
   useEffect(() => {
-    refreshSizes(allDownloadIds);
     refreshCatalog();
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);

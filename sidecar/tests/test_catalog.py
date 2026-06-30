@@ -290,3 +290,27 @@ def test_tts_languages_cover_the_renderer_set():
         langs.update(m.languages)
     # Languages the renderer's NATIVE_TTS_BY_LANG offered must all survive.
     assert {"en", "de", "es", "fr", "it", "ru", "zh"} <= langs
+
+
+def test_every_model_exposes_size_bytes_field():
+    # size_bytes is a _ModelBase field, reachable on all three model kinds even
+    # though only AsrModel/TranslateModel/TtsModel are constructed directly.
+    for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
+        assert hasattr(m, "size_bytes"), f"{m.id} missing size_bytes"
+        assert isinstance(m.size_bytes, int)
+
+
+def test_size_bytes_regression_values():
+    # Frozen facts moved verbatim from the old hardcoded-sizes dict (native_models.py) —
+    # must never silently regress.
+    assert catalog.asr_model("sense-voice").size_bytes == 944624033
+    assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
+    # The one id absent from the old dict keeps the field's default (unknown).
+    assert catalog.tts_model("csukuangfj/vits-icefall-zh-aishell3").size_bytes == 0
+
+
+def test_with_fp8_preserves_size_bytes():
+    # _with_fp8 copies the row to append a gpu-cuda fp8 deployment; the base
+    # download size must carry over unchanged.
+    base = catalog.translate_model("hy-mt2-1.8b")
+    assert base.size_bytes == 4086810533

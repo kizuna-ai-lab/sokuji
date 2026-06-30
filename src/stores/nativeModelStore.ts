@@ -104,7 +104,14 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         client.modelsCatalog(models, 'tts'),
       ]);
       const list = [...asr, ...translate, ...tts];
-      set((s) => ({ catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) } }));
+      // Sizes ride along with the catalog response — merge them into `sizes` so
+      // the panel no longer needs a separate model_sizes round-trip.
+      const newSizes = Object.fromEntries(
+        list.filter((m) => m.sizeBytes).map((m) => [m.id, m.sizeBytes as number]));
+      set((s) => ({
+        catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) },
+        sizes: { ...s.sizes, ...newSizes },
+      }));
     } catch {
       // best-effort badge refresh; ensureCatalog owns the authoritative lifecycle
     }
@@ -124,8 +131,13 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         client.modelsCatalog(undefined, 'tts'),
       ]);
       const list = [...asr, ...translate, ...tts];
+      // Sizes arrive with the catalog (sizeBytes per model) — populate `sizes`
+      // here too so cards show a download size immediately, no model_sizes call.
+      const sizes = Object.fromEntries(
+        list.filter((m) => m.sizeBytes).map((m) => [m.id, m.sizeBytes as number]));
       set({
         catalog: Object.fromEntries(list.map((m) => [m.id, m])),
+        sizes,
         sidecarStatus: 'ready',
       });
     } catch {

@@ -265,6 +265,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     ]
     assert by_id["whisper-large-v3"]["recommended"] is True
     assert by_id["whisper-base"]["recommended"] is False
+    # sizeBytes rides along with the catalog entry — no separate model_sizes round-trip.
+    assert by_id["sense-voice"]["sizeBytes"] == 944624033
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
@@ -1007,6 +1009,16 @@ def test_models_catalog_tts_kind_lists_models_with_voice_fields():
     moss = tts["moss-tts-nano"]
     assert moss["kind"] == "tts" and moss["clones"] is True
     assert moss["numSpeakers"] >= 1 and "streaming" in moss
+
+
+def test_models_catalog_carries_size_bytes_per_model():
+    asr = _catalog("asr")
+    tts = _catalog("tts")
+    assert asr["sense-voice"]["sizeBytes"] > 0
+    assert tts["csukuangfj/vits-piper-en_US-amy-low"]["sizeBytes"] == 81105784
+    # Unknown-size models report 0 (not absent), so the renderer can tell
+    # "no badge yet" from "model not found".
+    assert tts["csukuangfj/vits-icefall-zh-aishell3"]["sizeBytes"] == 0
     amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
     assert amy["clones"] is False and amy["numSpeakers"] == 1
     assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"

@@ -675,7 +675,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
-                 "order": mdl.sort_order, "repo": repo, "kind": kind}
+                 "order": mdl.sort_order, "repo": repo, "kind": kind,
+                 "sizeBytes": mdl.size_bytes}
         if kind == "tts":
             entry["numSpeakers"] = mdl.num_speakers
             entry["clones"] = mdl.clones
