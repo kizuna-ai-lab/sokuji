@@ -40,7 +40,8 @@ class FakeWS {
     if (msg.type === 'models_catalog') queueMicrotask(() =>
       this.emit({ type: 'models_catalog_result', id: msg.id, models: [
         { id: 'sense-voice', name: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'],
-          recommended: true, tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
+          recommended: true, order: 0, repo: 'some/repo', kind: 'asr',
+          tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] },
       ] }));
     if (msg.type === 'list_variants') queueMicrotask(() =>
       this.emit({ type: 'list_variants_result', id: msg.id,
@@ -133,8 +134,10 @@ describe('NativeModelClient', () => {
   it('listTtsVoices returns voice descriptors', async () => {
     const c = new NativeModelClient();
     const voices = await c.listTtsVoices('moss-tts-nano');
-    expect(voices[0].name).toBe('Ava');
-    expect(voices[1].name).toBe('Bella');
+    expect(voices).toEqual([
+      { name: 'Ava', language: 'en', curated: true, unstable: false, default: true },
+      { name: 'Bella', language: 'en', curated: true, unstable: false, default: false },
+    ]);
   });
 
   it('requests the tts catalog kind and returns voice descriptors', async () => {
