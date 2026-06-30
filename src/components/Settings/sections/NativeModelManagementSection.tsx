@@ -10,7 +10,7 @@ import {
   nativeTtsCards,
   pickNativeTts,
   resolveNativeTts,
-  nativeTtsModelIsVoiceCapable,
+  voiceShape,
   tierLabel,
   hardwareGated,
   gpuTierAvailable,
@@ -461,11 +461,11 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [variantFetchKey]);
 
-  // Built-in voice picker (MOSS): shown only when the resolved TTS model clones
-  // voices. Built-in names come from the sidecar (best-effort; [] when the model
-  // isn't downloaded → the section shows a "download first" hint); custom voices
-  // come from the IndexedDB library.
-  const ttsVoiceCapable = !!reserveTtsId && nativeTtsModelIsVoiceCapable(reserveTtsId, catalog);
+  // Voice picker: shape drives which control is shown — list (MOSS/clones) → dropdown
+  // with built-in + custom voices; range (multi-speaker VITS) → speaker-id slider;
+  // none (single-voice piper) → nothing. Built-in names come from the sidecar
+  // (best-effort; [] when the model isn't downloaded); custom voices from IndexedDB.
+  const ttsShape = voiceShape(catalog[reserveTtsId || '']);
   const [builtinVoices, setBuiltinVoices] = useState<NativeVoiceInfo[]>([]);
   const [customVoices, setCustomVoices] = useState<StoredNativeVoice[]>([]);
   const reloadCustomVoices = useCallback(() => {
@@ -474,14 +474,14 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       .catch(() => { /* best-effort: storage unavailable */ });
   }, []);
   useEffect(() => {
-    if (!ttsVoiceCapable) { setBuiltinVoices([]); return; }
+    if (ttsShape !== 'list') { setBuiltinVoices([]); return; }
     let cancelled = false;
     nativeListTtsVoices(reserveTtsId || undefined)
       .then((voices) => { if (!cancelled) setBuiltinVoices(voices); })
       .catch(() => { if (!cancelled) setBuiltinVoices([]); });
     reloadCustomVoices();
     return () => { cancelled = true; };
-  }, [ttsVoiceCapable, reserveTtsId, reloadCustomVoices]);
+  }, [ttsShape, reserveTtsId, reloadCustomVoices]);
 
   // Custom-voice rename/delete operate on the opaque `custom:<id>`; built-in
   // entries are not removable so only custom ids arrive here. Capture itself
@@ -765,22 +765,24 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           })()}
         </div>
         {ttsCards.length > 0 ? (
-          // The voice picker is embedded inside the selected, voice-capable (MOSS) card via
-          // renderBody. NativeModelCard only renders the body when the card is selected, and
-          // ttsVoiceCapable reflects the resolved (selected) model, so only that card shows it.
+          // The voice picker is embedded inside the selected card via renderBody.
+          // NativeModelCard only renders the body when the card is selected, and
+          // ttsShape reflects the resolved (selected) model's capability.
           renderCards(
             ttsCards,
             (c) => ttsSelected(c.selectId),
             'ttsModel',
             undefined,
             undefined,
-            () => (ttsVoiceCapable ? (
+            () => (ttsShape !== 'none' ? (
               <NativeVoiceSection
                 builtinVoices={builtinVoices}
                 customVoices={customVoices}
                 selected={settings.ttsVoice}
                 targetLanguage={settings.targetLanguage}
                 isSessionActive={isSessionActive}
+                shape={ttsShape}
+                numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
                 onSelect={(id) => update({ ttsVoice: id })}
                 onCaptured={reloadCustomVoices}
                 onRename={handleVoiceRename}

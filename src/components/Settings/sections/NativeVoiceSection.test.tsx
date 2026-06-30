@@ -112,4 +112,19 @@ describe('NativeVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(addNativeVoice).not.toHaveBeenCalled();
   });
+
+  it('renders a speaker-id slider for a range model and writes sid:<n>', () => {
+    const onSelect = vi.fn();
+    render(<NativeVoiceSection {...baseProps} shape="range" numSpeakers={904}
+      selected="sid:3" onSelect={onSelect} builtinVoices={[]} />);
+    const slider = screen.getByRole('slider');
+    expect(slider).toHaveAttribute('max', '903');
+    fireEvent.change(slider, { target: { value: '7' } });
+    expect(onSelect).toHaveBeenCalledWith('sid:7');
+  });
+
+  it('renders nothing for a single-voice model', () => {
+    const { container } = render(<NativeVoiceSection {...baseProps} shape="none" numSpeakers={1} builtinVoices={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

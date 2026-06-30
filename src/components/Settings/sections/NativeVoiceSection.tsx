@@ -4,6 +4,9 @@ import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
+  sidFromTtsVoice,
+  ttsVoiceForSid,
+  type VoiceShape,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import { addNativeVoice, type StoredNativeVoice } from '../../../lib/local-inference/nativeVoiceStorage';
@@ -74,6 +77,10 @@ export interface NativeVoiceSectionProps {
   targetLanguage: string;
   /** Disables voice selection while a session is active. */
   isSessionActive?: boolean;
+  /** Voice control shape driven by the selected TTS model's capability. Defaults to 'list'. */
+  shape?: VoiceShape;
+  /** Total speaker count for a 'range' model (the slider runs 0 .. numSpeakers-1). */
+  numSpeakers?: number;
   /** Write the picked voice id to settings.ttsVoice. */
   onSelect: (id: string) => void;
   /** Reload the custom list after a successful capture (record/upload). */
@@ -90,6 +97,8 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   selected,
   targetLanguage,
   isSessionActive = false,
+  shape = 'list',
+  numSpeakers,
   onSelect,
   onCaptured,
   onRename,
@@ -171,6 +180,25 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       setCaptureError(t('voiceLibrary.decodeFailed', "Could not read that audio file — try a WAV, MP3, or other common format."));
     }
   }, [storeClip, t]);
+
+  if (shape === 'none') return null;
+
+  if (shape === 'range') {
+    const max = Math.max(1, (numSpeakers ?? 1) - 1);
+    const sid = Math.min(sidFromTtsVoice(selected), max);
+    return (
+      <div className="setting-item">
+        <div className="setting-label">
+          <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
+          <span className="setting-value">{sid}</span>
+        </div>
+        <input type="range" min="0" max={max} step="1" value={sid}
+          onChange={(e) => onSelect(ttsVoiceForSid(parseInt(e.target.value, 10)))}
+          className="slider" disabled={isSessionActive} />
+      </div>
+    );
+  }
+  // shape === 'list' falls through to the VoiceLibrarySection dropdown below.
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
