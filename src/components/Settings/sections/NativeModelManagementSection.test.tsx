@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
-import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
 // ---------------------------------------------------------------------------
 // Stable mock data (names start with "mock" so vitest hoists them alongside vi.mock)
@@ -29,6 +29,78 @@ const mockSettings = {
   translationDevice: 'auto' as const,
   ttsDevice: 'auto' as const,
   translationVariantByModel: {},
+};
+
+// Fixture catalog — must start with "mock" so vitest hoists it with vi.mock factories.
+// Contains the minimum set of models needed to render all cards exercised by the 8
+// failing tests: a ja-compatible ASR model, three multilingual translate models (incl.
+// both hy-mt* IDs that trigger the variant-picker gate), and two en TTS models (Amy
+// piper + MOSS voice-cloning).
+const mockCatalog: Record<string, NativeModelInfo> = {
+  'sense-voice': {
+    id: 'sense-voice',
+    name: 'SenseVoice',
+    languages: ['ja', 'en', 'zh', 'ko'],
+    recommended: true,
+    tiers: [],
+    order: 0,
+    repo: 'sense-voice',
+    kind: 'asr',
+  },
+  'qwen2.5-0.5b': {
+    id: 'qwen2.5-0.5b',
+    name: 'Qwen2.5 0.5B',
+    languages: ['multi'],
+    recommended: true,
+    tiers: [],
+    order: 0,
+    repo: 'qwen2.5-0.5b',
+    kind: 'translate',
+  },
+  'hy-mt2-7b': {
+    id: 'hy-mt2-7b',
+    name: 'HY-MT2 7B',
+    languages: ['multi'],
+    recommended: false,
+    tiers: [],
+    order: 1,
+    repo: 'hy-mt2-7b',
+    kind: 'translate',
+  },
+  'hy-mt15-7b': {
+    id: 'hy-mt15-7b',
+    name: 'HY-MT1.5 7B',
+    languages: ['multi'],
+    recommended: false,
+    tiers: [],
+    order: 2,
+    repo: 'hy-mt15-7b',
+    kind: 'translate',
+  },
+  'csukuangfj/vits-piper-en_US-amy-low': {
+    id: 'csukuangfj/vits-piper-en_US-amy-low',
+    name: 'Amy (Piper EN)',
+    languages: ['en'],
+    recommended: true,
+    tiers: [],
+    order: 0,
+    repo: 'csukuangfj/vits-piper-en_US-amy-low',
+    kind: 'tts',
+    numSpeakers: 1,
+  },
+  'moss-tts-nano': {
+    id: 'moss-tts-nano',
+    name: 'MOSS TTS Nano',
+    languages: ['en', 'zh', 'ja'],
+    recommended: false,
+    tiers: [],
+    order: 1,
+    repo: 'moss-tts-nano',
+    kind: 'tts',
+    numSpeakers: 1,
+    clones: true,
+    streaming: true,
+  },
 };
 
 const mockVariants: VariantInfo[] = [
@@ -90,7 +162,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     sizes: mockSizes,
     progress: {},
     errors: {},
-    catalog: {},
+    catalog: mockCatalog,
     sidecarStatus: mockSidecarStatus,
     download: mockDownload,
     deleteModel: mockDeleteModel,
@@ -116,7 +188,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     useNativeModelProgress: () => ({}),
     useNativeModelSizes: () => ({ ...mockSizes }),
     useNativeModelErrors: () => ({}),
-    useNativeCatalog: () => ({}),
+    useNativeCatalog: () => mockCatalog,
     useNativeAsrLoading: () => false,
     useNativeAsrResolved: () => null,
     useNativeTranslationResolved: () => null,
