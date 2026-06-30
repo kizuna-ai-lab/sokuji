@@ -137,7 +137,7 @@ export function resolveNativeTranslation(choice: string): string | undefined {
  */
 export function requiredNativeModels(
   asrModel: string, translationChoice: string, ttsChoice: string, _src: string, tgt: string,
-  textOnly = false, catalog: Record<string, NativeModelInfo> = {},
+  catalog: Record<string, NativeModelInfo>, textOnly = false,
 ): string[] {
   const ids = [asrModel, resolveNativeTranslation(translationChoice) || 'qwen2.5-0.5b'];
   // TTS is only required when speech output is on (text-only skips it entirely).

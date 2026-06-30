@@ -1308,7 +1308,7 @@ const useSettingsStore = create<SettingsStore>()(
             .some((c) => c.selectId === s.translationModel);
           // Gate on the selected stage models being downloaded into the sidecar cache.
           // TTS is dropped from the requirement when text-only is on.
-          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, get().textOnly);
+          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, cat, get().textOnly);
           const { useNativeModelStore, nativeListVariants } = await import('./nativeModelStore');
           // Resolve the active translation model's CHOSEN variant repo (pin ??
           // recommended) so the gate checks the right quant even on cold start —
