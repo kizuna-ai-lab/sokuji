@@ -1,20 +1,9 @@
 /**
  * Catalog of native (Electron sidecar) models per stage, plus the helpers that
  * turn settings into concrete model ids. Centralized so settings UI + session
- * config share one source of truth. TTS languages are limited to the sherpa
- * piper repos confirmed to exist.
+ * config share one source of truth.
  */
 import type { NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
-export interface NativeModelOption {
-  id: string;
-  label: string;
-  /** Supported languages; `['multi']` means any language. */
-  languages?: string[];
-  recommended?: boolean;
-  sortOrder?: number;
-  streaming?: boolean;
-  clones?: boolean;
-}
 
 /**
  * Aliases between the app's source-language values (src/utils/languages.ts) and
@@ -63,65 +52,19 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
   return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
 }
 
-/**
- * Non-cloning sherpa piper TTS voices by target language. Every repo here was
- * existence + layout verified. The first entry per language is the default
- * (used when the TTS choice is Auto). `off` and `''`(Auto) are added by the UI.
- */
-export const NATIVE_TTS_BY_LANG: Record<string, NativeModelOption[]> = {
-  en: [
-    { id: 'csukuangfj/vits-piper-en_US-amy-low', label: 'Amy (US)' },
-    { id: 'csukuangfj/vits-piper-en_US-libritts_r-medium', label: 'LibriTTS (US)' },
-    { id: 'csukuangfj/vits-piper-en_US-ryan-low', label: 'Ryan (US)' },
-    { id: 'csukuangfj/vits-piper-en_US-lessac-medium', label: 'Lessac (US)' },
-    { id: 'csukuangfj/vits-piper-en_GB-alan-low', label: 'Alan (GB)' },
-  ],
-  de: [
-    { id: 'csukuangfj/vits-piper-de_DE-thorsten-low', label: 'Thorsten' },
-    { id: 'csukuangfj/vits-piper-de_DE-eva_k-x_low', label: 'Eva K' },
-    { id: 'csukuangfj/vits-piper-de_DE-kerstin-low', label: 'Kerstin' },
-  ],
-  es: [
-    { id: 'csukuangfj/vits-piper-es_ES-davefx-medium', label: 'DaveFX (ES)' },
-    { id: 'csukuangfj/vits-piper-es_ES-carlfm-x_low', label: 'CarlFM (ES)' },
-    { id: 'csukuangfj/vits-piper-es_MX-ald-medium', label: 'Ald (MX)' },
-  ],
-  fr: [
-    { id: 'csukuangfj/vits-piper-fr_FR-siwis-medium', label: 'Siwis' },
-    { id: 'csukuangfj/vits-piper-fr_FR-gilles-low', label: 'Gilles' },
-    { id: 'csukuangfj/vits-piper-fr_FR-tom-medium', label: 'Tom' },
-  ],
-  it: [
-    { id: 'csukuangfj/vits-piper-it_IT-riccardo-x_low', label: 'Riccardo' },
-    { id: 'csukuangfj/vits-piper-it_IT-paola-medium', label: 'Paola' },
-  ],
-  ru: [
-    { id: 'csukuangfj/vits-piper-ru_RU-denis-medium', label: 'Denis' },
-    { id: 'csukuangfj/vits-piper-ru_RU-irina-medium', label: 'Irina' },
-    { id: 'csukuangfj/vits-piper-ru_RU-dmitri-medium', label: 'Dmitri' },
-  ],
-  zh: [
-    { id: 'csukuangfj/vits-piper-zh_CN-huayan-medium', label: 'Huayan' },
-  ],
-};
+export type VoiceShape = 'none' | 'range' | 'list';
+/** A TTS model's voice control shape: list (named voices + clones), range
+ *  (numeric speaker id 0..N-1), or none (single voice). */
+export function voiceShape(info: NativeModelInfo | undefined): VoiceShape {
+  if (!info) return 'none';
+  if (info.clones) return 'list';
+  if ((info.numSpeakers ?? 1) > 1) return 'range';
+  return 'none';
+}
 
-// MOSS-TTS-Nano: one model covering 20 languages (sidecar catalog id
-// `moss-tts-nano`), streaming + voice-cloning capable. Surfaced as a TTS voice
-// for each language it supports, alongside the per-language piper voices. The
-// 20-language list matches the model's README (OpenMOSS/MOSS-TTS-Nano); the card
-// shows these as language tags rather than a vague "multilingual" label.
-const MOSS_NANO_LANGS = ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es', 'pt', 'it', 'ru',
-  'ar', 'pl', 'cs', 'da', 'sv', 'el', 'tr', 'hu', 'fa', 'nl'];
-const MOSS_NANO_TTS: NativeModelOption = {
-  id: 'moss-tts-nano', label: 'MOSS-TTS-Nano',
-  languages: MOSS_NANO_LANGS, recommended: false, sortOrder: 50,
-  streaming: true, clones: true,
-};
-
-/** Voice options for a target language (empty = no native voice → text only). */
-export function nativeTtsVoices(targetLanguage: string): NativeModelOption[] {
-  const piper = NATIVE_TTS_BY_LANG[targetLanguage] || [];
-  return MOSS_NANO_LANGS.includes(targetLanguage) ? [...piper, MOSS_NANO_TTS] : piper;
+/** TTS models supporting the target language, recommended+order first. */
+export function nativeTtsModels(tgt: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[] {
+  return catalogModels(catalog, 'tts').filter((m) => supportsLanguage(m, tgt));
 }
 
 /** The per-language default built-in voice ('' when the list is empty). Reads the
@@ -152,24 +95,18 @@ export function curatedBuiltinVoices(
   return { curated, rest };
 }
 
-export function nativeTtsModelIsVoiceCapable(modelId: string): boolean {
-  return nativeTtsVoices('en').concat(nativeTtsVoices('zh'), nativeTtsVoices('ja'))
-    .some((o) => o.id === modelId && !!o.clones);
+export function nativeTtsModelIsVoiceCapable(modelId: string, catalog: Record<string, NativeModelInfo>): boolean {
+  return !!catalog[modelId]?.clones;
 }
 
-/**
- * Default native TTS model for the target language ('' = no speech output).
- * Falls back to the first entry of nativeTtsVoices so MOSS-only languages
- * (e.g. ja, ko, pt) get 'moss-tts-nano' as the default instead of ''.
- * Piper languages still return the first piper voice since it is listed first.
- */
-export function pickNativeTts(targetLanguage: string): string {
-  return nativeTtsVoices(targetLanguage)[0]?.id || '';
+/** Default native TTS model for the target language ('' = no speech output). */
+export function pickNativeTts(tgt: string, catalog: Record<string, NativeModelInfo>): string {
+  return nativeTtsModels(tgt, catalog)[0]?.id || '';
 }
 
 /** Whether a target language has native speech output available. */
-export function hasNativeTts(targetLanguage: string): boolean {
-  return nativeTtsVoices(targetLanguage).length > 0;
+export function hasNativeTts(tgt: string, catalog: Record<string, NativeModelInfo>): boolean {
+  return nativeTtsModels(tgt, catalog).length > 0;
 }
 
 /**
@@ -178,10 +115,10 @@ export function hasNativeTts(targetLanguage: string): boolean {
  *  - a voice valid for tgt -> that voice
  *  - '' or a stale voice   -> the default voice for tgt (Auto), or undefined
  */
-export function resolveNativeTts(choice: string, targetLanguage: string): string | undefined {
+export function resolveNativeTts(choice: string, tgt: string, catalog: Record<string, NativeModelInfo>): string | undefined {
   if (choice === 'off') return undefined;
-  if (choice && nativeTtsVoices(targetLanguage).some((o) => o.id === choice)) return choice;
-  return pickNativeTts(targetLanguage) || undefined;
+  if (choice && nativeTtsModels(tgt, catalog).some((m) => m.id === choice)) return choice;
+  return pickNativeTts(tgt, catalog) || undefined;
 }
 
 /**
@@ -200,12 +137,12 @@ export function resolveNativeTranslation(choice: string): string | undefined {
  */
 export function requiredNativeModels(
   asrModel: string, translationChoice: string, ttsChoice: string, _src: string, tgt: string,
-  textOnly = false
+  textOnly = false, catalog: Record<string, NativeModelInfo> = {},
 ): string[] {
   const ids = [asrModel, resolveNativeTranslation(translationChoice) || 'qwen2.5-0.5b'];
   // TTS is only required when speech output is on (text-only skips it entirely).
   if (!textOnly) {
-    const tts = resolveNativeTts(ttsChoice, tgt);
+    const tts = resolveNativeTts(ttsChoice, tgt, catalog);
     if (tts) ids.push(tts);
   }
   return ids;
@@ -398,14 +335,14 @@ export function nativeTranslationCards(src: string, tgt: string, catalog: Record
   return [...multilingual, ...pair].map(infoToCard);
 }
 
-export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
+export function nativeTtsCards(tgt: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
   // Voice picker only — there's no "Off" card; text-only is the common textOnly
-  // toggle. Languages supported by MOSS always have at least the MOSS voice;
-  // languages without any voice yield an empty list (the UI shows a "text only" notice).
-  return nativeTtsVoices(tgt).map((v, i) => ({
-    selectId: v.id, downloadId: v.id, name: v.label, languages: [tgt],
-    recommended: i === 0, sortOrder: i,
-    streaming: v.streaming, clones: v.clones,
+  // toggle. Languages with no TTS models yield an empty list (the UI shows a
+  // "text only" notice).
+  return nativeTtsModels(tgt, catalog).map((m, i) => ({
+    selectId: m.id, downloadId: m.id, name: m.name, languages: [tgt],
+    recommended: i === 0, sortOrder: m.order,
+    streaming: m.streaming, clones: m.clones,
   }));
 }
 
@@ -472,7 +409,7 @@ export function autoSelectNative(
   // TTS — optional; '' (Auto) = the default voice for tgt. A specific voice that
   // isn't valid for tgt, or a legacy 'off' (the Off card was removed — text-only
   // is the common textOnly toggle now), resets to Auto.
-  if (ttsModel === 'off' || (ttsModel && ttsModel !== '' && !nativeTtsVoices(tgt).some((v) => v.id === ttsModel))) {
+  if (ttsModel === 'off' || (ttsModel && ttsModel !== '' && !nativeTtsModels(tgt, catalog).some((m) => m.id === ttsModel))) {
     updates.ttsModel = '';
   }
 

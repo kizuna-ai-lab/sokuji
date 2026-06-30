@@ -272,8 +272,8 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
 describe('NativeModelManagementSection — TTS model card resolved badge', () => {
   // The default TTS voice for targetLanguage:'en' (mockSettings) is Amy
-  // (csukuangfj/vits-piper-en_US-amy-low) — first entry in NATIVE_TTS_BY_LANG['en'].
-  // With ttsModel:'' the component treats Amy as selected via pickNativeTts('en').
+  // (csukuangfj/vits-piper-en_US-amy-low) — first catalog entry for 'en'.
+  // With ttsModel:'' the component treats Amy as selected via pickNativeTts('en', catalog).
   const AMY_ID = 'csukuangfj/vits-piper-en_US-amy-low';
 
   it('shows the live device badge on the Amy card when ttsResolved matches its id', () => {

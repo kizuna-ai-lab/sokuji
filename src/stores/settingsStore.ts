@@ -19,6 +19,8 @@ import {
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
+import type { NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import { useNativeModelStore } from './nativeModelStore';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -726,7 +728,8 @@ function createLocalInferenceSessionConfig(
  */
 export function createLocalNativeSessionConfig(
   settings: LocalNativeSettings,
-  systemInstructions: string
+  systemInstructions: string,
+  catalog: Record<string, NativeModelInfo> = {},
 ): LocalNativeSessionConfig {
   const wrapTranscript = resolveWrapTranscript(
     settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
@@ -742,7 +745,7 @@ export function createLocalNativeSessionConfig(
     // Manual variant pin → load's select_variant(pin=...) so LOAD resolves the same
     // variant DOWNLOAD fetched (else local_files_only load fails on a missing repo).
     translationVariant: settings.translationVariantByModel[settings.translationModel],
-    ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage),
+    ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog),
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
@@ -1315,7 +1318,7 @@ const useSettingsStore = create<SettingsStore>()(
           let statusRepos: Record<string, string> | undefined;
           if (s.translationModel.startsWith('hy-mt')) {
             try {
-              const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage) || null;
+              const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage, cat) || null;
               const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);
               const resolved = statusReposFor([s.translationModel], { [s.translationModel]: vd }, s.translationVariantByModel);
               // Only override when resolution actually produced a repo; an empty
@@ -1875,7 +1878,7 @@ const useSettingsStore = create<SettingsStore>()(
           config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
           break;
         case Provider.LOCAL_NATIVE:
-          config = createLocalNativeSessionConfig(state.localNative, systemInstructions);
+          config = createLocalNativeSessionConfig(state.localNative, systemInstructions, useNativeModelStore.getState().catalog);
           break;
         default:
           config = createOpenAISessionConfig(state.openai, systemInstructions);

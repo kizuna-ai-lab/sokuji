@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceShape, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -45,6 +45,16 @@ const TR_CAT: Record<string, NativeModelInfo> = {
 };
 
 /**
+ * TTS-specific fixture catalog for voiceShape / nativeTtsCards / resolveNativeTts tests.
+ * Exercises: list (clones), range (numSpeakers>1), none (single speaker, no clones), ordering.
+ */
+const TTS_CAT: Record<string, NativeModelInfo> = {
+  'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
+  'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false, numSpeakers: 1 }),
+  'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false, numSpeakers: 904 }),
+};
+
+/**
  * Combined fixture for autoSelectNative tests — needs both ASR and translate entries
  * so nativeTranslationCards(src, tgt, catalog) returns the expected cards.
  */
@@ -58,47 +68,11 @@ const FIXTURE_FULL: Record<string, NativeModelInfo> = {
 };
 
 describe('nativeCatalog', () => {
-  it('maps the 7 verified piper languages plus MOSS-Nano multilingual support', () => {
-    for (const l of ['en', 'de', 'es', 'fr', 'it', 'ru', 'zh']) {
-      expect(pickNativeTts(l)).toContain('vits-piper');
-      expect(hasNativeTts(l)).toBe(true);
-      expect(nativeTtsVoices(l).length).toBeGreaterThan(0);
-    }
-    // Japanese has no piper voice but MOSS supports it → pickNativeTts returns MOSS as default
-    expect(pickNativeTts('ja')).toBe('moss-tts-nano');
-    expect(hasNativeTts('ja')).toBe(true);
-    // Piper languages still default to the first piper voice
-    expect(pickNativeTts('en')).toBe('csukuangfj/vits-piper-en_US-amy-low');
-    // MOSS-only: all 13 non-piper MOSS languages get 'moss-tts-nano' as default
-    for (const l of ['ko', 'pt', 'ar', 'pl', 'cs', 'da', 'sv', 'el', 'tr', 'hu', 'fa', 'nl']) {
-      expect(pickNativeTts(l)).toBe('moss-tts-nano');
-    }
-    // Language with no voice at all (e.g. 'th') still returns ''
-    expect(pickNativeTts('th')).toBe('');
-  });
-
   it('nativeTranslationCards: multilingual always, opus only for the matching pair', () => {
     const zhEn = nativeTranslationCards('zh', 'en', TR_CAT).map((c) => c.selectId);
     expect(zhEn).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'opus-mt-zh-en']);
     const enZh = nativeTranslationCards('en', 'zh', TR_CAT).map((c) => c.selectId);
     expect(enZh).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'opus-mt-en-zh']);
-  });
-
-  it('resolves the TTS choice against the target language', () => {
-    // Auto -> default voice for the language
-    expect(resolveNativeTts('', 'en')).toBe('csukuangfj/vits-piper-en_US-amy-low');
-    // off -> no speech
-    expect(resolveNativeTts('off', 'en')).toBeUndefined();
-    // a valid voice for the language is kept
-    expect(resolveNativeTts('csukuangfj/vits-piper-en_US-ryan-low', 'en')).toBe('csukuangfj/vits-piper-en_US-ryan-low');
-    // a stale cross-language voice falls back to the language default
-    expect(resolveNativeTts('csukuangfj/vits-piper-en_US-ryan-low', 'de')).toBe('csukuangfj/vits-piper-de_DE-thorsten-low');
-    // MOSS-only language (ja): Auto resolves to moss-tts-nano (Fix 2)
-    expect(resolveNativeTts('', 'ja')).toBe('moss-tts-nano');
-    // MOSS voice explicitly chosen for ja is valid
-    expect(resolveNativeTts('moss-tts-nano', 'ja')).toBe('moss-tts-nano');
-    // language with NO voice at all -> undefined
-    expect(resolveNativeTts('', 'th')).toBeUndefined();
   });
 
   it('resolves translation choices', () => {
@@ -150,13 +124,14 @@ describe('nativeCatalog', () => {
     // every native translation card's downloadId equals its selectId
     expect(tr.every((c) => c.downloadId === c.selectId)).toBe(true);
 
-    const tts = nativeTtsCards('en');
-    expect(tts[0]).toMatchObject({ selectId: 'csukuangfj/vits-piper-en_US-amy-low', downloadId: 'csukuangfj/vits-piper-en_US-amy-low', recommended: true });
+    // TTS cards derive from catalog — use TTS_CAT fixture (moss recommended, order=0 → first)
+    const tts = nativeTtsCards('en', TTS_CAT);
+    expect(tts[0]).toMatchObject({ selectId: 'moss-tts-nano', downloadId: 'moss-tts-nano', recommended: true });
     // no Off card — voice picker only (text-only is the common textOnly toggle)
     expect(tts.every((c) => c.selectId !== 'off')).toBe(true);
 
-    // language with no piper voice but MOSS support -> MOSS card only
-    const jaCards = nativeTtsCards('ja');
+    // language with only MOSS support in TTS_CAT -> MOSS card only
+    const jaCards = nativeTtsCards('ja', TTS_CAT);
     expect(jaCards).toHaveLength(1);
     expect(jaCards[0]).toMatchObject({ selectId: 'moss-tts-nano', downloadId: 'moss-tts-nano', recommended: true });
   });
@@ -404,27 +379,18 @@ describe('nativeCatalog', () => {
     });
   });
 
-  describe('MOSS-Nano native TTS', () => {
-    it('appears as a voice for supported languages with capability flags', () => {
-      const en = nativeTtsVoices('en');
-      const moss = en.find((v) => v.id === 'moss-tts-nano');
-      expect(moss).toBeTruthy();
-      expect(moss!.streaming).toBe(true);
-      expect(moss!.clones).toBe(true);
-      expect(nativeTtsVoices('zh').some((v) => v.id === 'moss-tts-nano')).toBe(true);
-      expect(nativeTtsVoices('ja').some((v) => v.id === 'moss-tts-nano')).toBe(true);
-    });
+  it('voiceShape classifies list/range/single', () => {
+    expect(voiceShape(TTS_CAT['moss-tts-nano'])).toBe('list');
+    expect(voiceShape(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toBe('range');
+    expect(voiceShape(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toBe('none');
+    expect(voiceShape(undefined)).toBe('none');
+  });
 
-    it('is exposed as a TTS card carrying the streaming/clones flags', () => {
-      const card = nativeTtsCards('en').find((c) => c.selectId === 'moss-tts-nano');
-      expect(card).toBeTruthy();
-      expect(card!.streaming).toBe(true);
-      expect(card!.clones).toBe(true);
-    });
-
-    it('does not appear for an unsupported language', () => {
-      expect(nativeTtsVoices('th').some((v) => v.id === 'moss-tts-nano')).toBe(false);
-    });
+  it('nativeTtsCards lists tts models for the language; resolveNativeTts honors off/valid/default', () => {
+    expect(nativeTtsCards('ja', TTS_CAT).map((c) => c.selectId)).toEqual(['moss-tts-nano']);
+    expect(resolveNativeTts('off', 'en', TTS_CAT)).toBeUndefined();
+    expect(resolveNativeTts('csukuangfj/vits-piper-en_US-amy-low', 'en', TTS_CAT)).toBe('csukuangfj/vits-piper-en_US-amy-low');
+    expect(resolveNativeTts('', 'en', TTS_CAT)).toBe('moss-tts-nano'); // recommended/order-first default
   });
 
   it('defaultTtsVoice picks the language default descriptor', () => {
@@ -461,8 +427,8 @@ describe('nativeCatalog', () => {
     expect(combined).toEqual(all.map((v) => v.name).sort());
     expect(curated.every((v) => all.map((x) => x.name).includes(v.name))).toBe(true);
   });
-  it('only MOSS is voice-capable', () => {
-    expect(nativeTtsModelIsVoiceCapable('moss-tts-nano')).toBe(true);
-    expect(nativeTtsModelIsVoiceCapable('csukuangfj/vits-piper-en_US-amy-low')).toBe(false);
+  it('only MOSS is voice-capable (catalog-derived)', () => {
+    expect(nativeTtsModelIsVoiceCapable('moss-tts-nano', TTS_CAT)).toBe(true);
+    expect(nativeTtsModelIsVoiceCapable('csukuangfj/vits-piper-en_US-amy-low', TTS_CAT)).toBe(false);
   });
 });

@@ -49,7 +49,7 @@ import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
-  nativeTtsVoices,
+  nativeTtsModels,
   resolveNativeTts,
   estimateNativeMemoryByDevice,
   actualNativeMemoryByDevice,
@@ -127,7 +127,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     if (provider !== Provider.LOCAL_NATIVE) return [];
     const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
     const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
     return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
   }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
     localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog]);
@@ -152,7 +152,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     if (provider !== Provider.LOCAL_NATIVE) return null;
     const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
     const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
     return estimateNativeMemoryByDevice([
       { id: localNativeSettings.asrModel, device: localNativeSettings.asrDevice },
       { id: trCard?.downloadId, device: localNativeSettings.translationDevice },
@@ -552,16 +552,16 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
               {(() => {
-                const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
+                const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
                 const ttsVoice = voiceId
-                  ? nativeTtsVoices(localNativeSettings.targetLanguage).find(v => v.id === voiceId)
+                  ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
                   : undefined;
                 const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
                     <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
-                      {ttsReady ? (ttsVoice?.label || voiceId) : t('common.none', 'None')}
+                      {ttsReady ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
                     </span>
                   </button>
                 );

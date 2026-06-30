@@ -58,6 +58,7 @@ import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
+import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -110,6 +111,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
   const updateLocalNativeSettings = useUpdateLocalNative();
+  const nativeCatalog = useNativeCatalog();
   const modelStatuses = useModelStatuses();
 
   // Actions from store
@@ -1702,7 +1704,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
     // The speed slider is meaningful only when the target language has a native
     // voice (text-only is the common textOnly toggle, not a per-stage Off option).
-    const ttsActive = hasNativeTts(localNativeSettings.targetLanguage);
+    const ttsActive = hasNativeTts(localNativeSettings.targetLanguage, nativeCatalog);
     // Every native translation model is an LLM (Qwen / TranslateGemma / Hunyuan-MT),
     // so all of them honour the custom prompt.
     const promptSupported = true;

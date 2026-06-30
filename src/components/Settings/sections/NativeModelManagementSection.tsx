@@ -428,7 +428,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const translationCards = useMemo(
     () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage, catalog),
     [settings.sourceLanguage, settings.targetLanguage, catalog]);
-  const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage), [settings.targetLanguage]);
+  const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage, catalog), [settings.targetLanguage, catalog]);
 
   // Identify translation cards with multiple quant variants — the HY-MT family
   // (hy-mt2-* and hy-mt15-*), which ship FP8 + bf16 deployments. Prefix-match
@@ -443,7 +443,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // RESOLVED tts id (e.g. 'piper-en') — the same id LOAD's _h_translate_init reserves on —
   // so download-time and load-time select_variant compute the identical reserve, else a
   // razor VRAM edge could flip the variant between the two.
-  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage) || null;
+  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
   const variantFetchKey = [variantCardIds.join('|'), settings.asrModel, reserveTtsId].join('::');
   useEffect(() => {
     if (variantCardIds.length === 0) return;
@@ -465,7 +465,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // voices. Built-in names come from the sidecar (best-effort; [] when the model
   // isn't downloaded → the section shows a "download first" hint); custom voices
   // come from the IndexedDB library.
-  const ttsVoiceCapable = !!reserveTtsId && nativeTtsModelIsVoiceCapable(reserveTtsId);
+  const ttsVoiceCapable = !!reserveTtsId && nativeTtsModelIsVoiceCapable(reserveTtsId, catalog);
   const [builtinVoices, setBuiltinVoices] = useState<NativeVoiceInfo[]>([]);
   const [customVoices, setCustomVoices] = useState<StoredNativeVoice[]>([]);
   const reloadCustomVoices = useCallback(() => {
@@ -552,7 +552,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   // TTS '' (default) highlights the default voice for the target language.
   const ttsSelected = (selectId: string) =>
-    settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage));
+    settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage, catalog));
 
   // Explicit user selection: write the choice, clear the Auto-selected flag, and
   // remember the full selection for this direction (mirrors ModelManagementSection).
