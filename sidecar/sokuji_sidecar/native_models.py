@@ -119,8 +119,69 @@ _SILERO_VAD_BYTES = 643854  # silero_vad.onnx (k2-fsa release)
 _SIZE_CACHE = {}
 
 
+# Total download size (bytes) per catalog model id (incl. the silero VAD for ASR).
+# Hardcoded so the panel shows sizes instantly + offline instead of making a live
+# HuggingFace repo_info network call per model on first load. Harvested once from
+# HfApi; update when a model's repo changes. Ids absent here fall through to the
+# live HF lookup below (e.g. variant repos, newly added models). vits-icefall-zh-
+# aishell3 is intentionally omitted (its repo exposes no per-file size metadata).
+_HARDCODED_SIZES = {
+    "cohere-transcribe-03-2026": 4134989472,
+    "sense-voice": 944624033,
+    "whisper-tiny": 78850941,
+    "whisper-base": 148530263,
+    "whisper-small": 486859701,
+    "whisper-medium": 1531219071,
+    "whisper-large-v3": 3091483127,
+    "granite-speech-4.1-2b": 4871717336,
+    "granite-speech-4.1-2b-plus": 4231794140,
+    "qwen3-asr-1.7b": 4088288055,
+    "voxtral-mini-4b-realtime": 8875021049,
+    "fun-asr-mlt-nano": 1989762711,
+    "qwen2.5-0.5b": 999604126,
+    "qwen3-0.6b": 1519209243,
+    "qwen3.5-0.8b": 1769980465,
+    "qwen3.5-2b": 4571274023,
+    "translategemma-4b": 8639637704,
+    "hy-mt2-1.8b": 4086810533,
+    "hy-mt2-7b": 16075624007,
+    "hy-mt15-1.8b": 4086795383,
+    "hy-mt15-7b": 16075608305,
+    "opus-mt-ru-en": 311481821, "opus-mt-zh-en": 315322845, "opus-mt-en-zh": 315322114,
+    "opus-mt-hu-en": 310210981, "opus-mt-en-es": 315310815, "opus-mt-en-ar": 311416093,
+    "opus-mt-en-ru": 311479785, "opus-mt-es-en": 315310760, "opus-mt-en-vi": 291629146,
+    "opus-mt-ar-en": 311494073, "opus-mt-ja-en": 306382145, "opus-mt-en-jap": 276839172,
+    "opus-mt-ko-en": 315467125,
+    "moss-tts-nano": 763206064,
+    "csukuangfj/vits-piper-en_US-amy-low": 81105784,
+    "csukuangfj/vits-piper-en_US-libritts_r-medium": 96598330,
+    "csukuangfj/vits-piper-en_US-ryan-low": 81105775,
+    "csukuangfj/vits-piper-en_US-lessac-medium": 81203669,
+    "csukuangfj/vits-piper-en_GB-alan-low": 81105800,
+    "csukuangfj/vits-piper-de_DE-thorsten-low": 81105739,
+    "csukuangfj/vits-piper-de_DE-eva_k-x_low": 38629997,
+    "csukuangfj/vits-piper-de_DE-kerstin-low": 81105736,
+    "csukuangfj/vits-piper-es_ES-davefx-medium": 81203135,
+    "csukuangfj/vits-piper-es_ES-carlfm-x_low": 46131805,
+    "csukuangfj/vits-piper-es_MX-ald-medium": 81203240,
+    "csukuangfj/vits-piper-fr_FR-siwis-medium": 81204462,
+    "csukuangfj/vits-piper-fr_FR-gilles-low": 81106835,
+    "csukuangfj/vits-piper-fr_FR-tom-medium": 81514557,
+    "csukuangfj/vits-piper-it_IT-riccardo-x_low": 46133363,
+    "csukuangfj/vits-piper-it_IT-paola-medium": 81516749,
+    "csukuangfj/vits-piper-ru_RU-denis-medium": 81203281,
+    "csukuangfj/vits-piper-ru_RU-irina-medium": 81203392,
+    "csukuangfj/vits-piper-ru_RU-dmitri-medium": 81203283,
+    "csukuangfj/vits-piper-zh_CN-huayan-medium": 81204688,
+}
+
+
 def model_size(model_id):
-    """Total download size (bytes) of a model's repos + urls. Cached per process."""
+    """Total download size (bytes) of a model's repos + urls. Hardcoded for catalog
+    models (instant, offline); unknown ids fall back to a live HF lookup, cached."""
+    hard = _HARDCODED_SIZES.get(model_id)
+    if hard is not None:
+        return hard
     if model_id in _SIZE_CACHE:
         return _SIZE_CACHE[model_id]
     from huggingface_hub import HfApi

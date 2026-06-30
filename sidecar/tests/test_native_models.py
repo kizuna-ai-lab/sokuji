@@ -349,7 +349,8 @@ def test_model_size_excludes_ignored_files(monkeypatch):
         "repos": ["r"], "urls": [], "ignore": ["consolidated.safetensors"]})
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     nm._SIZE_CACHE.clear()
-    assert nm.model_size("voxtral-mini-4b-realtime") == 8_000_001_000  # consolidated excluded
+    # A non-hardcoded id so the live-fallback path (which applies `ignore`) is exercised.
+    assert nm.model_size("not-a-hardcoded-model") == 8_000_001_000  # consolidated excluded
 
 
 def test_download_specs_fun_asr_mlt_nano(monkeypatch):
@@ -500,3 +501,18 @@ def test_download_specs_for_tts_sherpa_single_repo():
     spec = native_models.download_specs("piper-en-amy")
     assert spec["repos"] == ["csukuangfj/vits-piper-en_US-amy-low"]
     assert spec["urls"] == []
+
+
+def test_model_size_hardcoded_returns_without_network(monkeypatch):
+    """Catalog model sizes are hardcoded — model_size must return them instantly
+    without ever constructing HfApi / hitting the network."""
+    import sokuji_sidecar.native_models as nm
+
+    def boom(*a, **k):
+        raise AssertionError("HfApi must not be called for a hardcoded model")
+
+    monkeypatch.setattr("huggingface_hub.HfApi", boom)
+    nm._SIZE_CACHE.clear()
+    assert nm.model_size("sense-voice") == 944624033
+    assert nm.model_size("hy-mt2-1.8b") == 4086810533
+    assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
