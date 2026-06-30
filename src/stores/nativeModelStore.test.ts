@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNativeModelStore } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 
+// ---------------------------------------------------------------------------
+// Helpers for controlling FakeWS catalog behaviour in lifecycle tests
+// ---------------------------------------------------------------------------
+let _shouldReject = false;
+let _catalogCallCount = 0;
+function mockModelsCatalogResolve() { _shouldReject = false; }
+function mockModelsCatalogReject() { _shouldReject = true; }
+function modelsCatalogCallCount() { return _catalogCallCount; }
+
 class FakeWS {
   static OPEN = 1;
   readyState = 1;
@@ -14,13 +23,24 @@ class FakeWS {
   send(d: any) {
     const msg = JSON.parse(d);
     if (msg.type === 'models_catalog') {
-      // The sidecar returns ASR or translation models depending on `kind` (default asr).
-      const models = msg.kind === 'translate'
-        ? [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
+      _catalogCallCount++;
+      if (_shouldReject) {
+        queueMicrotask(() => this.emit({ type: 'error', id: msg.id, message: 'mock catalog error' }));
+        return;
+      }
+      // The sidecar returns ASR, translation, or TTS models depending on `kind` (default asr).
+      let models;
+      if (msg.kind === 'translate') {
+        models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
              tiers: [{ tier: 'gpu-cuda', backend: 'qwen_translate', available: true },
-                     { tier: 'cpu', backend: 'qwen_translate', available: true }] }]
-        : [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
+                     { tier: 'cpu', backend: 'qwen_translate', available: true }] }];
+      } else if (msg.kind === 'tts') {
+        models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', languages: ['ja', 'zh'], recommended: true,
+             tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }] }];
+      } else {
+        models = [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] }];
+      }
       queueMicrotask(() => this.emit({ type: 'models_catalog_result', id: msg.id, models }));
     }
     if (msg.type === 'model_status') {
@@ -39,7 +59,9 @@ beforeEach(() => {
   (globalThis as any).window = (globalThis as any).window ?? {};
   (globalThis as any).window.electron = { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) };
   (globalThis as any).__lastStatusRepos = undefined;
-  useNativeModelStore.setState({ catalog: {} });
+  _shouldReject = false;
+  _catalogCallCount = 0;
+  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle' } as any);
 });
 
 describe('nativeModelStore.isReady', () => {
@@ -155,5 +177,34 @@ describe('nativeModelStore TTS resolved', () => {
   it('setTtsLoading toggles the connecting flag', () => {
     useNativeModelStore.getState().setTtsLoading(true);
     expect(useNativeModelStore.getState().ttsLoading).toBe(true);
+  });
+});
+
+describe('nativeModelStore sidecar lifecycle', () => {
+  it('ensureCatalog transitions starting → ready and populates the catalog', async () => {
+    // The suite's client mock returns a model per kind from modelsCatalog.
+    const store = useNativeModelStore.getState();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('idle');
+    const p = store.ensureCatalog();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('starting');
+    await p;
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
+    expect(Object.keys(useNativeModelStore.getState().catalog).length).toBeGreaterThan(0);
+  });
+
+  it('ensureCatalog goes to unavailable when the catalog fetch throws', async () => {
+    // Configure the suite mock so modelsCatalog rejects for this case.
+    mockModelsCatalogReject();
+    useNativeModelStore.setState({ sidecarStatus: 'idle', catalog: {} } as any);
+    await useNativeModelStore.getState().ensureCatalog();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('unavailable');
+  });
+
+  it('ensureCatalog is a no-op once ready (no refetch)', async () => {
+    mockModelsCatalogResolve();
+    useNativeModelStore.setState({ sidecarStatus: 'ready' } as any);
+    const calls = modelsCatalogCallCount();
+    await useNativeModelStore.getState().ensureCatalog();
+    expect(modelsCatalogCallCount()).toBe(calls);
   });
 });

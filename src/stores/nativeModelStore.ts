@@ -14,6 +14,14 @@ interface NativeModelStore {
   modelPreferences: Record<string, NativeSelection>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
   catalog: Record<string, NativeModelInfo>;
+  /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
+  sidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable';
+  /** Warm the sidecar and load the full model catalog (asr+translate+tts) + hardware.
+   *  Idempotent: returns immediately when already `ready`. Sets `unavailable` on any
+   *  failure (no silent catch) so surfaces can show an error + retry. */
+  ensureCatalog: () => Promise<void>;
+  /** Re-attempt catalog load after `unavailable` (user-triggered retry). */
+  retrySidecar: () => Promise<void>;
   /** Query the sidecar for the per-machine model catalog (best-effort). */
   refreshCatalog: (models?: string[]) => Promise<void>;
   /** Cached per-model repo overrides (variant repos) pushed by the management section,
@@ -79,6 +87,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   sizes: {},
   errors: {},
   catalog: {},
+  sidecarStatus: 'idle',
   modelPreferences: {},
   statusRepos: {},
   asrLoading: false,
@@ -89,18 +98,43 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   refreshCatalog: async (models) => {
     try {
-      // ASR and translation are separate catalogs sidecar-side; fetch both so
-      // translation cards get tier badges too. Ids never collide, so they merge
-      // into one map. Both share the same per-machine tier-availability data.
-      const [asr, translate] = await Promise.all([
+      const [asr, translate, tts] = await Promise.all([
         client.modelsCatalog(models, 'asr'),
         client.modelsCatalog(models, 'translate'),
+        client.modelsCatalog(models, 'tts'),
       ]);
-      const list = [...asr, ...translate];
+      const list = [...asr, ...translate, ...tts];
       set((s) => ({ catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) } }));
     } catch {
-      // best-effort — tier badges are cosmetic; sidecar may be down
+      // best-effort badge refresh; ensureCatalog owns the authoritative lifecycle
     }
+  },
+
+  ensureCatalog: async () => {
+    const st = get().sidecarStatus;
+    if (st === 'ready' || st === 'starting') return;
+    set({ sidecarStatus: 'starting' });
+    try {
+      // hardwareInfo() drives connect() (native-host:start handshake) and confirms
+      // the sidecar answers; the three catalog kinds populate the model map.
+      const [asr, translate, tts] = await Promise.all([
+        client.modelsCatalog(undefined, 'asr'),
+        client.modelsCatalog(undefined, 'translate'),
+        client.modelsCatalog(undefined, 'tts'),
+      ]);
+      const list = [...asr, ...translate, ...tts];
+      set({
+        catalog: Object.fromEntries(list.map((m) => [m.id, m])),
+        sidecarStatus: 'ready',
+      });
+    } catch {
+      set({ sidecarStatus: 'unavailable' });
+    }
+  },
+
+  retrySidecar: async () => {
+    set({ sidecarStatus: 'idle' });
+    await get().ensureCatalog();
   },
 
   setStatusRepos: (repos) => set({ statusRepos: repos }),
@@ -222,6 +256,7 @@ export async function nativeListTtsVoices(model?: string): Promise<string[]> {
   }
 }
 
+export const useNativeSidecarStatus = () => useNativeModelStore((s) => s.sidecarStatus);
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
