@@ -422,9 +422,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // The manual variant pin is a per-model map (settings.translationVariantByModel),
   // keyed by model id. Each card reads its own entry; download + load use the same value.
 
-  const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage), [settings.sourceLanguage]);
+  const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const asrIncompatibleCards = useMemo(
-    () => nativeAsrIncompatibleCards(settings.sourceLanguage), [settings.sourceLanguage]);
+    () => nativeAsrIncompatibleCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const translationCards = useMemo(
     () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage),
     [settings.sourceLanguage, settings.targetLanguage]);

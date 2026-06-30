@@ -533,4 +533,25 @@ describe('nativeCatalog', () => {
     expect(nativeTtsModelIsVoiceCapable('moss-tts-nano')).toBe(true);
     expect(nativeTtsModelIsVoiceCapable('csukuangfj/vits-piper-en_US-amy-low')).toBe(false);
   });
+
+  // Task 4: catalog-derived ASR helpers
+  const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order: number,
+             recommended = false, extra: Partial<NativeModelInfo> = {}): NativeModelInfo =>
+    ({ id, name: id, languages, recommended, tiers: [], order, repo: id, kind, ...extra });
+
+  const ASR_CAT = {
+    'sense-voice': M('sense-voice', 'asr', ['zh', 'en', 'ja'], 1, true),
+    'whisper-large-v3': M('whisper-large-v3', 'asr', ['multi'], 6, true),
+    'granite': M('granite', 'asr', ['en', 'fr'], 7),
+  };
+
+  it('compatibleNativeAsr derives from the catalog, recommended+order first', () => {
+    const out = compatibleNativeAsr('fr', ASR_CAT).map((m) => m.id);
+    expect(out).toEqual(['whisper-large-v3', 'granite']); // multi + fr; recommended first
+  });
+
+  it('nativeAsrForLanguage keeps a still-compatible current, else best compatible', () => {
+    expect(nativeAsrForLanguage('zh', 'sense-voice', ASR_CAT)).toBe('sense-voice');
+    expect(nativeAsrForLanguage('fr', 'sense-voice', ASR_CAT)).toBe('whisper-large-v3');
+  });
 });

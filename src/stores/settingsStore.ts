@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, NATIVE_ASR, supportsLanguage, statusReposFor, nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -1292,8 +1292,9 @@ const useSettingsStore = create<SettingsStore>()(
           const s = get().localNative;
           // The selected ASR must actually support the source language — not just
           // be downloaded (parity with LOCAL_INFERENCE, which gates on language).
-          const asrOpt = NATIVE_ASR.find((m) => m.id === s.asrModel);
-          const asrCompatible = !!asrOpt && supportsLanguage(asrOpt, s.sourceLanguage);
+          const cat = (await import('./nativeModelStore')).useNativeModelStore.getState().catalog;
+          const asrOpt = cat[s.asrModel];
+          const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, s.sourceLanguage);
           // The selected translation must be a valid card for THIS language pair
           // (parity with the ASR check). A stale selection left over from a language
           // swap — e.g. the zh→en Opus-MT card after reversing to en→zh — is still
