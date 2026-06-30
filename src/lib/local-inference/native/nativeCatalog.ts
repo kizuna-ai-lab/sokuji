@@ -273,6 +273,12 @@ export function formatTps(tps: number): string {
   return `${Math.round(tps)} tok/s`;
 }
 
+/** sid encoded as the suffix of a `sid:<n>` ttsVoice ('sid:5' → 5; anything else → 0). */
+export function sidFromTtsVoice(v: string): number {
+  return v.startsWith('sid:') ? (Number(v.slice(4)) || 0) : 0;
+}
+export function ttsVoiceForSid(n: number): string { return `sid:${n}`; }
+
 /** Display label for a hardware tier string from the sidecar models_catalog. */
 export function tierLabel(tier: string): { label: string; accel: boolean } {
   switch (tier) {

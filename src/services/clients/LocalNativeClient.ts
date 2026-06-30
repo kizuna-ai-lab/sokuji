@@ -7,9 +7,10 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
+import { sidFromTtsVoice } from '../../lib/local-inference/native/nativeCatalog';
 import { listNativeVoices, getNativeVoice } from '../../lib/local-inference/nativeVoiceStorage';
 import { splitSentences } from '../../utils/splitSentences';
-import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { useNativeModelStore, nativeListTtsVoices } from '../../stores/nativeModelStore';
 
 interface Deps {
   asr?: NativeAsrClient | any;
@@ -103,20 +104,24 @@ export class LocalNativeClient implements IClient {
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
         // Apply the selected voice (next-session semantics). Custom ids resolve
         // against the stored library; a missing/deleted custom voice reconciles
-        // back to the per-language default. Storage failure degrades to built-in
-        // voices only (it must not kill TTS), so it is caught locally.
+        // back to the per-language default for cloning models. Storage failure
+        // degrades to built-in voices only (it must not kill TTS), so it is
+        // caught locally.
         let customIds: number[] = [];
-        try {
-          customIds = (await listNativeVoices()).map((v) => v.id);
-        } catch { /* storage unavailable → built-in voices only */ }
-        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage);
+        try { customIds = (await listNativeVoices()).map((v) => v.id); }
+        catch { /* storage unavailable → built-in voices only */ }
+        const voiceList = r.clones ? await nativeListTtsVoices(config.ttsModelId) : [];
+        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, !!r.clones);
         if (voice.startsWith('builtin:')) {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));
         } else if (voice.startsWith('custom:')) {
           const id = Number(voice.slice('custom:'.length));
           const stored = await getNativeVoice(id);
           if (stored) await this.tts.setReferenceVoice(new Float32Array(stored.audio), stored.sampleRate);
+        } else if (voice.startsWith('sid:')) {
+          await this.tts.setSpeaker(sidFromTtsVoice(voice));
         }
+        // else single-voice model: send nothing (backend uses speaker 0)
       } catch (e) {
         this.ttsEnabled = false;
         this.handlers.onError?.(`native TTS init failed: ${e}`);

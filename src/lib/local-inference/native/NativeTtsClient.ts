@@ -114,6 +114,11 @@ export class NativeTtsClient {
     await this.send({ type: 'set_voice', voice: name });
   }
 
+  /** Select a numeric speaker id (range models). */
+  async setSpeaker(sid: number): Promise<void> {
+    await this.send({ type: 'set_voice', sid });
+  }
+
   async setReferenceVoice(audio: Float32Array, sampleRate: number): Promise<void> {
     this.ws!.send(audio.buffer);                          // binary frame precedes the control message
     await this.send({ type: 'set_voice', sampleRate });

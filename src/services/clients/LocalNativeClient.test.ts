@@ -17,7 +17,7 @@ function mocks() {
     translate: vi.fn().mockResolvedValue({ sourceText: 'hola', translatedText: 'hello', inferenceTimeMs: 2 }),
     dispose: vi.fn(),
   };
-  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn() };
+  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn(), setSpeaker: vi.fn() };
   return { asr, translate, tts };
 }
 
@@ -544,14 +544,37 @@ describe('LocalNativeClient voice selection', () => {
     expect(m.tts.setVoice).toHaveBeenCalledWith('Bella');
   });
 
-  it('empty ttsVoice resolves to the per-language default builtin', async () => {
+  it('empty ttsVoice on a cloning model resolves to the per-language default builtin', async () => {
     const m = mocks();
-    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: true });
     m.tts.setVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../stores/nativeModelStore'), 'nativeListTtsVoices')
+      .mockResolvedValue([{ name: 'Ava', language: 'en', curated: true, unstable: false, default: true }] as any);
     const c = new LocalNativeClient(m);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano' } as any);
     expect(m.tts.setVoice).toHaveBeenCalledWith('Ava');
+  });
+
+  it('sid: voice calls setSpeaker on a range (multi-speaker) model', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
+    m.tts.setSpeaker = vi.fn().mockResolvedValue(undefined);
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'piper-en', ttsVoice: 'sid:3' } as any);
+    expect(m.tts.setSpeaker).toHaveBeenCalledWith(3);
+    expect(m.tts.setVoice).not.toHaveBeenCalled();
+  });
+
+  it('single-voice (non-cloning, no ttsVoice) sends no voice command', async () => {
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy' } as any);
+    expect(m.tts.setVoice).not.toHaveBeenCalled();
+    expect(m.tts.setSpeaker).not.toHaveBeenCalled();
   });
 
   it('applies a custom cloned voice via setReferenceVoice', async () => {

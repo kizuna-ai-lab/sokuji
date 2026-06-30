@@ -1,14 +1,12 @@
 import { reconcileTtsVoice } from './nativeTtsVoiceReconciliation';
+const ava = [{ name: 'Ava', language: 'en', curated: true, unstable: false, default: true }];
 
-it('empty resolves to the per-language default', () => {
-  expect(reconcileTtsVoice('', [], 'en')).toBe('builtin:Ava');
+it('non-cloning models pass through (no builtin default)', () => {
+  expect(reconcileTtsVoice('', [], 'en', [], false)).toBe('');
+  expect(reconcileTtsVoice('sid:3', [], 'en', [], false)).toBe('sid:3');
 });
-it('valid custom passes through', () => {
-  expect(reconcileTtsVoice('custom:3', [3, 5], 'en')).toBe('custom:3');
-});
-it('deleted custom falls back to default', () => {
-  expect(reconcileTtsVoice('custom:9', [3, 5], 'en')).toBe('builtin:Ava');
-});
-it('builtin passes through', () => {
-  expect(reconcileTtsVoice('builtin:Bella', [], 'en')).toBe('builtin:Bella');
+it('cloning models default empty/dead-custom to the language default', () => {
+  expect(reconcileTtsVoice('', [], 'en', ava, true)).toBe('builtin:Ava');
+  expect(reconcileTtsVoice('custom:9', [], 'en', ava, true)).toBe('builtin:Ava');
+  expect(reconcileTtsVoice('custom:9', [9], 'en', ava, true)).toBe('custom:9');
 });

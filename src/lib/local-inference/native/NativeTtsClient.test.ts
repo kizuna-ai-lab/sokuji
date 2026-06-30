@@ -166,4 +166,13 @@ describe('NativeTtsClient', () => {
     const sv = sent.find((m) => m && m.type === 'set_voice');
     expect(sv.voice).toBe('Ava');
   });
+
+  it('setSpeaker sends a numeric sid set_voice message', async () => {
+    const c = new NativeTtsClient();
+    await c.init('moss-tts-nano');
+    await c.setSpeaker(5);
+    const sent = FakeWS.last.sent.map((s) => typeof s === 'string' ? JSON.parse(s) : s);
+    const sv = sent.find((m) => m && m.type === 'set_voice');
+    expect(sv.sid).toBe(5);
+  });
 });
