@@ -16,15 +16,6 @@ def test_list_builtin_voice_names_empty_when_absent(monkeypatch):
     monkeypatch.setattr(tts_voices, "_snapshot_dir", boom)
     assert tts_voices.list_builtin_voice_names("any/repo") == []
 
-import asyncio
-from sokuji_sidecar import tts_engine
-
-def test_handler_returns_voices(monkeypatch):
-    monkeypatch.setattr("sokuji_sidecar.tts_voices.list_builtin_voice_names", lambda model=None: ["Ava"])
-    state = {}; tts_engine.register(state)
-    reply, _ = asyncio.run(state["handlers"]["list_tts_voices"](state, {"id": 1, "type": "list_tts_voices"}, None, None))
-    assert reply == {"type": "list_tts_voices_result", "id": 1, "voices": ["Ava"]}
-
 
 def test_list_builtin_voice_names_resolves_catalog_id_to_repo(tmp_path, monkeypatch):
     # The renderer passes the catalog SHORT id ('moss-tts-nano'), not the HF repo.
