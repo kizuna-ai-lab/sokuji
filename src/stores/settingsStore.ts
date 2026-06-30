@@ -1301,7 +1301,7 @@ const useSettingsStore = create<SettingsStore>()(
           // "downloaded" so isReady() passes, but it can't translate the new pair;
           // the UI already shows it as "None". Gate Start on it. (qwen* cards are
           // multilingual and valid for every pair, so the common path stays ready.)
-          const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage)
+          const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage, cat)
             .some((c) => c.selectId === s.translationModel);
           // Gate on the selected stage models being downloaded into the sidecar cache.
           // TTS is dropped from the requirement when text-only is on.

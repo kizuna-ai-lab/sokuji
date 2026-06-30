@@ -39,23 +39,6 @@ export function supportsLanguage(opt: { languages?: string[] }, lang: string): b
 }
 
 
-export const NATIVE_TRANSLATION: NativeModelOption[] = [
-  { id: 'qwen2.5-0.5b', label: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
-  { id: 'qwen3-0.6b', label: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
-  { id: 'qwen3.5-0.8b', label: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
-  { id: 'qwen3.5-2b', label: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
-  { id: 'translategemma-4b', label: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
-  { id: 'hy-mt2-1.8b', label: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
-  { id: 'hy-mt2-7b', label: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
-  { id: 'hy-mt15-1.8b', label: 'Hunyuan-MT1.5 1.8B', languages: ['multi'], sortOrder: 9 },
-  { id: 'hy-mt15-7b', label: 'Hunyuan-MT1.5 7B', languages: ['multi'], sortOrder: 10 },
-];
-
-/** recommended-first, then sortOrder. Shared by the compatible/incompatible splits. */
-function byRecommendedThenOrder(a: NativeModelOption, b: NativeModelOption): number {
-  return Number(!!b.recommended) - Number(!!a.recommended) || (a.sortOrder ?? 99) - (b.sortOrder ?? 99);
-}
-
 /** Catalog entries of a kind, recommended-first then `order`. */
 function catalogModels(catalog: Record<string, NativeModelInfo>, kind: NativeModelInfo['kind']): NativeModelInfo[] {
   return Object.values(catalog).filter((m) => m.kind === kind)
@@ -403,49 +386,16 @@ export function nativeAsrIncompatibleCards(srcLang: string, catalog: Record<stri
   return incompatibleNativeAsr(srcLang, catalog).map(infoToCard);
 }
 
-/**
- * Opus-MT pair models (PostHog-used pairs). One pair = one card; opt-in, shown
- * only when the active source→target matches. `src`/`tgt` are canonical bare
- * codes for matching the picker; `id` matches the sidecar catalog id (keeps the
- * Helsinki "jap" token for en→ja). Sorted after the multilingual models.
- */
-const NATIVE_OPUS_PAIRS: { id: string; name: string; src: string; tgt: string; sortOrder: number }[] = [
-  { id: 'opus-mt-ru-en', name: 'Opus-MT (ru → en)', src: 'ru', tgt: 'en', sortOrder: 20 },
-  { id: 'opus-mt-zh-en', name: 'Opus-MT (zh → en)', src: 'zh', tgt: 'en', sortOrder: 21 },
-  { id: 'opus-mt-en-zh', name: 'Opus-MT (en → zh)', src: 'en', tgt: 'zh', sortOrder: 22 },
-  { id: 'opus-mt-hu-en', name: 'Opus-MT (hu → en)', src: 'hu', tgt: 'en', sortOrder: 23 },
-  { id: 'opus-mt-en-es', name: 'Opus-MT (en → es)', src: 'en', tgt: 'es', sortOrder: 24 },
-  { id: 'opus-mt-en-ar', name: 'Opus-MT (en → ar)', src: 'en', tgt: 'ar', sortOrder: 25 },
-  { id: 'opus-mt-en-ru', name: 'Opus-MT (en → ru)', src: 'en', tgt: 'ru', sortOrder: 26 },
-  { id: 'opus-mt-es-en', name: 'Opus-MT (es → en)', src: 'es', tgt: 'en', sortOrder: 27 },
-  { id: 'opus-mt-en-vi', name: 'Opus-MT (en → vi)', src: 'en', tgt: 'vi', sortOrder: 28 },
-  { id: 'opus-mt-ar-en', name: 'Opus-MT (ar → en)', src: 'ar', tgt: 'en', sortOrder: 29 },
-  { id: 'opus-mt-ja-en', name: 'Opus-MT (ja → en)', src: 'ja', tgt: 'en', sortOrder: 30 },
-  { id: 'opus-mt-en-jap', name: 'Opus-MT (en → ja)', src: 'en', tgt: 'ja', sortOrder: 31 },
-  { id: 'opus-mt-ko-en', name: 'Opus-MT (ko → en)', src: 'ko', tgt: 'en', sortOrder: 32 },
-];
-
-export function nativeTranslationCards(src: string, tgt: string): NativeModelCardSpec[] {
-  const base: NativeModelCardSpec[] = [
-    { selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
-    { selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b', name: 'Qwen 3 0.6B', languages: ['multi'], recommended: true, sortOrder: 2 },
-    { selectId: 'qwen3.5-0.8b', downloadId: 'qwen3.5-0.8b', name: 'Qwen 3.5 0.8B', languages: ['multi'], sortOrder: 3 },
-    { selectId: 'qwen3.5-2b', downloadId: 'qwen3.5-2b', name: 'Qwen 3.5 2B', languages: ['multi'], sortOrder: 4 },
-    { selectId: 'translategemma-4b', downloadId: 'translategemma-4b', name: 'TranslateGemma 4B', languages: ['multi'], sortOrder: 6 },
-    { selectId: 'hy-mt2-1.8b', downloadId: 'hy-mt2-1.8b', name: 'Hunyuan-MT2 1.8B', languages: ['multi'], sortOrder: 7 },
-    { selectId: 'hy-mt2-7b', downloadId: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', languages: ['multi'], sortOrder: 8 },
-    { selectId: 'hy-mt15-1.8b', downloadId: 'hy-mt15-1.8b', name: 'Hunyuan-MT1.5 1.8B', languages: ['multi'], sortOrder: 9 },
-    { selectId: 'hy-mt15-7b', downloadId: 'hy-mt15-7b', name: 'Hunyuan-MT1.5 7B', languages: ['multi'], sortOrder: 10 },
-  ];
+export function nativeTranslationCards(src: string, tgt: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
   const wantSrc = canonLang(src);
   const wantTgt = canonLang(tgt);
-  const opus: NativeModelCardSpec[] = NATIVE_OPUS_PAIRS
-    .filter((p) => canonLang(p.src) === wantSrc && canonLang(p.tgt) === wantTgt)
-    .map((p) => ({
-      selectId: p.id, downloadId: p.id, name: p.name,
-      languages: [p.src, p.tgt], sortOrder: p.sortOrder,
-    }));
-  return [...base, ...opus];
+  const all = catalogModels(catalog, 'translate');
+  const multilingual = all.filter((m) => m.languages.includes('multi'));
+  const pair = all.filter((m) => {
+    const ls = m.languages.map(canonLang);
+    return !m.languages.includes('multi') && ls[0] === wantSrc && ls[1] === wantTgt;
+  });
+  return [...multilingual, ...pair].map(infoToCard);
 }
 
 export function nativeTtsCards(tgt: string): NativeModelCardSpec[] {
@@ -511,7 +461,7 @@ export function autoSelectNative(
   }
 
   // Translation — directional cards; downloaded, else best downloaded, else recommended (Qwen '')
-  const trCards = nativeTranslationCards(src, tgt);
+  const trCards = nativeTranslationCards(src, tgt, catalog);
   const curTr = trCards.find((c) => c.selectId === translationModel);
   if (!(curTr && isDownloaded(curTr.downloadId))) {
     const best = trCards.find((c) => isDownloaded(c.downloadId)) ?? trCards.find((c) => c.recommended) ?? trCards[0];

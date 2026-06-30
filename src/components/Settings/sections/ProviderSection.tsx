@@ -125,7 +125,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // status refresh + the memory estimate so both stay in sync with the chips.
   const nativeActiveDownloadIds = useMemo(() => {
     if (provider !== Provider.LOCAL_NATIVE) return [];
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
     const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
     const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
     return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
@@ -150,7 +150,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // GPU). Each stage (ASR/translation/TTS) carries its own device override.
   const nativeMemoryEstimate = useMemo(() => {
     if (provider !== Provider.LOCAL_NATIVE) return null;
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
     const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
     const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
     return estimateNativeMemoryByDevice([
@@ -171,7 +171,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // device, so a VRAM-degraded translation correctly shows up under RAM.
   const nativeActual = useMemo(() => {
     if (provider !== Provider.LOCAL_NATIVE) return null;
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
     const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
     const asrMatch = !!asrResolved && asrResolved.model === localNativeSettings.asrModel;
     const trMatch = !!translationResolved && translationResolved.model === trCard?.downloadId;
@@ -538,7 +538,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
               {(() => {
-                const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage);
+                const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
                 const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
                 const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
                 return (

@@ -426,8 +426,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const asrIncompatibleCards = useMemo(
     () => nativeAsrIncompatibleCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const translationCards = useMemo(
-    () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage),
-    [settings.sourceLanguage, settings.targetLanguage]);
+    () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage, catalog),
+    [settings.sourceLanguage, settings.targetLanguage, catalog]);
   const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage), [settings.targetLanguage]);
 
   // Identify translation cards with multiple quant variants — the HY-MT family

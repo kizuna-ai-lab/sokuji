@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -31,6 +31,32 @@ const FIXTURE_ASR: Record<string, NativeModelInfo> = {
   'granite': M('granite', 'asr', ['en', 'fr'], 7),
 };
 
+/**
+ * Fixture catalog for translation logic tests. Exercises:
+ *   - multilingual models (languages includes 'multi') always shown, order-sorted
+ *   - pair-specific Opus models shown only when src/tgt match
+ *   - canonLang aliases on the pair (passed as-is; infoToCard echoes them)
+ */
+const TR_CAT: Record<string, NativeModelInfo> = {
+  'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true),
+  'qwen3-0.6b': M('qwen3-0.6b', 'translate', ['multi'], 2, true),
+  'opus-mt-zh-en': M('opus-mt-zh-en', 'translate', ['zh', 'en'], 21),
+  'opus-mt-en-zh': M('opus-mt-en-zh', 'translate', ['en', 'zh'], 22),
+};
+
+/**
+ * Combined fixture for autoSelectNative tests — needs both ASR and translate entries
+ * so nativeTranslationCards(src, tgt, catalog) returns the expected cards.
+ */
+const FIXTURE_FULL: Record<string, NativeModelInfo> = {
+  ...FIXTURE_ASR,
+  'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true),
+  'qwen3-0.6b': M('qwen3-0.6b', 'translate', ['multi'], 2, true),
+  'translategemma-4b': M('translategemma-4b', 'translate', ['multi'], 6),
+  'opus-mt-zh-en': M('opus-mt-zh-en', 'translate', ['zh', 'en'], 21),
+  'opus-mt-en-zh': M('opus-mt-en-zh', 'translate', ['en', 'zh'], 22),
+};
+
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages plus MOSS-Nano multilingual support', () => {
     for (const l of ['en', 'de', 'es', 'fr', 'it', 'ru', 'zh']) {
@@ -49,6 +75,13 @@ describe('nativeCatalog', () => {
     }
     // Language with no voice at all (e.g. 'th') still returns ''
     expect(pickNativeTts('th')).toBe('');
+  });
+
+  it('nativeTranslationCards: multilingual always, opus only for the matching pair', () => {
+    const zhEn = nativeTranslationCards('zh', 'en', TR_CAT).map((c) => c.selectId);
+    expect(zhEn).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'opus-mt-zh-en']);
+    const enZh = nativeTranslationCards('en', 'zh', TR_CAT).map((c) => c.selectId);
+    expect(enZh).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'opus-mt-en-zh']);
   });
 
   it('resolves the TTS choice against the target language', () => {
@@ -71,16 +104,6 @@ describe('nativeCatalog', () => {
   it('resolves translation choices', () => {
     expect(resolveNativeTranslation('')).toBeUndefined();
     expect(resolveNativeTranslation('Qwen/Qwen2.5-0.5B-Instruct')).toBe('Qwen/Qwen2.5-0.5B-Instruct');
-  });
-
-  it('exposes the four Qwen translation versions plus the speech-LLM translators', () => {
-    const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-    // qwen2.5-0.5b is the recommended default; the rest are explicit versions + TranslateGemma/HY-MT2/HY-MT1.5 + opus-mt pair
-    expect(ids).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'hy-mt15-1.8b', 'hy-mt15-7b', 'opus-mt-zh-en']);
-  });
-
-  it('exposes translation options (NATIVE_TRANSLATION array)', () => {
-    expect(NATIVE_TRANSLATION.map((m) => m.id)).toEqual(['qwen2.5-0.5b', 'qwen3-0.6b', 'qwen3.5-0.8b', 'qwen3.5-2b', 'translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b', 'hy-mt15-1.8b', 'hy-mt15-7b']);
   });
 
   it('language compatibility + ASR auto-select (catalog-derived)', () => {
@@ -121,7 +144,7 @@ describe('nativeCatalog', () => {
     // sense-voice is incompatible with 'de', so it does not appear in the compatible list
     expect(nativeAsrCards('de', FIXTURE_ASR).map((c) => c.selectId)).not.toContain('sense-voice');
 
-    const tr = nativeTranslationCards('zh', 'en');
+    const tr = nativeTranslationCards('zh', 'en', TR_CAT);
     expect(tr[0]).toMatchObject({ selectId: 'qwen2.5-0.5b', downloadId: 'qwen2.5-0.5b' });            // Qwen 2.5 0.5B recommended default
     expect(tr[1]).toMatchObject({ selectId: 'qwen3-0.6b', downloadId: 'qwen3-0.6b' });
     // every native translation card's downloadId equals its selectId
@@ -160,52 +183,52 @@ describe('nativeCatalog', () => {
 
     it('keeps a valid, downloaded selection (no change)', () => {
       expect(autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_ASR)).toBeNull();
+        undefined, undefined, FIXTURE_FULL)).toBeNull();
     });
 
     it('drops an ASR model that no longer supports the source language', () => {
       // sense-voice does not support German → switch to the best downloaded compatible (whisper-base)
       const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-base', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_ASR);
+        undefined, undefined, FIXTURE_FULL);
       expect(r).toMatchObject({ asrModel: 'whisper-base' });
     });
 
     it('clears ASR to "" when nothing compatible is downloaded (parity with local inference)', () => {
       const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), none,
-        undefined, undefined, FIXTURE_ASR);
+        undefined, undefined, FIXTURE_FULL);
       expect(r?.asrModel).toBe('');
     });
 
     it('falls back from a not-downloaded translation model to whatever is downloaded for this pair', () => {
       // user picked translategemma but only qwen2.5 is cached → revert to Qwen 2.5
       const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'translategemma-4b' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_ASR);
+        undefined, undefined, FIXTURE_FULL);
       expect(r).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
     });
 
     it('resets a stale cross-language TTS voice to Auto', () => {
       const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_ASR);
+        undefined, undefined, FIXTURE_FULL);
       expect(r?.ttsModel).toBe('');
     });
 
     it('migrates a legacy "off" TTS choice to Auto', () => {
       const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'off' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_ASR);
+        undefined, undefined, FIXTURE_FULL);
       expect(r?.ttsModel).toBe('');
     });
 
     it('applies recalled history when its models are downloaded for this pair', () => {
       // history for zh→en prefers whisper-small; it is downloaded → recall overrides the default
       const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-small', 'qwen2.5-0.5b'),
-        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_ASR);
+        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_FULL);
       expect(r).toMatchObject({ asrModel: 'whisper-small' });
     });
 
     it('ignores recalled history whose model is not downloaded', () => {
       // recall wants whisper-small but only sense-voice is cached → keep sense-voice
       const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_ASR);
+        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_FULL);
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
 
@@ -215,14 +238,14 @@ describe('nativeCatalog', () => {
       // cohere (GPU-only, sorted first) + sense-voice both downloaded, but cohere is gated
       // here → must pick sense-voice, never the unrunnable cohere.
       const r = autoSelectNative('zh', 'en', cur({ asrModel: '' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_ASR);
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_FULL);
       expect(r?.asrModel).toBe('sense-voice');
     });
 
     it('reconciles away a remembered ASR that is now hardware-gated', () => {
       // the current selection IS the GPU-only cohere but this machine can't run it → replace it
       const r = autoSelectNative('zh', 'en', cur({ asrModel: 'cohere-transcribe-03-2026' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_ASR);
+        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_FULL);
       expect(r?.asrModel).toBe('sense-voice');
     });
   });
@@ -361,64 +384,6 @@ describe('nativeCatalog', () => {
     });
     it('returns null for no resolved', () => {
       expect(resolvedTierState(null)).toBeNull();
-    });
-  });
-
-  describe('Opus-MT pair cards', () => {
-    it('appends the matching pair card after the multilingual models', () => {
-      const ids = nativeTranslationCards('zh', 'en').map((c) => c.selectId);
-      expect(ids).toContain('opus-mt-zh-en');
-      expect(ids.indexOf('opus-mt-zh-en')).toBeGreaterThan(ids.indexOf('hy-mt2-7b')); // opt-in, after defaults
-    });
-
-    it('shows only the pair matching the active direction', () => {
-      const enJa = nativeTranslationCards('en', 'ja').map((c) => c.selectId);
-      expect(enJa).toContain('opus-mt-en-jap');   // id keeps Helsinki "jap"
-      expect(enJa).not.toContain('opus-mt-ja-en'); // reverse direction hidden
-      const jaEn = nativeTranslationCards('ja', 'en').map((c) => c.selectId);
-      expect(jaEn).toContain('opus-mt-ja-en');
-      expect(jaEn).not.toContain('opus-mt-en-jap');
-    });
-
-    it('shows no Opus-MT card for an unsupported pair', () => {
-      const ids = nativeTranslationCards('de', 'fr').map((c) => c.selectId);
-      expect(ids.some((id) => id.startsWith('opus-mt-'))).toBe(false);
-    });
-
-    it('opus cards keep downloadId === selectId', () => {
-      const opus = nativeTranslationCards('zh', 'en').filter((c) => c.selectId.startsWith('opus-mt-'));
-      expect(opus.length).toBeGreaterThan(0);
-      expect(opus.every((c) => c.downloadId === c.selectId)).toBe(true);
-    });
-  });
-
-  describe('NATIVE_TRANSLATION new models', () => {
-    it('exposes HY-MT1.5 1.8B + 7B as selectable multilingual cards', () => {
-      const byId = Object.fromEntries(NATIVE_TRANSLATION.map((m) => [m.id, m]));
-      expect(byId['hy-mt15-1.8b']?.label).toBe('Hunyuan-MT1.5 1.8B');
-      expect(byId['hy-mt15-7b']?.label).toBe('Hunyuan-MT1.5 7B');
-      expect(byId['hy-mt15-1.8b']?.languages).toEqual(['multi']);
-      const cards = nativeTranslationCards('zh', 'en');
-      const c = Object.fromEntries(cards.map((x) => [x.selectId, x]));
-      expect(c['hy-mt15-1.8b']).toMatchObject({ selectId: 'hy-mt15-1.8b', downloadId: 'hy-mt15-1.8b' });
-      expect(c['hy-mt15-7b']).toMatchObject({ selectId: 'hy-mt15-7b', downloadId: 'hy-mt15-7b' });
-    });
-
-    it('includes TranslateGemma and HY-MT2 with ids matching the sidecar catalog', () => {
-      const byId = Object.fromEntries(NATIVE_TRANSLATION.map((m) => [m.id, m]));
-      expect(byId['translategemma-4b']?.label).toBe('TranslateGemma 4B');
-      expect(byId['hy-mt2-1.8b']?.label).toBe('Hunyuan-MT2 1.8B');
-      expect(byId['hy-mt2-7b']?.label).toBe('Hunyuan-MT2 7B');
-    });
-
-    it('nativeTranslationCards exposes TranslateGemma + HY-MT2 as selectable cards', () => {
-      const ids = nativeTranslationCards('Japanese', 'English').map((c) => c.selectId);
-      expect(ids).toEqual(expect.arrayContaining(['translategemma-4b', 'hy-mt2-1.8b', 'hy-mt2-7b']));
-      const byId = Object.fromEntries(nativeTranslationCards('Japanese', 'English').map((c) => [c.selectId, c]));
-      expect(byId['translategemma-4b'].name).toBe('TranslateGemma 4B');
-      expect(byId['hy-mt2-1.8b'].name).toBe('Hunyuan-MT2 1.8B');
-      expect(byId['hy-mt2-7b'].name).toBe('Hunyuan-MT2 7B');
-      expect(byId['translategemma-4b'].downloadId).toBe('translategemma-4b'); // selectId == downloadId, like the qwen cards
     });
   });
 
