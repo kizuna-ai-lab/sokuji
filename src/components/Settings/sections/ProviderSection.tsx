@@ -130,7 +130,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage);
     return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
   }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
-    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage]);
+    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog]);
 
   // Pull cache status + sizes from the sidecar so the chips and estimate work even
   // when the model-management section isn't mounted (e.g. before opening Advanced).
@@ -180,7 +180,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const degraded = [asrResolved, translationResolved].some(r => r?.device === 'cpu' && r?.fallbackReason);
     return { ...mem, degraded };
   }, [provider, asrResolved, translationResolved, localNativeSettings.asrModel,
-    localNativeSettings.translationModel, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage]);
+    localNativeSettings.translationModel, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    nativeCatalog]);
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
