@@ -36,3 +36,48 @@ def list_builtin_voice_names(model_id: str | None = None) -> list[str]:
         return [str(v["voice"]) for v in manifest.get("builtin_voices", [])]
     except Exception:
         return []
+
+
+# Built-in MOSS voice curation — our editorial product judgment (mirrors the old
+# renderer BUILTIN_VOICE_META). Quality verified for English (Ava reliably clean);
+# others are best-effort by language. Unstable voices stay reachable behind
+# "show all" (see issue #277).
+_VOICE_META = {
+    "Ava":    {"language": "en", "curated": True},
+    "Bella":  {"language": "en", "curated": True},
+    "Adam":   {"language": "en", "unstable": True},
+    "Nathan": {"language": "en"},
+    "Trump":  {"language": "en"},
+    "Xiaoyu": {"language": "zh", "curated": True},
+    "Yuewen": {"language": "zh", "curated": True},
+    "Lingyu": {"language": "zh"},
+    "Junhao": {"language": "zh"},
+    "Zhiming":{"language": "zh", "unstable": True},
+    "Weiguo": {"language": "zh"},
+    "Saki":   {"language": "ja", "curated": True},
+    "Soyo":   {"language": "ja", "curated": True},
+    "Umiri":  {"language": "ja"},
+    "Mei":    {"language": "ja"},
+    "Anon":   {"language": "ja", "unstable": True},
+    "Arisa":  {"language": "ja"},
+    "Mortis": {"unstable": True},
+}
+_DEFAULT_VOICE_BY_LANG = {"en": "Ava", "zh": "Xiaoyu", "ja": "Saki"}
+
+
+def list_builtin_voices(model_id=None):
+    """Rich built-in voice descriptors: each manifest voice name annotated with
+    our curation metadata. [] when the model isn't downloaded. The single source
+    of built-in voice facts for the renderer (replaces its BUILTIN_VOICE_META)."""
+    out = []
+    for name in list_builtin_voice_names(model_id):
+        meta = _VOICE_META.get(name, {})
+        lang = meta.get("language")
+        out.append({
+            "name": name,
+            "language": lang,
+            "curated": bool(meta.get("curated")),
+            "unstable": bool(meta.get("unstable")),
+            "default": (_DEFAULT_VOICE_BY_LANG.get(lang) == name) if lang else False,
+        })
+    return out

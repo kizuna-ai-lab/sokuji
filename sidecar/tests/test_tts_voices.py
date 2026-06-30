@@ -44,3 +44,15 @@ def test_list_builtin_voice_names_resolves_catalog_id_to_repo(tmp_path, monkeypa
     assert out == ["Ava", "Bella"]
     expected_repo = catalog.tts_model("moss-tts-nano").repos[0]
     assert seen["repo"] == expected_repo and seen["repo"] != "moss-tts-nano"
+
+
+def test_list_builtin_voices_annotates_names_with_metadata(monkeypatch):
+    monkeypatch.setattr(tts_voices, "list_builtin_voice_names",
+                        lambda model=None: ["Ava", "Adam", "Xiaoyu", "Mortis"])
+    out = {v["name"]: v for v in tts_voices.list_builtin_voices("moss-tts-nano")}
+    assert out["Ava"] == {"name": "Ava", "language": "en", "curated": True,
+                          "unstable": False, "default": True}
+    assert out["Adam"]["unstable"] is True and out["Adam"]["curated"] is False
+    assert out["Xiaoyu"]["default"] is True and out["Xiaoyu"]["language"] == "zh"
+    # A voice with no language entry is never a per-language default.
+    assert out["Mortis"]["language"] is None and out["Mortis"]["default"] is False
