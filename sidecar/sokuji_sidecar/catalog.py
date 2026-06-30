@@ -202,14 +202,15 @@ class TtsModel:
     sample_rate: int = 24000         # native rate (engine resamples to 24k)
     recommended: bool = False
     sort_order: int = 99
+    num_speakers: int = 1            # 1 = single voice; >1 = a 0..N-1 speaker range
 
 
-def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False):
+def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False, num_speakers=1):
     return TtsModel(mid, name, langs, (
         Deployment("sherpa_tts", "gpu-cuda", "fp32", repo, 1.0),
         Deployment("sherpa_tts", "cpu", "fp32", repo, 1.0),
     ), repos=(repo,), urls=tuple(urls), sample_rate=sr,
-       recommended=recommended, sort_order=sort_order)
+       recommended=recommended, sort_order=sort_order, num_speakers=num_speakers)
 
 
 _MOSS_NANO_LM_REPO = os.environ.get(
@@ -226,10 +227,49 @@ TTS_MODELS: list[TtsModel] = [
              repos=(_MOSS_NANO_LM_REPO, _MOSS_NANO_TOK_REPO),
              clones=True, streaming=True, sample_rate=48000,
              recommended=True, sort_order=0),
-    _sherpa_tts_row("piper-en-amy", "Piper (en-US Amy)", ("en",),
+    # piper / vits single-voice models (one repo = one model = one voice).
+    _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True),
-    _sherpa_tts_row("vits-icefall-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
-                    "csukuangfj/vits-icefall-zh-aishell3", 11, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-en_US-libritts_r-medium", "LibriTTS (US)", ("en",),
+                    "csukuangfj/vits-piper-en_US-libritts_r-medium", 11, 22050, num_speakers=904),
+    _sherpa_tts_row("csukuangfj/vits-piper-en_US-ryan-low", "Ryan (US)", ("en",),
+                    "csukuangfj/vits-piper-en_US-ryan-low", 12, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-en_US-lessac-medium", "Lessac (US)", ("en",),
+                    "csukuangfj/vits-piper-en_US-lessac-medium", 13, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-en_GB-alan-low", "Alan (GB)", ("en",),
+                    "csukuangfj/vits-piper-en_GB-alan-low", 14, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-thorsten-low", "Thorsten", ("de",),
+                    "csukuangfj/vits-piper-de_DE-thorsten-low", 15, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-eva_k-x_low", "Eva K", ("de",),
+                    "csukuangfj/vits-piper-de_DE-eva_k-x_low", 16, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-kerstin-low", "Kerstin", ("de",),
+                    "csukuangfj/vits-piper-de_DE-kerstin-low", 17, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-es_ES-davefx-medium", "DaveFX (ES)", ("es",),
+                    "csukuangfj/vits-piper-es_ES-davefx-medium", 18, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-es_ES-carlfm-x_low", "CarlFM (ES)", ("es",),
+                    "csukuangfj/vits-piper-es_ES-carlfm-x_low", 19, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-es_MX-ald-medium", "Ald (MX)", ("es",),
+                    "csukuangfj/vits-piper-es_MX-ald-medium", 20, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-siwis-medium", "Siwis", ("fr",),
+                    "csukuangfj/vits-piper-fr_FR-siwis-medium", 21, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-gilles-low", "Gilles", ("fr",),
+                    "csukuangfj/vits-piper-fr_FR-gilles-low", 22, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-tom-medium", "Tom", ("fr",),
+                    "csukuangfj/vits-piper-fr_FR-tom-medium", 23, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-it_IT-riccardo-x_low", "Riccardo", ("it",),
+                    "csukuangfj/vits-piper-it_IT-riccardo-x_low", 24, 16000),
+    _sherpa_tts_row("csukuangfj/vits-piper-it_IT-paola-medium", "Paola", ("it",),
+                    "csukuangfj/vits-piper-it_IT-paola-medium", 25, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-denis-medium", "Denis", ("ru",),
+                    "csukuangfj/vits-piper-ru_RU-denis-medium", 26, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-irina-medium", "Irina", ("ru",),
+                    "csukuangfj/vits-piper-ru_RU-irina-medium", 27, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-dmitri-medium", "Dmitri", ("ru",),
+                    "csukuangfj/vits-piper-ru_RU-dmitri-medium", 28, 22050),
+    _sherpa_tts_row("csukuangfj/vits-piper-zh_CN-huayan-medium", "Huayan", ("zh",),
+                    "csukuangfj/vits-piper-zh_CN-huayan-medium", 29, 22050),
+    _sherpa_tts_row("csukuangfj/vits-icefall-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
+                    "csukuangfj/vits-icefall-zh-aishell3", 30, 16000, num_speakers=174),
 ]
 
 

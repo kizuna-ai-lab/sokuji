@@ -266,3 +266,27 @@ def test_hymt15_has_fp8_variant():
         assert fp8[0].backend == "hunyuan_translate"
         assert fp8[0].artifact == fp8_repo
         assert fp8[0].min_capability == (8, 9)
+
+
+def test_tts_models_use_repo_path_ids_and_have_num_speakers():
+    tts = {m.id: m for m in catalog.tts_models()}
+    # MOSS keeps its short id; piper models are keyed by their HF repo path.
+    assert "moss-tts-nano" in tts
+    assert "csukuangfj/vits-piper-en_US-amy-low" in tts
+    assert "csukuangfj/vits-piper-de_DE-thorsten-low" in tts
+    # Every TTS model carries num_speakers >= 1, and a piper id IS its repo.
+    for m in catalog.tts_models():
+        assert m.num_speakers >= 1, f"{m.id} num_speakers"
+    amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
+    assert amy.repos == ("csukuangfj/vits-piper-en_US-amy-low",)
+    assert amy.num_speakers == 1
+    # A multi-speaker model exposes a range.
+    assert tts["csukuangfj/vits-piper-en_US-libritts_r-medium"].num_speakers > 1
+
+
+def test_tts_languages_cover_the_renderer_set():
+    langs = set()
+    for m in catalog.tts_models():
+        langs.update(m.languages)
+    # Languages the renderer's NATIVE_TTS_BY_LANG offered must all survive.
+    assert {"en", "de", "es", "fr", "it", "ru", "zh"} <= langs
