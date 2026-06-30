@@ -204,6 +204,20 @@ def test_h_set_voice_builtin_name_path():
     assert reply["type"] == "ok" and called == {"builtin": "Ava"}
 
 
+def test_set_voice_sid_form_routes_to_set_speaker():
+    seen = {}
+    class _Eng:
+        def set_speaker(self, sid): seen["sid"] = sid
+        def set_builtin_voice(self, name): seen["name"] = name
+        def set_voice(self, audio, sr): seen["clip"] = (len(audio), sr)
+    state = {"tts_engine": _Eng(), "handlers": {}}
+    tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["set_voice"](
+        state, {"id": 3, "type": "set_voice", "sid": 5}, None, None))
+    assert seen == {"sid": 5}
+    assert reply == {"type": "ok", "id": 3}
+
+
 def test_tts_cancel_stops_inflight_stream(monkeypatch):
     """tts_cancel flips the cancel flag while the stream task runs; the stream task
     respects the flag and stops early, then still emits tts_done.

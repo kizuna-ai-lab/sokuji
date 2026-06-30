@@ -32,6 +32,7 @@ class SherpaTtsBackend:
     def __init__(self):
         self._tts = None
         self.sample_rate = 16000
+        self._sid = 0
 
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
         self._tts = None
@@ -66,9 +67,12 @@ class SherpaTtsBackend:
     def set_voice(self, audio, sr):
         pass  # non-cloning
 
+    def set_speaker(self, sid):
+        self._sid = int(sid)
+
     def generate(self, text, speed=1.0):
         t0 = time.time()
-        audio = self._tts.generate(text, sid=0, speed=speed)
+        audio = self._tts.generate(text, sid=self._sid, speed=speed)
         return np.asarray(audio.samples, dtype=np.float32), int((time.time() - t0) * 1000)
 
     def unload(self) -> None:
@@ -170,6 +174,9 @@ class MossOnnxTtsBackend:
         if match is None:
             raise BackendLoadError(f"unknown builtin voice: {name}")
         self._voice_rows = list(match["prompt_audio_codes"])
+
+    def set_speaker(self, sid):
+        pass  # MOSS selects voices by name/clip, not a numeric speaker id
 
     def set_voice(self, audio, sr):
         self._voice_rows = self._encode_reference(np.asarray(audio, dtype=np.float32), int(sr))

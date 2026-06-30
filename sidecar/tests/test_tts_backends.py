@@ -83,3 +83,30 @@ def test_set_builtin_voice_unknown_name_raises():
     import pytest
     with pytest.raises(Exception):
         b.set_builtin_voice("Nope")
+
+
+from sokuji_sidecar.tts_backends import SherpaTtsBackend
+
+
+class _FakeOfflineTts:
+    sample_rate = 16000
+    def __init__(self): self.calls = []
+    def generate(self, text, sid=0, speed=1.0):
+        self.calls.append(sid)
+        class _A: samples = [0.0]
+        return _A()
+
+
+def test_sherpa_generate_uses_selected_speaker():
+    b = SherpaTtsBackend()
+    b._tts = _FakeOfflineTts()
+    b.set_speaker(7)
+    b.generate("hello")
+    assert b._tts.calls == [7]
+
+
+def test_sherpa_defaults_to_speaker_zero():
+    b = SherpaTtsBackend()
+    b._tts = _FakeOfflineTts()
+    b.generate("hello")
+    assert b._tts.calls == [0]
