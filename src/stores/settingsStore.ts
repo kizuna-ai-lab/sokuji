@@ -1279,69 +1279,73 @@ const useSettingsStore = create<SettingsStore>()(
       const provider = state.provider;
 
       // Native (Electron sidecar) inference: no API key. Readiness = the sidecar
-      // actually spawns + handshakes (this also warms it for the session).
+      // catalog is loaded and the reconciled selection passes compat + download
+      // checks. ensureCatalog warms the sidecar; never mutate the selection when
+      // the sidecar is still starting or unavailable.
       if (provider === Provider.LOCAL_NATIVE) {
-        let ready = isElectron();
-        if (ready) {
+        const { useNativeModelStore, nativeListVariants } = await import('./nativeModelStore');
+        const nstore = useNativeModelStore.getState();
+        if (!isElectron()) {
+          set({ isApiKeyValid: false, availableModels: [], isValidating: false,
+            validationMessage: 'Native sidecar unavailable (desktop app + installed sidecar required)' });
+          return { valid: false, message: 'Native sidecar unavailable (desktop app + installed sidecar required)', validating: false };
+        }
+        // Warm the sidecar + load the full model catalog. Gate on the lifecycle;
+        // never run auto-select on an incomplete/empty catalog.
+        await nstore.ensureCatalog();
+        const status = useNativeModelStore.getState().sidecarStatus;
+        if (status !== 'ready') {
+          const message = status === 'unavailable'
+            ? i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')
+            : i18n.t('settings.localNativeStarting', 'Starting the local engine…');
+          set({ isApiKeyValid: false, availableModels: [], validationMessage: message, isValidating: false });
+          return { valid: false, message, validating: false };
+        }
+        const catalog = useNativeModelStore.getState().catalog;
+        const s0 = get().localNative;
+        // Global auto-select: reconcile the stale selection for this pair against
+        // the catalog + live download statuses, and persist it (fixes both the
+        // Start button and the model-info "None" on a language reversal).
+        const updates = nstore.autoSelect(s0.sourceLanguage, s0.targetLanguage, {
+          asrModel: s0.asrModel, translationModel: s0.translationModel, ttsModel: s0.ttsModel,
+        });
+        if (updates) get().updateLocalNative(updates);
+        const s = get().localNative;
+        const asrOpt = catalog[s.asrModel];
+        const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, s.sourceLanguage);
+        // The selected translation must be a valid card for THIS language pair.
+        const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage, catalog)
+          .some((c) => c.selectId === s.translationModel);
+        // Gate on the selected stage models being downloaded into the sidecar cache.
+        // TTS is dropped from the requirement when text-only is on.
+        const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, catalog, get().textOnly);
+        // Resolve the active translation model's CHOSEN variant repo (pin ??
+        // recommended) so the gate checks the right quant even on cold start —
+        // the Settings panel, which normally publishes statusRepos, may never
+        // have mounted this session. Only HY-MT-family cards ship multiple
+        // quants; everything else uses its single default repo (no override).
+        let statusRepos: Record<string, string> | undefined;
+        if (s.translationModel.startsWith('hy-mt')) {
           try {
-            const r = await (window as unknown as { electron?: { invoke(c: string): Promise<any> } }).electron?.invoke('native-host:start');
-            ready = !!r?.ok;
-          } catch {
-            ready = false;
-          }
+            const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage, catalog) || null;
+            const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);
+            const resolved = statusReposFor([s.translationModel], { [s.translationModel]: vd }, s.translationVariantByModel);
+            // Only override when resolution actually produced a repo; an empty
+            // map ({}) is truthy and would defeat refresh's `repos ?? cache`
+            // fallback (e.g. a malformed listVariants response).
+            if (Object.keys(resolved).length > 0) statusRepos = resolved;
+          } catch { /* best-effort */ }
         }
-        let message = ready ? '' : 'Native sidecar unavailable (desktop app + installed sidecar required)';
-        if (ready) {
-          const s = get().localNative;
-          // The selected ASR must actually support the source language — not just
-          // be downloaded (parity with LOCAL_INFERENCE, which gates on language).
-          const cat = (await import('./nativeModelStore')).useNativeModelStore.getState().catalog;
-          const asrOpt = cat[s.asrModel];
-          const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, s.sourceLanguage);
-          // The selected translation must be a valid card for THIS language pair
-          // (parity with the ASR check). A stale selection left over from a language
-          // swap — e.g. the zh→en Opus-MT card after reversing to en→zh — is still
-          // "downloaded" so isReady() passes, but it can't translate the new pair;
-          // the UI already shows it as "None". Gate Start on it. (qwen* cards are
-          // multilingual and valid for every pair, so the common path stays ready.)
-          const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage, cat)
-            .some((c) => c.selectId === s.translationModel);
-          // Gate on the selected stage models being downloaded into the sidecar cache.
-          // TTS is dropped from the requirement when text-only is on.
-          const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, cat, get().textOnly);
-          const { useNativeModelStore, nativeListVariants } = await import('./nativeModelStore');
-          // Resolve the active translation model's CHOSEN variant repo (pin ??
-          // recommended) so the gate checks the right quant even on cold start —
-          // the Settings panel, which normally publishes statusRepos, may never
-          // have mounted this session. Only HY-MT-family cards ship multiple
-          // quants; everything else uses its single default repo (no override).
-          let statusRepos: Record<string, string> | undefined;
-          if (s.translationModel.startsWith('hy-mt')) {
-            try {
-              const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage, cat) || null;
-              const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);
-              const resolved = statusReposFor([s.translationModel], { [s.translationModel]: vd }, s.translationVariantByModel);
-              // Only override when resolution actually produced a repo; an empty
-              // map ({}) is truthy and would defeat refresh's `repos ?? cache`
-              // fallback (e.g. a malformed listVariants response).
-              if (Object.keys(resolved).length > 0) statusRepos = resolved;
-            } catch {
-              // Best-effort: sidecar metadata unavailable → fall back to the
-              // store's statusRepos cache (default-variant status).
-            }
-          }
-          await useNativeModelStore.getState().refresh(models, statusRepos);
-          ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
-          message = ready ? ''
-            : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
-            : !trCompatible ? i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair')
-            : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
-        }
+        await useNativeModelStore.getState().refresh(models, statusRepos);
+        const ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
+        const message = ready ? ''
+          : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
+          : !trCompatible ? i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair')
+          : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
         set({
           isApiKeyValid: ready,
           availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
-          validationMessage: message,
-          isValidating: false,
+          validationMessage: message, isValidating: false,
         });
         return { valid: ready, message, validating: false };
       }

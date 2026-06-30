@@ -7,10 +7,17 @@
  *
  * Without this, the gate falls back to the catalog DEFAULT repo (e.g. bf16) and
  * gates Start for a user who only downloaded the recommended/pinned quant.
+ *
+ * Task 10: the gate also warms the sidecar via ensureCatalog, checks the lifecycle
+ * status (starting/unavailable → early return, no selection mutation), and when
+ * ready runs global autoSelect to reconcile stale model choices before gating.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from '../types/Provider';
 import type { VariantInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
 
 // ServiceFactory is touched during updateLocalNative/persist — stub it.
 vi.mock('../services/ServiceFactory', () => ({
@@ -28,12 +35,27 @@ vi.mock('../utils/environment', async () => {
   return { ...actual, isElectron: () => true };
 });
 
-// Stub the native store + variant lookup the gate dynamically imports.
+// ── mock state (mutable; updated per-test via mockNativeSidecar / beforeEach) ──
 const mockRefresh = vi.fn().mockResolvedValue(undefined);
 const mockIsReady = vi.fn().mockReturnValue(true);
 const mockListVariants = vi.fn();
+const mockEnsureCatalog = vi.fn().mockResolvedValue(undefined);
+const mockAutoSelect = vi.fn().mockReturnValue(null);
+let mockSidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable' = 'ready';
+let mockCatalog: Record<string, NativeModelInfo> = {};
+
+// Stub the native store + variant lookup the gate dynamically imports.
 vi.mock('./nativeModelStore', () => ({
-  useNativeModelStore: { getState: () => ({ refresh: mockRefresh, isReady: mockIsReady }) },
+  useNativeModelStore: {
+    getState: () => ({
+      refresh: mockRefresh,
+      isReady: mockIsReady,
+      ensureCatalog: mockEnsureCatalog,
+      autoSelect: (...args: unknown[]) => mockAutoSelect(...args),
+      sidecarStatus: mockSidecarStatus,
+      catalog: mockCatalog,
+    }),
+  },
   nativeListVariants: (...a: unknown[]) => mockListVariants(...a),
 }));
 
@@ -43,6 +65,29 @@ const VARIANTS: VariantInfo[] = [
   { id: 'fp8', computeType: 'fp8', repo: 'tencent/Hy-MT2-7B-FP8', sizeBytes: 8e9, supported: true },
   { id: 'bfloat16', computeType: 'bfloat16', repo: 'tencent/Hy-MT2-7B', sizeBytes: 15e9, supported: true },
 ];
+
+/**
+ * Minimal catalog that covers the sense-voice ASR and the two translation
+ * models used across the test suite. Both new and existing tests default to
+ * this catalog so mock state is consistent.
+ */
+const DEFAULT_CATALOG: Record<string, NativeModelInfo> = {
+  'sense-voice': {
+    id: 'sense-voice', name: 'SenseVoice', kind: 'asr',
+    languages: ['multi'], recommended: true, tiers: [], order: 0, repo: '',
+  },
+  'qwen2.5-0.5b': {
+    id: 'qwen2.5-0.5b', name: 'Qwen2.5-0.5B', kind: 'translate',
+    languages: ['multi'], recommended: true, tiers: [], order: 0, repo: '',
+  },
+  'opus-mt-zh-en': {
+    id: 'opus-mt-zh-en', name: 'Opus-MT zh→en', kind: 'translate',
+    languages: ['zh', 'en'], recommended: false, tiers: [], order: 1, repo: '',
+  },
+};
+
+/** The catalog used in the Task-10 lifecycle tests. Same shape as DEFAULT_CATALOG. */
+const READY_CATALOG = DEFAULT_CATALOG;
 
 function setNative(over: Record<string, unknown>) {
   useSettingsStore.setState({
@@ -59,13 +104,39 @@ function reposArg(): unknown {
   return mockRefresh.mock.calls[0]?.[1];
 }
 
+/**
+ * Configure the mock native store for a given sidecar lifecycle state.
+ * When status is 'ready', sets up autoSelect to reconcile the translation
+ * model based on the downloaded set (mirrors the real autoSelectNative logic
+ * for the translation stage).
+ */
+function mockNativeSidecar({ status, catalog = DEFAULT_CATALOG, downloaded = [] }: {
+  status: 'idle' | 'starting' | 'ready' | 'unavailable';
+  catalog?: Record<string, NativeModelInfo>;
+  downloaded?: string[];
+}) {
+  mockSidecarStatus = status;
+  mockCatalog = catalog;
+  const dl = new Set(downloaded);
+  mockAutoSelect.mockImplementation((src: string, tgt: string, current: NativeSelection) => {
+    const trCards = nativeTranslationCards(src, tgt, catalog);
+    const curCard = trCards.find((c) => c.selectId === current.translationModel);
+    if (curCard && dl.has(curCard.downloadId)) return null; // still valid
+    const best = trCards.find((c) => dl.has(c.downloadId));
+    if (!best || best.selectId === current.translationModel) return null;
+    return { translationModel: best.selectId };
+  });
+}
+
 beforeEach(() => {
   mockRefresh.mockClear();
   mockIsReady.mockClear();
   mockListVariants.mockReset();
   mockListVariants.mockResolvedValue({ variants: VARIANTS, recommended: 'fp8' });
-  (globalThis as any).window = (globalThis as any).window ?? {};
-  (globalThis as any).window.electron = { invoke: vi.fn().mockResolvedValue({ ok: true }) };
+  mockEnsureCatalog.mockClear();
+  mockAutoSelect.mockReturnValue(null);
+  mockSidecarStatus = 'ready';
+  mockCatalog = DEFAULT_CATALOG;
 });
 
 describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
@@ -88,7 +159,8 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     setNative({ translationModel: 'hy-mt15-7b' });
     await useSettingsStore.getState().validateApiKey();
 
-    expect(mockListVariants).toHaveBeenCalledWith('hy-mt15-7b', expect.anything(), expect.anything());
+    // The second arg is the ASR model id; the third is null (no TTS in the test catalog).
+    expect(mockListVariants).toHaveBeenCalledWith('hy-mt15-7b', 'sense-voice', null);
     expect(reposArg()).toEqual({ 'hy-mt15-7b': 'tencent/Hy-MT2-7B-FP8' });
   });
 
@@ -128,6 +200,30 @@ describe('LOCAL_NATIVE gate rejects a translation model incompatible with the pa
     mockIsReady.mockReturnValue(true);
     setNative({ sourceLanguage: 'en', targetLanguage: 'zh', translationModel: 'qwen2.5-0.5b' });
     const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(true);
+  });
+});
+
+describe('LOCAL_NATIVE gate: sidecar lifecycle gates (Task 10)', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as any);
+  });
+
+  it('reports not-ready and does not mutate selection while sidecar is unavailable', async () => {
+    mockNativeSidecar({ status: 'unavailable' }); // ensureCatalog leaves it unavailable
+    const before = useSettingsStore.getState().localNative.translationModel;
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(false);
+    expect(useSettingsStore.getState().localNative.translationModel).toBe(before);
+  });
+
+  it('runs global auto-select when ready and gates on the reconciled pair', async () => {
+    mockNativeSidecar({ status: 'ready', catalog: READY_CATALOG, downloaded: ['sense-voice', 'qwen2.5-0.5b'] });
+    // stale translation for the new pair → autoSelect reconciles it
+    useSettingsStore.setState((s) => ({ localNative: { ...s.localNative,
+      sourceLanguage: 'en', targetLanguage: 'zh', asrModel: 'sense-voice', translationModel: 'opus-mt-zh-en' } }));
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().localNative.translationModel).not.toBe('opus-mt-zh-en');
     expect(r.valid).toBe(true);
   });
 });
