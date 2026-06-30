@@ -691,3 +691,69 @@
     }
   }
 }
+
+// LOCAL_NATIVE sidecar lifecycle placeholders, shown in place of the model cards
+// while the sidecar is warming up (`starting`/`idle`) or can't be reached
+// (`unavailable`). Top-level classes because they are returned standalone, not
+// nested inside .model-management-section.
+.native-models-loading,
+.native-models-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: vars.$radius-md;
+  font-size: vars.$font-body;
+}
+
+.native-models-loading {
+  justify-content: center;
+  color: vars.$text-muted;
+  background: vars.$bg-surface;
+
+  &::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border: 2px solid vars.$bg-elevated;
+    border-top-color: vars.$color-primary;
+    border-radius: 50%;
+    animation: native-models-spin 0.8s linear infinite;
+  }
+}
+
+.native-models-error {
+  flex-wrap: wrap;
+  color: vars.$text-secondary;
+  background: vars.$color-error-bg;
+  border: 1px solid vars.$color-error-border;
+
+  span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  button {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: vars.$color-primary;
+    color: vars.$text-primary;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-medium;
+    cursor: pointer;
+    transition: background vars.$transition-fast;
+
+    &:hover {
+      background: vars.$color-primary-hover;
+    }
+  }
+}
+
+@keyframes native-models-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
