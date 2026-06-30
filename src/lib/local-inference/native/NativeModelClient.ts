@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo, VariantInfo } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
 
 interface DownloadHandle {
   onProgress?: (p: ModelProgressMsg) => void;
@@ -108,9 +108,9 @@ export class NativeModelClient {
   /** Query the per-machine model catalog (languages, recommended, tier availability).
    *  `kind` selects the ASR catalog (default) or the translation catalog — they are
    *  separate model lists sidecar-side, so callers fetch each independently. */
-  async modelsCatalog(models?: string[], kind?: 'asr' | 'translate'): Promise<NativeModelInfo[]> {
+  async modelsCatalog(models?: string[], kind?: 'asr' | 'translate' | 'tts'): Promise<NativeModelInfo[]> {
     await this.connect();
-    const payload: { type: 'models_catalog'; models?: string[]; kind?: 'asr' | 'translate' } = { type: 'models_catalog' };
+    const payload: { type: 'models_catalog'; models?: string[]; kind?: 'asr' | 'translate' | 'tts' } = { type: 'models_catalog' };
     if (models) payload.models = models;
     if (kind) payload.kind = kind;
     const msg = await this.send(payload);
@@ -132,8 +132,8 @@ export class NativeModelClient {
     return { variants: r.variants, recommended: r.recommended };
   }
 
-  /** Built-in TTS voice names for a voice-capable model (empty if not downloaded). */
-  async listTtsVoices(model?: string): Promise<string[]> {
+  /** Built-in TTS voice descriptors for a voice-capable model (empty if not downloaded). */
+  async listTtsVoices(model?: string): Promise<NativeVoiceInfo[]> {
     await this.connect();
     const payload: { type: 'list_tts_voices'; model?: string } = { type: 'list_tts_voices' };
     if (model) payload.model = model;

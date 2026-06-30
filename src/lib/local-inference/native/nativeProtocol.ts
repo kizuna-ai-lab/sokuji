@@ -7,6 +7,11 @@ export interface ReadyMsg {
 export interface NativeTier { tier: string; backend: string; available: boolean; }
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
+  order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
+  numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
+}
+export interface NativeVoiceInfo {
+  name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;
 }
 export interface HardwareInfoResultMsg {
   type: 'hardware_info_result'; id: number;
@@ -44,5 +49,5 @@ export type ModelDownloadStatus = 'ready' | 'cancelled';
 export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: string; status: ModelDownloadStatus; }
 export interface TtsChunkMsg { type: 'tts_chunk'; id: number; seq: number; }
 export interface TtsDoneMsg { type: 'tts_done'; id: number; totalSamples: number; generationTimeMs: number; }
-export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: string[]; }
+export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: NativeVoiceInfo[]; }
 export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;

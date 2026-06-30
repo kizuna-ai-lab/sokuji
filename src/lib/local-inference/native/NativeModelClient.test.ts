@@ -1,10 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NativeModelClient } from './NativeModelClient';
+import type { NativeVoiceInfo } from './nativeProtocol';
 
 class FakeWS {
   static last: FakeWS;
   static OPEN = 1;
+  static sent: any[] = [];
   readyState = 1;
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: any }) => void) | null = null;
@@ -15,6 +17,7 @@ class FakeWS {
   private emit(o: any) { this.onmessage?.({ data: JSON.stringify(o) }); }
   send(d: any) {
     const msg = JSON.parse(d);
+    FakeWS.sent.push(msg);
     if (msg.type === 'model_status') queueMicrotask(() =>
       this.emit({ type: 'model_status_result', id: msg.id, statuses: { 'sense-voice': 'ready', 'whisper-tiny': 'absent' } }));
     if (msg.type === 'model_download') {
@@ -44,7 +47,10 @@ class FakeWS {
         variants: [{ id: 'fp8', computeType: 'fp8', repo: 'tencent/Hy-MT2-7B-FP8', sizeBytes: 8e9, supported: true, reason: 'fits' }],
         recommended: 'fp8' }));
     if (msg.type === 'list_tts_voices') queueMicrotask(() =>
-      this.emit({ type: 'list_tts_voices_result', id: msg.id, voices: ['Ava', 'Bella'] }));
+      this.emit({ type: 'list_tts_voices_result', id: msg.id, voices: [
+        { name: 'Ava', language: 'en', curated: true, unstable: false, default: true },
+        { name: 'Bella', language: 'en', curated: true, unstable: false, default: false },
+      ] }));
   }
   close() {}
   static cancelled = new Set<string>();
@@ -72,6 +78,7 @@ beforeEach(() => {
   (globalThis as any).WebSocket = FakeWS as any;
   (globalThis as any).window = { electron: { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) } };
   FakeWS.cancelled.clear();
+  FakeWS.sent = [];
 });
 
 describe('NativeModelClient', () => {
@@ -123,9 +130,23 @@ describe('NativeModelClient', () => {
     expect(r.variants[0].sizeBytes).toBe(8e9);
   });
 
-  it('listTtsVoices returns voice names', async () => {
+  it('listTtsVoices returns voice descriptors', async () => {
     const c = new NativeModelClient();
-    expect(await c.listTtsVoices('moss-tts-nano')).toEqual(['Ava', 'Bella']);
+    const voices = await c.listTtsVoices('moss-tts-nano');
+    expect(voices[0].name).toBe('Ava');
+    expect(voices[1].name).toBe('Bella');
+  });
+
+  it('requests the tts catalog kind and returns voice descriptors', async () => {
+    const client = new NativeModelClient();
+    await client.modelsCatalog(undefined, 'tts');
+    const catalogSent = FakeWS.sent.find((m: any) => m.type === 'models_catalog');
+    expect(catalogSent.kind).toBe('tts');
+    const voices: NativeVoiceInfo[] = await client.listTtsVoices('moss-tts-nano');
+    expect(voices).toEqual([
+      { name: 'Ava', language: 'en', curated: true, unstable: false, default: true },
+      { name: 'Bella', language: 'en', curated: true, unstable: false, default: false },
+    ]);
   });
 });
 
