@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards, nativeAsrCards, nativeTtsCards } from '../lib/local-inference/native/nativeCatalog';
 import type { NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
 import { useNativeModelStore } from './nativeModelStore';
 import { isElectron } from '../utils/environment';
@@ -1303,6 +1303,16 @@ const useSettingsStore = create<SettingsStore>()(
         }
         const catalog = useNativeModelStore.getState().catalog;
         const s0 = get().localNative;
+        // Refresh download statuses for THIS pair's candidate models BEFORE
+        // auto-select. Statuses start empty on a cold start, and auto-select reads
+        // them to pick the best *downloaded* model — without this it would see
+        // nothing downloaded and fail to select a model the user already has.
+        const candidateIds = Array.from(new Set([
+          ...nativeAsrCards(s0.sourceLanguage, catalog),
+          ...nativeTranslationCards(s0.sourceLanguage, s0.targetLanguage, catalog),
+          ...nativeTtsCards(s0.targetLanguage, catalog),
+        ].map((c) => c.downloadId).filter((id): id is string => !!id)));
+        await useNativeModelStore.getState().refresh(candidateIds);
         // Global auto-select: reconcile the stale selection for this pair against
         // the catalog + live download statuses, and persist it (fixes both the
         // Start button and the model-info "None" on a language reversal).

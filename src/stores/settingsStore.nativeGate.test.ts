@@ -101,7 +101,9 @@ function setNative(over: Record<string, unknown>) {
 }
 
 function reposArg(): unknown {
-  return mockRefresh.mock.calls[0]?.[1];
+  // The required-models refresh (variant-aware) is the LAST refresh call; the
+  // first is the pre-auto-select candidate-status refresh (default repos).
+  return mockRefresh.mock.calls.at(-1)?.[1];
 }
 
 /**
@@ -168,11 +170,28 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     setNative({ translationModel: 'qwen2.5-0.5b' });
     await useSettingsStore.getState().validateApiKey();
 
-    // The block is skipped entirely; refresh is called once with no explicit
-    // override, so it falls back to the store's statusRepos cache.
+    // The variant block is skipped; the required-models refresh (the last call)
+    // gets no explicit override, so it falls back to the store's statusRepos cache.
+    // (The first refresh is the pre-auto-select candidate-status refresh.)
     expect(mockListVariants).not.toHaveBeenCalled();
-    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(mockRefresh).toHaveBeenCalledTimes(2);
     expect(reposArg()).toBeUndefined();
+  });
+
+  it('refreshes the pair candidate statuses BEFORE auto-select (so a downloaded model gets picked)', async () => {
+    setNative({ translationModel: 'qwen2.5-0.5b' });
+    mockRefresh.mockClear();
+    mockAutoSelect.mockClear();
+    await useSettingsStore.getState().validateApiKey();
+
+    // The candidate-status refresh must run before auto-select reads statuses,
+    // else auto-select sees an empty status map and can't pick a downloaded model.
+    expect(mockRefresh).toHaveBeenCalled();
+    expect(mockAutoSelect).toHaveBeenCalled();
+    expect(mockRefresh.mock.invocationCallOrder[0])
+      .toBeLessThan(mockAutoSelect.mock.invocationCallOrder[0]);
+    // That first refresh carries the pair's candidate download ids (incl. the ASR card).
+    expect(mockRefresh.mock.calls[0][0]).toContain('sense-voice');
   });
 });
 
