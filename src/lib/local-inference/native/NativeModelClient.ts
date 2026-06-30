@@ -92,11 +92,6 @@ export class NativeModelClient {
     return (msg as Extract<ServerMsg, { type: 'model_status_result' }>).statuses;
   }
 
-  async sizes(models: string[]): Promise<Record<string, number>> {
-    await this.connect();
-    const msg = await this.send({ type: 'model_sizes', models });
-    return (msg as Extract<ServerMsg, { type: 'model_sizes_result' }>).sizes;
-  }
 
   /** Query the sidecar for detected hardware (CPU/GPU/NPU + installed backends). */
   async hardwareInfo(): Promise<Extract<ServerMsg, { type: 'hardware_info_result' }>> {

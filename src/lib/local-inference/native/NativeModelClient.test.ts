@@ -172,11 +172,10 @@ describe('NativeModelClient error rejection', () => {
     await c.status(['sense-voice']); // connect and complete one request
     // Now install a no-reply send so the next request hangs in pending
     FakeWS.last.send = () => {};
-    // sizes() will: await connect() (returns immediately, already open), then call send() synchronously
-    // We need the request to be in pending before we dispose().
-    // Use a trick: sizes() is async but send() is sync inside it; capture the Promise then yield.
-    const p = c.sizes(['sense-voice']);
-    // Yield to let sizes() advance past the await connect() and register in pending
+    // A second request (already connected) registers in pending but never gets a
+    // reply, so we can verify dispose() rejects it. status() is just the vehicle.
+    const p = c.status(['sense-voice']);
+    // Yield to let the request advance past the await connect() and register in pending
     await new Promise((r) => setTimeout(r, 0));
     c.dispose();
     await expect(p).rejects.toThrow('native host disconnected');

@@ -113,16 +113,6 @@ def test_real_status_of_sense_voice_repo():
     assert nm.model_status('csukuangfj/this-repo-does-not-exist-xyz') == 'absent'
 
 
-def test_sizes_handler_shape(monkeypatch):
-    monkeypatch.setattr(nm, 'model_size', lambda m: 12345 if m == 'sense-voice' else 0)
-    st = {'handlers': {}}
-    nm.register(st)
-    reply, _ = asyncio.run(server.handle_message(
-        st, json.dumps({'type': 'model_sizes', 'id': 1, 'models': ['sense-voice', 'whisper-tiny']})))
-    assert reply == {'type': 'model_sizes_result', 'id': 1,
-                     'sizes': {'sense-voice': 12345, 'whisper-tiny': 0}}
-
-
 @pytest.mark.skipif(not os.environ.get('SOKUJI_RUN_ASR_MODEL'),
                     reason='set SOKUJI_RUN_ASR_MODEL=1 (queries HF repo size)')
 def test_real_size_of_sense_voice():

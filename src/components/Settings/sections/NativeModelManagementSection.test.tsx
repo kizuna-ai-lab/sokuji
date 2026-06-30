@@ -174,7 +174,6 @@ vi.mock('../../../stores/nativeModelStore', () => {
     deleteModel: mockDeleteModel,
     cancelDownload: vi.fn(),
     refresh: mockRefresh,
-    refreshSizes: vi.fn().mockResolvedValue(undefined),
     refreshCatalog: vi.fn().mockResolvedValue(undefined),
     setStatusRepos: mockSetStatusRepos,
     autoSelect: vi.fn().mockReturnValue(null),

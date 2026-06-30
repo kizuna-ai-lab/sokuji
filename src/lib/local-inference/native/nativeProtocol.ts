@@ -43,7 +43,6 @@ export interface AsrPartialMsg { type: 'partial'; text: string; }
 export interface AsrResultMsg { type: 'result'; text: string; startSample?: number; durationMs: number; recognitionTimeMs: number; }
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
-export interface ModelSizesResultMsg { type: 'model_sizes_result'; id: number; sizes: Record<string, number>; }
 export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number; model: string; freed: number; }
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
 export type ModelDownloadStatus = 'ready' | 'cancelled';
@@ -51,4 +50,4 @@ export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: stri
 export interface TtsChunkMsg { type: 'tts_chunk'; id: number; seq: number; }
 export interface TtsDoneMsg { type: 'tts_done'; id: number; totalSamples: number; generationTimeMs: number; }
 export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: NativeVoiceInfo[]; }
-export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelSizesResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;
+export type ServerMsg = ReadyMsg | OkMsg | ResultMsg | TranslationMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;

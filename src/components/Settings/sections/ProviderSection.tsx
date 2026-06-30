@@ -117,7 +117,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const nativeModelSizes = useNativeModelSizes();
   const nativeCatalog = useNativeCatalog();
   const nativeRefresh = useNativeModelStore(s => s.refresh);
-  const nativeRefreshSizes = useNativeModelStore(s => s.refreshSizes);
   const nativeRefreshCatalog = useNativeModelStore(s => s.refreshCatalog);
   const nativeStatus = useNativeSidecarStatus();
 
@@ -139,8 +138,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   useEffect(() => {
     if (provider !== Provider.LOCAL_NATIVE || nativeActiveDownloadIds.length === 0) return;
     nativeRefresh(nativeActiveDownloadIds);
-    nativeRefreshSizes(nativeActiveDownloadIds);
-    nativeRefreshCatalog(nativeActiveDownloadIds);  // tiers drive the VRAM/RAM split below
+    nativeRefreshCatalog(nativeActiveDownloadIds);  // tiers + sizes drive the cards + VRAM/RAM split below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, nativeIdsKey]);
 

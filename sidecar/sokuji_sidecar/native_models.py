@@ -272,11 +272,6 @@ async def _h_model_status(state, msg, _b, conn=None):
     return {"type": "model_status_result", "id": msg.get("id"), "statuses": statuses}, None
 
 
-async def _h_model_sizes(state, msg, _b, conn=None):
-    sizes = {m: model_size(m) for m in (msg.get("models") or [])}
-    return {"type": "model_sizes_result", "id": msg.get("id"), "sizes": sizes}, None
-
-
 async def _run_download(state, model, conn, repo=None):
     """Background download task: streams progress, then pushes a terminal
     model_download_done (status ready|cancelled) or an error tagged with `model`.
@@ -324,6 +319,6 @@ async def _h_model_delete(state, msg, _b, conn=None):
 
 def register(state: dict):
     state.setdefault("handlers", {}).update(
-        {"model_status": _h_model_status, "model_sizes": _h_model_sizes,
+        {"model_status": _h_model_status,
          "model_download": _h_model_download, "model_cancel": _h_model_cancel,
          "model_delete": _h_model_delete})
