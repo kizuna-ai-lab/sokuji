@@ -524,7 +524,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               {(() => {
                 const asrId = localNativeSettings.asrModel;
                 const asrCard = asrId
-                  ? [...nativeAsrCards(localNativeSettings.sourceLanguage), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage)]
+                  ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
                       .find(c => c.selectId === asrId)
                   : undefined;
                 const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';

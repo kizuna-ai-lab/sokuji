@@ -218,7 +218,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // A GPU-only model on a CPU-only machine is hardware-gated — never auto-select it
     // (it would pass readiness but fail at Start with NoUsablePlan).
     const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
-    const updates = autoSelectNative(src, tgt, current, isDownloaded, get().recallModels(src, tgt), isHardwareGated);
+    const updates = autoSelectNative(src, tgt, current, isDownloaded, get().recallModels(src, tgt), isHardwareGated, catalog);
     const final: NativeSelection = {
       asrModel: updates?.asrModel ?? current.asrModel,
       translationModel: updates?.translationModel ?? current.translationModel,

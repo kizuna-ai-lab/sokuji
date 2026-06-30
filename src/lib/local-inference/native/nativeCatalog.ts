@@ -38,20 +38,6 @@ export function supportsLanguage(opt: { languages?: string[] }, lang: string): b
   return opt.languages.some((l) => canonLang(l) === want);
 }
 
-export const NATIVE_ASR: NativeModelOption[] = [
-  { id: 'cohere-transcribe-03-2026', label: 'Cohere Transcribe', languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'], recommended: true, sortOrder: 0 },
-  { id: 'sense-voice', label: 'SenseVoice', languages: ['zh', 'en', 'ja', 'ko', 'yue'], recommended: true, sortOrder: 1 },
-  { id: 'whisper-tiny', label: 'Whisper tiny', languages: ['multi'], sortOrder: 2 },
-  { id: 'whisper-base', label: 'Whisper base', languages: ['multi'], sortOrder: 3 },
-  { id: 'whisper-small', label: 'Whisper small', languages: ['multi'], sortOrder: 4 },
-  { id: 'whisper-medium', label: 'Whisper medium', languages: ['multi'], sortOrder: 5 },
-  { id: 'whisper-large-v3', label: 'Whisper large-v3', languages: ['multi'], recommended: true, sortOrder: 6 },
-  { id: 'granite-speech-4.1-2b', label: 'Granite Speech 4.1 (2B)', languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'], sortOrder: 7 },
-  { id: 'granite-speech-4.1-2b-plus', label: 'Granite Speech 4.1 (2B+)', languages: ['en', 'fr', 'de', 'es', 'pt'], sortOrder: 8 },
-  { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR 1.7B', languages: ['zh', 'en', 'ja', 'ko', 'yue', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'], recommended: true, sortOrder: 9 },
-  { id: 'voxtral-mini-4b-realtime', label: 'Voxtral Mini 4B Realtime', languages: ['en', 'fr', 'es', 'de', 'ru', 'zh', 'ja', 'it', 'pt', 'nl', 'ar', 'hi', 'ko'], recommended: true, sortOrder: 10 },
-  { id: 'fun-asr-mlt-nano', label: 'Fun-ASR MLT Nano', languages: ['zh', 'en', 'yue', 'ja', 'ko', 'vi', 'id', 'th', 'ms', 'fil', 'ar', 'hi', 'bg', 'hr', 'cs', 'da', 'nl', 'et', 'fi', 'el', 'hu', 'ga', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv'], recommended: true, sortOrder: 11 },
-];
 
 export const NATIVE_TRANSLATION: NativeModelOption[] = [
   { id: 'qwen2.5-0.5b', label: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true, sortOrder: 1 },
@@ -76,42 +62,22 @@ function catalogModels(catalog: Record<string, NativeModelInfo>, kind: NativeMod
     .sort((a, b) => Number(!!b.recommended) - Number(!!a.recommended) || a.order - b.order);
 }
 
-/** ASR models that support the source language, recommended/sortOrder first.
- *  When `catalog` is provided, derives from it; otherwise falls back to NATIVE_ASR. */
-export function compatibleNativeAsr(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[];
-export function compatibleNativeAsr(srcLang: string): NativeModelOption[];
-export function compatibleNativeAsr(srcLang: string, catalog?: Record<string, NativeModelInfo>): NativeModelInfo[] | NativeModelOption[] {
-  if (catalog !== undefined) {
-    return catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang));
-  }
-  return NATIVE_ASR.filter((m) => supportsLanguage(m, srcLang)).sort(byRecommendedThenOrder);
+/** ASR models that support the source language, recommended then order first. */
+export function compatibleNativeAsr(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[] {
+  return catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang));
 }
 
-/** ASR models that do NOT support the source language (shown behind a "show all" toggle).
- *  When `catalog` is provided, derives from it; otherwise falls back to NATIVE_ASR. */
-export function incompatibleNativeAsr(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[];
-export function incompatibleNativeAsr(srcLang: string): NativeModelOption[];
-export function incompatibleNativeAsr(srcLang: string, catalog?: Record<string, NativeModelInfo>): NativeModelInfo[] | NativeModelOption[] {
-  if (catalog !== undefined) {
-    return catalogModels(catalog, 'asr').filter((m) => !supportsLanguage(m, srcLang));
-  }
-  return NATIVE_ASR.filter((m) => !supportsLanguage(m, srcLang)).sort(byRecommendedThenOrder);
+/** ASR models that do NOT support the source language (shown behind a "show all" toggle). */
+export function incompatibleNativeAsr(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[] {
+  return catalogModels(catalog, 'asr').filter((m) => !supportsLanguage(m, srcLang));
 }
 
 /** Auto-select an ASR model for the source language: keep current if it still
- *  supports the language, else the best (recommended) compatible model.
- *  When `catalog` is provided, derives from it; otherwise falls back to NATIVE_ASR. */
-export function nativeAsrForLanguage(srcLang: string, current: string, catalog: Record<string, NativeModelInfo>): string;
-export function nativeAsrForLanguage(srcLang: string, current: string): string;
-export function nativeAsrForLanguage(srcLang: string, current: string, catalog?: Record<string, NativeModelInfo>): string {
-  if (catalog !== undefined) {
-    const cur = catalog[current];
-    if (cur && cur.kind === 'asr' && supportsLanguage(cur, srcLang)) return current;
-    return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
-  }
-  const cur = NATIVE_ASR.find((m) => m.id === current);
-  if (cur && supportsLanguage(cur, srcLang)) return current;
-  return (NATIVE_ASR.filter((m) => supportsLanguage(m, srcLang)).sort(byRecommendedThenOrder)[0])?.id || current;
+ *  supports the language, else the best (recommended) compatible model. */
+export function nativeAsrForLanguage(srcLang: string, current: string, catalog: Record<string, NativeModelInfo>): string {
+  const cur = catalog[current];
+  if (cur && cur.kind === 'asr' && supportsLanguage(cur, srcLang)) return current;
+  return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
 }
 
 /**
@@ -418,13 +384,6 @@ export interface NativeModelCardSpec {
   clones?: boolean;
 }
 
-function asrToCard(m: NativeModelOption): NativeModelCardSpec {
-  return {
-    selectId: m.id, downloadId: m.id, name: m.label, languages: m.languages,
-    recommended: m.recommended, sortOrder: m.sortOrder,
-  };
-}
-
 /** Map a catalog NativeModelInfo entry to a NativeModelCardSpec. */
 export function infoToCard(m: NativeModelInfo): NativeModelCardSpec {
   return {
@@ -434,26 +393,14 @@ export function infoToCard(m: NativeModelInfo): NativeModelCardSpec {
   };
 }
 
-/** ASR cards compatible with the source language, recommended/sortOrder ordered.
- *  When `catalog` is provided, derives from it; otherwise falls back to NATIVE_ASR. */
-export function nativeAsrCards(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[];
-export function nativeAsrCards(srcLang: string): NativeModelCardSpec[];
-export function nativeAsrCards(srcLang: string, catalog?: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
-  if (catalog !== undefined) {
-    return (compatibleNativeAsr(srcLang, catalog) as NativeModelInfo[]).map(infoToCard);
-  }
-  return (compatibleNativeAsr(srcLang) as NativeModelOption[]).map(asrToCard);
+/** ASR cards compatible with the source language, recommended/order first. */
+export function nativeAsrCards(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
+  return compatibleNativeAsr(srcLang, catalog).map(infoToCard);
 }
 
-/** ASR cards that do NOT support the source language (for the "show all" toggle).
- *  When `catalog` is provided, derives from it; otherwise falls back to NATIVE_ASR. */
-export function nativeAsrIncompatibleCards(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[];
-export function nativeAsrIncompatibleCards(srcLang: string): NativeModelCardSpec[];
-export function nativeAsrIncompatibleCards(srcLang: string, catalog?: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
-  if (catalog !== undefined) {
-    return (incompatibleNativeAsr(srcLang, catalog) as NativeModelInfo[]).map(infoToCard);
-  }
-  return (incompatibleNativeAsr(srcLang) as NativeModelOption[]).map(asrToCard);
+/** ASR cards that do NOT support the source language (for the "show all" toggle). */
+export function nativeAsrIncompatibleCards(srcLang: string, catalog: Record<string, NativeModelInfo>): NativeModelCardSpec[] {
+  return incompatibleNativeAsr(srcLang, catalog).map(infoToCard);
 }
 
 /**
@@ -536,6 +483,7 @@ export function autoSelectNative(
   isDownloaded: (downloadId: string | null) => boolean,
   recalled?: Partial<NativeSelection> | null,
   isHardwareGated: (downloadId: string | null) => boolean = () => false,
+  catalog: Record<string, NativeModelInfo> = {},
 ): Partial<NativeSelection> | null {
   let { asrModel, translationModel, ttsModel } = current;
   const input = { asrModel, translationModel, ttsModel };
@@ -552,7 +500,7 @@ export function autoSelectNative(
   // 2+3. ASR — compatible with src (cards are pre-filtered), downloaded, AND runnable
   // on this machine. A GPU-only model on a CPU-only box is hardware-gated; auto-selecting
   // it passes readiness but then resolves to NoUsablePlan and fails at Start, so skip it.
-  const asrCards = nativeAsrCards(src);
+  const asrCards = nativeAsrCards(src, catalog);
   const asrUsable = (c: { downloadId: string | null }) =>
     isDownloaded(c.downloadId) && !isHardwareGated(c.downloadId);
   const curAsr = asrCards.find((c) => c.selectId === asrModel);
