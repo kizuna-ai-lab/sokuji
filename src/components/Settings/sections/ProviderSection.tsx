@@ -44,7 +44,7 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
-import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved } from '../../../stores/nativeModelStore';
+import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved, useNativeSidecarStatus } from '../../../stores/nativeModelStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
@@ -119,6 +119,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const nativeRefresh = useNativeModelStore(s => s.refresh);
   const nativeRefreshSizes = useNativeModelStore(s => s.refreshSizes);
   const nativeRefreshCatalog = useNativeModelStore(s => s.refreshCatalog);
+  const nativeStatus = useNativeSidecarStatus();
 
   // The sidecar download ids the current native selection maps to (ASR id is its
   // own download id; translation/TTS resolve through the catalog). Shared by the
@@ -520,72 +521,78 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_NATIVE ? (
         <div className="local-inference-info">
-          <div className="model-info">
-            <div className="model-inline">
-              {(() => {
-                const asrId = localNativeSettings.asrModel;
-                const asrCard = asrId
-                  ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
-                      .find(c => c.selectId === asrId)
-                  : undefined;
-                const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';
-                return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                    <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
-                      {asrReady ? (asrCard?.name || asrId) : t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
-              {(() => {
-                const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
-                const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-                const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
-                return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                    <span className={`model-chip-value ${trReady ? 'model-ok' : 'model-warn'}`}>
-                      {trReady ? (trCard?.name) : t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
-              {(() => {
-                const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
-                const ttsVoice = voiceId
-                  ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
-                  : undefined;
-                const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
-                return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                    <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
-                      {ttsReady ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
+          {(nativeStatus === 'starting' || nativeStatus === 'idle') ? (
+            <div className="model-info">{t('settings.localNativeStarting', 'Starting the local engine…')}</div>
+          ) : nativeStatus === 'unavailable' ? (
+            <div className="model-info">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
+          ) : (
+            <div className="model-info">
+              <div className="model-inline">
+                {(() => {
+                  const asrId = localNativeSettings.asrModel;
+                  const asrCard = asrId
+                    ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
+                        .find(c => c.selectId === asrId)
+                    : undefined;
+                  const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                      <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
+                        {asrReady ? (asrCard?.name || asrId) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+                {(() => {
+                  const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
+                  const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+                  const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+                      <span className={`model-chip-value ${trReady ? 'model-ok' : 'model-warn'}`}>
+                        {trReady ? (trCard?.name) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+                {(() => {
+                  const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+                  const ttsVoice = voiceId
+                    ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
+                    : undefined;
+                  const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                      <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
+                        {ttsReady ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+              </div>
+              {nativeActual ? (
+                <div className="memory-estimate">
+                  <Cpu size={11} />
+                  <span className="memory-estimate__label">In use</span>
+                  {nativeActual.vramMb > 0 && <span>VRAM {formatMemMb(nativeActual.vramMb)}</span>}
+                  {nativeActual.ramMb > 0 && <span>RAM {formatMemMb(nativeActual.ramMb)}</span>}
+                  {nativeActual.degraded && (
+                    <span className="memory-estimate__warn">Translation on CPU — not enough VRAM</span>
+                  )}
+                </div>
+              ) : nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
+                <div className="memory-estimate">
+                  <Cpu size={11} />
+                  <span className="memory-estimate__label">Estimated</span>
+                  {nativeMemoryEstimate.vramMb > 0 && <span>VRAM ~{formatMemMb(nativeMemoryEstimate.vramMb)}</span>}
+                  {nativeMemoryEstimate.ramMb > 0 && <span>RAM ~{formatMemMb(nativeMemoryEstimate.ramMb)}</span>}
+                </div>
+              )}
             </div>
-            {nativeActual ? (
-              <div className="memory-estimate">
-                <Cpu size={11} />
-                <span className="memory-estimate__label">In use</span>
-                {nativeActual.vramMb > 0 && <span>VRAM {formatMemMb(nativeActual.vramMb)}</span>}
-                {nativeActual.ramMb > 0 && <span>RAM {formatMemMb(nativeActual.ramMb)}</span>}
-                {nativeActual.degraded && (
-                  <span className="memory-estimate__warn">Translation on CPU — not enough VRAM</span>
-                )}
-              </div>
-            ) : nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
-              <div className="memory-estimate">
-                <Cpu size={11} />
-                <span className="memory-estimate__label">Estimated</span>
-                {nativeMemoryEstimate.vramMb > 0 && <span>VRAM ~{formatMemMb(nativeMemoryEstimate.vramMb)}</span>}
-                {nativeMemoryEstimate.ramMb > 0 && <span>RAM ~{formatMemMb(nativeMemoryEstimate.ramMb)}</span>}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
