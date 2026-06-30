@@ -36,7 +36,7 @@ import {
   nativeListVariants,
   nativeListTtsVoices,
 } from '../../../stores/nativeModelStore';
-import type { VariantInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import type { VariantInfo, NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import NativeVoiceSection from './NativeVoiceSection';
 import {
   listNativeVoices,
@@ -466,7 +466,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   // isn't downloaded → the section shows a "download first" hint); custom voices
   // come from the IndexedDB library.
   const ttsVoiceCapable = !!reserveTtsId && nativeTtsModelIsVoiceCapable(reserveTtsId);
-  const [builtinVoices, setBuiltinVoices] = useState<string[]>([]);
+  const [builtinVoices, setBuiltinVoices] = useState<NativeVoiceInfo[]>([]);
   const [customVoices, setCustomVoices] = useState<StoredNativeVoice[]>([]);
   const reloadCustomVoices = useCallback(() => {
     listNativeVoices()

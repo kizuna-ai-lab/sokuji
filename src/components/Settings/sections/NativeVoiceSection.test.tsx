@@ -42,7 +42,11 @@ vi.mock('./VoiceLibrarySection', () => ({
 }));
 
 const baseProps = {
-  builtinVoices: ['Ava', 'Bella', 'Adam'],
+  builtinVoices: [
+    { name: 'Ava', language: 'en', curated: true, unstable: false, default: true },
+    { name: 'Bella', language: 'en', curated: true, unstable: false, default: false },
+    { name: 'Adam', language: 'en', curated: false, unstable: true, default: false },
+  ],
   customVoices: [],
   selected: 'builtin:Ava',
   targetLanguage: 'en',

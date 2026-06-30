@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -248,7 +248,7 @@ export async function nativeListVariants(
  *  when the model isn't downloaded or the sidecar is unavailable (the voice
  *  picker then shows a "download the model first" hint instead of crashing).
  *  Exported at this module boundary so the renderer can mock it in tests. */
-export async function nativeListTtsVoices(model?: string): Promise<string[]> {
+export async function nativeListTtsVoices(model?: string): Promise<NativeVoiceInfo[]> {
   try {
     return await client.listTtsVoices(model);
   } catch {

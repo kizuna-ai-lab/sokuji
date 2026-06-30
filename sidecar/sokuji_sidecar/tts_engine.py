@@ -192,7 +192,7 @@ async def _h_tts_cancel(state, msg, _b, conn=None):
 
 async def _h_list_tts_voices(state, msg, _b, conn=None):
     from . import tts_voices
-    voices = tts_voices.list_builtin_voice_names(msg.get("model"))
+    voices = tts_voices.list_builtin_voices(msg.get("model"))
     return {"type": "list_tts_voices_result", "id": msg.get("id"), "voices": voices}, None
 
 

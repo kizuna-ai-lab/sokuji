@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { pickNativeTts, hasNativeTts, nativeTtsVoices, resolveNativeTts, resolveNativeTranslation, NATIVE_ASR, NATIVE_TRANSLATION, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, nativeTtsModelIsVoiceCapable } from './nativeCatalog';
-import type { NativeModelInfo } from './nativeProtocol';
+import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
+
+const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
+  ({ name, language, curated, unstable: false, default: def });
 
 describe('nativeCatalog', () => {
   it('maps the 7 verified piper languages plus MOSS-Nano multilingual support', () => {
@@ -492,18 +495,39 @@ describe('nativeCatalog', () => {
     });
   });
 
-  it('defaultTtsVoice returns Ava for English and a builtin: prefix', () => {
-    expect(defaultTtsVoice('en')).toBe('builtin:Ava');
+  it('defaultTtsVoice picks the language default descriptor', () => {
+    const voices = [V('Ava', 'en', true, true), V('Bella', 'en', true), V('Saki', 'ja', true, true)];
+    expect(defaultTtsVoice('en', voices)).toBe('builtin:Ava');
+    expect(defaultTtsVoice('ja', voices)).toBe('builtin:Saki');
   });
-  it('defaultTtsVoice falls back to Ava for unknown language', () => {
-    expect(defaultTtsVoice('xx')).toBe('builtin:Ava');
+
+  it('defaultTtsVoice falls back to first curated, then empty', () => {
+    expect(defaultTtsVoice('fr', [V('Ava', 'en', true, true)])).toBe('builtin:Ava');
+    expect(defaultTtsVoice('fr', [])).toBe('');
+  });
+
+  it('curatedBuiltinVoices splits and orders target-language curated first', () => {
+    const voices = [V('Bella', 'en', true), V('Saki', 'ja', true), V('Nathan', 'en', false)];
+    const { curated, rest } = curatedBuiltinVoices('en', voices);
+    expect(curated.map((v) => v.name)).toEqual(['Bella', 'Saki']);
+    expect(rest.map((v) => v.name)).toEqual(['Nathan']);
+  });
+
+  it('defaultTtsVoice returns Ava for English and a builtin: prefix', () => {
+    const voices = [V('Ava', 'en', true, true), V('Bella', 'en', true)];
+    expect(defaultTtsVoice('en', voices)).toBe('builtin:Ava');
+  });
+  it('defaultTtsVoice falls back to first curated when no language match', () => {
+    const voices = [V('Ava', 'en', true, true)];
+    expect(defaultTtsVoice('xx', voices)).toBe('builtin:Ava');
   });
   it('curatedBuiltinVoices splits curated vs rest preserving membership', () => {
-    const all = ['Ava', 'Adam', 'Bella', 'Junhao'];
+    const all = [V('Ava', 'en', true), V('Adam', 'en', false), V('Bella', 'en', true), V('Junhao', 'zh', false)];
     const { curated, rest } = curatedBuiltinVoices('en', all);
-    expect(curated).toContain('Ava');
-    expect([...curated, ...rest].sort()).toEqual([...all].sort());
-    expect(curated.every((v) => all.includes(v))).toBe(true);
+    expect(curated.map((v) => v.name)).toContain('Ava');
+    const combined = [...curated, ...rest].map((v) => v.name).sort();
+    expect(combined).toEqual(all.map((v) => v.name).sort());
+    expect(curated.every((v) => all.map((x) => x.name).includes(v.name))).toBe(true);
   });
   it('only MOSS is voice-capable', () => {
     expect(nativeTtsModelIsVoiceCapable('moss-tts-nano')).toBe(true);

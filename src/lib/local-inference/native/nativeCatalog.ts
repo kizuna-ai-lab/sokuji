@@ -4,7 +4,7 @@
  * config share one source of truth. TTS languages are limited to the sherpa
  * piper repos confirmed to exist.
  */
-import type { NativeModelInfo, VariantInfo } from './nativeProtocol';
+import type { NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
 export interface NativeModelOption {
   id: string;
   label: string;
@@ -149,54 +149,31 @@ export function nativeTtsVoices(targetLanguage: string): NativeModelOption[] {
   return MOSS_NANO_LANGS.includes(targetLanguage) ? [...piper, MOSS_NANO_TTS] : piper;
 }
 
-// nativeCatalog.ts — built-in voice curation (renderer-side product judgment;
-// authoritative names come from list_tts_voices, this only annotates).
-// Quality verified for English (Ava reliably clean); others are best-effort
-// by language. Unstable voices stay reachable behind "show all" (see #277).
-export const BUILTIN_VOICE_META: Record<string, { language?: string; curated?: boolean; unstable?: boolean }> = {
-  Ava:    { language: 'en', curated: true },
-  Bella:  { language: 'en', curated: true },
-  Adam:   { language: 'en', unstable: true },
-  Nathan: { language: 'en' },
-  Trump:  { language: 'en' },
-  Xiaoyu: { language: 'zh', curated: true },
-  Yuewen: { language: 'zh', curated: true },
-  Lingyu: { language: 'zh' },
-  Junhao: { language: 'zh' },
-  Zhiming:{ language: 'zh', unstable: true },
-  Weiguo: { language: 'zh' },
-  Saki:   { language: 'ja', curated: true },
-  Soyo:   { language: 'ja', curated: true },
-  Umiri:  { language: 'ja' },
-  Mei:    { language: 'ja' },
-  Anon:   { language: 'ja', unstable: true },
-  Arisa:  { language: 'ja' },
-  Mortis: { unstable: true },
-};
-
-const DEFAULT_VOICE_BY_LANG: Record<string, string> = { en: 'Ava', zh: 'Xiaoyu', ja: 'Saki' };
-
-export function defaultTtsVoice(targetLanguage: string): string {
-  return `builtin:${DEFAULT_VOICE_BY_LANG[targetLanguage] || 'Ava'}`;
+/** The per-language default built-in voice ('' when the list is empty). Reads the
+ *  sidecar descriptor flagged `default` for the target language; else the first
+ *  curated voice; else ''. */
+export function defaultTtsVoice(targetLanguage: string, voices: NativeVoiceInfo[]): string {
+  const want = canonLang(targetLanguage);
+  const def = voices.find((v) => v.default && v.language && canonLang(v.language) === want);
+  if (def) return `builtin:${def.name}`;
+  const firstCurated = voices.find((v) => v.curated);
+  return firstCurated ? `builtin:${firstCurated.name}` : '';
 }
 
-/** Split the dynamic voice list into a curated subset (shown first) and the rest
- *  (behind "show all"). Curated = META.curated for the target language, else any
- *  curated voice; everything else goes to rest. Order: curated first (target-lang
- *  curated before other curated), then rest alphabetical. */
-export function curatedBuiltinVoices(targetLanguage: string, allVoices: string[]): { curated: string[]; rest: string[] } {
-  const curated: string[] = [];
-  const rest: string[] = [];
-  for (const v of allVoices) {
-    if (BUILTIN_VOICE_META[v]?.curated) curated.push(v);
-    else rest.push(v);
-  }
+/** Split descriptors into curated (shown first; target-language curated before
+ *  other curated) and the rest (alphabetical). */
+export function curatedBuiltinVoices(
+  targetLanguage: string, voices: NativeVoiceInfo[],
+): { curated: NativeVoiceInfo[]; rest: NativeVoiceInfo[] } {
+  const want = canonLang(targetLanguage);
+  const curated = voices.filter((v) => v.curated);
+  const rest = voices.filter((v) => !v.curated);
   curated.sort((a, b) => {
-    const am = BUILTIN_VOICE_META[a]?.language === targetLanguage ? 0 : 1;
-    const bm = BUILTIN_VOICE_META[b]?.language === targetLanguage ? 0 : 1;
-    return am - bm || a.localeCompare(b);
+    const am = a.language && canonLang(a.language) === want ? 0 : 1;
+    const bm = b.language && canonLang(b.language) === want ? 0 : 1;
+    return am - bm || a.name.localeCompare(b.name);
   });
-  rest.sort((a, b) => a.localeCompare(b));
+  rest.sort((a, b) => a.name.localeCompare(b.name));
   return { curated, rest };
 }
 

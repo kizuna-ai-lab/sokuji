@@ -4,8 +4,8 @@ import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
-  BUILTIN_VOICE_META,
 } from '../../../lib/local-inference/native/nativeCatalog';
+import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import { addNativeVoice, type StoredNativeVoice } from '../../../lib/local-inference/nativeVoiceStorage';
 
 /** Reference-clip bounds: too short carries no timbre, too long wastes storage
@@ -64,8 +64,8 @@ function downmixToMono(buffer: AudioBuffer): Float32Array {
  * inline and never write to storage.
  */
 export interface NativeVoiceSectionProps {
-  /** Built-in voice names from the sidecar (empty when the model isn't downloaded). */
-  builtinVoices: string[];
+  /** Built-in voice descriptors from the sidecar (empty when the model isn't downloaded). */
+  builtinVoices: NativeVoiceInfo[];
   /** User-owned custom voices from nativeVoiceStorage. */
   customVoices: StoredNativeVoice[];
   /** Current settings.ttsVoice (opaque id); empty → default voice for the language. */
@@ -100,20 +100,16 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
-    const toBuiltin = (name: string, isCurated: boolean): VoiceEntry => ({
-      id: `builtin:${name}`,
-      label: name,
+    const toBuiltin = (v: NativeVoiceInfo, isCurated: boolean): VoiceEntry => ({
+      id: `builtin:${v.name}`,
+      label: v.name,
       group: 'builtin',
       removable: false,
-      meta: {
-        curated: isCurated,
-        unstable: BUILTIN_VOICE_META[name]?.unstable,
-        language: BUILTIN_VOICE_META[name]?.language,
-      },
+      meta: { curated: isCurated, unstable: v.unstable, language: v.language },
     });
     const builtinEntries = [
-      ...curated.map((n) => toBuiltin(n, true)),
-      ...rest.map((n) => toBuiltin(n, false)),
+      ...curated.map((v) => toBuiltin(v, true)),
+      ...rest.map((v) => toBuiltin(v, false)),
     ];
     const customEntries: VoiceEntry[] = customVoices.map((v) => ({
       id: `custom:${v.id}`,
@@ -177,7 +173,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [storeClip, t]);
 
   // Reconcile for display: an empty choice shows the language default as selected.
-  const selectedId = selected || defaultTtsVoice(targetLanguage);
+  const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
 
   return (
     <>

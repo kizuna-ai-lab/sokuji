@@ -218,6 +218,17 @@ def test_set_voice_sid_form_routes_to_set_speaker():
     assert reply == {"type": "ok", "id": 3}
 
 
+def test_list_tts_voices_returns_descriptors(monkeypatch):
+    monkeypatch.setattr("sokuji_sidecar.tts_voices.list_builtin_voices",
+                        lambda model=None: [{"name": "Ava", "language": "en",
+                                             "curated": True, "unstable": False, "default": True}])
+    state = {}; tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["list_tts_voices"](
+        state, {"id": 1, "type": "list_tts_voices"}, None, None))
+    assert reply["voices"] == [{"name": "Ava", "language": "en",
+                                "curated": True, "unstable": False, "default": True}]
+
+
 def test_tts_cancel_stops_inflight_stream(monkeypatch):
     """tts_cancel flips the cancel flag while the stream task runs; the stream task
     respects the flag and stops early, then still emits tts_done.
