@@ -16,6 +16,7 @@ import type { NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProt
 const LANG_ALIASES: Record<string, string> = {
   cantonese: 'yue',
   tl: 'fil',
+  jap: 'ja',
 };
 const canonLang = (l: string): string => LANG_ALIASES[l] ?? l;
 
@@ -93,10 +94,6 @@ export function curatedBuiltinVoices(
   });
   rest.sort((a, b) => a.name.localeCompare(b.name));
   return { curated, rest };
-}
-
-export function nativeTtsModelIsVoiceCapable(modelId: string, catalog: Record<string, NativeModelInfo>): boolean {
-  return !!catalog[modelId]?.clones;
 }
 
 /** Default native TTS model for the target language ('' = no speech output). */

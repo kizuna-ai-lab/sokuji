@@ -115,8 +115,9 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     if (st === 'ready' || st === 'starting') return;
     set({ sidecarStatus: 'starting' });
     try {
-      // hardwareInfo() drives connect() (native-host:start handshake) and confirms
-      // the sidecar answers; the three catalog kinds populate the model map.
+      // The first modelsCatalog call's connect() performs the native-host:start
+      // handshake; tier availability comes from the catalog tiers array for each
+      // model. Three catalog kinds populate the model map.
       const [asr, translate, tts] = await Promise.all([
         client.modelsCatalog(undefined, 'asr'),
         client.modelsCatalog(undefined, 'translate'),
