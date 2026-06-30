@@ -655,7 +655,12 @@ async def _h_models_catalog(state, msg, _b, conn=None):
     from . import catalog
     m = probe()
     kind = msg.get("kind", "asr")
-    source = catalog.translate_models() if kind == "translate" else catalog.asr_models()
+    if kind == "translate":
+        source = catalog.translate_models()
+    elif kind == "tts":
+        source = catalog.tts_models()
+    else:
+        source = catalog.asr_models()
     wanted = msg.get("models")
     if wanted and not isinstance(wanted, list):
         wanted = [wanted]
@@ -667,8 +672,15 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         tiers = [{"tier": d.tier, "backend": d.backend,
                   "available": d.backend in m.installed and _tier_available(d.tier, m)}
                  for d in mdl.deployments]
-        out.append({"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
-                    "recommended": mdl.recommended, "tiers": tiers})
+        repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
+        entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
+                 "recommended": mdl.recommended, "tiers": tiers,
+                 "order": mdl.sort_order, "repo": repo, "kind": kind}
+        if kind == "tts":
+            entry["numSpeakers"] = mdl.num_speakers
+            entry["clones"] = mdl.clones
+            entry["streaming"] = mdl.streaming
+        out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 
 

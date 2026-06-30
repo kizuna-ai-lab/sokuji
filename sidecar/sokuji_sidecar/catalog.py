@@ -33,9 +33,6 @@ class AsrModel:
     sort_order: int = 99
 
 
-# NOTE: `sort_order` is advisory and NOT sent over the models_catalog wire
-# (NativeModelInfo omits it); the renderer owns card ordering via nativeCatalog.ts.
-# So renderer and sidecar sort_order values may differ harmlessly.
 ASR_MODELS: list[AsrModel] = [
     AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
              ("en", "de", "fr", "it", "es", "pt", "el",

@@ -985,3 +985,28 @@ def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     m = accel.probe()
     rtf = accel.measure_rtf_tts(FakeBackend(), plan, "moss-tts-nano", m)
     assert rtf is not None and rtf > 0
+
+
+def _catalog(kind):
+    state = {}; accel.register(state)
+    reply, _ = asyncio.run(state["handlers"]["models_catalog"](
+        state, {"id": 1, "type": "models_catalog", "kind": kind}, None, None))
+    return {m["id"]: m for m in reply["models"]}
+
+
+def test_models_catalog_asr_carries_order_repo_kind():
+    asr = _catalog("asr")
+    sv = asr["sense-voice"]
+    assert sv["kind"] == "asr"
+    assert isinstance(sv["order"], int)
+    assert sv["repo"]  # non-empty default repo
+
+
+def test_models_catalog_tts_kind_lists_models_with_voice_fields():
+    tts = _catalog("tts")
+    moss = tts["moss-tts-nano"]
+    assert moss["kind"] == "tts" and moss["clones"] is True
+    assert moss["numSpeakers"] >= 1 and "streaming" in moss
+    amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
+    assert amy["clones"] is False and amy["numSpeakers"] == 1
+    assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"
