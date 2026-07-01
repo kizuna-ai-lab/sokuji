@@ -891,7 +891,7 @@
 
 // Provider section styles
 .provider-selection-area {
-  margin-bottom: 16px;
+  margin-bottom: vars.$space-2;
   position: relative;
 }
 
@@ -1315,9 +1315,36 @@
   }
 }
 
+// Animated trailing dots for the LOCAL_NATIVE "Starting the local engine" line.
+@keyframes local-native-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
 .local-inference-info {
   .model-info {
     margin-top: vars.$space-2;
+  }
+
+  // Sidecar lifecycle line (starting / unavailable): a subtle status row, not a
+  // bare heading. `.model-info` alone has no font styling, so the text otherwise
+  // inherits the large default. Muted body text; the starting state gets animated
+  // trailing dots (the visible text carries no static ellipsis).
+  .local-native-status {
+    font-size: vars.$font-body;
+    color: vars.$text-muted;
+
+    &.is-loading::after {
+      content: '';
+      animation: local-native-dots 1.4s steps(1, end) infinite;
+    }
+
+    &.is-error {
+      color: vars.$text-secondary;
+    }
   }
 
   .model-inline {

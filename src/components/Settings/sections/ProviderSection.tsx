@@ -520,9 +520,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       {provider === Provider.LOCAL_NATIVE ? (
         <div className="local-inference-info">
           {(nativeStatus === 'starting' || nativeStatus === 'idle') ? (
-            <div className="model-info">{t('settings.localNativeStarting', 'Starting the local engine…')}</div>
+            <div className="model-info local-native-status is-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>
           ) : nativeStatus === 'unavailable' ? (
-            <div className="model-info">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
+            <div className="model-info local-native-status is-error">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
           ) : (
             <div className="model-info">
               <div className="model-inline">

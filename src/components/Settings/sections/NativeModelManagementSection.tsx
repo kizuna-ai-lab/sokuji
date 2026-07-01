@@ -581,7 +581,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   // Lifecycle gate — all hooks above; early returns are safe here.
   if (sidecarStatus === 'starting' || sidecarStatus === 'idle') {
-    return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine…')}</div>;
+    return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
   }
   if (sidecarStatus === 'unavailable') {
     return (
