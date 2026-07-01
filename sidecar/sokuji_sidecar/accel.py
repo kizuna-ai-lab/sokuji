@@ -682,6 +682,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["numSpeakers"] = mdl.num_speakers
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
+            entry["voice"] = catalog.voice_capability(mdl)
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

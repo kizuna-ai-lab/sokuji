@@ -46,6 +46,8 @@ class TtsEngine:
         mid = model_id or "moss-tts-nano"
         plans = accel.resolve_tts(mid, override=device or "auto")
         self._backend, plan, notice, mem = accel.load_measured(plans)
+        if hasattr(self._backend, "set_language"):
+            self._backend.set_language(language or "")
         self._native_sr = getattr(self._backend, "sample_rate", TARGET_RATE)
         self.streaming = bool(getattr(self._backend, "STREAMING", False))
         self.clones = bool(getattr(self._backend, "CLONES", False))
@@ -69,6 +71,9 @@ class TtsEngine:
 
     def set_speaker(self, sid):
         self._backend.set_speaker(int(sid))
+
+    def set_style_voice(self, ttl, dp):
+        self._backend.set_style_voice(ttl, dp)
 
     def generate(self, text, speed=1.0):
         samples, gen_ms = self._backend.generate(text, speed)
@@ -140,6 +145,14 @@ async def _h_tts_init(state, msg, _b, conn=None):
 
 
 async def _h_set_voice(state, msg, binary_in, conn=None):
+    style = msg.get("styleVoice")
+    if style is not None:                     # Supertonic style-vector pair (ttl + dp)
+        buf = np.frombuffer(binary_in or b"", dtype=np.float32)
+        n = int(np.prod(style["ttlDims"]))
+        ttl = buf[:n].reshape(style["ttlDims"]).astype(np.float32)
+        dp = buf[n:n + int(np.prod(style["dpDims"]))].reshape(style["dpDims"]).astype(np.float32)
+        state["tts_engine"].set_style_voice(ttl, dp)
+        return {"type": "ok", "id": msg.get("id")}, None
     name = msg.get("voice")
     sid = msg.get("sid")
     if name:                                  # built-in by name (no binary frame)
