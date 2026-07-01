@@ -2,7 +2,14 @@ import os
 # Reduce CUDA allocator fragmentation when loading large quantized models (e.g. FP8).
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-import asyncio, json, sys
+import sys
+# Pin one consistent cuDNN (torch's bundled copy) for the whole process BEFORE any
+# onnxruntime/torch CUDA provider loads, so onnxruntime-gpu doesn't mix it with a
+# different system cuDNN and silently fall back to CPU. See _cudnn_preload.
+from ._cudnn_preload import preload_torch_cudnn
+print(preload_torch_cudnn(), file=sys.stderr, flush=True)
+
+import asyncio, json
 from .server import serve
 
 
