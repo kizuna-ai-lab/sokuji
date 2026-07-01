@@ -1,14 +1,9 @@
 .voice-library-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-
-  // The section already spaces its children with `gap`; the shared
-  // `.setting-item` margin-bottom (Settings.scss) would stack on top of it and
-  // leave a large empty band before the manage details. Neutralize it here.
-  .setting-item {
-    margin-bottom: 0;
-  }
+  // No `gap`: the voice dropdown `.setting-item` already carries a
+  // margin-bottom (Settings.scss, 12px) that spaces it from the manage details;
+  // adding a gap here stacked on that margin and over-spaced them.
 }
 
 .voice-library-info {
