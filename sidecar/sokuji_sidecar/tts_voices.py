@@ -68,7 +68,17 @@ _DEFAULT_VOICE_BY_LANG = {"en": "Ava", "zh": "Xiaoyu", "ja": "Saki"}
 def list_builtin_voices(model_id=None):
     """Rich built-in voice descriptors: each manifest voice name annotated with
     our curation metadata. [] when the model isn't downloaded. The single source
-    of built-in voice facts for the renderer (replaces its BUILTIN_VOICE_META)."""
+    of built-in voice facts for the renderer (replaces its BUILTIN_VOICE_META).
+
+    Style-voice models (Supertonic) don't ship a MOSS-style manifest: their 10
+    presets are baked into the backend and available without a download."""
+    from . import catalog
+    m = catalog.tts_model(model_id) if model_id else None
+    if m is not None and getattr(m, "style_voices", False):
+        from .tts_backends import SupertonicBackend
+        return [{"name": x["voice"], "language": None, "gender": x["gender"],
+                 "curated": True, "unstable": False, "default": (x["voice"] == "Robert")}
+                for x in SupertonicBackend.list_builtin_voices()]
     out = []
     for name in list_builtin_voice_names(model_id):
         meta = _VOICE_META.get(name, {})

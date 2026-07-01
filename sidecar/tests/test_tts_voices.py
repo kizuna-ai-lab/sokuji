@@ -47,3 +47,11 @@ def test_list_builtin_voices_annotates_names_with_metadata(monkeypatch):
     assert out["Xiaoyu"]["default"] is True and out["Xiaoyu"]["language"] == "zh"
     # A voice with no language entry is never a per-language default.
     assert out["Mortis"]["language"] is None and out["Mortis"]["default"] is False
+
+
+def test_supertonic_presets_without_download():
+    v = tts_voices.list_builtin_voices("supertonic-3")
+    assert [x["name"] for x in v] == ["Sarah", "Lily", "Jessica", "Olivia", "Emily",
+                                       "Alex", "James", "Robert", "Sam", "Daniel"]
+    assert next(x for x in v if x["name"] == "Robert")["default"] is True
+    assert all(x["gender"] in ("F", "M") for x in v)
