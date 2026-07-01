@@ -175,4 +175,16 @@ describe('NativeTtsClient', () => {
     const sv = sent.find((m) => m && m.type === 'set_voice');
     expect(sv.sid).toBe(5);
   });
+
+  it('setStyleVoice sends a binary frame then a styleVoice control message', async () => {
+    // Reuses the existing FakeWS.sent capture (holds both raw ArrayBuffer sends and JSON strings);
+    // derive `bins` (binary frames) and `sent` (parsed control messages) from it, as other tests do.
+    const c = new NativeTtsClient();
+    await c.init('supertonic-3');
+    await c.setStyleVoice({ dims: [1, 2], data: [1, 2] }, { dims: [1, 1], data: [9] });
+    const bins = FakeWS.last.sent.filter((s) => s instanceof ArrayBuffer) as ArrayBuffer[];
+    const sent = FakeWS.last.sent.filter((s) => typeof s === 'string').map((s) => JSON.parse(s));
+    expect(new Float32Array(bins.at(-1)!)).toEqual(new Float32Array([1, 2, 9]));
+    expect(sent.find((m) => m.styleVoice)!.styleVoice).toEqual({ ttlDims: [1, 2], dpDims: [1, 1] });
+  });
 });

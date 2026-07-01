@@ -124,6 +124,16 @@ export class NativeTtsClient {
     await this.send({ type: 'set_voice', sampleRate });
   }
 
+  /** Select a style-cloned voice (e.g. Supertonic) from precomputed style-conditioning vectors. */
+  async setStyleVoice(styleTtl: { dims: number[]; data: number[] },
+                      styleDp: { dims: number[]; data: number[] }): Promise<void> {
+    const ttl = Float32Array.from(styleTtl.data), dp = Float32Array.from(styleDp.data);
+    const buf = new Float32Array(ttl.length + dp.length);
+    buf.set(ttl, 0); buf.set(dp, ttl.length);
+    this.ws!.send(buf.buffer);                            // binary frame precedes the control message
+    await this.send({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
+  }
+
   async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<TtsResult> {
     if (this.streaming && onChunk) {
       const id = this.nextId++;
