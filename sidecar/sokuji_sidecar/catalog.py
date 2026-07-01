@@ -214,6 +214,8 @@ class TtsModel(_ModelBase):
     streaming: bool = False          # intra-utterance audio-delta streaming
     sample_rate: int = 24000         # native rate (engine resamples to 24k)
     num_speakers: int = 1            # 1 = single voice; >1 = a 0..N-1 speaker range
+    named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
+    style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
@@ -226,10 +228,23 @@ def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended
        size_bytes=size_bytes)
 
 
+def voice_capability(model: "TtsModel") -> dict:
+    """Two-axis native voice capability derived from static catalog facts.
+    builtin: named (preset dropdown) | range (sid slider) | none (single voice).
+    custom:  clip (reference audio)  | style (uploaded JSON) | none."""
+    custom = "clip" if model.clones else "style" if model.style_voices else "none"
+    builtin = "named" if model.named_voices else "range" if model.num_speakers > 1 else "none"
+    return {"builtin": builtin, "custom": custom}
+
+
 _MOSS_NANO_LM_REPO = os.environ.get(
     "SOKUJI_MOSS_TTS_NANO_REPO", "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX")
 _MOSS_NANO_TOK_REPO = os.environ.get(
     "SOKUJI_MOSS_TTS_NANO_TOK_REPO", "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
+
+SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
+                    "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
+                    "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi")
 
 TTS_MODELS: list[TtsModel] = [
     TtsModel("moss-tts-nano", "MOSS-TTS-Nano (100M)",
@@ -238,8 +253,14 @@ TTS_MODELS: list[TtsModel] = [
              (Deployment("moss_onnx", "gpu-cuda", "fp32", _MOSS_NANO_LM_REPO, 1.0),
               Deployment("moss_onnx", "cpu", "fp32", _MOSS_NANO_LM_REPO, 1.0)),
              repos=(_MOSS_NANO_LM_REPO, _MOSS_NANO_TOK_REPO),
-             clones=True, streaming=True, sample_rate=48000,
+             clones=True, streaming=True, named_voices=True, sample_rate=48000,
              recommended=True, sort_order=0, size_bytes=763206064),
+    TtsModel("supertonic-3", "Supertonic 3", SUPERTONIC_LANGS,
+             (Deployment("supertonic", "gpu-cuda", "fp32", "Supertone/supertonic-3", 1.0),
+              Deployment("supertonic", "cpu", "fp32", "Supertone/supertonic-3", 1.0)),
+             repos=("Supertone/supertonic-3",), clones=False, streaming=False,
+             named_voices=True, style_voices=True, sample_rate=44100, num_speakers=10,
+             recommended=True, sort_order=1, size_bytes=400_600_000),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,

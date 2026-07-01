@@ -117,7 +117,7 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.languages, f"{m.id} has no languages"
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
-            assert d.backend in {"sherpa_tts", "moss_onnx"}
+            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -314,3 +314,20 @@ def test_with_fp8_preserves_size_bytes():
     # download size must carry over unchanged.
     base = catalog.translate_model("hy-mt2-1.8b")
     assert base.size_bytes == 4086810533
+
+
+def test_voice_capability_map():
+    cap = catalog.voice_capability
+    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
+    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "style"}
+    assert cap(catalog.tts_model("csukuangfj/vits-icefall-zh-aishell3")) == {"builtin": "range", "custom": "none"}
+    assert cap(catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low")) == {"builtin": "none", "custom": "none"}
+
+
+def test_supertonic_row():
+    m = catalog.tts_model("supertonic-3")
+    assert m and m.num_speakers == 10 and m.sample_rate == 44100
+    assert m.clones is False and m.style_voices is True and m.named_voices is True
+    assert m.repos == ("Supertone/supertonic-3",)
+    assert {d.backend for d in m.deployments} == {"supertonic"}
+    assert {d.tier for d in m.deployments} == {"gpu-cuda", "cpu"}
