@@ -2,9 +2,19 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  // The section already spaces its children with `gap`; the shared
+  // `.setting-item` margin-bottom (Settings.scss) would stack on top of it and
+  // leave a large empty band before the manage details. Neutralize it here.
+  .setting-item {
+    margin-bottom: 0;
+  }
 }
 
 .voice-library-info {
+  // Sits as a sibling after `.voice-library-section` in the (unstyled) card
+  // body; without this it hugs the manage details directly above it.
+  margin-top: 12px;
   padding: 10px;
   background: rgba(16, 163, 127, 0.08);
   border: 1px solid rgba(16, 163, 127, 0.25);
@@ -30,7 +40,8 @@
 }
 
 .voice-library-manage {
-  padding-top: 8px;
+  // No padding-top: the section `gap` already provides the separation from the
+  // voice dropdown above (a padding-top here would stack on that gap).
 
   > summary {
     list-style: none;
