@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceShape, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceShape, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -427,6 +427,15 @@ describe('nativeCatalog', () => {
     expect(combined).toEqual(all.map((v) => v.name).sort());
     expect(curated.every((v) => all.map((x) => x.name).includes(v.name))).toBe(true);
   });
+  it('voiceCapability reads the capability from the sidecar voice field', () => {
+    expect(voiceCapability({ voice: { builtin: 'named', custom: 'style' } } as any)).toEqual({ builtin: 'named', custom: 'style' });
+  });
+  it('voiceCapability falls back to derive when voice is absent', () => {
+    expect(voiceCapability({ clones: true } as any)).toEqual({ builtin: 'named', custom: 'clip' });
+    expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'range', custom: 'none' });
+    expect(voiceCapability({} as any)).toEqual({ builtin: 'none', custom: 'none' });
+  });
+
   it('nativeTranslationCards: jap alias resolves en→ja Opus-MT card', () => {
     // Helsinki Opus rows emit "jap" as the target language token; the alias
     // jap→ja must make the card visible for the en→ja pair.
