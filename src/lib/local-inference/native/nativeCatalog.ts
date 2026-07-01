@@ -83,10 +83,13 @@ export function defaultTtsVoice(targetLanguage: string, voices: NativeVoiceInfo[
   const want = canonLang(targetLanguage);
   const def = voices.find((v) => v.default && v.language && canonLang(v.language) === want);
   if (def) return `builtin:${def.name}`;
+  // Language-agnostic voice sets (e.g. Supertonic presets, language:null) mark one
+  // preset as the default; honor it before falling back to first-curated. MOSS-safe:
+  // MOSS defaults always carry a language, so this never matches a MOSS voice.
+  const langlessDefault = voices.find((v) => v.default && !v.language);
+  if (langlessDefault) return `builtin:${langlessDefault.name}`;
   const firstCurated = voices.find((v) => v.curated);
-  if (firstCurated) return `builtin:${firstCurated.name}`;
-  const anyDefault = voices.find((v) => v.default);
-  return anyDefault ? `builtin:${anyDefault.name}` : '';
+  return firstCurated ? `builtin:${firstCurated.name}` : '';
 }
 
 /** Split descriptors into curated (shown first; target-language curated before

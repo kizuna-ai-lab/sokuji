@@ -404,6 +404,13 @@ describe('nativeCatalog', () => {
     expect(defaultTtsVoice('fr', [])).toBe('');
   });
 
+  it('defaultTtsVoice honors a language-less default preset over first-curated (Supertonic)', () => {
+    // Supertonic presets have no language; Robert (sid 7) is the sole default:true.
+    // Must resolve to Robert, not the first curated preset (Sarah).
+    const voices = [V('Sarah', undefined, true, false), V('Robert', undefined, true, true)];
+    expect(defaultTtsVoice('en', voices)).toBe('builtin:Robert');
+  });
+
   it('curatedBuiltinVoices splits and orders target-language curated first', () => {
     const voices = [V('Bella', 'en', true), V('Saki', 'ja', true), V('Nathan', 'en', false)];
     const { curated, rest } = curatedBuiltinVoices('en', voices);

@@ -9,6 +9,7 @@ import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
 import { sidFromTtsVoice, voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
+import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices } from '../../stores/nativeModelStore';
 
@@ -110,7 +111,12 @@ export class LocalNativeClient implements IClient {
         // custom voice reconciles back to the per-language default. Storage
         // failure degrades to built-in voices only (it must not kill TTS),
         // so list() failures are caught locally.
-        const cap = voiceCapability(store.catalog[config.ttsModelId!]);
+        // If the catalog hasn't loaded yet, fall back to the init response's
+        // clones flag (the pre-capability behavior) so a clone-capable model
+        // still applies its custom/named voice instead of silently degrading.
+        const ttsModel = store.catalog[config.ttsModelId!]
+          ?? ({ clones: r.clones } as unknown as NativeModelInfo);
+        const cap = voiceCapability(ttsModel);
         const voiceStore = voiceStoreFor(cap.custom, config.ttsModelId!);
         let customIds: number[] = [];
         if (voiceStore) {
