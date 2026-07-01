@@ -3,6 +3,7 @@ accel resolver (load_with_fallback) can load them. Contract adds set_voice /
 generate / generate_stream on top of load/unload; load_with_fallback only calls
 load(), so sharing the registry is safe."""
 import hashlib
+import json as _json
 import os
 import queue
 import shutil
@@ -13,6 +14,7 @@ import time
 import numpy as np
 
 from .backends import register_backend, BackendLoadError
+from . import supertonic_frontend as _sf
 
 # short id -> HF repo (unknown ids are treated as a repo id directly)
 SHERPA_TTS_REPOS = {
@@ -310,3 +312,101 @@ class MossOnnxTtsBackend:
     @property
     def is_loaded(self) -> bool:
         return self._rt is not None
+
+
+_SUPERTONIC_PRESET_CODES = ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"]
+SUPERTONIC_VOICE_NAMES = ["Sarah", "Lily", "Jessica", "Olivia", "Emily",
+                          "Alex", "James", "Robert", "Sam", "Daniel"]
+_SUPERTONIC_GENDERS = ["F"] * 5 + ["M"] * 5
+_SUPERTONIC_AVAILABLE_LANGS = {
+    "en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr",
+    "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk",
+    "sl", "sv", "tr", "uk", "vi"}
+
+
+@register_backend
+class SupertonicBackend:
+    """Supertonic 3: non-AR 4-stage raw-onnxruntime diffusion TTS (port of
+    supertonic-tts.worker.ts). provider='cuda' on GPU else cpu. Non-streaming,
+    non-cloning; voices are pre-computed style vectors (10 presets + uploaded
+    custom JSONs via set_style_voice)."""
+    NAME = "supertonic"
+    STREAMING = False
+    CLONES = False
+    _MODEL_FILES = {"dp": "onnx/duration_predictor.onnx", "tenc": "onnx/text_encoder.onnx",
+                    "vest": "onnx/vector_estimator.onnx", "voc": "onnx/vocoder.onnx"}
+
+    def __init__(self):
+        self._sess = None; self._cfg = None; self._indexer = None
+        self._presets = None; self._voice = None
+        self.sample_rate = 44100; self._total_step = 16; self._default_sid = 7; self._lang = ""
+
+    def load(self, model_ref, device, compute_type):
+        self._sess = None
+        try:
+            import onnxruntime as ort
+            from huggingface_hub import snapshot_download
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            provider = (["CUDAExecutionProvider", "CPUExecutionProvider"]
+                        if device == "cuda" else ["CPUExecutionProvider"])
+            opts = ort.SessionOptions()
+            opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            opts.log_severity_level = 3
+            opts.intra_op_num_threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
+            self._sess = {k: ort.InferenceSession(f"{d}/{f}", sess_options=opts, providers=provider)
+                          for k, f in self._MODEL_FILES.items()}
+            with open(f"{d}/onnx/tts.json") as fh: self._cfg = _json.load(fh)
+            with open(f"{d}/onnx/unicode_indexer.json") as fh: self._indexer = _json.load(fh)
+            self.sample_rate = int(self._cfg["ae"]["sample_rate"])
+            self._presets = {}
+            for sid, code in enumerate(_SUPERTONIC_PRESET_CODES):
+                with open(f"{d}/voice_styles/{code}.json") as fh: vj = _json.load(fh)
+                self._presets[sid] = (self._as_tensor(vj["style_ttl"]), self._as_tensor(vj["style_dp"]))
+            self._voice = self._presets[self._default_sid]
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    @staticmethod
+    def _as_tensor(field):
+        return np.asarray(field["data"], dtype=np.float32).reshape(field["dims"])
+
+    def set_language(self, lang):
+        self._lang = (lang or "").split("-")[0].lower()
+
+    def _run(self, key, feeds):
+        s = self._sess[key]; names = [o.name for o in s.get_outputs()]
+        return dict(zip(names, s.run(names, feeds)))
+
+    def generate(self, text, speed=1.0):
+        t0 = time.time()
+        style_ttl, style_dp = self._voice
+        base = self._cfg["ae"]["base_chunk_size"]; ccf = self._cfg["ttl"]["chunk_compress_factor"]
+        chunk = base * ccf; latent_dim = self._cfg["ttl"]["latent_dim"] * ccf
+        processed = _sf.preprocess_text(text, self._lang, _SUPERTONIC_AVAILABLE_LANGS)
+        text_ids = np.array([_sf.apply_indexer(processed, self._indexer)], dtype=np.int64)
+        text_mask = np.ones((1, 1, text_ids.shape[1]), dtype=np.float32)
+        dur = self._run("dp", {"text_ids": text_ids, "style_dp": style_dp, "text_mask": text_mask})
+        d = float(np.asarray(next(iter(dur.values()))).reshape(-1)[0])
+        if speed and speed > 0: d = d / speed
+        tenc = self._run("tenc", {"text_ids": text_ids, "style_ttl": style_ttl, "text_mask": text_mask})
+        text_emb = next(iter(tenc.values())).astype(np.float32)
+        wav_len = int(d * self.sample_rate)
+        latent_len = max(1, (wav_len + chunk - 1) // chunk)
+        lat = (np.random.randn(1, latent_dim, latent_len) * np.sqrt(0.7)).astype(np.float32)
+        latent_mask = np.ones((1, 1, latent_len), dtype=np.float32)
+        total_step = np.array([self._total_step], dtype=np.float32)
+        for step in range(self._total_step):
+            r = self._run("vest", {"noisy_latent": lat, "text_emb": text_emb, "style_ttl": style_ttl,
+                                   "latent_mask": latent_mask, "text_mask": text_mask,
+                                   "current_step": np.array([step], dtype=np.float32), "total_step": total_step})
+            lat = next(iter(r.values())).astype(np.float32)
+        voc = self._run("voc", {"latent": lat})
+        wav = np.asarray(next(iter(voc.values())), dtype=np.float32).reshape(-1)
+        return (wav[:wav_len] if 0 < wav_len <= wav.size else wav), int((time.time() - t0) * 1000)
+
+    def unload(self):
+        self._sess = None; self._presets = None; self._voice = None
+
+    @property
+    def is_loaded(self):
+        return self._sess is not None
