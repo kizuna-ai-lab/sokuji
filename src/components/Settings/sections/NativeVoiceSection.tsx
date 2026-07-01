@@ -10,42 +10,14 @@ import {
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import { addNativeVoice, type StoredNativeVoice } from '../../../lib/local-inference/nativeVoiceStorage';
+import {
+  validateVoiceClip, downmixToMono, MIN_CLIP_SECONDS, MAX_CLIP_SECONDS, type ClipValidationError,
+} from '../../../lib/local-inference/native/nativeVoiceStores';
 
-/** Reference-clip bounds: too short carries no timbre, too long wastes storage
- *  and slows cloning. Mirrors typical zero-shot voice-cloning guidance (~3–20s). */
-const MIN_CLIP_SECONDS = 3;
-const MAX_CLIP_SECONDS = 20;
-/** Mean absolute amplitude below this is treated as silence (a muted mic / empty file). */
-const SILENCE_RMS_THRESHOLD = 0.005;
-
-export type ClipValidationError = 'too_short' | 'too_long' | 'silent';
-
-/** Pure validation for a captured/decoded reference clip. Returns the failure
- *  reason or null when the clip is usable. Exported for direct unit testing. */
-export function validateVoiceClip(clip: Float32Array, sampleRate: number): ClipValidationError | null {
-  const seconds = sampleRate > 0 ? clip.length / sampleRate : 0;
-  if (seconds < MIN_CLIP_SECONDS) return 'too_short';
-  if (seconds > MAX_CLIP_SECONDS) return 'too_long';
-  let sum = 0;
-  for (let i = 0; i < clip.length; i++) sum += Math.abs(clip[i]);
-  const meanAbs = clip.length > 0 ? sum / clip.length : 0;
-  if (meanAbs < SILENCE_RMS_THRESHOLD) return 'silent';
-  return null;
-}
-
-/** Downmix an AudioBuffer to a single mono Float32Array (channel average). */
-function downmixToMono(buffer: AudioBuffer): Float32Array {
-  const channels = buffer.numberOfChannels;
-  if (channels <= 1) return buffer.getChannelData(0).slice();
-  const length = buffer.length;
-  const out = new Float32Array(length);
-  for (let ch = 0; ch < channels; ch++) {
-    const data = buffer.getChannelData(ch);
-    for (let i = 0; i < length; i++) out[i] += data[i];
-  }
-  for (let i = 0; i < length; i++) out[i] /= channels;
-  return out;
-}
+// Moved to nativeVoiceStores.ts (shared with the NativeVoiceStore abstraction).
+// Re-exported here so existing imports (and this file's own test) keep working.
+export { validateVoiceClip };
+export type { ClipValidationError };
 
 /**
  * Native (Electron sidecar) adapter over the generalized VoiceLibrarySection.
