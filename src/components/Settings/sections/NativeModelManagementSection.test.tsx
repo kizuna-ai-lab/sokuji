@@ -15,6 +15,20 @@ import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
+// The Supertonic-shaped style-import path (Task 13) goes through voiceStorage
+// (not nativeVoiceStorage, which backs the MOSS clip-clone path). Mocked so
+// NativeVoiceSection's injected store resolves imported voices without a real
+// IndexedDB (jsdom has none here, unlike nativeVoiceStorage.test.tsx which
+// polyfills it via fake-indexeddb/auto).
+vi.mock('../../../lib/local-inference/voiceStorage', () => ({
+  listVoices: vi.fn().mockResolvedValue([{ id: 3, name: 'MyVoice', jsonData: new Blob(['{}']) }]),
+  addVoice: vi.fn(),
+  renameVoice: vi.fn(),
+  deleteVoice: vi.fn(),
+  getVoice: vi.fn(),
+  VoiceImportError: class extends Error {},
+}));
+
 // ---------------------------------------------------------------------------
 // Stable mock data (names start with "mock" so vitest hoists them alongside vi.mock)
 // ---------------------------------------------------------------------------
@@ -106,6 +120,19 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     clones: true,
     streaming: true,
     sizeBytes: 763206064,
+  },
+  'supertonic-3': {
+    id: 'supertonic-3',
+    name: 'Supertonic 3',
+    languages: ['en'],
+    recommended: false,
+    tiers: [],
+    order: 2,
+    repo: 'supertonic-3',
+    kind: 'tts',
+    numSpeakers: 1,
+    voice: { builtin: 'named', custom: 'style' },
+    sizeBytes: 100000000,
   },
 };
 
@@ -434,6 +461,26 @@ describe('NativeModelManagementSection — embedded voice section on the selecte
       // inside the MOSS card (no separate below-cards block remains).
       const ttsSection = document.getElementById('model-tts-section')!;
       expect(ttsSection.querySelectorAll('.voice-library-section')).toHaveLength(1);
+    } finally {
+      mockSettings.ttsModel = prevTtsModel;
+    }
+  });
+});
+
+describe('NativeModelManagementSection — store-driven voice wiring (Task 13)', () => {
+  // supertonic-3 declares voice: { builtin: 'named', custom: 'style' } — the
+  // style-import backend (voiceStorage), distinct from MOSS's clip-clone
+  // backend (nativeVoiceStorage). Selecting it must route NativeVoiceSection
+  // to the style store and render its imported voices.
+  it('renders imported style voices for a selected Supertonic-shaped model', async () => {
+    const prevTtsModel = mockSettings.ttsModel;
+    mockSettings.ttsModel = 'supertonic-3';
+    try {
+      render(<NativeModelManagementSection />);
+      // 'MyVoice' appears both as a <select> option and in the "manage imported
+      // voices" list (dropdown presentation) — either confirms the style store's
+      // imported voice reached the UI.
+      expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
     } finally {
       mockSettings.ttsModel = prevTtsModel;
     }

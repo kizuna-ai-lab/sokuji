@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceShape, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -45,8 +45,8 @@ const TR_CAT: Record<string, NativeModelInfo> = {
 };
 
 /**
- * TTS-specific fixture catalog for voiceShape / nativeTtsCards / resolveNativeTts tests.
- * Exercises: list (clones), range (numSpeakers>1), none (single speaker, no clones), ordering.
+ * TTS-specific fixture catalog for voiceCapability / nativeTtsCards / resolveNativeTts tests.
+ * Exercises: named+clip (clones), range (numSpeakers>1), none (single speaker, no clones), ordering.
  */
 const TTS_CAT: Record<string, NativeModelInfo> = {
   'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
@@ -379,11 +379,11 @@ describe('nativeCatalog', () => {
     });
   });
 
-  it('voiceShape classifies list/range/single', () => {
-    expect(voiceShape(TTS_CAT['moss-tts-nano'])).toBe('list');
-    expect(voiceShape(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toBe('range');
-    expect(voiceShape(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toBe('none');
-    expect(voiceShape(undefined)).toBe('none');
+  it('voiceCapability derives builtin/custom for named/range/none TTS models', () => {
+    expect(voiceCapability(TTS_CAT['moss-tts-nano'])).toEqual({ builtin: 'named', custom: 'clip' });
+    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'range', custom: 'none' });
+    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toEqual({ builtin: 'none', custom: 'none' });
+    expect(voiceCapability(undefined)).toEqual({ builtin: 'none', custom: 'none' });
   });
 
   it('nativeTtsCards lists tts models for the language; resolveNativeTts honors off/valid/default', () => {

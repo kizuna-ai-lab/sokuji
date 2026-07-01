@@ -10,7 +10,7 @@ import {
   nativeTtsCards,
   pickNativeTts,
   resolveNativeTts,
-  voiceShape,
+  voiceCapability,
   tierLabel,
   hardwareGated,
   gpuTierAvailable,
@@ -22,6 +22,7 @@ import {
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
+import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { TierIcon } from './TierIcon';
 import {
   useNativeModelStore,
@@ -39,12 +40,6 @@ import {
 } from '../../../stores/nativeModelStore';
 import type { VariantInfo, NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import NativeVoiceSection from './NativeVoiceSection';
-import {
-  listNativeVoices,
-  renameNativeVoice,
-  deleteNativeVoice,
-  type StoredNativeVoice,
-} from '../../../lib/local-inference/nativeVoiceStorage';
 
 // The resolved plan a card may display: device + one speed metric + optional memory
 // footprint and fallback reason. ASR carries rtf ("Nx realtime"), translation carries
@@ -457,43 +452,27 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [variantFetchKey]);
 
-  // Voice picker: shape drives which control is shown — list (MOSS/clones) → dropdown
-  // with built-in + custom voices; range (multi-speaker VITS) → speaker-id slider;
-  // none (single-voice piper) → nothing. Built-in names come from the sidecar
-  // (best-effort; [] when the model isn't downloaded); custom voices from IndexedDB.
-  const ttsShape = voiceShape(catalog[reserveTtsId || '']);
+  // Voice picker: capability (Task 10) drives which control is shown — the
+  // built-in shape (none/range/named) and which custom-voice backend applies
+  // (none/clip-clone/style-import, Task 11's voiceStoreFor). Built-in names
+  // come from the sidecar (best-effort; [] when the model isn't downloaded).
+  // NativeVoiceSection owns loading/caching the custom-voice list itself
+  // (via the injected `store`), so this component only needs to hand it the
+  // store and re-fetch built-ins when the resolved model changes.
+  const capability = voiceCapability(catalog[reserveTtsId || '']);
+  const store = useMemo(
+    () => voiceStoreFor(capability.custom, reserveTtsId || ''),
+    [capability.custom, reserveTtsId],
+  );
   const [builtinVoices, setBuiltinVoices] = useState<NativeVoiceInfo[]>([]);
-  const [customVoices, setCustomVoices] = useState<StoredNativeVoice[]>([]);
-  const reloadCustomVoices = useCallback(() => {
-    listNativeVoices()
-      .then(setCustomVoices)
-      .catch(() => { /* best-effort: storage unavailable */ });
-  }, []);
   useEffect(() => {
-    if (ttsShape !== 'list') { setBuiltinVoices([]); return; }
+    if (capability.builtin !== 'named') { setBuiltinVoices([]); return; }
     let cancelled = false;
     nativeListTtsVoices(reserveTtsId || undefined)
       .then((voices) => { if (!cancelled) setBuiltinVoices(voices); })
       .catch(() => { if (!cancelled) setBuiltinVoices([]); });
-    reloadCustomVoices();
     return () => { cancelled = true; };
-  }, [ttsShape, reserveTtsId, reloadCustomVoices]);
-
-  // Custom-voice rename/delete operate on the opaque `custom:<id>`; built-in
-  // entries are not removable so only custom ids arrive here. Capture itself
-  // lives in NativeVoiceSection, which calls reloadCustomVoices on success.
-  const handleVoiceRename = useCallback(async (id: string, name: string) => {
-    const numId = Number(id.replace(/^custom:/, ''));
-    if (!Number.isFinite(numId)) return;
-    await renameNativeVoice(numId, name);
-    reloadCustomVoices();
-  }, [reloadCustomVoices]);
-  const handleVoiceDelete = useCallback(async (id: string) => {
-    const numId = Number(id.replace(/^custom:/, ''));
-    if (!Number.isFinite(numId)) return;
-    await deleteNativeVoice(numId);
-    reloadCustomVoices();
-  }, [reloadCustomVoices]);
+  }, [capability.builtin, reserveTtsId]);
 
   const allDownloadIds = useMemo(
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
@@ -755,26 +734,26 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
         {ttsCards.length > 0 ? (
           // The voice picker is embedded inside the selected card via renderBody.
           // NativeModelCard only renders the body when the card is selected, and
-          // ttsShape reflects the resolved (selected) model's capability.
+          // `capability` reflects the resolved (selected) model's voice capability.
           renderCards(
             ttsCards,
             (c) => ttsSelected(c.selectId),
             'ttsModel',
             undefined,
             undefined,
-            () => (ttsShape !== 'none' ? (
+            () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
               <NativeVoiceSection
+                capability={capability}
+                numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
                 builtinVoices={builtinVoices}
-                customVoices={customVoices}
+                store={store}
                 selected={settings.ttsVoice}
                 targetLanguage={settings.targetLanguage}
                 isSessionActive={isSessionActive}
-                shape={ttsShape}
-                numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
                 onSelect={(id) => update({ ttsVoice: id })}
-                onCaptured={reloadCustomVoices}
-                onRename={handleVoiceRename}
-                onDelete={handleVoiceDelete}
+                // NativeVoiceSection owns and refreshes its own custom-voice list
+                // (via `store`); nothing here needs to react to a change.
+                onCustomChanged={() => {}}
               />
             ) : null),
           )

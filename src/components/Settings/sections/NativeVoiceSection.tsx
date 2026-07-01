@@ -1,83 +1,160 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
+import VoiceLibrarySection, { type VoiceEntry, type VoiceLibraryCapability } from './VoiceLibrarySection';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
   sidFromTtsVoice,
   ttsVoiceForSid,
-  type VoiceShape,
+  type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
-import { addNativeVoice, type StoredNativeVoice } from '../../../lib/local-inference/nativeVoiceStorage';
 import {
-  validateVoiceClip, downmixToMono, MIN_CLIP_SECONDS, MAX_CLIP_SECONDS, type ClipValidationError,
+  validateVoiceClip, MIN_CLIP_SECONDS, MAX_CLIP_SECONDS, VoiceCaptureError,
+  type ClipValidationError, type NativeCustomVoice, type NativeVoiceStore,
 } from '../../../lib/local-inference/native/nativeVoiceStores';
+import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
 
-// Moved to nativeVoiceStores.ts (shared with the NativeVoiceStore abstraction).
-// Re-exported here so existing imports (and this file's own test) keep working.
+// validateVoiceClip now lives in nativeVoiceStores.ts (shared with the
+// NativeVoiceStore abstraction). Re-exported here so this file's own test
+// keeps working.
 export { validateVoiceClip };
 export type { ClipValidationError };
 
 /**
  * Native (Electron sidecar) adapter over the generalized VoiceLibrarySection.
- * Uses the same dropdown presentation as Supertonic: built-in voices (ordered
- * curated-first; ids `builtin:<Name>`) fill the "Presets" optgroup and the user's
- * recorded/imported custom voices (ids `custom:<id>`) fill "My Voices", with a
- * manage list (rename/delete). The chosen opaque id is written back as `ttsVoice`.
- * The only difference from Supertonic is import: record OR upload (audio), vs
- * Supertonic's upload-only voice file.
+ * Switches on the selected TTS model's `VoiceCapability` (Task 10):
+ *   - `builtin === 'range'` → the classic speaker-id slider (`sid:<n>`).
+ *   - otherwise            → VoiceLibrarySection composed from the sidecar's
+ *     built-in voice list (`builtin:<Name>` entries, curated-first) plus the
+ *     injected `store`'s custom voices (`custom:<id>` entries, removable).
+ *   - `{builtin:'none', custom:'none'}` → nothing to render.
  *
- * Built-in NAMES come from the sidecar (`list_tts_voices`, fetched by the
- * parent); `[]` when the model isn't downloaded yet, in which case only the
- * (empty) presets group renders and the parent surfaces a download hint.
+ * The `store` (from `voiceStoreFor`, Task 11) abstracts over the two custom
+ * -voice backends — clip cloning (MOSS) vs style import (Supertonic-shaped
+ * native models) — so this component no longer needs to know which one it's
+ * talking to. It owns loading/refreshing the custom list locally (via
+ * `store.list()`) and calls the parent's `onCustomChanged` after a
+ * successful mutation so any parent-side cache stays in sync.
  *
- * Capture lives here: VoiceLibrarySection records the mic / picks the file and
- * hands us a Float32 clip (record) or a File (upload). We validate (record) or
- * decode + downmix (upload), persist via `addNativeVoice`, then ask the parent
- * to reload the custom list via `onCaptured`. Validation failures are surfaced
- * inline and never write to storage.
+ * Capture errors (`VoiceCaptureError` from the clip store, `VoiceImportError`
+ * from the style store) are caught here and surfaced inline; nothing is
+ * written to the voice list when validation fails.
  */
 export interface NativeVoiceSectionProps {
+  /** The selected TTS model's voice capability (built-in shape + custom-voice kind). */
+  capability: VoiceCapability;
+  /** Total speaker count for a 'range' model (the slider runs 0 .. numSpeakers-1). */
+  numSpeakers?: number;
   /** Built-in voice descriptors from the sidecar (empty when the model isn't downloaded). */
   builtinVoices: NativeVoiceInfo[];
-  /** User-owned custom voices from nativeVoiceStorage. */
-  customVoices: StoredNativeVoice[];
+  /** Custom-voice backend for this model; null when `capability.custom === 'none'`. */
+  store: NativeVoiceStore | null;
   /** Current settings.ttsVoice (opaque id); empty → default voice for the language. */
   selected: string;
   /** Target language, drives curation ordering + the default voice. */
   targetLanguage: string;
   /** Disables voice selection while a session is active. */
   isSessionActive?: boolean;
-  /** Voice control shape driven by the selected TTS model's capability. Defaults to 'list'. */
-  shape?: VoiceShape;
-  /** Total speaker count for a 'range' model (the slider runs 0 .. numSpeakers-1). */
-  numSpeakers?: number;
   /** Write the picked voice id to settings.ttsVoice. */
   onSelect: (id: string) => void;
-  /** Reload the custom list after a successful capture (record/upload). */
-  onCaptured: () => void;
-  /** Forwarded rename of a custom voice (id is the opaque `custom:<id>`). */
-  onRename: (id: string, name: string) => Promise<void>;
-  /** Forwarded delete of a custom voice (id is the opaque `custom:<id>`). */
-  onDelete: (id: string) => Promise<void>;
+  /** Notified after a custom voice is imported/recorded/renamed/deleted. */
+  onCustomChanged: () => void;
 }
 
+const DEFAULT_LIBRARY_CAPABILITY: VoiceLibraryCapability = {
+  importModes: [], curation: false, presentation: 'dropdown',
+};
+
 const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
+  capability,
+  numSpeakers,
   builtinVoices,
-  customVoices,
+  store,
   selected,
   targetLanguage,
   isSessionActive = false,
-  shape = 'list',
-  numSpeakers,
   onSelect,
-  onCaptured,
-  onRename,
-  onDelete,
+  onCustomChanged,
 }) => {
   const { t } = useTranslation();
   const [captureError, setCaptureError] = useState<string | null>(null);
+  const [customVoices, setCustomVoices] = useState<NativeCustomVoice[]>([]);
+
+  const reloadCustomVoices = useCallback(() => {
+    if (!store) { setCustomVoices([]); return; }
+    store.list().then(setCustomVoices).catch(() => setCustomVoices([]));
+  }, [store]);
+
+  useEffect(() => {
+    reloadCustomVoices();
+  }, [reloadCustomVoices]);
+
+  const clipErrorMessage = useCallback((reason: ClipValidationError): string => {
+    switch (reason) {
+      case 'too_short':
+        return t('voiceLibrary.clipTooShort', 'Recording is too short — speak for at least {seconds} seconds.')
+          .replace('{seconds}', String(MIN_CLIP_SECONDS));
+      case 'too_long':
+        return t('voiceLibrary.clipTooLong', 'Recording is too long — keep it under {seconds} seconds.')
+          .replace('{seconds}', String(MAX_CLIP_SECONDS));
+      case 'silent':
+      default:
+        return t('voiceLibrary.clipSilent', 'No voice detected — check your microphone and try again.');
+    }
+  }, [t]);
+
+  // Turn a capture failure into a user-facing message: clip validation errors
+  // (record/upload on the clip store) map by code; style-import failures
+  // (VoiceImportError) show their own message; anything else falls back to a
+  // generic "couldn't read that file" notice.
+  const captureErrorMessage = useCallback((err: unknown): string => {
+    if (err instanceof VoiceCaptureError) return clipErrorMessage(err.code);
+    if (err instanceof VoiceImportError) return err.message;
+    return t('voiceLibrary.decodeFailed', "Could not read that audio file — try a WAV, MP3, or other common format.");
+  }, [clipErrorMessage, t]);
+
+  const handleImport = useCallback(async (file: File) => {
+    if (!store) return;
+    setCaptureError(null);
+    try {
+      await store.onImport(file);
+      reloadCustomVoices();
+      onCustomChanged();
+    } catch (err) {
+      setCaptureError(captureErrorMessage(err));
+    }
+  }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
+
+  const handleRecord = useCallback(async (clip: Float32Array, sampleRate: number) => {
+    if (!store?.onRecord) return;
+    setCaptureError(null);
+    try {
+      await store.onRecord(clip, sampleRate);
+      reloadCustomVoices();
+      onCustomChanged();
+    } catch (err) {
+      setCaptureError(captureErrorMessage(err));
+    }
+  }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
+
+  const handleRename = useCallback(async (id: string, name: string) => {
+    if (!store || !id.startsWith('custom:')) return;
+    const numId = Number(id.slice('custom:'.length));
+    if (!Number.isFinite(numId)) return;
+    await store.rename(numId, name);
+    reloadCustomVoices();
+    onCustomChanged();
+  }, [store, reloadCustomVoices, onCustomChanged]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (!store || !id.startsWith('custom:')) return;
+    const numId = Number(id.slice('custom:'.length));
+    if (!Number.isFinite(numId)) return;
+    await store.delete(numId);
+    reloadCustomVoices();
+    onCustomChanged();
+  }, [store, reloadCustomVoices, onCustomChanged]);
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
@@ -101,61 +178,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     return [...builtinEntries, ...customEntries];
   }, [builtinVoices, customVoices, targetLanguage]);
 
-  const clipErrorMessage = useCallback((reason: ClipValidationError): string => {
-    switch (reason) {
-      case 'too_short':
-        return t('voiceLibrary.clipTooShort', 'Recording is too short — speak for at least {seconds} seconds.')
-          .replace('{seconds}', String(MIN_CLIP_SECONDS));
-      case 'too_long':
-        return t('voiceLibrary.clipTooLong', 'Recording is too long — keep it under {seconds} seconds.')
-          .replace('{seconds}', String(MAX_CLIP_SECONDS));
-      case 'silent':
-      default:
-        return t('voiceLibrary.clipSilent', 'No voice detected — check your microphone and try again.');
-    }
-  }, [t]);
+  if (capability.builtin === 'none' && capability.custom === 'none') return null;
 
-  // Persist a validated clip and refresh the parent list. Returns false (and
-  // surfaces a message) when validation fails so nothing is stored.
-  const storeClip = useCallback(async (name: string, clip: Float32Array, sampleRate: number): Promise<boolean> => {
-    const reason = validateVoiceClip(clip, sampleRate);
-    if (reason) {
-      setCaptureError(clipErrorMessage(reason));
-      return false;
-    }
-    await addNativeVoice(name, clip, sampleRate);
-    setCaptureError(null);
-    onCaptured();
-    return true;
-  }, [clipErrorMessage, onCaptured]);
-
-  const handleRecord = useCallback(async (clip: Float32Array, sampleRate: number) => {
-    setCaptureError(null);
-    await storeClip(t('voiceLibrary.recordedVoiceName', 'Recorded voice'), clip, sampleRate);
-  }, [storeClip, t]);
-
-  const handleImport = useCallback(async (file: File) => {
-    setCaptureError(null);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const ctx = new AudioContext();
-      let buffer: AudioBuffer;
-      try {
-        buffer = await ctx.decodeAudioData(arrayBuffer);
-      } finally {
-        void ctx.close();
-      }
-      const mono = downmixToMono(buffer);
-      const name = file.name.replace(/\.[^./\\]+$/, '') || t('voiceLibrary.importedVoiceName', 'Imported voice');
-      await storeClip(name, mono, buffer.sampleRate);
-    } catch {
-      setCaptureError(t('voiceLibrary.decodeFailed', "Could not read that audio file — try a WAV, MP3, or other common format."));
-    }
-  }, [storeClip, t]);
-
-  if (shape === 'none') return null;
-
-  if (shape === 'range') {
+  if (capability.builtin === 'range') {
     const max = Math.max(1, (numSpeakers ?? 1) - 1);
     const sid = Math.min(sidFromTtsVoice(selected), max);
     return (
@@ -170,10 +195,10 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       </div>
     );
   }
-  // shape === 'list' falls through to the VoiceLibrarySection dropdown below.
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
+  const libraryCapability = store?.capability ?? DEFAULT_LIBRARY_CAPABILITY;
 
   return (
     <>
@@ -182,10 +207,10 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         selectedId={selectedId}
         onSelect={onSelect}
         onImport={handleImport}
-        onRecord={handleRecord}
-        onRename={onRename}
-        onDelete={onDelete}
-        capability={{ importModes: ['record', 'upload'], curation: false, presentation: 'dropdown', accept: 'audio/*' }}
+        onRecord={store?.onRecord ? handleRecord : undefined}
+        onRename={handleRename}
+        onDelete={handleDelete}
+        capability={libraryCapability}
         isSessionActive={isSessionActive}
       />
       {captureError && (

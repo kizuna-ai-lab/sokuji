@@ -53,18 +53,6 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
   return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
 }
 
-export type VoiceShape = 'none' | 'range' | 'list';
-/** A TTS model's voice control shape: list (named voices + clones), range
- *  (numeric speaker id 0..N-1), or none (single voice).
- *  @deprecated Superseded by `voiceCapability`, which distinguishes built-in
- *  vs custom voice support separately. Kept until its last consumer migrates. */
-export function voiceShape(info: NativeModelInfo | undefined): VoiceShape {
-  if (!info) return 'none';
-  if (info.clones) return 'list';
-  if ((info.numSpeakers ?? 1) > 1) return 'range';
-  return 'none';
-}
-
 export type VoiceBuiltin = 'none' | 'range' | 'named';
 export type VoiceCustom = 'none' | 'clip' | 'style';
 export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; }
@@ -73,7 +61,7 @@ export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; }
  *  (none/range/named) and which custom-voice mechanism it supports
  *  (none/clip clone/style prompt). Reads the sidecar-reported `voice` field
  *  when present; otherwise derives a safe approximation from `clones` /
- *  `numSpeakers` (matching `voiceShape`'s legacy heuristic). */
+ *  `numSpeakers`. */
 export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapability {
   if (model?.voice) return model.voice;
   const custom: VoiceCustom = model?.clones ? 'clip' : 'none';
