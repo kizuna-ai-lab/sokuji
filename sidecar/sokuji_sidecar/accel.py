@@ -76,6 +76,7 @@ def _installed() -> frozenset:
     mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
+            "supertonic": "onnxruntime",
             "funasr_sensevoice": "funasr",
             "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",

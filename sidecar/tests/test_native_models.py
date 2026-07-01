@@ -493,6 +493,14 @@ def test_download_specs_for_tts_sherpa_single_repo():
     assert spec["urls"] == []
 
 
+def test_supertonic_download_ignores_samples_and_images():
+    # The Supertonic HF repo ships ~14MB of audio_samples/*.wav + img/*.png
+    # the runtime never loads — download_specs must skip them.
+    spec = native_models.download_specs("supertonic-3")
+    assert "Supertone/supertonic-3" in spec["repos"]
+    assert "audio_samples/*" in spec.get("ignore", []) and "img/*" in spec.get("ignore", [])
+
+
 def test_model_size_hardcoded_returns_without_network(monkeypatch):
     """Catalog model sizes are hardcoded — model_size must return them instantly
     without ever constructing HfApi / hitting the network."""

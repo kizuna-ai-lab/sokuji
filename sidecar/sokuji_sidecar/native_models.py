@@ -43,7 +43,12 @@ def _base_specs(model_id):
     from .catalog import tts_model as _tts_model
     _tm = _tts_model(model_id) if model_id else None
     if _tm is not None:
-        return {"repos": list(_tm.repos), "urls": list(_tm.urls)}
+        spec = {"repos": list(_tm.repos), "urls": list(_tm.urls)}
+        if model_id == "supertonic-3":
+            # The Supertone HF repo ships ~14MB of audio_samples/*.wav + img/*.png
+            # (demo assets) that the runtime never loads.
+            spec["ignore"] = ["audio_samples/*", "img/*"]
+        return spec
     if not model_id:
         return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
     if "piper" in model_id or "vits" in model_id:

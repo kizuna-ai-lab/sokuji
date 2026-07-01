@@ -975,6 +975,14 @@ def test_resolve_tts_unknown_non_sherpa_id_still_raises():
         accel.resolve_tts("some-org/random-llm-model", machine=machine)
 
 
+def test_supertonic_installed_and_resolvable():
+    # onnxruntime is a sidecar dependency → supertonic self-gates ON here, and
+    # resolve_tts must produce a runnable plan (not raise NoUsablePlan).
+    assert "supertonic" in accel._installed()
+    plans = accel.resolve_tts("supertonic-3", override="cpu")
+    assert plans and plans[0].backend == "supertonic"
+
+
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     from sokuji_sidecar import accel
     import numpy as np
