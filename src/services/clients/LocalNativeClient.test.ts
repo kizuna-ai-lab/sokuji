@@ -545,6 +545,11 @@ describe('LocalNativeClient voice selection', () => {
   });
 
   it('empty ttsVoice on a cloning model resolves to the per-language default builtin', async () => {
+    // Voice capability now comes from the catalog entry (voiceCapability), not the
+    // runtime init response — a clone-capable model must be registered there.
+    useNativeModelStore.setState({
+      catalog: { 'moss-tts-nano': { id: 'moss-tts-nano', name: 'MOSS', languages: ['en'], recommended: false, tiers: [], clones: true } as any },
+    } as any);
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: true });
     m.tts.setVoice = vi.fn().mockResolvedValue(undefined);
@@ -578,10 +583,15 @@ describe('LocalNativeClient voice selection', () => {
   });
 
   it('applies a custom cloned voice via setReferenceVoice', async () => {
+    // Voice capability (and so which NativeVoiceStore backs 'custom:') now comes
+    // from the catalog entry: a clip-clone-capable model must be registered there.
+    useNativeModelStore.setState({
+      catalog: { 'moss-tts-nano': { id: 'moss-tts-nano', name: 'MOSS', languages: ['en'], recommended: false, tiers: [], clones: true } as any },
+    } as any);
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
     m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
-    // Stub the storage read the client uses (inject via deps or vi.mock the module).
+    // Stub the storage read the ClipVoiceStore uses under the hood (inject via deps or vi.mock the module).
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
       .mockResolvedValue([{ id: 7, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 }]);
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')

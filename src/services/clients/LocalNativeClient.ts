@@ -7,8 +7,8 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { sidFromTtsVoice } from '../../lib/local-inference/native/nativeCatalog';
-import { listNativeVoices, getNativeVoice } from '../../lib/local-inference/nativeVoiceStorage';
+import { sidFromTtsVoice, voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices } from '../../stores/nativeModelStore';
 
@@ -102,26 +102,33 @@ export class LocalNativeClient implements IClient {
         this.ttsStreaming = !!r.streaming;
         store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu',
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
-        // Apply the selected voice (next-session semantics). Custom ids resolve
-        // against the stored library; a missing/deleted custom voice reconciles
-        // back to the per-language default for cloning models. Storage failure
-        // degrades to built-in voices only (it must not kill TTS), so it is
-        // caught locally.
+        // Apply the selected voice (next-session semantics), driven by the
+        // model's capability (built-in named/range and/or custom clip/style)
+        // rather than a MOSS-specific "clones" flag, so any current or future
+        // voice-capable model resolves through the same path. Custom ids
+        // resolve against the capability's own store; a missing/deleted
+        // custom voice reconciles back to the per-language default. Storage
+        // failure degrades to built-in voices only (it must not kill TTS),
+        // so list() failures are caught locally.
+        const cap = voiceCapability(store.catalog[config.ttsModelId!]);
+        const voiceStore = voiceStoreFor(cap.custom, config.ttsModelId!);
         let customIds: number[] = [];
-        try { customIds = (await listNativeVoices()).map((v) => v.id); }
-        catch { /* storage unavailable → built-in voices only */ }
-        const voiceList = r.clones ? await nativeListTtsVoices(config.ttsModelId) : [];
-        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, !!r.clones);
+        if (voiceStore) {
+          try { customIds = (await voiceStore.list()).map((v) => v.id); }
+          catch { /* storage unavailable → built-in voices only */ }
+        }
+        const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];
+        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
         if (voice.startsWith('builtin:')) {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));
-        } else if (voice.startsWith('custom:')) {
-          const id = Number(voice.slice('custom:'.length));
-          const stored = await getNativeVoice(id);
-          if (stored) await this.tts.setReferenceVoice(new Float32Array(stored.audio), stored.sampleRate);
+        } else if (voice.startsWith('custom:') && voiceStore) {
+          const payload = await voiceStore.resolveApply(Number(voice.slice('custom:'.length)));
+          if (payload?.kind === 'clip') await this.tts.setReferenceVoice(payload.audio, payload.sampleRate);
+          else if (payload?.kind === 'style') await this.tts.setStyleVoice(payload.styleTtl, payload.styleDp);
         } else if (voice.startsWith('sid:')) {
           await this.tts.setSpeaker(sidFromTtsVoice(voice));
         }
-        // else single-voice model: send nothing (backend uses speaker 0)
+        // else single-voice model with no selection: send nothing (backend uses speaker 0)
       } catch (e) {
         this.ttsEnabled = false;
         this.handlers.onError?.(`native TTS init failed: ${e}`);

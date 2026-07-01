@@ -76,13 +76,17 @@ export function nativeTtsModels(tgt: string, catalog: Record<string, NativeModel
 
 /** The per-language default built-in voice ('' when the list is empty). Reads the
  *  sidecar descriptor flagged `default` for the target language; else the first
- *  curated voice; else ''. */
+ *  curated voice; else any descriptor flagged `default` regardless of language
+ *  (covers models whose voices aren't per-language, e.g. Supertonic presets);
+ *  else ''. */
 export function defaultTtsVoice(targetLanguage: string, voices: NativeVoiceInfo[]): string {
   const want = canonLang(targetLanguage);
   const def = voices.find((v) => v.default && v.language && canonLang(v.language) === want);
   if (def) return `builtin:${def.name}`;
   const firstCurated = voices.find((v) => v.curated);
-  return firstCurated ? `builtin:${firstCurated.name}` : '';
+  if (firstCurated) return `builtin:${firstCurated.name}`;
+  const anyDefault = voices.find((v) => v.default);
+  return anyDefault ? `builtin:${anyDefault.name}` : '';
 }
 
 /** Split descriptors into curated (shown first; target-language curated before
