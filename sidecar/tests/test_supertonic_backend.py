@@ -1,5 +1,5 @@
 import numpy as np
-from sokuji_sidecar.tts_backends import SupertonicBackend
+from sokuji_sidecar.tts_backends import SupertonicBackend, SUPERTONIC_VOICE_NAMES
 CHUNK = 512 * 6
 
 class _FakeSession:
@@ -28,3 +28,21 @@ def test_generate_returns_float32_44k():
 
 def test_backend_flags():
     assert (SupertonicBackend.NAME, SupertonicBackend.STREAMING, SupertonicBackend.CLONES) == ("supertonic", False, False)
+
+def test_set_speaker_and_builtin_select_presets():
+    b = SupertonicBackend()
+    b._presets = {i: (np.full((1,50,256), i, np.float32), np.full((1,8,16), i, np.float32)) for i in range(10)}
+    b._default_sid = 7
+    b.set_speaker(3); assert b._voice[0][0,0,0] == 3
+    b.set_builtin_voice("Alex"); assert b._voice[0][0,0,0] == 5
+    b.set_speaker(99); assert b._voice[0][0,0,0] == 7
+
+def test_set_style_voice_applies_arrays():
+    b = SupertonicBackend()
+    b.set_style_voice(np.ones((1,50,256), np.float32), np.ones((1,8,16), np.float32))
+    assert b._voice[0].shape == (1,50,256) and b._voice[1].shape == (1,8,16)
+
+def test_list_builtin_voices():
+    v = SupertonicBackend().list_builtin_voices()
+    assert [x["voice"] for x in v] == SUPERTONIC_VOICE_NAMES
+    assert [x["gender"] for x in v] == ["F"]*5 + ["M"]*5

@@ -373,6 +373,21 @@ class SupertonicBackend:
     def set_language(self, lang):
         self._lang = (lang or "").split("-")[0].lower()
 
+    def set_speaker(self, sid):
+        if self._presets is None: return
+        self._voice = self._presets.get(int(sid), self._presets[self._default_sid])
+
+    def set_builtin_voice(self, name):
+        try: self.set_speaker(SUPERTONIC_VOICE_NAMES.index(name))
+        except ValueError: self.set_speaker(self._default_sid)
+
+    def set_style_voice(self, style_ttl, style_dp):
+        self._voice = (np.asarray(style_ttl, dtype=np.float32), np.asarray(style_dp, dtype=np.float32))
+
+    @staticmethod
+    def list_builtin_voices():
+        return [{"voice": n, "gender": g} for n, g in zip(SUPERTONIC_VOICE_NAMES, _SUPERTONIC_GENDERS)]
+
     def _run(self, key, feeds):
         s = self._sess[key]; names = [o.name for o in s.get_outputs()]
         return dict(zip(names, s.run(names, feeds)))
