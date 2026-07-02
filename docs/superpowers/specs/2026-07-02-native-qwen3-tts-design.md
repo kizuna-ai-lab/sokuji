@@ -110,3 +110,34 @@ Both: `languages=(zh,en,ja,ko,de,fr,ru,pt,es,it)`, `clones=True`, `streaming=Fal
 - No new sidecar dependency (onnxruntime + transformers + librosa already in the shared venv).
 - **No behavior change** for MOSS / Supertonic / VITS / Piper voice flows.
 - fp32 only; per-graph placement as specified; the repack step requires explicit user confirmation before any HF upload (publish consent rule).
+
+## Addendum (2026-07-02): bundled ICL preset voices
+
+The Base model has no built-in speakers, and unconditioned generation re-samples
+timbre per sentence — unusable as a session default. We therefore bundle **six
+self-bootstrapped preset voices** (unconditioned 0.6B outputs curated by acoustic
+metrics: F0 spread, clone-F0 consistency ≤3.5%, low silence ratio; fully
+self-licensed — no third-party voice rights):
+
+| name | gender | default |
+|---|---|---|
+| Orion | M | ✅ |
+| Leo · Atlas | M | |
+| Luna · Nova · Iris | F | |
+
+Assets live in both HF repos as `voices/<Name>.wav` (24 kHz reference clip) +
+`voices/<Name>.txt` (its transcript) + `voices/manifest.json`
+(`[{name, gender, default}]`). Selecting a preset performs **ICL cloning from the
+bundled clip** — the same `set_voice(audio, sr, ref_text)` path as user clips.
+
+Changes vs the base design:
+- Catalog rows gain `named_voices=True` → capability becomes
+  `{builtin:'named', custom:'clip', transcriptRequired:true}`.
+- `tts_voices.list_builtin_voices`: a generic branch reads `voices/manifest.json`
+  from the model's snapshot (any TTS model may bundle voices this way);
+  descriptors `{name, language:None, gender, curated:true, unstable:false,
+  default}`; `[]` when the model isn't downloaded (MOSS pattern).
+- `Qwen3TtsOnnxBackend.set_builtin_voice(name)`: loads `voices/<name>.wav|.txt`
+  from its snapshot and calls its own `set_voice(wav, 24000, ref_text)`.
+- Renderer: **zero changes** — `builtin:'named'` activates the existing preset
+  dropdown + `defaultTtsVoice` (language-less `default:true` → Orion).
