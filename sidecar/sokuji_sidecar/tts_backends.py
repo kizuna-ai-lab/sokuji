@@ -15,6 +15,11 @@ import numpy as np
 
 from .backends import register_backend, BackendLoadError
 from . import supertonic_frontend as _sf
+from .qwen3_tts import codec as _q3_codec
+from .qwen3_tts import config as _q3_config
+from .qwen3_tts import mel as _q3_mel
+from .qwen3_tts import runtime as _q3_runtime
+from .qwen3_tts import template as _q3_template
 
 # short id -> HF repo (unknown ids are treated as a repo id directly)
 SHERPA_TTS_REPOS = {
@@ -425,3 +430,148 @@ class SupertonicBackend:
     @property
     def is_loaded(self):
         return self._sess is not None
+
+
+# Fixed sampling config for the talker AR loop and its per-codebook subtalker,
+# matching the reference sample script (run_pipeline.py `main`) exactly.
+_QWEN3_TTS_SAMPLING_PARAMS = {
+    "do_sample": True, "top_k": 50, "top_p": 1.0, "temperature": 0.9,
+    "repetition_penalty": 1.05,
+    "subtalker_dosample": True, "subtalker_top_k": 50, "subtalker_top_p": 1.0,
+    "subtalker_temperature": 0.9,
+}
+
+
+@register_backend
+class Qwen3TtsOnnxBackend:
+    """Qwen3-TTS (12Hz neural codec) via the ported ONNX talker runtime
+    (sokuji_sidecar.qwen3_tts). Zero-shot voice cloning from a reference clip:
+    full ICL (transcript + reference codec frames) when a transcript is given,
+    x-vector-only conditioning (speaker embedding alone) otherwise. Non-streaming
+    (the full AR codec loop must finish before a single decode() call) and does
+    not ship named/preset voices — every synthesis needs a caller-supplied
+    reference clip. provider='cuda' on GPU else 'cpu' (see runtime.build_sessions)."""
+    NAME = "qwen3tts_onnx"
+    STREAMING = False
+    CLONES = True
+
+    def __init__(self):
+        self._sessions = None
+        self._cfg = None
+        self._emb = None
+        self._codec = None
+        self._tok = None
+        self._lang_name = None
+        self._voice_prompt = None
+        self._ref_ids = None
+        self.sample_rate = 24000
+
+    # ---- loading -----------------------------------------------------------
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._sessions = None
+        self._cfg = None
+        self._emb = None
+        self._codec = None
+        self._tok = None
+        try:
+            from huggingface_hub import snapshot_download
+            from transformers import AutoTokenizer
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
+            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
+            self._cfg = _q3_config.load_model_config(d)
+            self._tok = AutoTokenizer.from_pretrained(d, local_files_only=True)
+            self._emb = _q3_runtime.Embeddings.from_sessions(sessions)
+            self._codec = _q3_codec.Codec12Hz(sessions)
+            self._sessions = sessions
+        except Exception as e:  # missing onnxruntime-gpu / no CUDA / bad repo → resolver falls back
+            self._sessions = None
+            self._cfg = None
+            self._emb = None
+            self._codec = None
+            self._tok = None
+            raise BackendLoadError(str(e))
+
+    def _tokenize(self, text: str) -> np.ndarray:
+        ids = self._tok.encode(text, add_special_tokens=False)
+        return np.array([ids], dtype=np.int64)
+
+    def _spk_embed(self, wav24k: np.ndarray) -> np.ndarray:
+        mels = _q3_mel.log_mel(np.asarray(wav24k, dtype=np.float32), self._cfg.speaker_encoder)
+        feed = mels.T[None, ...].astype(np.float32)
+        sess = self._sessions["speaker_encoder"]
+        outputs = sess.run(None, {"mels": feed})
+        return np.asarray(outputs[0], dtype=np.float32)[0]
+
+    # ---- voice / language ----------------------------------------------------
+    def set_language(self, lang) -> None:
+        self._lang_name = _q3_template.language_name(lang)
+
+    def set_voice(self, audio, sr, ref_text: str = "") -> None:
+        wav = np.asarray(audio, dtype=np.float32)
+        if wav.ndim > 1:
+            wav = wav.mean(axis=0).astype(np.float32)
+        if int(sr) != 24000:
+            import librosa
+            wav = librosa.resample(y=wav, orig_sr=int(sr), target_sr=24000).astype(np.float32)
+        spk_embedding = self._spk_embed(wav)
+        ref_code = self._codec.encode(wav) if ref_text else None
+        self._voice_prompt = {
+            "ref_code": [ref_code],
+            "ref_spk_embedding": [spk_embedding],
+            "x_vector_only_mode": [not bool(ref_text)],
+            "icl_mode": [bool(ref_text)],
+        }
+        self._ref_ids = [self._tokenize(_q3_template.build_ref_text(ref_text))] if ref_text else None
+
+    @staticmethod
+    def list_builtin_voices():
+        return []  # no preset voices — cloning always needs a caller-supplied clip
+
+    # ---- synthesis -----------------------------------------------------------
+    def generate(self, text, speed=1.0):
+        t0 = time.time()
+        input_ids = self._tokenize(_q3_template.build_assistant_text(text))
+        talker_embed, attention_mask, trailing_text_hidden, tts_pad_embed = _q3_template.build_talker_inputs(
+            self._cfg, self._emb, input_ids, self._ref_ids, self._voice_prompt, self._lang_name)
+
+        eos_token_id = int(self._cfg.talker.codec_eos_token_id)
+        vocab_size = int(self._cfg.talker.vocab_size)
+        suppress_tokens = [i for i in range(vocab_size - 1024, vocab_size) if i != eos_token_id]
+        max_new_tokens = int(os.environ.get("SOKUJI_QWEN3_TTS_MAX_FRAMES", "600"))
+
+        codes_list, _hidden_list = _q3_runtime.generate_codes(
+            self._sessions, self._cfg.talker,
+            talker_embed, attention_mask, trailing_text_hidden, tts_pad_embed,
+            max_new_tokens=max_new_tokens, sampling_params=_QWEN3_TTS_SAMPLING_PARAMS,
+            eos_token_id=eos_token_id, suppress_tokens=suppress_tokens,
+            rng=np.random.default_rng())
+        codes = codes_list[0]
+
+        ref_code = self._voice_prompt["ref_code"][0] if self._voice_prompt else None
+        if ref_code is not None:
+            codes_for_decode = np.concatenate([ref_code, codes], axis=0)
+        else:
+            codes_for_decode = codes
+        wav = self._codec.decode(codes_for_decode)
+        if ref_code is not None:
+            ref_len = int(ref_code.shape[0])
+            total_len = int(codes_for_decode.shape[0])
+            if total_len > 0:
+                cut = int(ref_len / total_len * wav.shape[0])
+                wav = wav[cut:]
+
+        return wav.astype(np.float32), int((time.time() - t0) * 1000)
+
+    def unload(self) -> None:
+        self._sessions = None
+        self._cfg = None
+        self._emb = None
+        self._codec = None
+        self._tok = None
+        self._voice_prompt = None
+        self._ref_ids = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._sessions is not None

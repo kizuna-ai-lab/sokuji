@@ -216,6 +216,7 @@ class TtsModel(_ModelBase):
     num_speakers: int = 1            # 1 = single voice; >1 = a 0..N-1 speaker range
     named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
     style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
+    transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
@@ -234,13 +235,21 @@ def voice_capability(model: "TtsModel") -> dict:
     custom:  clip (reference audio)  | style (uploaded JSON) | none."""
     custom = "clip" if model.clones else "style" if model.style_voices else "none"
     builtin = "named" if model.named_voices else "range" if model.num_speakers > 1 else "none"
-    return {"builtin": builtin, "custom": custom}
+    out = {"builtin": builtin, "custom": custom}
+    if custom == "clip" and getattr(model, "transcript_required", False):
+        out["transcriptRequired"] = True
+    return out
 
 
 _MOSS_NANO_LM_REPO = os.environ.get(
     "SOKUJI_MOSS_TTS_NANO_REPO", "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX")
 _MOSS_NANO_TOK_REPO = os.environ.get(
     "SOKUJI_MOSS_TTS_NANO_TOK_REPO", "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
+
+_QWEN3_TTS_06B_REPO = os.environ.get(
+    "SOKUJI_QWEN3_TTS_06B_REPO", "jiangzhuo9357/qwen3-tts-0.6b-onnx")
+_QWEN3_TTS_17B_REPO = os.environ.get(
+    "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx")
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
                     "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
@@ -261,6 +270,20 @@ TTS_MODELS: list[TtsModel] = [
              repos=("Supertone/supertonic-3",), clones=False, streaming=False,
              named_voices=True, style_voices=True, sample_rate=44100, num_speakers=10,
              recommended=True, sort_order=1, size_bytes=400_600_000),
+    TtsModel("qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
+             ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
+             (Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_REPO, 1.0),
+              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_REPO, 1.0)),
+             repos=(_QWEN3_TTS_06B_REPO,), clones=True, streaming=False,
+             transcript_required=True, sample_rate=24000,
+             recommended=True, sort_order=2, size_bytes=4315672915),
+    TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
+             ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
+             (Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_REPO, 1.0),
+              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_REPO, 1.0)),
+             repos=(_QWEN3_TTS_17B_REPO,), clones=True, streaming=False,
+             transcript_required=True, sample_rate=24000,
+             recommended=False, sort_order=3, size_bytes=8372109691),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,

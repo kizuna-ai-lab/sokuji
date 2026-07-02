@@ -514,3 +514,8 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
     assert nm.model_size("sense-voice") == 944624033
     assert nm.model_size("hy-mt2-1.8b") == 4086810533
     assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
+
+
+def test_qwen3_download_specs_point_at_per_size_repos():
+    assert "qwen3-tts-0.6b-onnx" in native_models.download_specs("qwen3-tts-0.6b")["repos"][0]
+    assert "qwen3-tts-1.7b-onnx" in native_models.download_specs("qwen3-tts-1.7b")["repos"][0]

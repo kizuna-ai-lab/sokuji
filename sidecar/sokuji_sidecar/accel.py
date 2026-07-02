@@ -77,6 +77,7 @@ def _installed() -> frozenset:
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
+            "qwen3tts_onnx": "onnxruntime",
             "funasr_sensevoice": "funasr",
             "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",

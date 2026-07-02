@@ -983,6 +983,12 @@ def test_supertonic_installed_and_resolvable():
     assert plans and plans[0].backend == "supertonic"
 
 
+def test_qwen3_backend_installed_and_resolvable():
+    assert "qwen3tts_onnx" in accel._installed()
+    plans = accel.resolve_tts("qwen3-tts-0.6b", override="cpu")
+    assert plans and plans[0].backend == "qwen3tts_onnx"
+
+
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     from sokuji_sidecar import accel
     import numpy as np

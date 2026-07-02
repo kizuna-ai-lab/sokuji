@@ -117,7 +117,7 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.languages, f"{m.id} has no languages"
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
-            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic"}
+            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic", "qwen3tts_onnx"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -331,3 +331,14 @@ def test_supertonic_row():
     assert m.repos == ("Supertone/supertonic-3",)
     assert {d.backend for d in m.deployments} == {"supertonic"}
     assert {d.tier for d in m.deployments} == {"gpu-cuda", "cpu"}
+
+
+def test_qwen3_rows_and_capability():
+    for mid, rec in (("qwen3-tts-0.6b", True), ("qwen3-tts-1.7b", False)):
+        m = catalog.tts_model(mid)
+        assert m and m.clones is True and m.streaming is False and m.sample_rate == 24000
+        assert m.transcript_required is True and m.recommended is rec
+        assert {d.backend for d in m.deployments} == {"qwen3tts_onnx"}
+        assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip", "transcriptRequired": True}
+    # MOSS capability unchanged (no extra key)
+    assert catalog.voice_capability(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
