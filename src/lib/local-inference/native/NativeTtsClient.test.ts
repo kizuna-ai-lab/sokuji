@@ -187,4 +187,19 @@ describe('NativeTtsClient', () => {
     expect(new Float32Array(bins.at(-1)!)).toEqual(new Float32Array([1, 2, 9]));
     expect(sent.find((m) => m.styleVoice)!.styleVoice).toEqual({ ttlDims: [1, 2], dpDims: [1, 1] });
   });
+
+  it('setStyleVoice flattens nested voice data (matches the WASM worker)', async () => {
+    // Real voice JSON `data` is nested per dims; without flattening, Float32Array.from
+    // over the outer array collapses to the wrong length — the "reshape size 2" bug.
+    const c = new NativeTtsClient();
+    await c.init('supertonic-3');
+    await c.setStyleVoice(
+      { dims: [1, 2, 2], data: [[[1, 2], [3, 4]]] as unknown as number[] },
+      { dims: [1, 1, 1], data: [[[9]]] as unknown as number[] },
+    );
+    const bins = FakeWS.last.sent.filter((s) => s instanceof ArrayBuffer) as ArrayBuffer[];
+    const sent = FakeWS.last.sent.filter((s) => typeof s === 'string').map((s) => JSON.parse(s));
+    expect(new Float32Array(bins.at(-1)!)).toEqual(new Float32Array([1, 2, 3, 4, 9]));
+    expect(sent.find((m) => m.styleVoice)!.styleVoice).toEqual({ ttlDims: [1, 2, 2], dpDims: [1, 1, 1] });
+  });
 });

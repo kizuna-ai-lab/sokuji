@@ -127,7 +127,11 @@ export class NativeTtsClient {
   /** Select a style-cloned voice (e.g. Supertonic) from precomputed style-conditioning vectors. */
   async setStyleVoice(styleTtl: { dims: number[]; data: number[] },
                       styleDp: { dims: number[]; data: number[] }): Promise<void> {
-    const ttl = Float32Array.from(styleTtl.data), dp = Float32Array.from(styleDp.data);
+    // Voice JSON `data` is nested per dims — flatten it (mirrors the WASM worker's
+    // jsonToFloat32Tensor) before packing; otherwise Float32Array.from over the outer
+    // array yields the wrong length and the sidecar's reshape fails.
+    const f32 = (d: number[]) => Float32Array.from((d as unknown[]).flat(Infinity) as number[]);
+    const ttl = f32(styleTtl.data), dp = f32(styleDp.data);
     const buf = new Float32Array(ttl.length + dp.length);
     buf.set(ttl, 0); buf.set(dp, ttl.length);
     this.ws!.send(buf.buffer);                            // binary frame precedes the control message
