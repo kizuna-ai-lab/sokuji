@@ -2,6 +2,7 @@
 synthesize, and normalize output to the renderer's Int16@24k mono contract.
 Process singleton, reused across sessions; close() frees VRAM."""
 import asyncio
+import inspect
 import queue
 import time
 
@@ -63,8 +64,14 @@ class TtsEngine:
             self.resolved["fallbackReason"] = notice
         return int((time.time() - t0) * 1000)
 
-    def set_voice(self, audio, sr):
-        self._backend.set_voice(np.asarray(audio, dtype=np.float32), int(sr))
+    def set_voice(self, audio, sr, ref_text=None):
+        wav = np.asarray(audio, dtype=np.float32)
+        sr = int(sr)
+        params = inspect.signature(self._backend.set_voice).parameters
+        if "ref_text" in params:               # ICL cloning backend (e.g. Qwen3)
+            self._backend.set_voice(wav, sr, ref_text=ref_text or "")
+        else:                                   # clip-only backend (e.g. MOSS) — no transcript arg
+            self._backend.set_voice(wav, sr)
 
     def set_builtin_voice(self, name):
         self._backend.set_builtin_voice(name)
@@ -161,7 +168,8 @@ async def _h_set_voice(state, msg, binary_in, conn=None):
         state["tts_engine"].set_speaker(int(sid))
     else:                                     # custom clone from clip
         audio = np.frombuffer(binary_in, dtype=np.float32) if binary_in else np.zeros(0, np.float32)
-        state["tts_engine"].set_voice(audio, int(msg.get("sampleRate", 24000)))
+        state["tts_engine"].set_voice(audio, int(msg.get("sampleRate", 24000)),
+                                      ref_text=msg.get("refText"))
     return {"type": "ok", "id": msg.get("id")}, None
 
 
