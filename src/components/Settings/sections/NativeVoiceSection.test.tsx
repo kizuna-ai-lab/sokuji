@@ -183,6 +183,27 @@ describe('NativeVoiceSection', () => {
     await waitFor(() => expect(store.delete).toHaveBeenCalledWith(5));
   });
 
+  it('keeps the typed transcript after a rejected clip import so the user does not retype it', async () => {
+    // Regression test: VoiceLibrarySection only clears the transcript field
+    // when the awaited onImport call resolves ("Field cleared after SUCCESS
+    // only"). NativeVoiceSection.handleImport must rethrow store failures
+    // (not just surface them via captureError) so VoiceLibrarySection's own
+    // try/catch sees the rejection and leaves the field untouched.
+    const store = makeClipStore({
+      onImport: vi.fn().mockRejectedValue(new VoiceCaptureError('too_short', 'Voice clip failed validation: too_short')),
+    });
+    render(<NativeVoiceSection {...baseProps}
+      capability={{ builtin: 'named', custom: 'clip', transcriptRequired: true }}
+      store={store} />);
+    await screen.findByText('Ava');
+    const transcriptInput = screen.getByPlaceholderText(/type exactly what the clip says/i);
+    fireEvent.change(transcriptInput, { target: { value: 'hello world' } });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(8)], 'voice.wav')] } });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
+    expect(transcriptInput).toHaveValue('hello world');
+  });
+
   it('filters custom clips without transcripts for transcriptRequired models', async () => {
     const store = {
       kind: 'clip', capability: { importModes: ['record', 'upload'], curation: false, presentation: 'dropdown' },

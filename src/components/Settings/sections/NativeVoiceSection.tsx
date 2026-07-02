@@ -126,6 +126,10 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       onCustomChanged();
     } catch (err) {
       setCaptureError(captureErrorMessage(err));
+      // Rethrow so VoiceLibrarySection's own try/catch sees the failure and
+      // leaves the transcript field filled in (it only clears it after an
+      // awaited onImport call resolves — see its JSDoc).
+      throw err;
     }
   }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
 
@@ -139,6 +143,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       onCustomChanged();
     } catch (err) {
       setCaptureError(captureErrorMessage(err));
+      // Same rethrow rationale as handleImport above: keep the transcript
+      // field populated on a failed recording rather than wiping it.
+      throw err;
     }
   }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
 
