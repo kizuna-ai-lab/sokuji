@@ -339,6 +339,6 @@ def test_qwen3_rows_and_capability():
         assert m and m.clones is True and m.streaming is False and m.sample_rate == 24000
         assert m.transcript_required is True and m.recommended is rec
         assert {d.backend for d in m.deployments} == {"qwen3tts_onnx"}
-        assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip", "transcriptRequired": True}
+        assert catalog.voice_capability(m) == {"builtin": "named", "custom": "clip", "transcriptRequired": True}
     # MOSS capability unchanged (no extra key)
     assert catalog.voice_capability(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}

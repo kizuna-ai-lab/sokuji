@@ -79,6 +79,21 @@ def list_builtin_voices(model_id=None):
         return [{"name": x["voice"], "language": None, "gender": x["gender"],
                  "curated": True, "unstable": False, "default": (x["voice"] == "Robert")}
                 for x in SupertonicBackend.list_builtin_voices()]
+    if m is not None and m.repos:
+        # Generic bundled-voices branch: any TTS model may ship curated ICL preset
+        # clips as voices/<name>.wav|.txt + voices/manifest.json in its snapshot
+        # (currently Qwen3-TTS). Falls through when the model isn't downloaded or
+        # doesn't bundle voices this way.
+        try:
+            root = Path(_snapshot_dir(m.repos[0]))
+            manifest_path = root / "voices" / "manifest.json"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text())
+                return [{"name": e["name"], "language": None, "gender": e.get("gender"),
+                         "curated": True, "unstable": False, "default": bool(e.get("default"))}
+                        for e in manifest]
+        except Exception:
+            pass
     out = []
     for name in list_builtin_voice_names(model_id):
         meta = _VOICE_META.get(name, {})

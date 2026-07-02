@@ -1,5 +1,6 @@
 import numpy as np
-from sokuji_sidecar.tts_backends import Qwen3TtsOnnxBackend
+import pytest
+from sokuji_sidecar.tts_backends import BackendLoadError, Qwen3TtsOnnxBackend
 
 
 def test_flags():
@@ -22,3 +23,33 @@ def test_set_voice_requires_loaded_and_builds_icl(monkeypatch):
 
 def test_list_builtin_voices_empty():
     assert Qwen3TtsOnnxBackend.list_builtin_voices() == []
+
+
+def test_set_builtin_voice_loads_bundled_clip_and_builds_icl(tmp_path):
+    from scipy.io import wavfile
+
+    voices_dir = tmp_path / "voices"
+    voices_dir.mkdir()
+    wav_int16 = (np.full(24000, 0.1, dtype=np.float32) * 32767).astype(np.int16)
+    wavfile.write(voices_dir / "Orion.wav", 24000, wav_int16)
+    (voices_dir / "Orion.txt").write_text("  Hello, I am Orion.  \n")
+
+    b = Qwen3TtsOnnxBackend()
+    b._dir = str(tmp_path)
+    b._codec = type("C", (), {"encode": staticmethod(lambda wav: np.ones((4, 16), np.int64))})()
+    b._spk_embed = lambda wav: np.zeros(8, np.float32)
+    b._tokenize = lambda text: np.arange(6, dtype=np.int64)[None, :]
+
+    b.set_builtin_voice("Orion")
+
+    vcp = b._voice_prompt
+    assert vcp["icl_mode"] == [True]
+    assert vcp["ref_code"][0].shape == (4, 16)
+    assert b._ref_ids is not None
+
+
+def test_set_builtin_voice_unknown_name_raises(tmp_path):
+    b = Qwen3TtsOnnxBackend()
+    b._dir = str(tmp_path)
+    with pytest.raises(BackendLoadError):
+        b.set_builtin_voice("NoSuchVoice")

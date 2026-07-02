@@ -55,3 +55,37 @@ def test_supertonic_presets_without_download():
                                        "Alex", "James", "Robert", "Sam", "Daniel"]
     assert next(x for x in v if x["name"] == "Robert")["default"] is True
     assert all(x["gender"] in ("F", "M") for x in v)
+
+
+def test_qwen3_bundled_preset_voices_from_manifest(tmp_path, monkeypatch):
+    # Generic voices/manifest.json branch: any TTS model may bundle ICL preset
+    # voices this way, not just qwen3 — verified against the qwen3 catalog row.
+    entries = [
+        {"name": "Orion", "gender": "M", "default": True},
+        {"name": "Leo", "gender": "M"},
+        {"name": "Atlas", "gender": "M"},
+        {"name": "Luna", "gender": "F"},
+        {"name": "Nova", "gender": "F"},
+        {"name": "Iris", "gender": "F"},
+    ]
+    snap = tmp_path / "snap"
+    (snap / "voices").mkdir(parents=True)
+    (snap / "voices" / "manifest.json").write_text(json.dumps(entries))
+    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
+    out = tts_voices.list_builtin_voices("qwen3-tts-0.6b")
+    assert [v["name"] for v in out] == ["Orion", "Leo", "Atlas", "Luna", "Nova", "Iris"]
+    assert all(v["language"] is None and v["curated"] is True and v["unstable"] is False for v in out)
+    genders = {v["name"]: v["gender"] for v in out}
+    assert genders == {"Orion": "M", "Leo": "M", "Atlas": "M", "Luna": "F", "Nova": "F", "Iris": "F"}
+    defaults = {v["name"]: v["default"] for v in out}
+    assert defaults == {"Orion": True, "Leo": False, "Atlas": False,
+                        "Luna": False, "Nova": False, "Iris": False}
+
+
+def test_qwen3_without_bundled_voices_dir_falls_through_to_empty(tmp_path, monkeypatch):
+    # Snapshot exists but has no voices/ dir (and no MOSS-style manifest either)
+    # → generic branch falls through, MOSS-manifest path also fails → [].
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
+    assert tts_voices.list_builtin_voices("qwen3-tts-0.6b") == []

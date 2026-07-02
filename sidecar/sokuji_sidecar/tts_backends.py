@@ -10,6 +10,7 @@ import shutil
 import tempfile
 import threading
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -447,10 +448,12 @@ class Qwen3TtsOnnxBackend:
     """Qwen3-TTS (12Hz neural codec) via the ported ONNX talker runtime
     (sokuji_sidecar.qwen3_tts). Zero-shot voice cloning from a reference clip:
     full ICL (transcript + reference codec frames) when a transcript is given,
-    x-vector-only conditioning (speaker embedding alone) otherwise. Non-streaming
-    (the full AR codec loop must finish before a single decode() call) and does
-    not ship named/preset voices — every synthesis needs a caller-supplied
-    reference clip. provider='cuda' on GPU else 'cpu' (see runtime.build_sessions)."""
+    x-vector-only conditioning (speaker embedding alone) otherwise. Six bundled
+    ICL preset voices (voices/<name>.wav|.txt in the snapshot) are selectable by
+    name via set_builtin_voice — cloning from our own curated clip, the same
+    code path as a user-supplied one. Non-streaming (the full AR codec loop must
+    finish before a single decode() call). provider='cuda' on GPU else 'cpu'
+    (see runtime.build_sessions)."""
     NAME = "qwen3tts_onnx"
     STREAMING = False
     CLONES = True
@@ -461,6 +464,7 @@ class Qwen3TtsOnnxBackend:
         self._emb = None
         self._codec = None
         self._tok = None
+        self._dir = None
         self._lang_name = None
         self._voice_prompt = None
         self._ref_ids = None
@@ -473,6 +477,7 @@ class Qwen3TtsOnnxBackend:
         self._emb = None
         self._codec = None
         self._tok = None
+        self._dir = None
         try:
             from huggingface_hub import snapshot_download
             from transformers import AutoTokenizer
@@ -484,12 +489,14 @@ class Qwen3TtsOnnxBackend:
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)
             self._codec = _q3_codec.Codec12Hz(sessions)
             self._sessions = sessions
+            self._dir = d
         except Exception as e:  # missing onnxruntime-gpu / no CUDA / bad repo → resolver falls back
             self._sessions = None
             self._cfg = None
             self._emb = None
             self._codec = None
             self._tok = None
+            self._dir = None
             raise BackendLoadError(str(e))
 
     def _tokenize(self, text: str) -> np.ndarray:
@@ -524,9 +531,24 @@ class Qwen3TtsOnnxBackend:
         }
         self._ref_ids = [self._tokenize(_q3_template.build_ref_text(ref_text))] if ref_text else None
 
+    def set_builtin_voice(self, name: str) -> None:
+        """Select one of the bundled ICL preset voices (voices/<name>.wav|.txt in
+        the model snapshot) — cloning from our own curated reference clip, the
+        same code path as a user-supplied clip. Unknown name / missing files →
+        BackendLoadError (mirrors MossOnnxTtsBackend.set_builtin_voice)."""
+        try:
+            import librosa
+            wav_path = Path(self._dir) / "voices" / f"{name}.wav"
+            txt_path = Path(self._dir) / "voices" / f"{name}.txt"
+            wav, sr = librosa.load(str(wav_path), sr=24000, mono=True)
+            ref_text = txt_path.read_text(encoding="utf-8").strip()
+        except Exception:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        self.set_voice(wav, sr, ref_text=ref_text)
+
     @staticmethod
     def list_builtin_voices():
-        return []  # no preset voices — cloning always needs a caller-supplied clip
+        return []  # descriptors come from tts_voices.list_builtin_voices() (manifest-based)
 
     # ---- synthesis -----------------------------------------------------------
     def generate(self, text, speed=1.0):
