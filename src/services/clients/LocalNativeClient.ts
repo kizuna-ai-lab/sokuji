@@ -129,7 +129,7 @@ export class LocalNativeClient implements IClient {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));
         } else if (voice.startsWith('custom:') && voiceStore) {
           const payload = await voiceStore.resolveApply(Number(voice.slice('custom:'.length)));
-          if (payload?.kind === 'clip') await this.tts.setReferenceVoice(payload.audio, payload.sampleRate);
+          if (payload?.kind === 'clip') await this.tts.setReferenceVoice(payload.audio, payload.sampleRate, payload.transcript);
           else if (payload?.kind === 'style') await this.tts.setStyleVoice(payload.styleTtl, payload.styleDp);
         } else if (voice.startsWith('sid:')) {
           await this.tts.setSpeaker(sidFromTtsVoice(voice));
