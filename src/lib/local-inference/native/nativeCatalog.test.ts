@@ -134,6 +134,11 @@ describe('nativeCatalog', () => {
     const jaCards = nativeTtsCards('ja', TTS_CAT);
     expect(jaCards).toHaveLength(1);
     expect(jaCards[0]).toMatchObject({ selectId: 'moss-tts-nano', downloadId: 'moss-tts-nano', recommended: true });
+
+    // cards show the model's FULL language list (like ASR/translate cards),
+    // not just the currently selected target language
+    expect(jaCards[0].languages).toEqual(TTS_CAT['moss-tts-nano'].languages);
+    expect(jaCards[0].languages.length).toBeGreaterThan(1);
   });
 
   it('splits ASR into compatible / incompatible for a language (catalog-derived)', () => {

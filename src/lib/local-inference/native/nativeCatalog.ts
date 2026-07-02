@@ -356,7 +356,8 @@ export function nativeTtsCards(tgt: string, catalog: Record<string, NativeModelI
   // toggle. Languages with no TTS models yield an empty list (the UI shows a
   // "text only" notice).
   return nativeTtsModels(tgt, catalog).map((m, i) => ({
-    selectId: m.id, downloadId: m.id, name: m.name, languages: [tgt],
+    // Full language list, like ASR/translate cards — not just the selected target.
+    selectId: m.id, downloadId: m.id, name: m.name, languages: m.languages,
     recommended: i === 0, sortOrder: m.order,
     streaming: m.streaming, clones: m.clones,
   }));
