@@ -80,4 +80,17 @@ describe('VoiceLibrarySection', () => {
     fireEvent.change(select, { target: { value: 'custom:1' } });
     expect(onSelect).toHaveBeenCalledWith('custom:1');
   });
+
+  it('transcriptRequired gates import behind a non-empty transcript', async () => {
+    const onImport = vi.fn();
+    render(<VoiceLibrarySection voices={[]} selectedId="" onSelect={() => {}}
+      onImport={onImport} onRename={async () => {}} onDelete={async () => {}}
+      capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown', transcriptRequired: true }} />);
+    // manage details open → import button disabled while transcript empty
+    fireEvent.click(screen.getByText(/manage imported voices/i));
+    const btn = screen.getByRole('button', { name: /import voice/i });
+    expect(btn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'what the clip says' } });
+    expect(btn).not.toBeDisabled();
+  });
 });

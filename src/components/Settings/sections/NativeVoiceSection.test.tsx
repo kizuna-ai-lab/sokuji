@@ -182,4 +182,20 @@ describe('NativeVoiceSection', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
     await waitFor(() => expect(store.delete).toHaveBeenCalledWith(5));
   });
+
+  it('filters custom clips without transcripts for transcriptRequired models', async () => {
+    const store = {
+      kind: 'clip', capability: { importModes: ['record', 'upload'], curation: false, presentation: 'dropdown' },
+      list: async () => [{ id: 1, name: 'WithText', hasTranscript: true }, { id: 2, name: 'NoText', hasTranscript: false }],
+      onImport: async () => {}, onRecord: async () => {}, rename: async () => {}, delete: async () => {}, resolveApply: async () => null,
+    };
+    render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
+      builtinVoices={[]} store={store as any} selected="" targetLanguage="en"
+      onSelect={() => {}} onCustomChanged={() => {}} />);
+    // 'WithText' appears twice in dropdown presentation (the <select> option AND
+    // the "manage imported voices" row, same duplication as the 'MyVoice' case
+    // above) — any match confirms it's present. 'NoText' must have zero matches.
+    expect((await screen.findAllByText('WithText')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('NoText')).toBeNull();
+  });
 });

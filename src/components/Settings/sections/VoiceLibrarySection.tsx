@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, Plus, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
@@ -39,6 +39,11 @@ export interface VoiceLibraryCapability {
    *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
    *  original Supertonic affordance). Curation does not apply in dropdown mode. */
   presentation?: 'list' | 'dropdown';
+  /** When true, captured clips must carry a reference transcript (native
+   *  zero-shot cloning models that require ICL text). Renders a labeled
+   *  transcript input in the manage toolbar and disables Import/Record until
+   *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
+  transcriptRequired?: boolean;
 }
 
 export interface VoiceLibrarySectionProps {
@@ -50,11 +55,13 @@ export interface VoiceLibrarySectionProps {
   onSelect: (id: string) => void;
   /** Called after a valid voice file is picked/dropped. Should throw on
    *  validation errors so the parent can surface them. Required when
-   *  `importModes` includes `upload`. */
-  onImport?: (file: File) => Promise<void>;
+   *  `importModes` includes `upload`. `transcript` is only ever passed when
+   *  `capability.transcriptRequired` is set. */
+  onImport?: (file: File, transcript?: string) => Promise<void>;
   /** Called after a microphone clip is captured. Required when `importModes`
-   *  includes `record`. */
-  onRecord?: (clip: Float32Array, sampleRate: number) => Promise<void>;
+   *  includes `record`. `transcript` is only ever passed when
+   *  `capability.transcriptRequired` is set. */
+  onRecord?: (clip: Float32Array, sampleRate: number, transcript?: string) => Promise<void>;
   /** Called when the user renames a removable voice. */
   onRename: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
@@ -85,6 +92,8 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const [editName, setEditName] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const transcriptInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<{
     ctx: AudioContext;
@@ -97,6 +106,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
   const isDropdown = capability.presentation === 'dropdown';
+  // Capture (import/record) is gated behind a non-empty reference transcript
+  // for models that require in-context-learning text (Task 12). Absent/false
+  // → no gating, matching pre-Task-12 behavior exactly.
+  const transcriptMissing = !!capability.transcriptRequired && transcript.trim().length === 0;
 
   const builtins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
   const customs = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
@@ -115,16 +128,30 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!onImport || !files || files.length === 0) return;
+    // Drop-zone gating mirrors the disabled Import button: while a required
+    // transcript is empty, dropped files are ignored outright (no partial
+    // import, no error surfaced — the user just hasn't filled in the field).
+    if (transcriptMissing) return;
+    let anySucceeded = false;
     for (const file of Array.from(files)) {
       try {
-        await onImport(file);
+        // Only pass a second argument when the capability actually requires
+        // one, so the non-gated path's call signature is byte-identical to
+        // pre-Task-12 behavior (`onImport(file)`, not `onImport(file, undefined)`).
+        if (capability.transcriptRequired) {
+          await onImport(file, transcript.trim());
+        } else {
+          await onImport(file);
+        }
+        anySucceeded = true;
       } catch (err) {
         // Parent surfaces the error (e.g. toast). Console breadcrumb only.
         console.warn('Voice import failed:', err);
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [onImport]);
+    if (anySucceeded && capability.transcriptRequired) setTranscript('');
+  }, [onImport, transcriptMissing, capability.transcriptRequired, transcript]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
@@ -163,7 +190,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   }, [onDelete, t]);
 
   const startRecording = useCallback(async () => {
-    if (!onRecord || !navigator.mediaDevices?.getUserMedia) return;
+    if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const ctx = new AudioContext();
@@ -180,7 +207,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     } catch (err) {
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord]);
+  }, [onRecord, transcriptMissing]);
 
   const stopRecording = useCallback(async () => {
     const rec = recRef.current;
@@ -198,9 +225,17 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     const clip = new Float32Array(total);
     let offset = 0;
     for (const c of chunks) { clip.set(c, offset); offset += c.length; }
-    try { await onRecord(clip, sampleRate); }
-    catch (err) { console.warn('Recording handler failed:', err); }
-  }, [onRecord]);
+    try {
+      // Same call-signature rule as handleFiles: only widen to the 3-arg form
+      // when the capability requires a transcript.
+      if (capability.transcriptRequired) {
+        await onRecord(clip, sampleRate, transcript.trim());
+        setTranscript('');
+      } else {
+        await onRecord(clip, sampleRate);
+      }
+    } catch (err) { console.warn('Recording handler failed:', err); }
+  }, [onRecord, capability.transcriptRequired, transcript]);
 
   const renderRow = (v: VoiceEntry) => {
     const isSelected = v.id === selectedId;
@@ -302,10 +337,29 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   // presentations so the dropdown path stays in sync with the list path.
   const importToolbar = (
     <div className="voice-library-manage-toolbar">
+      {capability.transcriptRequired && (
+        <div className="voice-transcript-field">
+          <label htmlFor={transcriptInputId} className="voice-transcript-label">
+            {t('voiceLibrary.transcript', 'Transcript')}
+          </label>
+          <input
+            id={transcriptInputId}
+            type="text"
+            className="voice-transcript-input"
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder={t('voiceLibrary.transcriptPlaceholder', 'Type exactly what the clip says…')}
+          />
+          <span className="voice-transcript-hint">
+            {t('voiceLibrary.transcriptHint', 'Must match the words spoken in the clip.')}
+          </span>
+        </div>
+      )}
       {canUpload && (
         <button
           type="button"
           className="voice-import-btn"
+          disabled={transcriptMissing}
           onClick={() => fileInputRef.current?.click()}
         >
           <Plus size={14} />
@@ -316,6 +370,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         <button
           type="button"
           className="voice-import-btn"
+          // Never disable while a recording is in progress — the button also
+          // serves as "Stop recording" and clearing the transcript field
+          // mid-capture must not trap the user in an unstoppable recording.
+          disabled={!isRecording && transcriptMissing}
           onClick={() => (isRecording ? void stopRecording() : void startRecording())}
         >
           <Mic size={14} />

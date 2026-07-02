@@ -114,11 +114,14 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     return t('voiceLibrary.decodeFailed', "Could not read that audio file — try a WAV, MP3, or other common format.");
   }, [clipErrorMessage, t]);
 
-  const handleImport = useCallback(async (file: File) => {
+  const handleImport = useCallback(async (file: File, transcript?: string) => {
     if (!store) return;
     setCaptureError(null);
     try {
-      await store.onImport(file);
+      // Only forward a transcript arg when the caller actually supplied one,
+      // so non-transcript models' store.onImport(file) calls stay untouched.
+      if (transcript !== undefined) await store.onImport(file, transcript);
+      else await store.onImport(file);
       reloadCustomVoices();
       onCustomChanged();
     } catch (err) {
@@ -126,11 +129,12 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     }
   }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
 
-  const handleRecord = useCallback(async (clip: Float32Array, sampleRate: number) => {
+  const handleRecord = useCallback(async (clip: Float32Array, sampleRate: number, transcript?: string) => {
     if (!store?.onRecord) return;
     setCaptureError(null);
     try {
-      await store.onRecord(clip, sampleRate);
+      if (transcript !== undefined) await store.onRecord(clip, sampleRate, transcript);
+      else await store.onRecord(clip, sampleRate);
       reloadCustomVoices();
       onCustomChanged();
     } catch (err) {
@@ -169,14 +173,22 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       ...curated.map((v) => toBuiltin(v, true)),
       ...rest.map((v) => toBuiltin(v, false)),
     ];
-    const customEntries: VoiceEntry[] = customVoices.map((v) => ({
+    // Models requiring an in-context-learning transcript (Task 10's
+    // `transcriptRequired`) can only clone from clips that carry one — a clip
+    // recorded/imported before the model required transcripts (or under a
+    // different model) would otherwise silently fail to clone. Hide it from
+    // the pickable list rather than let it fail at apply time.
+    const eligibleCustomVoices = capability.transcriptRequired
+      ? customVoices.filter((v) => v.hasTranscript)
+      : customVoices;
+    const customEntries: VoiceEntry[] = eligibleCustomVoices.map((v) => ({
       id: `custom:${v.id}`,
       label: v.name,
       group: 'custom',
       removable: true,
     }));
     return [...builtinEntries, ...customEntries];
-  }, [builtinVoices, customVoices, targetLanguage]);
+  }, [builtinVoices, customVoices, targetLanguage, capability.transcriptRequired]);
 
   if (capability.builtin === 'none' && capability.custom === 'none') return null;
 
@@ -198,7 +210,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
-  const libraryCapability = store?.capability ?? DEFAULT_LIBRARY_CAPABILITY;
+  // Only widen the capability object when the model actually requires a
+  // transcript — other models' store.capability objects (MOSS, Supertonic,
+  // WASM local-inference) pass through unchanged so VoiceLibrarySection's
+  // behavior for them stays byte-identical.
+  const libraryCapability: VoiceLibraryCapability = capability.transcriptRequired
+    ? { ...(store?.capability ?? DEFAULT_LIBRARY_CAPABILITY), transcriptRequired: true }
+    : (store?.capability ?? DEFAULT_LIBRARY_CAPABILITY);
 
   return (
     <>
