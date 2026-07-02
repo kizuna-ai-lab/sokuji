@@ -1030,9 +1030,7 @@ def test_models_catalog_carries_size_bytes_per_model():
     tts = _catalog("tts")
     assert asr["sense-voice"]["sizeBytes"] > 0
     assert tts["csukuangfj/vits-piper-en_US-amy-low"]["sizeBytes"] == 81105784
-    # Unknown-size models report 0 (not absent), so the renderer can tell
-    # "no badge yet" from "model not found".
-    assert tts["csukuangfj/vits-icefall-zh-aishell3"]["sizeBytes"] == 0
+    assert tts["csukuangfj/vits-zh-aishell3"]["sizeBytes"] == 123663994
     amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
     assert amy["clones"] is False and amy["numSpeakers"] == 1
     assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"

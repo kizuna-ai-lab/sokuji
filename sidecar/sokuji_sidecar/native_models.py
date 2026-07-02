@@ -48,6 +48,11 @@ def _base_specs(model_id):
             # The Supertone HF repo ships ~14MB of audio_samples/*.wav + img/*.png
             # (demo assets) that the runtime never loads.
             spec["ignore"] = ["audio_samples/*", "img/*"]
+        if model_id == "csukuangfj/vits-zh-aishell3":
+            # Skip the torch checkpoint (478MB), the text-normalization FST
+            # archive (181MB, rule_fsts is not wired in SherpaTtsBackend) and
+            # the int8 duplicate (the backend must find exactly ONE .onnx).
+            spec["ignore"] = ["G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
         return spec
     if not model_id:
         return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}

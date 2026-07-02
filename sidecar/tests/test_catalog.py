@@ -305,8 +305,9 @@ def test_size_bytes_regression_values():
     # must never silently regress.
     assert catalog.asr_model("sense-voice").size_bytes == 944624033
     assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
-    # The one id absent from the old dict keeps the field's default (unknown).
-    assert catalog.tts_model("csukuangfj/vits-icefall-zh-aishell3").size_bytes == 0
+    # aishell3 repoints to the existing HF repo with its measured kept-size
+    # (the old vits-icefall id 404'd on HF and was never downloadable).
+    assert catalog.tts_model("csukuangfj/vits-zh-aishell3").size_bytes == 123663994
 
 
 def test_with_fp8_preserves_size_bytes():
@@ -320,7 +321,7 @@ def test_voice_capability_map():
     cap = catalog.voice_capability
     assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
     assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "style"}
-    assert cap(catalog.tts_model("csukuangfj/vits-icefall-zh-aishell3")) == {"builtin": "range", "custom": "none"}
+    assert cap(catalog.tts_model("csukuangfj/vits-zh-aishell3")) == {"builtin": "range", "custom": "none"}
     assert cap(catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low")) == {"builtin": "none", "custom": "none"}
 
 

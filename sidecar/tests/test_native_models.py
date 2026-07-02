@@ -519,3 +519,10 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
 def test_qwen3_download_specs_point_at_per_size_repos():
     assert "qwen3-tts-0.6b-onnx" in native_models.download_specs("qwen3-tts-0.6b")["repos"][0]
     assert "qwen3-tts-1.7b-onnx" in native_models.download_specs("qwen3-tts-1.7b")["repos"][0]
+
+
+def test_aishell3_download_ignores_unused_large_files():
+    spec = native_models.download_specs("csukuangfj/vits-zh-aishell3")
+    assert spec["repos"] == ["csukuangfj/vits-zh-aishell3"]
+    for pat in ("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"):
+        assert pat in spec.get("ignore", [])

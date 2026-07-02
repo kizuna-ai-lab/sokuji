@@ -327,8 +327,13 @@ TTS_MODELS: list[TtsModel] = [
                     "csukuangfj/vits-piper-ru_RU-dmitri-medium", 28, 22050, size_bytes=81203283),
     _sherpa_tts_row("csukuangfj/vits-piper-zh_CN-huayan-medium", "Huayan", ("zh",),
                     "csukuangfj/vits-piper-zh_CN-huayan-medium", 29, 22050, size_bytes=81204688),
-    _sherpa_tts_row("csukuangfj/vits-icefall-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
-                    "csukuangfj/vits-icefall-zh-aishell3", 30, 16000, num_speakers=174),
+    # NOTE: the previous id (csukuangfj/vits-icefall-zh-aishell3) 404s on HF —
+    # this row was never downloadable. csukuangfj/vits-zh-aishell3 is the live
+    # repo with the sherpa-ready flat layout (onnx + tokens.txt + lexicon.txt);
+    # size is the kept subset (download ignores the torch ckpt/rule.far/int8).
+    _sherpa_tts_row("csukuangfj/vits-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
+                    "csukuangfj/vits-zh-aishell3", 30, 16000, num_speakers=174,
+                    size_bytes=123663994),
 ]
 
 
