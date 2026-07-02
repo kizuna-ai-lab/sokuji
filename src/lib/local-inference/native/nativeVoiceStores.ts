@@ -22,18 +22,25 @@ import {
 } from '../voiceStorage';
 import type { VoiceCustom } from './nativeCatalog';
 
-export interface NativeCustomVoice { id: number; name: string; }
+export interface NativeCustomVoice {
+  id: number;
+  name: string;
+  /** Whether this voice carries a reference transcript. Only ever set by the
+   *  clip store (`true`/`false`); the style store leaves it undefined since
+   *  Supertonic style cards have no notion of a transcript. */
+  hasTranscript?: boolean;
+}
 
 export type VoiceApplyPayload =
-  | { kind: 'clip'; audio: Float32Array; sampleRate: number }
+  | { kind: 'clip'; audio: Float32Array; sampleRate: number; transcript?: string }
   | { kind: 'style'; styleTtl: { dims: number[]; data: number[] }; styleDp: { dims: number[]; data: number[] } };
 
 export interface NativeVoiceStore {
   kind: 'clip' | 'style';
   capability: VoiceLibraryCapability;
   list(): Promise<NativeCustomVoice[]>;
-  onImport(file: File): Promise<void>;
-  onRecord?(clip: Float32Array, sampleRate: number): Promise<void>;
+  onImport(file: File, transcript?: string): Promise<void>;
+  onRecord?(clip: Float32Array, sampleRate: number, transcript?: string): Promise<void>;
   rename(id: number, name: string): Promise<void>;
   delete(id: number): Promise<void>;
   resolveApply(id: number): Promise<VoiceApplyPayload | null>;
@@ -104,10 +111,10 @@ class ClipVoiceStore implements NativeVoiceStore {
 
   async list(): Promise<NativeCustomVoice[]> {
     const voices = await listNativeVoices();
-    return voices.map((v) => ({ id: v.id, name: v.name }));
+    return voices.map((v) => ({ id: v.id, name: v.name, hasTranscript: !!v.transcript }));
   }
 
-  async onImport(file: File): Promise<void> {
+  async onImport(file: File, transcript?: string): Promise<void> {
     const arrayBuffer = await file.arrayBuffer();
     const ctx = new AudioContext();
     let buffer: AudioBuffer;
@@ -118,19 +125,19 @@ class ClipVoiceStore implements NativeVoiceStore {
     }
     const mono = downmixToMono(buffer);
     const name = file.name.replace(/\.[^./\\]+$/, '') || 'Imported voice';
-    await this.storeClip(name, mono, buffer.sampleRate);
+    await this.storeClip(name, mono, buffer.sampleRate, transcript);
   }
 
-  async onRecord(clip: Float32Array, sampleRate: number): Promise<void> {
-    await this.storeClip('Recorded voice', clip, sampleRate);
+  async onRecord(clip: Float32Array, sampleRate: number, transcript?: string): Promise<void> {
+    await this.storeClip('Recorded voice', clip, sampleRate, transcript);
   }
 
-  private async storeClip(name: string, clip: Float32Array, sampleRate: number): Promise<void> {
+  private async storeClip(name: string, clip: Float32Array, sampleRate: number, transcript?: string): Promise<void> {
     const reason = validateVoiceClip(clip, sampleRate);
     if (reason) {
       throw new VoiceCaptureError(reason, `Voice clip failed validation: ${reason}`);
     }
-    await addNativeVoice(name, clip, sampleRate);
+    await addNativeVoice(name, clip, sampleRate, transcript);
   }
 
   async rename(id: number, name: string): Promise<void> {
@@ -144,7 +151,9 @@ class ClipVoiceStore implements NativeVoiceStore {
   async resolveApply(id: number): Promise<VoiceApplyPayload | null> {
     const stored = await getNativeVoice(id);
     if (!stored) return null;
-    return { kind: 'clip', audio: new Float32Array(stored.audio), sampleRate: stored.sampleRate };
+    return {
+      kind: 'clip', audio: new Float32Array(stored.audio), sampleRate: stored.sampleRate, transcript: stored.transcript,
+    };
   }
 }
 

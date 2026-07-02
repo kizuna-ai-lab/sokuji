@@ -17,6 +17,9 @@ export interface StoredNativeVoice {
   audio: ArrayBuffer;
   sampleRate: number;
   createdAt: number;
+  /** Optional reference transcript for the clip (used by ASR-conditioned
+   *  voice cloning). Absent on voices recorded before this field existed. */
+  transcript?: string;
 }
 
 const STORE = 'native_voices';
@@ -39,12 +42,14 @@ export async function getNativeVoice(id: number): Promise<StoredNativeVoice | un
 }
 
 export async function addNativeVoice(
-  name: string, audio: Float32Array, sampleRate: number,
+  name: string, audio: Float32Array, sampleRate: number, transcript?: string,
 ): Promise<StoredNativeVoice> {
   const existing = await listNativeVoices();
   const finalName = uniquifyName(name.trim() || 'Voice', existing.map((v) => v.name));
   const buf = audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength);
-  const record: Omit<StoredNativeVoice, 'id'> = { name: finalName, audio: buf, sampleRate, createdAt: Date.now() };
+  const record: Omit<StoredNativeVoice, 'id'> = {
+    name: finalName, audio: buf, sampleRate, createdAt: Date.now(), ...(transcript ? { transcript } : {}),
+  };
   const conn = await getDb();
   const id = (await conn.add(STORE, record)) as number;
   return { id, ...record };
