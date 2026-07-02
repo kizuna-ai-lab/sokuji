@@ -55,7 +55,7 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
 
 export type VoiceBuiltin = 'none' | 'range' | 'named';
 export type VoiceCustom = 'none' | 'clip' | 'style';
-export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; }
+export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; transcriptRequired?: boolean; }
 
 /** A TTS model's voice capability: which built-in voice control it exposes
  *  (none/range/named) and which custom-voice mechanism it supports

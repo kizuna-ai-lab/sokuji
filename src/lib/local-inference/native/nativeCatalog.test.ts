@@ -443,6 +443,11 @@ describe('nativeCatalog', () => {
     expect(voiceCapability({} as any)).toEqual({ builtin: 'none', custom: 'none' });
   });
 
+  it('voiceCapability passes transcriptRequired through', () => {
+    expect(voiceCapability({ voice: { builtin: 'none', custom: 'clip', transcriptRequired: true } } as any))
+      .toEqual({ builtin: 'none', custom: 'clip', transcriptRequired: true });
+  });
+
   it('nativeTranslationCards: jap alias resolves en→ja Opus-MT card', () => {
     // Helsinki Opus rows emit "jap" as the target language token; the alias
     // jap→ja must make the card visible for the en→ja pair.

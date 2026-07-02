@@ -176,6 +176,24 @@ describe('NativeTtsClient', () => {
     expect(sv.sid).toBe(5);
   });
 
+  it('setReferenceVoice includes refText when provided', async () => {
+    const c = new NativeTtsClient();
+    await c.init('qwen3-tts-0.6b');
+    await c.setReferenceVoice(new Float32Array([0.1]), 24000, 'hello world');
+    const sent = FakeWS.last.sent.filter((s) => typeof s === 'string').map((s) => JSON.parse(s));
+    const msg = sent.find((m) => m.type === 'set_voice' && m.sampleRate === 24000);
+    expect(msg.refText).toBe('hello world');
+  });
+
+  it('setReferenceVoice omits refText when not provided (MOSS back-compat)', async () => {
+    const c = new NativeTtsClient();
+    await c.init('moss-tts-nano');
+    await c.setReferenceVoice(new Float32Array([0.1]), 24000);
+    const sent = FakeWS.last.sent.filter((s) => typeof s === 'string').map((s) => JSON.parse(s));
+    const msg = sent.find((m) => m.type === 'set_voice' && m.sampleRate === 24000);
+    expect(msg).not.toHaveProperty('refText');
+  });
+
   it('setStyleVoice sends a binary frame then a styleVoice control message', async () => {
     // Reuses the existing FakeWS.sent capture (holds both raw ArrayBuffer sends and JSON strings);
     // derive `bins` (binary frames) and `sent` (parsed control messages) from it, as other tests do.

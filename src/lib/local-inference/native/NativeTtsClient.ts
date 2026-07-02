@@ -119,9 +119,9 @@ export class NativeTtsClient {
     await this.send({ type: 'set_voice', sid });
   }
 
-  async setReferenceVoice(audio: Float32Array, sampleRate: number): Promise<void> {
+  async setReferenceVoice(audio: Float32Array, sampleRate: number, refText?: string): Promise<void> {
     this.ws!.send(audio.buffer);                          // binary frame precedes the control message
-    await this.send({ type: 'set_voice', sampleRate });
+    await this.send({ type: 'set_voice', sampleRate, ...(refText ? { refText } : {}) });
   }
 
   /** Select a style-cloned voice (e.g. Supertonic) from precomputed style-conditioning vectors. */
