@@ -303,6 +303,7 @@ def test_download_glob_excludes_nested_dirs(monkeypatch):
     """A directory glob (train/*) keeps nested training files out of the fetch —
     the exact-match filter this replaced would have downloaded them."""
     import huggingface_hub
+    from sokuji_sidecar import llama_runtime as rt
     fetched = []
 
     class _Api:
@@ -315,6 +316,10 @@ def test_download_glob_excludes_nested_dirs(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
                         lambda repo, fname: fetched.append(fname))
+    # hy-mt2-1.8b is a llamacpp card — pretend every required flavor is already
+    # installed so this file-glob test doesn't also exercise (or, worse,
+    # actually hit the network for) the llama-binary install path.
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
 
     async def send(_m):
         pass
@@ -404,6 +409,7 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     """download(model, send, repo=...) must fetch files from the CHOSEN variant repo,
     not the model's default — the end-to-end wiring that makes the FP8 quant load."""
     import huggingface_hub
+    from sokuji_sidecar import llama_runtime as rt
     fetched = []
 
     class _Api:
@@ -413,6 +419,9 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
                         lambda repo, fname: fetched.append((repo, fname)))
+    # hy-mt2-7b is a llamacpp card — pretend every required flavor is already
+    # installed (see test_download_glob_excludes_nested_dirs for why).
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
 
     async def send(_m):
         pass
@@ -608,7 +617,42 @@ def test_needs_llama_binary():
     assert not nm._needs_llama_binary("sense-voice")
 
 
+def test_download_installs_cpu_flavor_alongside_default(monkeypatch):
+    """Regression: download() used to install only llama_runtime.default_flavor()
+    (e.g. 'cuda' on an NVIDIA box), leaving the tiny (~15-17MB) 'cpu' flavor
+    never fetched. Picking device=cpu in the UI, or the gpu->cpu fallback
+    chain's 'always available' floor, then hard-failed at load time even
+    though the GGUF was fully cached. Both required flavors must be installed,
+    each counted as its own progress unit."""
+    import huggingface_hub
+    from sokuji_sidecar import llama_runtime as rt
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda repo, fname: None)
+    monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)  # neither flavor installed
+    installed = []
+    monkeypatch.setattr(rt, "ensure_binary", lambda flavor, progress=None: installed.append(flavor))
+
+    sent = []
+
+    async def send(m):
+        sent.append(m)
+
+    # translategemma-4b is a real llamacpp catalog row (files-shaped spec: one
+    # pinned GGUF file, no repo listing / VAD needed).
+    status = asyncio.run(nm.download("translategemma-4b", send))
+    assert status == "ready"
+    assert installed == ["cuda", "cpu"]
+    assert sent[-1]["total"] == 3   # 1 gguf file + 2 llama-flavor install units
+    assert sent[-1]["downloaded"] == 3
+
+
 def test_status_absent_without_binary(monkeypatch):
+    """model_status needs EVERY required llama flavor installed (the machine's
+    default flavor AND the tiny cpu floor, see llama_runtime.required_flavors)
+    — a card whose GGUF is fully cached but is missing even one flavor must
+    still read 'absent', since that flavor's device (e.g. device=cpu in the
+    UI) would otherwise hard-fail to load."""
     from sokuji_sidecar import llama_runtime as rt
     import huggingface_hub
     # files present (both the legacy repos-shaped check and the files-shaped
@@ -616,10 +660,14 @@ def test_status_absent_without_binary(monkeypatch):
     monkeypatch.setattr(nm, "_repos_cached", lambda specs: True)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
                         lambda repo, fname, local_files_only=True: "/cache/" + fname)
-    # ...but no binary
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
     monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
+    # neither flavor present
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
     assert nm.model_status("qwen2.5-0.5b") == "absent"
+    # only the default (cuda) flavor present, cpu still missing -> still absent
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama" if flavor == "cuda" else None)
+    assert nm.model_status("qwen2.5-0.5b") == "absent"
+    # both required flavors present -> ready
     monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
     assert nm.model_status("qwen2.5-0.5b") == "ready"
 

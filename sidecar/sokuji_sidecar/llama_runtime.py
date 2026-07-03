@@ -96,6 +96,19 @@ def default_flavor() -> str:
     return "cpu"
 
 
+def required_flavors() -> list[str]:
+    """Every llama-server flavor a llamacpp_* translate card needs installed:
+    this machine's best flavor (drives a normal load) PLUS the tiny (~15-17MB)
+    'cpu' flavor — the always-available fallback tier in resolve_translate's
+    gpu-then-cpu plan AND the explicit device=cpu UI override. Without the cpu
+    flavor also installed, picking device=cpu (or falling back to it) hits
+    binary_path("cpu") is None and _LlamaCppBase.load() raises, even though
+    every GGUF file is cached. De-duplicated: a CPU-only machine
+    (default_flavor() == 'cpu') needs only the one flavor."""
+    default = default_flavor()
+    return [default] if default == "cpu" else [default, "cpu"]
+
+
 class BinaryFetchError(Exception):
     """Binary download/verification failed (network, 404, checksum)."""
 

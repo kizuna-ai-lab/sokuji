@@ -204,8 +204,11 @@ def model_status(model_id, repo=None):
     download_specs), so status reflects the variant the card actually downloads.
 
     llamacpp_* translate cards additionally need the shared llama-server binary
-    installed (see download()); without it the card can't load even with every
-    GGUF file cached, so status must report 'absent' until the binary lands too."""
+    installed for EVERY required flavor (see download() / llama_runtime.
+    required_flavors) — the machine's default flavor AND the tiny cpu floor;
+    without both, the card can't load on every device the UI exposes even
+    with every GGUF file cached, so status must report 'absent' until all
+    required flavors land."""
     specs = download_specs(model_id, repo)
     try:
         if not _repos_cached(specs):
@@ -219,7 +222,8 @@ def model_status(model_id, repo=None):
                 return "absent"
         if _needs_llama_binary(model_id):
             from . import llama_runtime
-            if llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
+            if any(llama_runtime.binary_path(f) is None
+                   for f in llama_runtime.required_flavors()):
                 return "absent"
         return "ready"
     except Exception:
@@ -316,10 +320,18 @@ async def download(model_id, send, should_cancel=None, repo=None):
         raise RuntimeError(
             f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
     total = len(files) + len(specs["urls"])
+    # llamacpp cards need EVERY required llama-server flavor installed (the
+    # machine's default flavor for a normal load, plus the tiny cpu floor for
+    # device=cpu / the gpu->cpu fallback — see llama_runtime.required_flavors).
+    # Each missing flavor counts as one more download unit up front so the
+    # renderer's progress bar covers it; a flavor an earlier download already
+    # installed is a no-op here.
+    llama_flavors = []
     if _needs_llama_binary(model_id):
         from . import llama_runtime
-        if llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
-            total += 1
+        llama_flavors = [f for f in llama_runtime.required_flavors()
+                         if llama_runtime.binary_path(f) is None]
+        total += len(llama_flavors)
     done = 0
     for r, fname in files:
         if cancelled():
@@ -333,15 +345,11 @@ async def download(model_id, send, should_cancel=None, repo=None):
         await asyncio.to_thread(_download_url, url)
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
-    # llamacpp cards additionally need the llama runtime binary — treat it as
-    # one more download unit so the renderer's progress bar covers it. Shared
-    # across models and versions-scoped, so it downloads at most once.
-    needs_bin = _needs_llama_binary(model_id)
-    from . import llama_runtime
-    if needs_bin and llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
+    for flavor in llama_flavors:
         if cancelled():
             return "cancelled"
-        await asyncio.to_thread(llama_runtime.ensure_binary, llama_runtime.default_flavor())
+        from . import llama_runtime
+        await asyncio.to_thread(llama_runtime.ensure_binary, flavor)
         done += 1
         await send({"type": "model_progress", "model": model_id,
                     "downloaded": done, "total": total})
