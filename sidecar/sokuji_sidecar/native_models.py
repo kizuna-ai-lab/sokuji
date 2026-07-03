@@ -24,7 +24,6 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
-QWEN_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
 SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
 FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
@@ -54,8 +53,13 @@ def _base_specs(model_id):
             # the int8 duplicate (the backend must find exactly ONE .onnx).
             spec["ignore"] = ["G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
         return spec
-    if not model_id:
-        return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
+    from .catalog import translate_model as _translate_model
+    _trm = _translate_model(model_id) if model_id else _translate_model("qwen2.5-0.5b")
+    if _trm is not None:
+        # Default-variant repo = first deployment (rank ordering puts the
+        # default quant first). A pinned variant arrives via the `repo`
+        # override in download_specs, exactly like the old FP8 flow.
+        return {"repos": [_trm.deployments[0].artifact], "urls": []}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
         return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
@@ -77,32 +81,6 @@ def _base_specs(model_id):
         # format, 8.86GB, unused by transformers) — skip the duplicate.
         return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
                 "ignore": ["consolidated.safetensors"]}
-    if model_id == "qwen2.5-0.5b":
-        # Honour SOKUJI_TRANSLATE_MODEL so download matches what the catalog/runtime loads.
-        return {"repos": [os.environ.get("SOKUJI_TRANSLATE_MODEL", QWEN_REPO)], "urls": []}
-    if model_id == "qwen3-0.6b":
-        return {"repos": ["Qwen/Qwen3-0.6B"], "urls": []}
-    if model_id == "qwen3.5-0.8b":
-        return {"repos": ["Qwen/Qwen3.5-0.8B"], "urls": []}
-    if model_id == "qwen3.5-2b":
-        return {"repos": ["Qwen/Qwen3.5-2B"], "urls": []}
-    if model_id == "translategemma-4b":
-        return {"repos": ["google/translategemma-4b-it"], "urls": []}
-    if model_id in ("hy-mt2-1.8b", "hy-mt2-7b"):
-        # Skip the training scripts (train/, deepspeed/llama-factory) and the
-        # README images (imgs/) — weights + tokenizer + config only.
-        repo = "tencent/Hy-MT2-1.8B" if model_id == "hy-mt2-1.8b" else "tencent/Hy-MT2-7B"
-        return {"repos": [repo], "urls": [], "ignore": ["train/*", "imgs/*"]}
-    if model_id in ("hy-mt15-1.8b", "hy-mt15-7b"):
-        # HY-MT1.5 repos carry only weights + tokenizer + config (no train/imgs).
-        repo = "tencent/HY-MT1.5-1.8B" if model_id == "hy-mt15-1.8b" else "tencent/HY-MT1.5-7B"
-        return {"repos": [repo], "urls": []}
-    if model_id.startswith("opus-mt-"):
-        # Helsinki repos ship the SAME model in 4 frameworks; the opus_translate
-        # backend loads only pytorch_model.bin. Skip the TF/Rust/Flax weights
-        # (exact filenames), which are 50-80% of the repo (en-zh: 1446MB → 301MB).
-        return {"repos": [f"Helsinki-NLP/{model_id}"], "urls": [],
-                "ignore": ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]}
     return {"repos": [model_id], "urls": []}
 
 
@@ -123,6 +101,15 @@ def download_specs(model_id, repo=None):
     if _asr_model(model_id) is not None and VAD_URL not in spec["urls"]:
         spec = {**spec, "urls": [*spec["urls"], VAD_URL]}
     return spec
+
+
+def _needs_llama_binary(model_id) -> bool:
+    """True when `model_id` resolves to a catalog translate row served by a
+    llamacpp_* backend — those need the shared llama-server binary installed
+    alongside the GGUF weights (see download() / model_status())."""
+    from .catalog import translate_model as _translate_model
+    tm = _translate_model(model_id) if model_id else None
+    return tm is not None and tm.deployments[0].backend.startswith("llamacpp_")
 
 
 _SILERO_VAD_BYTES = 643854  # silero_vad.onnx (k2-fsa release)
@@ -155,30 +142,45 @@ def model_size(model_id):
     return total
 
 
+def _repos_cached(specs) -> bool:
+    """True if every repo in `specs["repos"]` is cached locally AND complete."""
+    import glob
+    from huggingface_hub import snapshot_download
+    from huggingface_hub.constants import HF_HUB_CACHE
+    for r in specs["repos"]:
+        snapshot_download(repo_id=r, local_files_only=True)
+        # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
+        # it can't know the repo's full file list, so an interrupted download (e.g. a session
+        # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
+        # leaves a '<sha>.<etag>.incomplete' in blobs/. But a *stale* leftover can coexist with
+        # the finalized '<sha>' blob (a later resume re-fetched under a different temp name), so
+        # only treat it as not-ready when the finalized blob is actually missing.
+        blobs = os.path.join(HF_HUB_CACHE, f"models--{r.replace('/', '--')}", "blobs")
+        for inc in glob.glob(os.path.join(blobs, "*.incomplete")):
+            if not os.path.exists(os.path.join(blobs, os.path.basename(inc).split(".")[0])):
+                return False
+    return True
+
+
 def model_status(model_id, repo=None):
     """'ready' only if every repo + url is cached locally AND complete, else 'absent'.
 
     `repo` overrides the model's default repo with a chosen variant's repo (mirrors
-    download_specs), so status reflects the variant the card actually downloads."""
-    import glob
-    from huggingface_hub import snapshot_download
-    from huggingface_hub.constants import HF_HUB_CACHE
+    download_specs), so status reflects the variant the card actually downloads.
+
+    llamacpp_* translate cards additionally need the shared llama-server binary
+    installed (see download()); without it the card can't load even with every
+    GGUF file cached, so status must report 'absent' until the binary lands too."""
     specs = download_specs(model_id, repo)
     try:
-        for r in specs["repos"]:
-            snapshot_download(repo_id=r, local_files_only=True)
-            # snapshot_download(local_files_only=True) is satisfied by a PARTIAL cache — offline
-            # it can't know the repo's full file list, so an interrupted download (e.g. a session
-            # started mid-fetch) reads back as 'ready' and then fails to load. A half-fetched blob
-            # leaves a '<sha>.<etag>.incomplete' in blobs/. But a *stale* leftover can coexist with
-            # the finalized '<sha>' blob (a later resume re-fetched under a different temp name), so
-            # only treat it as not-ready when the finalized blob is actually missing.
-            blobs = os.path.join(HF_HUB_CACHE, f"models--{r.replace('/', '--')}", "blobs")
-            for inc in glob.glob(os.path.join(blobs, "*.incomplete")):
-                if not os.path.exists(os.path.join(blobs, os.path.basename(inc).split(".")[0])):
-                    return "absent"
+        if not _repos_cached(specs):
+            return "absent"
         for _url in specs["urls"]:
             if not os.path.exists(_vad_cache_path()):
+                return "absent"
+        if _needs_llama_binary(model_id):
+            from . import llama_runtime
+            if llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
                 return "absent"
         return "ready"
     except Exception:
@@ -200,6 +202,11 @@ def delete_model(model_id, repo=None):
     The shared silero VAD (sokuji-vad/) is deliberately NOT removed: every ASR
     model depends on it, so deleting one model must not strand the others
     offline. It's a 643KB singleton — cheaper to keep than to refcount.
+
+    The llama-server binary (see llama_runtime) is likewise NOT removed here:
+    it's shared by every llamacpp_* translate card, so deleting one card must
+    not strand the others without a runtime. It's small next to the GGUF
+    weights — cheaper to keep installed than to refcount across cards.
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id, repo)
@@ -260,6 +267,10 @@ async def download(model_id, send, should_cancel=None, repo=None):
         raise RuntimeError(
             f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
     total = len(files) + len(specs["urls"])
+    if _needs_llama_binary(model_id):
+        from . import llama_runtime
+        if llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
+            total += 1
     done = 0
     for r, fname in files:
         if cancelled():
@@ -273,6 +284,18 @@ async def download(model_id, send, should_cancel=None, repo=None):
         await asyncio.to_thread(_download_url, url)
         done += 1
         await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
+    # llamacpp cards additionally need the llama runtime binary — treat it as
+    # one more download unit so the renderer's progress bar covers it. Shared
+    # across models and versions-scoped, so it downloads at most once.
+    needs_bin = _needs_llama_binary(model_id)
+    from . import llama_runtime
+    if needs_bin and llama_runtime.binary_path(llama_runtime.default_flavor()) is None:
+        if cancelled():
+            return "cancelled"
+        await asyncio.to_thread(llama_runtime.ensure_binary, llama_runtime.default_flavor())
+        done += 1
+        await send({"type": "model_progress", "model": model_id,
+                    "downloaded": done, "total": total})
     return "ready"
 
 

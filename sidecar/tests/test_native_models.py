@@ -6,13 +6,13 @@ from sokuji_sidecar import server
 
 
 def test_download_specs_mapping(monkeypatch):
-    # download_specs honours SOKUJI_ASR_REPO / SOKUJI_TRANSLATE_MODEL overrides; clear
-    # them so the default-repo assertions below are deterministic in any environment.
+    # download_specs honours the SOKUJI_ASR_REPO override; clear it so the
+    # default-repo assertions below are deterministic in any environment.
     monkeypatch.delenv('SOKUJI_ASR_REPO', raising=False)
-    monkeypatch.delenv('SOKUJI_TRANSLATE_MODEL', raising=False)
+    from sokuji_sidecar import catalog
     # Empty id is the implicit default → Qwen 2.5 0.5B; the explicit id maps the same.
-    assert nm.download_specs('')['repos'] == [nm.QWEN_REPO]
-    assert nm.download_specs('qwen2.5-0.5b')['repos'] == [nm.QWEN_REPO]
+    assert nm.download_specs('')['repos'] == [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
     # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
     assert nm.download_specs('qwen')['repos'] == ['qwen']
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
@@ -63,12 +63,15 @@ def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
     assert vad.exists()  # VAD survives the delete
 
 
-def test_download_specs_qwen25_honours_translate_model_env(monkeypatch):
-    # SOKUJI_TRANSLATE_MODEL overrides the default Qwen 2.5 repo for BOTH the implicit
-    # default ('') and the explicit id, so download matches what the catalog/runtime loads.
+def test_download_specs_qwen25_ignores_stale_translate_model_env(monkeypatch):
+    # Translate specs are now catalog-driven (mirrored GGUF repos), not upstream HF
+    # ids — SOKUJI_TRANSLATE_MODEL no longer has any effect on the resolved repo,
+    # for BOTH the implicit default ('') and the explicit id.
+    from sokuji_sidecar import catalog
     monkeypatch.setenv('SOKUJI_TRANSLATE_MODEL', 'acme/custom-translate')
-    assert nm.download_specs('')['repos'] == ['acme/custom-translate']
-    assert nm.download_specs('qwen2.5-0.5b')['repos'] == ['acme/custom-translate']
+    expected = [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
+    assert nm.download_specs('')['repos'] == expected
+    assert nm.download_specs('qwen2.5-0.5b')['repos'] == expected
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
@@ -251,11 +254,12 @@ def test_existing_specs_have_no_ignore_key():
     assert "ignore" not in nm.download_specs("qwen3-asr-1.7b")
 
 
-def test_hy_mt2_ignores_train_and_imgs_dirs():
-    # HY-MT2 repos ship training scripts (train/) + README images (imgs/) the
-    # CausalLM never loads; both are directory globs.
+def test_hy_mt2_specs_have_no_ignore_key():
+    # HY-MT2 now resolves to the mirrored single-file GGUF repo (catalog-driven),
+    # not the upstream tencent/ checkpoint that shipped train/ + imgs/ cruft —
+    # the mirror carries only the GGUF, so there's nothing left to ignore.
     for mid in ("hy-mt2-1.8b", "hy-mt2-7b"):
-        assert nm.download_specs(mid)["ignore"] == ["train/*", "imgs/*"]
+        assert "ignore" not in nm.download_specs(mid)
 
 
 def test_ignored_filter_is_glob_aware():
@@ -352,21 +356,24 @@ def test_download_specs_fun_asr_mlt_nano(monkeypatch):
     assert spec['urls'] == [nm.VAD_URL]
 def test_download_specs_qwen_translate_repos():
     from sokuji_sidecar import native_models as nm
-    assert nm.download_specs("qwen2.5-0.5b")["repos"] == ["Qwen/Qwen2.5-0.5B-Instruct"]
-    assert nm.download_specs("qwen3-0.6b")["repos"] == ["Qwen/Qwen3-0.6B"]
-    assert nm.download_specs("qwen3.5-0.8b")["repos"] == ["Qwen/Qwen3.5-0.8B"]
-    assert nm.download_specs("qwen3.5-2b")["repos"] == ["Qwen/Qwen3.5-2B"]
+    from sokuji_sidecar import catalog
+    assert nm.download_specs("qwen2.5-0.5b")["repos"] == [catalog._gguf_repo("qwen2.5-0.5b", "q8_0")]
+    assert nm.download_specs("qwen3-0.6b")["repos"] == [catalog._gguf_repo("qwen3-0.6b", "q8_0")]
+    assert nm.download_specs("qwen3.5-0.8b")["repos"] == [catalog._gguf_repo("qwen3.5-0.8b", "q4_k_m")]
+    assert nm.download_specs("qwen3.5-2b")["repos"] == [catalog._gguf_repo("qwen3.5-2b", "q4_k_m")]
 
 
 def test_download_specs_new_translate_models():
     from sokuji_sidecar import native_models as nm
-    assert nm.download_specs("translategemma-4b")["repos"] == ["google/translategemma-4b-it"]
+    from sokuji_sidecar import catalog
+    assert nm.download_specs("translategemma-4b")["repos"] == [
+        catalog._gguf_repo("translategemma-4b", "q4_k_m")]
     h18 = nm.download_specs("hy-mt2-1.8b")
-    assert h18["repos"] == ["tencent/Hy-MT2-1.8B"]
-    assert h18["ignore"] == ["train/*", "imgs/*"]
+    assert h18["repos"] == [catalog._gguf_repo("hy-mt2-1.8b", "q4_k_m")]
+    assert "ignore" not in h18   # mirrored GGUF repo carries only the weight file
     h7 = nm.download_specs("hy-mt2-7b")
-    assert h7["repos"] == ["tencent/Hy-MT2-7B"]
-    assert h7["ignore"] == ["train/*", "imgs/*"]
+    assert h7["repos"] == [catalog._gguf_repo("hy-mt2-7b", "q4_k_m")]
+    assert "ignore" not in h7
 
 
 def test_download_specs_variant_repo_override():
@@ -426,22 +433,26 @@ def test_h_model_download_passes_repo_through(monkeypatch):
     assert captured["repo"] == "tencent/Hy-MT2-7B-FP8"
 
 
-def test_download_specs_opus_maps_to_helsinki_repo():
+def test_download_specs_opus_maps_to_mirrored_repo():
     from sokuji_sidecar import native_models as nm
-    _ignore = ["tf_model.h5", "rust_model.ot", "flax_model.msgpack"]
+    from sokuji_sidecar import catalog
+    # Opus-MT now resolves to the mirrored ONNX repo (catalog-driven), which
+    # ships only the files the opus_onnx_translate backend needs — the
+    # upstream Helsinki repo's multi-framework weights are no longer fetched.
     assert nm.download_specs("opus-mt-zh-en") == {
-        "repos": ["Helsinki-NLP/opus-mt-zh-en"], "urls": [], "ignore": _ignore}
+        "repos": [catalog._opus_repo("opus-mt-zh-en")], "urls": []}
     assert nm.download_specs("opus-mt-en-jap") == {
-        "repos": ["Helsinki-NLP/opus-mt-en-jap"], "urls": [], "ignore": _ignore}
-    # The non-PyTorch framework weights are excluded from the download file list.
-    for f in _ignore:
-        assert f in nm.download_specs("opus-mt-zh-en")["ignore"]
+        "repos": [catalog._opus_repo("opus-mt-en-jap")], "urls": []}
+    assert "ignore" not in nm.download_specs("opus-mt-zh-en")
 
 
 def test_download_specs_hymt15():
     from sokuji_sidecar import native_models as nm
-    assert nm.download_specs("hy-mt15-1.8b") == {"repos": ["tencent/HY-MT1.5-1.8B"], "urls": []}
-    assert nm.download_specs("hy-mt15-7b") == {"repos": ["tencent/HY-MT1.5-7B"], "urls": []}
+    from sokuji_sidecar import catalog
+    assert nm.download_specs("hy-mt15-1.8b") == {
+        "repos": [catalog._gguf_repo("hy-mt15-1.8b", "q4_k_m")], "urls": []}
+    assert nm.download_specs("hy-mt15-7b") == {
+        "repos": [catalog._gguf_repo("hy-mt15-7b", "q4_k_m")], "urls": []}
     # clean repos → no ignore key (both sizes)
     assert "ignore" not in nm.download_specs("hy-mt15-1.8b")
     assert "ignore" not in nm.download_specs("hy-mt15-7b")
@@ -526,3 +537,42 @@ def test_aishell3_download_ignores_unused_large_files():
     assert spec["repos"] == ["csukuangfj/vits-zh-aishell3"]
     for pat in ("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"):
         assert pat in spec.get("ignore", [])
+
+
+import pytest
+
+from sokuji_sidecar import native_models as nm
+from sokuji_sidecar import catalog
+
+
+def test_translate_specs_come_from_catalog():
+    spec = nm.download_specs("translategemma-4b")
+    assert spec["repos"] == [catalog._gguf_repo("translategemma-4b", "q4_k_m")]
+    spec = nm.download_specs("qwen2.5-0.5b")
+    assert spec["repos"] == [catalog._gguf_repo("qwen2.5-0.5b", "q8_0")]
+    spec = nm.download_specs("opus-mt-ja-en")
+    assert spec["repos"] == [catalog._opus_repo("opus-mt-ja-en")]
+    assert "ignore" not in spec  # mirrors contain only needed files
+
+
+def test_variant_repo_override_still_wins():
+    repo = catalog._gguf_repo("hy-mt2-7b", "q8_0")
+    assert nm.download_specs("hy-mt2-7b", repo=repo)["repos"] == [repo]
+
+
+def test_needs_llama_binary():
+    assert nm._needs_llama_binary("translategemma-4b")
+    assert not nm._needs_llama_binary("opus-mt-ja-en")
+    assert not nm._needs_llama_binary("sense-voice")
+
+
+def test_status_absent_without_binary(monkeypatch):
+    from sokuji_sidecar import llama_runtime as rt
+    # files present...
+    monkeypatch.setattr(nm, "_repos_cached", lambda specs: True)
+    # ...but no binary
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
+    monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
+    assert nm.model_status("qwen2.5-0.5b") == "absent"
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
+    assert nm.model_status("qwen2.5-0.5b") == "ready"
