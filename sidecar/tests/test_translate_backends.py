@@ -356,3 +356,28 @@ def test_opus_translate_runs_seq2seq_and_ignores_prompt():
     assert model.generate.called
     # Marian is pair-baked: no chat template is ever applied.
     assert not tok.apply_chat_template.called
+
+
+class TestLlamaCppHunyuanGemma:
+    def test_hunyuan_single_user_message(self, llama_env):
+        b = backends.make_backend("llamacpp_hunyuan")
+        b.load(llama_env, "cpu", "q4_k_m")
+        b.translate("bonjour", "", "French", "English", True)
+        echo = b._last_reply["echo"]
+        msgs = echo["messages"]
+        assert len(msgs) == 1 and msgs[0]["role"] == "user"
+        assert "into English" in msgs[0]["content"]
+        assert "<transcript>bonjour</transcript>" in msgs[0]["content"]
+        assert "chat_template_kwargs" not in echo
+        b.unload()
+
+    def test_gemma_template_kwargs(self, llama_env):
+        b = backends.make_backend("llamacpp_gemma")
+        b.load(llama_env, "cpu", "q4_k_m")
+        b.translate("hello", "ignored-system-prompt", "English", "Japanese", False)
+        echo = b._last_reply["echo"]
+        assert echo["chat_template_kwargs"] == {
+            "source_lang_code": "en", "target_lang_code": "ja"}
+        assert echo["messages"] == [{"role": "user", "content": "hello"}]
+        assert echo["max_tokens"] == 256
+        b.unload()

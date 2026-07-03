@@ -115,6 +115,33 @@ class LlamaCppQwenBackend(_LlamaCppBase):
 
 
 @register_backend
+class LlamaCppHunyuanBackend(_LlamaCppBase):
+    NAME = "llamacpp_hunyuan"
+
+    def _payload(self, text, system_prompt, src, tgt, wrap):
+        instr = system_prompt or _hunyuan_prompt(tgt)
+        body = f"<transcript>{text}</transcript>" if wrap else text
+        return {"messages": [{"role": "user", "content": f"{instr}{body}"}],
+                "temperature": 0, "max_tokens": self.MAX_TOKENS}
+
+
+@register_backend
+class LlamaCppGemmaBackend(_LlamaCppBase):
+    NAME = "llamacpp_gemma"
+    MAX_TOKENS = 256
+
+    def _payload(self, text, system_prompt, src, tgt, wrap):
+        # TranslateGemma is steered by per-request language codes, not free-text
+        # instructions — system_prompt is not applicable to its template.
+        # llama-server injects the codes via chat_template_kwargs (PR #19052).
+        body = f"<transcript>{text}</transcript>" if wrap else text
+        return {"messages": [{"role": "user", "content": body}],
+                "chat_template_kwargs": {"source_lang_code": _gemma_code(src),
+                                         "target_lang_code": _gemma_code(tgt)},
+                "temperature": 0, "max_tokens": self.MAX_TOKENS}
+
+
+@register_backend
 class QwenTranslateBackend:
     NAME = "qwen_translate"
 
