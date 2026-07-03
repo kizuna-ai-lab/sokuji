@@ -10,9 +10,12 @@ import sys
 
 from huggingface_hub import snapshot_download
 
+from sokuji_sidecar.catalog import _gguf_repo
+
 POCKET_REPO = "KevinAHM/pocket-tts-web"
 POCKET_SUB = "onnx/english_2026-04"
-TRANSLATE = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+# Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (llamacpp_qwen backend).
+TRANSLATE = _gguf_repo("qwen2.5-0.5b", "q8_0")
 ASR_REPO = os.environ.get(
     "SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 # silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical

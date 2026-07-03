@@ -2,17 +2,14 @@
 contract but expose translate() instead of transcribe(). Registered into the
 shared backends registry on import.
 
-  qwen_translate     — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
-  qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
-  hunyuan_translate  — HY-MT2 / HY-MT1.5 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
-  gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
-  opus_translate     — MarianMT seq2seq, AutoModelForSeq2SeqLM (pair-baked direction).
-  opus_onnx_translate — Opus via ONNX Runtime, MarianOnnxSession.
-
-  llamacpp_qwen      — Qwen 2.5 / 3 / 3.5 GGUF served by a local llama-server
-                       child (/no_think for Qwen3, not Qwen3.5).
-
-All support CPU (float32) and GPU (bfloat16) via .to(device)."""
+  llamacpp_qwen       — Qwen 2.5 / 3 / 3.5 GGUF served by a local llama-server
+                        child (/no_think for Qwen3, not Qwen3.5).
+  llamacpp_hunyuan    — HY-MT2 / HY-MT1.5 1.8B / 7B GGUF served by a local
+                        llama-server child (single-user-turn prompt template).
+  llamacpp_gemma      — TranslateGemma 4B GGUF served by a local llama-server
+                        child, steered via chat_template_kwargs language codes.
+  opus_onnx_translate — MarianMT via ONNX Runtime, MarianOnnxSession
+                        (pair-baked direction)."""
 import os
 import re
 
@@ -144,179 +141,11 @@ class LlamaCppGemmaBackend(_LlamaCppBase):
                 "temperature": 0, "max_tokens": self.MAX_TOKENS}
 
 
-@register_backend
-class QwenTranslateBackend:
-    NAME = "qwen_translate"
-
-    def __init__(self):
-        self._model = None
-        self._tok = None
-        self._device = "cpu"
-        self._ref = ""
-
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            self._model = AutoModelForCausalLM.from_pretrained(
-                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
-            self._device = device
-            self._ref = model_ref
-        except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver falls back
-            raise BackendLoadError(str(e))
-
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
-        import torch
-        sys_p = system_prompt or _default_prompt(src, tgt)
-        if "qwen3" in self._ref.lower():        # Qwen3 thinking-mode off; Qwen2.5 ignores it
-            sys_p = f"{sys_p} /no_think"
-        user = f"<transcript>{text}</transcript>" if wrap else text
-        messages = [{"role": "system", "content": sys_p},
-                    {"role": "user", "content": user}]
-        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
-        with torch.inference_mode():
-            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
-        gen = out[0][inputs["input_ids"].shape[1]:]
-        # Return (text, generated-token count) — the count feeds the tokens/sec benchmark.
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
-
-    def unload(self) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._model is not None
-
-
-@register_backend
-class Qwen35TranslateBackend:
-    NAME = "qwen35_translate"
-
-    def __init__(self):
-        self._model = None
-        self._tok = None
-        self._device = "cpu"
-
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            from transformers import Qwen3_5ForConditionalGeneration, AutoTokenizer
-            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-            # Text-only: drive a plain tokenizer, NOT AutoProcessor. Qwen3.5 is a VLM and
-            # its AutoProcessor eagerly builds Qwen3VLVideoProcessor, which hard-requires
-            # torchvision (no wheel for the sidecar's torch build). The tokenizer carries
-            # the chat template and is all text-only generation needs.
-            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            self._model = Qwen3_5ForConditionalGeneration.from_pretrained(
-                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
-            self._device = device
-        except Exception as e:  # missing qwen3_5 class, no CUDA, OOM → resolver falls back
-            raise BackendLoadError(str(e))
-
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
-        import torch
-        sys_p = system_prompt or _default_prompt(src, tgt)   # Qwen3.5 is non-thinking by default
-        user = f"<transcript>{text}</transcript>" if wrap else text
-        messages = [{"role": "system", "content": sys_p},
-                    {"role": "user", "content": user}]
-        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
-        with torch.inference_mode():
-            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
-        gen = out[0][inputs["input_ids"].shape[1]:]
-        # Return (text, generated-token count) — the count feeds the tokens/sec benchmark.
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
-
-    def unload(self) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._model is not None
-
-
 def _hunyuan_prompt(tgt: str) -> str:
     t = tgt or "the target language"
     # HY-MT2's documented English instruction; the model auto-detects the source.
     return (f"Translate the following text into {t}. Note that you should only "
             "output the translated result without any additional explanation: ")
-
-
-@register_backend
-class HunyuanTranslateBackend:
-    NAME = "hunyuan_translate"
-
-    def __init__(self):
-        self._model = None
-        self._tok = None
-        self._device = "cpu"
-
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            # hunyuan_v1_dense is native to transformers 5.13 (no auto_map, no
-            # modeling_*.py in the repo) → plain AutoModelForCausalLM, no trust_remote_code.
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            if compute_type == "fp8":
-                # Pre-quantized compressed-tensors checkpoint: let its quantization_config
-                # drive loading (dtype="auto"); forcing a dtype would fight the quant.
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_ref, dtype="auto", local_files_only=True)
-            else:
-                dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_ref, dtype=dtype, local_files_only=True)
-            self._model = model.to(device).eval()
-            self._device = device
-        except Exception as e:
-            raise BackendLoadError(str(e))
-
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
-        import torch
-        instr = system_prompt or _hunyuan_prompt(tgt)
-        body = f"<transcript>{text}</transcript>" if wrap else text
-        messages = [{"role": "user", "content": f"{instr}{body}"}]
-        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
-        with torch.inference_mode():
-            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
-        gen = out[0][inputs["input_ids"].shape[1]:]
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
-
-    def unload(self) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._model is not None
 
 
 # Full English language name -> BCP-47 code for TranslateGemma's chat-template
@@ -333,117 +162,6 @@ _GEMMA_LANG_CODE = {
 
 def _gemma_code(name: str) -> str:
     return _GEMMA_LANG_CODE.get(name, name)
-
-
-@register_backend
-class GemmaTranslateBackend:
-    NAME = "gemma_translate"
-
-    def __init__(self):
-        self._model = None
-        self._tok = None
-        self._device = "cpu"
-
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            # Text-only: drive AutoTokenizer + the text model class, NOT AutoProcessor.
-            # TranslateGemma is a Gemma-3 VLM; AutoProcessor builds an image/video
-            # processor that hard-requires torchvision (no wheel for this torch build).
-            from transformers import Gemma3ForConditionalGeneration, AutoTokenizer
-            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            self._model = Gemma3ForConditionalGeneration.from_pretrained(
-                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
-            self._device = device
-        except Exception as e:
-            raise BackendLoadError(str(e))
-
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
-        import torch
-        # TranslateGemma is driven by per-message source/target language codes, not a
-        # free-text instruction — system_prompt is not applicable to its template.
-        body = f"<transcript>{text}</transcript>" if wrap else text
-        messages = [{"role": "user", "content": [{
-            "type": "text",
-            "source_lang_code": _gemma_code(src),
-            "target_lang_code": _gemma_code(tgt),
-            "text": body,
-        }]}]
-        prompt = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self._tok(prompt, return_tensors="pt").to(self._device)
-        with torch.inference_mode():
-            out = self._model.generate(**inputs, max_new_tokens=256, do_sample=False)
-        gen = out[0][inputs["input_ids"].shape[1]:]
-        return _clean_output(self._tok.decode(gen, skip_special_tokens=True)), int(gen.shape[0])
-
-    def unload(self) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._model is not None
-
-
-@register_backend
-class OpusTranslateBackend:
-    NAME = "opus_translate"
-
-    def __init__(self):
-        self._model = None
-        self._tok = None
-        self._device = "cpu"
-
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            # MarianMT is a small seq2seq model, core to transformers (no
-            # trust_remote_code, no VLM processor). bf16 on GPU, float32 on CPU.
-            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-            dtype = torch.bfloat16 if compute_type == "bfloat16" else torch.float32
-            self._tok = AutoTokenizer.from_pretrained(model_ref, local_files_only=True)
-            self._model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_ref, dtype=dtype, local_files_only=True).to(device).eval()
-            self._device = device
-        except Exception as e:  # missing torch/transformers, no CUDA, OOM → resolver falls back
-            raise BackendLoadError(str(e))
-
-    def translate(self, text: str, system_prompt: str, src: str, tgt: str, wrap: bool) -> tuple[str, int]:
-        # The translation direction is baked into the model — system_prompt, src,
-        # tgt and wrap are intentionally ignored. generate() emits only the
-        # translation tokens (no input prefix to slice off).
-        import torch
-        # Marian's learned positional embeddings cap at 512 — truncate over-long
-        # input rather than crash (real-time ASR segments are short; this is a hedge).
-        # max_length is explicit so we don't depend on the tokenizer's model_max_length.
-        inputs = self._tok(text, return_tensors="pt", truncation=True, max_length=512).to(self._device)
-        with torch.inference_mode():
-            out = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
-        seq = out[0]
-        return self._tok.decode(seq, skip_special_tokens=True).strip(), int(seq.shape[-1])
-
-    def unload(self) -> None:
-        self._model = None
-        self._tok = None
-        try:
-            import torch
-            torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._model is not None
 
 
 @register_backend

@@ -32,8 +32,8 @@ class FakeWS {
       let models;
       if (msg.kind === 'translate') {
         models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
-             tiers: [{ tier: 'gpu-cuda', backend: 'qwen_translate', available: true },
-                     { tier: 'cpu', backend: 'qwen_translate', available: true }], sizeBytes: 999604126 }];
+             tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
+                     { tier: 'cpu', backend: 'llamacpp_qwen', available: true }], sizeBytes: 999604126 }];
       } else if (msg.kind === 'tts') {
         models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', languages: ['ja', 'zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];

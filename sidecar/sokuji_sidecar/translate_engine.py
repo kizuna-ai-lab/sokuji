@@ -1,5 +1,5 @@
 import time
-from . import translate_backends  # noqa: F401 — registers qwen_translate/qwen35_translate
+from . import translate_backends  # noqa: F401 — registers the llamacpp_*/opus_onnx_translate backends
 
 
 class TranslateEngine:

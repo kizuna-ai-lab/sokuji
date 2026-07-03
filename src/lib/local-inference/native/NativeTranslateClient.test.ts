@@ -15,7 +15,7 @@ class FakeWS {
     if (msg.type === 'translate_init') queueMicrotask(() =>
       this.onmessage?.({ data: JSON.stringify({
         type: 'ready', id: msg.id, loadTimeMs: 3,
-        backend: 'qwen_translate', device: msg.device ?? 'auto', computeType: 'bfloat16' }) }));
+        backend: 'llamacpp_qwen', device: msg.device ?? 'auto', computeType: 'q8_0' }) }));
     if (msg.type === 'translate') queueMicrotask(() =>
       this.onmessage?.({ data: JSON.stringify({
         type: 'translation', id: msg.id, sourceText: msg.text,
@@ -59,8 +59,8 @@ describe('NativeTranslateClient', () => {
     const r = await c.init('es', 'en', 'qwen3-0.6b', 'cuda');
     expect(r.loadTimeMs).toBe(3);
     expect(r.device).toBe('cuda');
-    expect(r.backend).toBe('qwen_translate');
-    expect(r.computeType).toBe('bfloat16');
+    expect(r.backend).toBe('llamacpp_qwen');
+    expect(r.computeType).toBe('q8_0');
   });
 });
 

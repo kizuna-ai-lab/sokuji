@@ -215,8 +215,8 @@ describe('LocalNativeClient load order', () => {
         'voxtral-mini-4b-realtime': { id: 'voxtral-mini-4b-realtime', name: '', languages: [], recommended: false,
           tiers: [{ tier: 'gpu-cuda', backend: 'voxtral_realtime', available: true }] },
         'qwen3.5-2b': { id: 'qwen3.5-2b', name: '', languages: [], recommended: false,
-          tiers: [{ tier: 'gpu-cuda', backend: 'qwen35_translate', available: true },
-                  { tier: 'cpu', backend: 'qwen35_translate', available: true }] },
+          tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
+                  { tier: 'cpu', backend: 'llamacpp_qwen', available: true }] },
       },
     } as any);
     const order: string[] = [];

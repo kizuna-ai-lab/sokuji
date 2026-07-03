@@ -9,7 +9,7 @@ class FakeTranslate:
              reserved_bytes=0, pin=None):
         self.langs = (source_lang, target_lang)
         self.device = device
-        self.resolved = {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
+        self.resolved = {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
         return 21
 
     def translate(self, text, system_prompt="", wrap_transcript=False):
@@ -45,16 +45,16 @@ def test_translate_init_echoes_device_and_resolved():
         st, json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja",
                         "targetLang": "en", "device": "cuda"})))
     assert reply["type"] == "ready" and reply["id"] == 1 and reply["loadTimeMs"] == 21
-    assert reply["backend"] == "qwen_translate"
+    assert reply["backend"] == "llamacpp_qwen"
     assert reply["device"] == "cuda"
-    assert reply["computeType"] == "bfloat16"
+    assert reply["computeType"] == "q8_0"
     assert st["translate_engine"].device == "cuda"
 
 
 def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     from sokuji_sidecar import accel
     fake_backend = MagicMock()
-    fake_plan = MagicMock(backend="qwen_translate", device="cuda", compute_type="bfloat16")
+    fake_plan = MagicMock(backend="llamacpp_qwen", device="cuda", compute_type="q8_0")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
@@ -62,7 +62,7 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
 
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="cuda")
-    assert eng.resolved == {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
+    assert eng.resolved == {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
     assert eng._backend is fake_backend
 
     fake_backend.translate.return_value = ("hola->hi", 5)   # (text, generated-token count)
@@ -74,7 +74,7 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
 def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     from sokuji_sidecar import accel
     first, second = MagicMock(), MagicMock()
-    plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
+    plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
     backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans: next(backends_iter))
@@ -99,7 +99,7 @@ def test_translate_delegates_to_backend_when_loaded():
 def test_init_stores_memory_and_fallback_reason(monkeypatch):
     from sokuji_sidecar import accel
     from unittest.mock import MagicMock
-    fake_plan = MagicMock(backend="qwen_translate", device="cpu", compute_type="float32")
+    fake_plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
                         lambda plans: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))

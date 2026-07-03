@@ -143,7 +143,7 @@ def test_translate_connection_close_frees_engine():
     closed = {"n": 0}
 
     class FakeTranslate:
-        resolved = {"backend": "qwen_translate", "device": "cuda", "computeType": "bfloat16"}
+        resolved = {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
 
         def init(self, *a, **k):
             return 5
