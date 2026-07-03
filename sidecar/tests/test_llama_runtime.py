@@ -181,3 +181,14 @@ def test_reserved_bytes_roundtrip():
     rt.set_reserved_bytes(3 << 30)
     assert rt.get_reserved_bytes() == 3 << 30
     rt.set_reserved_bytes(0)
+
+
+def test_windows_job_object_import_is_safe_on_non_windows():
+    """_windows_job_object is only ever called from start()'s Windows branch,
+    but its win32 ctypes symbols (ctypes.WinDLL, wintypes.HANDLE, ...) must not
+    blow up the module import or the call itself on Linux/macOS — this is the
+    only coverage this Windows-only feature gets outside of Windows CI; the
+    real kill-on-close behavior is unverifiable here."""
+    class _FakeProc:
+        _handle = 1234
+    assert rt._windows_job_object(_FakeProc()) is None

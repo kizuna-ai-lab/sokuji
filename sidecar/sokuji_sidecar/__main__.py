@@ -2,6 +2,7 @@ import os
 # Reduce CUDA allocator fragmentation when loading large quantized models (e.g. FP8).
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
+import signal
 import sys
 # Pin one consistent cuDNN (torch's bundled copy) for the whole process BEFORE any
 # onnxruntime/torch CUDA provider loads, so onnxruntime-gpu doesn't mix it with a
@@ -34,7 +35,32 @@ async def _run():
     await server.wait_closed()
 
 
+def _install_exit_handlers():
+    """Make SIGTERM/SIGINT run atexit cleanups (notably LlamaServerProc.stop,
+    which kills the llama-server child).
+
+    Python's default handling of a raw signal kill (as opposed to a normal
+    sys.exit()/return-from-main exit) skips atexit entirely. Electron's
+    native-host-manager stops this sidecar with SIGTERM (POSIX) /
+    TerminateProcess (Windows) at ordinary app shutdown — not KeyboardInterrupt.
+    On Linux, LlamaServerProc.start()'s PDEATHSIG saves us regardless (the
+    child dies with its parent); macOS has no such mechanism, so translate
+    SIGTERM/SIGINT into a clean sys.exit(0) here so atexit runs there too.
+    SIGTERM is mostly theoretical on Windows (TerminateProcess bypasses
+    signal handling outright) — that platform instead relies on the Job
+    Object installed in LlamaServerProc.start().
+
+    Guarded to only replace the default handler (SIG_DFL): this must not
+    clobber a handler something else in the process already installed."""
+    def _handler(signum, frame):
+        sys.exit(0)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        if signal.getsignal(sig) is signal.SIG_DFL:
+            signal.signal(sig, _handler)
+
+
 def main():
+    _install_exit_handlers()
     try:
         asyncio.run(_run())
     except KeyboardInterrupt:

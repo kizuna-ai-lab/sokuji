@@ -319,6 +319,74 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def _windows_job_object(proc):
+    """Best-effort Windows Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
+    assigned to `proc`, so the llama-server child dies even if THIS process
+    is killed hard — Windows' TerminateProcess bypasses atexit outright
+    (unlike POSIX, where Linux is saved by the PDEATHSIG set in start()'s
+    preexec_fn and macOS/Windows fall back on __main__._install_exit_handlers'
+    SIGTERM->sys.exit(0) translation, which itself doesn't apply to a hard
+    TerminateProcess kill). Returns the job handle — which MUST be kept alive
+    on the instance, since closing/GC'ing it is what triggers the kill — or
+    None if anything about this failed; a Job Object is a nice-to-have here,
+    never a reason to fail spawning the child.
+
+    All win32 symbols (ctypes.WinDLL, wintypes.HANDLE, ...) are referenced
+    only inside this function, which itself is only ever called from the
+    platform.system() == 'Windows' branch of start() — so this module still
+    imports and runs cleanly on Linux/macOS (see
+    test_windows_job_object_import_is_safe_on_non_windows)."""
+    import ctypes
+    import ctypes.wintypes as wintypes
+    try:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        job = kernel32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+
+        class _BasicLimit(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_int64),
+                ("PerJobUserTimeLimit", ctypes.c_int64),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class _IoCounters(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in (
+                "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+                "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+        class _ExtendedLimit(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", _BasicLimit),
+                ("IoInfo", _IoCounters),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
+        JobObjectExtendedLimitInformation = 9
+        info = _ExtendedLimit()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not kernel32.SetInformationJobObject(
+                job, JobObjectExtendedLimitInformation,
+                ctypes.byref(info), ctypes.sizeof(info)):
+            return None
+        if not kernel32.AssignProcessToJobObject(job, wintypes.HANDLE(proc._handle)):
+            return None
+        return job
+    except Exception:
+        return None
+
+
 class LlamaServerProc:
     """One llama-server child serving one GGUF on a free localhost port.
 
@@ -337,6 +405,7 @@ class LlamaServerProc:
         self._stderr = collections.deque(maxlen=200)
         self._stderr_lock = threading.Lock()
         self._pump_thread = None
+        self._job = None  # Windows Job Object handle (kill-on-close), best-effort
         self.port = 0
         # Register exactly once per instance, regardless of how many times
         # start()/restart() run over this object's lifetime. stop() is a
@@ -382,6 +451,8 @@ class LlamaServerProc:
         self._proc = subprocess.Popen(
             self._build_args(), stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE, **kwargs)
+        if platform.system() == "Windows":
+            self._job = _windows_job_object(self._proc)
         self._pump_thread = threading.Thread(
             target=self._pump_stderr, args=(self._proc.stderr,), daemon=True)
         self._pump_thread.start()
