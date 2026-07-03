@@ -107,3 +107,26 @@ def test_atexit_registered_once_per_instance(tmp_path, gguf, monkeypatch):
 
     registered_for_this_instance = [f for f in calls if f == proc.stop]
     assert len(registered_for_this_instance) == 1
+
+
+def test_chat_roundtrip(tmp_path, gguf):
+    proc = rt.LlamaServerProc(make_fake(tmp_path), gguf)
+    proc.start(timeout=15)
+    try:
+        reply = proc.chat({"messages": [{"role": "user", "content": "hola"}],
+                           "temperature": 0, "max_tokens": 512})
+        assert reply["choices"][0]["message"]["content"] == "TRANSLATED:hola"
+        assert reply["usage"]["completion_tokens"] == 7
+    finally:
+        proc.stop()
+
+
+def test_chat_on_dead_process_raises(tmp_path, gguf):
+    proc = rt.LlamaServerProc(make_fake(tmp_path, mode="die-on-post"), gguf)
+    proc.start(timeout=15)
+    try:
+        with pytest.raises(Exception):
+            proc.chat({"messages": [{"role": "user", "content": "x"}]})
+        assert not proc.alive()
+    finally:
+        proc.stop()

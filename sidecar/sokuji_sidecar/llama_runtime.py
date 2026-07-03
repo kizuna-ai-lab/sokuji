@@ -12,6 +12,7 @@ Two responsibilities:
 """
 import collections
 import hashlib
+import json
 import os
 import platform
 import shutil
@@ -215,6 +216,37 @@ def ensure_binary(flavor: str, progress=None) -> str:
     return os.path.join(final_dir, _exe_name())
 
 
+_RESERVED_BYTES = 0
+
+
+def set_reserved_bytes(n: int) -> None:
+    """VRAM to leave free for the other pipeline stages (ASR/TTS). Set by
+    accel.resolve_translate; read by the llamacpp backends to build
+    --fit-target. Module-level because the backend load() signature is fixed."""
+    global _RESERVED_BYTES
+    _RESERVED_BYTES = max(0, int(n))
+
+
+def get_reserved_bytes() -> int:
+    return _RESERVED_BYTES
+
+
+def gguf_path(repo: str) -> str:
+    """Locate the single .gguf inside a local dir or a cached HF snapshot."""
+    path = repo
+    if not os.path.isdir(path):
+        from huggingface_hub import snapshot_download
+        try:
+            path = snapshot_download(repo, local_files_only=True)
+        except Exception as e:
+            raise BackendLoadError(f"model {repo} not downloaded: {e}")
+    ggufs = [os.path.join(r, f) for r, _d, fs in os.walk(path)
+             for f in fs if f.endswith(".gguf")]
+    if len(ggufs) != 1:
+        raise BackendLoadError(f"expected exactly one .gguf under {repo}, found {len(ggufs)}")
+    return ggufs[0]
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -325,6 +357,21 @@ class LlamaServerProc:
                 self._proc.kill()
                 self._proc.wait(timeout=5)
         self._proc = None
+
+    def _post(self, endpoint: str, payload: dict, timeout: float) -> dict:
+        import urllib.request
+        data = json.dumps(payload).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{self.port}{endpoint}", data=data,
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())
+
+    def chat(self, payload: dict, timeout: float = 120.0) -> dict:
+        return self._post("/v1/chat/completions", payload, timeout)
+
+    def completion(self, payload: dict, timeout: float = 120.0) -> dict:
+        return self._post("/completion", payload, timeout)
 
     def restart(self) -> None:
         self.stop()

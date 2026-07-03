@@ -91,3 +91,23 @@ def test_ensure_binary_checksum_mismatch(monkeypatch, tmp_path):
     with pytest.raises(rt.BinaryFetchError):
         rt.ensure_binary("cuda")
     assert rt.binary_path("cuda") is None  # nothing half-installed
+
+
+def test_gguf_path_single_file(tmp_path):
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "w.gguf").write_bytes(b"GGUF")
+    assert rt.gguf_path(str(tmp_path)).endswith("w.gguf")
+
+
+def test_gguf_path_requires_exactly_one(tmp_path):
+    from sokuji_sidecar.backends import BackendLoadError
+    (tmp_path / "a.gguf").write_bytes(b"GGUF")
+    (tmp_path / "b.gguf").write_bytes(b"GGUF")
+    with pytest.raises(BackendLoadError):
+        rt.gguf_path(str(tmp_path))
+
+
+def test_reserved_bytes_roundtrip():
+    rt.set_reserved_bytes(3 << 30)
+    assert rt.get_reserved_bytes() == 3 << 30
+    rt.set_reserved_bytes(0)
