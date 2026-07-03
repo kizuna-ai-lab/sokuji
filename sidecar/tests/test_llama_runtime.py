@@ -110,6 +110,31 @@ def test_gguf_path_requires_exactly_one(tmp_path):
         rt.gguf_path(str(tmp_path))
 
 
+def test_gguf_path_file_artifact(monkeypatch, tmp_path):
+    # Upstream file artifact ("org/repo/file.gguf", the catalog's normal shape
+    # post-Task-14b) resolves directly via one hf_hub_download — no walk needed.
+    gguf = tmp_path / "qwen2.5-0.5b-instruct-q8_0.gguf"
+    gguf.write_bytes(b"GGUF")
+
+    def fake_hf_hub_download(repo, fname, local_files_only=True):
+        assert repo == "Qwen/Qwen2.5-0.5B-Instruct-GGUF"
+        assert fname == "qwen2.5-0.5b-instruct-q8_0.gguf"
+        assert local_files_only is True
+        return str(gguf)
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", fake_hf_hub_download)
+    assert rt.gguf_path("Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q8_0.gguf") == str(gguf)
+
+
+def test_gguf_path_file_artifact_not_downloaded(monkeypatch):
+    from sokuji_sidecar.backends import BackendLoadError
+
+    def boom(repo, fname, local_files_only=True):
+        raise RuntimeError("not cached")
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", boom)
+    with pytest.raises(BackendLoadError):
+        rt.gguf_path("Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q8_0.gguf")
+
+
 def test_reserved_bytes_roundtrip():
     rt.set_reserved_bytes(3 << 30)
     assert rt.get_reserved_bytes() == 3 << 30

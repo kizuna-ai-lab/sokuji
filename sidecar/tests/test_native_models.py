@@ -11,8 +11,10 @@ def test_download_specs_mapping(monkeypatch):
     monkeypatch.delenv('SOKUJI_ASR_REPO', raising=False)
     from sokuji_sidecar import catalog
     # Empty id is the implicit default → Qwen 2.5 0.5B; the explicit id maps the same.
-    assert nm.download_specs('')['repos'] == [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
-    assert nm.download_specs('qwen2.5-0.5b')['repos'] == [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
+    # Upstream-sourced (Task 14b): a files-shaped spec naming the exact GGUF file.
+    expected_files = [catalog.split_artifact(catalog._gguf_artifact('qwen2.5-0.5b', 'q8_0'))]
+    assert nm.download_specs('')['files'] == expected_files
+    assert nm.download_specs('qwen2.5-0.5b')['files'] == expected_files
     # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
     assert nm.download_specs('qwen')['repos'] == ['qwen']
     assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
@@ -64,14 +66,14 @@ def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
 
 
 def test_download_specs_qwen25_ignores_stale_translate_model_env(monkeypatch):
-    # Translate specs are now catalog-driven (mirrored GGUF repos), not upstream HF
-    # ids — SOKUJI_TRANSLATE_MODEL no longer has any effect on the resolved repo,
-    # for BOTH the implicit default ('') and the explicit id.
+    # Translate specs are now catalog-driven (upstream GGUF file artifacts), not an
+    # env-overridable HF id — SOKUJI_TRANSLATE_MODEL no longer has any effect on the
+    # resolved artifact, for BOTH the implicit default ('') and the explicit id.
     from sokuji_sidecar import catalog
     monkeypatch.setenv('SOKUJI_TRANSLATE_MODEL', 'acme/custom-translate')
-    expected = [catalog._gguf_repo('qwen2.5-0.5b', 'q8_0')]
-    assert nm.download_specs('')['repos'] == expected
-    assert nm.download_specs('qwen2.5-0.5b')['repos'] == expected
+    expected = [catalog.split_artifact(catalog._gguf_artifact('qwen2.5-0.5b', 'q8_0'))]
+    assert nm.download_specs('')['files'] == expected
+    assert nm.download_specs('qwen2.5-0.5b')['files'] == expected
 
 
 def test_download_raises_when_no_files_resolved(monkeypatch):
@@ -354,32 +356,48 @@ def test_download_specs_fun_asr_mlt_nano(monkeypatch):
     # AsrEngine._init_vad() loads silero for the offline path too, so a Nano-only
     # offline install must pre-fetch the shared VAD (not rely on a session-time download).
     assert spec['urls'] == [nm.VAD_URL]
+def _file_spec(mid, quant):
+    """Helper: the expected files-shaped download_specs entry for an LLM translate card."""
+    from sokuji_sidecar import catalog
+    return [catalog.split_artifact(catalog._gguf_artifact(mid, quant))]
+
+
 def test_download_specs_qwen_translate_repos():
     from sokuji_sidecar import native_models as nm
-    from sokuji_sidecar import catalog
-    assert nm.download_specs("qwen2.5-0.5b")["repos"] == [catalog._gguf_repo("qwen2.5-0.5b", "q8_0")]
-    assert nm.download_specs("qwen3-0.6b")["repos"] == [catalog._gguf_repo("qwen3-0.6b", "q8_0")]
-    assert nm.download_specs("qwen3.5-0.8b")["repos"] == [catalog._gguf_repo("qwen3.5-0.8b", "q4_k_m")]
-    assert nm.download_specs("qwen3.5-2b")["repos"] == [catalog._gguf_repo("qwen3.5-2b", "q4_k_m")]
+    assert nm.download_specs("qwen2.5-0.5b")["files"] == _file_spec("qwen2.5-0.5b", "q8_0")
+    assert nm.download_specs("qwen3-0.6b")["files"] == _file_spec("qwen3-0.6b", "q8_0")
+    assert nm.download_specs("qwen3.5-0.8b")["files"] == _file_spec("qwen3.5-0.8b", "q4_k_m")
+    assert nm.download_specs("qwen3.5-2b")["files"] == _file_spec("qwen3.5-2b", "q4_k_m")
 
 
 def test_download_specs_new_translate_models():
     from sokuji_sidecar import native_models as nm
-    from sokuji_sidecar import catalog
-    assert nm.download_specs("translategemma-4b")["repos"] == [
-        catalog._gguf_repo("translategemma-4b", "q4_k_m")]
+    assert nm.download_specs("translategemma-4b")["files"] == \
+        _file_spec("translategemma-4b", "q4_k_m")
     h18 = nm.download_specs("hy-mt2-1.8b")
-    assert h18["repos"] == [catalog._gguf_repo("hy-mt2-1.8b", "q4_k_m")]
-    assert "ignore" not in h18   # mirrored GGUF repo carries only the weight file
+    assert h18["files"] == _file_spec("hy-mt2-1.8b", "q4_k_m")
+    assert "ignore" not in h18   # the upstream GGUF file needs no filtering
     h7 = nm.download_specs("hy-mt2-7b")
-    assert h7["repos"] == [catalog._gguf_repo("hy-mt2-7b", "q4_k_m")]
+    assert h7["files"] == _file_spec("hy-mt2-7b", "q4_k_m")
     assert "ignore" not in h7
 
 
 def test_download_specs_variant_repo_override():
+    # A bare 2-segment override repo (no filename) keeps the legacy repos-shaped spec.
     from sokuji_sidecar import native_models as nm
     spec = nm.download_specs("hy-mt2-7b", repo="tencent/Hy-MT2-7B-FP8")
     assert spec["repos"] == ["tencent/Hy-MT2-7B-FP8"]
+
+
+def test_download_specs_variant_repo_override_file_artifact():
+    # The real-world variant override (Task 14b): the renderer's chosen variant
+    # repo IS an upstream file artifact (a Deployment.artifact), not a bare repo —
+    # e.g. picking the q8_0 sibling of a card whose default is q4_k_m.
+    from sokuji_sidecar import native_models as nm
+    from sokuji_sidecar import catalog
+    alt = catalog._gguf_artifact("hy-mt2-7b", "q8_0")
+    spec = nm.download_specs("hy-mt2-7b", repo=alt)
+    assert spec == {"repos": [], "urls": [], "files": [catalog.split_artifact(alt)]}
 
 
 def test_download_fetches_chosen_variant_repo(monkeypatch):
@@ -436,27 +454,27 @@ def test_h_model_download_passes_repo_through(monkeypatch):
 def test_download_specs_opus_maps_to_mirrored_repo():
     from sokuji_sidecar import native_models as nm
     from sokuji_sidecar import catalog
-    # Opus-MT now resolves to the mirrored ONNX repo (catalog-driven), which
-    # ships only the files the opus_onnx_translate backend needs — the
-    # upstream Helsinki repo's multi-framework weights are no longer fetched.
-    assert nm.download_specs("opus-mt-zh-en") == {
-        "repos": [catalog._opus_repo("opus-mt-zh-en")], "urls": []}
-    assert nm.download_specs("opus-mt-en-jap") == {
-        "repos": [catalog._opus_repo("opus-mt-en-jap")], "urls": []}
+    # Opus-MT now resolves directly to the upstream Xenova ONNX repo, pinned to
+    # the 6 files the opus_onnx_translate backend needs (OPUS_FILES) — the
+    # repo's other (unquantized/fp16) exports are never fetched.
+    zh_en = {"repos": [], "urls": [],
+             "files": [("Xenova/opus-mt-zh-en", f) for f in nm.OPUS_FILES]}
+    en_jap = {"repos": [], "urls": [],
+              "files": [("Xenova/opus-mt-en-jap", f) for f in nm.OPUS_FILES]}
+    assert nm.download_specs("opus-mt-zh-en") == zh_en
+    assert nm.download_specs("opus-mt-en-jap") == en_jap
     assert "ignore" not in nm.download_specs("opus-mt-zh-en")
 
 
 def test_download_specs_hymt15():
     from sokuji_sidecar import native_models as nm
-    from sokuji_sidecar import catalog
-    assert nm.download_specs("hy-mt15-1.8b") == {
-        "repos": [catalog._gguf_repo("hy-mt15-1.8b", "q4_k_m")], "urls": []}
-    assert nm.download_specs("hy-mt15-7b") == {
-        "repos": [catalog._gguf_repo("hy-mt15-7b", "q4_k_m")], "urls": []}
-    # clean repos → no ignore key (both sizes)
+    assert nm.download_specs("hy-mt15-1.8b")["files"] == _file_spec("hy-mt15-1.8b", "q4_k_m")
+    assert nm.download_specs("hy-mt15-7b")["files"] == _file_spec("hy-mt15-7b", "q4_k_m")
+    # clean specs → no ignore key (both sizes)
     assert "ignore" not in nm.download_specs("hy-mt15-1.8b")
     assert "ignore" not in nm.download_specs("hy-mt15-7b")
-    # FP8 variant download rides the repo-override path
+    # FP8 variant download rides the repo-override path (a bare 2-segment repo,
+    # not an upstream file artifact, so it keeps the legacy repos-shaped spec).
     assert nm.download_specs("hy-mt15-7b", repo="tencent/HY-MT1.5-7B-FP8")["repos"] == ["tencent/HY-MT1.5-7B-FP8"]
 
 
@@ -523,8 +541,30 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
     monkeypatch.setattr("huggingface_hub.HfApi", boom)
     nm._SIZE_CACHE.clear()
     assert nm.model_size("sense-voice") == 944624033
-    assert nm.model_size("hy-mt2-1.8b") == 1_130_000_000
+    assert nm.model_size("hy-mt2-1.8b") == 1133080448
     assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
+
+
+def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
+    """A model_size id that is itself an upstream file artifact ("org/repo/file")
+    — e.g. a Deployment.artifact with no est_bytes set — looks up just that one
+    file's size via get_paths_info, not the whole repo's siblings."""
+    import huggingface_hub
+    from sokuji_sidecar import native_models as nm
+
+    class _Path:
+        def __init__(self, size):
+            self.size = size
+
+    class _Api:
+        def get_paths_info(self, repo_id, paths):
+            assert repo_id == "unsloth/Qwen3.5-0.8B-GGUF"
+            assert paths == ["Qwen3.5-0.8B-Q8_0.gguf"]
+            return [_Path(811843840)]
+
+    monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
+    nm._SIZE_CACHE.clear()
+    assert nm.model_size("unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf") == 811843840
 
 
 def test_qwen3_download_specs_point_at_per_size_repos():
@@ -547,17 +587,19 @@ from sokuji_sidecar import catalog
 
 def test_translate_specs_come_from_catalog():
     spec = nm.download_specs("translategemma-4b")
-    assert spec["repos"] == [catalog._gguf_repo("translategemma-4b", "q4_k_m")]
+    assert spec["files"] == [catalog.split_artifact(catalog._gguf_artifact("translategemma-4b", "q4_k_m"))]
     spec = nm.download_specs("qwen2.5-0.5b")
-    assert spec["repos"] == [catalog._gguf_repo("qwen2.5-0.5b", "q8_0")]
+    assert spec["files"] == [catalog.split_artifact(catalog._gguf_artifact("qwen2.5-0.5b", "q8_0"))]
     spec = nm.download_specs("opus-mt-ja-en")
-    assert spec["repos"] == [catalog._opus_repo("opus-mt-ja-en")]
-    assert "ignore" not in spec  # mirrors contain only needed files
+    assert spec["files"] == [("Xenova/opus-mt-ja-en", f) for f in nm.OPUS_FILES]
+    assert "ignore" not in spec  # the pinned file set needs no further filtering
 
 
 def test_variant_repo_override_still_wins():
-    repo = catalog._gguf_repo("hy-mt2-7b", "q8_0")
-    assert nm.download_specs("hy-mt2-7b", repo=repo)["repos"] == [repo]
+    # The override repo is now typically an upstream file artifact (the sibling
+    # quant's Deployment.artifact) — split into a files-shaped spec.
+    artifact = catalog._gguf_artifact("hy-mt2-7b", "q8_0")
+    assert nm.download_specs("hy-mt2-7b", repo=artifact)["files"] == [catalog.split_artifact(artifact)]
 
 
 def test_needs_llama_binary():
@@ -568,11 +610,30 @@ def test_needs_llama_binary():
 
 def test_status_absent_without_binary(monkeypatch):
     from sokuji_sidecar import llama_runtime as rt
-    # files present...
+    import huggingface_hub
+    # files present (both the legacy repos-shaped check and the files-shaped
+    # GGUF file check the qwen2.5-0.5b card actually uses)...
     monkeypatch.setattr(nm, "_repos_cached", lambda specs: True)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname, local_files_only=True: "/cache/" + fname)
     # ...but no binary
     monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
     monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
     assert nm.model_status("qwen2.5-0.5b") == "absent"
     monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
     assert nm.model_status("qwen2.5-0.5b") == "ready"
+
+
+def test_status_absent_when_gguf_file_missing(monkeypatch):
+    """A files-shaped spec (GGUF/Opus card) reports 'absent' when the pinned
+    file isn't cached — hf_hub_download(local_files_only=True) raising must not
+    propagate, it must read back as a normal absent status."""
+    from sokuji_sidecar import llama_runtime as rt
+    import huggingface_hub
+
+    def boom(repo, fname, local_files_only=True):
+        raise RuntimeError("not cached")
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom)
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")  # binary present
+    assert nm.model_status("qwen2.5-0.5b") == "absent"

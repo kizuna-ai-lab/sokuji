@@ -175,12 +175,29 @@ def test_opus_rows_cpu_only():
     assert len(m.deployments) == 1
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type) == ("opus_onnx_translate", "cpu", "int8")
-    assert d.artifact.endswith("/sokuji-translate-opus-mt-ja-en")
+    assert d.artifact == "Xenova/opus-mt-ja-en"
 
 
-def test_gguf_repo_naming(monkeypatch):
-    assert catalog._gguf_repo("qwen3.5-2b", "q4_k_m").endswith(
-        "/sokuji-translate-qwen3.5-2b-q4_k_m")
+def test_gguf_artifact_naming():
+    assert catalog._gguf_artifact("qwen3.5-2b", "q4_k_m") == \
+        "unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-Q4_K_M.gguf"
+    # tencent filename case quirk is real upstream data: 7B Q8 is `HY-MT2-...`
+    # while every other tencent GGUF filename in the table is `Hy-MT2-...`.
+    assert catalog._gguf_artifact("hy-mt2-7b", "q8_0") == \
+        "tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf"
+    assert catalog._gguf_artifact("hy-mt2-7b", "q4_k_m") == \
+        "tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf"
+
+
+def test_split_artifact():
+    # 3-segment (deep) path: repo is the first two segments, filename is the rest.
+    assert catalog.split_artifact(
+        "mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf") == (
+        "mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q4_K_M.gguf")
+    # plain 2-segment repo id: no filename.
+    assert catalog.split_artifact("Xenova/opus-mt-ja-en") == ("Xenova/opus-mt-ja-en", None)
+    # deep path (filename itself contains a slash, e.g. an onnx/ subdir).
+    assert catalog.split_artifact("org/repo/onnx/model.onnx") == ("org/repo", "onnx/model.onnx")
 
 
 def test_all_translate_backends_installed_names():

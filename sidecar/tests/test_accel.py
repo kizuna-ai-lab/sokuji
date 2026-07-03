@@ -653,8 +653,8 @@ def test_resolve_translate_prefers_gpu(monkeypatch):
     plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
     assert plans[0].device == "cuda"
     assert plans[-1].device == "cpu"
-    # qwen2.5-0.5b defaults to q8_0 (small-Qwen default); artifact is the GGUF repo.
-    assert plans[0].artifact.endswith("/sokuji-translate-qwen2.5-0.5b-q8_0")
+    # qwen2.5-0.5b defaults to q8_0 (small-Qwen default); artifact is the upstream GGUF file.
+    assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q8_0.gguf"
 
 
 def test_resolve_translate_cpu_only_machine():
@@ -917,7 +917,7 @@ def test_resolve_translate_opus_is_cpu_only(monkeypatch):
     plans = accel.resolve_translate("opus-mt-zh-en", "auto", m)
     assert [p.device for p in plans] == ["cpu"]
     assert all(p.backend == "opus_onnx_translate" for p in plans)
-    assert plans[0].artifact.endswith("/sokuji-translate-opus-mt-zh-en")
+    assert plans[0].artifact == "Xenova/opus-mt-zh-en"
 
 
 def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
@@ -930,8 +930,8 @@ def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
     assert plans[0].device == "cuda"
     assert plans[-1].device == "cpu"
     assert all(p.backend == "llamacpp_hunyuan" for p in plans)
-    # artifact is the mirrored GGUF repo for whichever quant select_variant picked
-    assert plans[0].artifact.startswith(catalog.TRANSLATE_NS + "/sokuji-translate-hy-mt15-1.8b-")
+    # artifact is the upstream GGUF file artifact for whichever quant select_variant picked
+    assert plans[0].artifact.startswith("tencent/HY-MT1.5-1.8B-GGUF/")
 
 
 def test_resolve_tts_orders_gpu_over_cpu(monkeypatch):

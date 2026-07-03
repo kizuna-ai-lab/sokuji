@@ -104,8 +104,9 @@ class LlamaCppQwenBackend(_LlamaCppBase):
 
     def _payload(self, text, system_prompt, src, tgt, wrap):
         sys_p = system_prompt or _default_prompt(src, tgt)
-        # Qwen3 (not 3.5) needs thinking mode off; card repos are named
-        # sokuji-translate-qwen3-0.6b-* vs ...-qwen3.5-*, so match "qwen3-".
+        # Qwen3 (not 3.5) needs thinking mode off; artifacts are named
+        # .../Qwen3-0.6B-*.gguf vs .../Qwen3.5-0.8B-*.gguf, so match "qwen3-"
+        # (the ".5" in "qwen3.5-" means it never matches this substring).
         if "qwen3-" in self._ref.lower():
             sys_p = f"{sys_p} /no_think"
         user = f"<transcript>{text}</transcript>" if wrap else text

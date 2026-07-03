@@ -15,7 +15,14 @@ import fnmatch
 import os
 
 from .asr_engine import VAD_URL
-from .catalog import asr_model as _asr_model
+from .catalog import asr_model as _asr_model, split_artifact
+
+# The exact Xenova export files the opus_onnx_translate backend reads (see
+# marian_onnx.MarianOnnxSession). Xenova's opus-mt-* repos also ship unquantized
+# fp32/fp16 onnx we never load — pin the file set instead of snapshotting the repo.
+OPUS_FILES = ["config.json", "generation_config.json", "tokenizer.json",
+              "tokenizer_config.json", "onnx/encoder_model_quantized.onnx",
+              "onnx/decoder_model_merged_quantized.onnx"]
 
 
 def _ignored(filename, patterns):
@@ -56,10 +63,19 @@ def _base_specs(model_id):
     from .catalog import translate_model as _translate_model
     _trm = _translate_model(model_id) if model_id else _translate_model("qwen2.5-0.5b")
     if _trm is not None:
-        # Default-variant repo = first deployment (rank ordering puts the
+        # Default-variant artifact = first deployment (rank ordering puts the
         # default quant first). A pinned variant arrives via the `repo`
         # override in download_specs, exactly like the old FP8 flow.
-        return {"repos": [_trm.deployments[0].artifact], "urls": []}
+        default_artifact = _trm.deployments[0].artifact
+        if _trm.deployments[0].backend == "opus_onnx_translate":
+            # Opus artifact is a plain "Xenova/opus-mt-xx-yy" repo id — the
+            # backend only needs 6 specific files out of the repo's full
+            # (multi-framework) export set.
+            return {"repos": [], "urls": [],
+                    "files": [(default_artifact, f) for f in OPUS_FILES]}
+        # LLM cards: artifact is an "org/repo/filename.gguf" upstream path —
+        # exactly one file to fetch.
+        return {"repos": [], "urls": [], "files": [split_artifact(default_artifact)]}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
         return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
@@ -94,8 +110,15 @@ def download_specs(model_id, repo=None):
 
     `repo` overrides the model's default repo with a chosen variant's repo (the
     variant id resolves to a sibling repo). Variants are translation-only and
-    never need the VAD, so the override short-circuits before the VAD logic."""
+    never need the VAD, so the override short-circuits before the VAD logic.
+
+    A variant `repo` is now often an upstream artifact ("org/repo/file.gguf"),
+    not a bare repo id — split it the same way the catalog rows are split, so
+    the chosen variant downloads as a single pinned file too."""
     if repo:
+        repo2, fname = split_artifact(repo)
+        if fname:
+            return {"repos": [], "urls": [], "files": [(repo2, fname)]}
         return {"repos": [repo], "urls": []}
     spec = _base_specs(model_id)
     if _asr_model(model_id) is not None and VAD_URL not in spec["urls"]:
@@ -119,7 +142,11 @@ _SIZE_CACHE = {}
 def model_size(model_id):
     """Total download size (bytes) of a model's repos + urls. Reads the catalog
     row's `size_bytes` field for catalog models (instant, offline); unknown ids
-    (variant repos, newly added models) fall back to a live HF lookup, cached."""
+    (variant repos, newly added models) fall back to a live HF lookup, cached.
+
+    `model_id` may itself be an upstream file artifact ("org/repo/file.gguf") —
+    e.g. a Deployment.artifact with no est_bytes set — in which case only that
+    one file's size is looked up via get_paths_info, not the whole repo."""
     from .catalog import translate_model as _translate_model, tts_model as _tts_model
     cat_model = _asr_model(model_id) or _translate_model(model_id) or _tts_model(model_id)
     if cat_model is not None and cat_model.size_bytes:
@@ -127,17 +154,25 @@ def model_size(model_id):
     if model_id in _SIZE_CACHE:
         return _SIZE_CACHE[model_id]
     from huggingface_hub import HfApi
-    specs = download_specs(model_id)
-    total = 0
     api = HfApi()
-    ignore = set(specs.get("ignore", []))
-    for repo in specs["repos"]:
+    total = 0
+    repo2, fname = split_artifact(model_id)
+    if fname:
         try:
-            info = api.repo_info(repo, files_metadata=True)
-            total += sum((s.size or 0) for s in (info.siblings or []) if not _ignored(s.rfilename, ignore))
+            infos = api.get_paths_info(repo2, [fname])
+            total = sum((getattr(i, "size", 0) or 0) for i in infos)
         except Exception:
-            pass
-    total += len(specs["urls"]) * _SILERO_VAD_BYTES
+            total = 0
+    else:
+        specs = download_specs(model_id)
+        ignore = set(specs.get("ignore", []))
+        for repo in specs["repos"]:
+            try:
+                info = api.repo_info(repo, files_metadata=True)
+                total += sum((s.size or 0) for s in (info.siblings or []) if not _ignored(s.rfilename, ignore))
+            except Exception:
+                pass
+        total += len(specs["urls"]) * _SILERO_VAD_BYTES
     _SIZE_CACHE[model_id] = total
     return total
 
@@ -175,6 +210,10 @@ def model_status(model_id, repo=None):
     try:
         if not _repos_cached(specs):
             return "absent"
+        if specs.get("files"):
+            from huggingface_hub import hf_hub_download
+            for r, fname in specs["files"]:
+                hf_hub_download(r, fname, local_files_only=True)
         for _url in specs["urls"]:
             if not os.path.exists(_vad_cache_path()):
                 return "absent"
@@ -207,10 +246,16 @@ def delete_model(model_id, repo=None):
     it's shared by every llamacpp_* translate card, so deleting one card must
     not strand the others without a runtime. It's small next to the GGUF
     weights — cheaper to keep installed than to refcount across cards.
+
+    Upstream-sourced cards (files-shaped specs) are deleted by their upstream
+    repo, same as a repos entry — deleting one such card removes ALL cached
+    files of that upstream repo, including the sibling quant if it was also
+    downloaded (both quants of a card share one upstream GGUF repo). That's
+    acceptable: they're per-card siblings, not shared across different cards.
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id, repo)
-    wanted = set(specs["repos"])
+    wanted = set(specs["repos"]) | {r for r, _fname in specs.get("files", [])}
     freed = 0
     try:
         cache = scan_cache_dir()
@@ -260,6 +305,10 @@ async def download(model_id, send, should_cancel=None, repo=None):
             files.extend((r, f) for f in api.list_repo_files(r) if not _ignored(f, ignore))
         except Exception:
             pass
+    # Files-shaped specs (GGUF/Opus cards) name their exact (repo, filename) pairs
+    # statically — no listing round-trip needed. Merged into the same `files` work
+    # list so the no-op guard and progress `total` below count them for free.
+    files.extend(specs.get("files", []))
     # Never report a no-op download as success: if a model declares repos but none
     # could be listed (wrong/unreachable repo id, network failure), fail loudly so
     # the renderer surfaces it — instead of returning 'ready' having fetched nothing.

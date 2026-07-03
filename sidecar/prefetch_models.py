@@ -8,14 +8,15 @@ continue. Run via setup.sh, or directly: `.venv/bin/python prefetch_models.py`.
 import os
 import sys
 
-from huggingface_hub import snapshot_download
+from huggingface_hub import hf_hub_download, snapshot_download
 
-from sokuji_sidecar.catalog import _gguf_repo
+from sokuji_sidecar.catalog import _gguf_artifact, split_artifact
 
 POCKET_REPO = "KevinAHM/pocket-tts-web"
 POCKET_SUB = "onnx/english_2026-04"
 # Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (llamacpp_qwen backend).
-TRANSLATE = _gguf_repo("qwen2.5-0.5b", "q8_0")
+# Upstream-sourced (Task 14b): an "org/repo/file.gguf" artifact, not a snapshot-able repo.
+TRANSLATE = _gguf_artifact("qwen2.5-0.5b", "q8_0")
 ASR_REPO = os.environ.get(
     "SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 # silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical
@@ -43,7 +44,12 @@ def main():
                         allow_patterns=[f"{POCKET_SUB}/*"])
 
     print(f"\nTranslation LLM ({TRANSLATE}):")
-    fetch("translate", repo_id=TRANSLATE)
+    repo, fname = split_artifact(TRANSLATE)
+    try:
+        path = hf_hub_download(repo, fname)
+        print(f"  OK  translate: {path}")
+    except Exception as e:  # one model failing must not abort the others
+        print(f"  FAIL translate: {type(e).__name__}: {e}", file=sys.stderr)
 
     print(f"\nASR sense-voice ({ASR_REPO}):")
     fetch("asr", repo_id=ASR_REPO)

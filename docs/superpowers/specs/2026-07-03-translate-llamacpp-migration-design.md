@@ -184,12 +184,21 @@ The 13 Opus rows become a single
 
 ### Model + binary distribution
 
-All chosen GGUF files and the 13 Opus ONNX file sets are **mirrored into an owned
-HF dataset** (pattern: the existing sherpa ASR/TTS model mirrors; upload via
-`huggingface_hub` Python API). Motivation: unsloth/mradermacher/bartowski are
-mutable third-party repos; mirroring yields a uniform URL scheme, an owned sha256
-manifest, and deletion-proofing. GGUF download specs are single-file; Opus specs
-are 6-file.
+**Update 2026-07-03 (Task 14b):** artifacts are sourced directly from their
+**upstream HF repos** — mirroring to an owned namespace is deferred (the mirror
+script from Task 14 stays in tree, unused, as a future option). Upstream GGUF
+repos (Qwen/unsloth/mradermacher/tencent) hold many quants per repo, so
+`Deployment.artifact` for a GGUF row is now an exact upstream file path
+(`"{org}/{repo}/{filename}"`, split via `catalog.split_artifact`) rather than a
+bare repo id — one card-variant, one pinned filename, verified 2026-07-03 (see
+`catalog._GGUF_SOURCES`). Opus rows keep a plain 2-segment upstream repo id
+(`Xenova/opus-mt-{pair}`) and pin an explicit 6-file set (`native_models.OPUS_FILES`)
+out of that repo's larger (multi-framework) export set. Download specs are
+`{"files": [(repo, filename), ...]}`-shaped for both GGUF and Opus cards — one
+entry for GGUF, six for Opus — resolved with `hf_hub_download`, not a repo
+snapshot. Trade-off accepted: unsloth/mradermacher/bartowski/tencent repos are
+mutable third-party repos with no owned sha256 manifest or deletion-proofing;
+revisit mirroring if that becomes a problem in practice.
 
 ### accel.py changes
 

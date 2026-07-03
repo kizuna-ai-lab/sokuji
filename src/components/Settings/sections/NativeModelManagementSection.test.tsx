@@ -142,7 +142,7 @@ const mockVariants: VariantInfo[] = [
   {
     id: 'q4_k_m',
     computeType: 'q4_k_m',
-    repo: 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m',
+    repo: 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf',
     sizeBytes: 8e9,
     supported: true,
     reason: 'fits in budget',
@@ -150,7 +150,7 @@ const mockVariants: VariantInfo[] = [
   {
     id: 'q8_0',
     computeType: 'q8_0',
-    repo: 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q8_0',
+    repo: 'tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf',
     sizeBytes: 15e9,
     supported: false,
     reason: 'exceeds budget',
@@ -353,7 +353,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     fireEvent.click(within(card7b).getByRole('button', { name: /Delete/i }));
 
     // Delete must target the Q4_K_M repo so the Q4_K_M cache is actually freed.
-    expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m');
+    expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf');
   });
 
   it('does not push an empty statusRepos override while variant metadata is still loading', async () => {
@@ -386,7 +386,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     fireEvent.click(downloadBtn);
 
     // Download must be called with the model's catalog id AND the Q4_K_M variant's repo.
-    expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m');
+    expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf');
   });
 });
 

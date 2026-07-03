@@ -109,19 +109,49 @@ class TranslateModel(_ModelBase):
     pass
 
 
-# Owned HF namespace hosting the mirrored translate artifacts (GGUF single-file
-# repos per card-variant; 6-file Xenova ONNX sets per Opus pair). Mirroring
-# rather than linking upstream: unsloth/mradermacher/bartowski are mutable
-# third-party repos; the mirror gives a uniform URL scheme + deletion-proofing.
-TRANSLATE_NS = os.environ.get("SOKUJI_TRANSLATE_NS", "jiangzhuo9357")
+def split_artifact(artifact: str) -> tuple[str, str | None]:
+    """'org/repo/path/to/file' -> ('org/repo', 'path/to/file'); plain repo -> (repo, None)."""
+    parts = artifact.split("/")
+    if len(parts) > 2:
+        return "/".join(parts[:2]), "/".join(parts[2:])
+    return artifact, None
 
 
-def _gguf_repo(mid: str, quant: str) -> str:
-    return f"{TRANSLATE_NS}/sokuji-translate-{mid}-{quant}"
+# Upstream sources for the LLM translate cards' GGUF quants: (card_id, quant) ->
+# (upstream repo, exact filename). Verified 2026-07-03 (Task-14 dry run + HF API
+# size fetch). Upstream GGUF repos hold many quants each, so we must pin the
+# exact filename per card-variant rather than snapshot-downloading the repo.
+# NOTE the tencent filename case quirks are REAL upstream data (7B Q8 is
+# `HY-MT2-...` while its siblings are `Hy-MT2-...`) — kept verbatim.
+_GGUF_SOURCES = {
+    ("qwen2.5-0.5b", "q8_0"):   ("Qwen/Qwen2.5-0.5B-Instruct-GGUF", "qwen2.5-0.5b-instruct-q8_0.gguf"),
+    ("qwen2.5-0.5b", "q4_k_m"): ("Qwen/Qwen2.5-0.5B-Instruct-GGUF", "qwen2.5-0.5b-instruct-q4_k_m.gguf"),
+    ("qwen3-0.6b", "q8_0"):     ("Qwen/Qwen3-0.6B-GGUF", "Qwen3-0.6B-Q8_0.gguf"),
+    ("qwen3-0.6b", "q4_k_m"):   ("unsloth/Qwen3-0.6B-GGUF", "Qwen3-0.6B-Q4_K_M.gguf"),
+    ("qwen3.5-0.8b", "q4_k_m"): ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf"),
+    ("qwen3.5-0.8b", "q8_0"):   ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q8_0.gguf"),
+    ("qwen3.5-2b", "q4_k_m"):   ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"),
+    ("qwen3.5-2b", "q8_0"):     ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q8_0.gguf"),
+    ("translategemma-4b", "q4_k_m"): ("mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q4_K_M.gguf"),
+    ("translategemma-4b", "q8_0"):   ("mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q8_0.gguf"),
+    ("hy-mt2-1.8b", "q4_k_m"):  ("tencent/Hy-MT2-1.8B-GGUF", "Hy-MT2-1.8B-Q4_K_M.gguf"),
+    ("hy-mt2-1.8b", "q8_0"):    ("tencent/Hy-MT2-1.8B-GGUF", "Hy-MT2-1.8B-Q8_0.gguf"),
+    ("hy-mt2-7b", "q4_k_m"):    ("tencent/Hy-MT2-7B-GGUF", "Hy-MT2-7B-Q4_K_M.gguf"),
+    ("hy-mt2-7b", "q8_0"):      ("tencent/Hy-MT2-7B-GGUF", "HY-MT2-7B-Q8_0.gguf"),
+    ("hy-mt15-1.8b", "q4_k_m"): ("tencent/HY-MT1.5-1.8B-GGUF", "HY-MT1.5-1.8B-Q4_K_M.gguf"),
+    ("hy-mt15-1.8b", "q8_0"):   ("tencent/HY-MT1.5-1.8B-GGUF", "HY-MT1.5-1.8B-Q8_0.gguf"),
+    ("hy-mt15-7b", "q4_k_m"):   ("tencent/HY-MT1.5-7B-GGUF", "HY-MT1.5-7B-Q4_K_M.gguf"),
+    ("hy-mt15-7b", "q8_0"):     ("tencent/HY-MT1.5-7B-GGUF", "HY-MT1.5-7B-Q8_0.gguf"),
+}
+
+
+def _gguf_artifact(mid: str, quant: str) -> str:
+    repo, fname = _GGUF_SOURCES[(mid, quant)]
+    return f"{repo}/{fname}"
 
 
 def _opus_repo(mid: str) -> str:
-    return f"{TRANSLATE_NS}/sokuji-translate-{mid}"
+    return f"Xenova/{mid}"
 
 
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
@@ -132,8 +162,8 @@ def _llm_translate_row(mid, name, family, sort_order, default_quant, default_byt
     deps = []
     for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
                                 (alt_quant, alt_bytes, 1.0)):
-        repo = _gguf_repo(mid, quant)
-        deps += [Deployment(backend, tier, quant, repo, rank, est_bytes=nbytes)
+        artifact = _gguf_artifact(mid, quant)
+        deps += [Deployment(backend, tier, quant, artifact, rank, est_bytes=nbytes)
                  for tier in ("gpu-cuda", "gpu-metal", "cpu")]
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
@@ -157,32 +187,35 @@ def _opus_disp(code):
     return _OPUS_DISP.get(code, code)
 
 
-# Sizes are the GGUF file sizes from the source repos (refresh with the exact
-# byte counts scripts/mirror_translate_models.py prints after mirroring).
+# Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
+# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are 6-file sums from the
+# same date (see OPUS_FILES in native_models.py for the file list).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
-                       "q8_0", 676_000_000, "q4_k_m", 491_000_000, recommended=True),
+                       "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
     _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B", "qwen", 2,
-                       "q8_0", 639_000_000, "q4_k_m", 397_000_000, recommended=True),
+                       "q8_0", 639446688, "q4_k_m", 396705472, recommended=True),
     _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B", "qwen", 3,
-                       "q4_k_m", 533_000_000, "q8_0", 812_000_000),
+                       "q4_k_m", 532517120, "q8_0", 811843840),
     _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B", "qwen", 4,
-                       "q4_k_m", 1_280_000_000, "q8_0", 2_010_000_000),
+                       "q4_k_m", 1280835840, "q8_0", 2012012800),
     _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 5,
-                       "q4_k_m", 2_490_000_000, "q8_0", 4_130_000_000),
+                       "q4_k_m", 2489909760, "q8_0", 4130417920),
     _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 6,
-                       "q4_k_m", 1_130_000_000, "q8_0", 1_910_000_000),
+                       "q4_k_m", 1133080448, "q8_0", 1908528192),
     _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B", "hunyuan", 7,
-                       "q4_k_m", 4_620_000_000, "q8_0", 7_980_000_000),
+                       "q4_k_m", 4624648896, "q8_0", 7981928896),
     _llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B", "hunyuan", 8,
-                       "q4_k_m", 1_130_000_000, "q8_0", 1_910_000_000),
+                       "q4_k_m", 1133080512, "q8_0", 1908528288),
     _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
-                       "q4_k_m", 4_620_000_000, "q8_0", 7_980_000_000),
-    _opus_row("ru", "en", 20), _opus_row("zh", "en", 21), _opus_row("en", "zh", 22),
-    _opus_row("hu", "en", 23), _opus_row("en", "es", 24), _opus_row("en", "ar", 25),
-    _opus_row("en", "ru", 26), _opus_row("es", "en", 27), _opus_row("en", "vi", 28),
-    _opus_row("ar", "en", 29), _opus_row("ja", "en", 30), _opus_row("en", "jap", 31),
-    _opus_row("ko", "en", 32),
+                       "q4_k_m", 4624649312, "q8_0", 7981929344),
+    _opus_row("ru", "en", 20, 117767359), _opus_row("zh", "en", 21, 119495849),
+    _opus_row("en", "zh", 22, 119495576), _opus_row("hu", "en", 23, 116699316),
+    _opus_row("en", "es", 24, 119377271), _opus_row("en", "ar", 25, 117602786),
+    _opus_row("en", "ru", 26, 117767359), _opus_row("es", "en", 27, 119377236),
+    _opus_row("en", "vi", 28, 106645206), _opus_row("ar", "en", 29, 117621466),
+    _opus_row("ja", "en", 30, 114701000), _opus_row("en", "jap", 31, 98933769),
+    _opus_row("ko", "en", 32, 119601552),
 ]
 
 

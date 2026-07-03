@@ -2,9 +2,10 @@
 # Manual smoke test of the llama.cpp Metal path on a real M-series runner:
 # unit suite + binary download + one real translation through llama-server.
 #
-# NOTE: The smoke step's inline python uses catalog._gguf_repo("qwen2.5-0.5b", "q8_0")
-# which downloads from the mirror repo. This requires Task 14's mirror repo upload to have
-# completed successfully before this workflow can succeed.
+# NOTE: The smoke step's inline python uses catalog._gguf_artifact("qwen2.5-0.5b", "q8_0"),
+# an upstream "org/repo/file.gguf" artifact (Task 14b: sourced directly from the upstream
+# Qwen/Qwen2.5-0.5B-Instruct-GGUF repo, mirroring deferred) — split via catalog.split_artifact
+# and fetched with hf_hub_download, not snapshot_download.
 name: sidecar-metal-smoke
 on: workflow_dispatch
 
@@ -47,15 +48,16 @@ jobs:
       - name: Real Metal translation smoke
         run: |
           cd sidecar && python - <<'EOF'
-          from huggingface_hub import snapshot_download
+          from huggingface_hub import hf_hub_download
           from sokuji_sidecar import llama_runtime as rt, catalog
           from sokuji_sidecar.backends import make_backend
           import sokuji_sidecar.translate_backends  # noqa: F401 — registers llamacpp_*
-          repo = catalog._gguf_repo("qwen2.5-0.5b", "q8_0")
-          snapshot_download(repo)
+          artifact = catalog._gguf_artifact("qwen2.5-0.5b", "q8_0")
+          repo, fname = catalog.split_artifact(artifact)
+          hf_hub_download(repo, fname)
           rt.ensure_binary("metal")
           b = make_backend("llamacpp_qwen")
-          b.load(repo, "metal", "q8_0")
+          b.load(artifact, "metal", "q8_0")
           text, n = b.translate("Hello, how are you today?", "", "English", "Chinese", False)
           print("translated:", text, "| tokens:", n)
           assert text.strip() and n > 0

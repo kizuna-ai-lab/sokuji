@@ -250,19 +250,36 @@ def get_reserved_bytes() -> int:
     return _RESERVED_BYTES
 
 
-def gguf_path(repo: str) -> str:
-    """Locate the single .gguf inside a local dir or a cached HF snapshot."""
-    path = repo
+def gguf_path(artifact: str) -> str:
+    """Locate the .gguf for a translate card's artifact.
+
+    Three shapes, in order:
+      1. A local dir (dev override) — walked for exactly one .gguf.
+      2. An upstream file artifact ("org/repo/file.gguf", the catalog's normal
+         shape post-Task-14b) — resolved directly via a single hf_hub_download,
+         no walk/uniqueness check needed since the exact file is already named.
+      3. A bare repo id (legacy/back-compat) — the existing snapshot_download +
+         walk-for-exactly-one-.gguf path.
+    """
+    path = artifact
     if not os.path.isdir(path):
+        from . import catalog
+        repo, fname = catalog.split_artifact(artifact)
+        if fname:
+            from huggingface_hub import hf_hub_download
+            try:
+                return hf_hub_download(repo, fname, local_files_only=True)
+            except Exception as e:
+                raise BackendLoadError(f"model {artifact} not downloaded: {e}")
         from huggingface_hub import snapshot_download
         try:
             path = snapshot_download(repo, local_files_only=True)
         except Exception as e:
-            raise BackendLoadError(f"model {repo} not downloaded: {e}")
+            raise BackendLoadError(f"model {artifact} not downloaded: {e}")
     ggufs = [os.path.join(r, f) for r, _d, fs in os.walk(path)
              for f in fs if f.endswith(".gguf")]
     if len(ggufs) != 1:
-        raise BackendLoadError(f"expected exactly one .gguf under {repo}, found {len(ggufs)}")
+        raise BackendLoadError(f"expected exactly one .gguf under {artifact}, found {len(ggufs)}")
     return ggufs[0]
 
 
