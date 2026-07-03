@@ -296,11 +296,13 @@ class LlamaServerProc:
     (tests inject `[sys.executable, fake.py]`)."""
 
     def __init__(self, binary, gguf: str, ctx: int = 4096,
-                 fit_target_mib: int | None = None):
+                 fit_target_mib: int | None = None,
+                 extra_args: list[str] | None = None):
         self._binary = [binary] if isinstance(binary, str) else list(binary)
         self._gguf = gguf
         self._ctx = ctx
         self._fit_target = fit_target_mib
+        self._extra_args = list(extra_args) if extra_args else []
         self._proc = None
         self._stderr = collections.deque(maxlen=200)
         self._stderr_lock = threading.Lock()
@@ -323,6 +325,7 @@ class LlamaServerProc:
                                "--log-colors", "off"]
         if self._fit_target is not None:
             args += ["--fit-target", str(self._fit_target)]
+        args += self._extra_args
         return args
 
     def _pump_stderr(self, pipe):

@@ -92,15 +92,15 @@ class TestLlamaCppHunyuanGemma:
         assert "chat_template_kwargs" not in echo
         b.unload()
 
-    def test_gemma_template_kwargs(self, llama_env):
+    def test_gemma_uses_completion_with_no_jinja(self, llama_env):
         b = backends.make_backend("llamacpp_gemma")
         b.load(llama_env, "cpu", "q4_k_m")
+        assert "--no-jinja" in b._proc._build_args()
         b.translate("hello", "ignored-system-prompt", "English", "Japanese", False)
         echo = b._last_reply["echo"]
-        assert echo["chat_template_kwargs"] == {
-            "source_lang_code": "en", "target_lang_code": "ja"}
-        assert echo["messages"] == [{"role": "user", "content": "hello"}]
-        assert echo["max_tokens"] == 256
+        assert "<start_of_turn>user" in echo["prompt"]
+        assert "(en)" in echo["prompt"] and "(ja)" in echo["prompt"]
+        assert echo["n_predict"] == 256
         b.unload()
 
 

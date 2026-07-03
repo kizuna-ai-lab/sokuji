@@ -35,9 +35,13 @@ class H(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(n))
         if mode == "die-on-post":
             import os; os._exit(1)
-        out = {"choices": [{"message": {"content": "TRANSLATED:" + body["messages"][-1]["content"]}}],
-               "usage": {"completion_tokens": 7},
-               "echo": body}
+        if self.path == "/completion":
+            out = {"content": "TRANSLATED:" + body["prompt"][-30:],
+                   "tokens_predicted": 5, "echo": body}
+        else:
+            out = {"choices": [{"message": {"content": "TRANSLATED:" + body["messages"][-1]["content"]}}],
+                   "usage": {"completion_tokens": 7},
+                   "echo": body}
         data = json.dumps(out).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

@@ -23,9 +23,23 @@ def _load_sessions(model_dir: str):
     return enc, dec
 
 
+def _sanitize_tokenizer_config(cfg: dict) -> dict:
+    """tokenizers>=0.20 panics on Marian exports' 'Precompiled' normalizer with a
+    null charsmap. A null charsmap is a no-op, so drop the normalizer (same
+    effective behavior as transformers.js, which the WASM path uses)."""
+    norm = cfg.get("normalizer")
+    if isinstance(norm, dict) and norm.get("type") == "Precompiled" \
+            and norm.get("precompiled_charsmap") is None:
+        cfg = {**cfg, "normalizer": None}
+    return cfg
+
+
 def _load_tokenizer(model_dir: str):
     from tokenizers import Tokenizer
-    tok = Tokenizer.from_file(os.path.join(model_dir, "tokenizer.json"))
+    with open(os.path.join(model_dir, "tokenizer.json")) as f:
+        cfg = json.load(f)
+    cfg = _sanitize_tokenizer_config(cfg)
+    tok = Tokenizer.from_str(json.dumps(cfg))
     tok.enable_truncation(max_length=512)   # Marian positional embeddings cap
     return tok
 
@@ -77,10 +91,15 @@ class MarianOnnxSession:
             nxt = int(np.argmax(logits[0, -1]))
             generated.append(nxt)
             # Presents: decoder entries always refresh; encoder entries only on
-            # the first (no-cache) step — the cache branch returns empty dummies.
+            # the first (no-cache) step — the cache branch returns empty dummies
+            # for them. Gate on `step` (which branch we *asked* the graph to
+            # run), not on the dummy tensors' shape: real exports place the
+            # "empty" 0 in whichever axis the graph happens to pick (observed:
+            # batch dim, not the sequence dim), so a shape-based emptiness
+            # check is export-fragile and silently accepts a corrupt cache.
             for name, arr in zip(self._present_names, outs[1:]):
                 past_name = name.replace("present", "past_key_values")
-                if ".decoder." in name or arr.shape[2] > 0:
+                if ".decoder." in name or step == 0:
                     past[past_name] = arr
             if nxt == self._eos:
                 break

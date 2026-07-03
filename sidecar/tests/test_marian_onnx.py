@@ -89,3 +89,27 @@ def test_max_new_tokens_cap(model_dir):
     m = mx.MarianOnnxSession(model_dir)
     _text, n = m.translate("whatever", max_new_tokens=1)
     assert n == 1
+
+
+class TestSanitizeTokenizerConfig:
+    def test_drops_null_charsmap_precompiled_normalizer(self):
+        cfg = {"normalizer": {"type": "Precompiled", "precompiled_charsmap": None},
+               "other": "field"}
+        out = mx._sanitize_tokenizer_config(cfg)
+        assert out["normalizer"] is None
+        assert out["other"] == "field"
+
+    def test_leaves_other_normalizers_untouched(self):
+        cfg = {"normalizer": {"type": "NFKC"}}
+        out = mx._sanitize_tokenizer_config(cfg)
+        assert out["normalizer"] == {"type": "NFKC"}
+
+    def test_leaves_precompiled_with_charsmap_untouched(self):
+        cfg = {"normalizer": {"type": "Precompiled", "precompiled_charsmap": "abc"}}
+        out = mx._sanitize_tokenizer_config(cfg)
+        assert out["normalizer"] == {"type": "Precompiled", "precompiled_charsmap": "abc"}
+
+    def test_leaves_absent_normalizer_untouched(self):
+        cfg = {"other": "field"}
+        out = mx._sanitize_tokenizer_config(cfg)
+        assert out == {"other": "field"}
