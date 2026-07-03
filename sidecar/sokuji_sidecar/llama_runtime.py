@@ -219,33 +219,50 @@ def _install_from_github(flavor: str, dest_dir: str) -> str:
     return exe
 
 
+_ENSURE_BINARY_LOCK = threading.Lock()
+
+
 def ensure_binary(flavor: str, progress=None) -> str:
     """Return the installed binary for `flavor`, downloading it first if needed.
     Raises BinaryFetchError on any failure; never leaves a half-installed exe
-    (writes land in a temp dir that is only renamed into place on success)."""
+    (writes land in a temp dir that is only renamed into place on success).
+
+    Guarded by a module-level lock: model downloads run as concurrent asyncio
+    tasks, each shelling out to this function via asyncio.to_thread — two
+    downloads needing the same flavor (or download() installing its own
+    default + cpu flavors while another model's download races it) could
+    otherwise both enter the extract path and stomp the shared `<flavor>.tmp`
+    dir. The pre-lock check above is just an optimization to skip locking
+    once installed; the check right after acquiring is the one that actually
+    prevents the race — a thread that loses it just reuses the flavor the
+    winner installed instead of redownloading."""
     existing = binary_path(flavor)
     if existing is not None:
         return existing
-    if progress is not None:
-        progress()
-    final_dir = os.path.join(bin_root(), flavor)
-    tmp_dir = final_dir + ".tmp"
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-    os.makedirs(tmp_dir, exist_ok=True)
-    try:
-        if platform.system() == "Windows":
-            _install_from_github(flavor, tmp_dir)
-        else:
-            _install_from_bucket(flavor, tmp_dir)
-        shutil.rmtree(final_dir, ignore_errors=True)
-        os.replace(tmp_dir, final_dir)
-    except BinaryFetchError:
+    with _ENSURE_BINARY_LOCK:
+        existing = binary_path(flavor)
+        if existing is not None:
+            return existing
+        if progress is not None:
+            progress()
+        final_dir = os.path.join(bin_root(), flavor)
+        tmp_dir = final_dir + ".tmp"
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        raise
-    except Exception as e:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        raise BinaryFetchError(str(e))
-    return os.path.join(final_dir, _exe_name())
+        os.makedirs(tmp_dir, exist_ok=True)
+        try:
+            if platform.system() == "Windows":
+                _install_from_github(flavor, tmp_dir)
+            else:
+                _install_from_bucket(flavor, tmp_dir)
+            shutil.rmtree(final_dir, ignore_errors=True)
+            os.replace(tmp_dir, final_dir)
+        except BinaryFetchError:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise
+        except Exception as e:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise BinaryFetchError(str(e))
+        return os.path.join(final_dir, _exe_name())
 
 
 _RESERVED_BYTES = 0

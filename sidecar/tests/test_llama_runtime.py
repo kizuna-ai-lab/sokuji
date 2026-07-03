@@ -96,6 +96,48 @@ def test_ensure_binary_checksum_mismatch(monkeypatch, tmp_path):
     assert rt.binary_path("cuda") is None  # nothing half-installed
 
 
+def test_ensure_binary_concurrent_calls_install_once(monkeypatch, tmp_path):
+    """Two concurrent installs of the SAME flavor (e.g. two model downloads
+    running as concurrent asyncio tasks, each calling ensure_binary in a
+    worker thread via asyncio.to_thread) must not both enter the
+    download/extract path and stomp the shared '<flavor>.tmp' dir — the
+    module-level lock serializes them, and the loser reuses the winner's
+    install instead of redownloading/re-extracting."""
+    import threading
+    import time
+
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt, "_probe_config", lambda flavor: "89")
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    monkeypatch.setitem(rt.ASSET_SHA256, "x86_64/linux/cuda/89/llama-app.zst",
+                        "bbf6b8bb591530f1e81b2eabb6b752b7e8c0d4e134d7392de6e89368bfabb49d")
+    monkeypatch.setattr(rt, "_fetch", lambda url: _zst(b"ELF-fake-llama"))
+
+    real_install = rt._install_from_bucket
+    calls = []
+
+    def slow_install(flavor, dest_dir):
+        calls.append(flavor)
+        time.sleep(0.2)   # widen the race window past the lock
+        return real_install(flavor, dest_dir)
+    monkeypatch.setattr(rt, "_install_from_bucket", slow_install)
+
+    results = [None, None]
+
+    def worker(i):
+        results[i] = rt.ensure_binary("cuda")
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert calls == ["cuda"]   # exactly one install ran
+    assert results[0] == results[1] == rt.binary_path("cuda")
+
+
 def test_gguf_path_single_file(tmp_path):
     (tmp_path / "sub").mkdir()
     (tmp_path / "sub" / "w.gguf").write_bytes(b"GGUF")
