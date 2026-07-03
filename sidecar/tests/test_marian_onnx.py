@@ -24,7 +24,10 @@ class StubEncoder:
 
 
 class StubDecoder:
-    """Emits 7, 8, then eos (0). Asserts the cache branch protocol."""
+    """Emits 7, 8, then eos (0). Asserts the cache branch protocol.
+
+    Encoder-present shapes on cache-branch steps match Xenova ONNX: batch axis zeroed (0, heads, 1, head_dim).
+    """
     def __init__(self):
         self.step = 0
 
@@ -59,9 +62,14 @@ class StubDecoder:
         outs = [logits]
         for i in range(2):
             for kind in ("decoder", "encoder"):
-                seq = self.step if kind == "decoder" else (3 if first else 0)
+                if kind == "decoder":
+                    batch, seq = 1, self.step
+                elif first:
+                    batch, seq = 1, 3  # real encoder, seq=3
+                else:
+                    batch, seq = 0, 1  # cache-branch dummy: batch zeroed (Xenova shape)
                 for _kv in ("key", "value"):
-                    outs.append(np.zeros((1, 4, seq, 4), dtype=np.float32))
+                    outs.append(np.zeros((batch, 4, seq, 4), dtype=np.float32))
         return outs
 
 
