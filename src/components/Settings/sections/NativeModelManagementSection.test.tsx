@@ -83,7 +83,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     repo: 'hy-mt2-7b',
     kind: 'translate',
     sizeBytes: 16075624007,
-    variantIds: ['fp8', 'bfloat16'],
+    variantIds: ['q4_k_m', 'q8_0'],
   },
   'hy-mt15-7b': {
     id: 'hy-mt15-7b',
@@ -95,7 +95,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     repo: 'hy-mt15-7b',
     kind: 'translate',
     sizeBytes: 16075608305,
-    variantIds: ['fp8', 'bfloat16'],
+    variantIds: ['q4_k_m', 'q8_0'],
   },
   'csukuangfj/vits-piper-en_US-amy-low': {
     id: 'csukuangfj/vits-piper-en_US-amy-low',
@@ -140,17 +140,17 @@ const mockCatalog: Record<string, NativeModelInfo> = {
 
 const mockVariants: VariantInfo[] = [
   {
-    id: 'fp8',
-    computeType: 'fp8',
-    repo: 'tencent/Hy-MT2-7B-FP8',
+    id: 'q4_k_m',
+    computeType: 'q4_k_m',
+    repo: 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m',
     sizeBytes: 8e9,
     supported: true,
     reason: 'fits in budget',
   },
   {
-    id: 'bfloat16',
-    computeType: 'bfloat16',
-    repo: 'tencent/Hy-MT2-7B',
+    id: 'q8_0',
+    computeType: 'q8_0',
+    repo: 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q8_0',
     sizeBytes: 15e9,
     supported: false,
     reason: 'exceeds budget',
@@ -243,7 +243,7 @@ beforeEach(() => {
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockTtsResolved = null;
   mockSidecarStatus = 'ready';
-  mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'fp8' });
+  mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'q4_k_m' });
   mockDownload.mockReset();
   mockDeleteModel.mockReset();
   mockUpdate.mockReset();
@@ -257,34 +257,34 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
   it('header dropdown shows the chosen variant + size; opening it lists supported (enabled) and unsupported (disabled) variants', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection />);
-    const fp8SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
+    const q4SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
 
     // The compact dropdown trigger appears in the header, showing the chosen variant + size.
     const trigger = await waitFor(() => {
       const card = screen.getByTestId('model-card-hy-mt2-7b');
       return within(card).getByTestId('variant-dd-hy-mt2-7b');
     });
-    expect(trigger).toHaveTextContent('FP8');
-    expect(trigger).toHaveTextContent(fp8SizeLabel);
+    expect(trigger).toHaveTextContent('Q4_K_M');
+    expect(trigger).toHaveTextContent(q4SizeLabel);
 
     // Variant rows are NOT rendered until the dropdown is opened (keeps the card short).
-    expect(screen.queryByTestId('variant-row-fp8')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('variant-row-q4_k_m')).not.toBeInTheDocument();
 
     // Open the menu.
     fireEvent.click(trigger);
 
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
-    const fp8Row = within(card7b).getByTestId('variant-row-fp8');
-    expect(fp8Row).toHaveTextContent(fp8SizeLabel);
-    expect(within(fp8Row).getByText('recommended')).toBeInTheDocument();
-    expect(fp8Row).toBeEnabled();
+    const q4Row = within(card7b).getByTestId('variant-row-q4_k_m');
+    expect(q4Row).toHaveTextContent(q4SizeLabel);
+    expect(within(q4Row).getByText('recommended')).toBeInTheDocument();
+    expect(q4Row).toBeEnabled();
 
-    // bfloat16 is unsupported → listed (so the user sees the option) but not
+    // q8_0 is unsupported → listed (so the user sees the option) but not
     // selectable. It uses aria-disabled (not the disabled attribute) so the row
     // stays hoverable for the instant tooltip; a muted "blocked" icon marks it.
-    const bf16Row = within(card7b).getByTestId('variant-row-bfloat16');
-    expect(bf16Row).toHaveAttribute('aria-disabled', 'true');
-    expect(within(bf16Row).getByLabelText("won't fit")).toBeInTheDocument();
+    const q8Row = within(card7b).getByTestId('variant-row-q8_0');
+    expect(q8Row).toHaveAttribute('aria-disabled', 'true');
+    expect(within(q8Row).getByLabelText("won't fit")).toBeInTheDocument();
   });
 
   it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {
@@ -293,12 +293,12 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
       within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-dd-hy-mt2-7b'));
     fireEvent.click(trigger); // open the menu
 
-    const fp8Row = within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-row-fp8');
-    fireEvent.click(fp8Row);
+    const q4Row = within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-row-q4_k_m');
+    fireEvent.click(q4Row);
 
     // The pin reaches settings (single source of truth feeding both download repo and load).
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: { 'hy-mt2-7b': 'fp8' } }));
+      expect.objectContaining({ translationVariantByModel: { 'hy-mt2-7b': 'q4_k_m' } }));
     // and it must NOT switch the active model
     expect(mockUpdate).not.toHaveBeenCalledWith(
       expect.objectContaining({ translationModel: expect.anything() }));
@@ -307,10 +307,10 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
   it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
     render(<NativeModelManagementSection />);
     // hy-mt15-7b is a multilingual card always present; its catalog entry carries
-    // variantIds too, so it fetches variants and shows the same FP8 dropdown as hy-mt2.
+    // variantIds too, so it fetches variants and shows the same Q4_K_M dropdown as hy-mt2.
     const trigger = await waitFor(() =>
       within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b'));
-    expect(trigger).toHaveTextContent('FP8');
+    expect(trigger).toHaveTextContent('Q4_K_M');
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
@@ -329,16 +329,16 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
       return within(card).getByTestId('variant-resolved-hy-mt2-7b');
     });
 
-    expect(resolvedSpan).toHaveTextContent('FP8');
+    expect(resolvedSpan).toHaveTextContent('Q4_K_M');
     expect(resolvedSpan).toHaveTextContent(downloadedSizeLabel);
 
     // No variant chooser buttons should appear on the hy-mt2-7b card after download.
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
-    expect(within(card7b).queryByTestId('variant-row-fp8')).not.toBeInTheDocument();
-    expect(within(card7b).queryByTestId('variant-row-bfloat16')).not.toBeInTheDocument();
+    expect(within(card7b).queryByTestId('variant-row-q4_k_m')).not.toBeInTheDocument();
+    expect(within(card7b).queryByTestId('variant-row-q8_0')).not.toBeInTheDocument();
   });
 
-  it('deletes the resolved variant repo, not the default (FP8-only download is removable)', async () => {
+  it('deletes the resolved variant repo, not the default (Q4_K_M-only download is removable)', async () => {
     // Downloaded state: the card collapses to the resolved variant and shows Delete.
     mockStatuses['hy-mt2-7b'] = 'ready';
     mockSizes['hy-mt2-7b'] = 8_000_000_000;
@@ -352,8 +352,8 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     fireEvent.click(within(card7b).getByRole('button', { name: /Delete/i }));
 
-    // Delete must target the FP8 repo so the FP8 cache is actually freed.
-    expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8');
+    // Delete must target the Q4_K_M repo so the Q4_K_M cache is actually freed.
+    expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m');
   });
 
   it('does not push an empty statusRepos override while variant metadata is still loading', async () => {
@@ -370,8 +370,8 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     expect(mockSetStatusRepos).not.toHaveBeenCalled();
   });
 
-  it('downloads the chosen (recommended FP8) variant repo, not the default', async () => {
-    // Pre-download state for hy-mt2-7b; FP8 is recommended.
+  it('downloads the chosen (recommended Q4_K_M) variant repo, not the default', async () => {
+    // Pre-download state for hy-mt2-7b; Q4_K_M is recommended.
     render(<NativeModelManagementSection />);
 
     // Wait for the variant data to land so the download button knows the chosen repo.
@@ -385,8 +385,8 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     const downloadBtn = within(card7b).getByRole('button', { name: /Download/i });
     fireEvent.click(downloadBtn);
 
-    // Download must be called with the model's catalog id AND the FP8 variant's repo.
-    expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-FP8');
+    // Download must be called with the model's catalog id AND the Q4_K_M variant's repo.
+    expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'jiangzhuo9357/sokuji-translate-hy-mt2-7b-q4_k_m');
   });
 });
 

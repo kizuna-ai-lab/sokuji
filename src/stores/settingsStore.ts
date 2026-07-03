@@ -1332,10 +1332,12 @@ const useSettingsStore = create<SettingsStore>()(
         // Resolve the active translation model's CHOSEN variant repo (pin ??
         // recommended) so the gate checks the right quant even on cold start —
         // the Settings panel, which normally publishes statusRepos, may never
-        // have mounted this session. Only HY-MT-family cards ship multiple
-        // quants; everything else uses its single default repo (no override).
+        // have mounted this session. Multi-variant cards (variantIds from the
+        // sidecar catalog) ship multiple quants; everything else uses its
+        // single default repo (no override).
         let statusRepos: Record<string, string> | undefined;
-        if (s.translationModel.startsWith('hy-mt')) {
+        const trInfo = catalog[s.translationModel];
+        if ((trInfo?.variantIds?.length ?? 0) > 1) {
           try {
             const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage, catalog) || null;
             const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);

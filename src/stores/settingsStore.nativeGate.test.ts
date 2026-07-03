@@ -84,6 +84,24 @@ const DEFAULT_CATALOG: Record<string, NativeModelInfo> = {
     id: 'opus-mt-zh-en', name: 'Opus-MT zh→en', kind: 'translate',
     languages: ['zh', 'en'], recommended: false, tiers: [], order: 1, repo: '',
   },
+  // Multi-variant translate cards. The gate must resolve these via variantIds
+  // (data-driven), not a 'hy-mt' prefix check — hy-mt2-7b/hy-mt15-7b cover the
+  // HY-MT family, translategemma-4b proves the check isn't HY-MT-specific.
+  'hy-mt2-7b': {
+    id: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', kind: 'translate',
+    languages: ['multi'], recommended: false, tiers: [], order: 2, repo: '',
+    variantIds: ['q4_k_m', 'q8_0'],
+  },
+  'hy-mt15-7b': {
+    id: 'hy-mt15-7b', name: 'Hunyuan-MT1.5 7B', kind: 'translate',
+    languages: ['multi'], recommended: false, tiers: [], order: 3, repo: '',
+    variantIds: ['q4_k_m', 'q8_0'],
+  },
+  'translategemma-4b': {
+    id: 'translategemma-4b', name: 'TranslateGemma 4B', kind: 'translate',
+    languages: ['multi'], recommended: false, tiers: [], order: 4, repo: '',
+    variantIds: ['q4_k_m', 'q8_0'],
+  },
 };
 
 /** The catalog used in the Task-10 lifecycle tests. Same shape as DEFAULT_CATALOG. */
@@ -157,7 +175,7 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     expect(reposArg()).toEqual({ 'hy-mt2-7b': 'tencent/Hy-MT2-7B' });
   });
 
-  it('also resolves the HY-MT1.5 family (the prefix gate is hy-mt, not hy-mt2)', async () => {
+  it('also resolves the HY-MT1.5 family (gated by catalog variantIds, not a hy-mt prefix)', async () => {
     setNative({ translationModel: 'hy-mt15-7b' });
     await useSettingsStore.getState().validateApiKey();
 
@@ -166,12 +184,21 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     expect(reposArg()).toEqual({ 'hy-mt15-7b': 'tencent/Hy-MT2-7B-FP8' });
   });
 
-  it('does not fetch variants for a non-HY-MT translation model (repos left to the cache)', async () => {
+  it('resolves a non-HY-MT multi-variant card the same way (the gate is data-driven, not hy-mt-specific)', async () => {
+    setNative({ translationModel: 'translategemma-4b' });
+    await useSettingsStore.getState().validateApiKey();
+
+    expect(mockListVariants).toHaveBeenCalledWith('translategemma-4b', 'sense-voice', null);
+    expect(reposArg()).toEqual({ 'translategemma-4b': 'tencent/Hy-MT2-7B-FP8' });
+  });
+
+  it('does not fetch variants for a single-variant translation model (repos left to the cache)', async () => {
     setNative({ translationModel: 'qwen2.5-0.5b' });
     await useSettingsStore.getState().validateApiKey();
 
-    // The variant block is skipped; the required-models refresh (the last call)
-    // gets no explicit override, so it falls back to the store's statusRepos cache.
+    // qwen2.5-0.5b has no (or a single) catalog variantIds entry, so the variant
+    // block is skipped; the required-models refresh (the last call) gets no
+    // explicit override, so it falls back to the store's statusRepos cache.
     // (The first refresh is the pre-auto-select candidate-status refresh.)
     expect(mockListVariants).not.toHaveBeenCalled();
     expect(mockRefresh).toHaveBeenCalledTimes(2);
