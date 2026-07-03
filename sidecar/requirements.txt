@@ -6,3 +6,5 @@ sentencepiece==0.2.0
 huggingface_hub==0.26.2
 compressed-tensors
 psutil
+zstandard==0.23.0
+tokenizers>=0.20

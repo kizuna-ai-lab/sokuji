@@ -42,3 +42,52 @@ def test_urls():
         f"{rt.BUCKET_VERSION}/x86_64/linux/cuda/89/llama-app.zst")
     assert rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-win-cuda-12.4-x64.zip").startswith(
         "https://github.com/ggml-org/llama.cpp/releases/download/")
+
+
+import io
+import zstandard
+
+
+def _zst(data: bytes) -> bytes:
+    return zstandard.ZstdCompressor().compress(data)
+
+
+def test_ensure_binary_downloads_and_extracts(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt, "_probe_config", lambda flavor: "89")
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return _zst(b"ELF-fake-llama")
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+
+    path = rt.ensure_binary("cuda")
+    assert path == rt.binary_path("cuda")
+    assert open(path, "rb").read() == b"ELF-fake-llama"
+    assert os.access(path, os.X_OK)
+    assert fetched == [rt.bucket_url("x86_64/linux/cuda/89/llama-app.zst")]
+
+
+def test_ensure_binary_is_idempotent(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    exe_dir = tmp_path / rt.BUCKET_VERSION / "cpu"
+    exe_dir.mkdir(parents=True)
+    (exe_dir / rt._exe_name()).write_bytes(b"already")
+    monkeypatch.setattr(rt, "_fetch",
+                        lambda url: (_ for _ in ()).throw(AssertionError("no fetch")))
+    assert rt.ensure_binary("cpu") == rt.binary_path("cpu")
+
+
+def test_ensure_binary_checksum_mismatch(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt, "_probe_config", lambda flavor: "89")
+    monkeypatch.setattr(rt, "_fetch", lambda url: _zst(b"tampered"))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    monkeypatch.setitem(rt.ASSET_SHA256, "x86_64/linux/cuda/89/llama-app.zst", "0" * 64)
+    with pytest.raises(rt.BinaryFetchError):
+        rt.ensure_binary("cuda")
+    assert rt.binary_path("cuda") is None  # nothing half-installed
