@@ -512,7 +512,7 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
     monkeypatch.setattr("huggingface_hub.HfApi", boom)
     nm._SIZE_CACHE.clear()
     assert nm.model_size("sense-voice") == 944624033
-    assert nm.model_size("hy-mt2-1.8b") == 4086810533
+    assert nm.model_size("hy-mt2-1.8b") == 1_130_000_000
     assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
 
 

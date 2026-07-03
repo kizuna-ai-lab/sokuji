@@ -137,135 +137,60 @@ def test_tts_model_unknown_returns_none():
     assert catalog.tts_model("does-not-exist") is None
 
 
-def test_translate_models_have_deployments_and_cpu_floor():
-    for m in catalog.translate_models():
-        assert m.deployments, f"{m.id} has no deployments"
-        assert m.languages, f"{m.id} has no languages"
-        assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} lacks a cpu floor"
-        for d in m.deployments:
-            assert d.backend in {"qwen_translate", "qwen35_translate", "gemma_translate",
-                                 "hunyuan_translate", "opus_translate"}
-
-
-def test_translate_model_ids_unique_and_lookup():
-    ids = [m.id for m in catalog.translate_models()]
-    assert len(ids) == len(set(ids))
-    assert catalog.translate_model("does-not-exist") is None
-
-
-def test_translate_rows_map_to_qwen_repos():
-    expected = {
-        "qwen2.5-0.5b": ("qwen_translate", "Qwen/Qwen2.5-0.5B-Instruct"),
-        "qwen3-0.6b": ("qwen_translate", "Qwen/Qwen3-0.6B"),
-        "qwen3.5-0.8b": ("qwen35_translate", "Qwen/Qwen3.5-0.8B"),
-        "qwen3.5-2b": ("qwen35_translate", "Qwen/Qwen3.5-2B"),
-    }
-    for mid, (backend, repo) in expected.items():
-        m = catalog.translate_model(mid)
-        assert m is not None, f"missing {mid}"
-        tiers = [(d.backend, d.tier, d.compute_type, d.artifact) for d in m.deployments]
-        assert (backend, "gpu-cuda", "bfloat16", repo) in tiers
-        assert (backend, "cpu", "float32", repo) in tiers
-
-
-def test_new_llm_translate_rows():
-    from sokuji_sidecar import catalog
-    g = catalog.translate_model("translategemma-4b")
-    assert g is not None
-    assert g.name == "TranslateGemma 4B"
-    assert {d.tier for d in g.deployments} == {"gpu-cuda", "cpu"}
-    assert all(d.backend == "gemma_translate" for d in g.deployments)
-    assert g.deployments[0].artifact == "google/translategemma-4b-it"
-
-    for mid, repo in [("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B"),
-                      ("hy-mt2-7b", "tencent/Hy-MT2-7B")]:
-        h = catalog.translate_model(mid)
-        assert h is not None and all(d.backend == "hunyuan_translate" for d in h.deployments)
-        assert h.deployments[0].artifact == repo
-        assert {d.tier for d in h.deployments} == {"gpu-cuda", "cpu"}
-        # bf16 on GPU, float32 on CPU (mirrors the Qwen rows)
-        gpu = next(d for d in h.deployments if d.tier == "gpu-cuda")
-        cpu = next(d for d in h.deployments if d.tier == "cpu")
-        assert gpu.compute_type == "bfloat16" and cpu.compute_type == "float32"
-
-
-def test_hymt2_has_fp8_variant():
-    from sokuji_sidecar import catalog
-    for mid, fp8_repo in [("hy-mt2-7b", "tencent/Hy-MT2-7B-FP8"),
-                          ("hy-mt2-1.8b", "tencent/Hy-MT2-1.8B-FP8")]:
-        m = catalog.translate_model(mid)
-        fp8 = [d for d in m.deployments if d.compute_type == "fp8"]
-        assert len(fp8) == 1
-        assert fp8[0].tier == "gpu-cuda"
-        assert fp8[0].backend == "hunyuan_translate"
-        assert fp8[0].artifact == fp8_repo
-        assert fp8[0].min_capability == (8, 9)
-        # bf16 + cpu still present, bf16 has no capability gate
-        bf16 = next(d for d in m.deployments if d.tier == "gpu-cuda" and d.compute_type == "bfloat16")
-        assert bf16.min_capability is None
-        assert any(d.tier == "cpu" for d in m.deployments)
-
-
-def test_gemma_has_no_fp8_variant():
-    from sokuji_sidecar import catalog
-    g = catalog.translate_model("translategemma-4b")
-    assert not any(d.compute_type == "fp8" for d in g.deployments)
-
-
-def test_opus_rows_present_with_expected_shape():
-    from sokuji_sidecar import catalog
-    m = catalog.translate_model("opus-mt-zh-en")
+def test_llm_translate_rows_shape():
+    m = catalog.translate_model("translategemma-4b")
     assert m is not None
-    assert m.name == "Opus-MT (zh → en)"
-    backends = {d.backend for d in m.deployments}
-    tiers = [d.tier for d in m.deployments]
-    assert backends == {"opus_translate"}
-    assert tiers == ["gpu-cuda", "cpu"]            # no fp8 variant
-    assert [d.compute_type for d in m.deployments] == ["bfloat16", "float32"]
-    assert all(d.artifact == "Helsinki-NLP/opus-mt-zh-en" for d in m.deployments)
+    quants = {d.compute_type for d in m.deployments}
+    assert quants == {"q4_k_m", "q8_0"}
+    tiers = {(d.compute_type, d.tier) for d in m.deployments}
+    for q in quants:
+        assert {(q, "gpu-cuda"), (q, "gpu-metal"), (q, "cpu")} <= tiers
+    # default quant (rank 2.0) is q4_k_m for the 4B card
+    default = max(m.deployments, key=lambda d: d.rank)
+    assert default.compute_type == "q4_k_m"
+    assert all(d.backend == "llamacpp_gemma" for d in m.deployments)
+    # same artifact across tiers of one quant (a GGUF is tier-agnostic)
+    per_quant = {q: {d.artifact for d in m.deployments if d.compute_type == q}
+                 for q in quants}
+    assert all(len(a) == 1 for a in per_quant.values())
 
 
-def test_opus_en_ja_uses_jap_repo_but_ja_display():
-    from sokuji_sidecar import catalog
-    m = catalog.translate_model("opus-mt-en-jap")
-    assert m is not None
-    assert m.name == "Opus-MT (en → ja)"           # display maps jap→ja
-    assert m.deployments[0].artifact == "Helsinki-NLP/opus-mt-en-jap"
-
-
-def test_all_13_opus_pairs_registered():
-    from sokuji_sidecar import catalog
-    ids = {m.id for m in catalog.translate_models()}
-    for pid in ["opus-mt-ru-en", "opus-mt-zh-en", "opus-mt-en-zh", "opus-mt-hu-en",
-                "opus-mt-en-es", "opus-mt-en-ar", "opus-mt-en-ru", "opus-mt-es-en",
-                "opus-mt-en-vi", "opus-mt-ar-en", "opus-mt-ja-en", "opus-mt-en-jap",
-                "opus-mt-ko-en"]:
-        assert pid in ids, pid
-
-
-def test_hymt15_translate_rows():
-    from sokuji_sidecar import catalog
-    for mid, repo in [("hy-mt15-1.8b", "tencent/HY-MT1.5-1.8B"),
-                      ("hy-mt15-7b", "tencent/HY-MT1.5-7B")]:
-        h = catalog.translate_model(mid)
-        assert h is not None and all(d.backend == "hunyuan_translate" for d in h.deployments)
-        assert h.deployments[0].artifact == repo
-        gpu = next(d for d in h.deployments if d.tier == "gpu-cuda" and d.compute_type == "bfloat16")
-        cpu = next(d for d in h.deployments if d.tier == "cpu")
-        assert gpu.compute_type == "bfloat16" and cpu.compute_type == "float32"
-
-
-def test_hymt15_has_fp8_variant():
-    from sokuji_sidecar import catalog
-    for mid, fp8_repo in [("hy-mt15-1.8b", "tencent/HY-MT1.5-1.8B-FP8"),
-                          ("hy-mt15-7b", "tencent/HY-MT1.5-7B-FP8")]:
+def test_small_qwen_defaults_to_q8():
+    for mid in ("qwen2.5-0.5b", "qwen3-0.6b"):
         m = catalog.translate_model(mid)
-        fp8 = [d for d in m.deployments if d.compute_type == "fp8"]
-        assert len(fp8) == 1
-        assert fp8[0].tier == "gpu-cuda"
-        assert fp8[0].backend == "hunyuan_translate"
-        assert fp8[0].artifact == fp8_repo
-        assert fp8[0].min_capability == (8, 9)
+        default = max(m.deployments, key=lambda d: d.rank)
+        assert default.compute_type == "q8_0", mid
+        assert all(d.backend == "llamacpp_qwen" for d in m.deployments)
+
+
+def test_hunyuan_backend_and_no_fp8():
+    for mid in ("hy-mt2-1.8b", "hy-mt2-7b", "hy-mt15-1.8b", "hy-mt15-7b"):
+        m = catalog.translate_model(mid)
+        assert all(d.backend == "llamacpp_hunyuan" for d in m.deployments)
+        assert all(d.compute_type in ("q4_k_m", "q8_0") for d in m.deployments)
+
+
+def test_opus_rows_cpu_only():
+    m = catalog.translate_model("opus-mt-ja-en")
+    assert len(m.deployments) == 1
+    d = m.deployments[0]
+    assert (d.backend, d.tier, d.compute_type) == ("opus_onnx_translate", "cpu", "int8")
+    assert d.artifact.endswith("/sokuji-translate-opus-mt-ja-en")
+
+
+def test_gguf_repo_naming(monkeypatch):
+    assert catalog._gguf_repo("qwen3.5-2b", "q4_k_m").endswith(
+        "/sokuji-translate-qwen3.5-2b-q4_k_m")
+
+
+def test_all_translate_backends_installed_names():
+    from sokuji_sidecar import accel
+    installed = accel._installed()
+    for name in ("llamacpp_qwen", "llamacpp_hunyuan", "llamacpp_gemma"):
+        assert name in installed
+    for old in ("qwen_translate", "qwen35_translate", "hunyuan_translate",
+                "gemma_translate", "opus_translate"):
+        assert old not in installed
 
 
 def test_tts_models_use_repo_path_ids_and_have_num_speakers():
@@ -308,13 +233,6 @@ def test_size_bytes_regression_values():
     # aishell3 repoints to the existing HF repo with its measured kept-size
     # (the old vits-icefall id 404'd on HF and was never downloadable).
     assert catalog.tts_model("csukuangfj/vits-zh-aishell3").size_bytes == 123663994
-
-
-def test_with_fp8_preserves_size_bytes():
-    # _with_fp8 copies the row to append a gpu-cuda fp8 deployment; the base
-    # download size must carry over unchanged.
-    base = catalog.translate_model("hy-mt2-1.8b")
-    assert base.size_bytes == 4086810533
 
 
 def test_voice_capability_map():

@@ -92,20 +92,18 @@ def _installed() -> frozenset:
             # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
             # both so a half-installed env doesn't advertise it in the catalog then fail at load().
             "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common"),
-            # translation: 2.5/3 are CausalLM (always present with transformers); 3.5 is the
-            # qwen3_5 VLM class (self-gates off until transformers ships it), used text-only.
-            "qwen_translate": "transformers",
-            "qwen35_translate": "transformers.models.qwen3_5",
-            # Opus-MT MarianMT: AutoModelForSeq2SeqLM is core transformers (always
-            # present with transformers), so this self-gates on transformers alone.
-            "opus_translate": "transformers",
-            # TranslateGemma uses the Gemma-3 multimodal class (text-only here); HY-MT2 is the
-            # native hunyuan_v1_dense CausalLM. Both ship in transformers 5.13; self-gate off on
-            # an older transformers that lacks the module.
-            "gemma_translate": "transformers.models.gemma3",
-            "hunyuan_translate": "transformers.models.hunyuan_v1_dense"}
+            # llamacpp_* backends run an external llama-server binary — a
+            # downloadable artifact, not a Python runtime. Always "installed";
+            # a missing binary fails at load() with a clear error instead of
+            # being silently filtered out of the plans.
+            "llamacpp_qwen": None,
+            "llamacpp_hunyuan": None,
+            "llamacpp_gemma": None,
+            "opus_onnx_translate": ("onnxruntime", "tokenizers")}
 
     def _ready(spec):
+        if spec is None:
+            return True
         return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
     return frozenset(b for b, spec in mods.items() if _ready(spec))
 

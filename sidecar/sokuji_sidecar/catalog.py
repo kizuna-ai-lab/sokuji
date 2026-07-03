@@ -7,14 +7,11 @@ from dataclasses import dataclass
 
 SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
 FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
-# The default Qwen 2.5 translation repo honours SOKUJI_TRANSLATE_MODEL so the runtime
-# loads the same repo the download/prefetch path fetched (keep these two in sync).
-QWEN25_REPO = os.environ.get("SOKUJI_TRANSLATE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice" | "qwen_translate" | "qwen35_translate"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -112,23 +109,43 @@ class TranslateModel(_ModelBase):
     pass
 
 
-def _llm_translate_row(mid, name, repo, backend, sort_order, recommended=False, size_bytes=0):
-    return TranslateModel(mid, name, ("multi",), (
-        Deployment(backend, "gpu-cuda", "bfloat16", repo, 1.0),
-        Deployment(backend, "cpu", "float32", repo, 1.0),
-    ), recommended=recommended, sort_order=sort_order, size_bytes=size_bytes)
+# Owned HF namespace hosting the mirrored translate artifacts (GGUF single-file
+# repos per card-variant; 6-file Xenova ONNX sets per Opus pair). Mirroring
+# rather than linking upstream: unsloth/mradermacher/bartowski are mutable
+# third-party repos; the mirror gives a uniform URL scheme + deletion-proofing.
+TRANSLATE_NS = os.environ.get("SOKUJI_TRANSLATE_NS", "jiangzhuo9357")
 
 
-def _with_fp8(row, fp8_repo):
-    """Return a copy of a TranslateModel row with a gpu-cuda fp8 variant appended.
-    Preserves `row.size_bytes` (the base download size); the FP8 variant's own
-    size is reported separately by `list_variants`."""
-    fp8 = Deployment(row.deployments[0].backend, "gpu-cuda", "fp8", fp8_repo, 1.0,
-                     min_capability=(8, 9))
-    return TranslateModel(row.id, row.name, row.languages,
-                          row.deployments + (fp8,),
-                          recommended=row.recommended, sort_order=row.sort_order,
-                          size_bytes=row.size_bytes)
+def _gguf_repo(mid: str, quant: str) -> str:
+    return f"{TRANSLATE_NS}/sokuji-translate-{mid}-{quant}"
+
+
+def _opus_repo(mid: str) -> str:
+    return f"{TRANSLATE_NS}/sokuji-translate-{mid}"
+
+
+def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
+                       alt_quant, alt_bytes, recommended=False):
+    """An LLM card: one llamacpp backend, two GGUF quant variants, three tiers
+    each. The same GGUF serves every tier; rank 2.0 marks the default quant."""
+    backend = f"llamacpp_{family}"
+    deps = []
+    for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
+                                (alt_quant, alt_bytes, 1.0)):
+        repo = _gguf_repo(mid, quant)
+        deps += [Deployment(backend, tier, quant, repo, rank, est_bytes=nbytes)
+                 for tier in ("gpu-cuda", "gpu-metal", "cpu")]
+    return TranslateModel(mid, name, ("multi",), tuple(deps),
+                          recommended=recommended, sort_order=sort_order,
+                          size_bytes=default_bytes)
+
+
+def _opus_row(src, tgt, sort_order, size_bytes=115_000_000):
+    mid = f"opus-mt-{src}-{tgt}"
+    name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
+    return TranslateModel(mid, name, (src, tgt), (
+        Deployment("opus_onnx_translate", "cpu", "int8", _opus_repo(mid), 1.0),
+    ), sort_order=sort_order, size_bytes=size_bytes)
 
 
 # Opus-MT display: the en→ja repo keeps Helsinki's "jap" token, but the card
@@ -140,61 +157,32 @@ def _opus_disp(code):
     return _OPUS_DISP.get(code, code)
 
 
-def _opus_row(src, tgt, sort_order, size_bytes=0):
-    mid = f"opus-mt-{src}-{tgt}"
-    repo = f"Helsinki-NLP/{mid}"
-    name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
-    return TranslateModel(mid, name, (src, tgt), (
-        Deployment("opus_translate", "gpu-cuda", "bfloat16", repo, 1.0),
-        Deployment("opus_translate", "cpu", "float32", repo, 1.0),
-    ), sort_order=sort_order, size_bytes=size_bytes)
-
-
+# Sizes are the GGUF file sizes from the source repos (refresh with the exact
+# byte counts scripts/mirror_translate_models.py prints after mirroring).
 TRANSLATE_MODELS: list[TranslateModel] = [
-    _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B",
-                       QWEN25_REPO, "qwen_translate", 1, recommended=True,
-                       size_bytes=999604126),
-    _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B",
-                       "Qwen/Qwen3-0.6B", "qwen_translate", 2, recommended=True,
-                       size_bytes=1519209243),
-    _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B",
-                       "Qwen/Qwen3.5-0.8B", "qwen35_translate", 3,
-                       size_bytes=1769980465),
-    _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B",
-                       "Qwen/Qwen3.5-2B", "qwen35_translate", 4,
-                       size_bytes=4571274023),
-    _llm_translate_row("translategemma-4b", "TranslateGemma 4B",
-                       "google/translategemma-4b-it", "gemma_translate", 5,
-                       size_bytes=8639637704),
-    _with_fp8(_llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B",
-                                 "tencent/Hy-MT2-1.8B", "hunyuan_translate", 6,
-                                 size_bytes=4086810533),
-              "tencent/Hy-MT2-1.8B-FP8"),
-    _with_fp8(_llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B",
-                                 "tencent/Hy-MT2-7B", "hunyuan_translate", 7,
-                                 size_bytes=16075624007),
-              "tencent/Hy-MT2-7B-FP8"),
-    _with_fp8(_llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B",
-                                 "tencent/HY-MT1.5-1.8B", "hunyuan_translate", 8,
-                                 size_bytes=4086795383),
-              "tencent/HY-MT1.5-1.8B-FP8"),
-    _with_fp8(_llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B",
-                                 "tencent/HY-MT1.5-7B", "hunyuan_translate", 9,
-                                 size_bytes=16075608305),
-              "tencent/HY-MT1.5-7B-FP8"),
-    _opus_row("ru", "en", 20, size_bytes=311481821),
-    _opus_row("zh", "en", 21, size_bytes=315322845),
-    _opus_row("en", "zh", 22, size_bytes=315322114),
-    _opus_row("hu", "en", 23, size_bytes=310210981),
-    _opus_row("en", "es", 24, size_bytes=315310815),
-    _opus_row("en", "ar", 25, size_bytes=311416093),
-    _opus_row("en", "ru", 26, size_bytes=311479785),
-    _opus_row("es", "en", 27, size_bytes=315310760),
-    _opus_row("en", "vi", 28, size_bytes=291629146),
-    _opus_row("ar", "en", 29, size_bytes=311494073),
-    _opus_row("ja", "en", 30, size_bytes=306382145),
-    _opus_row("en", "jap", 31, size_bytes=276839172),
-    _opus_row("ko", "en", 32, size_bytes=315467125),
+    _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
+                       "q8_0", 676_000_000, "q4_k_m", 491_000_000, recommended=True),
+    _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B", "qwen", 2,
+                       "q8_0", 639_000_000, "q4_k_m", 397_000_000, recommended=True),
+    _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B", "qwen", 3,
+                       "q4_k_m", 533_000_000, "q8_0", 812_000_000),
+    _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B", "qwen", 4,
+                       "q4_k_m", 1_280_000_000, "q8_0", 2_010_000_000),
+    _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 5,
+                       "q4_k_m", 2_490_000_000, "q8_0", 4_130_000_000),
+    _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 6,
+                       "q4_k_m", 1_130_000_000, "q8_0", 1_910_000_000),
+    _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B", "hunyuan", 7,
+                       "q4_k_m", 4_620_000_000, "q8_0", 7_980_000_000),
+    _llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B", "hunyuan", 8,
+                       "q4_k_m", 1_130_000_000, "q8_0", 1_910_000_000),
+    _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
+                       "q4_k_m", 4_620_000_000, "q8_0", 7_980_000_000),
+    _opus_row("ru", "en", 20), _opus_row("zh", "en", 21), _opus_row("en", "zh", 22),
+    _opus_row("hu", "en", 23), _opus_row("en", "es", 24), _opus_row("en", "ar", 25),
+    _opus_row("en", "ru", 26), _opus_row("es", "en", 27), _opus_row("en", "vi", 28),
+    _opus_row("ar", "en", 29), _opus_row("ja", "en", 30), _opus_row("en", "jap", 31),
+    _opus_row("ko", "en", 32),
 ]
 
 

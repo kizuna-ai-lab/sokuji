@@ -649,24 +649,29 @@ def test_resolve_translate_prefers_gpu(monkeypatch):
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
-                 installed=frozenset({"qwen_translate"}))
+                 installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
     assert plans[0].device == "cuda"
     assert plans[-1].device == "cpu"
-    assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct"
+    # qwen2.5-0.5b defaults to q8_0 (small-Qwen default); artifact is the GGUF repo.
+    assert plans[0].artifact.endswith("/sokuji-translate-qwen2.5-0.5b-q8_0")
 
 
 def test_resolve_translate_cpu_only_machine():
-    m = _machine(installed=frozenset({"qwen_translate"}))
+    m = _machine(installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", "auto", m)
     assert [p.device for p in plans] == ["cpu"]
 
 
 def test_resolve_translate_override_cpu_pins_front():
+    # An explicit device override bypasses select_variant/quant-default picking
+    # and returns every installed+tier-available deployment (both quants), CPU
+    # pinned to the front.
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
-                 installed=frozenset({"qwen_translate"}))
+                 installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", "cpu", m)
-    assert [p.device for p in plans] == ["cpu", "cuda"]
+    assert [p.device for p in plans] == ["cpu", "cpu", "cuda", "cuda"]
+    assert plans[0].device == "cpu" and plans[-1].device == "cuda"
 
 
 def test_resolve_translate_qwen35_self_gates_off():
@@ -684,7 +689,7 @@ def test_resolve_translate_unknown_id_raises():
 
 def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
-        nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"qwen_translate"})))
+        nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"llamacpp_qwen"})))
     reply, _ = asyncio.run(accel._h_models_catalog(
         {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
     ids = [m["id"] for m in reply["models"]]
@@ -703,15 +708,15 @@ def test_models_catalog_kind_defaults_to_asr(monkeypatch):
 
 
 def test_new_translate_backends_installed_and_resolvable():
-    # transformers 5.13 ships gemma3 + hunyuan_v1_dense, so both backends self-gate ON here.
+    # llamacpp_* backends run an external binary, not a Python runtime → always "installed".
     inst = accel._installed()
-    assert "gemma_translate" in inst
-    assert "hunyuan_translate" in inst
+    assert "llamacpp_gemma" in inst
+    assert "llamacpp_hunyuan" in inst
     # and the resolver now produces plans instead of raising NoUsablePlan
     plans = accel.resolve_translate("hy-mt2-1.8b", "auto")
-    assert any(p.backend == "hunyuan_translate" for p in plans)
+    assert any(p.backend == "llamacpp_hunyuan" for p in plans)
     g = accel.resolve_translate("translategemma-4b", "auto")
-    assert any(p.backend == "gemma_translate" for p in g)
+    assert any(p.backend == "llamacpp_gemma" for p in g)
 
 
 def test_nvidia_gpus_populates_vram_and_capability(monkeypatch):
@@ -874,31 +879,30 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     assert notice and "CPU" in notice
 
 
-def test_opus_translate_self_gates_on_transformers(monkeypatch):
+def test_opus_translate_self_gates_on_onnxruntime_and_tokenizers(monkeypatch):
     from sokuji_sidecar import accel
     real = accel.importlib.util.find_spec
 
     def present(name, *a, **k):
-        if name == "transformers":
+        if name in ("onnxruntime", "tokenizers"):
             return object()
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "opus_translate" in accel._installed()
+    assert "opus_onnx_translate" in accel._installed()
 
 
-def test_resolve_translate_opus_prefers_gpu_then_cpu(monkeypatch):
+def test_resolve_translate_opus_is_cpu_only(monkeypatch):
     from sokuji_sidecar import accel
-    # Same fixture shape as test_resolve_translate_prefers_gpu: stub format
-    # readiness + size estimate so select_variant picks the GPU deterministically
-    # without a network size lookup.
+    # Opus-MT moved to a single cpu/int8 ONNX deployment (no GPU tier); a
+    # gpu-cuda deployment simply doesn't exist for this model any more.
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
-                 installed=frozenset({"opus_translate"}))
+                 installed=frozenset({"opus_onnx_translate"}))
     plans = accel.resolve_translate("opus-mt-zh-en", "auto", m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]
-    assert all(p.backend == "opus_translate" for p in plans)
-    assert plans[0].artifact == "Helsinki-NLP/opus-mt-zh-en"
+    assert [p.device for p in plans] == ["cpu"]
+    assert all(p.backend == "opus_onnx_translate" for p in plans)
+    assert plans[0].artifact.endswith("/sokuji-translate-opus-mt-zh-en")
 
 
 def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
@@ -906,12 +910,13 @@ def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
-                 installed=frozenset({"hunyuan_translate"}))
+                 installed=frozenset({"llamacpp_hunyuan"}))
     plans = accel.resolve_translate("hy-mt15-1.8b", "auto", m)
     assert plans[0].device == "cuda"
     assert plans[-1].device == "cpu"
-    assert all(p.backend == "hunyuan_translate" for p in plans)
-    assert plans[0].artifact.startswith("tencent/HY-MT1.5-1.8B")  # bf16 or FP8 variant
+    assert all(p.backend == "llamacpp_hunyuan" for p in plans)
+    # artifact is the mirrored GGUF repo for whichever quant select_variant picked
+    assert plans[0].artifact.startswith(catalog.TRANSLATE_NS + "/sokuji-translate-hy-mt15-1.8b-")
 
 
 def test_resolve_tts_orders_gpu_over_cpu(monkeypatch):
