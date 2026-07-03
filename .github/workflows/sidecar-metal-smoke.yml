@@ -1,0 +1,45 @@
+# .github/workflows/sidecar-metal-smoke.yml
+# Manual smoke test of the llama.cpp Metal path on a real M-series runner:
+# unit suite + binary download + one real translation through llama-server.
+#
+# NOTE: The smoke step's inline python uses catalog._gguf_repo("qwen2.5-0.5b", "q8_0")
+# which downloads from the mirror repo. This requires Task 14's mirror repo upload to have
+# completed successfully before this workflow can succeed.
+name: sidecar-metal-smoke
+on: workflow_dispatch
+
+jobs:
+  metal-smoke:
+    runs-on: macos-14   # M-series, Metal-capable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install sidecar deps (CPU onnxruntime)
+        run: |
+          python -m pip install -r sidecar/requirements.txt onnxruntime pytest
+      - name: Unit suite
+        run: cd sidecar && python -m pytest tests/ -v
+      - name: Cache GGUF + llama binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.config/Sokuji/llama-bin
+          key: metal-smoke-${{ hashFiles('sidecar/sokuji_sidecar/llama_runtime.py') }}
+      - name: Real Metal translation smoke
+        run: |
+          cd sidecar && python - <<'EOF'
+          from huggingface_hub import snapshot_download
+          from sokuji_sidecar import llama_runtime as rt, catalog
+          from sokuji_sidecar.backends import make_backend
+          repo = catalog._gguf_repo("qwen2.5-0.5b", "q8_0")
+          snapshot_download(repo)
+          rt.ensure_binary("metal")
+          b = make_backend("llamacpp_qwen")
+          b.load(repo, "metal", "q8_0")
+          text, n = b.translate("Hello, how are you today?", "", "English", "Chinese", False)
+          print("translated:", text, "| tokens:", n)
+          assert text.strip() and n > 0
+          b.unload()
+          EOF
