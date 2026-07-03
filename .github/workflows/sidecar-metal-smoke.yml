@@ -19,7 +19,24 @@ jobs:
         run: |
           python -m pip install -r sidecar/requirements.txt onnxruntime pytest
       - name: Unit suite
-        run: cd sidecar && python -m pytest tests/ -v
+        # Light-dep translate-domain suite: this job only installs
+        # sidecar/requirements.txt + onnxruntime + pytest, so `pytest tests/`
+        # would hit import-time failures in the TTS/ASR test modules that need
+        # librosa/torch/transformers/funasr/faster_whisper/sherpa (those come
+        # from setup.sh's heavy deps, not requirements.txt). The files below
+        # were verified (module-level import trace) to only reach numpy,
+        # websockets, zstandard, etc. — all in requirements.txt.
+        run: |
+          cd sidecar && python -m pytest \
+            tests/test_llama_runtime.py \
+            tests/test_llama_server_proc.py \
+            tests/test_marian_onnx.py \
+            tests/test_translate_backends.py \
+            tests/test_catalog.py \
+            tests/test_accel.py \
+            tests/test_native_models.py \
+            tests/test_translate_engine.py \
+            -v
       - name: Cache GGUF + llama binary
         uses: actions/cache@v4
         with:
@@ -33,6 +50,7 @@ jobs:
           from huggingface_hub import snapshot_download
           from sokuji_sidecar import llama_runtime as rt, catalog
           from sokuji_sidecar.backends import make_backend
+          import sokuji_sidecar.translate_backends  # noqa: F401 — registers llamacpp_*
           repo = catalog._gguf_repo("qwen2.5-0.5b", "q8_0")
           snapshot_download(repo)
           rt.ensure_binary("metal")
