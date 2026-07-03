@@ -223,8 +223,17 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
         raise ValueError(f"unknown translate model: {model_id}")
     machine = machine or probe()
     if override == "auto":
+        from . import llama_runtime
+        llama_runtime.set_reserved_bytes(reserved_bytes)
         chosen = select_variant(model, machine, reserved_bytes, pin)
-        cpu = next((d for d in model.deployments if d.tier == "cpu"), None)
+        # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
+        # coherent fallback the user actually picked/expects); fall back to any
+        # CPU deployment when that exact quant has none.
+        cpu = next((d for d in model.deployments
+                    if d.tier == "cpu" and d.compute_type == chosen.compute_type), None) \
+            if chosen is not None else None
+        if cpu is None:
+            cpu = next((d for d in model.deployments if d.tier == "cpu"), None)
         picks = [chosen] + ([cpu] if cpu is not None and cpu is not chosen else [])
         # Keep only deployments whose backend is actually installed on this machine.
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
@@ -385,8 +394,12 @@ def load_with_fallback(plans: list):
         # Read free VRAM and weights estimate ONCE per cuda plan; both the
         # proactive gate and the honest OOM message reuse them. Capturing free
         # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
-        free = _cuda_free_bytes() if plan.device == "cuda" else None
-        need = _model_weight_bytes(plan.artifact) if plan.device == "cuda" else None
+        # llamacpp plans are exempt from the proactive gate: llama-server's --fit
+        # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
+        # guess here would only wrongly route a fittable model to CPU.
+        is_llamacpp = plan.backend.startswith("llamacpp_")
+        free = _cuda_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
+        need = _model_weight_bytes(plan.artifact) if (plan.device == "cuda" and not is_llamacpp) else None
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
@@ -554,11 +567,42 @@ def _est_bytes(d) -> int | None:
     return native_models.model_size(d.artifact)
 
 
+def _is_llamacpp(model) -> bool:
+    return model.deployments[0].backend.startswith("llamacpp_")
+
+
+def _llamacpp_variant_row(model, machine: Machine, pin: str | None):
+    """Quant = pin when valid else the rank-default; tier = best available.
+    No VRAM math: llama-server's --fit guarantees any quant runs (worst case
+    partially offloaded)."""
+    quants = {}
+    for d in model.deployments:
+        cur = quants.get(d.compute_type)
+        if cur is None or d.rank > cur.rank:
+            quants[d.compute_type] = d
+    if pin in quants:
+        quant = pin
+    else:
+        quant = max(quants.values(), key=lambda d: d.rank).compute_type
+    rows = [d for d in model.deployments if d.compute_type == quant]
+    rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=True)
+    for d in rows:
+        if _tier_available(d.tier, machine):
+            return d
+    return next((d for d in rows if d.tier == "cpu"), None)
+
+
 def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
     CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
-    runtime is missing. `pin` (a compute_type) forces that variant when it's valid."""
+    runtime is missing. `pin` (a compute_type) forces that variant when it's valid.
+
+    llamacpp-backed models (all current LLM translate cards) take a separate,
+    VRAM-math-free path: llama-server's --fit handles memory via partial offload,
+    so quant/tier selection is purely rank + tier-availability, never a byte budget."""
+    if _is_llamacpp(model):
+        return _llamacpp_variant_row(model, machine, pin)
     gpu = machine.nvidia[0] if machine.nvidia else None
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
@@ -616,6 +660,21 @@ async def _h_list_variants(state, msg, _b, conn=None):
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
         return {"type": "error", "id": msg.get("id"), "message": "no runnable variant"}, None
+    if _is_llamacpp(model):
+        # llamacpp quants are cross-tier (the same GGUF serves gpu-cuda/gpu-metal/cpu);
+        # dedupe by compute_type instead of listing one row per (tier, compute_type)
+        # pair, and skip the VRAM-based supported/reason math entirely (no VRAM math
+        # for llamacpp — see select_variant/_llamacpp_variant_row).
+        seen = {}
+        for d in model.deployments:
+            if d.compute_type not in seen:
+                seen[d.compute_type] = d
+        variants = [{"id": ct, "computeType": ct, "repo": d.artifact,
+                     "sizeBytes": _est_bytes(d) or 0, "supported": True,
+                     "reason": "ok"}
+                    for ct, d in seen.items()]
+        return {"type": "list_variants_result", "id": msg.get("id"),
+                "variants": variants, "recommended": chosen.compute_type}, None
     gpu = m.nvidia[0] if m.nvidia else None
     budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
     variants = []
@@ -682,6 +741,12 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
+        if kind == "translate":
+            seen_cts = []
+            for d in mdl.deployments:
+                if d.compute_type not in seen_cts:
+                    seen_cts.append(d.compute_type)
+            entry["variantIds"] = seen_cts
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

@@ -674,12 +674,16 @@ def test_resolve_translate_override_cpu_pins_front():
     assert plans[0].device == "cpu" and plans[-1].device == "cuda"
 
 
-def test_resolve_translate_qwen35_self_gates_off():
-    # transformers lacks qwen3_5 → qwen35_translate not installed → no plan.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
-                 installed=frozenset({"qwen_translate"}))
-    with pytest.raises(accel.NoUsablePlan):
-        accel.resolve_translate("qwen3.5-0.8b", "auto", m)
+def test_resolve_translate_qwen35_no_longer_self_gates():
+    # Pre-Task-9, qwen3.5 self-gated off pending transformers' qwen3_5 support
+    # (backend "qwen35_translate"). It now lives on a GGUF card behind
+    # llamacpp_qwen, an external binary that accel._installed() always reports
+    # present (no Python-runtime dependency) — so qwen3.5 resolves like any other
+    # LLM translate card, self-gating no longer applies.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=accel._installed())
+    plans = accel.resolve_translate("qwen3.5-0.8b", "auto", m)
+    assert plans[0].device == "cuda"
+    assert any(p.backend == "llamacpp_qwen" for p in plans)
 
 
 def test_resolve_translate_unknown_id_raises():
@@ -754,8 +758,19 @@ def _gpu_machine(vram_mb, cap, installed=("hunyuan_translate",)):
 
 
 def _hymt2_7b():
+    """Synthetic (non-catalog) TranslateModel replicating the pre-llamacpp shape of
+    hy-mt2-7b: a gpu-cuda bf16 variant, a cpu float32 floor, and an Ada-only
+    (min_capability (8,9)) gpu-cuda fp8 variant. The real hy-mt2-7b catalog row
+    moved to llamacpp/GGUF quants (Task 9), which bypasses this VRAM/capability/
+    format-aware logic entirely (see _is_llamacpp in accel.py) — this fixture keeps
+    select_variant's still-live generic (non-llamacpp) path under test."""
     from sokuji_sidecar import catalog
-    return catalog.translate_model("hy-mt2-7b")
+    return catalog.TranslateModel("hy-mt2-7b-synthetic", "Hunyuan-MT2 7B (synthetic)", ("multi",), (
+        catalog.Deployment("hunyuan_translate", "gpu-cuda", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
+        catalog.Deployment("hunyuan_translate", "cpu", "float32", "tencent/Hy-MT2-7B", 1.0),
+        catalog.Deployment("hunyuan_translate", "gpu-cuda", "fp8", "tencent/Hy-MT2-7B-FP8", 1.0,
+                           min_capability=(8, 9)),
+    ))
 
 
 def test_select_variant_picks_fp8_on_ada_when_bf16_too_big(monkeypatch):
@@ -812,32 +827,32 @@ def test_select_variant_conservative_when_no_vram(monkeypatch):
     assert d.tier == "cpu"                                    # never gamble → cpu floor
 
 
-def test_resolve_translate_uses_selected_variant(monkeypatch):
-    monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
-    monkeypatch.setattr(accel, "_est_bytes",
-                        lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
-    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(16 * 1024, (8, 9)))
-    plans = accel.resolve_translate("hy-mt2-7b", override="auto", reserved_bytes=2 * 1024**3)
-    # chosen GPU variant first (fp8), CPU floor last
-    assert plans[0].compute_type == "fp8" and plans[0].device == "cuda"
-    assert plans[-1].device == "cpu"
-
-
 def test_resolve_translate_explicit_device_override_unchanged(monkeypatch):
-    # device override ("cuda"/"cpu") keeps prior tier-pinning behavior, not variant selection
-    monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(12 * 1024, (8, 9)))
+    # device override ("cuda"/"cpu") keeps prior tier-pinning behavior, not variant
+    # selection. hy-mt2-7b's real backend moved to llamacpp_hunyuan (Task 9); the
+    # synthetic-model default installed=("hunyuan_translate",) no longer matches it.
+    monkeypatch.setattr(accel, "probe", lambda force=False:
+                        _gpu_machine(12 * 1024, (8, 9), installed=("llamacpp_hunyuan",)))
     plans = accel.resolve_translate("hy-mt2-7b", override="cpu")
     assert plans[0].device == "cpu"
 
 
 def test_list_variants_marks_supported_and_recommended(monkeypatch):
+    # hy-mt2-7b's real catalog row moved to llamacpp/GGUF quants (Task 9), which
+    # bypasses the VRAM-based supported/reason math via the _is_llamacpp dedupe
+    # branch (see test_list_variants_dedupes_llamacpp). This test keeps the
+    # generic (non-llamacpp) list_variants branch under test via a synthetic model,
+    # monkeypatching catalog.translate_model since _h_list_variants looks models up
+    # by id.
     from sokuji_sidecar import native_models as nm
+    model = _hymt2_7b()
+    monkeypatch.setattr(catalog, "translate_model", lambda mid: model if mid == model.id else None)
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes",
                         lambda d: {"bfloat16": 15, "fp8": 8, "float32": 15}[d.compute_type] * 1024**3)
     monkeypatch.setattr(accel, "probe", lambda force=False: _gpu_machine(16 * 1024, (8, 9)))
     monkeypatch.setattr(nm, "model_size", lambda repo: 8 * 1024**3)
-    msg = {"type": "list_variants", "id": 1, "model": "hy-mt2-7b", "asrId": None, "ttsId": None}
+    msg = {"type": "list_variants", "id": 1, "model": model.id, "asrId": None, "ttsId": None}
     reply, _ = asyncio.run(accel._h_list_variants({}, msg, None, None))
     by = {v["computeType"]: v for v in reply["variants"]}
     assert by["fp8"]["supported"] is True and by["fp8"]["repo"] == "tencent/Hy-MT2-7B-FP8"
@@ -1039,3 +1054,85 @@ def test_models_catalog_carries_size_bytes_per_model():
     amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
     assert amy["clones"] is False and amy["numSpeakers"] == 1
     assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"
+
+
+# ── llamacpp-aware resolution/variant selection (Task 10) ──────────────────
+# Named `_llm_machine` (not `_machine`) — the file already has a `_machine`
+# helper with a different (kwargs-of-tuples) signature; redefining `_machine`
+# here would silently replace it for the whole module and break every earlier
+# test that calls it.
+
+
+def _llm_machine(nvidia=False, apple=False):
+    gpus = (accel.Gpu(vendor="nvidia", name="RTX 4070", vram_mb=12282,
+                      capability=(8, 9)),) if nvidia else ()
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=gpus,
+                         apple_silicon=apple, dml_adapters=(),
+                         installed=accel._installed(), fingerprint="test")
+
+
+def test_select_variant_llamacpp_default_and_pin():
+    m = catalog.translate_model("translategemma-4b")
+    mach = _llm_machine(nvidia=True)
+    chosen = accel.select_variant(m, mach, reserved_bytes=0, pin=None)
+    assert (chosen.compute_type, chosen.tier) == ("q4_k_m", "gpu-cuda")
+    pinned = accel.select_variant(m, mach, reserved_bytes=0, pin="q8_0")
+    assert (pinned.compute_type, pinned.tier) == ("q8_0", "gpu-cuda")
+
+
+def test_select_variant_llamacpp_metal_and_cpu():
+    m = catalog.translate_model("qwen3.5-2b")
+    metal = accel.select_variant(m, _llm_machine(apple=True), 0, None)
+    assert metal.tier == "gpu-metal"
+    cpu = accel.select_variant(m, _llm_machine(), 0, None)
+    assert cpu.tier == "cpu"
+
+
+def test_resolve_translate_same_quant_cpu_floor(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    plans = accel.resolve_translate("hy-mt2-1.8b", pin="q8_0")
+    assert [(p.tier, p.compute_type) for p in plans] == [
+        ("gpu-cuda", "q8_0"), ("cpu", "q8_0")]
+
+
+def test_resolve_translate_sets_reserved(monkeypatch):
+    from sokuji_sidecar import llama_runtime as rt
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    accel.resolve_translate("qwen2.5-0.5b", reserved_bytes=123456)
+    assert rt.get_reserved_bytes() == 123456
+    rt.set_reserved_bytes(0)
+
+
+def test_vram_gate_skipped_for_llamacpp(monkeypatch):
+    """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
+    llama-server's --fit handles memory by partial offload."""
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 1 << 30)  # 1 GiB free
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
+    loaded = []
+
+    class FakeBackend:
+        def load(self, ref, device, ct):
+            loaded.append(device)
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    plans = [accel.Plan("llamacpp_gemma", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
+             accel.Plan("llamacpp_gemma", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
+    _b, plan, notice = accel.load_with_fallback(plans)
+    assert plan.device == "cuda" and notice is None
+    assert loaded == ["cuda"]
+
+
+def test_list_variants_dedupes_llamacpp(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    reply, _ = asyncio.run(accel._h_list_variants({}, {"model": "translategemma-4b"}, None, None))
+    ids = [v["id"] for v in reply["variants"]]
+    assert sorted(ids) == ["q4_k_m", "q8_0"]        # deduped across tiers
+    assert all(v["supported"] for v in reply["variants"])
+    assert reply["recommended"] == "q4_k_m"
+
+
+def test_models_catalog_variant_ids(monkeypatch):
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine())
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "translate"}, None, None))
+    by_id = {m["id"]: m for m in reply["models"]}
+    assert by_id["translategemma-4b"]["variantIds"] == ["q4_k_m", "q8_0"]
+    assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
