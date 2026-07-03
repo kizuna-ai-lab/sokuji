@@ -3,7 +3,6 @@
 # Idempotent. Reuses an existing .venv. Override knobs via env:
 #   PYTHON=python3.11            interpreter for a fresh venv (default: python3.11 else python3)
 #   HF_HOME=/path/to/cache       where models are cached (default: HF default ~/.cache/huggingface)
-#   SOKUJI_TRANSLATE_MODEL=...    translation LLM repo (default: Qwen/Qwen2.5-0.5B-Instruct)
 #   SOKUJI_ASR_REPO=...           sherpa-onnx ASR repo
 # Flags:
 #   --no-models                  install deps only, skip the (~1.5GB+) model download

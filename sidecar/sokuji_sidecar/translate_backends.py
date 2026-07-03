@@ -173,7 +173,14 @@ class LlamaCppGemmaBackend(_LlamaCppBase):
         body = f"<transcript>{text}</transcript>" if wrap else text
         s_name, s_code = src or "the source language", _gemma_code(src)
         t_name, t_code = tgt or "the target language", _gemma_code(tgt)
-        return (f"<start_of_turn>user\nYou are a professional {s_name} ({s_code}) to {t_name} ({t_code}) "
+        # A falsy src/tgt has no real code — _gemma_code(name) on a falsy name
+        # just passes that same falsy value straight through the dict .get()
+        # fallback — so appending " (code)" unconditionally rendered a leaked
+        # empty parenthetical: "the source language ()". Only append it when
+        # there's both a real language name AND a real code for it.
+        s_label = f"{s_name} ({s_code})" if src and s_code else s_name
+        t_label = f"{t_name} ({t_code})" if tgt and t_code else t_name
+        return (f"<start_of_turn>user\nYou are a professional {s_label} to {t_label} "
                 f"translator. Your goal is to accurately convey the meaning and nuances of the original "
                 f"{s_name} text while adhering to {t_name} grammar, vocabulary, and cultural sensitivities.\n"
                 f"Produce only the {t_name} translation, without any additional explanations or commentary. "

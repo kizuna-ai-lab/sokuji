@@ -103,6 +103,18 @@ class TestLlamaCppHunyuanGemma:
         assert echo["n_predict"] == 256
         b.unload()
 
+    def test_gemma_prompt_omits_empty_code_for_falsy_src(self, llama_env):
+        # Regression: a falsy src/tgt (auto-detect / unset) used to render as
+        # "the source language ()" — an empty, leaked parenthetical — because
+        # _gemma_code("") passes the falsy value straight through unchanged.
+        b = backends.make_backend("llamacpp_gemma")
+        b.load(llama_env, "cpu", "q4_k_m")
+        prompt = b._render_prompt("hello", "", "Japanese", False)
+        assert "()" not in prompt
+        assert "the source language to Japanese (ja)" in prompt
+        assert "(ja)" in prompt
+        b.unload()
+
 
 class TestOpusOnnx:
     def test_load_and_translate(self, monkeypatch, tmp_path):
