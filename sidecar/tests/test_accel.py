@@ -837,6 +837,41 @@ def test_resolve_translate_explicit_device_override_unchanged(monkeypatch):
     assert plans[0].device == "cpu"
 
 
+def test_resolve_translate_override_honors_quant_pin():
+    # Regression: the explicit device-override path used to drop `pin`
+    # entirely, so a pinned q8_0 silently resolved through whatever quant
+    # _resolve_model's plain tier ranking picked (the rank-default, q4_k_m
+    # for qwen3-0.6b, ignoring the pin). override='cpu' + pin='q8_0' must
+    # yield ONLY q8_0 rows, cpu pinned to the front.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"llamacpp_qwen"}))
+    plans = accel.resolve_translate("qwen3-0.6b", override="cpu", pin="q8_0", machine=m)
+    assert [p.device for p in plans] == ["cpu", "cuda"]
+    assert all(p.compute_type == "q8_0" for p in plans)
+
+
+def test_resolve_translate_override_without_pin_unchanged():
+    # No pin -> unchanged behavior: every installed+tier-available deployment
+    # across BOTH quants (mirrors test_resolve_translate_override_cpu_pins_front).
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                 installed=frozenset({"llamacpp_qwen"}))
+    plans = accel.resolve_translate("qwen3-0.6b", override="cpu", machine=m)
+    assert {p.compute_type for p in plans} == {"q8_0", "q4_k_m"}
+
+
+def test_resolve_translate_override_cuda_sets_reserved(monkeypatch):
+    # Regression: set_reserved_bytes used to run only on the 'auto' branch,
+    # leaving the explicit device-override path (translationDevice: cuda|cpu,
+    # a first-class UI control) with a stale/zero reserved-bytes figure, so
+    # --fit-target would be sized wrong for a llamacpp cuda load.
+    from sokuji_sidecar import llama_runtime as rt
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12288, (8, 9)),),
+                 installed=frozenset({"llamacpp_qwen"}))
+    accel.resolve_translate("qwen3-0.6b", override="cuda", reserved_bytes=654321, machine=m)
+    assert rt.get_reserved_bytes() == 654321
+    rt.set_reserved_bytes(0)
+
+
 def test_list_variants_marks_supported_and_recommended(monkeypatch):
     # hy-mt2-7b's real catalog row moved to llamacpp/GGUF quants (Task 9), which
     # bypasses the VRAM-based supported/reason math via the _is_llamacpp dedupe

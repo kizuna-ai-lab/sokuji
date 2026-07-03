@@ -1,6 +1,7 @@
 """Hardware-acceleration resolver: probes the machine, decides the ordered list
 of Plans for a model (best first, CPU floor last), and loads with fallback.
 The single owner of "which backend on which device"."""
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -217,14 +218,18 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
 
 def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None,
                       reserved_bytes: int = 0, pin: str | None = None) -> list[Plan]:
-    from . import catalog
+    from . import catalog, llama_runtime
     model = catalog.translate_model(model_id)
     if model is None:
         raise ValueError(f"unknown translate model: {model_id}")
     machine = machine or probe()
+    # Set regardless of override branch: the explicit device path (a
+    # first-class 'translationDevice: cuda|cpu' UI control) loads a llamacpp
+    # backend exactly like the auto path does, so it needs --fit-target sized
+    # off the same reserved-VRAM figure — leaving this only in the auto branch
+    # left the override path with a stale/zero reserved_bytes.
+    llama_runtime.set_reserved_bytes(reserved_bytes)
     if override == "auto":
-        from . import llama_runtime
-        llama_runtime.set_reserved_bytes(reserved_bytes)
         chosen = select_variant(model, machine, reserved_bytes, pin)
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
@@ -241,7 +246,17 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
             raise NoUsablePlan(model_id)
         return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
                 for d in picks]
-    # explicit device override: unchanged tier-pinning path
+    # Explicit device override: unchanged tier-pinning path, EXCEPT a quant
+    # `pin` (llamacpp cards only) must still be honored — otherwise a pinned
+    # q8_0 silently resolves through whatever quant _resolve_model's plain
+    # tier-pin ranking picks by default (the highest-rank row across ALL
+    # quants), ignoring the user's pin entirely. Filter the model down to just
+    # the pinned (or rank-default, if the pin is invalid) quant's rows first,
+    # then run the existing tier-pinned resolution over that narrowed model.
+    if pin is not None and _is_llamacpp(model):
+        quant = _llamacpp_quant(model, pin)
+        model = dataclasses.replace(
+            model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
     return _resolve_model(model, model_id, override, machine)
 
 
@@ -571,19 +586,28 @@ def _is_llamacpp(model) -> bool:
     return model.deployments[0].backend.startswith("llamacpp_")
 
 
-def _llamacpp_variant_row(model, machine: Machine, pin: str | None):
-    """Quant = pin when valid else the rank-default; tier = best available.
-    No VRAM math: llama-server's --fit guarantees any quant runs (worst case
-    partially offloaded)."""
+def _llamacpp_quant(model, pin: str | None) -> str:
+    """Which compute_type (quant) to use for a llamacpp model: `pin` when it
+    names one of the model's available quants, else the rank-default quant
+    (the compute_type of the highest-rank deployment row). Shared by
+    _llamacpp_variant_row (the auto path's tier selection) and
+    resolve_translate's explicit-override path (which must honor the same
+    pin instead of silently dropping it)."""
     quants = {}
     for d in model.deployments:
         cur = quants.get(d.compute_type)
         if cur is None or d.rank > cur.rank:
             quants[d.compute_type] = d
     if pin in quants:
-        quant = pin
-    else:
-        quant = max(quants.values(), key=lambda d: d.rank).compute_type
+        return pin
+    return max(quants.values(), key=lambda d: d.rank).compute_type
+
+
+def _llamacpp_variant_row(model, machine: Machine, pin: str | None):
+    """Quant = pin when valid else the rank-default; tier = best available.
+    No VRAM math: llama-server's --fit guarantees any quant runs (worst case
+    partially offloaded)."""
+    quant = _llamacpp_quant(model, pin)
     rows = [d for d in model.deployments if d.compute_type == quant]
     rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=True)
     for d in rows:
