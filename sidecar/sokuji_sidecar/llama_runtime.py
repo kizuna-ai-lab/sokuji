@@ -10,13 +10,17 @@ Two responsibilities:
      localhost port, polls /health until ready, and exposes the
      OpenAI-compatible /v1/chat/completions endpoint.
 """
+import collections
 import hashlib
 import os
 import platform
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 
 from .backends import BackendLoadError
 
@@ -209,3 +213,105 @@ def ensure_binary(flavor: str, progress=None) -> str:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         raise BinaryFetchError(str(e))
     return os.path.join(final_dir, _exe_name())
+
+
+def _free_port() -> int:
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class LlamaServerProc:
+    """One llama-server child serving one GGUF on a free localhost port.
+
+    `binary` is either a path string (real runtime) or an argv prefix list
+    (tests inject `[sys.executable, fake.py]`)."""
+
+    def __init__(self, binary, gguf: str, ctx: int = 4096,
+                 fit_target_mib: int | None = None):
+        self._binary = [binary] if isinstance(binary, str) else list(binary)
+        self._gguf = gguf
+        self._ctx = ctx
+        self._fit_target = fit_target_mib
+        self._proc = None
+        self._stderr = collections.deque(maxlen=200)
+        self.port = 0
+
+    def _build_args(self) -> list[str]:
+        # The bucket single-file `llama` app needs the `serve` subcommand; the
+        # Windows GitHub-release `llama-server.exe` IS the server already.
+        serve = [] if os.path.basename(
+            str(self._binary[-1])).startswith("llama-server") else ["serve"]
+        args = self._binary + serve + ["-m", self._gguf,
+                               "--host", "127.0.0.1", "--port", str(self.port),
+                               "--no-webui", "-c", str(self._ctx),
+                               "--log-colors", "off"]
+        if self._fit_target is not None:
+            args += ["--fit-target", str(self._fit_target)]
+        return args
+
+    def _pump_stderr(self, pipe):
+        for line in iter(pipe.readline, b""):
+            text = line.decode("utf-8", "replace").rstrip()
+            self._stderr.append(text)
+            print(f"[llama-server] {text}", file=sys.stderr)
+        pipe.close()
+
+    def stderr_tail(self) -> str:
+        return "\n".join(list(self._stderr)[-20:])
+
+    def start(self, timeout: float = 120.0) -> None:
+        self.port = _free_port()
+        kwargs = {}
+        if platform.system() == "Linux":
+            import ctypes
+            libc = ctypes.CDLL("libc.so.6", use_errno=True)
+            kwargs["preexec_fn"] = lambda: libc.prctl(1, 15)  # PR_SET_PDEATHSIG, SIGTERM
+        elif platform.system() == "Windows":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+        self._proc = subprocess.Popen(
+            self._build_args(), stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE, **kwargs)
+        threading.Thread(target=self._pump_stderr, args=(self._proc.stderr,),
+                         daemon=True).start()
+        import atexit
+        atexit.register(self.stop)
+        deadline = time.time() + timeout
+        import urllib.error
+        import urllib.request
+        while time.time() < deadline:
+            if self._proc.poll() is not None:
+                raise BackendLoadError(
+                    f"llama-server exited rc={self._proc.returncode}: {self.stderr_tail()}")
+            try:
+                with urllib.request.urlopen(
+                        f"http://127.0.0.1:{self.port}/health", timeout=2) as r:
+                    if r.status == 200:
+                        return
+            except urllib.error.HTTPError as e:
+                if e.code != 503:
+                    raise BackendLoadError(f"health returned {e.code}")
+            except OSError:
+                pass
+            time.sleep(0.2)
+        self.stop()
+        raise BackendLoadError(f"llama-server not ready in {timeout:.0f}s: {self.stderr_tail()}")
+
+    def alive(self) -> bool:
+        return self._proc is not None and self._proc.poll() is None
+
+    def stop(self) -> None:
+        if self._proc is None:
+            return
+        if self._proc.poll() is None:
+            self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+                self._proc.wait(timeout=5)
+        self._proc = None
+
+    def restart(self) -> None:
+        self.stop()
+        self.start()
