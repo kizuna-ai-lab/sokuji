@@ -1,12 +1,15 @@
-"""Translation backend adapters (transformers, text-only). Mirror the ASR
-backends' load()/unload() contract but expose translate() instead of
-transcribe(). Registered into the shared backends registry on import.
+"""Translation backend adapters. Mirror the ASR backends' load()/unload()
+contract but expose translate() instead of transcribe(). Registered into the
+shared backends registry on import.
 
   qwen_translate     — Qwen 2.5 / 3, AutoModelForCausalLM (/no_think for Qwen3).
   qwen35_translate   — Qwen 3.5, Qwen3_5ForConditionalGeneration (VLM class), text-only.
   hunyuan_translate  — HY-MT2 / HY-MT1.5 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
   gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
   opus_translate     — MarianMT seq2seq, AutoModelForSeq2SeqLM (pair-baked direction).
+
+  llamacpp_qwen      — Qwen 2.5 / 3 / 3.5 GGUF served by a local llama-server
+                       child (/no_think for Qwen3, not Qwen3.5).
 
 All support CPU (float32) and GPU (bfloat16) via .to(device)."""
 import re
@@ -31,6 +34,84 @@ def _clean_output(text: str) -> str:
         text = text.split("</think>", 1)[1]
     text = _TRANSCRIPT_TAG.sub("", text)
     return text.strip()
+
+
+class _LlamaCppBase:
+    """Shared llama-server plumbing; subclasses provide NAME + _payload()."""
+    MAX_TOKENS = 512
+
+    def __init__(self):
+        self._proc = None
+        self._ref = ""
+        self._last_reply = None   # kept for tests/diagnostics
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        from . import llama_runtime as rt
+        self.unload()
+        try:
+            flavor = rt.flavor_for_device(device)
+            binary = rt.binary_path(flavor)
+            if binary is None:
+                raise BackendLoadError(
+                    f"llama runtime ({flavor}) is not installed — download the model again")
+            gguf = rt.gguf_path(model_ref)
+            fit = None
+            if device != "cpu":
+                fit = 1024 + rt.get_reserved_bytes() // (1 << 20)
+            proc = rt.LlamaServerProc(binary, gguf, fit_target_mib=fit)
+            proc.start()
+            self._proc = proc
+            self._ref = model_ref
+        except BackendLoadError:
+            raise
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    def _payload(self, text, system_prompt, src, tgt, wrap) -> dict:
+        raise NotImplementedError
+
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str,
+                  wrap: bool) -> tuple[str, int]:
+        payload = self._payload(text, system_prompt, src, tgt, wrap)
+        try:
+            reply = self._proc.chat(payload)
+        except Exception:
+            # One in-place restart when the child died (GGUF already on disk,
+            # restart is seconds); a second failure propagates.
+            if self._proc is not None and not self._proc.alive():
+                self._proc.restart()
+                reply = self._proc.chat(payload)
+            else:
+                raise
+        self._last_reply = reply
+        content = reply["choices"][0]["message"]["content"]
+        n = int((reply.get("usage") or {}).get("completion_tokens") or 0)
+        return _clean_output(content), n
+
+    def unload(self) -> None:
+        if self._proc is not None:
+            self._proc.stop()
+            self._proc = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._proc is not None
+
+
+@register_backend
+class LlamaCppQwenBackend(_LlamaCppBase):
+    NAME = "llamacpp_qwen"
+
+    def _payload(self, text, system_prompt, src, tgt, wrap):
+        sys_p = system_prompt or _default_prompt(src, tgt)
+        # Qwen3 (not 3.5) needs thinking mode off; card repos are named
+        # sokuji-translate-qwen3-0.6b-* vs ...-qwen3.5-*, so match "qwen3-".
+        if "qwen3-" in self._ref.lower():
+            sys_p = f"{sys_p} /no_think"
+        user = f"<transcript>{text}</transcript>" if wrap else text
+        return {"messages": [{"role": "system", "content": sys_p},
+                             {"role": "user", "content": user}],
+                "temperature": 0, "max_tokens": self.MAX_TOKENS}
 
 
 @register_backend

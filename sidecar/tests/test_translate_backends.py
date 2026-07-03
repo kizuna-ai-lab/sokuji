@@ -277,6 +277,65 @@ def test_opus_backend_registered():
     assert backends._BACKENDS.get("opus_translate") is tb.OpusTranslateBackend
 
 
+from sokuji_sidecar import llama_runtime as rt
+from tests.test_llama_server_proc import make_fake  # fake llama-server argv
+
+
+@pytest.fixture
+def llama_env(monkeypatch, tmp_path):
+    """Point the backend at the fake server + a fake single-gguf model dir."""
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+    (model_dir / "w.gguf").write_bytes(b"GGUF")
+    fake_argv = make_fake(tmp_path)
+    monkeypatch.setattr(rt, "binary_path", lambda flavor: fake_argv)
+    rt.set_reserved_bytes(0)
+    return str(model_dir)
+
+
+class TestLlamaCppQwen:
+    def test_qwen25_payload_and_output(self, llama_env):
+        b = backends.make_backend("llamacpp_qwen")
+        b.load(llama_env, "cpu", "q8_0")
+        # the fake echoes the request back under "echo"
+        text, n = b.translate("hello", "", "English", "Chinese", True)
+        assert text.startswith("TRANSLATED:")
+        assert n == 7
+        echo = b._last_reply["echo"]
+        assert echo["temperature"] == 0 and echo["max_tokens"] == 512
+        assert echo["messages"][0]["role"] == "system"
+        assert "/no_think" not in echo["messages"][0]["content"]
+        assert echo["messages"][1]["content"] == "<transcript>hello</transcript>"
+        b.unload()
+        assert not b.is_loaded
+
+    def test_qwen3_gets_no_think(self, llama_env, monkeypatch, tmp_path):
+        d = tmp_path / "sokuji-translate-qwen3-0.6b-q8_0"
+        d.mkdir()
+        (d / "w.gguf").write_bytes(b"GGUF")
+        b = backends.make_backend("llamacpp_qwen")
+        b.load(str(d), "cpu", "q8_0")
+        b.translate("hi", "", "en", "zh", False)
+        assert "/no_think" in b._last_reply["echo"]["messages"][0]["content"]
+        b.unload()
+
+    def test_qwen35_no_think_absent(self, llama_env, tmp_path):
+        d = tmp_path / "sokuji-translate-qwen3.5-0.8b-q4_k_m"
+        d.mkdir()
+        (d / "w.gguf").write_bytes(b"GGUF")
+        b = backends.make_backend("llamacpp_qwen")
+        b.load(str(d), "cpu", "q4_k_m")
+        b.translate("hi", "", "en", "zh", False)
+        assert "/no_think" not in b._last_reply["echo"]["messages"][0]["content"]
+        b.unload()
+
+    def test_missing_binary_is_load_error(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
+        b = backends.make_backend("llamacpp_qwen")
+        with pytest.raises(backends.BackendLoadError):
+            b.load(str(tmp_path), "cuda", "q4_k_m")
+
+
 def test_opus_translate_runs_seq2seq_and_ignores_prompt():
     import torch  # noqa: F401  (translate imports torch internally)
     b = tb.OpusTranslateBackend()
