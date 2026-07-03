@@ -381,3 +381,33 @@ class TestLlamaCppHunyuanGemma:
         assert echo["messages"] == [{"role": "user", "content": "hello"}]
         assert echo["max_tokens"] == 256
         b.unload()
+
+
+class TestOpusOnnx:
+    def test_load_and_translate(self, monkeypatch, tmp_path):
+        from sokuji_sidecar import translate_backends as tb
+
+        class StubSession:
+            def __init__(self, model_dir):
+                self.model_dir = model_dir
+            def translate(self, text, max_new_tokens=512):
+                return f"UEBERSETZT:{text}", 4
+        monkeypatch.setattr(tb, "MarianOnnxSession", StubSession)
+        b = backends.make_backend("opus_onnx_translate")
+        b.load(str(tmp_path), "cpu", "int8")
+        assert b.is_loaded
+        # direction is pair-baked: prompt/src/tgt/wrap are ignored
+        text, n = b.translate("guten tag", "sys", "de", "en", True)
+        assert text == "UEBERSETZT:guten tag" and n == 4
+        b.unload()
+        assert not b.is_loaded
+
+    def test_load_error_wrapped(self, monkeypatch, tmp_path):
+        from sokuji_sidecar import translate_backends as tb
+
+        def boom(model_dir):
+            raise RuntimeError("no such file")
+        monkeypatch.setattr(tb, "MarianOnnxSession", boom)
+        b = backends.make_backend("opus_onnx_translate")
+        with pytest.raises(backends.BackendLoadError):
+            b.load(str(tmp_path), "cpu", "int8")

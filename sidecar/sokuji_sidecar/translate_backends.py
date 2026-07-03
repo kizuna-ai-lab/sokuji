@@ -7,14 +7,17 @@ shared backends registry on import.
   hunyuan_translate  — HY-MT2 / HY-MT1.5 1.8B / 7B, AutoModelForCausalLM (hunyuan_v1_dense, native).
   gemma_translate    — TranslateGemma 4B, Gemma3ForConditionalGeneration (VLM class), text-only.
   opus_translate     — MarianMT seq2seq, AutoModelForSeq2SeqLM (pair-baked direction).
+  opus_onnx_translate — Opus via ONNX Runtime, MarianOnnxSession.
 
   llamacpp_qwen      — Qwen 2.5 / 3 / 3.5 GGUF served by a local llama-server
                        child (/no_think for Qwen3, not Qwen3.5).
 
 All support CPU (float32) and GPU (bfloat16) via .to(device)."""
+import os
 import re
 
 from .backends import register_backend, BackendLoadError
+from .marian_onnx import MarianOnnxSession
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
 
@@ -441,3 +444,35 @@ class OpusTranslateBackend:
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
+
+
+@register_backend
+class OpusOnnxTranslateBackend:
+    NAME = "opus_onnx_translate"
+
+    def __init__(self):
+        self._session = None
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        self._session = None
+        try:
+            path = model_ref
+            if not os.path.isdir(path):
+                from huggingface_hub import snapshot_download
+                path = snapshot_download(model_ref, local_files_only=True)
+            self._session = MarianOnnxSession(path)
+        except Exception as e:
+            raise BackendLoadError(str(e))
+
+    def translate(self, text: str, system_prompt: str, src: str, tgt: str,
+                  wrap: bool) -> tuple[str, int]:
+        # The translation direction is baked into the model — system_prompt,
+        # src, tgt and wrap are intentionally ignored.
+        return self._session.translate(text)
+
+    def unload(self) -> None:
+        self._session = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._session is not None
