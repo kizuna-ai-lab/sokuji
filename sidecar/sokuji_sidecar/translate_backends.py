@@ -3,7 +3,10 @@ contract but expose translate() instead of transcribe(). Registered into the
 shared backends registry on import.
 
   llamacpp_qwen       — Qwen 2.5 / 3 / 3.5 GGUF served by a local llama-server
-                        child (/no_think for Qwen3, not Qwen3.5).
+                        child. Qwen3 and Qwen3.5 both default to thinking mode
+                        on; disabled via chat_template_kwargs.enable_thinking
+                        (Qwen3.5 ignores the /no_think soft switch, still kept
+                        for plain Qwen3 as belt-and-braces).
   llamacpp_hunyuan    — HY-MT2 / HY-MT1.5 1.8B / 7B GGUF served by a local
                         llama-server child (single-user-turn prompt template).
   llamacpp_gemma      — TranslateGemma 4B GGUF served by a local llama-server
@@ -122,15 +125,29 @@ class LlamaCppQwenBackend(_LlamaCppBase):
 
     def _payload(self, text, system_prompt, src, tgt, wrap):
         sys_p = system_prompt or _default_prompt(src, tgt)
-        # Qwen3 (not 3.5) needs thinking mode off; artifacts are named
-        # .../Qwen3-0.6B-*.gguf vs .../Qwen3.5-0.8B-*.gguf, so match "qwen3-"
-        # (the ".5" in "qwen3.5-" means it never matches this substring).
-        if "qwen3-" in self._ref.lower():
+        # Whole Qwen3 family (Qwen3 and Qwen3.5) ships a chat template with
+        # thinking mode on by default; artifacts are named .../Qwen3-0.6B-*.gguf
+        # vs .../Qwen3.5-0.8B-*.gguf, so "qwen3-" only matches plain Qwen3 (the
+        # ".5" in "qwen3.5-" means it never matches that substring).
+        # Verified live against the GGUFs: the `/no_think` soft switch in the
+        # system prompt does NOT work on Qwen3.5 — it still burns all 512
+        # max_tokens on <think> reasoning and returns empty content. The
+        # request-level `chat_template_kwargs: {enable_thinking: false}` DOES
+        # work for both Qwen3 and Qwen3.5 (verified: correct short output in a
+        # handful of tokens), so it's the canonical kill-switch applied to
+        # both. `/no_think` is kept for Qwen3 only as belt-and-braces per
+        # Qwen3's own docs — it's a no-op string for templates that ignore it.
+        ref = self._ref.lower()
+        payload: dict = {}
+        if "qwen3.5" in ref or "qwen3-" in ref:
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
+        if "qwen3-" in ref:
             sys_p = f"{sys_p} /no_think"
         user = f"<transcript>{text}</transcript>" if wrap else text
-        return {"messages": [{"role": "system", "content": sys_p},
-                             {"role": "user", "content": user}],
-                "temperature": 0, "max_tokens": self.MAX_TOKENS}
+        payload.update({"messages": [{"role": "system", "content": sys_p},
+                                      {"role": "user", "content": user}],
+                        "temperature": 0, "max_tokens": self.MAX_TOKENS})
+        return payload
 
 
 @register_backend

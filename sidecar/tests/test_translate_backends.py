@@ -49,27 +49,38 @@ class TestLlamaCppQwen:
         assert echo["messages"][0]["role"] == "system"
         assert "/no_think" not in echo["messages"][0]["content"]
         assert echo["messages"][1]["content"] == "<transcript>hello</transcript>"
+        # Qwen2.5 gets neither the thinking-mode kill-switch nor /no_think —
+        # thinking mode doesn't exist for this family.
+        assert "chat_template_kwargs" not in echo
         b.unload()
         assert not b.is_loaded
 
-    def test_qwen3_gets_no_think(self, llama_env, monkeypatch, tmp_path):
+    def test_qwen3_gets_no_think_and_enable_thinking_false(self, llama_env, monkeypatch, tmp_path):
         d = tmp_path / "sokuji-translate-qwen3-0.6b-q8_0"
         d.mkdir()
         (d / "w.gguf").write_bytes(b"GGUF")
         b = backends.make_backend("llamacpp_qwen")
         b.load(str(d), "cpu", "q8_0")
         b.translate("hi", "", "en", "zh", False)
-        assert "/no_think" in b._last_reply["echo"]["messages"][0]["content"]
+        echo = b._last_reply["echo"]
+        assert "/no_think" in echo["messages"][0]["content"]
+        assert echo["chat_template_kwargs"] == {"enable_thinking": False}
         b.unload()
 
-    def test_qwen35_no_think_absent(self, llama_env, tmp_path):
+    def test_qwen35_enable_thinking_false_no_no_think(self, llama_env, tmp_path):
+        # Qwen3.5 ignores the /no_think soft switch (verified live: it still
+        # burns all max_tokens reasoning and returns empty content), so it
+        # must NOT be appended; chat_template_kwargs is the only mechanism
+        # that actually disables thinking mode for this model.
         d = tmp_path / "sokuji-translate-qwen3.5-0.8b-q4_k_m"
         d.mkdir()
         (d / "w.gguf").write_bytes(b"GGUF")
         b = backends.make_backend("llamacpp_qwen")
         b.load(str(d), "cpu", "q4_k_m")
         b.translate("hi", "", "en", "zh", False)
-        assert "/no_think" not in b._last_reply["echo"]["messages"][0]["content"]
+        echo = b._last_reply["echo"]
+        assert "/no_think" not in echo["messages"][0]["content"]
+        assert echo["chat_template_kwargs"] == {"enable_thinking": False}
         b.unload()
 
     def test_missing_binary_is_load_error(self, monkeypatch, tmp_path):
