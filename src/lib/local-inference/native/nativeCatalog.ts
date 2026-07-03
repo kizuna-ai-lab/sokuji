@@ -318,6 +318,7 @@ export interface NativeModelCardSpec {
   note?: string;
   streaming?: boolean;
   clones?: boolean;
+  variantIds?: string[];
 }
 
 /** Map a catalog NativeModelInfo entry to a NativeModelCardSpec. */
@@ -325,7 +326,7 @@ export function infoToCard(m: NativeModelInfo): NativeModelCardSpec {
   return {
     selectId: m.id, downloadId: m.id, name: m.name, languages: m.languages,
     recommended: m.recommended, sortOrder: m.order,
-    streaming: m.streaming, clones: m.clones,
+    streaming: m.streaming, clones: m.clones, variantIds: m.variantIds,
   };
 }
 

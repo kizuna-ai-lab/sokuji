@@ -83,6 +83,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     repo: 'hy-mt2-7b',
     kind: 'translate',
     sizeBytes: 16075624007,
+    variantIds: ['fp8', 'bfloat16'],
   },
   'hy-mt15-7b': {
     id: 'hy-mt15-7b',
@@ -94,6 +95,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     repo: 'hy-mt15-7b',
     kind: 'translate',
     sizeBytes: 16075608305,
+    variantIds: ['fp8', 'bfloat16'],
   },
   'csukuangfj/vits-piper-en_US-amy-low': {
     id: 'csukuangfj/vits-piper-en_US-amy-low',
@@ -302,10 +304,10 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
       expect.objectContaining({ translationModel: expect.anything() }));
   });
 
-  it('HY-MT1.5 cards also expose the quant-variant picker (the gate is the HY-MT family, not only hy-mt2)', async () => {
+  it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
     render(<NativeModelManagementSection />);
-    // hy-mt15-7b is a multilingual card always present; after the family-prefix
-    // gate it fetches variants and shows the same FP8 dropdown as hy-mt2.
+    // hy-mt15-7b is a multilingual card always present; its catalog entry carries
+    // variantIds too, so it fetches variants and shows the same FP8 dropdown as hy-mt2.
     const trigger = await waitFor(() =>
       within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b'));
     expect(trigger).toHaveTextContent('FP8');

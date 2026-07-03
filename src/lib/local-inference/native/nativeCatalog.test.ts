@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -461,5 +461,10 @@ describe('nativeCatalog', () => {
       'opus-mt-en-jap': M('opus-mt-en-jap', 'translate', ['en', 'jap'], 22),
     };
     expect(nativeTranslationCards('en', 'ja', FIXTURE).map((c) => c.selectId)).toContain('opus-mt-en-jap');
+  });
+
+  it('passes variantIds through infoToCard', () => {
+    const info = M('translategemma-4b', 'translate', ['multi'], 5, false, { variantIds: ['q4_k_m', 'q8_0'] });
+    expect(infoToCard(info).variantIds).toEqual(['q4_k_m', 'q8_0']);
   });
 });

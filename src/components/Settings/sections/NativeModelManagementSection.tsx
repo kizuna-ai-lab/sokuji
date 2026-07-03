@@ -163,7 +163,7 @@ const NativeModelCard: React.FC<{
   incompatible?: boolean;
   resolved?: CardResolved | null;
   onSelect: () => void;
-  /** Present only for translation cards that expose multiple quant variants (HY-MT family: hy-mt2, hy-mt15). */
+  /** Present only for translation cards that expose multiple quant variants (per the catalog's variantIds). */
   variantProps?: VariantCardProps;
   /** Optional body rendered inside the card (below the top row) only while the card is selected. */
   children?: React.ReactNode;
@@ -408,7 +408,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   const [showAllAsr, setShowAllAsr] = useState(false);
 
-  // Variant quant data for multi-variant translation cards (HY-MT: hy-mt2-*/hy-mt15-*), keyed by selectId.
+  // Variant quant data for multi-variant translation cards (per catalog variantIds), keyed by selectId.
   const [variantData, setVariantData] = useState<Record<string, { variants: VariantInfo[]; recommended: string }>>({});
   // The manual variant pin is a per-model map (settings.translationVariantByModel),
   // keyed by model id. Each card reads its own entry; download + load use the same value.
@@ -421,15 +421,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     [settings.sourceLanguage, settings.targetLanguage, catalog]);
   const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage, catalog), [settings.targetLanguage, catalog]);
 
-  // Identify translation cards with multiple quant variants — the HY-MT family
-  // (hy-mt2-* and hy-mt15-*), which ship FP8 + bf16 deployments. Prefix-match
-  // 'hy-mt' so a new HY-MT size/version is picked up without editing this gate.
+  // Translation cards with multiple quant variants get the picker. Data-driven
+  // from the sidecar catalog's variantIds — the sidecar owns which cards have
+  // a quant ladder (all llama.cpp GGUF cards today).
   const variantCardIds = useMemo(
-    () => translationCards.filter((c) => c.selectId.startsWith('hy-mt')).map((c) => c.selectId),
+    () => translationCards.filter((c) => (c.variantIds?.length ?? 0) > 1).map((c) => c.selectId),
     [translationCards],
   );
 
-  // Fetch variant availability for each HY-MT card whenever the pipeline context changes
+  // Fetch variant availability for each multi-variant card whenever the pipeline context changes
   // (asrModel/ttsModel determine how much VRAM is reserved for other stages). Pass the
   // RESOLVED tts id (e.g. 'piper-en') — the same id LOAD's _h_translate_init reserves on —
   // so download-time and load-time select_variant compute the identical reserve, else a
