@@ -235,7 +235,14 @@ class LlamaServerProc:
         self._fit_target = fit_target_mib
         self._proc = None
         self._stderr = collections.deque(maxlen=200)
+        self._stderr_lock = threading.Lock()
+        self._pump_thread = None
         self.port = 0
+        # Register exactly once per instance, regardless of how many times
+        # start()/restart() run over this object's lifetime. stop() is a
+        # no-op when _proc is None, so this is safe even before start().
+        import atexit
+        atexit.register(self.stop)
 
     def _build_args(self) -> list[str]:
         # The bucket single-file `llama` app needs the `serve` subcommand; the
@@ -253,12 +260,14 @@ class LlamaServerProc:
     def _pump_stderr(self, pipe):
         for line in iter(pipe.readline, b""):
             text = line.decode("utf-8", "replace").rstrip()
-            self._stderr.append(text)
+            with self._stderr_lock:
+                self._stderr.append(text)
             print(f"[llama-server] {text}", file=sys.stderr)
         pipe.close()
 
     def stderr_tail(self) -> str:
-        return "\n".join(list(self._stderr)[-20:])
+        with self._stderr_lock:
+            return "\n".join(list(self._stderr)[-20:])
 
     def start(self, timeout: float = 120.0) -> None:
         self.port = _free_port()
@@ -272,17 +281,21 @@ class LlamaServerProc:
         self._proc = subprocess.Popen(
             self._build_args(), stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE, **kwargs)
-        threading.Thread(target=self._pump_stderr, args=(self._proc.stderr,),
-                         daemon=True).start()
-        import atexit
-        atexit.register(self.stop)
+        self._pump_thread = threading.Thread(
+            target=self._pump_stderr, args=(self._proc.stderr,), daemon=True)
+        self._pump_thread.start()
         deadline = time.time() + timeout
         import urllib.error
         import urllib.request
         while time.time() < deadline:
             if self._proc.poll() is not None:
+                # Give the pump thread a moment to drain the crash line
+                # before we snapshot stderr for the error message.
+                self._pump_thread.join(timeout=1.0)
+                rc = self._proc.returncode
+                self.stop()
                 raise BackendLoadError(
-                    f"llama-server exited rc={self._proc.returncode}: {self.stderr_tail()}")
+                    f"llama-server exited rc={rc}: {self.stderr_tail()}")
             try:
                 with urllib.request.urlopen(
                         f"http://127.0.0.1:{self.port}/health", timeout=2) as r:
@@ -294,6 +307,7 @@ class LlamaServerProc:
             except OSError:
                 pass
             time.sleep(0.2)
+        self._pump_thread.join(timeout=1.0)
         self.stop()
         raise BackendLoadError(f"llama-server not ready in {timeout:.0f}s: {self.stderr_tail()}")
 

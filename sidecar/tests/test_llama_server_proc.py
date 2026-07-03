@@ -88,3 +88,22 @@ def test_start_builds_expected_args(tmp_path, gguf):
     assert "--no-webui" in args and "-c" in args and "4096" in args
     assert "--fit-target" in args and "1536" in args
     assert "-ngl" not in args
+
+
+def test_atexit_registered_once_per_instance(tmp_path, gguf, monkeypatch):
+    calls = []
+    real_register = __import__("atexit").register
+
+    def counting_register(func, *a, **kw):
+        calls.append(func)
+        return real_register(func, *a, **kw)
+
+    monkeypatch.setattr("atexit.register", counting_register)
+
+    proc = rt.LlamaServerProc(make_fake(tmp_path), gguf)
+    proc.start(timeout=15)
+    proc.restart()
+    proc.stop()
+
+    registered_for_this_instance = [f for f in calls if f == proc.stop]
+    assert len(registered_for_this_instance) == 1
