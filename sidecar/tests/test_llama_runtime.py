@@ -63,6 +63,9 @@ def test_ensure_binary_downloads_and_extracts(monkeypatch, tmp_path):
     monkeypatch.setattr(rt, "_fetch", fake_fetch)
     monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
     monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    # Monkeypatch the checksum for test data (fake data doesn't match real checksums)
+    monkeypatch.setitem(rt.ASSET_SHA256, "x86_64/linux/cuda/89/llama-app.zst",
+                        "bbf6b8bb591530f1e81b2eabb6b752b7e8c0d4e134d7392de6e89368bfabb49d")
 
     path = rt.ensure_binary("cuda")
     assert path == rt.binary_path("cuda")

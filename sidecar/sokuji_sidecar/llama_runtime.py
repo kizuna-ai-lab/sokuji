@@ -32,7 +32,26 @@ _GH_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
 # sha256 per asset path/name, recorded by scripts/record_llama_checksums.py.
 # A missing entry logs a warning instead of failing: the bucket grows new
 # SM/chip configs without notice and we must not brick those machines.
-ASSET_SHA256: dict[str, str] = {}
+ASSET_SHA256: dict[str, str] = {
+    "x86_64/linux/cuda/probe/probe.zst": "355863c29bbabb9a89705d696d9aedbc94cbd8b3e4c79f0f0c78935da17ef3b3",
+    "x86_64/linux/cuda/75/llama-app.zst": "53ca317f5736fc73c8fb56323a1228bc2d46bcae1f039564d8dcc6e1dd01d0fb",
+    "x86_64/linux/cuda/80/llama-app.zst": "a946440f7dfe7b8ad0138fd06fc86432de827a37e30bc8484ce7d62e5b619086",
+    "x86_64/linux/cuda/86/llama-app.zst": "d8b152097e88f8807f68955548207bfbd3a7d3f9727789bade455880ed60d158",
+    "x86_64/linux/cuda/89/llama-app.zst": "4daafe12e7aeacabeb43d7c85b45137bbadd60be3aa8869074be78fcf21b64a4",
+    "x86_64/linux/cuda/90/llama-app.zst": "a2e02e4410844c72d3e951773cd1163a097468d9695f8e15e1078a58ddaf6ebf",
+    "x86_64/linux/cuda/100/llama-app.zst": "b2f7e64bf057d8f862224063f8fd503c09c852f0ebc9689b52ffa0d31d73c2f6",
+    "x86_64/linux/cuda/120/llama-app.zst": "89917bc3fbc4640273a4054fe3dae0f1fa33b1859a42d9c7ba663b51b3569969",
+    "x86_64/linux/featcode": "8bd4f1ce7147c27283ccb9558f4d80b2dcb1348df383be2f0750ac7cfb537af4",
+    "aarch64/macos/metal/m1/llama-app.zst": "8b3339d445e617cbd1b96b3acaef9ab299fd08a6908582b8fa811468b9898fb0",
+    "aarch64/macos/metal/m2/llama-app.zst": "7ff1253d0a8a5e3ffd1115bcad30fb6120811d79058c49c951fe9c973b0d0e99",
+    "aarch64/macos/metal/m3/llama-app.zst": "f41d8be26a3b708dadb15c6450688654b453015e47c7070554137cdfa2076766",
+    "aarch64/macos/metal/m4/llama-app.zst": "a55d2c82ab79ba99ab1e6bf6ac45fc4b4d5ac0654fefe19b6bb3f91e7605742f",
+    "aarch64/macos/metal/m5/llama-app.zst": "c074eebf2fdd4b8767d7b8d1697ecdecd9833e12cbfed18c5acb6d4d126e0b4c",
+    "llama-b9835-bin-win-cuda-12.4-x64.zip": "46a7e68e4012f41936e5d8dc096e91bf71f189fb2150a3b5198f4ad4aa15f4c5",
+    "cudart-llama-bin-win-cuda-12.4-x64.zip": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+    "llama-b9835-bin-win-cpu-x64.zip": "982860c8dfc36ee82e41aa0885e1f49faa8d7cf07c7481a83f36fb0154e1c64c",
+}
+# NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
 
 _FLAVORS = {"cuda": "cuda", "metal": "metal", "cpu": "cpu"}
 
