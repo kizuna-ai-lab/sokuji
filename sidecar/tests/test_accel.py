@@ -350,8 +350,9 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
         {"tier": "gpu-metal", "backend": "transcribe_cpp", "available": False},
         {"tier": "cpu", "backend": "transcribe_cpp", "available": True},
     ]
-    assert by_id["whisper-large-v3"]["recommended"] is True
-    assert by_id["whisper-base"]["recommended"] is False
+    # 2026-07-05 roster: the whisper star moved to large-v3-turbo
+    assert by_id["whisper-large-v3-turbo"]["recommended"] is True
+    assert by_id["whisper-large-v3"]["recommended"] is False
     # sizeBytes rides along with the catalog entry — no separate model_sizes round-trip.
     assert by_id["sense-voice"]["sizeBytes"] == 252684608
 
@@ -372,19 +373,19 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
 
 def test_whisper_resolves_vulkan_first_on_nvidia():
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288),))
-    plans = accel.resolve("whisper-tiny", machine=m)
+    plans = accel.resolve("whisper-base", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
     assert all(p.backend == "transcribe_cpp" and p.compute_type == "q8_0" for p in plans)
 
 
 def test_whisper_cpu_only_machine_drops_gpu():
-    plans = accel.resolve("whisper-tiny", machine=_machine())  # no nvidia
+    plans = accel.resolve("whisper-base", machine=_machine())  # no nvidia
     assert [p.device for p in plans] == ["cpu"]
 
 
 def test_whisper_cpu_override_pins_cpu_on_nvidia():
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
-    plans = accel.resolve("whisper-tiny", override="cpu", machine=m)
+    plans = accel.resolve("whisper-base", override="cpu", machine=m)
     assert plans[0].device == "cpu"
 
 
@@ -398,14 +399,14 @@ def test_vulkan_tier_from_tc_probe_alone():
     # An AMD/Intel box: no NVML GPUs, no DML — transcribe.cpp's own Vulkan
     # probe is enough to light the gpu-vulkan tier.
     m = _machine(tc=("cpu", "vulkan"))
-    plans = accel.resolve("whisper-tiny", machine=m)
+    plans = accel.resolve("whisper-base", machine=m)
     assert plans[0].device == "vulkan"
 
 
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     assert accel.bench_load() == {}  # nothing yet
-    key = accel._bench_key("fp123", "whisper-tiny", "ctranslate2", "cuda", "float16")
+    key = accel._bench_key("fp123", "whisper-base", "ctranslate2", "cuda", "float16")
     accel.bench_save({key: 0.12})
     assert accel.bench_load()[key] == 0.12
 
@@ -432,11 +433,11 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
 
     m = _machine()
     plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-tiny", m)
+    rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-base", m)
     assert rtf is not None and rtf >= 0.0
     # cached: a second call returns the same value without re-running
     cache = accel.bench_load()
-    assert accel._bench_key(m.fingerprint, "whisper-tiny", "ctranslate2", "cpu", "int8") in cache
+    assert accel._bench_key(m.fingerprint, "whisper-base", "ctranslate2", "cpu", "int8") in cache
 
 
 def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
@@ -485,10 +486,10 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     # seed the cache keyed by the machine we resolve for (m.fingerprint == "test")
     fp = m.fingerprint
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
-    plans = accel.resolve("whisper-tiny", machine=m)
+    plans = accel.resolve("whisper-base", machine=m)
     assert plans[0].device == "cpu"  # demoted: cpu now leads
 
 
@@ -499,11 +500,11 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
     # cache says cuda is slower than cpu — AUTO would demote, but an explicit
     # override must win (the benchmark never overrides the user's forced device).
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
     # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here).
-    plans = accel.resolve("whisper-tiny", override="cuda", machine=m)
+    plans = accel.resolve("whisper-base", override="cuda", machine=m)
     assert plans[0].device == "vulkan"  # explicit override beats cache demotion
 
 
@@ -512,12 +513,12 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
 def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # don't touch the user cache
     accel.probe(force=True)
-    plans = accel.resolve("whisper-tiny")
+    plans = accel.resolve("whisper-base")
     assert plans[0].device == "cuda", f"expected cuda first, got {[p.device for p in plans]}"
     backend, plan, _notice = accel.load_with_fallback(plans)
     try:
         assert plan.device == "cuda"
-        rtf = accel.measure_rtf(backend, plan, "whisper-tiny", accel.probe(), force=True)
+        rtf = accel.measure_rtf(backend, plan, "whisper-base", accel.probe(), force=True)
         assert rtf is not None and rtf < 1.0, f"GPU should be faster than realtime, rtf={rtf}"
     finally:
         backend.unload()
@@ -528,7 +529,7 @@ def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
 def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     accel.probe(force=True)
-    plans = accel.resolve("whisper-tiny", override="cpu")
+    plans = accel.resolve("whisper-base", override="cpu")
     assert plans[0].device == "cpu"
     backend, plan, _notice = accel.load_with_fallback(plans)
     try:
@@ -1122,7 +1123,7 @@ def test_asr_unavailable_without_transcribe_cpp():
     m = _machine(installed=frozenset())
     import pytest as _pytest
     with _pytest.raises(accel.NoUsablePlan):
-        accel.resolve("whisper-tiny", machine=m)
+        accel.resolve("whisper-base", machine=m)
 
 
 # ── Phase E1: GPU identity + fresh memory reads ──────────────────────────────

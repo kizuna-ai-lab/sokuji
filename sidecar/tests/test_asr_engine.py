@@ -130,7 +130,7 @@ def test_engine_init_uses_resolver(monkeypatch):
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
-    ms = eng.init(model_id="whisper-tiny", language="en", device="auto")
+    ms = eng.init(model_id="whisper-base", language="en", device="auto")
     assert isinstance(ms, int)
     assert eng.resolved == {"backend": "ctranslate2", "device": "cpu", "computeType": "int8"}
     # _drain uses the resolved backend's transcribe().text
@@ -206,7 +206,7 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
-    eng.init(model_id="whisper-tiny", language="en", device="auto")
+    eng.init(model_id="whisper-base", language="en", device="auto")
     assert eng.resolved["device"] == "cuda"
     assert eng.resolved["rtf"] == 0.25
 
@@ -219,7 +219,7 @@ def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)  # benchmark failed
-    eng.init(model_id="whisper-tiny", device="auto")
+    eng.init(model_id="whisper-base", device="auto")
     assert "rtf" not in eng.resolved
 
 
@@ -235,7 +235,7 @@ def test_real_faster_whisper_transcribes():
     i0 = np.clip(np.floor(np.arange(n) / ratio).astype(np.int64), 0, len(pcm16k) - 1)
     pcm24k = pcm16k[i0].astype(np.int16)
     eng = asr_engine.AsrEngine()
-    eng.init(model_id="whisper-tiny", language="en")
+    eng.init(model_id="whisper-base", language="en")
     results = []
     for i in range(0, len(pcm24k), 4096):
         results += [m["text"] for m in eng.feed(pcm24k[i:i + 4096].tobytes()) if m["type"] == "result"]
@@ -274,9 +274,9 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     monkeypatch.setattr(accel, "load_measured", fake_load)
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
 
-    eng.init(model_id="whisper-tiny")
+    eng.init(model_id="whisper-base")
     assert len(backends) == 1 and backends[0].unloaded is False
-    eng.init(model_id="whisper-tiny")                 # re-init frees the first
+    eng.init(model_id="whisper-base")                 # re-init frees the first
     assert backends[0].unloaded is True
     assert len(backends) == 2 and backends[1].unloaded is False
     eng.close()                                       # close frees the current

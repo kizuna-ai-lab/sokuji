@@ -42,7 +42,7 @@ def test_every_asr_row_is_transcribe_cpp_gguf():
 
 def test_sense_voice_row_transcribe_cpp_q8():
     m = catalog.asr_model("sense-voice")
-    assert m.recommended is True and m.sort_order == 1
+    assert m.recommended is False and m.sort_order == 130
     # full ladder now: default (q8_0, rank 2.0) first, then f16 (listed-only,
     # rank 0.5) / q6_k, q4_k_m (curated, 1.0) / q5_k_m (listed-only)
     assert m.deployments[0].compute_type == "q8_0" and m.deployments[0].rank == 2.0
@@ -61,8 +61,8 @@ def test_qwen3_asr_row():
     assert m is not None
     assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
                            "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
-    assert m.recommended is True         # Phase 2: native runtime available → recommended
-    assert m.sort_order == 9
+    assert m.recommended is True
+    assert m.sort_order == 40   # WER 1.61 rank
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
@@ -76,7 +76,7 @@ def test_cohere_asr_row():
     assert m.languages == ("en", "de", "fr", "it", "es", "pt", "el",
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
-    assert m.sort_order == 0          # sorted first
+    assert m.sort_order == 10         # WER 1.25: benchmark-best, sorted first
     # 2026-07-04: transcribe.cpp GGUF (author-validated Q4_K_M default) +
     # Phase E3 quality ladder: a q8_0 alt rung (rank 1.0) the resolver
     # upgrades to when the memory budget allows. Default-quant rows come
@@ -89,11 +89,13 @@ def test_cohere_asr_row():
     assert m.size_bytes == 1558162944
 
 
-def test_cohere_is_first_qwen3_shifted():
+def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
-    assert ids[0] == "cohere-transcribe-03-2026"           # inserted first in the list
-    assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 9   # 7 → 8 (cohere) → 9 (whisper-medium)
-    assert catalog.asr_model("sense-voice").sort_order == 1      # shifted +1 from 0
+    assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
+    assert len(ids) == 15
+    orders = [m.sort_order for m in catalog.asr_models()]
+    assert orders == sorted(orders)                        # rows stay rank-ordered
+    assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
 
 
 def test_voxtral_realtime_row():
@@ -101,8 +103,8 @@ def test_voxtral_realtime_row():
     assert m is not None
     assert m.name == "Voxtral Mini 4B Realtime"
     assert m.languages == ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko")
-    assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
-    assert m.sort_order == 10            # after whisper-medium inserted: Qwen3 → 9, Voxtral → 10
+    assert m.recommended is True
+    assert m.sort_order == 100           # WER 2.07 rank
     d = m.deployments[0]
     # Streaming twin: routes through asr_engine's streaming loop via the
     # session.stream() committed/tentative adapter.

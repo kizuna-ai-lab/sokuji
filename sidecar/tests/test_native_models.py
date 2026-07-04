@@ -17,8 +17,8 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('qwen2.5-0.5b')['files'] == expected_files
     # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
     assert nm.download_specs('qwen')['repos'] == ['qwen']
-    assert nm.download_specs('whisper-tiny')['files'] == \
-        [('handy-computer/whisper-tiny-gguf', 'whisper-tiny-Q8_0.gguf')]
+    assert nm.download_specs('whisper-base')['files'] == \
+        [('handy-computer/whisper-base-gguf', 'whisper-base-Q8_0.gguf')]
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
     assert sv['files'] == [('handy-computer/SenseVoiceSmall-gguf', 'SenseVoiceSmall-Q8_0.gguf')]
@@ -43,7 +43,7 @@ def test_download_specs_appends_shared_vad_for_asr_models():
     """The silero VAD is a shared dependency of EVERY ASR model (AsrEngine._init_vad
     loads it for offline + streaming). download_specs must append it for any ASR
     model, not just SenseVoice; non-ASR ids (translation/TTS) must NOT get it."""
-    for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-tiny', 'qwen3-asr-1.7b',
+    for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-base', 'qwen3-asr-1.7b',
                    'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
         assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
     for non_asr in ('', 'qwen', 'translategemma-4b', 'csukuangfj/vits-piper-en_US-amy-low'):
@@ -107,9 +107,9 @@ def test_status_handler_shape(monkeypatch):
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
-        st, json.dumps({'type': 'model_status', 'id': 1, 'models': ['sense-voice', 'whisper-tiny']})))
+        st, json.dumps({'type': 'model_status', 'id': 1, 'models': ['sense-voice', 'whisper-base']})))
     assert reply == {'type': 'model_status_result', 'id': 1,
-                     'statuses': {'sense-voice': 'ready', 'whisper-tiny': 'absent'}}
+                     'statuses': {'sense-voice': 'ready', 'whisper-base': 'absent'}}
 
 
 @pytest.mark.skipif(not os.environ.get('SOKUJI_RUN_ASR_MODEL'),
@@ -132,8 +132,8 @@ def test_delete_handler_shape(monkeypatch):
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
-        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-tiny'})))
-    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-tiny', 'freed': 4096}
+        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-base'})))
+    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-base', 'freed': 4096}
 
 
 def test_delete_model_honors_variant_repo(monkeypatch):
@@ -714,7 +714,7 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
 
     sent = []
     async def send(m): sent.append(m)
-    assert asyncio.run(nm.download("whisper-tiny", send)) == "ready"
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
     prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
     assert prog[0] == (600, 1000)      # first file's real bytes, not "1 of 2"
     assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
@@ -741,7 +741,7 @@ def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
 
     sent = []
     async def send(m): sent.append(m)
-    assert asyncio.run(nm.download("whisper-tiny", send)) == "ready"
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
     mids = [m["downloaded"] for m in sent if m["type"] == "model_progress"]
     # at least one mid-file event strictly between 0 and total, before the final
     assert any(0 < v < 1000 for v in mids[:-1]), mids
