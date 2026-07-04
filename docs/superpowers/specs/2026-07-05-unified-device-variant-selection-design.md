@@ -229,3 +229,111 @@ Wiring:
 | ASR | Vulkan ✓ (today) | Vulkan ✓ (today) | Vulkan ✓ (today) | Metal ✓ (today) |
 | Translate | CUDA ✓ | Vulkan (new flavor) | Vulkan (new flavor) | Metal ✓ |
 | TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CoreML (new wiring) |
+
+## 8. End-state design (v2) — after §7 lands, per bundle SKU
+
+### 8.1 The three engines, fully implemented, per SKU
+
+| SKU (picked at download by OS/GPU detection) | ASR | Translate LLM | TTS | memory topology |
+|---|---|---|---|---|
+| linux-nvidia | vulkan | cuda (llama flavor) | CUDA EP | one discrete VRAM pool shared by ALL THREE (different APIs, same silicon) + RAM |
+| linux-generic (AMD/Intel) | vulkan | vulkan (new flavor) | cpu (OpenVINO opt-in on Intel) | discrete VRAM shared by ASR+translate; TTS in RAM |
+| win-dml | vulkan | cuda on NVIDIA / vulkan on AMD-Intel | DML EP (all vendors) | one discrete VRAM pool shared by all three |
+| mac | metal | metal (llama flavor) | CoreML EP | **unified memory: ONE pool for GPU work AND RAM** |
+| cpu-only | cpu | cpu | cpu | RAM only |
+
+Two consequences the v1 sketch missed:
+
+- **Budget is per PHYSICAL DEVICE, not per API.** On win-NVIDIA the session may
+  run ASR-on-Vulkan + translate-on-CUDA + TTS-on-DML — three APIs, one card,
+  one VRAM pool. The probe layer must unify tc.backends() / NVML / ORT-EP
+  reports into one device registry entry.
+- **Apple unified memory changes the degrade move.** Moving a stage to "CPU"
+  frees no memory there (same pool); the only memory-relieving degrade is a
+  smaller quant. Conversely there is no hard VRAM cliff — Metal's working-set
+  limit (~70% of RAM) is the budget.
+
+### 8.2 DeviceRegistry (probe layer, runtime, inside the sidecar)
+
+```
+Device := { vendor, name, mem_total, mem_free,
+            apis: subset of {vulkan, metal, cuda, dml, coreml},
+            unified: bool }          # true on Apple Silicon
+
+sources: tc.backends()  → device identity + mem figures (vulkan/metal/cpu)
+         NVML           → NVIDIA detail (capability; cross-check mem)
+         ORT providers  → whether dml/coreml/cuda EPs exist in THIS bundle
+         merge key: device name (v1: assume ≤1 discrete GPU; multi-GPU later)
+
+StagePath(stage) := ordered accelerator list this SKU+machine offers, e.g.
+    linux-nvidia:  asr=[vulkan], translate=[cuda], tts=[cuda]
+    mac:           asr=[metal],  translate=[metal], tts=[coreml]
+    (cpu always implicit floor)
+```
+
+The download-time detector needs only the coarse projection of this (OS +
+GPU vendor) to pick the SKU; the registry above runs inside the installed
+sidecar where the runtimes can be queried directly.
+
+### 8.3 Variant ladders (end state)
+
+| stage | GPU ladder (quality-descending) | CPU pick | notes |
+|---|---|---|---|
+| ASR ≥1GB cards | Q8_0 → Q6_K → Q4_K_M | Q4_K_M | per-card default from the author's WER table (e.g. Fun-ASR keeps Q6_K) |
+| ASR small cards | fixed single quant | same | no picker |
+| translate LLM | largest quant FULLY resident (Q8_0 → Q4_K_M) | Q4_K_M | --fit partial offload only when nothing fits AND budget ≥ ~50% of size |
+| TTS | single variant today | — | hook for qwen3-tts fp16/int8 later |
+
+### 8.4 SessionPlanner v2
+
+```
+plan(session = {asr_model, translate_model, tts_model}, dev = registry.gpu):
+
+  if dev is None:                            # cpu-only SKU/machine
+      every stage: (cpu, cpu-pick); check Σ sizes×1.3 ≤ ram_free; done
+
+  if dev.unified:                            # Apple
+      budget = dev.mem_total × 0.70 − foreign_usage
+      # degrade move = smaller quant (never "to CPU" for memory reasons);
+      # walk ALL stages down their ladders together until Σ needs ≤ budget,
+      # shrinking in reverse CPU-cost order (asr first, translate last)
+  else:                                      # discrete GPU
+      budget = dev.mem_free − CONTEXT_SLAB(~1GiB)
+      allocate stages in CPU-fallback-cost order
+          (translate → gpu-needing TTS → asr):
+          take the first ladder rung with size×ENGINE_FACTOR ≤ budget,
+          subtract; exhausted ladder → stage-specific fallback:
+              translate: --fit rule above, else cpu
+              tts/asr:   cpu (RAM-checked)
+
+  bench pass (all platforms): any (model, device, quant) measured
+      not-faster than its cpu entry → demote; measurements accumulate
+      per machine fingerprint, so second sessions start from facts.
+
+  emit per stage {device, variant, reason};  reasons surface in the UI
+      ("Auto: Q8_0 on GPU · fits 4.7GB of 10.9GB free"), and the variant
+      picker marks the planner's rung as Recommended.
+
+re-plan triggers: model change, device-override change, session start
+  (mem_free re-read — llama-server and other apps move it), bench update.
+```
+
+### 8.5 Division of labor (who decides what, when)
+
+| decision | where | when | inputs |
+|---|---|---|---|
+| bundle SKU | app (Electron), download flow | sidecar download | OS + GPU vendor (coarse) |
+| stage accelerator KIND | fixed by SKU (§8.1 StagePath) | install | — |
+| use GPU vs CPU per stage ("Auto") | SessionPlanner | session start / re-plan | registry mem figures, budget, bench |
+| quant rung | SessionPlanner ladder walk | same | budget + WER-table ranks |
+| overrides | user | any time | device toggle per stage; quant pin per model |
+
+### 8.6 v2 verify-first additions
+
+- Same-card multi-API accounting: allocate via CUDA then read Vulkan
+  mem_free (and vice versa) — confirm each API sees the other's usage.
+- Metal/CoreML working-set behavior at the 70% line (graceful vs jetsam).
+- DML/CoreML op coverage for the three TTS graphs (per-node CPU fallback
+  ratio) before advertising those tiers.
+- Vulkan llama flavor tok/s vs CUDA on the same NVIDIA card (decides the
+  flavor ranking for the win-dml SKU on NVIDIA).
