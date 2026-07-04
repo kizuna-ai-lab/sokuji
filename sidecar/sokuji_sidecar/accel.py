@@ -295,7 +295,11 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
     # left the override path with a stale/zero reserved_bytes.
     llama_runtime.set_reserved_bytes(reserved_bytes)
     if override == "auto":
-        chosen = select_variant(model, machine, reserved_bytes, pin)
+        # LOAD-time budget = fresh device-wide free (llama-server and other
+        # stages move it); the download RECOMMENDATION uses the stable
+        # mem_total basis instead (see _h_list_variants).
+        chosen = select_variant(model, machine, reserved_bytes, pin,
+                                budget_bytes=device_free_bytes())
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
         # CPU deployment when that exact quant has none.
@@ -681,20 +685,65 @@ def _llamacpp_quant(model, pin: str | None) -> str:
     return max(quants.values(), key=lambda d: d.rank).compute_type
 
 
-def _llamacpp_variant_row(model, machine: Machine, pin: str | None):
-    """Quant = pin when valid else the rank-default; tier = best available.
-    No VRAM math: llama-server's --fit guarantees any quant runs (worst case
-    partially offloaded)."""
-    quant = _llamacpp_quant(model, pin)
-    rows = [d for d in model.deployments if d.compute_type == quant]
-    rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=True)
-    for d in rows:
-        if _tier_available(d.tier, machine):
-            return d
-    return next((d for d in rows if d.tier == "cpu"), None)
+# A fully-resident model needs its weights plus KV/context headroom.
+_LLAMA_RESIDENT_FACTOR = 1.1
+# Below this fraction of the smallest quant's size, --fit partial offload is
+# slower than running fully on CPU (most layers end up on CPU anyway, plus
+# PCIe traffic) — go straight to the cpu tier.
+_LLAMA_MIN_FIT_FRACTION = 0.5
 
 
-def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None):
+def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
+                          reserved_bytes: int = 0, budget_bytes: int | None = None):
+    """Pick (quant, tier) for a llamacpp card.
+
+    pin → that quant unconditionally (user's will; --fit copes with memory).
+    budget known → the LARGEST quant that fits FULLY resident
+        (est_bytes × 1.1 ≤ budget − reserved): a fully-resident smaller quant
+        beats a partially-offloaded bigger one. Nothing fits → keep the GPU
+        tier with the rank-default quant via --fit only while the budget still
+        covers ≥50% of the smallest quant; below that, fully-CPU is faster.
+    budget unknown (no GPU memory reading) → the rank-default quant, best tier
+        (previous behavior; --fit is the safety net).
+    """
+    def _row(quant, want_gpu=True):
+        rows = [d for d in model.deployments if d.compute_type == quant]
+        rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=want_gpu)
+        for d in rows:
+            if _tier_available(d.tier, machine) and (want_gpu or d.tier == "cpu"):
+                return d
+        return next((d for d in rows if d.tier == "cpu"), None)
+
+    if pin is not None and _llamacpp_quant(model, pin) == pin:
+        return _row(pin)
+
+    default_quant = _llamacpp_quant(model, None)
+    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+                       for d in model.deployments)
+    if budget_bytes is None or not gpu_possible:
+        return _row(default_quant)
+
+    budget = budget_bytes - reserved_bytes
+    quants = {}
+    for d in model.deployments:
+        size = _est_bytes(d)
+        if size and (d.compute_type not in quants or size > quants[d.compute_type]):
+            quants[d.compute_type] = size
+    if not quants:
+        return _row(default_quant)
+    # largest fully-resident quant wins
+    for quant, size in sorted(quants.items(), key=lambda kv: -kv[1]):
+        if size * _LLAMA_RESIDENT_FACTOR <= budget:
+            return _row(quant)
+    # nothing fully fits: --fit at the default quant while it's still worth it
+    smallest = min(quants.values())
+    if budget >= smallest * _LLAMA_MIN_FIT_FRACTION:
+        return _row(default_quant)
+    return _row(default_quant, want_gpu=False)
+
+
+def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None,
+                   budget_bytes: int | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
     CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
@@ -704,7 +753,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     VRAM-math-free path: llama-server's --fit handles memory via partial offload,
     so quant/tier selection is purely rank + tier-availability, never a byte budget."""
     if _is_llamacpp(model):
-        return _llamacpp_variant_row(model, machine, pin)
+        return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes)
     gpu = machine.nvidia[0] if machine.nvidia else None
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
@@ -757,7 +806,11 @@ async def _h_list_variants(state, msg, _b, conn=None):
         return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
     reserve = sum((native_models.model_size(msg.get(k)) or 0)
                   for k in ("asrId", "ttsId") if msg.get(k))
-    chosen = select_variant(model, m, reserve, pin=msg.get("pin"))
+    # RECOMMENDATION basis must be STABLE across sessions (it drives which
+    # quant the user downloads): device mem_total, not the volatile free.
+    total = max((t for _k, _n, t in m.gpus), default=0) or None
+    chosen = select_variant(model, m, reserve, pin=msg.get("pin"),
+                            budget_bytes=total)
     # select_variant can return None for a model with no cpu floor (none today, but
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:

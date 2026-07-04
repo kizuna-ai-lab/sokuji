@@ -1195,3 +1195,94 @@ def test_device_free_bytes_none_without_gpu(monkeypatch):
 def test_ram_free_bytes_positive():
     n = accel.ram_free_bytes()
     assert n is None or n > 0
+
+
+# ── Phase E2: translate quant = largest FULLY-resident (budget-aware) ────────
+
+
+def _gemma():
+    # translategemma-4b: default quant q4_k_m (rank 2.0, ~2.49GB), alt q8_0 (~4.13GB)
+    return catalog.translate_model("translategemma-4b")
+
+
+def _gpu_m():
+    return _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                    installed=frozenset({"llamacpp_gemma", "transcribe_cpp"}))
+
+
+def test_variant_plenty_of_budget_picks_largest_quant():
+    # 10 GiB budget: q8_0 (4.13GB × 1.1 ≈ 4.5GB) fully fits → quality wins over
+    # the curated q4 default.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=10 << 30)
+    assert d.compute_type == "q8_0" and d.tier != "cpu"
+
+
+def test_variant_tight_budget_steps_down_to_default():
+    # 3 GiB: q8 (4.5GB need) doesn't fit, q4 (2.49×1.1≈2.7GB) does.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=3 << 30)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_half_fits_keeps_gpu_via_fit():
+    # 1.5 GiB: nothing fully fits, but ≥50% of the smallest quant (2.49GB)
+    # → stay on GPU with --fit partial offload at the default quant.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=int(1.5 * (1 << 30)))
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_starved_budget_goes_cpu():
+    # 0.5 GiB: below 50% of the smallest quant → fully-CPU beats heavy offload.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=1 << 29)
+    assert d.tier == "cpu"
+
+
+def test_variant_pin_beats_budget():
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=1 << 29, pin="q8_0")
+    assert d.compute_type == "q8_0" and d.tier != "cpu"   # user's will, --fit copes
+
+
+def test_variant_no_budget_reading_keeps_rank_default():
+    # budget unknown (no GPU memory reading) → previous behavior: rank default.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=None)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_reserved_subtracts_from_budget():
+    # 10 GiB budget but 7 GiB reserved for other stages → only q4 fits.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=7 << 30,
+                             budget_bytes=10 << 30)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_resolve_translate_auto_uses_fresh_free(monkeypatch):
+    # 12GB card but only 3GiB currently free → auto must land on q4, not q8.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 3 << 30)
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].compute_type == "q4_k_m" and plans[0].device != "cpu"
+
+
+def test_list_variants_recommends_on_stable_total(monkeypatch):
+    # recommendation keys on mem_total (12GB → q8 recommended) even when the
+    # transient free is tiny — download advice must not flap session-to-session.
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"llamacpp_gemma"}), fingerprint="t",
+                      gpus=(("vulkan", "RTX 4070", 12 << 30),))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)
+    import asyncio as _a, json as _j
+    from sokuji_sidecar import server as _srv
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = _a.run(_srv.handle_message(
+        st, _j.dumps({"type": "list_variants", "id": 9, "model": "translategemma-4b"}), None, None))
+    assert reply["recommended"] == "q8_0"
