@@ -186,7 +186,13 @@ Increments, each independently landable and green:
       device_free_bytes); translate reserve is ledger-aware — retires the
       stacked-padding over-reserve. Remaining E4 tail: metal unified-memory
       branch + allocation-order planning (needs a session-plan message).
-- [ ] E5 renderer: generalize the variant picker beyond translation cards;
-      surface plan reasons ("Auto: Q8_0 — fits 4.7GB of 10.9GB free").
+- [x] E5(sidecar): models_catalog precomputes the FULL variant list per model
+      ({id,sizeBytes,supported,recommended}, quality-desc; rank encodes role —
+      2.0 default / 1.0 curated candidate / 0.5 listed-only like f16).
+      Recommendation is context-free by design (stable; placement owns
+      cross-stage pressure).
+- [ ] E5(renderer): consume catalog.variants for ALL multi-quant cards (drop
+      the per-card list_variants lazy fetch), grey unsupported rungs, show
+      the Recommended badge; surface plan reasons.
 - [ ] E6 bench keys already include compute_type — extend the demotion pass
       to compare same-device different-quant entries.
