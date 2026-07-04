@@ -199,19 +199,46 @@ same pipeline with two more assets + checksums:
 | platform | package (PyPI, verified) | EP | covers |
 |---|---|---|---|
 | Windows, any vendor | `onnxruntime-directml` 1.24.x | DmlExecutionProvider | NVIDIA + AMD + Intel with ONE package |
-| macOS | standard `onnxruntime` wheel | CoreMLExecutionProvider | Apple GPU/ANE |
+| macOS | ~~CoreML EP~~ **CPU by default** — see the CoreML verdict below | — | Apple Silicon CPU is fast enough for MOSS/Supertonic/piper |
 | Linux NVIDIA | `onnxruntime-gpu` (today) | CUDA EP | NVIDIA |
 | Linux Intel | `onnxruntime-openvino` 1.24.x (opt-in) | OpenVINO EP | Intel GPU/NPU |
 | Linux AMD | none on PyPI (ROCm EP needs a custom build) | — | CPU for now |
 
-Wiring:
-- `tts_backends` device→providers map grows: `dml` → `["DmlExecutionProvider", cpu]`,
-  `metal` → `["CoreMLExecutionProvider", cpu]` (ORT auto-falls back per-node
-  where CoreML/DML lack an op — VERIFY each model's graph actually stays
-  mostly on-device before advertising the tier: MOSS/Supertonic/Qwen3-TTS
-  smoke on real Windows/macOS hardware).
-- catalog TTS rows: += `gpu-dml` and `gpu-metal` tiers (the gpu-metal tier
-  label reads "Apple GPU" to the user; the backend maps it to CoreML).
+**CoreML verdict (investigated 2026-07-05, no Mac needed):** the macOS
+`onnxruntime` 1.23.2 wheel WAS inspected directly — CoreML EP is compiled in
+(MLProgram symbols + shipped op list), WebGPU EP is NOT (zero `wgpu*` symbols;
+the provider name string is just registry boilerplate). But the CoreML
+MLProgram op list has only **45 ops** — no Gather / Where / Equal / Range /
+Expand / Exp / Sin / Cos / Neg / Tile / Pad / ScatterND / Einsum. Cross-checked
+against our actual TTS graphs (op histograms from the cached ONNX files):
+
+| model | compute nodes | CoreML-unsupported |
+|---|---|---|
+| MOSS-TTS LM (5 graphs) | 6,676 | 24% (Gather 630, Where 157, …) |
+| MOSS audio tokenizer | 7,176 | 18% (Gather 636, Range 133, …) |
+| Qwen3-TTS (16 graphs) | 29,078 | 27% (Gather 2,312, Where 1,022, …) |
+
+The unsupported ops sit inside EVERY transformer layer, so partitioning
+shatters the graph into hundreds of tiny CoreML islands with CPU⇄ANE copies at
+every seam — a net SLOWDOWN, not partial acceleration. CoreML EP is built for
+static-shape CV graphs, not AR decoders with dynamic KV caches. **Do not wire
+a CoreML tier.**
+
+macOS TTS plan instead:
+- default = **CPU**: Apple-Silicon CPU comfortably runs MOSS 100M /
+  Supertonic 66M / piper (they already run on x86 CPU today);
+- qwen3-tts (0.6B/1.7B) tier-gates OFF on the mac SKU short-term;
+- mid-term option for heavy TTS on Mac: build our OWN ORT with the WebGPU EP
+  (Dawn→Metal) into the mac bundle — we control the SKU packaging, and the
+  WASM path already proved these transformer graphs run well on WebGPU
+  (onnxruntime-web). Needs a build + benchmark spike before committing.
+
+Wiring (Windows unchanged, macOS revised):
+- `tts_backends` device→providers map grows: `dml` → `["DmlExecutionProvider", cpu]`.
+  Before advertising the tier, run the same op-histogram check against the DML
+  op list (DML covers far more ops than CoreML — Microsoft runs LLMs on it —
+  so it is EXPECTED to pass, but verify, not assume).
+- catalog TTS rows: += `gpu-dml` tier only. No gpu-metal/CoreML tier.
 - probing already exists: `_dml_adapters()` reads ORT's provider list; CoreML
   likewise appears in `get_available_providers()` on macOS.
 - setup.sh flavor: Windows default becomes `onnxruntime-directml` (one package,
@@ -228,7 +255,7 @@ Wiring:
 |---|---|---|---|---|
 | ASR | Vulkan ✓ (today) | Vulkan ✓ (today) | Vulkan ✓ (today) | Metal ✓ (today) |
 | Translate | CUDA ✓ | Vulkan (new flavor) | Vulkan (new flavor) | Metal ✓ |
-| TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CoreML (new wiring) |
+| TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CPU (fast enough for small TTS); heavy TTS gated — WebGPU-EP build spike is the path |
 
 ## 8. End-state design (v2) — after §7 lands, per bundle SKU
 
@@ -239,7 +266,7 @@ Wiring:
 | linux-nvidia | vulkan | cuda (llama flavor) | CUDA EP | one discrete VRAM pool shared by ALL THREE (different APIs, same silicon) + RAM |
 | linux-generic (AMD/Intel) | vulkan | vulkan (new flavor) | cpu (OpenVINO opt-in on Intel) | discrete VRAM shared by ASR+translate; TTS in RAM |
 | win-dml | vulkan | cuda on NVIDIA / vulkan on AMD-Intel | DML EP (all vendors) | one discrete VRAM pool shared by all three |
-| mac | metal | metal (llama flavor) | CoreML EP | **unified memory: ONE pool for GPU work AND RAM** |
+| mac | metal | metal (llama flavor) | **cpu** (CoreML EP rejected — op coverage; heavy TTS gated, WebGPU-EP build is the mid-term option) | **unified memory: ONE pool for GPU work AND RAM** |
 | cpu-only | cpu | cpu | cpu | RAM only |
 
 Two consequences the v1 sketch missed:
@@ -267,7 +294,7 @@ sources: tc.backends()  → device identity + mem figures (vulkan/metal/cpu)
 
 StagePath(stage) := ordered accelerator list this SKU+machine offers, e.g.
     linux-nvidia:  asr=[vulkan], translate=[cuda], tts=[cuda]
-    mac:           asr=[metal],  translate=[metal], tts=[coreml]
+    mac:           asr=[metal],  translate=[metal], tts=[]   # cpu (CoreML rejected)
     (cpu always implicit floor)
 ```
 
@@ -332,8 +359,9 @@ re-plan triggers: model change, device-override change, session start
 
 - Same-card multi-API accounting: allocate via CUDA then read Vulkan
   mem_free (and vice versa) — confirm each API sees the other's usage.
-- Metal/CoreML working-set behavior at the 70% line (graceful vs jetsam).
-- DML/CoreML op coverage for the three TTS graphs (per-node CPU fallback
-  ratio) before advertising those tiers.
+- Metal working-set behavior at the 70% line (graceful vs jetsam).
+- ~~CoreML op coverage~~ DONE (2026-07-05): rejected — 18–27% of compute
+  nodes unsupported, scattered through every layer. DML op coverage: run the
+  same op-histogram check (expected to pass; verify).
 - Vulkan llama flavor tok/s vs CUDA on the same NVIDIA card (decides the
   flavor ranking for the win-dml SKU on NVIDIA).
