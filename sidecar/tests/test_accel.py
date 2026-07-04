@@ -1520,3 +1520,64 @@ def test_catalog_variants_translate_kind_included(monkeypatch):
     assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
     assert all(x["supported"] for x in v)     # llama always runs via --fit
     assert [x["id"] for x in v if x["recommended"]] == ["q8_0"]
+
+
+# ── E4 tail: Apple unified memory — never go CPU for memory reasons ─────────
+
+
+def _mac_machine(installed=frozenset({"llamacpp_gemma", "transcribe_cpp"})):
+    return accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, nvidia=(),
+                         apple_silicon=True, dml_adapters=(), installed=installed,
+                         fingerprint="mac", tc_kinds=("cpu", "metal"),
+                         gpus=(("metal", "Apple M2", 16 << 30),))
+
+
+def test_llamacpp_unified_memory_never_degrades_to_cpu_for_memory():
+    # Starved budget on Apple Silicon: CPU shares the SAME memory pool, so
+    # moving there frees nothing — stay on metal, --fit handles pressure.
+    d = accel.select_variant(_gemma(), _mac_machine(), reserved_bytes=0,
+                             budget_bytes=1 << 29)
+    assert d.tier == "gpu-metal"
+    # discrete-GPU machine with the same budget still bails to cpu (E2 rule)
+    d2 = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                              budget_bytes=1 << 29)
+    assert d2.tier == "cpu"
+
+
+# ── E6: bench demotion for the translate AUTO path (tps-keyed) ──────────────
+
+
+def test_translate_auto_demotes_gpu_when_bench_says_cpu_faster(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    # measured: gpu decodes SLOWER than cpu (tps lower) for the chosen quant
+    accel.bench_save({
+        "tps:" + accel._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cuda", "q8_0"): 5.0,
+        "tps:" + accel._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cpu", "q8_0"): 12.0,
+    })
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].device == "cpu"        # demoted: cpu decodes faster here
+
+
+def test_translate_auto_keeps_gpu_without_bench(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].device == "cuda"       # no measurements → estimate order
+
+
+def test_asr_bench_demotion_uses_quant_keyed_entries(tmp_path, monkeypatch):
+    # post-E3 narrowing: plans carry ONE quant; bench keys must match it
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    accel.bench_save({
+        accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "vulkan", "q4_k_m"): 0.9,
+        accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "cpu", "q4_k_m"): 0.2,
+    })
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].device == "cpu"        # measured slower on GPU → demoted

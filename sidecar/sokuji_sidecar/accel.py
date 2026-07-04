@@ -407,8 +407,20 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
         if not picks:
             raise NoUsablePlan(model_id)
-        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
-                for d in picks]
+        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+                 for d in picks]
+        # Bench correction (E6): when BOTH the GPU pick and its CPU floor have
+        # measured decode throughput, and the GPU is not actually faster,
+        # lead with CPU. tps is higher-is-better (unlike ASR's RTF).
+        if len(plans) > 1 and plans[0].device != "cpu":
+            cache = bench_load()
+            def _tps(p):
+                return cache.get("tps:" + _bench_key(
+                    machine.fingerprint, model_id, p.backend, p.device, p.compute_type))
+            gpu_tps, cpu_tps = _tps(plans[0]), _tps(plans[1])
+            if gpu_tps is not None and cpu_tps is not None and gpu_tps <= cpu_tps:
+                plans = [plans[1], plans[0]]
+        return plans
     # Explicit device override: unchanged tier-pinning path, EXCEPT a quant
     # `pin` (llamacpp cards only) must still be honored — otherwise a pinned
     # q8_0 silently resolves through whatever quant _resolve_model's plain
@@ -883,7 +895,14 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
     for quant, size in sorted(quants.items(), key=lambda kv: -kv[1]):
         if size * _LLAMA_RESIDENT_FACTOR <= budget:
             return _row(quant)
-    # nothing fully fits: --fit at the default quant while it's still worth it
+    # Nothing fully fits. On UNIFIED memory (Apple Silicon) the CPU shares the
+    # same pool — moving there frees nothing and loses Metal throughput, so
+    # stay on the GPU tier and let --fit manage pressure. On discrete GPUs,
+    # --fit at the default quant is only worth it while the budget still
+    # covers a meaningful fraction; below that, fully-CPU beats heavy offload
+    # over PCIe.
+    if machine.apple_silicon:
+        return _row(default_quant)
     smallest = min(quants.values())
     if budget >= smallest * _LLAMA_MIN_FIT_FRACTION:
         return _row(default_quant)
