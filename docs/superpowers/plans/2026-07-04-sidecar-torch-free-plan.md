@@ -48,6 +48,19 @@ Order: Cohere (usage #1, CPU-viable, CUDA-safe graph) → Granite 2b →
 Granite 2b-plus → Qwen3-ASR → Voxtral (last; CUDA tier gated on the ORT
 release with #29525).
 
+Cohere port facts (researched 2026-07-04):
+- repo `onnx-community/cohere-transcribe-03-2026-ONNX`: `onnx/encoder_model*.onnx`
+  (+ fp16/q4/q4f16/quantized variants) + `onnx/decoder_model_merged*.onnx`,
+  tokenizer.json, preprocessor_config.json.
+- feature extractor = NeMo FilterbankFeatures ("CohereAsrFeatureExtractor"):
+  16 kHz, preemphasis 0.97, n_fft 512, win 400, hop 160, 128 mels, log,
+  per-feature normalization, dither 1e-5 (set 0 for determinism).
+- decoder: 8 layers, heads==kv_heads==8 (no GQA → CUDA EP safe TODAY),
+  vocab 16384, bos 4, eos 3, prompt_format "cohere_asr".
+- golden source: the venv's transformers 5.13 fork has CohereAsrFeatureExtractor
+  + CohereAsrForConditionalGeneration — use them for feature/logit parity tests
+  BEFORE Phase D removes transformers.
+
 Per model:
 - [ ] C\*.1 port the WASM worker's preprocessing (mel/feature extraction) to
       numpy in a new `ort_speechllm.py` backend family
