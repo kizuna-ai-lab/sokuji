@@ -1,17 +1,19 @@
 """Declarative ASR model catalog: per model, which backends/hardware tiers run
 it and what artifact each needs. Pure data — adding a model is adding a row.
 Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice
-and Fun-ASR-MLT-Nano run on FunASR with gpu-cuda + cpu tiers (both float32)."""
+runs on sherpa-onnx (cpu int8); Fun-ASR-MLT-Nano still runs on FunASR (gpu+cpu,
+float32) until its ggml/ONNX port lands (see the 2026-07-04 torch-free spec)."""
 import os
 from dataclasses import dataclass
 
-SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
+SENSE_VOICE_REPO = os.environ.get(
+    "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
 FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
+    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_nano" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
     tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
     compute_type: str   # "int8" | ...
     artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
@@ -46,10 +48,12 @@ ASR_MODELS: list[AsrModel] = [
              (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",
                          "AEmotionStudio/cohere-transcribe-03-2026-models", 1.0),),
              recommended=True, sort_order=0, size_bytes=4134989472),
+    # Torch-free: sherpa-onnx int8 export (model.int8.onnx + tokens.txt), CPU tier
+    # only — the pip sherpa-onnx wheel has no GPU runtime, and CPU RTF ~0.03 (33x
+    # realtime) makes a GPU tier a nice-to-have (ORT-CUDA candidate later).
     AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
-             (Deployment("funasr_sensevoice", "gpu-cuda", "float32", SENSE_VOICE_REPO, 1.0),
-              Deployment("funasr_sensevoice", "cpu", "float32", SENSE_VOICE_REPO, 1.0)),
-             recommended=True, sort_order=1, size_bytes=944624033),
+             (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
+             recommended=True, sort_order=1, size_bytes=239549910),
     AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
              (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),
               Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0)), sort_order=2,

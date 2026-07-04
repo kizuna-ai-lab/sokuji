@@ -31,7 +31,7 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
-SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
+SENSE_VOICE_REPO = "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
 FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
 
@@ -85,7 +85,10 @@ def _base_specs(model_id):
         # Granite speech-LLM ids (catalog) live under the ibm-granite/ org on HF.
         return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
     if model_id == "sense-voice":
-        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": []}
+        # SherpaBackend loads model.int8.onnx + tokens.txt only — skip the 937MB
+        # fp32 duplicate, the demo wavs and the export script.
+        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [],
+                "ignore": ["model.onnx", "test_wavs/*", "export-onnx.py"]}
     if model_id == "fun-asr-mlt-nano":
         return {"repos": [FUN_ASR_MLT_REPO], "urls": []}
     if model_id == "qwen3-asr-1.7b":

@@ -1,7 +1,6 @@
 """ASR backend adapters: one class per inference framework, all sharing the
 load()/transcribe()/unload() contract. The only code that touches a framework's
 real API. Heavy frameworks are imported lazily inside load()."""
-import re
 from dataclasses import dataclass
 from typing import Callable
 
@@ -352,18 +351,6 @@ class VoxtralRealtimeBackend:
         return self._model is not None
 
 
-_SV_TAG = re.compile(r"<\|([^|]*)\|>")
-
-
-def _strip_sensevoice_tags(text: str) -> tuple[str, str | None]:
-    """SenseVoice prefixes transcripts with <|lang|><|emotion|><|event|><|withitn|>.
-    Return (clean_text, language) for text-only output. The first tag is the
-    language code (lowercase, e.g. 'en'); emotion/event tags are not lowercase."""
-    tags = _SV_TAG.findall(text)
-    lang = tags[0] if tags and tags[0].islower() else None
-    return _SV_TAG.sub("", text).strip(), lang
-
-
 @dataclass(frozen=True)
 class _FunAsrConfig:
     trust_remote_code: bool
@@ -449,18 +436,9 @@ class _FunAsrBackend:
         return self._m is not None
 
 
-@register_backend
-class FunAsrSenseVoiceBackend(_FunAsrBackend):
-    """FunASR SenseVoiceSmall (PyTorch). model_ref is the HF repo id
-    (FunAudioLLM/SenseVoiceSmall). Serves BOTH gpu-cuda (float32) and cpu
-    (float32) tiers — honors the device it is given (no GPU-only guard).
-    Non-autoregressive encoder+CTC: one generate() per VAD segment. Output
-    lang/emotion/event tags are stripped to a clean transcript."""
-    NAME = "funasr_sensevoice"
-    CONFIG = _FunAsrConfig(trust_remote_code=False, feed="ndarray",
-                           postprocess=_strip_sensevoice_tags)
-
-
+# SenseVoice moved to SherpaBackend (sherpa-onnx int8, torch-free) — the FunASR
+# SenseVoice backend is gone with it. Fun-ASR-Nano below is the last funasr user
+# and leaves once its ggml/ONNX port lands (2026-07-04 torch-free spec).
 @register_backend
 class FunAsrNanoBackend(_FunAsrBackend):
     """FunASR Fun-ASR-Nano family (SenseVoice audio encoder + Qwen3-0.6B LLM

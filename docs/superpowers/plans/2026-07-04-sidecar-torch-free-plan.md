@@ -23,15 +23,24 @@ mid-migration the tree always runs.
 
 ## Phase B — ASR: drop funasr
 
-- [ ] B1 catalog.py: sense-voice rows → `sherpa` backend (CPU tier;
-      artifact = sherpa-onnx sense-voice export repo). GPU tier removed for
-      now (CPU RTF ~0.03; ORT-CUDA variant can come back later).
-- [ ] B2 Fun-ASR-Nano: research ONNX availability (sherpa-onnx export /
-      community). If none: keep card, deployments stay funasr but the backend
-      probe reports unavailable when funasr is absent → tier gating handles UI.
-      Follow-up issue for the export.
-- [ ] B3 delete FunAsr backends once B1/B2 land (or leave behind an
-      availability probe until Phase D removes funasr from the venv).
+- [x] B1 catalog.py: sense-voice rows → `sherpa` backend (CPU tier; artifact =
+      csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17, int8+tokens
+      only, 239MB download vs 945MB torch repo). Verified on real audio:
+      CPU RTF 0.023 (43× realtime), correct en/zh/ja transcripts.
+      FunAsrSenseVoiceBackend deleted.
+- [ ] B2 Fun-ASR-MLT-Nano off funasr. Researched leads (2026-07-04):
+      * **transcribe.cpp** (ggml family) — handy-computer/Fun-ASR-MLT-Nano-2512-gguf
+        ships validated GGUF quants of our exact model (WER 1.69–1.89 librispeech;
+        RTF 68× metal / 16× cpu on M4 Max, 9× vulkan / 4.5× cpu on Ryzen 4750U).
+        Runtime binary pattern mirrors llama_runtime (external server binary).
+        PREFERRED: cross-platform accel (metal/vulkan/cuda/cpu) for free.
+      * FunASR-nano-onnx (csukuangfj / Wasser1462) — ORT export kit
+        (encoder_adaptor + embedding + LLM), but inference needs funasr's
+        feature extraction (portable to numpy) and appears to target the
+        non-MLT nano. Backup path.
+      Until one lands: card stays on funasr rows; when funasr leaves the venv
+      the tiers show unavailable (hardware-gating UI), the card is NOT deleted.
+- [ ] B3 delete _FunAsrBackend/FunAsrNanoBackend once B2 lands.
 
 ## Phase C — ASR speech-LLMs → ORT (one PR per model)
 

@@ -166,10 +166,10 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "funasr_sensevoice"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
-    assert plans[0].backend == "funasr_sensevoice" and plans[0].device == "cpu"
+    assert plans[0].backend == "sherpa" and plans[0].device == "cpu"
 
 
 def test_resolve_unknown_model_raises():
@@ -331,7 +331,7 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "funasr_sensevoice"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -342,13 +342,12 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [
-        {"tier": "gpu-cuda", "backend": "funasr_sensevoice", "available": False},
-        {"tier": "cpu", "backend": "funasr_sensevoice", "available": True},
+        {"tier": "cpu", "backend": "sherpa", "available": True},
     ]
     assert by_id["whisper-large-v3"]["recommended"] is True
     assert by_id["whisper-base"]["recommended"] is False
     # sizeBytes rides along with the catalog entry — no separate model_sizes round-trip.
-    assert by_id["sense-voice"]["sizeBytes"] == 944624033
+    assert by_id["sense-voice"]["sizeBytes"] == 239549910
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
@@ -383,11 +382,12 @@ def test_whisper_cpu_override_pins_cpu_on_nvidia():
     assert plans[0].device == "cpu"
 
 
-def test_sense_voice_resolves_gpu_when_present():
+def test_sense_voice_resolves_cpu_even_on_nvidia():
+    # sherpa-onnx is CPU-only — a GPU machine still (correctly) gets the cpu plan.
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
-                 installed=frozenset({"funasr_sensevoice"}))
+                 installed=frozenset({"sherpa"}))
     plans = accel.resolve("sense-voice", machine=m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]  # GPU preferred, CPU floor survives
+    assert [p.device for p in plans] == ["cpu"]
 
 
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):

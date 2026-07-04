@@ -7,8 +7,7 @@ def test_models_have_deployments_and_languages():
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
             assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
-                                 "cohere_transformers", "voxtral_realtime", "funasr_sensevoice",
-                                 "funasr_nano"}
+                                 "cohere_transformers", "voxtral_realtime", "funasr_nano"}
 
 
 def test_system_has_a_cpu_floor():
@@ -33,19 +32,24 @@ def test_language_regression_fixtures():
     assert catalog.asr_model("whisper-large-v3").languages == ("multi",)
 
 
-def test_sense_voice_uses_funasr_whisper_uses_ctranslate2():
-    assert catalog.asr_model("sense-voice").deployments[0].backend == "funasr_sensevoice"
+def test_sense_voice_uses_sherpa_whisper_uses_ctranslate2():
+    assert catalog.asr_model("sense-voice").deployments[0].backend == "sherpa"
     assert catalog.asr_model("whisper-tiny").deployments[0].backend == "ctranslate2"
 
 
-def test_sense_voice_row_has_gpu_and_cpu_funasr():
+def test_sense_voice_row_is_sherpa_cpu_int8():
+    # torch-free: SenseVoice runs on sherpa-onnx (CPU int8, RTF ~0.03). The
+    # funasr GPU tier is gone with funasr/torch; an ORT-CUDA tier may return
+    # later (see the 2026-07-04 torch-free spec).
     m = catalog.asr_model("sense-voice")
     assert m.recommended is True and m.sort_order == 1
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("funasr_sensevoice", "gpu-cuda", "float32"),
-        ("funasr_sensevoice", "cpu", "float32"),
+        ("sherpa", "cpu", "int8"),
     ]
     assert all(d.artifact == catalog.SENSE_VOICE_REPO for d in m.deployments)
+    # the artifact is the sherpa-onnx export repo (model.int8.onnx + tokens.txt),
+    # not the FunAudioLLM torch repo
+    assert "sherpa-onnx-sense-voice" in catalog.SENSE_VOICE_REPO
 
 
 def test_granite_language_regression():
@@ -245,7 +249,7 @@ def test_every_model_exposes_size_bytes_field():
 def test_size_bytes_regression_values():
     # Frozen facts moved verbatim from the old hardcoded-sizes dict (native_models.py) —
     # must never silently regress.
-    assert catalog.asr_model("sense-voice").size_bytes == 944624033
+    assert catalog.asr_model("sense-voice").size_bytes == 239549910
     assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
     # aishell3 repoints to the existing HF repo with its measured kept-size
     # (the old vits-icefall id 404'd on HF and was never downloadable).

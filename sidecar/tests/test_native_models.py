@@ -21,7 +21,9 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
     assert sv['repos'] == [nm.SENSE_VOICE_REPO] and sv['urls'] == [nm.VAD_URL]
-    assert sv['repos'] == ['FunAudioLLM/SenseVoiceSmall']
+    assert sv['repos'] == ['csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17']
+    # sherpa loads model.int8.onnx + tokens.txt only; the fp32 dup and wavs are skipped
+    assert 'model.onnx' in sv['ignore'] and 'test_wavs/*' in sv['ignore']
     # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
     assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
     assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
@@ -549,7 +551,7 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
 
     monkeypatch.setattr("huggingface_hub.HfApi", boom)
     nm._SIZE_CACHE.clear()
-    assert nm.model_size("sense-voice") == 944624033
+    assert nm.model_size("sense-voice") == 239549910
     assert nm.model_size("hy-mt2-1.8b") == 1133080448
     assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
 
