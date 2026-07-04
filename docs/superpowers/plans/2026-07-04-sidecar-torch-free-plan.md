@@ -184,8 +184,10 @@ Increments, each independently landable and green:
 - [x] E4 cross-stage ledger (core): stage→bytes ledger fed by load_measured
       actuals (0 for cpu landings; vulkan/metal deltas now measured via
       device_free_bytes); translate reserve is ledger-aware — retires the
-      stacked-padding over-reserve. Remaining E4 tail: metal unified-memory
-      branch + allocation-order planning (needs a session-plan message).
+      stacked-padding over-reserve. E4 tail DONE 2026-07-05: Apple unified-memory branch (never cpu-for-memory;
+      --fit owns pressure). Allocation-order session-plan message DEFERRED —
+      asrLoadsFirst + ledger reserves cover current contention; revisit on
+      real multi-stage VRAM pressure.
 - [x] E5(sidecar): models_catalog precomputes the FULL variant list per model
       ({id,sizeBytes,supported,recommended}, quality-desc; rank encodes role —
       2.0 default / 1.0 curated candidate / 0.5 listed-only like f16).
@@ -196,5 +198,7 @@ Increments, each independently landable and green:
       generic per-model pin map; asrVariant threaded through session config →
       asr_init. Plan-reason surfacing folded into the picker's supported/
       recommended flags (a separate reason string can come with E4 tail).
-- [ ] E6 bench keys already include compute_type — extend the demotion pass
-      to compare same-device different-quant entries.
+- [x] E6 DONE 2026-07-05: translate AUTO path gets tps-based bench demotion
+      (cpu leads when measured faster); ASR demotion regression-proven with
+      quant-keyed entries post-ladder-narrowing. Cross-quant comparison is
+      moot by design — quant choice is download-driven, not bench-driven.
