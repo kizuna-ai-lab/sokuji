@@ -11,7 +11,10 @@ export interface NativeModelInfo {
   numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
   voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip' | 'style'; transcriptRequired?: boolean };   // tts only
   sizeBytes?: number;   // total download size; 0/absent = unknown
-  variantIds?: string[];   // translate only: quant variants, >1 → show the picker
+  variantIds?: string[];   // quant variants (default first), >1 → show the picker
+  /** Precomputed machine-aware quant ladder (quality-desc): the sidecar owns
+   *  supported (fits this machine) + recommended (stable download pick). */
+  variants?: { id: string; sizeBytes: number; repo?: string; supported: boolean; recommended: boolean }[];
 }
 export interface NativeVoiceInfo {
   name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;

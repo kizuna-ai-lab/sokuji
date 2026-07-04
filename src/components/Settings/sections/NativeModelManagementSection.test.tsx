@@ -84,6 +84,12 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     kind: 'translate',
     sizeBytes: 16075624007,
     variantIds: ['q4_k_m', 'q8_0'],
+    variants: [
+      { id: 'q4_k_m', sizeBytes: 8e9, repo: 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf',
+        supported: true, recommended: true },
+      { id: 'q8_0', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf',
+        supported: false, recommended: false },
+    ],
   },
   'hy-mt15-7b': {
     id: 'hy-mt15-7b',
@@ -96,6 +102,12 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     kind: 'translate',
     sizeBytes: 16075608305,
     variantIds: ['q4_k_m', 'q8_0'],
+    variants: [
+      { id: 'q4_k_m', sizeBytes: 8e9, repo: 'tencent/HY-MT1.5-7B-GGUF/HY-MT1.5-7B-Q4_K_M.gguf',
+        supported: true, recommended: true },
+      { id: 'q8_0', sizeBytes: 15e9, repo: 'tencent/HY-MT1.5-7B-GGUF/HY-MT1.5-7B-Q8_0.gguf',
+        supported: false, recommended: false },
+    ],
   },
   'csukuangfj/vits-piper-en_US-amy-low': {
     id: 'csukuangfj/vits-piper-en_US-amy-low',
@@ -156,6 +168,8 @@ const mockVariants: VariantInfo[] = [
     reason: 'exceeds budget',
   },
 ];
+
+let mockCatalogOverride: typeof mockCatalog | null = null;
 
 // Mutable store state — mutated per test in beforeEach
 const mockStatuses: Record<string, string> = {};
@@ -222,7 +236,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     useNativeModelProgress: () => ({}),
     useNativeModelSizes: () => ({ ...mockSizes }),
     useNativeModelErrors: () => ({}),
-    useNativeCatalog: () => mockCatalog,
+    useNativeCatalog: () => mockCatalogOverride ?? mockCatalog,
     useNativeAsrLoading: () => false,
     useNativeAsrResolved: () => null,
     useNativeTranslationResolved: () => null,
@@ -356,18 +370,21 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     expect(mockDeleteModel).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf');
   });
 
-  it('does not push an empty statusRepos override while variant metadata is still loading', async () => {
-    // listVariants never resolves → variantData stays empty → statusReposFor → {}.
-    mockListVariants.mockReturnValue(new Promise<never>(() => {}));
+  it('does not push an empty statusRepos override when the catalog has no variant data', async () => {
+    // Variant metadata now arrives WITH the catalog; a catalog whose entries
+    // carry no `variants` (e.g. an older sidecar) must not produce an empty {}
+    // override (which would defeat the store's `repos ?? cache` fallback and
+    // mask an already-downloaded non-default quant).
+    const stripped = Object.fromEntries(Object.entries(mockCatalog).map(
+      ([k, v]) => [k, { ...(v as object), variants: undefined }])) as typeof mockCatalog;
+    mockCatalogOverride = stripped;
 
     render(<NativeModelManagementSection />);
     await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
 
-    // refresh must never get an empty {} override (which would defeat the store's
-    // `repos ?? cache` fallback and mask an already-downloaded non-default quant)…
     expect(mockRefresh.mock.calls.every(([, repos]) => repos === undefined)).toBe(true);
-    // …and the empty map must not be persisted into the shared cache the gate reads.
     expect(mockSetStatusRepos).not.toHaveBeenCalled();
+    mockCatalogOverride = null;
   });
 
   it('downloads the chosen (recommended Q4_K_M) variant repo, not the default', async () => {

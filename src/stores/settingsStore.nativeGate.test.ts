@@ -91,16 +91,28 @@ const DEFAULT_CATALOG: Record<string, NativeModelInfo> = {
     id: 'hy-mt2-7b', name: 'Hunyuan-MT2 7B', kind: 'translate',
     languages: ['multi'], recommended: false, tiers: [], order: 2, repo: '',
     variantIds: ['q4_k_m', 'q8_0'],
+    variants: [
+      { id: 'fp8', sizeBytes: 8e9, repo: 'tencent/Hy-MT2-7B-FP8', supported: true, recommended: true },
+      { id: 'bfloat16', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-7B', supported: true, recommended: false },
+    ],
   },
   'hy-mt15-7b': {
     id: 'hy-mt15-7b', name: 'Hunyuan-MT1.5 7B', kind: 'translate',
     languages: ['multi'], recommended: false, tiers: [], order: 3, repo: '',
     variantIds: ['q4_k_m', 'q8_0'],
+    variants: [
+      { id: 'fp8', sizeBytes: 8e9, repo: 'tencent/HY-MT1.5-7B-FP8', supported: true, recommended: true },
+      { id: 'bfloat16', sizeBytes: 15e9, repo: 'tencent/HY-MT1.5-7B', supported: true, recommended: false },
+    ],
   },
   'translategemma-4b': {
     id: 'translategemma-4b', name: 'TranslateGemma 4B', kind: 'translate',
     languages: ['multi'], recommended: false, tiers: [], order: 4, repo: '',
     variantIds: ['q4_k_m', 'q8_0'],
+    variants: [
+      { id: 'fp8', sizeBytes: 8e9, repo: 'google/translategemma-FP8', supported: true, recommended: true },
+      { id: 'bfloat16', sizeBytes: 15e9, repo: 'google/translategemma', supported: true, recommended: false },
+    ],
   },
 };
 
@@ -179,17 +191,18 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     setNative({ translationModel: 'hy-mt15-7b' });
     await useSettingsStore.getState().validateApiKey();
 
-    // The second arg is the ASR model id; the third is null (no TTS in the test catalog).
-    expect(mockListVariants).toHaveBeenCalledWith('hy-mt15-7b', 'sense-voice', null);
-    expect(reposArg()).toEqual({ 'hy-mt15-7b': 'tencent/Hy-MT2-7B-FP8' });
+    // No round-trip: the repo comes straight from the catalog's precomputed
+    // variants (recommended fp8 for HY-MT1.5 in the fixture).
+    expect(mockListVariants).not.toHaveBeenCalled();
+    expect(reposArg()).toEqual({ 'hy-mt15-7b': 'tencent/HY-MT1.5-7B-FP8' });
   });
 
   it('resolves a non-HY-MT multi-variant card the same way (the gate is data-driven, not hy-mt-specific)', async () => {
     setNative({ translationModel: 'translategemma-4b' });
     await useSettingsStore.getState().validateApiKey();
 
-    expect(mockListVariants).toHaveBeenCalledWith('translategemma-4b', 'sense-voice', null);
-    expect(reposArg()).toEqual({ 'translategemma-4b': 'tencent/Hy-MT2-7B-FP8' });
+    expect(mockListVariants).not.toHaveBeenCalled();
+    expect(reposArg()).toEqual({ 'translategemma-4b': 'google/translategemma-FP8' });
   });
 
   it('does not fetch variants for a single-variant translation model (repos left to the cache)', async () => {

@@ -211,6 +211,8 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   ttsVoice?: string;
   /** Pinned quant variant for the translation model (e.g. 'fp8'). Undefined → sidecar auto-selects. */
   translationVariant?: string;
+  /** User-pinned ASR quant (variant picker) — load must match the download. */
+  asrVariant?: string;
 }
 
 /**

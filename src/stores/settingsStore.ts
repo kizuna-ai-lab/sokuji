@@ -745,6 +745,9 @@ export function createLocalNativeSessionConfig(
     // Manual variant pin → load's select_variant(pin=...) so LOAD resolves the same
     // variant DOWNLOAD fetched (else local_files_only load fails on a missing repo).
     translationVariant: settings.translationVariantByModel[settings.translationModel],
+    // translationVariantByModel is the GENERIC per-model quant-pin map (keyed
+    // by model id — ids never collide across stages); ASR pins live there too.
+    asrVariant: settings.translationVariantByModel[settings.asrModel],
     ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog),
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,
@@ -1283,7 +1286,7 @@ const useSettingsStore = create<SettingsStore>()(
       // checks. ensureCatalog warms the sidecar; never mutate the selection when
       // the sidecar is still starting or unavailable.
       if (provider === Provider.LOCAL_NATIVE) {
-        const { useNativeModelStore, nativeListVariants } = await import('./nativeModelStore');
+        const { useNativeModelStore } = await import('./nativeModelStore');
         const nstore = useNativeModelStore.getState();
         if (!isElectron()) {
           set({ isApiKeyValid: false, availableModels: [], isValidating: false,
@@ -1329,25 +1332,24 @@ const useSettingsStore = create<SettingsStore>()(
         // Gate on the selected stage models being downloaded into the sidecar cache.
         // TTS is dropped from the requirement when text-only is on.
         const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, catalog, get().textOnly);
-        // Resolve the active translation model's CHOSEN variant repo (pin ??
-        // recommended) so the gate checks the right quant even on cold start —
-        // the Settings panel, which normally publishes statusRepos, may never
-        // have mounted this session. Multi-variant cards (variantIds from the
-        // sidecar catalog) ship multiple quants; everything else uses its
-        // single default repo (no override).
+        // Resolve the selected models' CHOSEN variant repos (pin ?? the
+        // catalog's precomputed recommendation) so the gate checks the right
+        // quant even on cold start — no list_variants round-trip needed: the
+        // models_catalog feed carries the full ladder per card.
         let statusRepos: Record<string, string> | undefined;
-        const trInfo = catalog[s.translationModel];
-        if ((trInfo?.variantIds?.length ?? 0) > 1) {
-          try {
-            const reserveTtsId = resolveNativeTts(s.ttsModel, s.targetLanguage, catalog) || null;
-            const vd = await nativeListVariants(s.translationModel, s.asrModel || null, reserveTtsId);
-            const resolved = statusReposFor([s.translationModel], { [s.translationModel]: vd }, s.translationVariantByModel);
-            // Only override when resolution actually produced a repo; an empty
-            // map ({}) is truthy and would defeat refresh's `repos ?? cache`
-            // fallback (e.g. a malformed listVariants response).
-            if (Object.keys(resolved).length > 0) statusRepos = resolved;
-          } catch { /* best-effort */ }
+        const variantData: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+        for (const mid of [s.asrModel, s.translationModel]) {
+          const vs = catalog[mid]?.variants;
+          if (!vs || vs.length < 2) continue;
+          variantData[mid] = {
+            variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
+            recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+          };
         }
+        const resolved = statusReposFor(Object.keys(variantData), variantData as never, s.translationVariantByModel);
+        // Only override when resolution actually produced a repo; an empty
+        // map ({}) would defeat refresh's `repos ?? cache` fallback.
+        if (Object.keys(resolved).length > 0) statusRepos = resolved;
         await useNativeModelStore.getState().refresh(models, statusRepos);
         const ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
         const message = ready ? ''

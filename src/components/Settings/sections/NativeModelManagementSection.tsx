@@ -35,7 +35,6 @@ import {
   useNativeTranslationResolved,
   useNativeTtsResolved,
   useNativeSidecarStatus,
-  nativeListVariants,
   nativeListTtsVoices,
 } from '../../../stores/nativeModelStore';
 import type { VariantInfo, NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -408,10 +407,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   const [showAllAsr, setShowAllAsr] = useState(false);
 
-  // Variant quant data for multi-variant translation cards (per catalog variantIds), keyed by selectId.
-  const [variantData, setVariantData] = useState<Record<string, { variants: VariantInfo[]; recommended: string }>>({});
   // The manual variant pin is a per-model map (settings.translationVariantByModel),
-  // keyed by model id. Each card reads its own entry; download + load use the same value.
+  // keyed by model id — GENERIC across stages (asr + translation cards both pin
+  // here; ids never collide). Download + load use the same value.
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const asrIncompatibleCards = useMemo(
@@ -421,36 +419,28 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     [settings.sourceLanguage, settings.targetLanguage, catalog]);
   const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage, catalog), [settings.targetLanguage, catalog]);
 
-  // Translation cards with multiple quant variants get the picker. Data-driven
-  // from the sidecar catalog's variantIds — the sidecar owns which cards have
-  // a quant ladder (all llama.cpp GGUF cards today).
-  const variantCardIds = useMemo(
-    () => translationCards.filter((c) => (c.variantIds?.length ?? 0) > 1).map((c) => c.selectId),
-    [translationCards],
-  );
-
-  // Fetch variant availability for each multi-variant card whenever the pipeline context changes
-  // (asrModel/ttsModel determine how much VRAM is reserved for other stages). Pass the
-  // RESOLVED tts id (e.g. 'piper-en') — the same id LOAD's _h_translate_init reserves on —
-  // so download-time and load-time select_variant compute the identical reserve, else a
-  // razor VRAM edge could flip the variant between the two.
-  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
-  const variantFetchKey = [variantCardIds.join('|'), settings.asrModel, reserveTtsId].join('::');
-  useEffect(() => {
-    if (variantCardIds.length === 0) return;
-    let cancelled = false;
-    for (const id of variantCardIds) {
-      nativeListVariants(id, settings.asrModel || null, reserveTtsId)
-        .then((result) => {
-          if (!cancelled) setVariantData((prev) => ({ ...prev, [id]: result }));
-        })
-        .catch(() => {
-          // best-effort: sidecar may be down; variant chooser simply not shown
-        });
+  // Quant-variant data comes PRECOMPUTED from the models_catalog feed — the
+  // sidecar owns the full ladder per card with machine-aware supported flags
+  // and the stable recommendation; no per-card list_variants round-trips.
+  // Applies to every multi-quant card (ASR and translation alike).
+  const variantData = useMemo(() => {
+    const out: Record<string, { variants: VariantInfo[]; recommended: string }> = {};
+    for (const [id, info] of Object.entries(catalog)) {
+      const vs = info.variants;
+      if (!vs || vs.length < 2) continue;
+      out[id] = {
+        variants: vs.map((v) => ({
+          id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
+          supported: v.supported,
+          reason: v.supported ? 'fits' : 'too big for this machine',
+        })),
+        recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+      };
     }
-    return () => { cancelled = true; };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [variantFetchKey]);
+    return out;
+  }, [catalog]);
+
+  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
 
   // Voice picker: capability (Task 10) drives which control is shown — the
   // built-in shape (none/range/named) and which custom-voice backend applies
@@ -634,7 +624,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             );
           })()}
         </div>
-        {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel')}
+        {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel',
+          variantData, handlePinVariant)}
         {asrIncompatibleCards.length > 0 && (
           <>
             <button className="model-group__show-all" onClick={() => setShowAllAsr(!showAllAsr)}>
