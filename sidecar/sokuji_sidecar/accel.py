@@ -1095,16 +1095,22 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             else:
                 rec = _tc_pick_quant(mdl, m, None, budget)
             variants = []
+            factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
             for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                need = int(size * factor)                  # fit-check figure, for UI reasons
                 if is_llama:
                     supported = True                       # --fit always runs
                 elif budget is None:
                     supported = True                       # no GPU → CPU runs anything
                 else:
-                    supported = size * _TC_RESIDENT_FACTOR <= budget
-                variants.append({"id": ct, "sizeBytes": size, "repo": artifact_by_ct.get(ct),
+                    supported = need <= budget
+                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
+                                 "repo": artifact_by_ct.get(ct),
                                  "supported": supported, "recommended": ct == rec})
             entry["variants"] = variants
+            # Machine context for the renderer's localized reason strings
+            # ("needs ~X — this machine has Y"); null on cpu-only machines.
+            entry["deviceMemBytes"] = budget
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

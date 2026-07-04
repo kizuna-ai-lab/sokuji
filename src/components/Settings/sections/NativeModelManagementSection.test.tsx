@@ -298,7 +298,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     // stays hoverable for the instant tooltip; a muted "blocked" icon marks it.
     const q8Row = within(card7b).getByTestId('variant-row-q8_0');
     expect(q8Row).toHaveAttribute('aria-disabled', 'true');
-    expect(within(q8Row).getByLabelText("won't fit")).toBeInTheDocument();
+    expect(within(q8Row).getByLabelText("Won't fit on this machine")).toBeInTheDocument();
   });
 
   it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {

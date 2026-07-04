@@ -70,6 +70,7 @@ const VariantDropdown: React.FC<{
   disabled: boolean;
   selectId: string;
 }> = ({ variantProps, chosenVariant, disabled, selectId }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -130,13 +131,13 @@ const VariantDropdown: React.FC<{
                   <span className="model-card__variant-size"> · {sizeLabel}</span>
                 </span>
                 {isRec && (
-                  <span className="model-card__variant-recommended">recommended</span>
+                  <span className="model-card__variant-recommended">{t('models.recommended', 'Recommended').toLowerCase()}</span>
                 )}
                 {!v.supported && (
                   // Muted "blocked" glyph mirrors the green "recommended" slot; the full
                   // reason shows in an instant (0ms) tooltip on hover.
-                  <Tooltip content={v.reason || "Won't fit"} position="top" icon="none" openDelay={0}>
-                    <span className="model-card__variant-unavailable" aria-label="won't fit">
+                  <Tooltip content={v.reason || t('models.wontFit', "Won't fit on this machine")} position="top" icon="none" openDelay={0}>
+                    <span className="model-card__variant-unavailable" aria-label={t('models.wontFit', "Won't fit on this machine")}>
                       <Ban size={13} />
                     </span>
                   </Tooltip>
@@ -428,17 +429,25 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     for (const [id, info] of Object.entries(catalog)) {
       const vs = info.variants;
       if (!vs || vs.length < 2) continue;
+      const have = info.deviceMemBytes
+        ? formatMemMb(Math.round(info.deviceMemBytes / 1e6)) : null;
       out[id] = {
-        variants: vs.map((v) => ({
-          id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
-          supported: v.supported,
-          reason: v.supported ? 'fits' : 'too big for this machine',
-        })),
+        variants: vs.map((v) => {
+          const need = formatMemMb(Math.round((v.needBytes ?? v.sizeBytes) / 1e6));
+          const reason = v.supported ? '' : (have
+            ? t('models.variantWontFit',
+                'Needs ~{{need}} of GPU memory — this machine has {{have}}', { need, have })
+            : t('models.variantWontFitNoMem', 'Needs ~{{need}} of GPU memory', { need }));
+          return {
+            id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
+            supported: v.supported, reason,
+          };
+        }),
         recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
       };
     }
     return out;
-  }, [catalog]);
+  }, [catalog, t]);
 
   const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
 

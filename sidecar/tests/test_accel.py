@@ -1581,3 +1581,15 @@ def test_asr_bench_demotion_uses_quant_keyed_entries(tmp_path, monkeypatch):
     })
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].device == "cpu"        # measured slower on GPU → demoted
+
+
+def test_catalog_variants_carry_reason_data(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "iGPU", 2 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    entry = by_id["cohere-transcribe-03-2026"]
+    assert entry["deviceMemBytes"] == 2 << 30
+    f16 = next(v for v in entry["variants"] if v["id"] == "f16")
+    # needBytes = fit-check figure (size × factor) the renderer localizes into
+    # "needs ~X — this machine has Y"
+    assert f16["needBytes"] == int(f16["sizeBytes"] * 1.15)
+    assert not f16["supported"]

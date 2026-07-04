@@ -813,7 +813,10 @@
     "confirmNo": "否",
     "recommended": "推薦",
     "recommendedGroup": "推薦",
-    "online": "線上"
+    "online": "線上",
+    "variantWontFit": "需要約 {{need}} 顯示記憶體 — 本機為 {{have}}",
+    "variantWontFitNoMem": "需要約 {{need}} 顯示記憶體",
+    "wontFit": "本機無法執行"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

@@ -855,7 +855,10 @@
     "confirmNo": "いいえ",
     "recommended": "おすすめ",
     "recommendedGroup": "おすすめ",
-    "online": "オンライン"
+    "online": "オンライン",
+    "variantWontFit": "約 {{need}} のGPUメモリが必要 — このマシンは {{have}}",
+    "variantWontFitNoMem": "約 {{need}} のGPUメモリが必要",
+    "wontFit": "このマシンでは実行できません"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",

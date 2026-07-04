@@ -14,7 +14,11 @@ export interface NativeModelInfo {
   variantIds?: string[];   // quant variants (default first), >1 → show the picker
   /** Precomputed machine-aware quant ladder (quality-desc): the sidecar owns
    *  supported (fits this machine) + recommended (stable download pick). */
-  variants?: { id: string; sizeBytes: number; repo?: string; supported: boolean; recommended: boolean }[];
+  variants?: { id: string; sizeBytes: number; needBytes?: number; repo?: string;
+               supported: boolean; recommended: boolean }[];
+  /** Stable budget basis (primary device total memory) the supported flags
+   *  were computed against — feeds the localized "this machine has X" reason. */
+  deviceMemBytes?: number | null;
 }
 export interface NativeVoiceInfo {
   name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;
