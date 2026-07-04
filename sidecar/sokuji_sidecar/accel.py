@@ -98,6 +98,7 @@ def _has_mod(mod: str) -> bool:
 
 def _installed() -> frozenset:
     mods = {"transcribe_cpp": "transcribe_cpp",
+            "transcribe_cpp_stream": "transcribe_cpp",
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",

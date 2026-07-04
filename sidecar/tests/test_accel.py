@@ -126,7 +126,7 @@ def test_probe_is_cached(monkeypatch):
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe_cpp"}), tc=()):
+def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=()):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
                          fingerprint="test", tc_kinds=tc)
@@ -1113,7 +1113,7 @@ def test_speech_llms_resolve_vulkan_then_cpu_on_nvidia():
                 "fun-asr-mlt-nano"):
         plans = accel.resolve(mid, machine=m)
         assert [p.device for p in plans] == ["vulkan", "cpu"], mid
-        assert all(p.backend == "transcribe_cpp" for p in plans), mid
+        assert all(p.backend.startswith("transcribe_cpp") for p in plans), mid
 
 
 def test_asr_unavailable_without_transcribe_cpp():

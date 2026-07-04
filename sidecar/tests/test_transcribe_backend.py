@@ -126,3 +126,149 @@ def test_real_sensevoice_smoke():
     r = b.transcribe(audio, "en")
     assert "tribal" in r.text.lower()
     b.unload()
+
+
+# ── streaming variant (transcribe_cpp_stream, Voxtral Realtime) ─────────────
+
+
+class _FakeStreamText:
+    def __init__(self, committed, tentative=""):
+        self.committed = committed
+        self.tentative = tentative
+        self.full = committed + tentative
+
+
+class _FakeStream:
+    """Scripted committed-text progression + finalize behavior."""
+
+    def __init__(self, log):
+        self._log = log
+        self._committed = ""
+        self._reset = False
+
+    def feed(self, pcm):
+        self._log.append(("feed", len(pcm)))
+
+    def set_committed(self, text):
+        self._committed = text
+
+    def text(self):
+        return _FakeStreamText(self._committed)
+
+    def finalize(self):
+        self._log.append(("finalize",))
+        self._committed = self._committed + " FINAL"
+
+    def reset(self):
+        self._log.append(("reset",))
+        self._reset = True
+
+
+class _FakeStreamSession(_FakeSession):
+    def __init__(self, log):
+        super().__init__(log)
+        self.streams = []
+
+    def stream(self, **kw):
+        st = _FakeStream(self._log)
+        self.streams.append(st)
+        return st
+
+
+class _FakeStreamModel(_FakeModel):
+    supports_streaming = True
+
+    @property
+    def capabilities(self):
+        return types.SimpleNamespace(supports_streaming=self.supports_streaming)
+
+    def session(self):
+        self._session = _FakeStreamSession(self.log)
+        return self._session
+
+
+@pytest.fixture
+def fake_stream_tc(monkeypatch, tmp_path):
+    created = {}
+    mod = types.ModuleType("transcribe_cpp")
+
+    def _model(path, backend="auto", **kw):
+        m = _FakeStreamModel(path, backend=backend, **kw)
+        created["model"] = m
+        return m
+    mod.Model = _model
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", mod)
+    gguf = tmp_path / "x.gguf"
+    gguf.write_bytes(b"GGUF")
+    import huggingface_hub
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname, **kw: str(gguf))
+    return created
+
+
+def _load_stream_backend(fake):
+    b = make_backend("transcribe_cpp_stream")
+    b.load("handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf/Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
+           "vulkan", "q4_k_m")
+    return b
+
+
+def test_stream_backend_flag_and_open(fake_stream_tc):
+    b = _load_stream_backend(fake_stream_tc)
+    assert b.STREAMING is True and b.is_loaded
+    st = b.open_stream()
+    assert st is not None
+
+
+def test_stream_drain_emits_committed_deltas_only(fake_stream_tc):
+    b = _load_stream_backend(fake_stream_tc)
+    st = b.open_stream()
+    raw = fake_stream_tc["model"]._session.streams[-1]
+    st.feed(np.zeros(1600, np.float32))
+    assert st.drain() == []                      # nothing committed yet
+    raw.set_committed("The tribal")
+    assert st.drain() == ["The tribal"]
+    raw.set_committed("The tribal chief called")  # grows → only the delta
+    assert st.drain() == [" chief called"]
+    assert st.drain() == []                      # unchanged → no delta
+
+
+def test_stream_end_finalizes_and_returns_full_text(fake_stream_tc):
+    b = _load_stream_backend(fake_stream_tc)
+    st = b.open_stream()
+    raw = fake_stream_tc["model"]._session.streams[-1]
+    raw.set_committed("hello world")
+    final = st.end()
+    assert final == "hello world FINAL"          # finalize() ran, full committed returned
+    assert raw._reset                            # session returned to idle
+
+
+def test_stream_reopen_after_end_uses_same_session(fake_stream_tc):
+    b = _load_stream_backend(fake_stream_tc)
+    st = b.open_stream()
+    st.end()
+    st2 = b.open_stream()                        # engine reopens at next utterance
+    assert st2 is not None
+    assert len(fake_stream_tc["model"]._session.streams) == 2
+
+
+def test_stream_abort_resets_without_finalize(fake_stream_tc):
+    b = _load_stream_backend(fake_stream_tc)
+    st = b.open_stream()
+    raw = fake_stream_tc["model"]._session.streams[-1]
+    st.abort()
+    assert raw._reset and ("finalize",) not in fake_stream_tc["model"].log
+
+
+def test_stream_backend_rejects_non_streaming_model(fake_stream_tc):
+    fake_stream_tc_model_cls = fake_stream_tc  # fixture installed the module
+    import transcribe_cpp as mod
+    orig = mod.Model
+    def _nostream(path, backend="auto", **kw):
+        m = orig(path, backend=backend, **kw)
+        m.supports_streaming = False
+        return m
+    mod.Model = _nostream
+    b = make_backend("transcribe_cpp_stream")
+    with pytest.raises(BackendLoadError):
+        b.load("handy-computer/x-gguf/x.gguf", "cpu", "q4_k_m")

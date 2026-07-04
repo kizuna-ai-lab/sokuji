@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend == "transcribe_cpp"      # 2026-07-04: all ASR on transcribe.cpp
+            assert d.backend in ("transcribe_cpp", "transcribe_cpp_stream")
             assert d.tier in {"gpu-vulkan", "gpu-metal", "cpu"}
 
 
@@ -35,7 +35,7 @@ def test_language_regression_fixtures():
 def test_every_asr_row_is_transcribe_cpp_gguf():
     for m in catalog.asr_models():
         for d in m.deployments:
-            assert d.backend == "transcribe_cpp"
+            assert d.backend.startswith("transcribe_cpp")
             repo, fname = catalog.split_artifact(d.artifact)
             assert repo.startswith("handy-computer/") and fname.endswith(".gguf")
 
@@ -106,10 +106,10 @@ def test_voxtral_realtime_row():
     assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
     assert m.sort_order == 10            # after whisper-medium inserted: Qwen3 → 9, Voxtral → 10
     d = m.deployments[0]
-    # Batch via transcribe.cpp for now; committed/tentative streaming over
-    # session.stream() is the planned follow-up.
+    # Streaming twin: routes through asr_engine's streaming loop via the
+    # session.stream() committed/tentative adapter.
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
+        ("transcribe_cpp_stream", "gpu-vulkan", "q4_k_m",
          "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf/Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")
 
 

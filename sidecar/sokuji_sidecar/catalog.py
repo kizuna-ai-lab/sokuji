@@ -46,12 +46,14 @@ class AsrModel(_ModelBase):
 _TC_TIERS = ("gpu-vulkan", "gpu-metal", "cpu")
 
 
-def _tc_row(mid, name, langs, repo, fname, order, size, recommended=False):
+def _tc_row(mid, name, langs, repo, fname, order, size, recommended=False,
+            backend="transcribe_cpp"):
     """One transcribe.cpp ASR card. The same GGUF file serves every tier; the
-    quant label is derived from the filename suffix (…-Q4_K_M.gguf → q4_k_m)."""
+    quant label is derived from the filename suffix (…-Q4_K_M.gguf → q4_k_m).
+    `backend` selects the streaming twin for realtime models."""
     quant = fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
     artifact = f"{repo}/{fname}"
-    deps = tuple(Deployment("transcribe_cpp", tier, quant, artifact, 1.0)
+    deps = tuple(Deployment(backend, tier, quant, artifact, 1.0)
                  for tier in _TC_TIERS)
     return AsrModel(mid, name, langs, deps, recommended=recommended,
                     sort_order=order, size_bytes=size)
@@ -97,13 +99,13 @@ ASR_MODELS: list[AsrModel] = [
              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
             "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B-Q4_K_M.gguf",
             9, 1319830496, recommended=True),
-    # Batch for now — the committed/tentative streaming adapter over
-    # session.stream() is a planned follow-up (torch-free plan).
+    # Streaming: the transcribe_cpp_stream twin adapts session.stream()'s
+    # committed/tentative view to the engine's feed/drain/end contract.
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
             "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
             "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
-            10, 2830493984, recommended=True),
+            10, 2830493984, recommended=True, backend="transcribe_cpp_stream"),
     _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",

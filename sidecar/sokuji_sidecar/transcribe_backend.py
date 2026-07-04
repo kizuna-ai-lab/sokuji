@@ -6,8 +6,12 @@ runtime; we ship Vulkan which already covers NVIDIA at 100x realtime).
 model_ref is an upstream artifact path "org/repo/file.gguf" (same shape as the
 llamacpp translate cards); the file must already be in the HF cache (the
 manager downloads it first). Batch mode: one session.run() per VAD segment.
-Streaming (Voxtral Realtime committed/tentative) is a planned follow-up via
-session.stream()."""
+
+The streaming variant (transcribe_cpp_stream — Voxtral Realtime) adapts
+session.stream()'s committed/tentative view to asr_engine's stream contract
+(feed/drain/end/abort): drain() emits committed-prefix DELTAS only (tentative
+text can be revised, so it never enters the append-only partial), and end()
+finalizes + returns the whole utterance's committed text."""
 import numpy as np
 
 from .backends import AsrResult, BackendLoadError, register_backend
@@ -69,3 +73,72 @@ class TranscribeCppBackend:
     @property
     def is_loaded(self) -> bool:
         return self._session is not None
+
+
+class _TcStream:
+    """asr_engine stream adapter over one transcribe.cpp Stream. Lifecycle:
+    engine opens at speech start, feed()s audio, drain()s partial deltas,
+    end()s at the VAD endpoint (or abort()s on teardown); the session returns
+    to idle via reset() so the next open_stream() can reuse it."""
+
+    def __init__(self, session):
+        self._raw = session.stream()
+        self._emitted = 0        # chars of committed text already drained
+        self._done = False
+
+    def feed(self, samples_f32_16k) -> None:
+        pcm = np.ascontiguousarray(np.asarray(samples_f32_16k, dtype=np.float32).reshape(-1))
+        if pcm.size:
+            self._raw.feed(pcm)
+
+    def drain(self) -> list:
+        committed = self._raw.text().committed or ""
+        if len(committed) > self._emitted:
+            delta = committed[self._emitted:]
+            self._emitted = len(committed)
+            return [delta]
+        return []
+
+    def end(self) -> str:
+        """Finalize and return the WHOLE utterance's committed text (the engine
+        replaces the accumulated partial with this)."""
+        try:
+            self._raw.finalize()
+            final = self._raw.text().committed or ""
+        finally:
+            self._close()
+        return final.strip()
+
+    def abort(self) -> None:
+        self._close()
+
+    def _close(self) -> None:
+        if self._done:
+            return
+        self._done = True
+        try:
+            self._raw.reset()
+        except Exception:
+            pass
+
+
+@register_backend
+class TranscribeCppStreamBackend(TranscribeCppBackend):
+    """Streaming twin of TranscribeCppBackend for GGUFs whose runtime reports
+    supports_streaming (Voxtral Realtime). Registered under its own NAME so the
+    catalog row selects it and asr_engine's class-flag pre-check routes it to
+    the streaming loop."""
+    NAME = "transcribe_cpp_stream"
+    STREAMING = True
+
+    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+        super().load(model_ref, device, compute_type)
+        caps = getattr(self._model, "capabilities", None)
+        if not (caps and getattr(caps, "supports_streaming", False)):
+            self.unload()
+            raise BackendLoadError(f"{model_ref} does not support streaming")
+
+    def open_stream(self) -> _TcStream:
+        if self._session is None:
+            raise BackendLoadError("transcribe_cpp_stream not loaded")
+        return _TcStream(self._session)
