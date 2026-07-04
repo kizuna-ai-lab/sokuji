@@ -1,0 +1,123 @@
+# Torch-free native sidecar (onnxruntime + llama.cpp)
+
+**Date**: 2026-07-04
+**Branch**: `native-torch-free` (off `native-sidecar`)
+**Status**: Draft — Phase A/B implementable now; Phase C staged per model
+
+## Goal
+
+Remove PyTorch and `transformers` from the sidecar entirely. Every stage runs on
+one of two runtime families:
+
+- **ONNX family**: onnxruntime (CPU + CUDA EP), sherpa-onnx, ctranslate2
+- **ggml family**: llama.cpp (`llama-server`, already the whole translate-LLM path)
+
+Install budget: **≤ 3 GB** for the GPU flavor, ideally ≤ 2 GB; CPU flavor well
+under 1.5 GB. No existing model card is deleted; a card whose torch-free runtime
+is not ready yet keeps its row but loses only the affected *tier* (hardware
+gating already renders that correctly in the UI).
+
+## Why now
+
+- Translate domain is already torch-free (9 LLM cards → llama-server GGUF,
+  13 Opus cards → ONNX). `transformers` is no longer needed for translation.
+- Our onnxruntime PR #29525 (GQA `attention_bias` on the CUDA EP) is merged
+  upstream — the next ORT release unblocks Voxtral on the CUDA EP, the last
+  model that genuinely needed torch for GPU inference.
+- The venv is 8.7 GB. Measured breakdown (MB, cu128 GPU install):
+
+  | package | MB | why present | verdict |
+  |---|---|---|---|
+  | nvidia/* (torch's CUDA+cuDNN) | 4298 | torch cu128 | drop with torch; re-add only the subset ORT/CT2 need |
+  | torch | 1612 | transformers/funasr backends | **drop** |
+  | onnxruntime-gpu | 773 | MOSS/Supertonic/Qwen3-TTS/Opus | keep (becomes the primary runtime) |
+  | triton | 640 | torch dep | drops with torch |
+  | llvmlite + numba | 189 | librosa | drop by replacing librosa |
+  | scipy(+libs) | 136 | librosa/funasr chain | drops with them |
+  | ctranslate2(+libs) | 133 | faster-whisper | keep |
+  | cuda (cuda-python) | 107 | torch chain | drop |
+  | av | 106 | faster-whisper | keep |
+  | transformers | 98 | speech-LLM ASR + AutoTokenizer | **drop** |
+  | modelscope+jieba+sklearn | 157 | funasr | **drop** |
+  | sympy, networkx | 72 | torch deps | drop with torch |
+  | mistral_common | 37 | Voxtral tokenizer | keep (torch-free) |
+  | sherpa_onnx | 36 | SenseVoice/piper | keep |
+
+  Post-migration estimate: ORT-gpu 773 + nvidia pip subset for the CUDA EP +
+  CT2 (cudnn ~700, cublas ~600, cudart/curand/cufft ~300) + CT2/av 240 +
+  tokenizers/sentencepiece/numpy/misc ~300 ≈ **2.9 GB GPU**, **~1.2 GB CPU**.
+  If cuFFT proves unnecessary (no FFT ops in our graphs — mel is precomputed
+  in numpy), GPU lands ≈ 2.7 GB.
+
+## Per-model migration table
+
+### ASR
+
+| card | today | torch-free target | notes |
+|---|---|---|---|
+| whisper-tiny…large-v3 (5) | ctranslate2 | **keep as-is** | faster-whisper is torch-free; CT2 CUDA uses the same nvidia pip libs as ORT |
+| sense-voice | funasr (torch) GPU+CPU | **sherpa-onnx CPU** now; optional ORT-CUDA later | `SherpaBackend.from_sense_voice` already exists; CPU RTF ~0.03 (33× realtime) makes the GPU tier a nice-to-have |
+| fun-asr-mlt-nano | funasr (torch) GPU+CPU | ONNX export TBD | speech-LLM (SenseVoice enc + Qwen3-0.6B dec); investigate sherpa-onnx/community export; until then the card stays with **no available tier** (hardware-gated display), not deleted |
+| cohere-transcribe-03-2026 | transformers GPU | **ORT** from `onnx-community/cohere-transcribe-03-2026-ONNX` | proven in WASM path; CPU RTF 0.14–0.31 → ships with a *cpu tier it never had*; CUDA EP works today (no GQA-bias in its graph) |
+| granite-speech-4.1-2b / -plus | transformers GPU | **ORT** from `onnx-community/granite-speech-4.1-2b-ONNX` (plus variant TBD on HF) | proven in WASM path (granite-speech worker) |
+| qwen3-asr-1.7b | transformers fork (PR #43838) GPU | **ORT** community export | drops the git-pinned transformers fork entirely |
+| voxtral-mini-4b-realtime | transformers fork GPU | **ORT** from `onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX` | CUDA tier **gated on the first ORT release containing #29525**; until then: cpu tier off (too slow), tier shows unavailable. Tokenizer stays `mistral-common` (torch-free) |
+
+### Translate — already done (llama.cpp GGUF + Opus ONNX). No change.
+
+### TTS
+
+| card | today | change |
+|---|---|---|
+| moss-tts-nano | ORT | none (already torch-free at runtime; `torch.cuda.empty_cache()` best-effort call removed) |
+| supertonic-3 | ORT | none |
+| qwen3-tts-0.6b/1.7b | ORT | replace `AutoTokenizer` → `tokenizers.Tokenizer.from_file`, `librosa` mel/resample → numpy mel + `soxr`/`soundfile` |
+| piper/vits (22) | sherpa-onnx | none |
+
+## Shared infra changes
+
+1. **accel.py**: `torch.cuda.get_device_properties/get_device_capability/
+   mem_get_info` → NVML via `nvidia-ml-py` (~1 MB, pure ctypes). Same probing
+   contract (vram_mb, compute capability, free bytes); returns "no CUDA" when
+   NVML is absent (macOS) exactly as torch did.
+2. **tts_engine.py**: drop the best-effort `torch.cuda.empty_cache()`.
+3. **tokenizer**: `tokenizers` (already a requirement) replaces AutoTokenizer.
+4. **mel**: `qwen3_tts/mel.py` reimplements the Slaney filterbank in numpy
+   (drop `librosa`, and with it numba/llvmlite/scipy).
+5. **audio io/resample**: `librosa.load/resample` → `soundfile` + `soxr`.
+6. **voxtral_stream.py**: `TextIteratorStreamer` disappears with the ORT
+   decode loop (plain generator over decode steps).
+
+## Dependency set after
+
+`requirements.txt` (all flavors): numpy, websockets, sentencepiece,
+huggingface_hub, zstandard, psutil, tokenizers, soundfile, soxr,
+nvidia-ml-py, mistral-common[audio], sherpa-onnx, faster-whisper.
+
+Flavor-specific (setup.sh):
+- CPU: `onnxruntime`
+- GPU (linux/win): `onnxruntime-gpu` + `nvidia-cudnn-cu12` + `nvidia-cublas-cu12`
+  (+ cudart/curand as required by the EP import check); CT2 discovers the same
+  wheels via `LD_LIBRARY_PATH`/preload (mirrors today's `_cudnn_preload.py`).
+
+Gone: torch, torchaudio, triton, transformers (git fork), funasr, modelscope,
+librosa, numba, llvmlite, scipy (unless another dep re-pins it).
+
+## ORT version strategy
+
+- Baseline pin moves 1.20.1 → the current stable (CUDA 12 build).
+- Voxtral CUDA tier additionally requires the first release with #29525;
+  `catalog.py` gates that deployment on `onnxruntime.__version__ >=` that
+  release, so the card exposes the tier automatically once the venv updates.
+- The GroupQueryAttentionFusion truncation bug (#29524) workaround — disable
+  that fusion / opt-level basic — applies to the Voxtral session options.
+
+## Risks
+
+- **Fun-ASR-Nano** has no confirmed ONNX path. Mitigation: keep card, gate tier.
+- **Speech-LLM ORT decode speed on CPU** is untested for Granite/Qwen3-ASR —
+  those stay GPU-tier-only initially (same availability as today).
+- **ORT CUDA EP lib subset**: exact nvidia wheel list must be verified by
+  importing `onnxruntime` with the CUDA EP on a clean venv (Phase D check).
+- **CT2 + ORT sharing nvidia wheels**: ctranslate2 needs cuDNN 9/cuBLAS from
+  the same major; verify with a whisper GPU smoke test.
