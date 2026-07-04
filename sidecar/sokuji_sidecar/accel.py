@@ -326,6 +326,8 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
     default = None
     best_rank = -1.0
     for d in model.deployments:
+        if d.rank < 1.0:
+            continue      # listed-only rungs (f16/q5) are never auto-recommended
         if d.est_bytes and (d.compute_type not in sizes or d.est_bytes > sizes[d.compute_type]):
             sizes[d.compute_type] = d.est_bytes
         if d.rank > best_rank:
@@ -1048,11 +1050,40 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
         seen_cts = []
+        sizes_by_ct = {}
         for d in mdl.deployments:
             if d.compute_type not in seen_cts:
                 seen_cts.append(d.compute_type)
+            if d.est_bytes:
+                sizes_by_ct[d.compute_type] = max(sizes_by_ct.get(d.compute_type, 0), d.est_bytes)
         if kind == "translate" or len(seen_cts) > 1:
             entry["variantIds"] = seen_cts
+        if len(seen_cts) > 1 and sizes_by_ct:
+            # Precomputed, machine-aware variant list: sorted quality-desc
+            # (size is monotone with quality within one model), each rung
+            # carrying supported (fits this machine at all) and recommended
+            # (the stable default-download pick). Context-free by design —
+            # cross-stage pressure is placement's job, and a recommendation
+            # that flapped with the OTHER stages' selections would read as
+            # noise. Renderer renders; it computes nothing.
+            budget = _quant_budget_bytes(m)
+            is_llama = _is_llamacpp(mdl)
+            if is_llama:
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                rec = chosen.compute_type if chosen is not None else None
+            else:
+                rec = _tc_pick_quant(mdl, m, None, budget)
+            variants = []
+            for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                if is_llama:
+                    supported = True                       # --fit always runs
+                elif budget is None:
+                    supported = True                       # no GPU → CPU runs anything
+                else:
+                    supported = size * _TC_RESIDENT_FACTOR <= budget
+                variants.append({"id": ct, "sizeBytes": size,
+                                 "supported": supported, "recommended": ct == rec})
+            entry["variants"] = variants
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

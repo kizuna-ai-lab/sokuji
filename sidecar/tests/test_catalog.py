@@ -43,13 +43,12 @@ def test_every_asr_row_is_transcribe_cpp_gguf():
 def test_sense_voice_row_transcribe_cpp_q8():
     m = catalog.asr_model("sense-voice")
     assert m.recommended is True and m.sort_order == 1
-    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("transcribe_cpp", "gpu-vulkan", "q8_0"),
-        ("transcribe_cpp", "gpu-metal", "q8_0"),
-        ("transcribe_cpp", "cpu", "q8_0"),
-    ]
-    assert all(d.artifact == "handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf"
-               for d in m.deployments)
+    # full ladder now: default (q8_0, rank 2.0) first, then f16 (listed-only,
+    # rank 0.5) / q6_k, q4_k_m (curated, 1.0) / q5_k_m (listed-only)
+    assert m.deployments[0].compute_type == "q8_0" and m.deployments[0].rank == 2.0
+    assert m.deployments[0].artifact == "handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf"
+    ct_rank = {d.compute_type: d.rank for d in m.deployments}
+    assert ct_rank == {"q8_0": 2.0, "f16": 0.5, "q6_k": 1.0, "q5_k_m": 0.5, "q4_k_m": 1.0}
 
 
 def test_granite_language_regression():
@@ -82,16 +81,11 @@ def test_cohere_asr_row():
     # Phase E3 quality ladder: a q8_0 alt rung (rank 1.0) the resolver
     # upgrades to when the memory budget allows. Default-quant rows come
     # first so downloads/size_bytes key off the default.
-    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("transcribe_cpp", "gpu-vulkan", "q4_k_m"),
-        ("transcribe_cpp", "gpu-metal", "q4_k_m"),
-        ("transcribe_cpp", "cpu", "q4_k_m"),
-        ("transcribe_cpp", "gpu-vulkan", "q8_0"),
-        ("transcribe_cpp", "gpu-metal", "q8_0"),
-        ("transcribe_cpp", "cpu", "q8_0"),
-    ]
+    assert m.deployments[0].compute_type == "q4_k_m" and m.deployments[0].rank == 2.0
     assert m.deployments[0].artifact == ("handy-computer/cohere-transcribe-03-2026-gguf/"
                                          "cohere-transcribe-03-2026-Q4_K_M.gguf")
+    ct_rank = {d.compute_type: d.rank for d in m.deployments}
+    assert ct_rank == {"q4_k_m": 2.0, "f16": 0.5, "q8_0": 1.0, "q6_k": 1.0, "q5_k_m": 0.5}
     assert m.size_bytes == 1558162944
 
 
@@ -123,14 +117,11 @@ def test_fun_asr_mlt_nano_row():
     assert m.recommended is True
     assert len(m.languages) == 31
     assert m.languages[:6] == ("zh", "en", "yue", "ja", "ko", "vi")
-    # Q6_K: the author's WER table shows q6_k (1.69) beating even bf16 (1.74).
-    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("transcribe_cpp", "gpu-vulkan", "q6_k"),
-        ("transcribe_cpp", "gpu-metal", "q6_k"),
-        ("transcribe_cpp", "cpu", "q6_k"),
-    ]
-    assert all(d.artifact == "handy-computer/Fun-ASR-MLT-Nano-2512-gguf/"
-                             "Fun-ASR-MLT-Nano-2512-Q6_K.gguf" for d in m.deployments)
+    # Q6_K default: the author's WER table shows q6_k (1.69) beating bf16 (1.74).
+    assert m.deployments[0].compute_type == "q6_k" and m.deployments[0].rank == 2.0
+    assert m.deployments[0].artifact == ("handy-computer/Fun-ASR-MLT-Nano-2512-gguf/"
+                                         "Fun-ASR-MLT-Nano-2512-Q6_K.gguf")
+    assert {d.compute_type for d in m.deployments} == {"q6_k", "f16", "q8_0", "q5_k_m", "q4_k_m"}
 
 
 def test_tts_models_have_deployments_languages_and_repos():

@@ -1368,8 +1368,10 @@ def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
         st, json.dumps({"type": "models_catalog", "id": 5, "kind": "asr",
                         "models": ["cohere-transcribe-03-2026", "sense-voice"]}), None, None))
     by_id = {m["id"]: m for m in reply["models"]}
-    assert by_id["cohere-transcribe-03-2026"]["variantIds"] == ["q4_k_m", "q8_0"]
-    assert "variantIds" not in by_id["sense-voice"]          # single-quant card
+    assert by_id["cohere-transcribe-03-2026"]["variantIds"] == \
+        ["q4_k_m", "f16", "q8_0", "q6_k", "q5_k_m"]   # full ladder, default first
+    # every ASR card now carries its full ladder → variantIds everywhere
+    assert by_id["sense-voice"]["variantIds"][0] == "q8_0"    # default first
     # tiers deduped: 3 entries, not 6, despite the two-quant ladder
     assert [t["tier"] for t in by_id["cohere-transcribe-03-2026"]["tiers"]] == \
         ["gpu-vulkan", "gpu-metal", "cpu"]
@@ -1458,3 +1460,62 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
     assert accel.ledger_other("translate") == 0    # present but holds no VRAM
     assert "asr" in accel._LEDGER
     accel.ledger_release("asr")
+
+
+# ── Phase E5(sidecar): full variant list precomputed in models_catalog ───────
+
+
+def _catalog_reply(monkeypatch, gpus=(), nvidia=(), kind="asr", models=None):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: nvidia)
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed",
+                        lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_gemma"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: gpus)
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    req = {"type": "models_catalog", "id": 7, "kind": kind}
+    if models:
+        req["models"] = models
+    reply, _ = asyncio.run(server.handle_message(st, json.dumps(req), None, None))
+    return {m["id"]: m for m in reply["models"]}
+
+
+def test_catalog_variants_full_ladder_sorted_quality_desc(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "RTX 4070", 12 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    v = by_id["cohere-transcribe-03-2026"]["variants"]
+    assert [x["id"] for x in v] == ["f16", "q8_0", "q6_k", "q5_k_m", "q4_k_m"]
+    assert all(x["sizeBytes"] > 0 for x in v)
+    assert all(x["supported"] for x in v)     # 12GB fits even f16 (4.1GB×1.15)
+    assert sum(1 for x in v if x["recommended"]) == 1
+
+
+def test_catalog_variants_supported_respects_small_gpu(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "iGPU", 2 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    v = {x["id"]: x for x in by_id["cohere-transcribe-03-2026"]["variants"]}
+    assert not v["f16"]["supported"]          # 4.1GB into 2GB: no
+    assert v["q4_k_m"]["supported"]           # 1.56GB×1.15 fits
+    rec = [x["id"] for x in by_id["cohere-transcribe-03-2026"]["variants"] if x["recommended"]]
+    assert rec == ["q4_k_m"]
+
+
+def test_catalog_variants_cpu_only_recommends_smallest(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, models=["whisper-large-v3"])
+    v = by_id["whisper-large-v3"]["variants"]
+    rec = [x["id"] for x in v if x["recommended"]]
+    assert rec == ["q4_k_m"]                  # bandwidth-bound CPU: smallest wins
+
+
+def test_catalog_variants_translate_kind_included(monkeypatch):
+    # translate needs an NVIDIA/Metal machine (no vulkan llama flavor yet)
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "RTX 4070", 12 << 30),),
+                           nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                           kind="translate", models=["translategemma-4b"])
+    v = by_id["translategemma-4b"]["variants"]
+    assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
+    assert all(x["supported"] for x in v)     # llama always runs via --fit
+    assert [x["id"] for x in v if x["recommended"]] == ["q8_0"]

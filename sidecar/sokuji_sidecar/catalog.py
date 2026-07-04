@@ -50,83 +50,103 @@ def _tc_quant(fname):
     return fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
 
 
-def _tc_row(mid, name, langs, repo, fname, order, size, recommended=False,
-            backend="transcribe_cpp", alt_fname=None, alt_size=None):
-    """One transcribe.cpp ASR card. The same GGUF file serves every tier; the
-    quant label is derived from the filename suffix (…-Q4_K_M.gguf → q4_k_m).
-    `backend` selects the streaming twin for realtime models. Cards ≥1GB carry
-    an ALT quant rung (rank 1.0 behind the default's 2.0) — the resolver walks
-    the ladder quality-first on GPU within the memory budget; deployments stay
-    default-quant-first so downloads/size_bytes key off the default."""
+# Rank encodes the quant's ROLE, not just a tie-break:
+#   2.0 = the curated default; 1.0 = curated alternative (recommendation
+#   candidate); 0.5 = listed-only — shown in the variant list with a
+#   supported flag, but never auto-recommended (e.g. f16: the author's WER
+#   tables show no gain over q8_0, so recommending its 2x download would be
+#   waste — power users can still pick it).
+_TC_CURATED_MIN_RANK = 1.0
+
+
+def _tc_row(mid, name, langs, repo, base, order, quants, default,
+            recommended=False, backend="transcribe_cpp"):
+    """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
+    QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
+    curated default. The same GGUF serves every tier. Deployments are ordered
+    default-first so downloads/size_bytes key off the default; q6_k/q4_k_m/q8_0
+    are curated recommendation candidates, f16/q5_k_m are listed-only."""
+    curated = {"q8_0", "q6_k", "q4_k_m"}
     deps = []
-    for f, sz, rank in ((fname, size, 2.0),) + (((alt_fname, alt_size, 1.0),) if alt_fname else ()):
-        quant = _tc_quant(f)
-        deps += [Deployment(backend, tier, quant, f"{repo}/{f}", rank, est_bytes=sz)
-                 for tier in _TC_TIERS]
+    order_keys = [default] + [q for q in ("F16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M")
+                              if q in quants and q != default]
+    for q in order_keys:
+        quant = q.lower()
+        rank = 2.0 if q == default else (1.0 if quant in curated else 0.5)
+        deps += [Deployment(backend, tier, quant, f"{repo}/{base}-{q}.gguf", rank,
+                            est_bytes=quants[q]) for tier in _TC_TIERS]
     return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
-                    sort_order=order, size_bytes=size)
+                    sort_order=order, size_bytes=quants[default])
 
 
 ASR_MODELS: list[AsrModel] = [
     _tc_row("cohere-transcribe-03-2026", "Cohere Transcribe",
             ("en", "de", "fr", "it", "es", "pt", "el",
              "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
-            "handy-computer/cohere-transcribe-03-2026-gguf",
-            "cohere-transcribe-03-2026-Q4_K_M.gguf",
-            0, 1558162944, recommended=True,
-            alt_fname="cohere-transcribe-03-2026-Q8_0.gguf", alt_size=2410655232),
+            "handy-computer/cohere-transcribe-03-2026-gguf", "cohere-transcribe-03-2026",
+            0, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
+                "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
+            default="Q4_K_M", recommended=True),
     _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
-            "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall-Q8_0.gguf",
-            1, 252684608, recommended=True),
+            "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall",
+            1, {"F16": 470412128, "Q8_0": 252684608, "Q6_K": 196438336,
+                "Q5_K_M": 172474880, "Q4_K_M": 145738304},
+            default="Q8_0", recommended=True),
     _tc_row("whisper-tiny", "Whisper tiny", ("multi",),
-            "handy-computer/whisper-tiny-gguf", "whisper-tiny-Q8_0.gguf",
-            2, 45981088),
+            "handy-computer/whisper-tiny-gguf", "whisper-tiny",
+            2, {"F16": 80135360, "Q8_0": 45981088, "Q6_K": 44838304,
+                "Q5_K_M": 44211616, "Q4_K_M": 43621792}, default="Q8_0"),
     _tc_row("whisper-base", "Whisper base", ("multi",),
-            "handy-computer/whisper-base-gguf", "whisper-base-Q8_0.gguf",
-            3, 84962880),
+            "handy-computer/whisper-base-gguf", "whisper-base",
+            3, {"F16": 151145760, "Q8_0": 84962880, "Q6_K": 67865664,
+                "Q5_K_M": 63786048, "Q4_K_M": 58870848}, default="Q8_0"),
     _tc_row("whisper-small", "Whisper small", ("multi",),
-            "handy-computer/whisper-small-gguf", "whisper-small-Q8_0.gguf",
-            4, 269751136),
+            "handy-computer/whisper-small-gguf", "whisper-small",
+            4, {"F16": 492888480, "Q8_0": 269751136, "Q6_K": 212107328,
+                "Q5_K_M": 193749056, "Q4_K_M": 171630656}, default="Q8_0"),
     _tc_row("whisper-medium", "Whisper medium", ("multi",),
-            "handy-computer/whisper-medium-gguf", "whisper-medium-Q8_0.gguf",
-            5, 831538144),
+            "handy-computer/whisper-medium-gguf", "whisper-medium",
+            5, {"F16": 1541931424, "Q8_0": 831538144, "Q6_K": 648019904,
+                "Q5_K_M": 582746048, "Q4_K_M": 504102848}, default="Q8_0"),
     _tc_row("whisper-large-v3", "Whisper large-v3", ("multi",),
-            "handy-computer/whisper-large-v3-gguf", "whisper-large-v3-Q8_0.gguf",
-            6, 1668741440, recommended=True,
-            alt_fname="whisper-large-v3-Q4_K_M.gguf", alt_size=997303008),
+            "handy-computer/whisper-large-v3-gguf", "whisper-large-v3",
+            6, {"F16": 3107236640, "Q8_0": 1668741440, "Q6_K": 1297130208,
+                "Q5_K_M": 1161143008, "Q4_K_M": 997303008},
+            default="Q8_0", recommended=True),
     _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
             ("en", "fr", "de", "es", "pt", "ja"),
-            "handy-computer/granite-speech-4.1-2b-gguf",
-            "granite-speech-4.1-2b-Q4_K_M.gguf",
-            7, 1602904800,
-            alt_fname="granite-speech-4.1-2b-Q8_0.gguf", alt_size=2559878848),
+            "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
+            7, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
+                "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
     _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
             ("en", "fr", "de", "es", "pt"),
-            "handy-computer/granite-speech-4.1-2b-plus-gguf",
-            "granite-speech-4.1-2b-plus-Q4_K_M.gguf",
-            8, 1489663424,
-            alt_fname="granite-speech-4.1-2b-plus-Q8_0.gguf", alt_size=2345973152),
+            "handy-computer/granite-speech-4.1-2b-plus-gguf", "granite-speech-4.1-2b-plus",
+            8, {"F16": 4229971808, "Q8_0": 2345973152, "Q6_K": 1859821504,
+                "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M"),
     _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
-            "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B-Q4_K_M.gguf",
-            9, 1319830496, recommended=True,
-            alt_fname="Qwen3-ASR-1.7B-Q8_0.gguf", alt_size=2185030624),
+            "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B",
+            9, {"F16": 4091390944, "Q8_0": 2185030624, "Q6_K": 1692554208,
+                "Q5_K_M": 1517290464, "Q4_K_M": 1319830496},
+            default="Q4_K_M", recommended=True),
     # Streaming: the transcribe_cpp_stream twin adapts session.stream()'s
     # committed/tentative view to the engine's feed/drain/end contract.
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
-            "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
-            "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
-            10, 2830493984, recommended=True, backend="transcribe_cpp_stream",
-            alt_fname="Voxtral-Mini-4B-Realtime-2602-Q8_0.gguf", alt_size=4731791648),
+            "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf", "Voxtral-Mini-4B-Realtime-2602",
+            10, {"F16": 8879114528, "Q8_0": 4731791648, "Q6_K": 3661018912,
+                 "Q5_K_M": 3281439008, "Q4_K_M": 2830493984},
+            default="Q4_K_M", recommended=True, backend="transcribe_cpp_stream"),
+    # Q6_K default: the author's WER table shows q6_k (1.69) beating bf16 (1.74).
     _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
              "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
-            "handy-computer/Fun-ASR-MLT-Nano-2512-gguf",
-            "Fun-ASR-MLT-Nano-2512-Q6_K.gguf",
-            11, 690744384, recommended=True),
+            "handy-computer/Fun-ASR-MLT-Nano-2512-gguf", "Fun-ASR-MLT-Nano-2512",
+            11, {"F16": 1667504192, "Q8_0": 891271232, "Q6_K": 690744384,
+                 "Q5_K_M": 631129152, "Q4_K_M": 556975168},
+            default="Q6_K", recommended=True),
 ]
 
 
