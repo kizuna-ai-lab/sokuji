@@ -46,16 +46,24 @@ class AsrModel(_ModelBase):
 _TC_TIERS = ("gpu-vulkan", "gpu-metal", "cpu")
 
 
+def _tc_quant(fname):
+    return fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
+
+
 def _tc_row(mid, name, langs, repo, fname, order, size, recommended=False,
-            backend="transcribe_cpp"):
+            backend="transcribe_cpp", alt_fname=None, alt_size=None):
     """One transcribe.cpp ASR card. The same GGUF file serves every tier; the
     quant label is derived from the filename suffix (…-Q4_K_M.gguf → q4_k_m).
-    `backend` selects the streaming twin for realtime models."""
-    quant = fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
-    artifact = f"{repo}/{fname}"
-    deps = tuple(Deployment(backend, tier, quant, artifact, 1.0)
-                 for tier in _TC_TIERS)
-    return AsrModel(mid, name, langs, deps, recommended=recommended,
+    `backend` selects the streaming twin for realtime models. Cards ≥1GB carry
+    an ALT quant rung (rank 1.0 behind the default's 2.0) — the resolver walks
+    the ladder quality-first on GPU within the memory budget; deployments stay
+    default-quant-first so downloads/size_bytes key off the default."""
+    deps = []
+    for f, sz, rank in ((fname, size, 2.0),) + (((alt_fname, alt_size, 1.0),) if alt_fname else ()):
+        quant = _tc_quant(f)
+        deps += [Deployment(backend, tier, quant, f"{repo}/{f}", rank, est_bytes=sz)
+                 for tier in _TC_TIERS]
+    return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
                     sort_order=order, size_bytes=size)
 
 
@@ -65,7 +73,8 @@ ASR_MODELS: list[AsrModel] = [
              "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
             "handy-computer/cohere-transcribe-03-2026-gguf",
             "cohere-transcribe-03-2026-Q4_K_M.gguf",
-            0, 1558162944, recommended=True),
+            0, 1558162944, recommended=True,
+            alt_fname="cohere-transcribe-03-2026-Q8_0.gguf", alt_size=2410655232),
     _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
             "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall-Q8_0.gguf",
             1, 252684608, recommended=True),
@@ -83,29 +92,34 @@ ASR_MODELS: list[AsrModel] = [
             5, 831538144),
     _tc_row("whisper-large-v3", "Whisper large-v3", ("multi",),
             "handy-computer/whisper-large-v3-gguf", "whisper-large-v3-Q8_0.gguf",
-            6, 1668741440, recommended=True),
+            6, 1668741440, recommended=True,
+            alt_fname="whisper-large-v3-Q4_K_M.gguf", alt_size=997303008),
     _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
             ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-speech-4.1-2b-gguf",
             "granite-speech-4.1-2b-Q4_K_M.gguf",
-            7, 1602904800),
+            7, 1602904800,
+            alt_fname="granite-speech-4.1-2b-Q8_0.gguf", alt_size=2559878848),
     _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
             ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-plus-gguf",
             "granite-speech-4.1-2b-plus-Q4_K_M.gguf",
-            8, 1489663424),
+            8, 1489663424,
+            alt_fname="granite-speech-4.1-2b-plus-Q8_0.gguf", alt_size=2345973152),
     _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
             "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B-Q4_K_M.gguf",
-            9, 1319830496, recommended=True),
+            9, 1319830496, recommended=True,
+            alt_fname="Qwen3-ASR-1.7B-Q8_0.gguf", alt_size=2185030624),
     # Streaming: the transcribe_cpp_stream twin adapts session.stream()'s
     # committed/tentative view to the engine's feed/drain/end contract.
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
             "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
             "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
-            10, 2830493984, recommended=True, backend="transcribe_cpp_stream"),
+            10, 2830493984, recommended=True, backend="transcribe_cpp_stream",
+            alt_fname="Voxtral-Mini-4B-Realtime-2602-Q8_0.gguf", alt_size=4731791648),
     _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",

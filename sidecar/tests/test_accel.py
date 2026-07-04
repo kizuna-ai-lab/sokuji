@@ -1286,3 +1286,110 @@ def test_list_variants_recommends_on_stable_total(monkeypatch):
     reply, _ = _a.run(_srv.handle_message(
         st, _j.dumps({"type": "list_variants", "id": 9, "model": "translategemma-4b"}), None, None))
     assert reply["recommended"] == "q8_0"
+
+
+# ── Phase E3: ASR quality ladder (budget-aware quant pick) ──────────────────
+
+
+def test_asr_roomy_budget_upgrades_to_q8(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # 10 GiB free: cohere's q8_0 (2.41GB×1.15) fits → quality upgrade over
+    # the q4 default.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 << 30)
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0" and plans[0].device == "vulkan"
+    # one plan per tier — the ladder narrowed to ONE quant
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+
+
+def test_asr_tight_budget_keeps_default(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 << 30)
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_asr_cpu_only_prefers_smallest_quant(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # whisper-large-v3 defaults to q8_0, but CPU is bandwidth-bound: the
+    # smallest quant (q4_k_m) is both faster and lighter there.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    plans = accel.resolve("whisper-large-v3", machine=_machine())
+    assert [p.device for p in plans] == ["cpu"]
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_asr_unknown_budget_keeps_default_on_gpu(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m" and plans[0].device == "vulkan"
+
+
+def test_asr_pin_narrows_ladder(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 << 30)  # q8 wouldn't fit
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="q8_0")
+    assert all(p.compute_type == "q8_0" for p in plans)   # user's will
+
+
+def test_asr_single_quant_cards_unaffected(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 << 30)
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("sense-voice", machine=m)
+    assert [p.compute_type for p in plans] == ["q8_0", "q8_0"]
+
+
+def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "models_catalog", "id": 5, "kind": "asr",
+                        "models": ["cohere-transcribe-03-2026", "sense-voice"]}), None, None))
+    by_id = {m["id"]: m for m in reply["models"]}
+    assert by_id["cohere-transcribe-03-2026"]["variantIds"] == ["q4_k_m", "q8_0"]
+    assert "variantIds" not in by_id["sense-voice"]          # single-quant card
+    # tiers deduped: 3 entries, not 6, despite the two-quant ladder
+    assert [t["tier"] for t in by_id["cohere-transcribe-03-2026"]["tiers"]] == \
+        ["gpu-vulkan", "gpu-metal", "cpu"]
+
+
+def test_asr_quant_pick_prefers_downloaded(monkeypatch):
+    # 10 GiB free would upgrade to q8_0, but only q4_k_m is in the local cache
+    # → loading must pick what exists, not fail on the absent upgrade.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 << 30)
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_translate_quant_pick_prefers_downloaded(monkeypatch):
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 << 30)
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_quant_pick_ignores_download_state_when_nothing_cached(monkeypatch):
+    # fresh machine, nothing downloaded: recommend by budget (the gate then
+    # walks the user through downloading that quant)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 << 30)
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0"

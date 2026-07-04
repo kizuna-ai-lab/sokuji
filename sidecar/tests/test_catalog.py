@@ -78,16 +78,20 @@ def test_cohere_asr_row():
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
     assert m.sort_order == 0          # sorted first
-    # 2026-07-04: transcribe.cpp GGUF (author-validated Q4_K_M). Vulkan verified
-    # RTF 0.0096 on the 4070; Metal/CPU tiers from the same file.
+    # 2026-07-04: transcribe.cpp GGUF (author-validated Q4_K_M default) +
+    # Phase E3 quality ladder: a q8_0 alt rung (rank 1.0) the resolver
+    # upgrades to when the memory budget allows. Default-quant rows come
+    # first so downloads/size_bytes key off the default.
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
         ("transcribe_cpp", "gpu-vulkan", "q4_k_m"),
         ("transcribe_cpp", "gpu-metal", "q4_k_m"),
         ("transcribe_cpp", "cpu", "q4_k_m"),
+        ("transcribe_cpp", "gpu-vulkan", "q8_0"),
+        ("transcribe_cpp", "gpu-metal", "q8_0"),
+        ("transcribe_cpp", "cpu", "q8_0"),
     ]
-    assert all(d.artifact == "handy-computer/cohere-transcribe-03-2026-gguf/"
-                             "cohere-transcribe-03-2026-Q4_K_M.gguf"
-               for d in m.deployments)
+    assert m.deployments[0].artifact == ("handy-computer/cohere-transcribe-03-2026-gguf/"
+                                         "cohere-transcribe-03-2026-Q4_K_M.gguf")
     assert m.size_bytes == 1558162944
 
 

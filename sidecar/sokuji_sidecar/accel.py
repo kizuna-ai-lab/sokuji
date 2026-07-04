@@ -273,12 +273,84 @@ def _resolve_model(model, model_id: str, override: str, machine: Machine) -> lis
     return plans
 
 
-def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+_TC_RESIDENT_FACTOR = 1.15
+
+
+def _downloaded_quants(model) -> set:
+    """compute_types of `model` whose artifact file is already in the local HF
+    cache. LOAD-time quant selection restricts itself to these (an absent
+    upgrade rung must never be chosen over a cached default — it would fail
+    to load); an empty set means nothing is cached yet, so selection falls
+    back to pure budget logic and the readiness gate drives the download."""
+    from . import catalog as _cat
+    from huggingface_hub import hf_hub_download
+    out = set()
+    seen = set()
+    for d in model.deployments:
+        if d.compute_type in seen:
+            continue
+        seen.add(d.compute_type)
+        repo, fname = _cat.split_artifact(d.artifact)
+        if not fname:
+            continue
+        try:
+            hf_hub_download(repo, fname, local_files_only=True)
+            out.add(d.compute_type)
+        except Exception:
+            pass
+    return out
+
+
+def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
+                   downloaded: set | None = None) -> str:
+    """Quant for a multi-quant transcribe.cpp card. pin wins; on a GPU-capable
+    machine walk quality-descending (largest first) and take the first that
+    fits FULLY resident within the budget, else the rank-default; without a
+    GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
+    sizes = {}
+    default = None
+    best_rank = -1.0
+    for d in model.deployments:
+        if d.est_bytes and (d.compute_type not in sizes or d.est_bytes > sizes[d.compute_type]):
+            sizes[d.compute_type] = d.est_bytes
+        if d.rank > best_rank:
+            best_rank, default = d.rank, d.compute_type
+    if pin in sizes:
+        return pin
+    # LOAD-time reality: only cached quants are loadable — restrict when any exist.
+    if downloaded:
+        cached = {q: sz for q, sz in sizes.items() if q in downloaded}
+        if cached:
+            sizes = cached
+            if default not in sizes:
+                default = max(sizes, key=lambda q: sizes[q])
+    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+                       for d in model.deployments)
+    if not gpu_possible:
+        return min(sizes, key=sizes.get) if sizes else default
+    if budget is None or not sizes:
+        return default
+    for quant, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
+        if size * _TC_RESIDENT_FACTOR <= budget:
+            return quant
+    return default
+
+
+def resolve(model_id: str, override: str = "auto", machine: Machine | None = None,
+            pin: str | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    return _resolve_model(model, model_id, override, machine or probe())
+    machine = machine or probe()
+    # Multi-quant ladder (big transcribe.cpp cards): narrow to ONE quant before
+    # the generic tier resolution, so plans stay one-per-tier.
+    if len({d.compute_type for d in model.deployments}) > 1:
+        quant = _tc_pick_quant(model, machine, pin, device_free_bytes(),
+                               downloaded=_downloaded_quants(model))
+        model = dataclasses.replace(
+            model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
+    return _resolve_model(model, model_id, override, machine)
 
 
 def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None,
@@ -299,7 +371,8 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
         # stages move it); the download RECOMMENDATION uses the stable
         # mem_total basis instead (see _h_list_variants).
         chosen = select_variant(model, machine, reserved_bytes, pin,
-                                budget_bytes=device_free_bytes())
+                                budget_bytes=device_free_bytes(),
+                                downloaded=_downloaded_quants(model))
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
         # CPU deployment when that exact quant has none.
@@ -694,7 +767,8 @@ _LLAMA_MIN_FIT_FRACTION = 0.5
 
 
 def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
-                          reserved_bytes: int = 0, budget_bytes: int | None = None):
+                          reserved_bytes: int = 0, budget_bytes: int | None = None,
+                          downloaded: set | None = None):
     """Pick (quant, tier) for a llamacpp card.
 
     pin → that quant unconditionally (user's will; --fit copes with memory).
@@ -729,6 +803,12 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
         size = _est_bytes(d)
         if size and (d.compute_type not in quants or size > quants[d.compute_type]):
             quants[d.compute_type] = size
+    if downloaded:
+        cached = {q: sz for q, sz in quants.items() if q in downloaded}
+        if cached:
+            quants = cached
+            if default_quant not in quants:
+                default_quant = max(quants, key=lambda q: quants[q])
     if not quants:
         return _row(default_quant)
     # largest fully-resident quant wins
@@ -743,7 +823,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
 
 
 def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None,
-                   budget_bytes: int | None = None):
+                   budget_bytes: int | None = None, downloaded: set | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
     CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
@@ -753,7 +833,8 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     VRAM-math-free path: llama-server's --fit handles memory via partial offload,
     so quant/tier selection is purely rank + tier-availability, never a byte budget."""
     if _is_llamacpp(model):
-        return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes)
+        return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
+                                     downloaded=downloaded)
     gpu = machine.nvidia[0] if machine.nvidia else None
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
@@ -883,9 +964,14 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         models = [x for x in models if x.id in wanted]
     out = []
     for mdl in models:
-        tiers = [{"tier": d.tier, "backend": d.backend,
-                  "available": d.backend in m.installed and _tier_available(d.tier, m)}
-                 for d in mdl.deployments]
+        tiers = []
+        seen_tiers = set()
+        for d in mdl.deployments:
+            if d.tier in seen_tiers:
+                continue                      # multi-quant ladders repeat tiers
+            seen_tiers.add(d.tier)
+            tiers.append({"tier": d.tier, "backend": d.backend,
+                          "available": d.backend in m.installed and _tier_available(d.tier, m)})
         repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
@@ -896,11 +982,11 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
-        if kind == "translate":
-            seen_cts = []
-            for d in mdl.deployments:
-                if d.compute_type not in seen_cts:
-                    seen_cts.append(d.compute_type)
+        seen_cts = []
+        for d in mdl.deployments:
+            if d.compute_type not in seen_cts:
+                seen_cts.append(d.compute_type)
+        if kind == "translate" or len(seen_cts) > 1:
             entry["variantIds"] = seen_cts
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
