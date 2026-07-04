@@ -376,9 +376,10 @@ export interface NativeSelection {
  * LOCAL_INFERENCE's `autoSelectModels`. Steps, in order, mirror that logic:
  *   1. recalled history (per-direction) overrides the current choice;
  *   2. each stage is validated — the chosen card must exist for this pair AND
- *      be downloaded (a null downloadId, i.e. TTS Off, counts as downloaded);
- *   3. an invalid choice falls back to the best *downloaded* card, else the
- *      recommended card (translation), else '' (ASR — nothing until downloaded).
+ *      be downloaded (a null downloadId counts as downloaded);
+ *   3. an invalid choice falls back to the best *downloaded* card, else ''
+ *      (ASR/translation: nothing until downloaded; TTS: Auto) — an un-downloaded
+ *      model is never auto-selected (the UI blocks picking one manually too).
  * Returns only the changed fields (null if nothing changed).
  */
 export function autoSelectNative(
@@ -415,20 +416,25 @@ export function autoSelectNative(
     if (newId !== asrModel) updates.asrModel = newId;
   }
 
-  // Translation — directional cards; downloaded, else best downloaded, else recommended (Qwen '')
+  // Translation — directional cards; downloaded, else best downloaded, else ''
+  // (nothing until downloaded — an un-downloaded card must never be auto-selected,
+  // matching the ASR stage and web local inference; the UI blocks picking one too)
   const trCards = nativeTranslationCards(src, tgt, catalog);
   const curTr = trCards.find((c) => c.selectId === translationModel);
   if (!(curTr && isDownloaded(curTr.downloadId))) {
-    const best = trCards.find((c) => isDownloaded(c.downloadId)) ?? trCards.find((c) => c.recommended) ?? trCards[0];
+    const best = trCards.find((c) => isDownloaded(c.downloadId));
     const newId = best?.selectId ?? '';
     if (newId !== translationModel) updates.translationModel = newId;
   }
 
-  // TTS — optional; '' (Auto) = the default voice for tgt. A specific voice that
-  // isn't valid for tgt, or a legacy 'off' (the Off card was removed — text-only
-  // is the common textOnly toggle now), resets to Auto.
-  if (ttsModel === 'off' || (ttsModel && ttsModel !== '' && !nativeTtsModels(tgt, catalog).some((m) => m.id === ttsModel))) {
-    updates.ttsModel = '';
+  // TTS — optional; '' (Auto) = the default voice for tgt. A specific voice must be
+  // valid for tgt AND downloaded; anything else — a cross-language voice, a deleted
+  // (absent) voice, or a legacy 'off' (the Off card was removed — text-only is the
+  // common textOnly toggle now) — resets to Auto.
+  if (ttsModel === 'off' || (ttsModel && ttsModel !== ''
+      && !(nativeTtsModels(tgt, catalog).some((m) => m.id === ttsModel) && isDownloaded(ttsModel)))) {
+    ttsModel = '';
+    if (ttsModel !== input.ttsModel) updates.ttsModel = '';
   }
 
   // Surface recalled values that survived validation (current still holds the old value)

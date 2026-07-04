@@ -212,6 +212,51 @@ describe('nativeCatalog', () => {
       expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
     });
 
+    it('clears translation to "" when nothing is downloaded for this pair', () => {
+      // Only the ASR model is cached. The selected translategemma is absent and no
+      // other translation card is downloaded → '' (parity with the ASR stage and web
+      // local inference); never fall back to the un-downloaded recommended card.
+      const r = autoSelectNative('zh', 'en', cur({ translationModel: 'translategemma-4b' }), downloaded('sense-voice'),
+        undefined, undefined, FIXTURE_FULL);
+      expect(r?.translationModel).toBe('');
+    });
+
+    it('clears an un-downloaded translation selection even when it IS the recommended card', () => {
+      // Fresh install shape: settings default to qwen2.5-0.5b but nothing is cached →
+      // the selection must be cleared, not left pointing at an un-downloaded card.
+      const r = autoSelectNative('zh', 'en', cur(), downloaded('sense-voice'),
+        undefined, undefined, FIXTURE_FULL);
+      expect(r?.translationModel).toBe('');
+    });
+
+    // TTS entries for the download-state tests (FIXTURE_FULL has no TTS models).
+    const FIXTURE_WITH_TTS: Record<string, NativeModelInfo> = {
+      ...FIXTURE_FULL,
+      'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true),
+    };
+
+    it('resets a valid but un-downloaded TTS voice to Auto', () => {
+      // moss supports the target (en) but is not cached → reset to '' (Auto).
+      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'moss-tts-nano' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
+        undefined, undefined, FIXTURE_WITH_TTS);
+      expect(r?.ttsModel).toBe('');
+    });
+
+    it('ignores a recalled TTS voice that is not downloaded', () => {
+      // History remembers moss for zh→en, but it has since been deleted → must not
+      // be re-applied; the selection stays Auto ('').
+      const r = autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen2.5-0.5b'),
+        { asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: 'moss-tts-nano' }, undefined, FIXTURE_WITH_TTS);
+      expect(r?.ttsModel ?? '').toBe('');
+    });
+
+    it('keeps a downloaded TTS voice for the target language', () => {
+      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'moss-tts-nano' }),
+        downloaded('sense-voice', 'qwen2.5-0.5b', 'moss-tts-nano'),
+        undefined, undefined, FIXTURE_WITH_TTS);
+      expect(r).toBeNull();
+    });
+
     const gatesCohere = (id: string | null) => id === 'cohere-transcribe-03-2026';
 
     it('never auto-selects a downloaded but hardware-gated ASR (GPU-only on a CPU box)', () => {
