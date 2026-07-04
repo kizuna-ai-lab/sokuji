@@ -126,16 +126,18 @@ def test_probe_is_cached(monkeypatch):
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"ctranslate2", "sherpa"})):
+def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe_cpp"}), tc=()):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
-                         fingerprint="test")
+                         fingerprint="test", tc_kinds=tc)
 
 
 def _model_cpu_and_cuda():
+    # synthetic rows exercising the generic resolver mechanics (tier ranking,
+    # override pinning) — backend name only needs to be in `installed`
     return catalog.AsrModel("m", "M", ("multi",), (
-        catalog.Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
-        catalog.Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0),
+        catalog.Deployment("transcribe_cpp", "gpu-cuda", "float16", "large-v3", 1.0),
+        catalog.Deployment("transcribe_cpp", "cpu", "int8", "large-v3", 1.0),
     ))
 
 
@@ -166,10 +168,11 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))   # no accelerator
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
-    assert plans[0].backend == "sherpa" and plans[0].device == "cpu"
+    assert plans[0].backend == "transcribe_cpp" and plans[0].device == "cpu"
 
 
 def test_resolve_unknown_model_raises():
@@ -331,7 +334,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -342,12 +346,14 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [
-        {"tier": "cpu", "backend": "sherpa", "available": True},
+        {"tier": "gpu-vulkan", "backend": "transcribe_cpp", "available": False},
+        {"tier": "gpu-metal", "backend": "transcribe_cpp", "available": False},
+        {"tier": "cpu", "backend": "transcribe_cpp", "available": True},
     ]
     assert by_id["whisper-large-v3"]["recommended"] is True
     assert by_id["whisper-base"]["recommended"] is False
     # sizeBytes rides along with the catalog entry — no separate model_sizes round-trip.
-    assert by_id["sense-voice"]["sizeBytes"] == 239549910
+    assert by_id["sense-voice"]["sizeBytes"] == 252684608
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
@@ -364,11 +370,11 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
     assert ids == ["sense-voice"]
 
 
-def test_whisper_resolves_gpu_first_on_nvidia():
+def test_whisper_resolves_vulkan_first_on_nvidia():
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288),))
     plans = accel.resolve("whisper-tiny", machine=m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]
-    assert plans[0].compute_type == "float16" and plans[1].compute_type == "int8"
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+    assert all(p.backend == "transcribe_cpp" and p.compute_type == "q8_0" for p in plans)
 
 
 def test_whisper_cpu_only_machine_drops_gpu():
@@ -382,12 +388,18 @@ def test_whisper_cpu_override_pins_cpu_on_nvidia():
     assert plans[0].device == "cpu"
 
 
-def test_sense_voice_resolves_cpu_even_on_nvidia():
-    # sherpa-onnx is CPU-only — a GPU machine still (correctly) gets the cpu plan.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
-                 installed=frozenset({"sherpa"}))
+def test_sense_voice_resolves_vulkan_then_cpu_on_nvidia():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
     plans = accel.resolve("sense-voice", machine=m)
-    assert [p.device for p in plans] == ["cpu"]
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+
+
+def test_vulkan_tier_from_tc_probe_alone():
+    # An AMD/Intel box: no NVML GPUs, no DML — transcribe.cpp's own Vulkan
+    # probe is enough to light the gpu-vulkan tier.
+    m = _machine(tc=("cpu", "vulkan"))
+    plans = accel.resolve("whisper-tiny", machine=m)
+    assert plans[0].device == "vulkan"
 
 
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
@@ -473,8 +485,8 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     # seed the cache keyed by the machine we resolve for (m.fingerprint == "test")
     fp = m.fingerprint
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
     plans = accel.resolve("whisper-tiny", machine=m)
     assert plans[0].device == "cpu"  # demoted: cpu now leads
@@ -487,11 +499,12 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
     # cache says cuda is slower than cpu — AUTO would demote, but an explicit
     # override must win (the benchmark never overrides the user's forced device).
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-tiny", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
+    # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here).
     plans = accel.resolve("whisper-tiny", override="cuda", machine=m)
-    assert plans[0].device == "cuda"  # explicit override beats cache demotion
+    assert plans[0].device == "vulkan"  # explicit override beats cache demotion
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
@@ -524,28 +537,6 @@ def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
         backend.unload()
 
 
-def test_installed_includes_transformers():
-    # transformers is a sidecar dependency → detected by _installed()
-    assert "transformers" in accel._installed()
-
-
-def test_voxtral_readiness_requires_mistral_common(monkeypatch):
-    # VoxtralRealtimeBackend.load() needs both the transformers voxtral_realtime model AND
-    # mistral_common (processor/tokenizer). A half-installed env (model present, mistral_common
-    # missing) must NOT advertise voxtral_realtime, else the catalog shows it but load() fails.
-    monkeypatch.setattr(accel, "_has_mod", lambda m: m != "mistral_common")  # all present except mistral_common
-    assert "voxtral_realtime" not in accel._installed()
-    monkeypatch.setattr(accel, "_has_mod", lambda m: True)                   # both present
-    assert "voxtral_realtime" in accel._installed()
-
-
-def test_granite_resolves_gpu_only_on_nvidia_with_transformers():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"transformers"}))
-    plans = accel.resolve("granite-speech-4.1-2b", machine=m)
-    assert [p.device for p in plans] == ["cuda"]   # gpu-only → single plan, no cpu floor
-    assert plans[0].backend == "transformers" and plans[0].compute_type == "bfloat16"
-
-
 def test_granite_gated_off_on_cpu_only_machine():
     # no nvidia → gpu-cuda filtered → no plan → NoUsablePlan (gated off)
     with pytest.raises(accel.NoUsablePlan):
@@ -573,136 +564,23 @@ def test_qwen3asr_model_unavailable_without_runtime(monkeypatch):
     assert plans == []     # gated off: no usable deployment
 
 
-def test_qwen3asr_gated_on_qwen3_asr_module(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def fake_find_spec(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "qwen3asr" not in accel._installed()
-
-    def present(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "qwen3asr" in accel._installed()
-
-
 def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
-    """_installed() must never raise when find_spec raises for a sub-module.
-    The qwen3asr entry can trigger ModuleNotFoundError if `transformers` itself
-    is absent; the guarded _has_mod() helper must absorb the exception and keep
-    all other present backends in the returned frozenset."""
+    """_installed() must never raise when find_spec raises for a module —
+    the guarded _has_mod() helper absorbs the exception and keeps every other
+    present backend in the returned frozenset."""
     import importlib.util as iu
     from sokuji_sidecar import accel
     real = iu.find_spec
 
     def raising_find_spec(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
+        if name == "transcribe_cpp":
             raise ModuleNotFoundError("no module named transformers.models.qwen3_asr")
         return real(name, *a, **k)
 
     monkeypatch.setattr(accel.importlib.util, "find_spec", raising_find_spec)
     result = accel._installed()          # must NOT raise
-    assert "qwen3asr" not in result      # the raising entry is excluded …
-    assert "transformers" in result      # … but other present backends survive
-
-
-def test_cohereasr_resolves_gpu_on_nvidia_with_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"cohere_onnx"}),
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
-    # torch-free: cpu tier only until the CUDA empty-output issue is fixed
-    assert [p.device for p in plans] == ["cpu"]
-    assert plans[0].backend == "cohere_onnx" and plans[0].compute_type == "q4"
-
-
-def test_cohereasr_model_unavailable_without_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),  # no cohereasr
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
-    assert plans == []     # gated off: no usable deployment
-
-
-def test_cohere_onnx_gated_on_onnxruntime(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def fake_find_spec(name, *a, **k):
-        if name == "onnxruntime":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "cohere_onnx" not in accel._installed()
-
-
-@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
-def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
-    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # isolate the bench cache
-    accel.probe(force=True)
-    plans = accel.resolve("granite-speech-4.1-2b-plus")
-    assert plans[0].device == "cuda" and plans[0].backend == "transformers", \
-        f"expected transformers/cuda, got {[(p.backend, p.device) for p in plans]}"
-    backend, plan, _notice = accel.load_with_fallback(plans)
-    try:
-        from huggingface_hub import snapshot_download
-        import wave
-        d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-        w = wave.open(f"{d}/test_wavs/en.wav", "rb")
-        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
-        text = backend.transcribe(audio, None).text.lower()
-        assert "gold" in text or "tribal" in text, f"unexpected transcript: {text!r}"
-        rtf = accel.measure_rtf(backend, plan, "granite-speech-4.1-2b-plus", accel.probe(), force=True)
-        assert rtf is not None and rtf < 1.0, f"speech-LLM should be faster than realtime on GPU, rtf={rtf}"
-    finally:
-        backend.unload()
-
-
-def test_voxtral_realtime_gated_on_voxtral_realtime_module(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def absent(name, *a, **k):
-        if name == "transformers.models.voxtral_realtime":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", absent)
-    assert "voxtral_realtime" not in accel._installed()
-
-    def present(name, *a, **k):
-        if name == "transformers.models.voxtral_realtime":
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "voxtral_realtime" in accel._installed()
-
-
-def test_voxtral_resolves_gpu_on_nvidia_with_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"voxtral_realtime", "transformers"}),
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
-    assert [p.device for p in plans] == ["cuda"]
-    assert plans[0].backend == "voxtral_realtime" and plans[0].compute_type == "bfloat16"
+    assert "transcribe_cpp" not in result   # the raising entry is excluded …
+    assert "sherpa_tts" in result           # … but other present backends survive
 
 
 def test_voxtral_model_unavailable_without_runtime():
@@ -714,16 +592,6 @@ def test_voxtral_model_unavailable_without_runtime():
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
-
-
-def test_fun_asr_mlt_nano_resolves_gpu_and_cpu():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"funasr_nano"}))
-    # explicit cuda override -> gpu-cuda plan first
-    plan = accel.resolve("fun-asr-mlt-nano", "cuda", m)
-    assert plan[0].backend == "funasr_nano" and plan[0].tier == "gpu-cuda"
-    # explicit cpu override -> cpu plan
-    plan_cpu = accel.resolve("fun-asr-mlt-nano", "cpu", m)
-    assert plan_cpu[0].tier == "cpu"
 
 
 def test_resolve_translate_prefers_gpu(monkeypatch):
@@ -1234,3 +1102,23 @@ def test_models_catalog_variant_ids(monkeypatch):
     by_id = {m["id"]: m for m in reply["models"]}
     assert by_id["translategemma-4b"]["variantIds"] == ["q4_k_m", "q8_0"]
     assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
+
+
+def test_speech_llms_resolve_vulkan_then_cpu_on_nvidia():
+    # granite/qwen3/voxtral/cohere all share the transcribe_cpp rows now —
+    # on an NVIDIA box they resolve vulkan first with a cpu floor.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12288),))
+    for mid in ("granite-speech-4.1-2b", "qwen3-asr-1.7b",
+                "voxtral-mini-4b-realtime", "cohere-transcribe-03-2026",
+                "fun-asr-mlt-nano"):
+        plans = accel.resolve(mid, machine=m)
+        assert [p.device for p in plans] == ["vulkan", "cpu"], mid
+        assert all(p.backend == "transcribe_cpp" for p in plans), mid
+
+
+def test_asr_unavailable_without_transcribe_cpp():
+    # wheel missing → no ASR model resolves (installed gate)
+    m = _machine(installed=frozenset())
+    import pytest as _pytest
+    with _pytest.raises(accel.NoUsablePlan):
+        accel.resolve("whisper-tiny", machine=m)

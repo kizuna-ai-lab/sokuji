@@ -28,7 +28,7 @@ mid-migration the tree always runs.
       only, 239MB download vs 945MB torch repo). Verified on real audio:
       CPU RTF 0.023 (43× realtime), correct en/zh/ja transcripts.
       FunAsrSenseVoiceBackend deleted.
-- [ ] B2 Fun-ASR-MLT-Nano off funasr. Researched leads (2026-07-04):
+- [x] B2 Fun-ASR-MLT-Nano off funasr. Researched leads (2026-07-04):
       * **transcribe.cpp** (ggml family) — handy-computer/Fun-ASR-MLT-Nano-2512-gguf
         ships validated GGUF quants of our exact model (WER 1.69–1.89 librispeech;
         RTF 68× metal / 16× cpu on M4 Max, 9× vulkan / 4.5× cpu on Ryzen 4750U).
@@ -40,7 +40,7 @@ mid-migration the tree always runs.
         non-MLT nano. Backup path.
       Until one lands: card stays on funasr rows; when funasr leaves the venv
       the tiers show unavailable (hardware-gating UI), the card is NOT deleted.
-- [ ] B3 delete _FunAsrBackend/FunAsrNanoBackend once B2 lands.
+- [x] B3 delete _FunAsrBackend/FunAsrNanoBackend once B2 lands.
 
 ## DECISION 2026-07-04: ASR runtime = transcribe.cpp (supersedes the ORT ports)
 
@@ -64,6 +64,27 @@ dropping faster-whisper/av; sense-voice stays sherpa for ITN). The Cohere ORT
 backend (`ort_speechllm.py`, `cohere_features.py`) is superseded and gets
 removed when the transcribe.cpp backend lands. onnxruntime remains for the TTS
 domain + Opus translate (CPU flavor may suffice — Phase D sizing).
+
+## Phase C status (2026-07-04, second pass): DONE — all 12 ASR cards on transcribe.cpp
+
+Landed in one sweep per the "ASR 全部用 transcribe.cpp" decision (whisper too):
+- `transcribe_backend.py` (TranscribeCppBackend, batch) is the ONLY ASR backend;
+  ctranslate2/sherpa-ASR/transformers/qwen3asr/voxtral_realtime/funasr backends,
+  voxtral_stream.py, ort_speechllm.py and cohere_features.py are deleted.
+- catalog: every ASR row = gpu-vulkan/gpu-metal/cpu on one handy-computer GGUF
+  (Q8_0 whisper+SenseVoice, Q4_K_M speech-LLMs, Q6_K Fun-ASR per author WER).
+- accel: Machine.tc_kinds (transcribe.cpp backend probe) feeds gpu-vulkan/metal
+  tier availability; the UI's GPU override ('cuda') now pins any accelerator tier.
+- native_models: generic one-GGUF-file download rule for all ASR ids.
+- setup.sh: torch/transformers-fork/faster-whisper/librosa/funasr/mistral-common
+  REMOVED; runtimes = transcribe-cpp + sherpa-onnx + onnxruntime(+nvidia cuDNN/
+  cuBLAS wheels for the GPU flavor, _cudnn_preload already handles that layout).
+- Verified full-path (resolve→load→transcribe) on the 4070 via Vulkan:
+  whisper-tiny RTF 0.0042, fun-asr-mlt RTF 0.0161 (correct ja text),
+  cohere RTF 0.0096, sensevoice RTF 0.0055.
+Remaining follow-ups: Voxtral committed/tentative streaming over
+session.stream(); real-clip WER spot-checks per model; Phase D venv rebuild +
+size measurement.
 
 ## Phase C (superseded — kept for reference) — ASR speech-LLMs → ORT
 

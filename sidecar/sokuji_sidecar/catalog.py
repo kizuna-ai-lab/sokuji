@@ -1,22 +1,24 @@
-"""Declarative ASR model catalog: per model, which backends/hardware tiers run
-it and what artifact each needs. Pure data — adding a model is adding a row.
-Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice
-runs on sherpa-onnx (cpu int8); Fun-ASR-MLT-Nano still runs on FunASR (gpu+cpu,
-float32) until its ggml/ONNX port lands (see the 2026-07-04 torch-free spec)."""
+"""Declarative model catalog: per model, which backends/hardware tiers run it
+and what artifact each needs. Pure data — adding a model is adding a row.
+
+ASR (2026-07-04 decision): EVERY ASR card runs on transcribe.cpp (ggml family,
+official handy-computer GGUFs). One GGUF serves the gpu-vulkan / gpu-metal /
+cpu tiers — Vulkan covers NVIDIA/AMD/Intel from the stock wheel, Metal covers
+Apple Silicon (no CUDA runtime shipped; Vulkan measured 100x realtime on a
+4070). Quants follow the author's WER-validated cards: Q4_K_M for the big
+speech-LLMs, Q8_0 for whisper/SenseVoice, Q6_K for Fun-ASR-MLT (its card shows
+q6_k beating bf16). Note: transcribe.cpp SenseVoice emits raw text (no ITN /
+punctuation normalization) — accepted with the all-in decision."""
 import os
 from dataclasses import dataclass
-
-SENSE_VOICE_REPO = os.environ.get(
-    "SOKUJI_ASR_REPO", "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_nano" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
-    tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
-    compute_type: str   # "int8" | ...
-    artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
+    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
+    tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
+    compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
+    artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
     rank: float         # tie-breaker within a tier (higher = preferred)
     min_capability: tuple[int, int] | None = None   # min CUDA compute cap for a GPU variant
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
@@ -41,68 +43,74 @@ class AsrModel(_ModelBase):
     pass
 
 
+_TC_TIERS = ("gpu-vulkan", "gpu-metal", "cpu")
+
+
+def _tc_row(mid, name, langs, repo, fname, order, size, recommended=False):
+    """One transcribe.cpp ASR card. The same GGUF file serves every tier; the
+    quant label is derived from the filename suffix (…-Q4_K_M.gguf → q4_k_m)."""
+    quant = fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
+    artifact = f"{repo}/{fname}"
+    deps = tuple(Deployment("transcribe_cpp", tier, quant, artifact, 1.0)
+                 for tier in _TC_TIERS)
+    return AsrModel(mid, name, langs, deps, recommended=recommended,
+                    sort_order=order, size_bytes=size)
+
+
 ASR_MODELS: list[AsrModel] = [
-    # Torch-free: ORT backend on the onnx-community q4 export (2.1GB, half the
-    # old bf16 download). CPU tier verified on real audio (RTF 0.115, 8.7x
-    # realtime). The gpu-cuda tier is intentionally OFF for now: on ORT 1.23.2
-    # the q4 graph runs on CUDA but emits empty transcripts (eos-first) with a
-    # massive CPU-fallback Memcpy storm — see the torch-free plan for the
-    # follow-up (fp16 variant / per-step logits diff).
-    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
-             ("en", "de", "fr", "it", "es", "pt", "el",
-              "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
-             (Deployment("cohere_onnx", "cpu", "q4",
-                         "onnx-community/cohere-transcribe-03-2026-ONNX", 1.0),),
-             recommended=True, sort_order=0, size_bytes=2127679103),
-    # Torch-free: sherpa-onnx int8 export (model.int8.onnx + tokens.txt), CPU tier
-    # only — the pip sherpa-onnx wheel has no GPU runtime, and CPU RTF ~0.03 (33x
-    # realtime) makes a GPU tier a nice-to-have (ORT-CUDA candidate later).
-    AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
-             (Deployment("sherpa", "cpu", "int8", SENSE_VOICE_REPO, 1.0),),
-             recommended=True, sort_order=1, size_bytes=239549910),
-    AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0)), sort_order=2,
-             size_bytes=78850941),
-    AsrModel("whisper-base", "Whisper base", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "base", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "base", 1.0)), sort_order=3,
-             size_bytes=148530263),
-    AsrModel("whisper-small", "Whisper small", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "small", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "small", 1.0)), sort_order=4,
-             size_bytes=486859701),
-    AsrModel("whisper-medium", "Whisper medium", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "medium", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "medium", 1.0)), sort_order=5,
-             size_bytes=1531219071),
-    AsrModel("whisper-large-v3", "Whisper large-v3", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0)),
-             recommended=True, sort_order=6, size_bytes=3091483127),
-    AsrModel("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)", ("en", "fr", "de", "es", "pt", "ja"),
-             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b", 1.0),),
-             sort_order=7, size_bytes=4871717336),
-    AsrModel("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)", ("en", "fr", "de", "es", "pt"),
-             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b-plus", 1.0),),
-             sort_order=8, size_bytes=4231794140),
-    AsrModel("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
-             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
-              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
-             (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
-             recommended=True, sort_order=9, size_bytes=4088288055),
-    AsrModel("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
-             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
-             (Deployment("voxtral_realtime", "gpu-cuda", "bfloat16",
-                         "mistralai/Voxtral-Mini-4B-Realtime-2602", 1.0),),
-             recommended=True, sort_order=10, size_bytes=8875021049),
-    AsrModel("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
-             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
-              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
-              "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
-             (Deployment("funasr_nano", "gpu-cuda", "float32", FUN_ASR_MLT_REPO, 1.0),
-              Deployment("funasr_nano", "cpu", "float32", FUN_ASR_MLT_REPO, 1.0)),
-             recommended=True, sort_order=11, size_bytes=1989762711),
+    _tc_row("cohere-transcribe-03-2026", "Cohere Transcribe",
+            ("en", "de", "fr", "it", "es", "pt", "el",
+             "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
+            "handy-computer/cohere-transcribe-03-2026-gguf",
+            "cohere-transcribe-03-2026-Q4_K_M.gguf",
+            0, 1558162944, recommended=True),
+    _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
+            "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall-Q8_0.gguf",
+            1, 252684608, recommended=True),
+    _tc_row("whisper-tiny", "Whisper tiny", ("multi",),
+            "handy-computer/whisper-tiny-gguf", "whisper-tiny-Q8_0.gguf",
+            2, 45981088),
+    _tc_row("whisper-base", "Whisper base", ("multi",),
+            "handy-computer/whisper-base-gguf", "whisper-base-Q8_0.gguf",
+            3, 84962880),
+    _tc_row("whisper-small", "Whisper small", ("multi",),
+            "handy-computer/whisper-small-gguf", "whisper-small-Q8_0.gguf",
+            4, 269751136),
+    _tc_row("whisper-medium", "Whisper medium", ("multi",),
+            "handy-computer/whisper-medium-gguf", "whisper-medium-Q8_0.gguf",
+            5, 831538144),
+    _tc_row("whisper-large-v3", "Whisper large-v3", ("multi",),
+            "handy-computer/whisper-large-v3-gguf", "whisper-large-v3-Q8_0.gguf",
+            6, 1668741440, recommended=True),
+    _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
+            ("en", "fr", "de", "es", "pt", "ja"),
+            "handy-computer/granite-speech-4.1-2b-gguf",
+            "granite-speech-4.1-2b-Q4_K_M.gguf",
+            7, 1602904800),
+    _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
+            ("en", "fr", "de", "es", "pt"),
+            "handy-computer/granite-speech-4.1-2b-plus-gguf",
+            "granite-speech-4.1-2b-plus-Q4_K_M.gguf",
+            8, 1489663424),
+    _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
+            ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
+             "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
+            "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B-Q4_K_M.gguf",
+            9, 1319830496, recommended=True),
+    # Batch for now — the committed/tentative streaming adapter over
+    # session.stream() is a planned follow-up (torch-free plan).
+    _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
+            ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
+            "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
+            "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
+            10, 2830493984, recommended=True),
+    _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
+            ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
+             "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
+             "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
+            "handy-computer/Fun-ASR-MLT-Nano-2512-gguf",
+            "Fun-ASR-MLT-Nano-2512-Q6_K.gguf",
+            11, 690744384, recommended=True),
 ]
 
 

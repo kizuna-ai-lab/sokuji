@@ -19,7 +19,7 @@ def test_non_linux_is_skipped(monkeypatch):
 def test_missing_cudnn_dir_is_skipped(monkeypatch):
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(sys, "path", [])  # no nvidia/cudnn/lib anywhere
-    assert cp.preload_torch_cudnn() == "cudnn-preload: skipped (torch cuDNN not found)"
+    assert cp.preload_torch_cudnn() == "cudnn-preload: skipped (no cuDNN wheel found)"
 
 
 def test_lib_dir_found_when_present(monkeypatch, tmp_path):

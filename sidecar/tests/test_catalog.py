@@ -6,8 +6,8 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
-                                 "cohere_onnx", "voxtral_realtime", "funasr_nano"}
+            assert d.backend == "transcribe_cpp"      # 2026-07-04: all ASR on transcribe.cpp
+            assert d.tier in {"gpu-vulkan", "gpu-metal", "cpu"}
 
 
 def test_system_has_a_cpu_floor():
@@ -32,24 +32,24 @@ def test_language_regression_fixtures():
     assert catalog.asr_model("whisper-large-v3").languages == ("multi",)
 
 
-def test_sense_voice_uses_sherpa_whisper_uses_ctranslate2():
-    assert catalog.asr_model("sense-voice").deployments[0].backend == "sherpa"
-    assert catalog.asr_model("whisper-tiny").deployments[0].backend == "ctranslate2"
+def test_every_asr_row_is_transcribe_cpp_gguf():
+    for m in catalog.asr_models():
+        for d in m.deployments:
+            assert d.backend == "transcribe_cpp"
+            repo, fname = catalog.split_artifact(d.artifact)
+            assert repo.startswith("handy-computer/") and fname.endswith(".gguf")
 
 
-def test_sense_voice_row_is_sherpa_cpu_int8():
-    # torch-free: SenseVoice runs on sherpa-onnx (CPU int8, RTF ~0.03). The
-    # funasr GPU tier is gone with funasr/torch; an ORT-CUDA tier may return
-    # later (see the 2026-07-04 torch-free spec).
+def test_sense_voice_row_transcribe_cpp_q8():
     m = catalog.asr_model("sense-voice")
     assert m.recommended is True and m.sort_order == 1
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("sherpa", "cpu", "int8"),
+        ("transcribe_cpp", "gpu-vulkan", "q8_0"),
+        ("transcribe_cpp", "gpu-metal", "q8_0"),
+        ("transcribe_cpp", "cpu", "q8_0"),
     ]
-    assert all(d.artifact == catalog.SENSE_VOICE_REPO for d in m.deployments)
-    # the artifact is the sherpa-onnx export repo (model.int8.onnx + tokens.txt),
-    # not the FunAudioLLM torch repo
-    assert "sherpa-onnx-sense-voice" in catalog.SENSE_VOICE_REPO
+    assert all(d.artifact == "handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf"
+               for d in m.deployments)
 
 
 def test_granite_language_regression():
@@ -66,7 +66,8 @@ def test_qwen3_asr_row():
     assert m.sort_order == 9
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B")
+        ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
+         "handy-computer/Qwen3-ASR-1.7B-gguf/Qwen3-ASR-1.7B-Q4_K_M.gguf")
 
 
 def test_cohere_asr_row():
@@ -77,14 +78,17 @@ def test_cohere_asr_row():
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
     assert m.sort_order == 0          # sorted first
-    # torch-free: ORT backend on the onnx-community q4 export, cpu tier only
-    # for now (CUDA emits empty output on ORT 1.23.2 — see torch-free plan).
+    # 2026-07-04: transcribe.cpp GGUF (author-validated Q4_K_M). Vulkan verified
+    # RTF 0.0096 on the 4070; Metal/CPU tiers from the same file.
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("cohere_onnx", "cpu", "q4"),
+        ("transcribe_cpp", "gpu-vulkan", "q4_k_m"),
+        ("transcribe_cpp", "gpu-metal", "q4_k_m"),
+        ("transcribe_cpp", "cpu", "q4_k_m"),
     ]
-    assert all(d.artifact == "onnx-community/cohere-transcribe-03-2026-ONNX"
+    assert all(d.artifact == "handy-computer/cohere-transcribe-03-2026-gguf/"
+                             "cohere-transcribe-03-2026-Q4_K_M.gguf"
                for d in m.deployments)
-    assert m.size_bytes == 2127679103
+    assert m.size_bytes == 1558162944
 
 
 def test_cohere_is_first_qwen3_shifted():
@@ -102,8 +106,11 @@ def test_voxtral_realtime_row():
     assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
     assert m.sort_order == 10            # after whisper-medium inserted: Qwen3 → 9, Voxtral → 10
     d = m.deployments[0]
+    # Batch via transcribe.cpp for now; committed/tentative streaming over
+    # session.stream() is the planned follow-up.
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")
+        ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
+         "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf/Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")
 
 
 def test_fun_asr_mlt_nano_row():
@@ -112,11 +119,14 @@ def test_fun_asr_mlt_nano_row():
     assert m.recommended is True
     assert len(m.languages) == 31
     assert m.languages[:6] == ("zh", "en", "yue", "ja", "ko", "vi")
+    # Q6_K: the author's WER table shows q6_k (1.69) beating even bf16 (1.74).
     assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("funasr_nano", "gpu-cuda", "float32"),
-        ("funasr_nano", "cpu", "float32"),
+        ("transcribe_cpp", "gpu-vulkan", "q6_k"),
+        ("transcribe_cpp", "gpu-metal", "q6_k"),
+        ("transcribe_cpp", "cpu", "q6_k"),
     ]
-    assert all(d.artifact == catalog.FUN_ASR_MLT_REPO for d in m.deployments)
+    assert all(d.artifact == "handy-computer/Fun-ASR-MLT-Nano-2512-gguf/"
+                             "Fun-ASR-MLT-Nano-2512-Q6_K.gguf" for d in m.deployments)
 
 
 def test_tts_models_have_deployments_languages_and_repos():
@@ -254,7 +264,7 @@ def test_every_model_exposes_size_bytes_field():
 def test_size_bytes_regression_values():
     # Frozen facts moved verbatim from the old hardcoded-sizes dict (native_models.py) —
     # must never silently regress.
-    assert catalog.asr_model("sense-voice").size_bytes == 239549910
+    assert catalog.asr_model("sense-voice").size_bytes == 252684608
     assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
     # aishell3 repoints to the existing HF repo with its measured kept-size
     # (the old vits-icefall id 404'd on HF and was never downloadable).

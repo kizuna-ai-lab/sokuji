@@ -31,14 +31,6 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
-SENSE_VOICE_REPO = "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
-FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
-
-
-def _whisper_size(model_id):
-    return model_id.replace("faster-whisper-", "").replace("whisper-", "")
-
-
 def _vad_cache_path():
     cache = os.path.join(os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
     return os.path.join(cache, "silero_vad.onnx")
@@ -76,37 +68,17 @@ def _base_specs(model_id):
         # LLM cards: artifact is an "org/repo/filename.gguf" upstream path —
         # exactly one file to fetch.
         return {"repos": [], "urls": [], "files": [split_artifact(default_artifact)]}
+    am = _asr_model(model_id)
+    if am is not None:
+        # Every ASR card is a transcribe.cpp GGUF: artifact "org/repo/file.gguf"
+        # → exactly one pinned file to fetch (the repo ships 5+ quants).
+        repo, fname = split_artifact(am.deployments[0].artifact)
+        if fname:
+            return {"repos": [], "urls": [], "files": [(repo, fname)]}
+        return {"repos": [repo], "urls": []}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
         return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
-    if "whisper" in model_id:
-        return {"repos": [f"Systran/faster-whisper-{_whisper_size(model_id)}"], "urls": []}
-    if model_id.startswith("granite-speech"):
-        # Granite speech-LLM ids (catalog) live under the ibm-granite/ org on HF.
-        return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
-    if model_id == "sense-voice":
-        # SherpaBackend loads model.int8.onnx + tokens.txt only — skip the 937MB
-        # fp32 duplicate, the demo wavs and the export script.
-        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": [],
-                "ignore": ["model.onnx", "test_wavs/*", "export-onnx.py"]}
-    if model_id == "fun-asr-mlt-nano":
-        return {"repos": [FUN_ASR_MLT_REPO], "urls": []}
-    if model_id == "qwen3-asr-1.7b":
-        return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
-    if model_id == "cohere-transcribe-03-2026":
-        # ORT q4 variant only — the onnx-community repo also ships fp32/fp16/
-        # q4f16/int8 exports (~14GB total) that the backend never loads.
-        repo = "onnx-community/cohere-transcribe-03-2026-ONNX"
-        files = ["config.json", "generation_config.json", "preprocessor_config.json",
-                 "tokenizer.json", "tokenizer_config.json",
-                 "onnx/encoder_model_q4.onnx", "onnx/encoder_model_q4.onnx_data",
-                 "onnx/decoder_model_merged_q4.onnx", "onnx/decoder_model_merged_q4.onnx_data"]
-        return {"repos": [], "urls": [], "files": [(repo, f) for f in files]}
-    if model_id == "voxtral-mini-4b-realtime":
-        # Repo ships model.safetensors (HF, needed) + consolidated.safetensors (Mistral
-        # format, 8.86GB, unused by transformers) — skip the duplicate.
-        return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
-                "ignore": ["consolidated.safetensors"]}
     return {"repos": [model_id], "urls": []}
 
 

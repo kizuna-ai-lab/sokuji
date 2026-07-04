@@ -33,6 +33,10 @@ class Machine:
     dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
+    # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
+    # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
+    # tiers (covers AMD/Intel via Vulkan where the NVML/DML probes see nothing).
+    tc_kinds: tuple[str, ...] = ()
 
 
 def _nvidia_gpus() -> tuple[Gpu, ...]:
@@ -76,6 +80,13 @@ def _dml_adapters() -> tuple[str, ...]:
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
 
 
+def _tc_kinds() -> tuple[str, ...]:
+    """Accelerator kinds transcribe.cpp can actually use here. Sorted for a
+    stable fingerprint; () when the wheel is absent (probe degrades)."""
+    import transcribe_cpp
+    return tuple(sorted({b.kind for b in transcribe_cpp.backends()}))
+
+
 def _has_mod(mod: str) -> bool:
     """Return True iff `mod` is importable. Never raises — guards against
     ModuleNotFoundError from find_spec() when a parent package is absent."""
@@ -86,23 +97,12 @@ def _has_mod(mod: str) -> bool:
 
 
 def _installed() -> frozenset:
-    mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
+    mods = {"transcribe_cpp": "transcribe_cpp",
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
             "qwen3tts_onnx": "onnxruntime",
-            "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
-            "transformers": "transformers",
-            # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
-            # then it is "not installed" so resolve()/models_catalog exclude it.
-            "qwen3asr": "transformers.models.qwen3_asr",
-            # cohere_onnx: ORT sessions + tokenizers.Tokenizer (torch-free).
-            "cohere_onnx": ("onnxruntime", "tokenizers"),
-            # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
-            # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
-            # both so a half-installed env doesn't advertise it in the catalog then fail at load().
-            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common"),
             # llamacpp_* backends run an external llama-server binary — a
             # downloadable artifact, not a Python runtime. Always "installed";
             # a missing binary fails at load() with a clear error instead of
@@ -139,14 +139,16 @@ def probe(force: bool = False) -> Machine:
     apple = _safe(_apple_silicon, False)
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
+    tc_kinds = _safe(_tc_kinds, ())
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
+              f"{','.join(tc_kinds)}|"
               f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
     fp = hashlib.sha1(fp_src.encode()).hexdigest()[:12]
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
-        fingerprint=fp)
+        fingerprint=fp, tc_kinds=tc_kinds)
     return _MACHINE
 
 
@@ -176,11 +178,13 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     if tier == "gpu-cuda":
         return bool(machine.nvidia)
     if tier == "gpu-metal":
-        return machine.apple_silicon
+        return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
-        return bool(machine.nvidia or machine.dml_adapters)
+        # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
+        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
+        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
     return False
 
 
@@ -192,8 +196,13 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
               if d.backend in machine.installed and _tier_available(d.tier, machine)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
-        pinned = [d for d in usable if TIER_DEVICE.get(d.tier) == override]
-        rest = [d for d in usable if TIER_DEVICE.get(d.tier) != override]
+        # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
+        # GPU — treat it as "any accelerator tier" so it also pins
+        # vulkan/metal deployments (transcribe.cpp cards have no cuda rows).
+        def _pinned(d):
+            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+        pinned = [d for d in usable if _pinned(d)]
+        rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest
     plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
              for d in usable]

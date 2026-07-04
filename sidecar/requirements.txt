@@ -14,3 +14,5 @@ tokenizers>=0.20
 soundfile>=0.13
 soxr>=0.5
 nvidia-ml-py>=12.535
+# ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
+transcribe-cpp==0.1.1

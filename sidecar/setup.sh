@@ -27,42 +27,33 @@ echo "[setup] venv python: $($PY --version 2>&1)"
 echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, huggingface_hub) + pytest"
 "$PY" -m pip install -q -r requirements.txt pytest
 
-# torch: CPU wheel by default. The gpu-cuda tiers (SenseVoice/FunASR, Whisper, the
-# speech-LLMs) need a CUDA build — opt in WITHOUT editing this script via:
-#   TORCH_PACKAGES="torch torchaudio" TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128 bash setup.sh
-# A CPU-only torch makes FunASR silently run SenseVoice on CPU; the backend now rejects
-# the cuda plan in that case, so the resolver correctly falls back to the cpu tier.
-TORCH_PACKAGES="${TORCH_PACKAGES:-torch}"
-TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}"
-echo "[setup] stage runtimes: torch ($TORCH_PACKAGES @ $TORCH_INDEX_URL), transformers, sherpa-onnx, faster-whisper, funasr"
-case "$(uname -s)" in
-  Linux) "$PY" -m pip install -q $TORCH_PACKAGES --index-url "$TORCH_INDEX_URL" ;;
-  *)     "$PY" -m pip install -q $TORCH_PACKAGES ;;
-esac
+# Stage runtimes (torch-free since 2026-07-04):
+#   ASR       -> transcribe-cpp (ggml family; CPU+Vulkan bundled on linux/win,
+#                Metal on macOS — the stock wheel accelerates NVIDIA/AMD/Intel
+#                through Vulkan, no CUDA runtime needed)
+#   Translate -> llama-server binary (downloaded on demand) + Opus ONNX
+#   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
+echo "[setup] stage runtimes: transcribe-cpp, sherpa-onnx"
+"$PY" -m pip install -q "transcribe-cpp==0.1.1" sherpa-onnx
 
-# onnxruntime: the MOSS speech-LLM TTS runs on onnxruntime. Track the torch build —
-# when opting into a CUDA torch (TORCH_INDEX_URL pointing at a cuXXX wheel index) install
-# onnxruntime-gpu so MOSS can use CUDA; it reuses torch's bundled CUDA/cuDNN libs (the
-# onnxruntime CUDA major must match torch's, so keep both on CUDA 12 / both on CUDA 13).
-# onnxruntime-gpu has no macOS wheels, so never select it there. Override explicitly with
-# ONNXRUNTIME_PACKAGE=onnxruntime-gpu==1.20.1 (or a CPU pin) to bypass this heuristic.
+# onnxruntime flavor (TTS + Opus translate). The GPU build's CUDA EP needs
+# cuDNN/cuBLAS — installed as standalone nvidia wheels (_cudnn_preload pins
+# them process-wide). Override with ONNXRUNTIME_PACKAGE=... to bypass.
 if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
-  case "$(uname -s):$TORCH_INDEX_URL" in
-    Darwin:*)   ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
-    *:*"/cu"*)  ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.23.2" ;;
-    *)          ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
+  case "$(uname -s)" in
+    Darwin) ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
+    *) if command -v nvidia-smi >/dev/null 2>&1; then
+         ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.23.2"
+       else
+         ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2"
+       fi ;;
   esac
 fi
 echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
 "$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
-# transformers→tokenizers + Granite/Qwen3 speech-LLMs; faster-whisper→ASR whisper backend;
-# mistral-common[audio]→VoxtralRealtimeProcessor tokenizer (MistralCommonBackend).
-# transformers is pinned to an IMMUTABLE commit SHA on the PR #43838 fork (native Qwen3-ASR
-# support, not yet in any PyPI release). A SHA is content-addressed, so the fork's branch
-# cannot shift the installed code under us (unlike a mutable branch archive). Swap to a
-# released 'transformers>=5.13' from PyPI once huggingface/transformers PR #43838 merges.
-TRANSFORMERS_REF="git+https://github.com/mbtariq82/transformers@a2ec912647e42dee56eb89e64b0ec539ad9e7b65"
-"$PY" -m pip install -q "$TRANSFORMERS_REF" sherpa-onnx faster-whisper librosa "mistral-common[audio]>=1.9.0" funasr
+case "$ONNXRUNTIME_PACKAGE" in
+  onnxruntime-gpu*) "$PY" -m pip install -q nvidia-cudnn-cu12 nvidia-cublas-cu12 ;;
+esac
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
