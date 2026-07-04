@@ -168,16 +168,19 @@ Voxtral extras:
 
 Increments, each independently landable and green:
 
-- [ ] E1 foundation: Machine gains stable GPU identity from tc.backends()
+- [x] E1 foundation: Machine gains stable GPU identity from tc.backends()
       (`gpus: (kind, name, mem_total)`), fingerprint includes identity but
       NEVER volatile mem_free; new fresh-read helpers `device_free_bytes()`
       (tc primary, NVML fallback) and `ram_free_bytes()` (psutil).
-- [ ] E2 translate fully-resident quant rule: `_llamacpp_variant_row` prefers
+- [x] E2 translate fully-resident quant rule: `_llamacpp_variant_row` prefers
       the LARGEST quant whose size×1.1 fits fresh free − reserved; --fit only
       when nothing fully fits (budget ≥ 50% of default-quant size), else cpu.
-- [ ] E3 ASR quality ladder: big cards (≥1GB) gain a Q8_0 alt rung in the
+- [x] E3 ASR quality ladder: big cards (≥1GB) gain a Q8_0 alt rung in the
       catalog; GPU pick walks quality-descending with the same budget check;
-      CPU stays at the card default. variantIds wired for kind=asr.
+      CPU takes the SMALLEST quant (bandwidth-bound). variantIds wired for
+      kind=asr. PLUS (found during E3): load-time selection restricts to
+      quants already downloaded (_downloaded_quants) for BOTH asr and
+      translate — an absent upgrade rung must never beat a cached default.
 - [ ] E4 cross-stage ledger: sidecar-side reservation table (stage → bytes)
       replacing renderer-computed reserved_bytes; plan order = CPU-fallback
       cost (translate → gpu-needing tts → asr); unified-memory branch for
