@@ -159,6 +159,19 @@ remainder allows — or CPU, which for ASR is a mild penalty. Sizing by
 
 ## 7. Vendor acceleration paths for Translate + TTS (requirement, 2026-07-05)
 
+**Distribution context**: the sidecar ships as a SEPARATE download — the app
+detects the user's OS/GPU at download time and fetches a matching prepackaged
+bundle. So this section's per-platform package choices are **bundle SKUs picked
+by that client-side detection**, not install-time pip logic on the user's
+machine: e.g. `win-dml` (onnxruntime-directml — one SKU for all Windows GPU
+vendors), `mac` (standard ORT wheel: CoreML + Metal + transcribe.cpp metal),
+`linux-nvidia` (onnxruntime-gpu + nvidia wheels), `linux-cpu` (ASR still gets
+Vulkan from the stock transcribe.cpp wheel). The llama-server flavor binaries
+stay runtime-downloaded on demand (they're keyed to the model being used, and
+the GGUF download flow already covers them). The download-time detector needs
+the same probes the planner uses (GPU vendor, OS) — but only the coarse
+subset; fine-grained planning still happens inside the installed sidecar.
+
 LLM translate and TTS must accelerate on AMD / Intel / Apple, matching what
 ASR already gets from transcribe.cpp's Vulkan/Metal wheel.
 
