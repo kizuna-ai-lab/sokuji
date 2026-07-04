@@ -57,9 +57,10 @@ Not worth it now: battery/thermal state, per-process GPU accounting.
    in the remaining budget", not on a static rank.
 5. **Latency structure per stage** — ASR: RTF per utterance; translate: first
    token + tok/s (drives subtitle lag); TTS: time-to-first-audio.
-6. **Uneven vendor coverage** — AMD/Intel Linux today: ASR GPU ✓ (Vulkan),
-   translate GPU ✗ (no vulkan llama flavor), TTS GPU ✗ (no DML wiring). The
-   planner must allocate VRAM only to stages that can actually use it.
+6. **Vendor coverage is a REQUIREMENT (2026-07-05)** — LLM translate and TTS
+   must accelerate on AMD, Intel and Apple hardware, not just NVIDIA. See §7
+   for the concrete per-platform paths; the planner allocates VRAM only to
+   stages that have a GPU path on the machine, and that set grows as §7 lands.
 7. **CPU-fallback cost is not uniform** — translate CPU costs ~an order of
    magnitude in tok/s (worst UX hit); ASR CPU is fine (RTF 0.05–0.15); small
    TTS CPU is fine, qwen3-tts CPU is unusable.
@@ -142,7 +143,8 @@ remainder allows — or CPU, which for ASR is a mild penalty. Sizing by
 | pairwise reserved_bytes | SessionPlanner owns one budget; reserved_bytes becomes its output |
 | sherpa_tts fake gpu-cuda rows | delete (pip wheel is CPU-only) |
 | RAM never checked | psutil available-RAM gate for CPU picks |
-| AMD translate has no GPU | upstream ask: vulkan llama-app flavor (or accept and document) |
+| AMD/Intel translate has no GPU | add a `vulkan` llama flavor from the OFFICIAL llama.cpp release assets (see §7) |
+| TTS GPU is CUDA-only | DirectML on Windows, CoreML on macOS, OpenVINO opt-in on Intel Linux (see §7) |
 
 ## 6. Risks / verify-first
 
@@ -154,3 +156,63 @@ remainder allows — or CPU, which for ASR is a mild penalty. Sizing by
 - Old GPUs without coopmat may invert vulkan-vs-cuda — bench cache demotion is
   the backstop; consider a one-time micro-bench on first GPU use.
 - Multi-GPU boxes: v1 plans only device 0; note in code.
+
+## 7. Vendor acceleration paths for Translate + TTS (requirement, 2026-07-05)
+
+LLM translate and TTS must accelerate on AMD / Intel / Apple, matching what
+ASR already gets from transcribe.cpp's Vulkan/Metal wheel.
+
+### Translate (llama-server) — add a `vulkan` flavor
+
+llama.cpp's OFFICIAL releases already ship Vulkan builds
+(`llama-bXXXX-bin-ubuntu-vulkan-x64.tar.gz`, `llama-bXXXX-bin-win-vulkan-x64.zip`)
+— and llama_runtime already downloads official Windows assets, so this is the
+same pipeline with two more assets + checksums:
+
+- `_FLAVORS` += `vulkan`; `flavor_for_device("vulkan") = "vulkan"`.
+- catalog `_llm_translate_row` tiers += `gpu-vulkan` (rank below gpu-cuda:
+  NVIDIA boxes keep CUDA — for LLM decode CUDA generally still wins — AMD/Intel
+  land on vulkan).
+- `default_flavor()`: nvidia→cuda, apple→metal, vulkan-capable GPU (reuse
+  `Machine.tc_kinds` — transcribe.cpp's probe answers for the same driver) →
+  vulkan, else cpu. `required_flavors()` gains vulkan on such machines.
+- `--fit` partial offload works identically on the Vulkan backend.
+- Later options (measure first): SYCL flavor for Intel (official asset exists),
+  HIP for AMD — only if Vulkan measurably underperforms on those parts.
+- Apple: covered today (metal flavor, m1–m5 configs).
+
+### TTS (onnxruntime) — per-platform EP matrix
+
+| platform | package (PyPI, verified) | EP | covers |
+|---|---|---|---|
+| Windows, any vendor | `onnxruntime-directml` 1.24.x | DmlExecutionProvider | NVIDIA + AMD + Intel with ONE package |
+| macOS | standard `onnxruntime` wheel | CoreMLExecutionProvider | Apple GPU/ANE |
+| Linux NVIDIA | `onnxruntime-gpu` (today) | CUDA EP | NVIDIA |
+| Linux Intel | `onnxruntime-openvino` 1.24.x (opt-in) | OpenVINO EP | Intel GPU/NPU |
+| Linux AMD | none on PyPI (ROCm EP needs a custom build) | — | CPU for now |
+
+Wiring:
+- `tts_backends` device→providers map grows: `dml` → `["DmlExecutionProvider", cpu]`,
+  `metal` → `["CoreMLExecutionProvider", cpu]` (ORT auto-falls back per-node
+  where CoreML/DML lack an op — VERIFY each model's graph actually stays
+  mostly on-device before advertising the tier: MOSS/Supertonic/Qwen3-TTS
+  smoke on real Windows/macOS hardware).
+- catalog TTS rows: += `gpu-dml` and `gpu-metal` tiers (the gpu-metal tier
+  label reads "Apple GPU" to the user; the backend maps it to CoreML).
+- probing already exists: `_dml_adapters()` reads ORT's provider list; CoreML
+  likewise appears in `get_available_providers()` on macOS.
+- setup.sh flavor: Windows default becomes `onnxruntime-directml` (one package,
+  all vendors — simpler than CUDA + cuDNN wheels; NVIDIA-on-Windows can opt
+  into CUDA later if DML measurably underperforms); macOS keeps the standard
+  wheel; Linux keeps the CUDA/CPU split with OpenVINO as an Intel opt-in.
+- Linux AMD TTS stays CPU short-term (MOSS 100M / Supertonic 66M are fine on
+  CPU; qwen3-tts tier-gates off). Revisit if ROCm EP wheels appear or if we
+  ever move TTS decode to a ggml runtime.
+
+### Resulting coverage after §7 lands
+
+| stage | NVIDIA | AMD | Intel | Apple |
+|---|---|---|---|---|
+| ASR | Vulkan ✓ (today) | Vulkan ✓ (today) | Vulkan ✓ (today) | Metal ✓ (today) |
+| Translate | CUDA ✓ | Vulkan (new flavor) | Vulkan (new flavor) | Metal ✓ |
+| TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CoreML (new wiring) |
