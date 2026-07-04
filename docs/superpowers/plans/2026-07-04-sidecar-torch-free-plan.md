@@ -9,16 +9,16 @@ mid-migration the tree always runs.
 
 ## Phase A — shared infra off torch/librosa/transformers
 
-- [ ] A1 accel.py: NVML probing (`nvidia-ml-py`) replaces `torch.cuda.*`
+- [x] A1 accel.py: NVML probing (`nvidia-ml-py`) replaces `torch.cuda.*`
       (device props, capability, `mem_get_info`). Unit tests mock pynvml.
-- [ ] A2 tts_engine.py: remove `torch.cuda.empty_cache()` best-effort block.
-- [ ] A3 tts_backends.py: `AutoTokenizer` → `tokenizers.Tokenizer`
+- [x] A2 tts_engine.py: remove `torch.cuda.empty_cache()` best-effort block.
+- [x] A3 tts_backends.py: `AutoTokenizer` → `tokenizers.Tokenizer`
       (tokenizer.json is present in the Qwen3-TTS ONNX repos).
-- [ ] A4 qwen3_tts/mel.py: numpy Slaney mel filterbank (golden-value test
+- [x] A4 qwen3_tts/mel.py: numpy Slaney mel filterbank (golden-value test
       against current librosa output, generated once before the swap).
-- [ ] A5 audio io: `librosa.load/resample` → `soundfile` + `soxr` in
+- [x] A5 audio io: `librosa.load/resample` → `soundfile` + `soxr` in
       tts_backends (clip-clone reference loading).
-- [ ] A6 requirements.txt: + tokenizers (already), soundfile, soxr,
+- [x] A6 requirements.txt: + tokenizers (already), soundfile, soxr,
       nvidia-ml-py; nothing removed yet.
 
 ## Phase B — ASR: drop funasr
