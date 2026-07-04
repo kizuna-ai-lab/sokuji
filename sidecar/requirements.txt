@@ -8,3 +8,9 @@ compressed-tensors
 psutil
 zstandard==0.23.0
 tokenizers>=0.20
+# torch-free audio io / resample / NVIDIA probing (2026-07-04 torch-free spec).
+# nvidia-ml-py talks to the driver's NVML and is a no-op import elsewhere, so it
+# is safe to install on macOS/AMD boxes (probe degrades to "no NVIDIA GPUs").
+soundfile>=0.13
+soxr>=0.5
+nvidia-ml-py>=12.535

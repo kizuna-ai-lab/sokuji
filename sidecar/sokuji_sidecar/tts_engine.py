@@ -132,11 +132,6 @@ class TtsEngine:
                 backend.unload()
             except Exception:
                 pass
-            try:
-                import torch
-                torch.cuda.empty_cache()
-            except Exception:
-                pass
 
 
 async def _h_tts_init(state, msg, _b, conn=None):

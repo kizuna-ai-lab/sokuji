@@ -35,24 +35,36 @@ class Machine:
     fingerprint: str
 
 
-def _cuda_count() -> int:
-    from ctranslate2 import get_cuda_device_count
-    return get_cuda_device_count()
-
-
 def _nvidia_gpus() -> tuple[Gpu, ...]:
-    n = _cuda_count()
-    gpus = []
-    for i in range(n):
-        vram_mb, cap = 0, None
+    """Enumerate NVIDIA GPUs via NVML (nvidia-ml-py). Torch-free: NVML ships
+    with the driver, so this works in a venv with no CUDA runtime installed.
+    Any failure (no driver, no pynvml) degrades to 'no GPUs'."""
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+    except Exception:
+        return ()
+    try:
+        gpus = []
+        for i in range(pynvml.nvmlDeviceGetCount()):
+            h = pynvml.nvmlDeviceGetHandleByIndex(i)
+            vram_mb = int(pynvml.nvmlDeviceGetMemoryInfo(h).total // (1024 * 1024))
+            try:
+                cap = tuple(pynvml.nvmlDeviceGetCudaComputeCapability(h))
+            except Exception:
+                cap = None
+            name = pynvml.nvmlDeviceGetName(h)
+            if isinstance(name, bytes):
+                name = name.decode("utf-8", "replace")
+            gpus.append(Gpu("nvidia", name, vram_mb, cap))
+        return tuple(gpus)
+    except Exception:
+        return ()
+    finally:
         try:
-            import torch
-            vram_mb = int(torch.cuda.get_device_properties(i).total_memory // (1024 * 1024))
-            cap = tuple(torch.cuda.get_device_capability(i))  # (major, minor)
+            pynvml.nvmlShutdown()
         except Exception:
             pass
-        gpus.append(Gpu("nvidia", "", vram_mb, cap))
-    return tuple(gpus)
 
 
 def _apple_silicon() -> bool:
@@ -290,15 +302,27 @@ class AllPlansFailed(Exception):
 
 
 def _cuda_free_bytes():
-    """Free VRAM (bytes) on the default CUDA device, or None when torch/CUDA is
-    absent. Best-effort: any failure degrades to None so callers skip gating."""
+    """Free VRAM (bytes) on the first NVIDIA device via NVML, or None when the
+    driver/pynvml is absent. Device-wide free (like cudaMemGetInfo), so VRAM
+    held by other processes (e.g. llama-server) is correctly excluded.
+    Best-effort: any failure degrades to None so callers skip gating."""
     try:
-        import torch
-        if not torch.cuda.is_available():
-            return None
-        return int(torch.cuda.mem_get_info()[0])
+        import pynvml
+        pynvml.nvmlInit()
     except Exception:
         return None
+    try:
+        if pynvml.nvmlDeviceGetCount() < 1:
+            return None
+        h = pynvml.nvmlDeviceGetHandleByIndex(0)
+        return int(pynvml.nvmlDeviceGetMemoryInfo(h).free)
+    except Exception:
+        return None
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except Exception:
+            pass
 
 
 def _rss_bytes():
@@ -407,8 +431,9 @@ def load_with_fallback(plans: list):
     for i, plan in enumerate(plans):
         has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
         # Read free VRAM and weights estimate ONCE per cuda plan; both the
-        # proactive gate and the honest OOM message reuse them. Capturing free
-        # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
+        # proactive gate and the honest OOM message reuse them. Capture free
+        # BEFORE the load: a failed load can leave allocator caches/fragments
+        # that make an after-the-fact reading meaningless.
         # llamacpp plans are exempt from the proactive gate: llama-server's --fit
         # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
         # guess here would only wrongly route a fittable model to CPU.

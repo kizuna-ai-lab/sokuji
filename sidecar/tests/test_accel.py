@@ -13,6 +13,88 @@ from sokuji_sidecar import server
 os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
+class _FakeNvml:
+    """Minimal pynvml stand-in: one device, RTX-4070-shaped. Records lifecycle
+    calls so tests can assert init/shutdown pairing."""
+
+    class _Mem:
+        total = 12 * 1024 * 1024 * 1024
+        free = 9 * 1024 * 1024 * 1024
+
+    def __init__(self, name="NVIDIA GeForce RTX 4070", count=1):
+        self._name = name
+        self._count = count
+        self.inits = 0
+        self.shutdowns = 0
+
+    def nvmlInit(self):
+        self.inits += 1
+
+    def nvmlShutdown(self):
+        self.shutdowns += 1
+
+    def nvmlDeviceGetCount(self):
+        return self._count
+
+    def nvmlDeviceGetHandleByIndex(self, i):
+        return i
+
+    def nvmlDeviceGetMemoryInfo(self, h):
+        return self._Mem()
+
+    def nvmlDeviceGetCudaComputeCapability(self, h):
+        return (8, 9)
+
+    def nvmlDeviceGetName(self, h):
+        return self._name
+
+
+def _install_fake_nvml(monkeypatch, fake):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", fake)
+
+
+def test_nvidia_gpus_probe_via_nvml(monkeypatch):
+    # torch is gone: GPU properties (vram, compute capability, name) come from NVML.
+    fake = _FakeNvml()
+    _install_fake_nvml(monkeypatch, fake)
+    gpus = accel._nvidia_gpus()
+    assert gpus == (accel.Gpu("nvidia", "NVIDIA GeForce RTX 4070", 12288, (8, 9)),)
+    assert fake.inits == 1 and fake.shutdowns == 1
+
+
+def test_nvidia_gpus_decodes_bytes_name(monkeypatch):
+    # older NVML bindings return bytes from nvmlDeviceGetName
+    _install_fake_nvml(monkeypatch, _FakeNvml(name=b"NVIDIA GeForce RTX 4070"))
+    gpus = accel._nvidia_gpus()
+    assert gpus[0].name == "NVIDIA GeForce RTX 4070"
+
+
+def test_nvidia_gpus_empty_without_nvml(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", None)  # import raises ImportError
+    assert accel._nvidia_gpus() == ()
+
+
+def test_cuda_free_bytes_via_nvml(monkeypatch):
+    fake = _FakeNvml()
+    _install_fake_nvml(monkeypatch, fake)
+    assert accel._cuda_free_bytes() == 9 * 1024 * 1024 * 1024
+    assert fake.inits == 1 and fake.shutdowns == 1
+
+
+def test_cuda_free_bytes_none_without_nvml(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", None)
+    assert accel._cuda_free_bytes() is None
+
+
+def test_cuda_free_bytes_none_without_devices(monkeypatch):
+    fake = _FakeNvml(count=0)
+    _install_fake_nvml(monkeypatch, fake)
+    assert accel._cuda_free_bytes() is None
+
+
 def test_probe_assembles_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
@@ -723,28 +805,8 @@ def test_new_translate_backends_installed_and_resolvable():
     assert any(p.backend == "llamacpp_gemma" for p in g)
 
 
-def test_nvidia_gpus_populates_vram_and_capability(monkeypatch):
-    import types, sys
-    fake_torch = types.SimpleNamespace(
-        cuda=types.SimpleNamespace(
-            get_device_properties=lambda i: types.SimpleNamespace(total_memory=12 * 1024**3),
-            get_device_capability=lambda i: (8, 9),
-        )
-    )
-    monkeypatch.setitem(sys.modules, "torch", fake_torch)
-    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
-    gpus = accel._nvidia_gpus()
-    assert len(gpus) == 1
-    assert gpus[0].vram_mb == 12 * 1024  # 12 GiB in MB
-    assert gpus[0].capability == (8, 9)
-
-
-def test_nvidia_gpus_degrades_when_torch_fails(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "torch", None)  # import torch → TypeError/ImportError
-    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
-    gpus = accel._nvidia_gpus()
-    assert len(gpus) == 1 and gpus[0].vram_mb == 0 and gpus[0].capability is None
+# NVML probe coverage lives at the top of this file (test_nvidia_gpus_probe_via_nvml
+# and friends) — the torch-era probe tests were superseded by them.
 
 
 # ── select_variant tests ────────────────────────────────────────────────────

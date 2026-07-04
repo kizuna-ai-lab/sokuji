@@ -112,6 +112,31 @@ librosa, numba, llvmlite, scipy (unless another dep re-pins it).
 - The GroupQueryAttentionFusion truncation bug (#29524) workaround — disable
   that fusion / opt-level basic — applies to the Voxtral session options.
 
+## Cross-platform / multi-accelerator matrix
+
+The torch-free stack must serve at least Linux/Windows/macOS and NVIDIA + CPU
+today, with room for other accelerators. Removing torch *improves* this: torch
+wheels were the only NVIDIA-shaped piece of the base install.
+
+| layer | Linux | Windows | macOS | non-NVIDIA future |
+|---|---|---|---|---|
+| GPU probe | NVML (driver-provided) | NVML | n/a — `_apple_silicon()` | DXGI/DML via ORT provider list (`_dml_adapters` already probes), ROCm-SMI later |
+| onnxruntime | `onnxruntime-gpu` (CUDA EP) / `onnxruntime` | `onnxruntime-gpu` or `onnxruntime-directml` (any-GPU) | `onnxruntime` (CoreML EP available) | DirectML covers AMD/Intel on Windows; ROCm EP on Linux |
+| llama.cpp | cuda/vulkan/cpu flavors | cuda/vulkan/cpu | metal | vulkan flavor already covers AMD/Intel |
+| ctranslate2 | CUDA or CPU | CUDA or CPU | CPU | CPU-only elsewhere |
+| sherpa-onnx | CPU wheel | CPU wheel | CPU wheel | — |
+
+Rules the code must keep honoring:
+- every probe degrades to "absent" (never raises) — `nvidia-ml-py` is safe to
+  install everywhere because importing it without an NVIDIA driver just fails
+  the `nvmlInit()` call;
+- tier availability stays data-driven (`_tier_available` + `installed` set), so
+  adding `gpu-dml`/`gpu-vulkan`/`gpu-metal` deployments to catalog rows is the
+  whole work of enabling another accelerator for a model;
+- setup.sh selects the ORT package per OS (Darwin → `onnxruntime`,
+  win+GPU → directml-or-cuda, linux+NVIDIA → `onnxruntime-gpu`), never
+  unconditionally.
+
 ## Risks
 
 - **Fun-ASR-Nano** has no confirmed ONNX path. Mitigation: keep card, gate tier.
