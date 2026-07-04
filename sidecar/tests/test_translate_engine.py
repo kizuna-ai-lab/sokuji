@@ -56,7 +56,7 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     fake_backend = MagicMock()
     fake_plan = MagicMock(backend="llamacpp_qwen", device="cuda", compute_type="q8_0")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (fake_backend, fake_plan, None, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
 
@@ -77,7 +77,7 @@ def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
     backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: next(backends_iter))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: next(backends_iter))
 
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en")
@@ -102,7 +102,7 @@ def test_init_stores_memory_and_fallback_reason(monkeypatch):
     fake_plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
-                        lambda plans: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
+                        lambda plans, **kw: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen3.5-2b", source_lang="ja", target_lang="en")
@@ -137,3 +137,27 @@ def test_real_llm_translates():
     eng.init(source_lang="Spanish", target_lang="English")
     out, ms = eng.translate("Hola, ¿cómo estás?")
     assert isinstance(out, str) and len(out) > 0 and ms >= 0
+
+
+def test_translate_init_reserve_is_ledger_aware(monkeypatch):
+    """A loaded-on-cpu ASR must contribute 0 (not its download size) to the
+    translate reserve; an unloaded TTS still contributes its estimate."""
+    import asyncio
+    from sokuji_sidecar import accel, translate_engine, native_models
+
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 0)                  # asr loaded, on cpu
+    monkeypatch.setattr(native_models, "model_size",
+                        lambda mid: {"a": 3 << 30, "t": 4 << 30}[mid])
+    seen = {}
+
+    class _Eng:
+        resolved = None
+        def init(self, model, src, tgt, device, reserved_bytes=0, pin=None):
+            seen["reserve"] = reserved_bytes
+            return 1
+    state = {"translate_engine": _Eng()}
+    asyncio.run(translate_engine._h_translate_init(
+        state, {"model": "qwen2.5-0.5b", "asrModel": "a", "ttsModel": "t"}, None, None))
+    assert seen["reserve"] == 4 << 30             # tts est only; cpu-loaded asr = 0
+    accel.ledger_reset()

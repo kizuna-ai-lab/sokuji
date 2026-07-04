@@ -93,7 +93,7 @@ class AsrEngine:
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
         plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
-        self._backend, plan, notice, mem = accel.load_measured(plans)
+        self._backend, plan, notice, mem = accel.load_measured(plans, stage="asr")
         self._language = language or None
         rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
@@ -119,6 +119,8 @@ class AsrEngine:
         of each init() and when a session connection closes, so VRAM never accumulates.
         Also ends any open streaming session (its generate thread holds an independent
         model reference that unload() alone cannot reclaim)."""
+        from . import accel
+        accel.ledger_release("asr")
         self._stop = True
         stream = getattr(self, "_stream", None)
         if stream is not None:
@@ -418,7 +420,7 @@ class AsrEngine:
     def _resolve_streaming_backend(self, model_id, device):
         from . import accel
         plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
-        return accel.load_measured(plans)   # (backend, plan, notice, memory_bytes)
+        return accel.load_measured(plans, stage="asr")   # (backend, plan, notice, memory_bytes)
 
     def _vad_events(self, samples):
         """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while

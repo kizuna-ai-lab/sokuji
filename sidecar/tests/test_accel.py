@@ -276,7 +276,7 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
 
 def test_load_measured_reports_vram_delta_for_cuda(monkeypatch):
     free = iter([10 * _GIB, 2 * _GIB])  # before, after -> 8 GiB used
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: next(free))
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))
     monkeypatch.setattr(accel, "_rss_bytes", lambda: 1000)
     monkeypatch.setattr(accel, "load_with_fallback",
                         lambda plans: ("BE", _plan("cuda"), None))
@@ -1399,3 +1399,62 @@ def test_quant_pick_ignores_download_state_when_nothing_cached(monkeypatch):
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q8_0"
+
+
+# ── Phase E4: cross-stage VRAM ledger ────────────────────────────────────────
+
+
+def test_ledger_claim_release_other():
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 1 << 30)
+    accel.ledger_claim("tts", 0)            # loaded, but on cpu → holds nothing
+    assert accel.ledger_other("translate") == 1 << 30
+    assert accel.ledger_other("asr") == 0
+    accel.ledger_release("asr")
+    assert accel.ledger_other("translate") == 0
+
+
+def test_ledger_effective_reserve_prefers_actuals():
+    accel.ledger_reset()
+    # asr LOADED on gpu holding 1.2GB (real), tts NOT loaded (fall back to est)
+    accel.ledger_claim("asr", int(1.2 * (1 << 30)))
+    planned = {"asr": 3 << 30, "tts": 4 << 30}     # download-size estimates
+    r = accel.ledger_effective_reserve("translate", planned)
+    assert r == int(1.2 * (1 << 30)) + (4 << 30)   # actual beats est; est for unloaded
+
+
+def test_ledger_effective_reserve_cpu_loaded_stage_reserves_nothing():
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 0)                   # loaded on cpu
+    r = accel.ledger_effective_reserve("translate", {"asr": 3 << 30})
+    assert r == 0                                  # fixes the stacked-padding over-reserve
+
+
+def test_load_measured_claims_into_ledger(monkeypatch):
+    accel.ledger_reset()
+    frees = iter([10 << 30, 8 << 30])              # 2GB delta during the load
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: next(frees))
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
+
+    class _B:
+        def load(self, a, d, c): pass
+    monkeypatch.setattr(accel, "make_backend", lambda name: _B())
+    plans = [accel.Plan("transcribe_cpp", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
+    _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
+    assert mem == 2 << 30                          # vulkan delta measured (not cuda-only)
+    assert accel.ledger_other("translate") == 2 << 30
+    accel.ledger_release("asr")
+
+
+def test_load_measured_cpu_claims_zero(monkeypatch):
+    accel.ledger_reset()
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: 1 << 30)
+
+    class _B:
+        def load(self, a, d, c): pass
+    monkeypatch.setattr(accel, "make_backend", lambda name: _B())
+    plans = [accel.Plan("transcribe_cpp", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
+    accel.load_measured(plans, stage="asr")
+    assert accel.ledger_other("translate") == 0    # present but holds no VRAM
+    assert "asr" in accel._LEDGER
+    accel.ledger_release("asr")

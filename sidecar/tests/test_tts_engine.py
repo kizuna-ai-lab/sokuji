@@ -63,7 +63,7 @@ class _FakeStream:
 def _patch(monkeypatch, backend, model_id):
     plan = accel.Plan(backend.NAME, "cpu", "cpu", "fp32", "repo", 1.0)
     monkeypatch.setattr(accel, "resolve_tts", lambda *a, **k: [plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (backend, plan, None, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (backend, plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf_tts", lambda *a, **k: 0.1)
 
 

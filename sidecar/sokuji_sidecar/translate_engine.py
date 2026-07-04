@@ -19,7 +19,7 @@ class TranslateEngine:
         from . import accel
         plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto",
                                         reserved_bytes=reserved_bytes, pin=pin)
-        self._backend, plan, notice, mem = accel.load_measured(plans)
+        self._backend, plan, notice, mem = accel.load_measured(plans, stage="translate")
         tps = accel.measure_tps(self._backend, plan, model_id or "qwen2.5-0.5b", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
@@ -39,6 +39,8 @@ class TranslateEngine:
         return out, int((time.time() - t0) * 1000)
 
     def close(self):
+        from . import accel
+        accel.ledger_release("translate")
         if self._backend is not None:
             try:
                 self._backend.unload()
@@ -50,12 +52,16 @@ class TranslateEngine:
 
 
 async def _h_translate_init(state, msg, _b, conn=None):
-    from . import native_models
-    reserve = 0
-    for k in ("asrModel", "ttsModel"):
+    from . import accel, native_models
+    # Ledger-aware reserve: a stage that already LOADED contributes its real
+    # device claim (0 when it sits on cpu); only not-yet-loaded stages fall
+    # back to their download-size estimate.
+    planned = {}
+    for stage, k in (("asr", "asrModel"), ("tts", "ttsModel")):
         mid = msg.get(k)
         if mid:
-            reserve += native_models.model_size(mid) or 0
+            planned[stage] = native_models.model_size(mid) or 0
+    reserve = accel.ledger_effective_reserve("translate", planned)
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
         msg.get("device", "auto"), reserved_bytes=reserve, pin=msg.get("variant"))

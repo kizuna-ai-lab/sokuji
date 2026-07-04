@@ -128,7 +128,7 @@ def test_engine_init_uses_resolver(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     ms = eng.init(model_id="whisper-tiny", language="en", device="auto")
     assert isinstance(ms, int)
@@ -204,7 +204,7 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
     eng.init(model_id="whisper-tiny", language="en", device="auto")
     assert eng.resolved["device"] == "cuda"
@@ -217,7 +217,7 @@ def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)  # benchmark failed
     eng.init(model_id="whisper-tiny", device="auto")
     assert "rtf" not in eng.resolved
@@ -265,7 +265,7 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     backends = []
 
-    def fake_load(plans):
+    def fake_load(plans, **kw):
         b = _UnloadBackend()
         backends.append(b)
         return b, fake_plan, None, None
@@ -289,7 +289,7 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
     fake_plan = type("P", (), {"backend": "ctranslate2", "device": "cpu", "compute_type": "int8"})()
     monkeypatch.setattr(accel, "resolve", lambda mid, override=None: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
-                        lambda plans: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
+                        lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     eng = asr_engine.AsrEngine()
     eng.init("sense-voice", "en", 16000, None, None, None, "auto")

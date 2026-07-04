@@ -446,6 +446,45 @@ def resolve_tts(model_id: str, override: str = "auto", machine: Machine | None =
     return _resolve_model(model, model_id, override, machine or probe())
 
 
+# ── Cross-stage VRAM ledger ──────────────────────────────────────────────────
+# The three session stages (asr/translate/tts) share one accelerator. Each
+# engine claims its ACTUAL device footprint at load (0 when it landed on cpu)
+# and releases on close; placement/reserve math for one stage then uses the
+# real claims of loaded stages and falls back to estimates only for stages
+# that have not loaded yet — fixing the "reserve the download size of a model
+# that ended up on CPU anyway" over-reserve.
+_LEDGER: dict = {}
+
+
+def ledger_reset() -> None:
+    _LEDGER.clear()
+
+
+def ledger_claim(stage: str, nbytes: int) -> None:
+    _LEDGER[stage] = max(0, int(nbytes or 0))
+
+
+def ledger_release(stage: str) -> None:
+    _LEDGER.pop(stage, None)
+
+
+def ledger_other(stage: str) -> int:
+    """Total device bytes held by every OTHER loaded stage."""
+    return sum(v for k, v in _LEDGER.items() if k != stage)
+
+
+def ledger_effective_reserve(stage: str, planned_est: dict) -> int:
+    """Reserve `stage` should assume for the other stages: the ledger's actual
+    claim once a stage is loaded (0 when it sits on cpu), else that stage's
+    planned estimate (typically the model download size)."""
+    total = 0
+    for other, est in planned_est.items():
+        if other == stage:
+            continue
+        total += _LEDGER[other] if other in _LEDGER else int(est or 0)
+    return total
+
+
 class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
 
@@ -494,18 +533,20 @@ def _rss_bytes():
         return None
 
 
-def load_measured(plans: list):
+def load_measured(plans: list, stage: str | None = None):
     """load_with_fallback + measure the loaded model's footprint on its RESOLVED
-    device: reserved-VRAM delta for cuda, RSS delta for cpu. Best-effort — memory
-    is None when unmeasurable or non-positive (e.g. no CUDA, allocator noise, a
-    failed-then-freed GPU attempt during a degrade). Returns
-    (backend, plan, notice, memory_bytes)."""
-    vram_before = _cuda_free_bytes()
+    device: device-free delta for any accelerator (vulkan/metal/cuda — read via
+    the vendor-agnostic device_free_bytes), RSS delta for cpu. Best-effort —
+    memory is None when unmeasurable or non-positive. When `stage` is given the
+    result is recorded in the cross-stage ledger (actual bytes on an
+    accelerator; an explicit 0 for a cpu landing, so reserve math knows the
+    stage holds no device memory). Returns (backend, plan, notice, memory_bytes)."""
+    vram_before = device_free_bytes()
     rss_before = _rss_bytes()
     backend, plan, notice = load_with_fallback(plans)
     memory = None
-    if plan.device == "cuda" and vram_before is not None:
-        vram_after = _cuda_free_bytes()
+    if plan.device != "cpu" and vram_before is not None:
+        vram_after = device_free_bytes()
         if vram_after is not None:
             delta = vram_before - vram_after
             memory = delta if delta > 0 else None
@@ -514,6 +555,12 @@ def load_measured(plans: list):
         if rss_after is not None:
             delta = rss_after - rss_before
             memory = delta if delta > 0 else None
+    if stage is not None:
+        if plan.device == "cpu":
+            ledger_claim(stage, 0)
+        else:
+            est = _model_weight_bytes(plan.artifact)
+            ledger_claim(stage, memory or est or 0)
     return backend, plan, notice, memory
 
 
