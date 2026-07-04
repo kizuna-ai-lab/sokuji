@@ -43,11 +43,24 @@ gating already renders that correctly in the UI).
   | mistral_common | 37 | Voxtral tokenizer | keep (torch-free) |
   | sherpa_onnx | 36 | SenseVoice/piper | keep |
 
-  Post-migration estimate: ORT-gpu 773 + nvidia pip subset for the CUDA EP +
-  CT2 (cudnn ~700, cublas ~600, cudart/curand/cufft ~300) + CT2/av 240 +
-  tokenizers/sentencepiece/numpy/misc ~300 ≈ **2.9 GB GPU**, **~1.2 GB CPU**.
-  If cuFFT proves unnecessary (no FFT ops in our graphs — mel is precomputed
-  in numpy), GPU lands ≈ 2.7 GB.
+  MEASURED clean installs (2026-07-04, setup.sh --no-models, ORT 1.23.2,
+  transcribe-cpp 0.1.1; ctranslate2/faster-whisper also gone with the
+  all-transcribe.cpp ASR decision):
+
+  | flavor | total | biggest pieces |
+  |---|---|---|
+  | CPU (`onnxruntime`) | **397 MB** | transcribe_cpp 88 + sympy 57 + ORT 52 + numpy 65 + sherpa 36 |
+  | GPU (`onnxruntime-gpu` + nvidia wheels) | **3.1 GB** | nvidia cudnn 1242 + cublas 817 + nvrtc 217 + ORT-gpu 466 |
+
+  Down from 8.7 GB. NOTE the GPU flavor's extra ~2.7 GB serves ONLY the TTS
+  CUDA tiers (MOSS/Supertonic/Qwen3-TTS) — ASR gets Vulkan GPU acceleration
+  from the stock 88 MB transcribe.cpp wheel even in the CPU flavor. A slim
+  default install can therefore ship the CPU flavor and offer "TTS GPU
+  acceleration" as an opt-in that installs onnxruntime-gpu + nvidia wheels.
+  Gotcha found during the rebuild: `compressed-tensors` (an FP8-era leftover
+  in requirements.txt) silently pulled torch+triton+transformers+nvidia back
+  in (+4.1 GB) — removed; the torch-free import gate test now guards the
+  package tree, and D2's import-health check guards the venv.
 
 ## Per-model migration table
 

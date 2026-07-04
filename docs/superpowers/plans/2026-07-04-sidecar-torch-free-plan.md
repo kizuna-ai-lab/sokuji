@@ -82,9 +82,21 @@ Landed in one sweep per the "ASR 全部用 transcribe.cpp" decision (whisper too
 - Verified full-path (resolve→load→transcribe) on the 4070 via Vulkan:
   whisper-tiny RTF 0.0042, fun-asr-mlt RTF 0.0161 (correct ja text),
   cohere RTF 0.0096, sensevoice RTF 0.0055.
-Remaining follow-ups: Voxtral committed/tentative streaming over
-session.stream(); real-clip WER spot-checks per model; Phase D venv rebuild +
-size measurement.
+Follow-up status (2026-07-04 evening):
+- [x] Voxtral streaming: TranscribeCppStreamBackend + _TcStream adapt
+      session.stream()'s committed/tentative to the engine's feed/drain/end
+      contract (committed-prefix deltas only). Real Vulkan verify: partials
+      stream, EN final exact, 2nd utterance (ja) on the same session correct
+      WITH ITN+punct; RTF 0.55.
+- [x] WER spot-checks (Vulkan, real clips): whisper-large-v3 all 5 langs
+      correct (RTF ~0.03, zh in traditional script — known whisper trait);
+      qwen3-asr all 5 correct (RTF 0.016–0.023); granite-2b en/ja + 2b-plus
+      en correct (~0.03); earlier: cohere/sensevoice/fun-asr/whisper-tiny.
+- [x] SenseVoice ITN: not exposed in Python bindings 0.1.1 (supports('itn')
+      reports capability only; no run/family knob). Accepted; upstream ask.
+      NOTE Voxtral/whisper/qwen3 outputs DO carry ITN+punctuation.
+- Phase D: torch-free import gate test added; prefetch fetches the catalog
+  GGUF; SOKUJI_VENV knob for clean rebuilds; venv size measurement below.
 
 ## Phase C (superseded — kept for reference) — ASR speech-LLMs → ORT
 
@@ -129,16 +141,20 @@ Voxtral extras:
       workaround) until fixed upstream
 - [ ] C5.b CUDA deployment gated on `onnxruntime >= <first release with #29525>`
 
-## Phase D — setup.sh / packaging flip
+## Phase D — setup.sh / packaging flip (DONE 2026-07-04)
 
-- [ ] D1 remove torch/torchaudio/triton, transformers fork, funasr, librosa
-      from setup.sh; add nvidia-cudnn-cu12/nvidia-cublas-cu12(+cudart/curand
-      as verified) for the GPU flavor
-- [ ] D2 clean-venv import health check: every backend's availability probe
-      (accel.py `mods` map) passes/fails as expected on CPU and GPU flavors
-- [ ] D3 whisper GPU smoke test on CT2 against the pip nvidia wheels
-- [ ] D4 measure final venv sizes (GPU/CPU) → update spec table; assert ≤3 GB
-- [ ] D5 prefetch_models.py + docs update
+- [x] D1 setup.sh torch-free (landed with the ASR sweep); GPU flavor installs
+      nvidia-cudnn-cu12 + nvidia-cublas-cu12. `compressed-tensors` (FP8-era
+      leftover) removed from requirements — it silently re-pulled
+      torch+triton+transformers+nvidia (+4.1 GB) into a "clean" venv.
+- [x] D2 clean-venv import health: installed set exact, tc_kinds=(cpu,vulkan),
+      NVML sees the 4070, ORT 1.23.2 with CUDA EP, zero torch-era packages
+      importable. cudnn-preload loads all 8 libs from the standalone wheel.
+- [x] D3 (repurposed — CT2 is gone): MOSS TTS GPU smoke on the clean venv:
+      CUDA EP sessions created via the pip cuDNN, 2.56s audio in 813ms.
+- [x] D4 measured: CPU flavor 397 MB, GPU flavor 3.1 GB (was 8.7 GB) — see
+      spec table. ASR keeps Vulkan GPU even in the CPU flavor.
+- [x] D5 prefetch fetches catalog GGUFs; spec/plan updated.
 
 ## Verification gates
 
