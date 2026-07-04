@@ -83,7 +83,8 @@ class AsrEngine:
         self._vad = sherpa_onnx.VoiceActivityDetector(vad_cfg, buffer_size_in_seconds=30)
 
     def init(self, model_id=None, language="", sample_rate=SRC_RATE,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
+             pin=None):
         from . import accel
         t0 = time.time()
         # Free any previously-loaded model BEFORE loading the next. The engine is a
@@ -92,7 +93,7 @@ class AsrEngine:
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
-        plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+        plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="asr")
         self._language = language or None
         rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
@@ -181,13 +182,14 @@ class AsrEngine:
         return bool(getattr(self._backend, "STREAMING", False))
 
     def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE,
-                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
+                       pin=None):
         """Like init(), but for a STREAMING backend: resolve+load, set up VAD for
         endpointing, and prepare the audio queue + always-stream state (default mode)."""
         import queue as _queue
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
-        self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device)
+        self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device, pin)
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
         if mem is not None:
@@ -405,7 +407,7 @@ class AsrEngine:
         caller can safely fall back to the offline path."""
         from . import accel, backends
         try:
-            plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+            plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         except Exception:
             return False
         if not plans:
@@ -417,9 +419,9 @@ class AsrEngine:
         except Exception:
             return False
 
-    def _resolve_streaming_backend(self, model_id, device):
+    def _resolve_streaming_backend(self, model_id, device, pin=None):
         from . import accel
-        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
+        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto", pin=pin)
         return accel.load_measured(plans, stage="asr")   # (backend, plan, notice, memory_bytes)
 
     def _vad_events(self, samples):
@@ -457,6 +459,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
     vad_threshold = msg.get("vadThreshold")
     vad_min_silence = msg.get("vadMinSilenceDuration")
     vad_min_speech = msg.get("vadMinSpeechDuration")
+    pin = msg.get("variant")   # user-pinned quant (renderer variant picker)
 
     # Cheap pre-check: resolve the backend NAME without loading the model, then read
     # its STREAMING flag. This ensures each branch loads the model exactly once.
@@ -466,7 +469,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
     if is_streaming:
         # Streaming path: init_streaming resolves+loads the backend once.
         eng.init_streaming(model, language, sample_rate,
-                           vad_threshold, vad_min_silence, vad_min_speech, device)
+                           vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed_stream
             conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
@@ -474,7 +477,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
     else:
         # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
         ms = eng.init(model, language, sample_rate,
-                      vad_threshold, vad_min_silence, vad_min_speech, device)
+                      vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed
 

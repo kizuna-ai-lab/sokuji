@@ -1051,9 +1051,11 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["voice"] = catalog.voice_capability(mdl)
         seen_cts = []
         sizes_by_ct = {}
+        artifact_by_ct = {}
         for d in mdl.deployments:
             if d.compute_type not in seen_cts:
                 seen_cts.append(d.compute_type)
+                artifact_by_ct[d.compute_type] = d.artifact
             if d.est_bytes:
                 sizes_by_ct[d.compute_type] = max(sizes_by_ct.get(d.compute_type, 0), d.est_bytes)
         if kind == "translate" or len(seen_cts) > 1:
@@ -1081,7 +1083,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                     supported = True                       # no GPU → CPU runs anything
                 else:
                     supported = size * _TC_RESIDENT_FACTOR <= budget
-                variants.append({"id": ct, "sizeBytes": size,
+                variants.append({"id": ct, "sizeBytes": size, "repo": artifact_by_ct.get(ct),
                                  "supported": supported, "recommended": ct == rec})
             entry["variants"] = variants
         out.append(entry)

@@ -6,7 +6,7 @@ from sokuji_sidecar import server, translate_engine
 
 class FakeTranslate:
     def init(self, model_id=None, source_lang="", target_lang="", device="auto",
-             reserved_bytes=0, pin=None):
+             reserved_bytes=0, pin=None, **kw):
         self.langs = (source_lang, target_lang)
         self.device = device
         self.resolved = {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
@@ -153,7 +153,7 @@ def test_translate_init_reserve_is_ledger_aware(monkeypatch):
 
     class _Eng:
         resolved = None
-        def init(self, model, src, tgt, device, reserved_bytes=0, pin=None):
+        def init(self, model, src, tgt, device, reserved_bytes=0, pin=None, **kw):
             seen["reserve"] = reserved_bytes
             return 1
     state = {"translate_engine": _Eng()}
