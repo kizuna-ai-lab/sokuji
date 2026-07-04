@@ -3,7 +3,7 @@
 # Idempotent. Reuses an existing .venv. Override knobs via env:
 #   PYTHON=python3.11            interpreter for a fresh venv (default: python3.11 else python3)
 #   HF_HOME=/path/to/cache       where models are cached (default: HF default ~/.cache/huggingface)
-#   SOKUJI_ASR_REPO=...           sherpa-onnx ASR repo
+#   SOKUJI_VENV=/path/to/venv    venv dir (default: .venv) — lets CI/size checks build clean envs
 # Flags:
 #   --no-models                  install deps only, skip the (~1.5GB+) model download
 set -euo pipefail
@@ -14,7 +14,7 @@ if [ -z "$PYTHON" ]; then
   if command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11; else PYTHON=python3; fi
 fi
 
-VENV=.venv
+VENV="${SOKUJI_VENV:-.venv}"
 if [ ! -d "$VENV" ]; then
   echo "[setup] creating venv with $PYTHON ($($PYTHON --version 2>&1))"
   "$PYTHON" -m venv "$VENV"
