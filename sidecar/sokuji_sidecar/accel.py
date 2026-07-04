@@ -276,6 +276,21 @@ def _resolve_model(model, model_id: str, override: str, machine: Machine) -> lis
 _TC_RESIDENT_FACTOR = 1.15
 
 
+def _quant_budget_bytes(machine: Machine):
+    """The STABLE per-machine basis for quant selection: the primary device's
+    TOTAL memory. Quant choice only decides WHICH FILE we recommend the user
+    download — and we always run exactly the file the user downloaded — so the
+    basis must never flap with transient VRAM pressure (that would recommend
+    re-downloads). Runtime pressure is placement's job (--fit / cpu fallback),
+    never a silent switch to a different model file."""
+    total = max((t for _k, _n, t in machine.gpus), default=0)
+    if total:
+        return total
+    if machine.nvidia and machine.nvidia[0].vram_mb:
+        return machine.nvidia[0].vram_mb << 20
+    return None
+
+
 def _downloaded_quants(model) -> set:
     """compute_types of `model` whose artifact file is already in the local HF
     cache. LOAD-time quant selection restricts itself to these (an absent
@@ -346,7 +361,10 @@ def resolve(model_id: str, override: str = "auto", machine: Machine | None = Non
     # Multi-quant ladder (big transcribe.cpp cards): narrow to ONE quant before
     # the generic tier resolution, so plans stay one-per-tier.
     if len({d.compute_type for d in model.deployments}) > 1:
-        quant = _tc_pick_quant(model, machine, pin, device_free_bytes(),
+        # Quant = the DOWNLOAD recommendation (stable, total-memory basis),
+        # restricted to what's actually cached — we always load the file the
+        # user downloaded; recommendation and load thus always agree.
+        quant = _tc_pick_quant(model, machine, pin, _quant_budget_bytes(machine),
                                downloaded=_downloaded_quants(model))
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
@@ -367,11 +385,12 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
     # left the override path with a stale/zero reserved_bytes.
     llama_runtime.set_reserved_bytes(reserved_bytes)
     if override == "auto":
-        # LOAD-time budget = fresh device-wide free (llama-server and other
-        # stages move it); the download RECOMMENDATION uses the stable
-        # mem_total basis instead (see _h_list_variants).
+        # Same STABLE basis as the download recommendation (_h_list_variants):
+        # we always run exactly the file the user downloaded, so choose it the
+        # same way we recommended it. Runtime VRAM pressure is handled by
+        # llama-server's --fit at placement, never by switching files.
         chosen = select_variant(model, machine, reserved_bytes, pin,
-                                budget_bytes=device_free_bytes(),
+                                budget_bytes=_quant_budget_bytes(machine),
                                 downloaded=_downloaded_quants(model))
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
@@ -889,9 +908,8 @@ async def _h_list_variants(state, msg, _b, conn=None):
                   for k in ("asrId", "ttsId") if msg.get(k))
     # RECOMMENDATION basis must be STABLE across sessions (it drives which
     # quant the user downloads): device mem_total, not the volatile free.
-    total = max((t for _k, _n, t in m.gpus), default=0) or None
     chosen = select_variant(model, m, reserve, pin=msg.get("pin"),
-                            budget_bytes=total)
+                            budget_bytes=_quant_budget_bytes(m))
     # select_variant can return None for a model with no cpu floor (none today, but
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
