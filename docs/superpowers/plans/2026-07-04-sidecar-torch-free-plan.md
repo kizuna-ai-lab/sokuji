@@ -191,8 +191,10 @@ Increments, each independently landable and green:
       2.0 default / 1.0 curated candidate / 0.5 listed-only like f16).
       Recommendation is context-free by design (stable; placement owns
       cross-stage pressure).
-- [ ] E5(renderer): consume catalog.variants for ALL multi-quant cards (drop
-      the per-card list_variants lazy fetch), grey unsupported rungs, show
-      the Recommended badge; surface plan reasons.
+- [x] E5(renderer): variant picker on every multi-quant card (ASR included),
+      driven by catalog.variants — per-card list_variants lazy fetch deleted;
+      generic per-model pin map; asrVariant threaded through session config →
+      asr_init. Plan-reason surfacing folded into the picker's supported/
+      recommended flags (a separate reason string can come with E4 tail).
 - [ ] E6 bench keys already include compute_type — extend the demotion pass
       to compare same-device different-quant entries.
