@@ -97,9 +97,8 @@ def _installed() -> frozenset:
             # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
             # then it is "not installed" so resolve()/models_catalog exclude it.
             "qwen3asr": "transformers.models.qwen3_asr",
-            # cohere_transformers needs the native cohere_asr model (mainline since
-            # transformers 5.4); present in our 5.13 venv. Same self-gate as qwen3asr.
-            "cohere_transformers": "transformers.models.cohere_asr",
+            # cohere_onnx: ORT sessions + tokenizers.Tokenizer (torch-free).
+            "cohere_onnx": ("onnxruntime", "tokenizers"),
             # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
             # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
             # both so a half-installed env doesn't advertise it in the catalog then fail at load().

@@ -30,13 +30,22 @@ def test_download_specs_mapping(monkeypatch):
     # Qwen3-ASR must map to the bezzam/ HF repo, not the bare catalog id.
     assert nm.download_specs('qwen3-asr-1.7b')['repos'] == ['bezzam/Qwen3-ASR-1.7B']
     # Cohere Transcribe maps to the non-gated AEmotionStudio mirror (byte-identical to CohereLabs).
-    assert nm.download_specs('cohere-transcribe-03-2026')['repos'] == ['AEmotionStudio/cohere-transcribe-03-2026-models']
+    assert nm.download_specs('cohere-transcribe-03-2026')['repos'] == []  # files-pinned q4 set
 
 
 def test_download_specs_cohere():
-    # Cohere is an ASR-catalog model, so the shared silero VAD is appended.
-    assert native_models.download_specs("cohere-transcribe-03-2026") == \
-        {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": [nm.VAD_URL]}
+    # q4 variant only: exact files pinned (the repo also ships fp32/fp16/q4f16/
+    # int8 exports we never load). ASR model -> shared VAD appended.
+    import sokuji_sidecar.native_models as nm
+    spec = native_models.download_specs("cohere-transcribe-03-2026")
+    assert spec["repos"] == [] and spec["urls"] == [nm.VAD_URL]
+    repo = "onnx-community/cohere-transcribe-03-2026-ONNX"
+    assert {r for r, _ in spec["files"]} == {repo}
+    names = [f for _, f in spec["files"]]
+    assert "onnx/encoder_model_q4.onnx_data" in names
+    assert "onnx/decoder_model_merged_q4.onnx_data" in names
+    assert "tokenizer.json" in names and "generation_config.json" in names
+    assert not any("fp16" in n or "quantized" in n for n in names)
 
 
 def test_download_specs_appends_shared_vad_for_asr_models():
@@ -230,19 +239,19 @@ def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
     stale .incomplete alongside its finalized blob must still read 'ready'."""
     import huggingface_hub, huggingface_hub.constants
     from sokuji_sidecar import native_models
-    repo = native_models.download_specs("cohere-transcribe-03-2026")["repos"][0]
+    repo = native_models.download_specs("qwen3-asr-1.7b")["repos"][0]
     blobs = tmp_path / f"models--{repo.replace('/', '--')}" / "blobs"
     blobs.mkdir(parents=True)
     monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
     monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **k: str(tmp_path))
     (blobs / "abc123").write_text("a finalized blob")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    assert native_models.model_status("qwen3-asr-1.7b") == "ready"
     # interrupted: '<sha>.<etag>.incomplete' with its finalized '<sha>' blob MISSING
     (blobs / "def456.a1b2c3.incomplete").write_bytes(b"half-fetched safetensors")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "absent"
+    assert native_models.model_status("qwen3-asr-1.7b") == "absent"
     # stale leftover: the finalized blob has since landed → ignore the orphan .incomplete
     (blobs / "def456").write_text("now finalized")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    assert native_models.model_status("qwen3-asr-1.7b") == "ready"
 
 
 def test_download_specs_voxtral_skips_consolidated():

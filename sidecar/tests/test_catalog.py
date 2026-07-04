@@ -7,7 +7,7 @@ def test_models_have_deployments_and_languages():
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
             assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
-                                 "cohere_transformers", "voxtral_realtime", "funasr_nano"}
+                                 "cohere_onnx", "voxtral_realtime", "funasr_nano"}
 
 
 def test_system_has_a_cpu_floor():
@@ -77,9 +77,14 @@ def test_cohere_asr_row():
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
     assert m.sort_order == 0          # sorted first
-    d = m.deployments[0]
-    assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("cohere_transformers", "gpu-cuda", "bfloat16", "AEmotionStudio/cohere-transcribe-03-2026-models")
+    # torch-free: ORT backend on the onnx-community q4 export, cpu tier only
+    # for now (CUDA emits empty output on ORT 1.23.2 — see torch-free plan).
+    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
+        ("cohere_onnx", "cpu", "q4"),
+    ]
+    assert all(d.artifact == "onnx-community/cohere-transcribe-03-2026-ONNX"
+               for d in m.deployments)
+    assert m.size_bytes == 2127679103
 
 
 def test_cohere_is_first_qwen3_shifted():

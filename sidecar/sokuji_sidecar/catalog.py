@@ -42,12 +42,18 @@ class AsrModel(_ModelBase):
 
 
 ASR_MODELS: list[AsrModel] = [
+    # Torch-free: ORT backend on the onnx-community q4 export (2.1GB, half the
+    # old bf16 download). CPU tier verified on real audio (RTF 0.115, 8.7x
+    # realtime). The gpu-cuda tier is intentionally OFF for now: on ORT 1.23.2
+    # the q4 graph runs on CUDA but emits empty transcripts (eos-first) with a
+    # massive CPU-fallback Memcpy storm — see the torch-free plan for the
+    # follow-up (fp16 variant / per-step logits diff).
     AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
              ("en", "de", "fr", "it", "es", "pt", "el",
               "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
-             (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",
-                         "AEmotionStudio/cohere-transcribe-03-2026-models", 1.0),),
-             recommended=True, sort_order=0, size_bytes=4134989472),
+             (Deployment("cohere_onnx", "cpu", "q4",
+                         "onnx-community/cohere-transcribe-03-2026-ONNX", 1.0),),
+             recommended=True, sort_order=0, size_bytes=2127679103),
     # Torch-free: sherpa-onnx int8 export (model.int8.onnx + tokens.txt), CPU tier
     # only — the pip sherpa-onnx wheel has no GPU runtime, and CPU RTF ~0.03 (33x
     # realtime) makes a GPU tier a nice-to-have (ORT-CUDA candidate later).

@@ -94,7 +94,14 @@ def _base_specs(model_id):
     if model_id == "qwen3-asr-1.7b":
         return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
     if model_id == "cohere-transcribe-03-2026":
-        return {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
+        # ORT q4 variant only — the onnx-community repo also ships fp32/fp16/
+        # q4f16/int8 exports (~14GB total) that the backend never loads.
+        repo = "onnx-community/cohere-transcribe-03-2026-ONNX"
+        files = ["config.json", "generation_config.json", "preprocessor_config.json",
+                 "tokenizer.json", "tokenizer_config.json",
+                 "onnx/encoder_model_q4.onnx", "onnx/encoder_model_q4.onnx_data",
+                 "onnx/decoder_model_merged_q4.onnx", "onnx/decoder_model_merged_q4.onnx_data"]
+        return {"repos": [], "urls": [], "files": [(repo, f) for f in files]}
     if model_id == "voxtral-mini-4b-realtime":
         # Repo ships model.safetensors (HF, needed) + consolidated.safetensors (Mistral
         # format, 8.86GB, unused by transformers) — skip the duplicate.

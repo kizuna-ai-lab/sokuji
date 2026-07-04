@@ -48,9 +48,9 @@ esac
 # ONNXRUNTIME_PACKAGE=onnxruntime-gpu==1.20.1 (or a CPU pin) to bypass this heuristic.
 if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
   case "$(uname -s):$TORCH_INDEX_URL" in
-    Darwin:*)   ONNXRUNTIME_PACKAGE="onnxruntime==1.20.1" ;;
-    *:*"/cu"*)  ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.20.1" ;;
-    *)          ONNXRUNTIME_PACKAGE="onnxruntime==1.20.1" ;;
+    Darwin:*)   ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
+    *:*"/cu"*)  ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.23.2" ;;
+    *)          ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
   esac
 fi
 echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"

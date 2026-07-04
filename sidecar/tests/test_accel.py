@@ -618,11 +618,12 @@ def test_cohereasr_resolves_gpu_on_nvidia_with_runtime():
     m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                       nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
                       apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"cohere_transformers", "transformers"}),
+                      installed=frozenset({"cohere_onnx"}),
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
-    assert [p.device for p in plans] == ["cuda"]
-    assert plans[0].backend == "cohere_transformers" and plans[0].compute_type == "bfloat16"
+    # torch-free: cpu tier only until the CUDA empty-output issue is fixed
+    assert [p.device for p in plans] == ["cpu"]
+    assert plans[0].backend == "cohere_onnx" and plans[0].compute_type == "q4"
 
 
 def test_cohereasr_model_unavailable_without_runtime():
@@ -636,17 +637,17 @@ def test_cohereasr_model_unavailable_without_runtime():
     assert plans == []     # gated off: no usable deployment
 
 
-def test_cohereasr_gated_on_cohere_asr_module(monkeypatch):
+def test_cohere_onnx_gated_on_onnxruntime(monkeypatch):
     import importlib.util as iu
     from sokuji_sidecar import accel
     real = iu.find_spec
 
     def fake_find_spec(name, *a, **k):
-        if name == "transformers.models.cohere_asr":
+        if name == "onnxruntime":
             return None
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "cohere_transformers" not in accel._installed()
+    assert "cohere_onnx" not in accel._installed()
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),

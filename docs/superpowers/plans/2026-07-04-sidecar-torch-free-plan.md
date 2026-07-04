@@ -61,6 +61,16 @@ Cohere port facts (researched 2026-07-04):
   + CohereAsrForConditionalGeneration — use them for feature/logit parity tests
   BEFORE Phase D removes transformers.
 
+C1 Cohere status (2026-07-04): DONE for the cpu tier —
+`cohere_features.py` (golden-parity numpy front end) + `ort_speechllm.py`
+(CohereOnnxBackend: encoder + merged-decoder KV greedy loop, q4 variant,
+2.1GB pinned file set). Real-audio verify: CPU RTF 0.115 (8.7× realtime),
+correct transcript. ORT baseline bumped 1.20.1 → 1.23.2 (q4 export needs
+GatherBlockQuantized `bits`). OPEN: gpu-cuda tier emits EMPTY transcripts on
+ORT 1.23.2 (eos-first; 833 Memcpy CPU-fallback nodes) — next steps: try the
+fp16 variant on CUDA, or per-step logits diff CPU vs CUDA to find the bad op;
+row ships cpu-only until fixed. CohereTransformersBackend deleted.
+
 Per model:
 - [ ] C\*.1 port the WASM worker's preprocessing (mel/feature extraction) to
       numpy in a new `ort_speechllm.py` backend family
