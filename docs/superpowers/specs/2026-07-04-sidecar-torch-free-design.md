@@ -125,6 +125,25 @@ librosa, numba, llvmlite, scipy (unless another dep re-pins it).
 - The GroupQueryAttentionFusion truncation bug (#29524) workaround — disable
   that fusion / opt-level basic — applies to the Voxtral session options.
 
+## transcribe.cpp CUDA vs Vulkan (measured 2026-07-04, RTX 4070 SUPER)
+
+The GH release DOES ship a CUDA native tarball (216MB) and the binding can
+load it (`TRANSCRIBE_LIBRARY=<dir>/libtranscribe.so`, dev-tree path; or a
+future `transcribe-cpp[cu12]` provider once its PyPI package stops being a
+0.0.0 placeholder). Verified working — and measurably SLOWER than Vulkan on
+Ada hardware, where ggml's Vulkan backend uses NV_coopmat2 matrix cores:
+
+| model | cuda | vulkan |
+|---|---|---|
+| cohere batch | RTF 0.0685 | **RTF 0.0109** |
+| voxtral streaming | RTF 0.495 | **RTF 0.121** |
+
+The CUDA lib is also NOT self-contained (links libcudart/libcublas.so.12 —
+needs the system CUDA toolkit or the nvidia pip wheels + a preload step).
+Decision: stay on the stock wheel's Vulkan; revisit CUDA only if some
+hardware/driver combo shows Vulkan losing (the `TRANSCRIBE_NATIVE_PROVIDER` /
+`TRANSCRIBE_LIBRARY` seams make it a drop-in, llama_runtime-style download).
+
 ## Cross-platform / multi-accelerator matrix
 
 The torch-free stack must serve at least Linux/Windows/macOS and NVIDIA + CPU
