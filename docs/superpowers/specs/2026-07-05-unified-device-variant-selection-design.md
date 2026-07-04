@@ -228,10 +228,13 @@ macOS TTS plan instead:
 - default = **CPU**: Apple-Silicon CPU comfortably runs MOSS 100M /
   Supertonic 66M / piper (they already run on x86 CPU today);
 - qwen3-tts (0.6B/1.7B) tier-gates OFF on the mac SKU short-term;
-- mid-term option for heavy TTS on Mac: build our OWN ORT with the WebGPU EP
-  (Dawn→Metal) into the mac bundle — we control the SKU packaging, and the
-  WASM path already proved these transformer graphs run well on WebGPU
-  (onnxruntime-web). Needs a build + benchmark spike before committing.
+- mid-term direction for heavy models on Mac (user, 2026-07-05): REPLACE the
+  model or use a Mac-suited export rather than forcing the ONNX graph through
+  a weak EP — most likely **MLX** with `mlx-community` exports (Apple's
+  Apple-Silicon-native framework; unified memory; active export community —
+  e.g. mlx-community already ships Fun-ASR-MLT-Nano fp16/8bit/4bit). accel.py
+  already reserves an "mlx" backend slot in the installed map. The custom
+  ORT-WebGPU-EP build stays only as a fallback idea if MLX lacks an export.
 
 Wiring (Windows unchanged, macOS revised):
 - `tts_backends` device→providers map grows: `dml` → `["DmlExecutionProvider", cpu]`.
@@ -255,7 +258,7 @@ Wiring (Windows unchanged, macOS revised):
 |---|---|---|---|---|
 | ASR | Vulkan ✓ (today) | Vulkan ✓ (today) | Vulkan ✓ (today) | Metal ✓ (today) |
 | Translate | CUDA ✓ | Vulkan (new flavor) | Vulkan (new flavor) | Metal ✓ |
-| TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CPU (fast enough for small TTS); heavy TTS gated — WebGPU-EP build spike is the path |
+| TTS | CUDA ✓ / DML on Win | DML on Win; Linux CPU | DML on Win / OpenVINO opt-in | CPU for small TTS; heavy models → MLX (mlx-community exports), future work |
 
 ## 8. End-state design (v2) — after §7 lands, per bundle SKU
 
