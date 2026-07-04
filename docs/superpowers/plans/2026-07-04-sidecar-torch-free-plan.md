@@ -181,10 +181,11 @@ Increments, each independently landable and green:
       kind=asr. PLUS (found during E3): load-time selection restricts to
       quants already downloaded (_downloaded_quants) for BOTH asr and
       translate — an absent upgrade rung must never beat a cached default.
-- [ ] E4 cross-stage ledger: sidecar-side reservation table (stage → bytes)
-      replacing renderer-computed reserved_bytes; plan order = CPU-fallback
-      cost (translate → gpu-needing tts → asr); unified-memory branch for
-      metal (degrade = smaller quant, never cpu-for-memory).
+- [x] E4 cross-stage ledger (core): stage→bytes ledger fed by load_measured
+      actuals (0 for cpu landings; vulkan/metal deltas now measured via
+      device_free_bytes); translate reserve is ledger-aware — retires the
+      stacked-padding over-reserve. Remaining E4 tail: metal unified-memory
+      branch + allocation-order planning (needs a session-plan message).
 - [ ] E5 renderer: generalize the variant picker beyond translation cards;
       surface plan reasons ("Auto: Q8_0 — fits 4.7GB of 10.9GB free").
 - [ ] E6 bench keys already include compute_type — extend the demotion pass
