@@ -42,7 +42,30 @@ mid-migration the tree always runs.
       the tiers show unavailable (hardware-gating UI), the card is NOT deleted.
 - [ ] B3 delete _FunAsrBackend/FunAsrNanoBackend once B2 lands.
 
-## Phase C — ASR speech-LLMs → ORT (one PR per model)
+## DECISION 2026-07-04: ASR runtime = transcribe.cpp (supersedes the ORT ports)
+
+Research verdict (measured on the RTX 4070 SUPER box, PyPI `transcribe-cpp`
+0.1.1 stock wheel):
+
+| axis | transcribe.cpp | onnxruntime path |
+|---|---|---|
+| model coverage | ALL 11 catalog ASR models incl. Fun-ASR-MLT (no ONNX exists) and Voxtral-Realtime streaming | 5 separate ports, each with feature-extraction golden work |
+| GPU today | YES — Vulkan out of the box: Cohere RTF 0.0096 (104×RT), SenseVoice 0.0055; Metal/CUDA flavors exist | CUDA blocked on unreleased ORT with #29525 (Cohere AND Voxtral both hit GQA attention_bias — verified: cohere decoder GQA node input[10] = gqa_attention_bias) |
+| CPU | Cohere RTF 0.146 (≈ our ORT 0.115); SenseVoice 0.044 | ORT port verified 0.115 |
+| install | 30MB wheel (CPU+Vulkan bundled); CUDA optional 216MB GH tarball | onnxruntime-gpu 773MB + cuDNN/cuBLAS ~1.5GB |
+| downloads | Cohere Q4_K_M 1.56GB (vs ONNX q4 2.1GB) | — |
+| multi-vendor | Vulkan = AMD/Intel free; Metal; CPU | DML needs separate Windows package juggling |
+| API | official Python bindings: Model/session.run(pcm) batch + stream() with committed/tentative | hand-rolled per-model KV loops |
+| risks | v0.1.x, 87★, single maintainer (pin version; MIT; vendored ggml); SenseVoice output lacks ITN/punctuation (keep sherpa row for it); PyPI cu12 is a placeholder (CUDA via GH release tarball if ever needed — Vulkan already 100×RT) | per-model debugging (CUDA empty-output class bugs) |
+
+Adopted plan: ONE `transcribe_cpp` backend (batch first) + catalog re-point for
+cohere/qwen3-asr/granite×2/voxtral/fun-asr-mlt (whisper may follow later,
+dropping faster-whisper/av; sense-voice stays sherpa for ITN). The Cohere ORT
+backend (`ort_speechllm.py`, `cohere_features.py`) is superseded and gets
+removed when the transcribe.cpp backend lands. onnxruntime remains for the TTS
+domain + Opus translate (CPU flavor may suffice — Phase D sizing).
+
+## Phase C (superseded — kept for reference) — ASR speech-LLMs → ORT
 
 Order: Cohere (usage #1, CPU-viable, CUDA-safe graph) → Granite 2b →
 Granite 2b-plus → Qwen3-ASR → Voxtral (last; CUDA tier gated on the ORT
