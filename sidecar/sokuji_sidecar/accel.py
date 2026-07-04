@@ -37,6 +37,11 @@ class Machine:
     # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
     # tiers (covers AMD/Intel via Vulkan where the NVML/DML probes see nothing).
     tc_kinds: tuple[str, ...] = ()
+    # STABLE GPU identity from the same probe: (kind, name, mem_total_bytes)
+    # per accelerator device. Volatile mem_free is intentionally NOT here (the
+    # Machine is cached + fingerprinted) — planners read device_free_bytes()
+    # fresh at plan time instead.
+    gpus: tuple[tuple[str, str, int], ...] = ()
 
 
 def _nvidia_gpus() -> tuple[Gpu, ...]:
@@ -80,11 +85,49 @@ def _dml_adapters() -> tuple[str, ...]:
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
 
 
+def _tc_devices():
+    """transcribe.cpp's device list — the vendor-agnostic ground truth (sees
+    AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
+    (probe() degrades via _safe)."""
+    import transcribe_cpp
+    return list(transcribe_cpp.backends())
+
+
 def _tc_kinds() -> tuple[str, ...]:
     """Accelerator kinds transcribe.cpp can actually use here. Sorted for a
     stable fingerprint; () when the wheel is absent (probe degrades)."""
-    import transcribe_cpp
-    return tuple(sorted({b.kind for b in transcribe_cpp.backends()}))
+    return tuple(sorted({b.kind for b in _tc_devices()}))
+
+
+def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
+    """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
+    return tuple((b.kind, b.description, int(b.memory_total or 0))
+                 for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
+
+
+def device_free_bytes():
+    """FRESH free memory (bytes) of the primary accelerator device, or None
+    when there is none. transcribe.cpp's probe is primary (vendor-agnostic,
+    device-wide); NVML is the fallback when the wheel is missing. Volatile by
+    design — call at plan/load time, never cache in Machine."""
+    try:
+        for b in _tc_devices():
+            if getattr(b, "device_type", "gpu") != "cpu":
+                free = int(b.memory_free or 0)
+                if free > 0:
+                    return free
+    except Exception:
+        pass
+    return _cuda_free_bytes()
+
+
+def ram_free_bytes():
+    """FRESH available system RAM (bytes), or None when psutil is missing."""
+    try:
+        import psutil
+        return int(psutil.virtual_memory().available)
+    except Exception:
+        return None
 
 
 def _has_mod(mod: str) -> bool:
@@ -141,15 +184,17 @@ def probe(force: bool = False) -> Machine:
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
     tc_kinds = _safe(_tc_kinds, ())
+    tc_gpus = _safe(_tc_gpus, ())
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
               f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
     fp = hashlib.sha1(fp_src.encode()).hexdigest()[:12]
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
-        fingerprint=fp, tc_kinds=tc_kinds)
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
     return _MACHINE
 
 

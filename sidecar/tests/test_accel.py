@@ -1122,3 +1122,76 @@ def test_asr_unavailable_without_transcribe_cpp():
     import pytest as _pytest
     with _pytest.raises(accel.NoUsablePlan):
         accel.resolve("whisper-tiny", machine=m)
+
+
+# ── Phase E1: GPU identity + fresh memory reads ──────────────────────────────
+
+
+class _FakeTcDev:
+    def __init__(self, kind, desc, total, free, device_type="gpu"):
+        self.kind = kind; self.description = desc
+        self.memory_total = total; self.memory_free = free
+        self.device_type = device_type
+
+
+def _fake_tc_module(devs):
+    import types
+    mod = types.ModuleType("transcribe_cpp")
+    mod.backends = lambda: devs
+    return mod
+
+
+def test_machine_gpus_stable_identity(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
+        _FakeTcDev("cpu", "Ryzen 7", 64 << 30, 60 << 30, device_type="cpu"),
+    ]))
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    m = accel.probe(force=True)
+    # gpus: STABLE identity only (kind, name, mem_total) — no volatile free
+    assert m.gpus == (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)
+    assert m.tc_kinds == ("cpu", "vulkan")
+
+
+def test_fingerprint_ignores_volatile_free(monkeypatch):
+    import sys
+    def probe_with_free(free):
+        monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+            _FakeTcDev("vulkan", "RTX 4070", 12 << 30, free)]))
+        monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+        monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+        monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+        monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+        return accel.probe(force=True).fingerprint
+    assert probe_with_free(10 << 30) == probe_with_free(2 << 30)
+
+
+def test_device_free_bytes_prefers_tc(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("vulkan", "RTX 4070", 12 << 30, 9 << 30)]))
+    assert accel.device_free_bytes() == 9 << 30
+
+
+def test_device_free_bytes_nvml_fallback(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", None)   # import fails
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 7 << 30)
+    assert accel.device_free_bytes() == 7 << 30
+
+
+def test_device_free_bytes_none_without_gpu(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("cpu", "Ryzen", 64 << 30, 60 << 30, device_type="cpu")]))
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    assert accel.device_free_bytes() is None
+
+
+def test_ram_free_bytes_positive():
+    n = accel.ram_free_bytes()
+    assert n is None or n > 0
