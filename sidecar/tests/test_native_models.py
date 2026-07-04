@@ -648,8 +648,10 @@ def test_download_installs_cpu_flavor_alongside_default(monkeypatch):
     status = asyncio.run(nm.download("translategemma-4b", send))
     assert status == "ready"
     assert installed == ["cuda", "cpu"]
-    assert sent[-1]["total"] == 3   # 1 gguf file + 2 llama-flavor install units
-    assert sent[-1]["downloaded"] == 3
+    # byte mode: total = GGUF size + 2 nominal flavor units; final pins to total
+    expected = 2489909760 + 2 * nm._LLAMA_FLAVOR_EST_BYTES
+    assert sent[-1]["total"] == expected
+    assert sent[-1]["downloaded"] == expected
 
 
 def test_status_absent_without_binary(monkeypatch):
@@ -690,3 +692,72 @@ def test_status_absent_when_gguf_file_missing(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom)
     monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")  # binary present
     assert nm.model_status("qwen2.5-0.5b") == "absent"
+
+
+# ── byte-level download progress (progress bar for single-GGUF cards) ────────
+
+
+def test_download_reports_byte_progress(monkeypatch, tmp_path):
+    """Single-file cards (every ASR/LLM GGUF) must report BYTES, not file
+    counts — with total = the catalog's size_bytes — so the renderer's bar
+    moves during a multi-GB file instead of sitting at 0/2."""
+    import huggingface_hub
+
+    f1 = tmp_path / "a.gguf"; f1.write_bytes(b"x" * 600)
+    f2 = tmp_path / "b.bin";  f2.write_bytes(b"y" * 400)
+    paths = {"a.gguf": str(f1), "b.bin": str(f2)}
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "a.gguf"), ("org/r", "b.bin")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 1000)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: paths[f])
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-tiny", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    assert prog[0] == (600, 1000)      # first file's real bytes, not "1 of 2"
+    assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
+
+
+def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
+    """While one big file downloads, the in-flight .incomplete blob size must
+    stream as intermediate progress events."""
+    import time as _time
+    import huggingface_hub
+
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "big.gguf")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 1000)
+    monkeypatch.setattr(nm, "_PROGRESS_POLL_S", 0.01)
+    grow = iter([100, 350, 700] + [700] * 50)
+    monkeypatch.setattr(nm, "_incomplete_bytes", lambda repo: next(grow))
+    big = tmp_path / "big.gguf"; big.write_bytes(b"z" * 1000)
+    def slow_download(r, f):
+        _time.sleep(0.08)
+        return str(big)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", slow_download)
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-tiny", send)) == "ready"
+    mids = [m["downloaded"] for m in sent if m["type"] == "model_progress"]
+    # at least one mid-file event strictly between 0 and total, before the final
+    assert any(0 < v < 1000 for v in mids[:-1]), mids
+    assert mids[-1] == 1000
+
+
+def test_download_falls_back_to_unit_counting_without_size(monkeypatch, tmp_path):
+    import huggingface_hub
+    f1 = tmp_path / "a"; f1.write_bytes(b"x")
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "a"), ("org/r", "a")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: None)   # size unknown
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("mystery-model", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    assert prog == [(1, 2), (2, 2)]    # old per-file behavior preserved
