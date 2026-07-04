@@ -162,3 +162,27 @@ Voxtral extras:
 - renderer vitest suite untouched/green (catalog wire shape unchanged)
 - no `import torch|transformers|funasr|librosa` under sokuji_sidecar/ after
   Phase C+D (grep gate in CI-able script)
+
+
+## Phase E — unified device + variant selection (spec: 2026-07-05 §8)
+
+Increments, each independently landable and green:
+
+- [ ] E1 foundation: Machine gains stable GPU identity from tc.backends()
+      (`gpus: (kind, name, mem_total)`), fingerprint includes identity but
+      NEVER volatile mem_free; new fresh-read helpers `device_free_bytes()`
+      (tc primary, NVML fallback) and `ram_free_bytes()` (psutil).
+- [ ] E2 translate fully-resident quant rule: `_llamacpp_variant_row` prefers
+      the LARGEST quant whose size×1.1 fits fresh free − reserved; --fit only
+      when nothing fully fits (budget ≥ 50% of default-quant size), else cpu.
+- [ ] E3 ASR quality ladder: big cards (≥1GB) gain a Q8_0 alt rung in the
+      catalog; GPU pick walks quality-descending with the same budget check;
+      CPU stays at the card default. variantIds wired for kind=asr.
+- [ ] E4 cross-stage ledger: sidecar-side reservation table (stage → bytes)
+      replacing renderer-computed reserved_bytes; plan order = CPU-fallback
+      cost (translate → gpu-needing tts → asr); unified-memory branch for
+      metal (degrade = smaller quant, never cpu-for-memory).
+- [ ] E5 renderer: generalize the variant picker beyond translation cards;
+      surface plan reasons ("Auto: Q8_0 — fits 4.7GB of 10.9GB free").
+- [ ] E6 bench keys already include compute_type — extend the demotion pass
+      to compare same-device different-quant entries.
