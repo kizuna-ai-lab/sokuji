@@ -199,7 +199,7 @@ class AsrEngine:
         self._language = language or None
         self._audio_q = _queue.Queue()
         self._mode = "always_stream"
-        self._stream = self._backend.open_stream()   # always-stream: one long-lived session
+        self._stream = self._open_stream()   # always-stream: one long-lived session
         self._pending = ""           # text drained since the last cut (the partial)
         self._partial_acc = []       # per-utterance fallback accumulator
         self._utt_start_sample = 0
@@ -209,6 +209,12 @@ class AsrEngine:
         self._fed_s = 0.0            # audio seconds fed to the current stream (backpressure)
         self._delta_count = 0        # tokens drained from the current stream (backpressure)
         self._stop = False
+
+    def _open_stream(self):
+        """Open a stream on the loaded backend, forwarding the user's source
+        language — the same hint the batch path gives session.run(). Every
+        stream (re)open goes through here: init, endpoint-reopen, salvage."""
+        return self._backend.open_stream(self._language)
 
     def feed_stream(self, int16_bytes):
         """Non-blocking: hand raw audio to the streaming loop (called from on_binary).
@@ -265,7 +271,7 @@ class AsrEngine:
                 self._stream = None
                 self._partial_acc = []
             self._utt_start_sample = self._sample_cursor
-            self._stream = self._backend.open_stream()
+            self._stream = self._open_stream()
             await send({"type": "speech_start"})
         if self._stream is not None and "speech" in events:
             self._stream.feed(samples)
@@ -341,7 +347,7 @@ class AsrEngine:
             final = ""
         if final.strip():
             await send(self._result_event(final))
-        self._stream = self._backend.open_stream()
+        self._stream = self._open_stream()
         self._pending = ""
         self._speech_samples = 0
         self._fed_s = 0.0
@@ -376,7 +382,7 @@ class AsrEngine:
                 self._stream.abort()
             except Exception:
                 pass
-            self._stream = self._backend.open_stream()
+            self._stream = self._open_stream()
             self._pending = ""; self._speech_samples = 0
             self._fed_s = 0.0; self._delta_count = 0
             return

@@ -172,6 +172,7 @@ class _FakeStreamSession(_FakeSession):
     def stream(self, **kw):
         st = _FakeStream(self._log)
         self.streams.append(st)
+        self.stream_kwargs = kw
         return st
 
 
@@ -218,6 +219,21 @@ def test_stream_backend_flag_and_open(fake_stream_tc):
     assert b.STREAMING is True and b.is_loaded
     st = b.open_stream()
     assert st is not None
+
+
+def test_open_stream_passes_language(fake_stream_tc):
+    """REGRESSION (PR #279 review): the batch path passes the user's source
+    language to session.run(); the streaming path must hand it to
+    session.stream() too, or multilingual cards silently fall back to
+    autodetect and can transcribe in the wrong language."""
+    b = _load_stream_backend(fake_stream_tc)
+    session = fake_stream_tc["model"]._session
+    b.open_stream("ja")
+    assert session.stream_kwargs == {"language": "ja"}
+    b.open_stream("")           # empty selection → autodetect, same as batch
+    assert session.stream_kwargs == {"language": None}
+    b.open_stream()
+    assert session.stream_kwargs == {"language": None}
 
 
 def test_stream_drain_emits_committed_deltas_only(fake_stream_tc):

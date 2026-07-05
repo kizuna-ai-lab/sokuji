@@ -300,7 +300,7 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
 def test_streaming_init_sets_resolved_device_and_memory(monkeypatch):
     from sokuji_sidecar import asr_engine
     eng = asr_engine.AsrEngine()
-    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: object(),
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self, language=None: object(),
                              "unload": lambda self: None})()
     fake_plan = type("P", (), {"backend": "voxtral_realtime", "device": "cuda", "compute_type": "bfloat16"})()
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
@@ -389,7 +389,7 @@ def _streaming_engine(monkeypatch, fake_stream, vad_segments):
     """Build an AsrEngine whose resolved backend is streaming and whose VAD is faked
     to yield a scripted speech_start then endpoint."""
     eng = AsrEngine()
-    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: fake_stream,
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self, language=None: fake_stream,
                              "unload": lambda self: None})()
     # bypass real resolve/VAD: inject the backend + a fake VAD endpoint generator
     fake_plan = type("P", (), {"backend": "voxtral_realtime",
@@ -441,7 +441,7 @@ def test_always_stream_cuts_on_endpoint_with_complete_tail(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "country can do for you."          # partial: the tail is MISSING here
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
@@ -470,7 +470,7 @@ def test_always_stream_endpoint_with_no_text_does_not_cut(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = ""                                  # nothing transcribed
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
@@ -500,7 +500,7 @@ def test_always_stream_endpoint_flushes_held_text_with_empty_pending(monkeypatch
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = ""                                    # held text not yet drained
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0
@@ -529,7 +529,7 @@ def test_always_stream_runon_cap_forces_cut(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "a very long run on"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0
@@ -541,6 +541,23 @@ def test_always_stream_runon_cap_forces_cut(monkeypatch):
     asyncio.run(eng._drive_always(send, b"\x00\x00" * 1600))
     assert opened["n"] == 1                            # cap forced an end()+reopen
     assert [m for m in sent if m["type"] == "result"]
+
+
+def test_engine_open_stream_forwards_language():
+    """REGRESSION (PR #279 review): every stream (re)open must forward the
+    user's source language to the backend — all call sites go through
+    _open_stream so one check covers init, endpoint-reopen and salvage."""
+    from sokuji_sidecar import asr_engine as ae
+    eng = ae.AsrEngine()
+    eng._language = "ja"
+    seen = []
+    eng._backend = type("B", (), {
+        "open_stream": lambda self, language=None: (seen.append(language), "st")[1]})()
+    assert eng._open_stream() == "st"
+    assert seen == ["ja"]
+    eng._language = None                       # autodetect when unset
+    eng._open_stream()
+    assert seen == ["ja", None]
 
 
 def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
@@ -679,7 +696,7 @@ def test_streaming_end_to_end_real_gpu():
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="cuda")
     opens = {"n": 0}
     _orig = eng._backend.open_stream
-    eng._backend.open_stream = lambda: (opens.__setitem__("n", opens["n"] + 1) or _orig())
+    eng._backend.open_stream = lambda language=None: (opens.__setitem__("n", opens["n"] + 1) or _orig())
     sent = []
     async def send(m): sent.append(m)
     step = int(0.1 * sr) * 2     # 100ms of int16 bytes
@@ -720,7 +737,7 @@ def test_always_stream_aborted_self_heals(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _AbortedStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _AbortedStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _AbortedStream())})()
     eng._pending = "partial words"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0
@@ -750,7 +767,7 @@ def test_always_stream_endpoint_end_failure_still_reopens(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "some words"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
@@ -776,7 +793,7 @@ def test_backpressure_degrades_to_per_utterance(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _SlowStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: _SlowStream()})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _SlowStream()})()
     eng._pending = "held text"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
     eng._fed_s = 0.0; eng._delta_count = 0

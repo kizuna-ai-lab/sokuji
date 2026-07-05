@@ -81,8 +81,8 @@ class _TcStream:
     end()s at the VAD endpoint (or abort()s on teardown); the session returns
     to idle via reset() so the next open_stream() can reuse it."""
 
-    def __init__(self, session):
-        self._raw = session.stream()
+    def __init__(self, session, language=None):
+        self._raw = session.stream(language=(language or None))
         self._emitted = 0        # chars of committed text already drained
         self._done = False
 
@@ -138,7 +138,9 @@ class TranscribeCppStreamBackend(TranscribeCppBackend):
             self.unload()
             raise BackendLoadError(f"{model_ref} does not support streaming")
 
-    def open_stream(self) -> _TcStream:
+    def open_stream(self, language=None) -> _TcStream:
+        """`language` is the user's source-language hint — same contract as the
+        batch path's session.run(language=...); None/empty = autodetect."""
         if self._session is None:
             raise BackendLoadError("transcribe_cpp_stream not loaded")
-        return _TcStream(self._session)
+        return _TcStream(self._session, language)
