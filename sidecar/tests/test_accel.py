@@ -509,15 +509,15 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
-def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
+                    reason="set SOKUJI_RUN_GPU=1 (needs a GPU transcribe.cpp can drive via Vulkan)")
+def test_real_gpu_resolves_and_loads_vulkan(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # don't touch the user cache
     accel.probe(force=True)
     plans = accel.resolve("whisper-base")
-    assert plans[0].device == "cuda", f"expected cuda first, got {[p.device for p in plans]}"
+    assert plans[0].device == "vulkan", f"expected vulkan first, got {[p.device for p in plans]}"
     backend, plan, _notice = accel.load_with_fallback(plans)
     try:
-        assert plan.device == "cuda"
+        assert plan.device == "vulkan"
         rtf = accel.measure_rtf(backend, plan, "whisper-base", accel.probe(), force=True)
         assert rtf is not None and rtf < 1.0, f"GPU should be faster than realtime, rtf={rtf}"
     finally:
@@ -525,7 +525,7 @@ def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
+                    reason="set SOKUJI_RUN_GPU=1 (needs a GPU transcribe.cpp can drive via Vulkan)")
 def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     accel.probe(force=True)
@@ -1131,8 +1131,10 @@ def test_asr_unavailable_without_transcribe_cpp():
 
 class _FakeTcDev:
     def __init__(self, kind, desc, total, free, device_type="gpu"):
-        self.kind = kind; self.description = desc
-        self.memory_total = total; self.memory_free = free
+        self.kind = kind
+        self.description = desc
+        self.memory_total = total
+        self.memory_free = free
         self.device_type = device_type
 
 

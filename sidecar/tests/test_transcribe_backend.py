@@ -83,6 +83,14 @@ def test_transcribe_passes_language_and_strips(fake_tc):
     assert fake_tc["model"].log[1]["language"] is None
 
 
+def test_transcribe_before_load_raises_backend_error():
+    """Same contract as open_stream(): a clear BackendLoadError, not a raw
+    AttributeError, when the session isn't loaded."""
+    b = make_backend("transcribe_cpp")
+    with pytest.raises(BackendLoadError):
+        b.transcribe(np.zeros(1600, np.float32), "en")
+
+
 def test_empty_audio_short_circuits(fake_tc):
     b = make_backend("transcribe_cpp")
     b.load("handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf", "cpu", "q8_0")

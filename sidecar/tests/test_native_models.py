@@ -703,8 +703,10 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
     moves during a multi-GB file instead of sitting at 0/2."""
     import huggingface_hub
 
-    f1 = tmp_path / "a.gguf"; f1.write_bytes(b"x" * 600)
-    f2 = tmp_path / "b.bin";  f2.write_bytes(b"y" * 400)
+    f1 = tmp_path / "a.gguf"
+    f1.write_bytes(b"x" * 600)
+    f2 = tmp_path / "b.bin"
+    f2.write_bytes(b"y" * 400)
     paths = {"a.gguf": str(f1), "b.bin": str(f2)}
     monkeypatch.setattr(nm, "download_specs",
                         lambda mid, repo=None: {"repos": [], "urls": [],
@@ -720,6 +722,28 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
     assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
 
 
+def test_download_byte_total_includes_shared_vad(monkeypatch, tmp_path):
+    """Catalog ASR rows download the GGUF plus the shared silero VAD; the
+    byte total must count both (model_size covers the model files only)."""
+    import huggingface_hub
+
+    f1 = tmp_path / "a.gguf"
+    f1.write_bytes(b"x" * 600)
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [nm.VAD_URL],
+                                                "files": [("org/r", "a.gguf")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 600)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
+    monkeypatch.setattr(nm, "_download_url", lambda url: None)
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    total = 600 + nm._SILERO_VAD_BYTES
+    assert prog[-1] == (total, total)
+
+
 def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
     """While one big file downloads, the in-flight .incomplete blob size must
     stream as intermediate progress events."""
@@ -733,7 +757,8 @@ def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
     monkeypatch.setattr(nm, "_PROGRESS_POLL_S", 0.01)
     grow = iter([100, 350, 700] + [700] * 50)
     monkeypatch.setattr(nm, "_incomplete_bytes", lambda repo: next(grow))
-    big = tmp_path / "big.gguf"; big.write_bytes(b"z" * 1000)
+    big = tmp_path / "big.gguf"
+    big.write_bytes(b"z" * 1000)
     def slow_download(r, f):
         _time.sleep(0.08)
         return str(big)
@@ -750,7 +775,8 @@ def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
 
 def test_download_falls_back_to_unit_counting_without_size(monkeypatch, tmp_path):
     import huggingface_hub
-    f1 = tmp_path / "a"; f1.write_bytes(b"x")
+    f1 = tmp_path / "a"
+    f1.write_bytes(b"x")
     monkeypatch.setattr(nm, "download_specs",
                         lambda mid, repo=None: {"repos": [], "urls": [],
                                                 "files": [("org/r", "a"), ("org/r", "a")]})

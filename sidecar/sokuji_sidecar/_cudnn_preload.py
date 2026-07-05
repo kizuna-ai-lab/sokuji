@@ -46,8 +46,8 @@ def _cudnn_lib_dir():
     return None
 
 
-def preload_torch_cudnn():
-    """Best-effort preload of torch's cuDNN. Returns a short status string.
+def preload_cudnn():
+    """Best-effort preload of the venv's standalone cuDNN wheel. Returns a short status string.
 
     Never raises: a failure here only means GPU stays unavailable (CPU fallback),
     which is exactly the state a CPU-only host is in anyway."""

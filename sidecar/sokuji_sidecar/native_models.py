@@ -350,6 +350,8 @@ async def download(model_id, send, should_cancel=None, repo=None):
         size = model_size(model_id if not repo else repo)
     except Exception:
         size = None
+    if size and VAD_URL in specs["urls"]:
+        size += _SILERO_VAD_BYTES   # catalog size_bytes covers the model files only
     total_bytes = (size + _LLAMA_FLAVOR_EST_BYTES * len(llama_flavors)) if size else None
 
     done_units = 0

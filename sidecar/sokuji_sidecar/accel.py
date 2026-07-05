@@ -190,7 +190,7 @@ def probe(force: bool = False) -> Machine:
               f"{','.join(tc_kinds)}|"
               f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
               f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
-    fp = hashlib.sha1(fp_src.encode()).hexdigest()[:12]
+    fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,

@@ -54,6 +54,8 @@ class TranscribeCppBackend:
             raise BackendLoadError(str(e))
 
     def transcribe(self, samples, language) -> AsrResult:
+        if self._session is None:
+            raise BackendLoadError("transcribe_cpp not loaded")
         pcm = np.ascontiguousarray(np.asarray(samples, dtype=np.float32).reshape(-1))
         if pcm.size == 0:
             return AsrResult("", language)

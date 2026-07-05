@@ -56,5 +56,7 @@ def test_golden_parity_with_transformers():
 
 
 def test_missing_dir_raises():
-    with pytest.raises(Exception):
+    # tokenizers' pyo3 layer raises a PLAIN Exception (no narrower class to
+    # catch) — pin the message instead so an unrelated bug can't satisfy this.
+    with pytest.raises(Exception, match="BPE files"):
         load_qwen2_tokenizer(os.path.join(os.sep, "nonexistent", "dir"))

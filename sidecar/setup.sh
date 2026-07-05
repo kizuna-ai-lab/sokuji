@@ -28,13 +28,14 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 "$PY" -m pip install -q -r requirements.txt pytest
 
 # Stage runtimes (torch-free since 2026-07-04):
-#   ASR       -> transcribe-cpp (ggml family; CPU+Vulkan bundled on linux/win,
-#                Metal on macOS — the stock wheel accelerates NVIDIA/AMD/Intel
-#                through Vulkan, no CUDA runtime needed)
+#   ASR       -> transcribe-cpp (pinned in requirements.txt — the single
+#                source for that pin; ggml family: CPU+Vulkan bundled on
+#                linux/win, Metal on macOS — the stock wheel accelerates
+#                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
 #   Translate -> llama-server binary (downloaded on demand) + Opus ONNX
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
-echo "[setup] stage runtimes: transcribe-cpp, sherpa-onnx"
-"$PY" -m pip install -q "transcribe-cpp==0.1.1" sherpa-onnx
+echo "[setup] stage runtimes: sherpa-onnx"
+"$PY" -m pip install -q sherpa-onnx
 
 # onnxruntime flavor (TTS + Opus translate). The GPU build's CUDA EP needs
 # cuDNN/cuBLAS — installed as standalone nvidia wheels (_cudnn_preload pins
@@ -51,8 +52,11 @@ if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
 fi
 echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
 "$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
+# cuDNN pinned to 9.x: _cudnn_preload.py preloads hardcoded libcudnn_*.so.9
+# names — an unpinned major bump would match zero libraries and quietly drop
+# the CUDA EP to CPU. Keep this pin and the preload list in lockstep.
 case "$ONNXRUNTIME_PACKAGE" in
-  onnxruntime-gpu*) "$PY" -m pip install -q nvidia-cudnn-cu12 nvidia-cublas-cu12 ;;
+  onnxruntime-gpu*) "$PY" -m pip install -q "nvidia-cudnn-cu12==9.*" "nvidia-cublas-cu12==12.*" ;;
 esac
 
 if [ "${1:-}" = "--no-models" ]; then

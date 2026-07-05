@@ -154,7 +154,7 @@ class MossOnnxTtsBackend:
 
     @staticmethod
     def _stage_layout(lm_dir: str, tok_dir: str) -> str:
-        key = hashlib.sha1(f"{lm_dir}|{tok_dir}".encode()).hexdigest()[:16]
+        key = hashlib.blake2s(f"{lm_dir}|{tok_dir}".encode(), digest_size=8).hexdigest()
         root = os.path.join(tempfile.gettempdir(), "sokuji_moss_tts", key)
         MossOnnxTtsBackend._link_tree(lm_dir, os.path.join(root, _MOSS_LM_DIRNAME))
         MossOnnxTtsBackend._link_tree(tok_dir, os.path.join(root, _MOSS_TOK_DIRNAME))

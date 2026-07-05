@@ -224,8 +224,8 @@ def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),
-                    reason="set SOKUJI_RUN_FW_MODEL=1 (downloads faster-whisper model)")
-def test_real_faster_whisper_transcribes():
+                    reason="set SOKUJI_RUN_FW_MODEL=1 (downloads the whisper-base GGUF)")
+def test_real_whisper_base_transcribes():
     from huggingface_hub import snapshot_download
     d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
     w = wave.open(f"{d}/test_wavs/en.wav", "rb")
