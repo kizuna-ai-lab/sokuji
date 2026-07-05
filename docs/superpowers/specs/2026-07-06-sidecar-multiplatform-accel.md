@@ -27,6 +27,7 @@ remains in the codebase.
 | D9 | Catalog `Deployment` gains a **`platforms` tag** (default all three OSes) plus an Apple-Silicon-required marker; resolvers filter by `platform.system()`. Protocol/UI unchanged (tier strings are free-form; renderer already renders unknown tiers). | |
 | D10 | **User-facing sidecar = self-contained bundles** (embedded Python + all wheels). `setup.sh` remains a developer/CI tool only. SKUs: `sidecar-nvidia` (Win+Linux), `sidecar-directml` (Windows non-NVIDIA), `sidecar-mac`. Models and llama-server binaries stay download-on-demand. | Open item: Linux non-NVIDIA (reuse nvidia bundle with CPU fallback vs a separate CPU bundle). |
 | D11 | Cleanup items riding along: remove `gpu-cuda` tiers from sherpa TTS cards (stock sherpa-onnx wheel is verified CPU-only — currently produces a false GPU badge and phantom VRAM ledger claims); replace the Apple M1–M5 whitelist in `llama_runtime._metal_config` with degrade-with-warning. | sherpa-onnx 1.13.3: bundled ORT has only CPUExecutionProvider (runtime-verified). |
+| D12 | **All SKUs and the dev venv unify on Python 3.12.** | cp312 wheels verified for Linux+Windows: onnxruntime-gpu 1.23.2, onnxruntime-directml 1.24.4, sherpa-onnx 1.13.3, ctranslate2 4.8.1, sentencepiece 0.2.0; transcribe-cpp is py3-none-any; mlx supports 3.12 on arm64 macOS. `setup.sh` prefers python3.12 (change lands with P7). Dev-venv rebuild is deferred until P1 execution finishes (implementer subagents run on the current 3.10 venv). |
 
 ## Out of scope
 
