@@ -1,5 +1,5 @@
 import time
-from . import translate_backends  # noqa: F401 — registers the llamacpp_*/opus_onnx_translate backends
+from . import translate_backends  # noqa: F401 — registers the llamacpp_*/ct2_opus_translate backends
 
 
 class TranslateEngine:

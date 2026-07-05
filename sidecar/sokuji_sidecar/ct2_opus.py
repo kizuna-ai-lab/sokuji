@@ -1,6 +1,6 @@
 """Opus-MT translation via CTranslate2 (int8, CPU).
 
-Replaces the former marian_onnx numpy decode loop (~11x slower; also had the
+Replaces the former Marian ONNX numpy decode loop (~11x slower; also had the
 ignored-bad_words_ids empty-output bug). Model dirs mirror the
 gaudi/opus-mt-*-ctranslate2 layout: config.json, model.bin,
 shared_vocabulary.json, source.spm, target.spm.
