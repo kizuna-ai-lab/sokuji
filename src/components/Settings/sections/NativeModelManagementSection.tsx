@@ -429,11 +429,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     for (const [id, info] of Object.entries(catalog)) {
       const vs = info.variants;
       if (!vs || vs.length < 2) continue;
+      // MiB, not decimal MB: need/have compare against GPU MEMORY, and every
+      // other memory readout (estimate/actual/tier badge) divides by 1_048_576
+      // — a 12 GiB card must read "12.0 GB", not "12.6 GB". Download-size
+      // labels elsewhere in this file stay decimal (HF/disk convention).
       const have = info.deviceMemBytes
-        ? formatMemMb(Math.round(info.deviceMemBytes / 1e6)) : null;
+        ? formatMemMb(Math.round(info.deviceMemBytes / 1_048_576)) : null;
       out[id] = {
         variants: vs.map((v) => {
-          const need = formatMemMb(Math.round((v.needBytes ?? v.sizeBytes) / 1e6));
+          const need = formatMemMb(Math.round((v.needBytes ?? v.sizeBytes) / 1_048_576));
           const reason = v.supported ? '' : (have
             ? t('models.variantWontFit',
                 'Needs ~{{need}} of GPU memory — this machine has {{have}}', { need, have })

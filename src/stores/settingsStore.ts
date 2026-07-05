@@ -1346,7 +1346,7 @@ const useSettingsStore = create<SettingsStore>()(
             recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
           };
         }
-        const resolved = statusReposFor(Object.keys(variantData), variantData as never, s.translationVariantByModel);
+        const resolved = statusReposFor(Object.keys(variantData), variantData, s.translationVariantByModel);
         // Only override when resolution actually produced a repo; an empty
         // map ({}) would defeat refresh's `repos ?? cache` fallback.
         if (Object.keys(resolved).length > 0) statusRepos = resolved;

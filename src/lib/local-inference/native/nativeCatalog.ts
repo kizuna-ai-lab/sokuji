@@ -3,7 +3,7 @@
  * turn settings into concrete model ids. Centralized so settings UI + session
  * config share one source of truth.
  */
-import type { NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
+import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 /**
  * Aliases between the app's source-language values (src/utils/languages.ts) and
@@ -262,7 +262,9 @@ export function formatRtf(rtf: number): string {
  */
 export function statusReposFor(
   ids: string[],
-  variantData: Record<string, { variants: VariantInfo[]; recommended: string }>,
+  // Structural minimum — only id/repo are read, so both the settings-store's
+  // slim {id, repo} maps and full VariantInfo[] ladders satisfy it.
+  variantData: Record<string, { variants: { id: string; repo: string }[]; recommended: string }>,
   variantByModel: Record<string, string>,
 ): Record<string, string> {
   const repos: Record<string, string> = {};
