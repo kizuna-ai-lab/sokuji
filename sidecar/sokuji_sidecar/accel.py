@@ -322,21 +322,24 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
     machine walk quality-descending (largest first) and take the first that
     fits FULLY resident within the budget, else the rank-default; without a
     GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
-    sizes = {}
+    sizes_all = {}   # EVERY listed rung — pin and the downloaded restriction see these
+    sizes = {}       # curated rungs only (rank >= 1.0) — the auto-recommend walk
     default = None
     best_rank = -1.0
     for d in model.deployments:
-        if d.rank < 1.0:
-            continue      # listed-only rungs (f16/q5) are never auto-recommended
-        if d.est_bytes and (d.compute_type not in sizes or d.est_bytes > sizes[d.compute_type]):
-            sizes[d.compute_type] = d.est_bytes
+        if d.est_bytes and (d.compute_type not in sizes_all or d.est_bytes > sizes_all[d.compute_type]):
+            sizes_all[d.compute_type] = d.est_bytes
+            if d.rank >= 1.0:
+                sizes[d.compute_type] = d.est_bytes   # listed-only (f16/q5) never auto-recommended
         if d.rank > best_rank:
             best_rank, default = d.rank, d.compute_type
-    if pin in sizes:
+    if pin in sizes_all:
         return pin
-    # LOAD-time reality: only cached quants are loadable — restrict when any exist.
+    # LOAD-time reality: only cached quants are loadable — restrict when any
+    # exist. A downloaded listed-only rung counts: we always RUN the file the
+    # user downloaded; the curated filter only shapes fresh recommendations.
     if downloaded:
-        cached = {q: sz for q, sz in sizes.items() if q in downloaded}
+        cached = {q: sz for q, sz in sizes_all.items() if q in downloaded}
         if cached:
             sizes = cached
             if default not in sizes:

@@ -1348,6 +1348,36 @@ def test_asr_pin_narrows_ladder(monkeypatch):
     assert all(p.compute_type == "q8_0" for p in plans)   # user's will
 
 
+def test_asr_pin_listed_only_quant_honored(monkeypatch):
+    """REGRESSION (PR #279 review): f16/q5_k_m are listed-only (rank 0.5,
+    never auto-recommended) but fully pickable in the UI — a pin on them
+    must win, not silently fall back to a curated rung."""
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="f16")
+    assert all(p.compute_type == "f16" for p in plans)
+
+
+def test_asr_downloaded_listed_only_quant_loads(monkeypatch):
+    """We always RUN the file the user downloaded — when the only cached
+    quant is a listed-only rung (f16), auto must load it, not resolve to a
+    curated quant that isn't on disk."""
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"f16"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "f16"
+
+
+def test_asr_fresh_recommendation_never_listed_only(monkeypatch):
+    # Unchanged download-recommendation semantics: nothing cached, roomy
+    # 24GB GPU fits even f16, but the budget walk only considers curated
+    # rungs — q8_0 stays the recommendation.
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 24564),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0"
+
+
 def test_asr_single_quant_cards_unaffected(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
