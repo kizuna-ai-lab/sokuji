@@ -13,6 +13,88 @@ from sokuji_sidecar import server
 os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
+class _FakeNvml:
+    """Minimal pynvml stand-in: one device, RTX-4070-shaped. Records lifecycle
+    calls so tests can assert init/shutdown pairing."""
+
+    class _Mem:
+        total = 12 * 1024 * 1024 * 1024
+        free = 9 * 1024 * 1024 * 1024
+
+    def __init__(self, name="NVIDIA GeForce RTX 4070", count=1):
+        self._name = name
+        self._count = count
+        self.inits = 0
+        self.shutdowns = 0
+
+    def nvmlInit(self):
+        self.inits += 1
+
+    def nvmlShutdown(self):
+        self.shutdowns += 1
+
+    def nvmlDeviceGetCount(self):
+        return self._count
+
+    def nvmlDeviceGetHandleByIndex(self, i):
+        return i
+
+    def nvmlDeviceGetMemoryInfo(self, h):
+        return self._Mem()
+
+    def nvmlDeviceGetCudaComputeCapability(self, h):
+        return (8, 9)
+
+    def nvmlDeviceGetName(self, h):
+        return self._name
+
+
+def _install_fake_nvml(monkeypatch, fake):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", fake)
+
+
+def test_nvidia_gpus_probe_via_nvml(monkeypatch):
+    # torch is gone: GPU properties (vram, compute capability, name) come from NVML.
+    fake = _FakeNvml()
+    _install_fake_nvml(monkeypatch, fake)
+    gpus = accel._nvidia_gpus()
+    assert gpus == (accel.Gpu("nvidia", "NVIDIA GeForce RTX 4070", 12288, (8, 9)),)
+    assert fake.inits == 1 and fake.shutdowns == 1
+
+
+def test_nvidia_gpus_decodes_bytes_name(monkeypatch):
+    # older NVML bindings return bytes from nvmlDeviceGetName
+    _install_fake_nvml(monkeypatch, _FakeNvml(name=b"NVIDIA GeForce RTX 4070"))
+    gpus = accel._nvidia_gpus()
+    assert gpus[0].name == "NVIDIA GeForce RTX 4070"
+
+
+def test_nvidia_gpus_empty_without_nvml(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", None)  # import raises ImportError
+    assert accel._nvidia_gpus() == ()
+
+
+def test_cuda_free_bytes_via_nvml(monkeypatch):
+    fake = _FakeNvml()
+    _install_fake_nvml(monkeypatch, fake)
+    assert accel._cuda_free_bytes() == 9 * 1024 * 1024 * 1024
+    assert fake.inits == 1 and fake.shutdowns == 1
+
+
+def test_cuda_free_bytes_none_without_nvml(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "pynvml", None)
+    assert accel._cuda_free_bytes() is None
+
+
+def test_cuda_free_bytes_none_without_devices(monkeypatch):
+    fake = _FakeNvml(count=0)
+    _install_fake_nvml(monkeypatch, fake)
+    assert accel._cuda_free_bytes() is None
+
+
 def test_probe_assembles_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
@@ -44,16 +126,18 @@ def test_probe_is_cached(monkeypatch):
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"ctranslate2", "sherpa"})):
+def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=(), gpus=()):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
-                         fingerprint="test")
+                         fingerprint="test", tc_kinds=tc, gpus=gpus)
 
 
 def _model_cpu_and_cuda():
+    # synthetic rows exercising the generic resolver mechanics (tier ranking,
+    # override pinning) — backend name only needs to be in `installed`
     return catalog.AsrModel("m", "M", ("multi",), (
-        catalog.Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
-        catalog.Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0),
+        catalog.Deployment("transcribe_cpp", "gpu-cuda", "float16", "large-v3", 1.0),
+        catalog.Deployment("transcribe_cpp", "cpu", "int8", "large-v3", 1.0),
     ))
 
 
@@ -84,10 +168,11 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "funasr_sensevoice"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))   # no accelerator
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
-    assert plans[0].backend == "funasr_sensevoice" and plans[0].device == "cpu"
+    assert plans[0].backend == "transcribe_cpp" and plans[0].device == "cpu"
 
 
 def test_resolve_unknown_model_raises():
@@ -191,7 +276,7 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
 
 def test_load_measured_reports_vram_delta_for_cuda(monkeypatch):
     free = iter([10 * _GIB, 2 * _GIB])  # before, after -> 8 GiB used
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: next(free))
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))
     monkeypatch.setattr(accel, "_rss_bytes", lambda: 1000)
     monkeypatch.setattr(accel, "load_with_fallback",
                         lambda plans: ("BE", _plan("cuda"), None))
@@ -249,7 +334,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "funasr_sensevoice"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -260,13 +346,15 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [
-        {"tier": "gpu-cuda", "backend": "funasr_sensevoice", "available": False},
-        {"tier": "cpu", "backend": "funasr_sensevoice", "available": True},
+        {"tier": "gpu-vulkan", "backend": "transcribe_cpp", "available": False},
+        {"tier": "gpu-metal", "backend": "transcribe_cpp", "available": False},
+        {"tier": "cpu", "backend": "transcribe_cpp", "available": True},
     ]
-    assert by_id["whisper-large-v3"]["recommended"] is True
-    assert by_id["whisper-base"]["recommended"] is False
+    # 2026-07-05 roster: the whisper star moved to large-v3-turbo
+    assert by_id["whisper-large-v3-turbo"]["recommended"] is True
+    assert by_id["whisper-large-v3"]["recommended"] is False
     # sizeBytes rides along with the catalog entry — no separate model_sizes round-trip.
-    assert by_id["sense-voice"]["sizeBytes"] == 944624033
+    assert by_id["sense-voice"]["sizeBytes"] == 252684608
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
@@ -283,35 +371,42 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
     assert ids == ["sense-voice"]
 
 
-def test_whisper_resolves_gpu_first_on_nvidia():
+def test_whisper_resolves_vulkan_first_on_nvidia():
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288),))
-    plans = accel.resolve("whisper-tiny", machine=m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]
-    assert plans[0].compute_type == "float16" and plans[1].compute_type == "int8"
+    plans = accel.resolve("whisper-base", machine=m)
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+    assert all(p.backend == "transcribe_cpp" and p.compute_type == "q8_0" for p in plans)
 
 
 def test_whisper_cpu_only_machine_drops_gpu():
-    plans = accel.resolve("whisper-tiny", machine=_machine())  # no nvidia
+    plans = accel.resolve("whisper-base", machine=_machine())  # no nvidia
     assert [p.device for p in plans] == ["cpu"]
 
 
 def test_whisper_cpu_override_pins_cpu_on_nvidia():
     m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
-    plans = accel.resolve("whisper-tiny", override="cpu", machine=m)
+    plans = accel.resolve("whisper-base", override="cpu", machine=m)
     assert plans[0].device == "cpu"
 
 
-def test_sense_voice_resolves_gpu_when_present():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
-                 installed=frozenset({"funasr_sensevoice"}))
+def test_sense_voice_resolves_vulkan_then_cpu_on_nvidia():
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
     plans = accel.resolve("sense-voice", machine=m)
-    assert [p.device for p in plans] == ["cuda", "cpu"]  # GPU preferred, CPU floor survives
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+
+
+def test_vulkan_tier_from_tc_probe_alone():
+    # An AMD/Intel box: no NVML GPUs, no DML — transcribe.cpp's own Vulkan
+    # probe is enough to light the gpu-vulkan tier.
+    m = _machine(tc=("cpu", "vulkan"))
+    plans = accel.resolve("whisper-base", machine=m)
+    assert plans[0].device == "vulkan"
 
 
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     assert accel.bench_load() == {}  # nothing yet
-    key = accel._bench_key("fp123", "whisper-tiny", "ctranslate2", "cuda", "float16")
+    key = accel._bench_key("fp123", "whisper-base", "ctranslate2", "cuda", "float16")
     accel.bench_save({key: 0.12})
     assert accel.bench_load()[key] == 0.12
 
@@ -338,11 +433,11 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
 
     m = _machine()
     plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-tiny", m)
+    rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-base", m)
     assert rtf is not None and rtf >= 0.0
     # cached: a second call returns the same value without re-running
     cache = accel.bench_load()
-    assert accel._bench_key(m.fingerprint, "whisper-tiny", "ctranslate2", "cpu", "int8") in cache
+    assert accel._bench_key(m.fingerprint, "whisper-base", "ctranslate2", "cpu", "int8") in cache
 
 
 def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
@@ -391,10 +486,10 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     # seed the cache keyed by the machine we resolve for (m.fingerprint == "test")
     fp = m.fingerprint
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
-    plans = accel.resolve("whisper-tiny", machine=m)
+    plans = accel.resolve("whisper-base", machine=m)
     assert plans[0].device == "cpu"  # demoted: cpu now leads
 
 
@@ -405,63 +500,42 @@ def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
     # cache says cuda is slower than cpu — AUTO would demote, but an explicit
     # override must win (the benchmark never overrides the user's forced device).
     accel.bench_save({
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cuda", "float16"): 0.8,
-        accel._bench_key(fp, "whisper-tiny", "ctranslate2", "cpu", "int8"): 0.3,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
+        accel._bench_key(fp, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
     })
-    plans = accel.resolve("whisper-tiny", override="cuda", machine=m)
-    assert plans[0].device == "cuda"  # explicit override beats cache demotion
+    # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here).
+    plans = accel.resolve("whisper-base", override="cuda", machine=m)
+    assert plans[0].device == "vulkan"  # explicit override beats cache demotion
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
-def test_real_gpu_resolves_and_loads_cuda(tmp_path, monkeypatch):
+                    reason="set SOKUJI_RUN_GPU=1 (needs a GPU transcribe.cpp can drive via Vulkan)")
+def test_real_gpu_resolves_and_loads_vulkan(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # don't touch the user cache
     accel.probe(force=True)
-    plans = accel.resolve("whisper-tiny")
-    assert plans[0].device == "cuda", f"expected cuda first, got {[p.device for p in plans]}"
+    plans = accel.resolve("whisper-base")
+    assert plans[0].device == "vulkan", f"expected vulkan first, got {[p.device for p in plans]}"
     backend, plan, _notice = accel.load_with_fallback(plans)
     try:
-        assert plan.device == "cuda"
-        rtf = accel.measure_rtf(backend, plan, "whisper-tiny", accel.probe(), force=True)
+        assert plan.device == "vulkan"
+        rtf = accel.measure_rtf(backend, plan, "whisper-base", accel.probe(), force=True)
         assert rtf is not None and rtf < 1.0, f"GPU should be faster than realtime, rtf={rtf}"
     finally:
         backend.unload()
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (needs NVIDIA GPU + CUDA-enabled ctranslate2)")
+                    reason="set SOKUJI_RUN_GPU=1 (needs a GPU transcribe.cpp can drive via Vulkan)")
 def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     accel.probe(force=True)
-    plans = accel.resolve("whisper-tiny", override="cpu")
+    plans = accel.resolve("whisper-base", override="cpu")
     assert plans[0].device == "cpu"
     backend, plan, _notice = accel.load_with_fallback(plans)
     try:
         assert plan.device == "cpu"
     finally:
         backend.unload()
-
-
-def test_installed_includes_transformers():
-    # transformers is a sidecar dependency → detected by _installed()
-    assert "transformers" in accel._installed()
-
-
-def test_voxtral_readiness_requires_mistral_common(monkeypatch):
-    # VoxtralRealtimeBackend.load() needs both the transformers voxtral_realtime model AND
-    # mistral_common (processor/tokenizer). A half-installed env (model present, mistral_common
-    # missing) must NOT advertise voxtral_realtime, else the catalog shows it but load() fails.
-    monkeypatch.setattr(accel, "_has_mod", lambda m: m != "mistral_common")  # all present except mistral_common
-    assert "voxtral_realtime" not in accel._installed()
-    monkeypatch.setattr(accel, "_has_mod", lambda m: True)                   # both present
-    assert "voxtral_realtime" in accel._installed()
-
-
-def test_granite_resolves_gpu_only_on_nvidia_with_transformers():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"transformers"}))
-    plans = accel.resolve("granite-speech-4.1-2b", machine=m)
-    assert [p.device for p in plans] == ["cuda"]   # gpu-only → single plan, no cpu floor
-    assert plans[0].backend == "transformers" and plans[0].compute_type == "bfloat16"
 
 
 def test_granite_gated_off_on_cpu_only_machine():
@@ -491,135 +565,23 @@ def test_qwen3asr_model_unavailable_without_runtime(monkeypatch):
     assert plans == []     # gated off: no usable deployment
 
 
-def test_qwen3asr_gated_on_qwen3_asr_module(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def fake_find_spec(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "qwen3asr" not in accel._installed()
-
-    def present(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "qwen3asr" in accel._installed()
-
-
 def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
-    """_installed() must never raise when find_spec raises for a sub-module.
-    The qwen3asr entry can trigger ModuleNotFoundError if `transformers` itself
-    is absent; the guarded _has_mod() helper must absorb the exception and keep
-    all other present backends in the returned frozenset."""
+    """_installed() must never raise when find_spec raises for a module —
+    the guarded _has_mod() helper absorbs the exception and keeps every other
+    present backend in the returned frozenset."""
     import importlib.util as iu
     from sokuji_sidecar import accel
     real = iu.find_spec
 
     def raising_find_spec(name, *a, **k):
-        if name == "transformers.models.qwen3_asr":
+        if name == "transcribe_cpp":
             raise ModuleNotFoundError("no module named transformers.models.qwen3_asr")
         return real(name, *a, **k)
 
     monkeypatch.setattr(accel.importlib.util, "find_spec", raising_find_spec)
     result = accel._installed()          # must NOT raise
-    assert "qwen3asr" not in result      # the raising entry is excluded …
-    assert "transformers" in result      # … but other present backends survive
-
-
-def test_cohereasr_resolves_gpu_on_nvidia_with_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"cohere_transformers", "transformers"}),
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
-    assert [p.device for p in plans] == ["cuda"]
-    assert plans[0].backend == "cohere_transformers" and plans[0].compute_type == "bfloat16"
-
-
-def test_cohereasr_model_unavailable_without_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),  # no cohereasr
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("cohere-transcribe-03-2026"), m)
-    assert plans == []     # gated off: no usable deployment
-
-
-def test_cohereasr_gated_on_cohere_asr_module(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def fake_find_spec(name, *a, **k):
-        if name == "transformers.models.cohere_asr":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", fake_find_spec)
-    assert "cohere_transformers" not in accel._installed()
-
-
-@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (NVIDIA GPU + CUDA torch + transformers + Granite cached)")
-def test_real_gpu_granite_transcribes(tmp_path, monkeypatch):
-    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))  # isolate the bench cache
-    accel.probe(force=True)
-    plans = accel.resolve("granite-speech-4.1-2b-plus")
-    assert plans[0].device == "cuda" and plans[0].backend == "transformers", \
-        f"expected transformers/cuda, got {[(p.backend, p.device) for p in plans]}"
-    backend, plan, _notice = accel.load_with_fallback(plans)
-    try:
-        from huggingface_hub import snapshot_download
-        import wave
-        d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
-        w = wave.open(f"{d}/test_wavs/en.wav", "rb")
-        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
-        text = backend.transcribe(audio, None).text.lower()
-        assert "gold" in text or "tribal" in text, f"unexpected transcript: {text!r}"
-        rtf = accel.measure_rtf(backend, plan, "granite-speech-4.1-2b-plus", accel.probe(), force=True)
-        assert rtf is not None and rtf < 1.0, f"speech-LLM should be faster than realtime on GPU, rtf={rtf}"
-    finally:
-        backend.unload()
-
-
-def test_voxtral_realtime_gated_on_voxtral_realtime_module(monkeypatch):
-    import importlib.util as iu
-    from sokuji_sidecar import accel
-    real = iu.find_spec
-
-    def absent(name, *a, **k):
-        if name == "transformers.models.voxtral_realtime":
-            return None
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", absent)
-    assert "voxtral_realtime" not in accel._installed()
-
-    def present(name, *a, **k):
-        if name == "transformers.models.voxtral_realtime":
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "voxtral_realtime" in accel._installed()
-
-
-def test_voxtral_resolves_gpu_on_nvidia_with_runtime():
-    from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"voxtral_realtime", "transformers"}),
-                      fingerprint="testfp")
-    plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
-    assert [p.device for p in plans] == ["cuda"]
-    assert plans[0].backend == "voxtral_realtime" and plans[0].compute_type == "bfloat16"
+    assert "transcribe_cpp" not in result   # the raising entry is excluded …
+    assert "sherpa_tts" in result           # … but other present backends survive
 
 
 def test_voxtral_model_unavailable_without_runtime():
@@ -631,16 +593,6 @@ def test_voxtral_model_unavailable_without_runtime():
                       fingerprint="testfp")
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
-
-
-def test_fun_asr_mlt_nano_resolves_gpu_and_cpu():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"funasr_nano"}))
-    # explicit cuda override -> gpu-cuda plan first
-    plan = accel.resolve("fun-asr-mlt-nano", "cuda", m)
-    assert plan[0].backend == "funasr_nano" and plan[0].tier == "gpu-cuda"
-    # explicit cpu override -> cpu plan
-    plan_cpu = accel.resolve("fun-asr-mlt-nano", "cpu", m)
-    assert plan_cpu[0].tier == "cpu"
 
 
 def test_resolve_translate_prefers_gpu(monkeypatch):
@@ -723,28 +675,8 @@ def test_new_translate_backends_installed_and_resolvable():
     assert any(p.backend == "llamacpp_gemma" for p in g)
 
 
-def test_nvidia_gpus_populates_vram_and_capability(monkeypatch):
-    import types, sys
-    fake_torch = types.SimpleNamespace(
-        cuda=types.SimpleNamespace(
-            get_device_properties=lambda i: types.SimpleNamespace(total_memory=12 * 1024**3),
-            get_device_capability=lambda i: (8, 9),
-        )
-    )
-    monkeypatch.setitem(sys.modules, "torch", fake_torch)
-    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
-    gpus = accel._nvidia_gpus()
-    assert len(gpus) == 1
-    assert gpus[0].vram_mb == 12 * 1024  # 12 GiB in MB
-    assert gpus[0].capability == (8, 9)
-
-
-def test_nvidia_gpus_degrades_when_torch_fails(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "torch", None)  # import torch → TypeError/ImportError
-    monkeypatch.setattr(accel, "_cuda_count", lambda: 1)
-    gpus = accel._nvidia_gpus()
-    assert len(gpus) == 1 and gpus[0].vram_mb == 0 and gpus[0].capability is None
+# NVML probe coverage lives at the top of this file (test_nvidia_gpus_probe_via_nvml
+# and friends) — the torch-era probe tests were superseded by them.
 
 
 # ── select_variant tests ────────────────────────────────────────────────────
@@ -1162,7 +1094,8 @@ def test_list_variants_dedupes_llamacpp(monkeypatch):
     ids = [v["id"] for v in reply["variants"]]
     assert sorted(ids) == ["q4_k_m", "q8_0"]        # deduped across tiers
     assert all(v["supported"] for v in reply["variants"])
-    assert reply["recommended"] == "q4_k_m"
+    # stable-total basis: a roomy NVIDIA card recommends the quality quant
+    assert reply["recommended"] == "q8_0"
 
 
 def test_models_catalog_variant_ids(monkeypatch):
@@ -1171,3 +1104,537 @@ def test_models_catalog_variant_ids(monkeypatch):
     by_id = {m["id"]: m for m in reply["models"]}
     assert by_id["translategemma-4b"]["variantIds"] == ["q4_k_m", "q8_0"]
     assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
+
+
+def test_speech_llms_resolve_vulkan_then_cpu_on_nvidia():
+    # granite/qwen3/voxtral/cohere all share the transcribe_cpp rows now —
+    # on an NVIDIA box they resolve vulkan first with a cpu floor.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12288),))
+    for mid in ("granite-speech-4.1-2b", "qwen3-asr-1.7b",
+                "voxtral-mini-4b-realtime", "cohere-transcribe-03-2026",
+                "fun-asr-mlt-nano"):
+        plans = accel.resolve(mid, machine=m)
+        assert [p.device for p in plans] == ["vulkan", "cpu"], mid
+        assert all(p.backend.startswith("transcribe_cpp") for p in plans), mid
+
+
+def test_asr_unavailable_without_transcribe_cpp():
+    # wheel missing → no ASR model resolves (installed gate)
+    m = _machine(installed=frozenset())
+    import pytest as _pytest
+    with _pytest.raises(accel.NoUsablePlan):
+        accel.resolve("whisper-base", machine=m)
+
+
+# ── Phase E1: GPU identity + fresh memory reads ──────────────────────────────
+
+
+class _FakeTcDev:
+    def __init__(self, kind, desc, total, free, device_type="gpu"):
+        self.kind = kind
+        self.description = desc
+        self.memory_total = total
+        self.memory_free = free
+        self.device_type = device_type
+
+
+def _fake_tc_module(devs):
+    import types
+    mod = types.ModuleType("transcribe_cpp")
+    mod.backends = lambda: devs
+    return mod
+
+
+def test_machine_gpus_stable_identity(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
+        _FakeTcDev("cpu", "Ryzen 7", 64 << 30, 60 << 30, device_type="cpu"),
+    ]))
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    m = accel.probe(force=True)
+    # gpus: STABLE identity only (kind, name, mem_total) — no volatile free
+    assert m.gpus == (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)
+    assert m.tc_kinds == ("cpu", "vulkan")
+
+
+def test_fingerprint_ignores_volatile_free(monkeypatch):
+    import sys
+    def probe_with_free(free):
+        monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+            _FakeTcDev("vulkan", "RTX 4070", 12 << 30, free)]))
+        monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+        monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+        monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+        monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+        return accel.probe(force=True).fingerprint
+    assert probe_with_free(10 << 30) == probe_with_free(2 << 30)
+
+
+def test_device_free_bytes_prefers_tc(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("vulkan", "RTX 4070", 12 << 30, 9 << 30)]))
+    assert accel.device_free_bytes() == 9 << 30
+
+
+def test_device_free_bytes_nvml_fallback(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", None)   # import fails
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 7 << 30)
+    assert accel.device_free_bytes() == 7 << 30
+
+
+def test_device_free_bytes_none_without_gpu(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
+        _FakeTcDev("cpu", "Ryzen", 64 << 30, 60 << 30, device_type="cpu")]))
+    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    assert accel.device_free_bytes() is None
+
+
+def test_ram_free_bytes_positive():
+    n = accel.ram_free_bytes()
+    assert n is None or n > 0
+
+
+# ── Phase E2: translate quant = largest FULLY-resident (budget-aware) ────────
+
+
+def _gemma():
+    # translategemma-4b: default quant q4_k_m (rank 2.0, ~2.49GB), alt q8_0 (~4.13GB)
+    return catalog.translate_model("translategemma-4b")
+
+
+def _gpu_m():
+    return _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                    installed=frozenset({"llamacpp_gemma", "transcribe_cpp"}))
+
+
+def test_variant_plenty_of_budget_picks_largest_quant():
+    # 10 GiB budget: q8_0 (4.13GB × 1.1 ≈ 4.5GB) fully fits → quality wins over
+    # the curated q4 default.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=10 << 30)
+    assert d.compute_type == "q8_0" and d.tier != "cpu"
+
+
+def test_variant_tight_budget_steps_down_to_default():
+    # 3 GiB: q8 (4.5GB need) doesn't fit, q4 (2.49×1.1≈2.7GB) does.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=3 << 30)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_half_fits_keeps_gpu_via_fit():
+    # 1.5 GiB: nothing fully fits, but ≥50% of the smallest quant (2.49GB)
+    # → stay on GPU with --fit partial offload at the default quant.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=int(1.5 * (1 << 30)))
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_starved_budget_goes_cpu():
+    # 0.5 GiB: below 50% of the smallest quant → fully-CPU beats heavy offload.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=1 << 29)
+    assert d.tier == "cpu"
+
+
+def test_variant_pin_beats_budget():
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=1 << 29, pin="q8_0")
+    assert d.compute_type == "q8_0" and d.tier != "cpu"   # user's will, --fit copes
+
+
+def test_variant_no_budget_reading_keeps_rank_default():
+    # budget unknown (no GPU memory reading) → previous behavior: rank default.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                             budget_bytes=None)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_variant_reserved_subtracts_from_budget():
+    # 10 GiB budget but 7 GiB reserved for other stages → only q4 fits.
+    d = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=7 << 30,
+                             budget_bytes=10 << 30)
+    assert d.compute_type == "q4_k_m" and d.tier != "cpu"
+
+
+def test_resolve_translate_auto_matches_recommendation_basis(monkeypatch):
+    # LOAD uses the SAME stable mem_total basis as the download recommendation
+    # (we always run the downloaded file): a 12GB card recommends+loads q8_0
+    # even under transient VRAM pressure (--fit handles placement).
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].compute_type == "q8_0" and plans[0].device != "cpu"
+
+
+def test_resolve_translate_auto_loads_the_downloaded_file(monkeypatch):
+    # ... but when the user has (only) q4 downloaded, that IS the model we run.
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_list_variants_recommends_on_stable_total(monkeypatch):
+    # recommendation keys on mem_total (12GB → q8 recommended) even when the
+    # transient free is tiny — download advice must not flap session-to-session.
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"llamacpp_gemma"}), fingerprint="t",
+                      gpus=(("vulkan", "RTX 4070", 12 << 30),))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)
+    import asyncio as _a, json as _j
+    from sokuji_sidecar import server as _srv
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = _a.run(_srv.handle_message(
+        st, _j.dumps({"type": "list_variants", "id": 9, "model": "translategemma-4b"}), None, None))
+    assert reply["recommended"] == "q8_0"
+
+
+# ── Phase E3: ASR quality ladder (budget-aware quant pick) ──────────────────
+
+
+def test_asr_roomy_budget_upgrades_to_q8(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # 12 GB card: cohere's q8_0 (2.41GB×1.15) fits → recommend the quality
+    # rung. STABLE basis (mem_total) — this is a download recommendation.
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0" and plans[0].device == "vulkan"
+    # one plan per tier — the ladder narrowed to ONE quant
+    assert [p.device for p in plans] == ["vulkan", "cpu"]
+
+
+def test_asr_tight_budget_keeps_default(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # a 2 GB card: q8 (2.77GB need) never fits → default stays recommended
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 2048),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_asr_cpu_only_prefers_smallest_quant(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # whisper-large-v3 defaults to q8_0, but CPU is bandwidth-bound: the
+    # smallest quant (q4_k_m) is both faster and lighter there.
+    plans = accel.resolve("whisper-large-v3", machine=_machine())
+    assert [p.device for p in plans] == ["cpu"]
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_asr_unknown_memory_keeps_default_on_gpu(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    # GPU present but no memory reading at all (vram_mb=0, no tc gpus) →
+    # conservative default quant
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m" and plans[0].device == "vulkan"
+
+
+def test_asr_pin_narrows_ladder(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 2048),))  # q8 wouldn't fit
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="q8_0")
+    assert all(p.compute_type == "q8_0" for p in plans)   # user's will
+
+
+def test_asr_pin_listed_only_quant_honored(monkeypatch):
+    """REGRESSION (PR #279 review): f16/q5_k_m are listed-only (rank 0.5,
+    never auto-recommended) but fully pickable in the UI — a pin on them
+    must win, not silently fall back to a curated rung."""
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="f16")
+    assert all(p.compute_type == "f16" for p in plans)
+
+
+def test_asr_downloaded_listed_only_quant_loads(monkeypatch):
+    """We always RUN the file the user downloaded — when the only cached
+    quant is a listed-only rung (f16), auto must load it, not resolve to a
+    curated quant that isn't on disk."""
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"f16"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "f16"
+
+
+def test_asr_fresh_recommendation_never_listed_only(monkeypatch):
+    # Unchanged download-recommendation semantics: nothing cached, roomy
+    # 24GB GPU fits even f16, but the budget walk only considers curated
+    # rungs — q8_0 stays the recommendation.
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 24564),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0"
+
+
+def test_asr_single_quant_cards_unaffected(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("sense-voice", machine=m)
+    assert [p.compute_type for p in plans] == ["q8_0", "q8_0"]
+
+
+def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "models_catalog", "id": 5, "kind": "asr",
+                        "models": ["cohere-transcribe-03-2026", "sense-voice"]}), None, None))
+    by_id = {m["id"]: m for m in reply["models"]}
+    assert by_id["cohere-transcribe-03-2026"]["variantIds"] == \
+        ["q4_k_m", "f16", "q8_0", "q6_k", "q5_k_m"]   # full ladder, default first
+    # every ASR card now carries its full ladder → variantIds everywhere
+    assert by_id["sense-voice"]["variantIds"][0] == "q8_0"    # default first
+    # tiers deduped: 3 entries, not 6, despite the two-quant ladder
+    assert [t["tier"] for t in by_id["cohere-transcribe-03-2026"]["tiers"]] == \
+        ["gpu-vulkan", "gpu-metal", "cpu"]
+
+
+def test_asr_quant_pick_prefers_downloaded(monkeypatch):
+    # a 12GB card would recommend q8_0, but only q4_k_m is in the local cache
+    # → we run the model the user downloaded, full stop.
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_translate_quant_pick_prefers_downloaded(monkeypatch):
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].compute_type == "q4_k_m"
+
+
+def test_quant_pick_ignores_download_state_when_nothing_cached(monkeypatch):
+    # fresh machine, nothing downloaded: recommend by the stable basis (the
+    # gate then walks the user through downloading that quant)
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].compute_type == "q8_0"
+
+
+# ── Phase E4: cross-stage VRAM ledger ────────────────────────────────────────
+
+
+def test_ledger_claim_release_other():
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 1 << 30)
+    accel.ledger_claim("tts", 0)            # loaded, but on cpu → holds nothing
+    assert accel.ledger_other("translate") == 1 << 30
+    assert accel.ledger_other("asr") == 0
+    accel.ledger_release("asr")
+    assert accel.ledger_other("translate") == 0
+
+
+def test_ledger_effective_reserve_loaded_stage_reserves_zero():
+    """REGRESSION (voxtral Q8 + tiny translate crash, 2026-07-05): a LOADED
+    stage's VRAM is already OUT of every free reading --fit takes — re-
+    reserving its measured claim double-counts. Measured on the 4070: voxtral
+    Q8 claims 6.2GB at load; adding it to --fit-target pushed a 0.8B translate
+    LLM fully off a GPU that still had 3.2GB free, and its CUDA remnants then
+    crashed llama-server on the first request. Loaded stages contribute 0;
+    only not-yet-loaded stages reserve their planned estimate."""
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 6252 << 20)          # voxtral Q8 measured claim
+    planned = {"asr": 5 << 30, "tts": 80 << 20}    # piper is tiny
+    r = accel.ledger_effective_reserve("translate", planned)
+    assert r == 80 << 20                           # only the unloaded stage
+
+
+def test_ledger_effective_reserve_unloaded_stages_use_estimates():
+    accel.ledger_reset()
+    planned = {"asr": 3 << 30, "tts": 4 << 30}     # nothing loaded yet
+    r = accel.ledger_effective_reserve("translate", planned)
+    assert r == (3 << 30) + (4 << 30)
+
+
+def test_ledger_effective_reserve_cpu_loaded_stage_reserves_nothing():
+    accel.ledger_reset()
+    accel.ledger_claim("asr", 0)                   # loaded on cpu
+    r = accel.ledger_effective_reserve("translate", {"asr": 3 << 30})
+    assert r == 0                                  # fixes the stacked-padding over-reserve
+
+
+def test_load_measured_claims_into_ledger(monkeypatch):
+    accel.ledger_reset()
+    frees = iter([10 << 30, 8 << 30])              # 2GB delta during the load
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: next(frees))
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
+
+    class _B:
+        def load(self, a, d, c): pass
+    monkeypatch.setattr(accel, "make_backend", lambda name: _B())
+    plans = [accel.Plan("transcribe_cpp", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
+    _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
+    assert mem == 2 << 30                          # vulkan delta measured (not cuda-only)
+    assert accel.ledger_other("translate") == 2 << 30
+    accel.ledger_release("asr")
+
+
+def test_load_measured_cpu_claims_zero(monkeypatch):
+    accel.ledger_reset()
+    monkeypatch.setattr(accel, "_rss_bytes", lambda: 1 << 30)
+
+    class _B:
+        def load(self, a, d, c): pass
+    monkeypatch.setattr(accel, "make_backend", lambda name: _B())
+    plans = [accel.Plan("transcribe_cpp", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
+    accel.load_measured(plans, stage="asr")
+    assert accel.ledger_other("translate") == 0    # present but holds no VRAM
+    assert "asr" in accel._LEDGER
+    accel.ledger_release("asr")
+
+
+# ── Phase E5(sidecar): full variant list precomputed in models_catalog ───────
+
+
+def _catalog_reply(monkeypatch, gpus=(), nvidia=(), kind="asr", models=None):
+    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: nvidia)
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed",
+                        lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_gemma"}))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: gpus)
+    accel.probe(force=True)
+    st = {"handlers": {}}
+    accel.register(st)
+    req = {"type": "models_catalog", "id": 7, "kind": kind}
+    if models:
+        req["models"] = models
+    reply, _ = asyncio.run(server.handle_message(st, json.dumps(req), None, None))
+    return {m["id"]: m for m in reply["models"]}
+
+
+def test_catalog_variants_full_ladder_sorted_quality_desc(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "RTX 4070", 12 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    v = by_id["cohere-transcribe-03-2026"]["variants"]
+    assert [x["id"] for x in v] == ["f16", "q8_0", "q6_k", "q5_k_m", "q4_k_m"]
+    assert all(x["sizeBytes"] > 0 for x in v)
+    assert all(x["supported"] for x in v)     # 12GB fits even f16 (4.1GB×1.15)
+    assert sum(1 for x in v if x["recommended"]) == 1
+
+
+def test_catalog_variants_supported_respects_small_gpu(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "iGPU", 2 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    v = {x["id"]: x for x in by_id["cohere-transcribe-03-2026"]["variants"]}
+    assert not v["f16"]["supported"]          # 4.1GB into 2GB: no
+    assert v["q4_k_m"]["supported"]           # 1.56GB×1.15 fits
+    rec = [x["id"] for x in by_id["cohere-transcribe-03-2026"]["variants"] if x["recommended"]]
+    assert rec == ["q4_k_m"]
+
+
+def test_catalog_variants_cpu_only_recommends_smallest(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, models=["whisper-large-v3"])
+    v = by_id["whisper-large-v3"]["variants"]
+    rec = [x["id"] for x in v if x["recommended"]]
+    assert rec == ["q4_k_m"]                  # bandwidth-bound CPU: smallest wins
+
+
+def test_catalog_variants_translate_kind_included(monkeypatch):
+    # translate needs an NVIDIA/Metal machine (no vulkan llama flavor yet)
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "RTX 4070", 12 << 30),),
+                           nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+                           kind="translate", models=["translategemma-4b"])
+    v = by_id["translategemma-4b"]["variants"]
+    assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
+    assert all(x["supported"] for x in v)     # llama always runs via --fit
+    assert [x["id"] for x in v if x["recommended"]] == ["q8_0"]
+
+
+# ── E4 tail: Apple unified memory — never go CPU for memory reasons ─────────
+
+
+def _mac_machine(installed=frozenset({"llamacpp_gemma", "transcribe_cpp"})):
+    return accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, nvidia=(),
+                         apple_silicon=True, dml_adapters=(), installed=installed,
+                         fingerprint="mac", tc_kinds=("cpu", "metal"),
+                         gpus=(("metal", "Apple M2", 16 << 30),))
+
+
+def test_llamacpp_unified_memory_never_degrades_to_cpu_for_memory():
+    # Starved budget on Apple Silicon: CPU shares the SAME memory pool, so
+    # moving there frees nothing — stay on metal, --fit handles pressure.
+    d = accel.select_variant(_gemma(), _mac_machine(), reserved_bytes=0,
+                             budget_bytes=1 << 29)
+    assert d.tier == "gpu-metal"
+    # discrete-GPU machine with the same budget still bails to cpu (E2 rule)
+    d2 = accel.select_variant(_gemma(), _gpu_m(), reserved_bytes=0,
+                              budget_bytes=1 << 29)
+    assert d2.tier == "cpu"
+
+
+# ── E6: bench demotion for the translate AUTO path (tps-keyed) ──────────────
+
+
+def test_translate_auto_demotes_gpu_when_bench_says_cpu_faster(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    # measured: gpu decodes SLOWER than cpu (tps lower) for the chosen quant
+    accel.bench_save({
+        "tps:" + accel._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cuda", "q8_0"): 5.0,
+        "tps:" + accel._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cpu", "q8_0"): 12.0,
+    })
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].device == "cpu"        # demoted: cpu decodes faster here
+
+
+def test_translate_auto_keeps_gpu_without_bench(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+                 installed=frozenset({"llamacpp_gemma"}))
+    plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
+    assert plans[0].device == "cuda"       # no measurements → estimate order
+
+
+def test_asr_bench_demotion_uses_quant_keyed_entries(tmp_path, monkeypatch):
+    # post-E3 narrowing: plans carry ONE quant; bench keys must match it
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
+    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    accel.bench_save({
+        accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "vulkan", "q4_k_m"): 0.9,
+        accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "cpu", "q4_k_m"): 0.2,
+    })
+    plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
+    assert plans[0].device == "cpu"        # measured slower on GPU → demoted
+
+
+def test_catalog_variants_carry_reason_data(monkeypatch):
+    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "iGPU", 2 << 30),),
+                           models=["cohere-transcribe-03-2026"])
+    entry = by_id["cohere-transcribe-03-2026"]
+    assert entry["deviceMemBytes"] == 2 << 30
+    f16 = next(v for v in entry["variants"] if v["id"] == "f16")
+    # needBytes = fit-check figure (size × factor) the renderer localizes into
+    # "needs ~X — this machine has Y"
+    assert f16["needBytes"] == int(f16["sizeBytes"] * 1.15)
+    assert not f16["supported"]

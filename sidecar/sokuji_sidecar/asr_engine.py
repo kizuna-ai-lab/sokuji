@@ -6,6 +6,10 @@ import numpy as np
 
 TARGET_RATE = 16000
 SRC_RATE = 24000
+# Gated-streaming pre-roll: silero confirms speech 300-600ms after the true
+# onset (threshold ramp + min_speech_duration) — keep this much audio to
+# replay into a fresh stream so utterances don't lose their first words.
+PREROLL_SAMPLES = int(0.7 * TARGET_RATE)
 
 # sherpa-onnx silero VAD is documented in the k2-fsa releases (the same GitHub-release
 # source as scripts/download-sherpa-wasm.sh). No clean HuggingFace mirror matches the
@@ -65,6 +69,11 @@ class AsrEngine:
         self._window = 512
         self._buf = np.zeros(0, np.float32)
         self._src_rate = SRC_RATE
+        # Pre-roll ring (gated streaming): the last ~0.7s of audio, replayed
+        # into a fresh stream at silero's rising edge — detection lags the true
+        # onset by 300-600ms and that audio used to be silently dropped.
+        self._preroll = []
+        self._preroll_len = 0
 
     def _init_vad(self, sample_rate, vad_threshold, vad_min_silence, vad_min_speech):
         import sherpa_onnx  # lazy: native lib pulled here
@@ -83,7 +92,8 @@ class AsrEngine:
         self._vad = sherpa_onnx.VoiceActivityDetector(vad_cfg, buffer_size_in_seconds=30)
 
     def init(self, model_id=None, language="", sample_rate=SRC_RATE,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
+             pin=None):
         from . import accel
         t0 = time.time()
         # Free any previously-loaded model BEFORE loading the next. The engine is a
@@ -92,8 +102,8 @@ class AsrEngine:
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
-        plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
-        self._backend, plan, notice, mem = accel.load_measured(plans)
+        plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
+        self._backend, plan, notice, mem = accel.load_measured(plans, stage="asr")
         self._language = language or None
         rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,
@@ -119,6 +129,8 @@ class AsrEngine:
         of each init() and when a session connection closes, so VRAM never accumulates.
         Also ends any open streaming session (its generate thread holds an independent
         model reference that unload() alone cannot reclaim)."""
+        from . import accel
+        accel.ledger_release("asr")
         self._stop = True
         stream = getattr(self, "_stream", None)
         if stream is not None:
@@ -179,13 +191,14 @@ class AsrEngine:
         return bool(getattr(self._backend, "STREAMING", False))
 
     def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE,
-                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
+                       pin=None):
         """Like init(), but for a STREAMING backend: resolve+load, set up VAD for
         endpointing, and prepare the audio queue + always-stream state (default mode)."""
         import queue as _queue
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
-        self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device)
+        self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device, pin)
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
         if mem is not None:
@@ -195,16 +208,38 @@ class AsrEngine:
         self._language = language or None
         self._audio_q = _queue.Queue()
         self._mode = "always_stream"
-        self._stream = self._backend.open_stream()   # always-stream: one long-lived session
+        self._stream = self._open_stream()   # always-stream: one long-lived session
+        self._preroll = []
+        self._preroll_len = 0
         self._pending = ""           # text drained since the last cut (the partial)
         self._partial_acc = []       # per-utterance fallback accumulator
         self._utt_start_sample = 0
         self._sample_cursor = 0
         self._utt_samples = 0        # per-utterance fallback (its own cap)
         self._speech_samples = 0     # speech in the current stream (20s run-on cap)
-        self._fed_s = 0.0            # audio seconds fed to the current stream (backpressure)
-        self._delta_count = 0        # tokens drained from the current stream (backpressure)
         self._stop = False
+
+    def _open_stream(self):
+        """Open a stream on the loaded backend, forwarding the user's source
+        language — the same hint the batch path gives session.run(). Every
+        stream (re)open goes through here: init, endpoint-reopen, salvage."""
+        return self._backend.open_stream(self._language)
+
+    def _preroll_push(self, samples):
+        """Roll `samples` into the pre-roll ring (keeps >= PREROLL_SAMPLES)."""
+        self._preroll.append(samples)
+        self._preroll_len += len(samples)
+        while (len(self._preroll) > 1
+               and self._preroll_len - len(self._preroll[0]) >= PREROLL_SAMPLES):
+            self._preroll_len -= len(self._preroll.pop(0))
+
+    def _preroll_take(self):
+        """Drain the ring: the buffered onset audio (or None), resetting it."""
+        if not self._preroll:
+            return None
+        out = np.concatenate(self._preroll)
+        self._preroll, self._preroll_len = [], 0
+        return out
 
     def feed_stream(self, int16_bytes):
         """Non-blocking: hand raw audio to the streaming loop (called from on_binary).
@@ -246,7 +281,13 @@ class AsrEngine:
         """Process one audio buffer: VAD → manage session → emit events. Factored so
         tests can call _drive_once with scripted VAD. Feeds the buffer to the stream
         ONCE per call — a single buffer spans several VAD windows, so feeding per-event
-        would duplicate the audio and scramble the streaming model's features."""
+        would duplicate the audio and scramble the streaming model's features.
+
+        Silero's rising edge lags the true onset by 300-600ms (threshold ramp +
+        min_speech_duration): the pre-roll ring replays that audio into the fresh
+        stream so utterances keep their first words. A fast utterance (recognition
+        quicker than realtime) flips the engine back to the lossless always-stream
+        mode — a degrade is not a one-way door."""
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         events = self._vad_events(samples)
         if "start" in events:
@@ -260,8 +301,11 @@ class AsrEngine:
                     pass
                 self._stream = None
                 self._partial_acc = []
-            self._utt_start_sample = self._sample_cursor
-            self._stream = self._backend.open_stream()
+            self._utt_start_sample = max(0, self._sample_cursor - self._preroll_len)
+            self._stream = self._open_stream()
+            pre = self._preroll_take()
+            if pre is not None:
+                self._stream.feed(pre)     # onset audio silero's latency would drop
             await send({"type": "speech_start"})
         if self._stream is not None and "speech" in events:
             self._stream.feed(samples)
@@ -269,23 +313,43 @@ class AsrEngine:
             if deltas:
                 self._partial_acc += deltas
                 await send({"type": "partial", "text": "".join(self._partial_acc)})
+        ended = False
         if "end" in events and self._stream is not None:
-            await self._finalize(send)
+            dur_ms, rec_ms = await self._finalize(send)
+            ended = True
+            self._preroll, self._preroll_len = [], 0   # ring restarts post-utterance
+            if rec_ms < dur_ms:
+                import sys
+                print("[sokuji-sidecar] streaming caught up — back to always-stream mode",
+                      file=sys.stderr, flush=True)
+                self._mode = "always_stream"
+                self._pending = ""
+                self._speech_samples = 0
+                self._stream = self._open_stream()
         self._sample_cursor += len(samples)
+        if not ended:
+            # Ring holds strictly-previous buffers at "start" time; the buffer
+            # that ENDED an utterance is excluded so the next pre-roll can't
+            # replay the previous utterance's tail.
+            self._preroll_push(samples)
 
     async def _finalize(self, send):
+        """end() the stream and emit the result. Returns (dur_ms, rec_ms) so the
+        gated drive can decide whether the model runs faster than realtime."""
         import time as _time
         t0 = _time.time()
         loop = asyncio.get_running_loop()
         final = await loop.run_in_executor(None, self._stream.end)
         dur_ms = int((self._sample_cursor - self._utt_start_sample) / TARGET_RATE * 1000)
+        rec_ms = int((_time.time() - t0) * 1000)
         if final.strip():
             await send({"type": "result", "text": final.strip(),
                         "startSample": int(self._utt_start_sample),
                         "durationMs": dur_ms,
-                        "recognitionTimeMs": int((_time.time() - t0) * 1000)})
+                        "recognitionTimeMs": rec_ms})
         self._stream = None
         self._partial_acc = []
+        return dur_ms, rec_ms
 
     async def _drive_once(self, send):
         """Test seam: drive exactly the buffers currently queued, once."""
@@ -337,11 +401,9 @@ class AsrEngine:
             final = ""
         if final.strip():
             await send(self._result_event(final))
-        self._stream = self._backend.open_stream()
+        self._stream = self._open_stream()
         self._pending = ""
         self._speech_samples = 0
-        self._fed_s = 0.0
-        self._delta_count = 0
 
     async def _drive_always(self, send, int16_bytes):
         """Always-stream: feed every buffer (no gating); cut a final on silero's endpoint
@@ -350,7 +412,7 @@ class AsrEngine:
         no leading loss."""
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         self._sample_cursor += len(samples)
-        self._fed_s += len(samples) / TARGET_RATE
+        self._preroll_push(samples)          # rolling onset copy (consumed at degrade)
         self._stream.feed(samples)                       # continuous, never gated
         try:
             had_speech, rising, falling = self._vad_state(samples)
@@ -361,7 +423,6 @@ class AsrEngine:
         if had_speech:
             self._speech_samples += len(samples)
         deltas = self._stream.drain()
-        self._delta_count += len(deltas)
         if deltas:
             self._pending += "".join(deltas)
             await send({"type": "partial", "text": self._pending.strip()})
@@ -372,9 +433,8 @@ class AsrEngine:
                 self._stream.abort()
             except Exception:
                 pass
-            self._stream = self._backend.open_stream()
+            self._stream = self._open_stream()
             self._pending = ""; self._speech_samples = 0
-            self._fed_s = 0.0; self._delta_count = 0
             return
         # Cut on the silero endpoint (or the run-on cap) whenever this stream has SEEN SPEECH —
         # NOT when _pending has text. The model can hold a short utterance's text until end(),
@@ -383,8 +443,18 @@ class AsrEngine:
         if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._speech_samples > 0:
             await self._end_and_reopen(send)
             return
-        lag = self._fed_s - self._delta_count * 0.08          # ~0.56s healthy; >3s = can't keep up
+        # Backpressure = un-processed audio backed up in the queue. This is the
+        # only cadence-independent signal: a genuinely slow model makes the
+        # run_stream loop fall behind feed_stream, so the queue grows. The two
+        # earlier heuristics both mis-fired — counting fed seconds degraded on
+        # SILENCE (the model rightly emits nothing), and crediting drained
+        # deltas at 80ms/each degraded on transcribe.cpp's committed-prefix
+        # adapter (one MERGED delta per drain, committed in 1-2s bursts).
+        lag = self._audio_q.qsize() * (len(samples) / TARGET_RATE)
         if self._mode == "always_stream" and lag > 3.0:
+            import sys
+            print(f"[sokuji-sidecar] streaming has {lag:.1f}s of audio backed up — "
+                  "degrading to VAD-gated mode", file=sys.stderr, flush=True)
             if self._pending.strip():
                 await send(self._result_event(self._pending))
             try:
@@ -394,16 +464,30 @@ class AsrEngine:
             self._stream = None
             self._mode = "per_utterance"
             self._pending = ""
+            if had_speech:
+                # Backlog usually builds while the model chews on SPEECH, so
+                # the degrade typically lands mid-utterance. Without a
+                # continuation stream the VAD stays in-speech and no rising
+                # edge would ever open one — the rest of the utterance would
+                # be dropped. Open it now and replay the ring.
+                self._utt_start_sample = max(0, self._sample_cursor - self._preroll_len)
+                self._partial_acc = []
+                self._stream = self._open_stream()
+                pre = self._preroll_take()
+                if pre is not None:
+                    self._stream.feed(pre)
+                await send({"type": "speech_start"})
 
-    def resolves_to_streaming(self, model_id, device):
+    def resolves_to_streaming(self, model_id, device, pin=None):
         """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
 
         Instantiates a bare backend object (no load()) and reads its STREAMING class flag.
-        Only the top-ranked plan is checked. Returns False on any resolution error so the
-        caller can safely fall back to the offline path."""
+        Only the top-ranked plan is checked; `pin` (the user-pinned quant) must match what
+        init/init_streaming will load so both resolve the same plan. Returns False on any
+        resolution error so the caller can safely fall back to the offline path."""
         from . import accel, backends
         try:
-            plans = accel.resolve(model_id or "sense-voice", override=device or "auto")
+            plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         except Exception:
             return False
         if not plans:
@@ -415,10 +499,10 @@ class AsrEngine:
         except Exception:
             return False
 
-    def _resolve_streaming_backend(self, model_id, device):
+    def _resolve_streaming_backend(self, model_id, device, pin=None):
         from . import accel
-        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto")
-        return accel.load_measured(plans)   # (backend, plan, notice, memory_bytes)
+        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto", pin=pin)
+        return accel.load_measured(plans, stage="asr")   # (backend, plan, notice, memory_bytes)
 
     def _vad_events(self, samples):
         """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while
@@ -455,16 +539,17 @@ async def _h_asr_init(state, msg, _b, conn=None):
     vad_threshold = msg.get("vadThreshold")
     vad_min_silence = msg.get("vadMinSilenceDuration")
     vad_min_speech = msg.get("vadMinSpeechDuration")
+    pin = msg.get("variant")   # user-pinned quant (renderer variant picker)
 
     # Cheap pre-check: resolve the backend NAME without loading the model, then read
     # its STREAMING flag. This ensures each branch loads the model exactly once.
     is_streaming = (hasattr(eng, "resolves_to_streaming")
-                    and eng.resolves_to_streaming(model, device))
+                    and eng.resolves_to_streaming(model, device, pin=pin))
 
     if is_streaming:
         # Streaming path: init_streaming resolves+loads the backend once.
         eng.init_streaming(model, language, sample_rate,
-                           vad_threshold, vad_min_silence, vad_min_speech, device)
+                           vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed_stream
             conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
@@ -472,7 +557,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
     else:
         # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
         ms = eng.init(model, language, sample_rate,
-                      vad_threshold, vad_min_silence, vad_min_speech, device)
+                      vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed
 

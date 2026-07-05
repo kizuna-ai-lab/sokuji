@@ -17,37 +17,39 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('qwen2.5-0.5b')['files'] == expected_files
     # The legacy 'qwen' alias was dropped — it now falls through to a bare repo id.
     assert nm.download_specs('qwen')['repos'] == ['qwen']
-    assert nm.download_specs('whisper-tiny')['repos'] == ['Systran/faster-whisper-tiny']
+    assert nm.download_specs('whisper-base')['files'] == \
+        [('handy-computer/whisper-base-gguf', 'whisper-base-Q8_0.gguf')]
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
-    assert sv['repos'] == [nm.SENSE_VOICE_REPO] and sv['urls'] == [nm.VAD_URL]
-    assert sv['repos'] == ['FunAudioLLM/SenseVoiceSmall']
-    # Granite speech-LLM ids must map to their ibm-granite/ HF repo, not the bare id.
-    assert nm.download_specs('granite-speech-4.1-2b')['repos'] == ['ibm-granite/granite-speech-4.1-2b']
-    assert nm.download_specs('granite-speech-4.1-2b-plus')['repos'] == ['ibm-granite/granite-speech-4.1-2b-plus']
-    # Qwen3-ASR must map to the bezzam/ HF repo, not the bare catalog id.
-    assert nm.download_specs('qwen3-asr-1.7b')['repos'] == ['bezzam/Qwen3-ASR-1.7B']
-    # Cohere Transcribe maps to the non-gated AEmotionStudio mirror (byte-identical to CohereLabs).
-    assert nm.download_specs('cohere-transcribe-03-2026')['repos'] == ['AEmotionStudio/cohere-transcribe-03-2026-models']
+    assert sv['files'] == [('handy-computer/SenseVoiceSmall-gguf', 'SenseVoiceSmall-Q8_0.gguf')]
+    assert sv['urls'] == [nm.VAD_URL]
+    # Speech-LLM ids map to their handy-computer GGUF (one pinned file each).
+    assert nm.download_specs('granite-speech-4.1-2b')['files'] == \
+        [('handy-computer/granite-speech-4.1-2b-gguf', 'granite-speech-4.1-2b-Q4_K_M.gguf')]
+    assert nm.download_specs('qwen3-asr-1.7b')['files'] == \
+        [('handy-computer/Qwen3-ASR-1.7B-gguf', 'Qwen3-ASR-1.7B-Q4_K_M.gguf')]
 
 
 def test_download_specs_cohere():
-    # Cohere is an ASR-catalog model, so the shared silero VAD is appended.
-    assert native_models.download_specs("cohere-transcribe-03-2026") == \
-        {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": [nm.VAD_URL]}
+    # One pinned GGUF (the repo ships 6 quants). ASR model -> shared VAD appended.
+    import sokuji_sidecar.native_models as nm
+    spec = native_models.download_specs("cohere-transcribe-03-2026")
+    assert spec["repos"] == [] and spec["urls"] == [nm.VAD_URL]
+    assert spec["files"] == [("handy-computer/cohere-transcribe-03-2026-gguf",
+                              "cohere-transcribe-03-2026-Q4_K_M.gguf")]
 
 
 def test_download_specs_appends_shared_vad_for_asr_models():
     """The silero VAD is a shared dependency of EVERY ASR model (AsrEngine._init_vad
     loads it for offline + streaming). download_specs must append it for any ASR
     model, not just SenseVoice; non-ASR ids (translation/TTS) must NOT get it."""
-    for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-tiny', 'qwen3-asr-1.7b',
+    for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-base', 'qwen3-asr-1.7b',
                    'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
         assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
     for non_asr in ('', 'qwen', 'translategemma-4b', 'csukuangfj/vits-piper-en_US-amy-low'):
         assert nm.download_specs(non_asr)['urls'] == [], non_asr
-    # voxtral keeps its ignore list alongside the appended VAD url.
-    assert nm.download_specs('voxtral-mini-4b-realtime').get('ignore') == ['consolidated.safetensors']
+    # single-GGUF specs never need an ignore list
+    assert 'ignore' not in nm.download_specs('voxtral-mini-4b-realtime')
 
 
 def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
@@ -105,9 +107,9 @@ def test_status_handler_shape(monkeypatch):
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
-        st, json.dumps({'type': 'model_status', 'id': 1, 'models': ['sense-voice', 'whisper-tiny']})))
+        st, json.dumps({'type': 'model_status', 'id': 1, 'models': ['sense-voice', 'whisper-base']})))
     assert reply == {'type': 'model_status_result', 'id': 1,
-                     'statuses': {'sense-voice': 'ready', 'whisper-tiny': 'absent'}}
+                     'statuses': {'sense-voice': 'ready', 'whisper-base': 'absent'}}
 
 
 @pytest.mark.skipif(not os.environ.get('SOKUJI_RUN_ASR_MODEL'),
@@ -130,8 +132,8 @@ def test_delete_handler_shape(monkeypatch):
     st = {'handlers': {}}
     nm.register(st)
     reply, _ = asyncio.run(server.handle_message(
-        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-tiny'})))
-    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-tiny', 'freed': 4096}
+        st, json.dumps({'type': 'model_delete', 'id': 7, 'model': 'whisper-base'})))
+    assert reply == {'type': 'model_delete_result', 'id': 7, 'model': 'whisper-base', 'freed': 4096}
 
 
 def test_delete_model_honors_variant_repo(monkeypatch):
@@ -228,26 +230,29 @@ def test_model_status_rejects_interrupted_download(monkeypatch, tmp_path):
     stale .incomplete alongside its finalized blob must still read 'ready'."""
     import huggingface_hub, huggingface_hub.constants
     from sokuji_sidecar import native_models
-    repo = native_models.download_specs("cohere-transcribe-03-2026")["repos"][0]
+    # a repo-shaped spec (ASR cards are all single-file GGUFs now; piper TTS
+    # repos still exercise the blob-scan path)
+    mid = "csukuangfj/vits-piper-en_US-amy-low"
+    repo = native_models.download_specs(mid)["repos"][0]
     blobs = tmp_path / f"models--{repo.replace('/', '--')}" / "blobs"
     blobs.mkdir(parents=True)
     monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
     monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **k: str(tmp_path))
     (blobs / "abc123").write_text("a finalized blob")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    assert native_models.model_status(mid) == "ready"
     # interrupted: '<sha>.<etag>.incomplete' with its finalized '<sha>' blob MISSING
     (blobs / "def456.a1b2c3.incomplete").write_bytes(b"half-fetched safetensors")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "absent"
+    assert native_models.model_status(mid) == "absent"
     # stale leftover: the finalized blob has since landed → ignore the orphan .incomplete
     (blobs / "def456").write_text("now finalized")
-    assert native_models.model_status("cohere-transcribe-03-2026") == "ready"
+    assert native_models.model_status(mid) == "ready"
 
 
-def test_download_specs_voxtral_skips_consolidated():
+def test_download_specs_voxtral_single_gguf():
     spec = nm.download_specs("voxtral-mini-4b-realtime")
-    assert spec["repos"] == ["mistralai/Voxtral-Mini-4B-Realtime-2602"]
+    assert spec["files"] == [("handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
+                              "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")]
     assert spec["urls"] == [nm.VAD_URL]  # ASR model → shared VAD appended
-    assert spec["ignore"] == ["consolidated.safetensors"]
 
 
 def test_existing_specs_have_no_ignore_key():
@@ -354,10 +359,10 @@ def test_model_size_excludes_ignored_files(monkeypatch):
     assert nm.model_size("not-a-hardcoded-model") == 8_000_001_000  # consolidated excluded
 
 
-def test_download_specs_fun_asr_mlt_nano(monkeypatch):
-    monkeypatch.delenv('SOKUJI_FUNASR_NANO_REPO', raising=False)
+def test_download_specs_fun_asr_mlt_nano():
     spec = nm.download_specs('fun-asr-mlt-nano')
-    assert spec['repos'] == ['FunAudioLLM/Fun-ASR-MLT-Nano-2512']
+    assert spec['files'] == [('handy-computer/Fun-ASR-MLT-Nano-2512-gguf',
+                              'Fun-ASR-MLT-Nano-2512-Q6_K.gguf')]
     # AsrEngine._init_vad() loads silero for the offline path too, so a Nano-only
     # offline install must pre-fetch the shared VAD (not rely on a session-time download).
     assert spec['urls'] == [nm.VAD_URL]
@@ -549,7 +554,7 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
 
     monkeypatch.setattr("huggingface_hub.HfApi", boom)
     nm._SIZE_CACHE.clear()
-    assert nm.model_size("sense-voice") == 944624033
+    assert nm.model_size("sense-voice") == 252684608
     assert nm.model_size("hy-mt2-1.8b") == 1133080448
     assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
 
@@ -643,8 +648,10 @@ def test_download_installs_cpu_flavor_alongside_default(monkeypatch):
     status = asyncio.run(nm.download("translategemma-4b", send))
     assert status == "ready"
     assert installed == ["cuda", "cpu"]
-    assert sent[-1]["total"] == 3   # 1 gguf file + 2 llama-flavor install units
-    assert sent[-1]["downloaded"] == 3
+    # byte mode: total = GGUF size + 2 nominal flavor units; final pins to total
+    expected = 2489909760 + 2 * nm._LLAMA_FLAVOR_EST_BYTES
+    assert sent[-1]["total"] == expected
+    assert sent[-1]["downloaded"] == expected
 
 
 def test_status_absent_without_binary(monkeypatch):
@@ -685,3 +692,98 @@ def test_status_absent_when_gguf_file_missing(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom)
     monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")  # binary present
     assert nm.model_status("qwen2.5-0.5b") == "absent"
+
+
+# ── byte-level download progress (progress bar for single-GGUF cards) ────────
+
+
+def test_download_reports_byte_progress(monkeypatch, tmp_path):
+    """Single-file cards (every ASR/LLM GGUF) must report BYTES, not file
+    counts — with total = the catalog's size_bytes — so the renderer's bar
+    moves during a multi-GB file instead of sitting at 0/2."""
+    import huggingface_hub
+
+    f1 = tmp_path / "a.gguf"
+    f1.write_bytes(b"x" * 600)
+    f2 = tmp_path / "b.bin"
+    f2.write_bytes(b"y" * 400)
+    paths = {"a.gguf": str(f1), "b.bin": str(f2)}
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "a.gguf"), ("org/r", "b.bin")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 1000)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: paths[f])
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    assert prog[0] == (600, 1000)      # first file's real bytes, not "1 of 2"
+    assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
+
+
+def test_download_byte_total_includes_shared_vad(monkeypatch, tmp_path):
+    """Catalog ASR rows download the GGUF plus the shared silero VAD; the
+    byte total must count both (model_size covers the model files only)."""
+    import huggingface_hub
+
+    f1 = tmp_path / "a.gguf"
+    f1.write_bytes(b"x" * 600)
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [nm.VAD_URL],
+                                                "files": [("org/r", "a.gguf")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 600)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
+    monkeypatch.setattr(nm, "_download_url", lambda url: None)
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    total = 600 + nm._SILERO_VAD_BYTES
+    assert prog[-1] == (total, total)
+
+
+def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
+    """While one big file downloads, the in-flight .incomplete blob size must
+    stream as intermediate progress events."""
+    import time as _time
+    import huggingface_hub
+
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "big.gguf")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: 1000)
+    monkeypatch.setattr(nm, "_PROGRESS_POLL_S", 0.01)
+    grow = iter([100, 350, 700] + [700] * 50)
+    monkeypatch.setattr(nm, "_incomplete_bytes", lambda repo: next(grow))
+    big = tmp_path / "big.gguf"
+    big.write_bytes(b"z" * 1000)
+    def slow_download(r, f):
+        _time.sleep(0.08)
+        return str(big)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", slow_download)
+
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
+    mids = [m["downloaded"] for m in sent if m["type"] == "model_progress"]
+    # at least one mid-file event strictly between 0 and total, before the final
+    assert any(0 < v < 1000 for v in mids[:-1]), mids
+    assert mids[-1] == 1000
+
+
+def test_download_falls_back_to_unit_counting_without_size(monkeypatch, tmp_path):
+    import huggingface_hub
+    f1 = tmp_path / "a"
+    f1.write_bytes(b"x")
+    monkeypatch.setattr(nm, "download_specs",
+                        lambda mid, repo=None: {"repos": [], "urls": [],
+                                                "files": [("org/r", "a"), ("org/r", "a")]})
+    monkeypatch.setattr(nm, "model_size", lambda mid: None)   # size unknown
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
+    sent = []
+    async def send(m): sent.append(m)
+    assert asyncio.run(nm.download("mystery-model", send)) == "ready"
+    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
+    assert prog == [(1, 2), (2, 2)]    # old per-file behavior preserved

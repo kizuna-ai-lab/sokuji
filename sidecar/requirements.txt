@@ -4,7 +4,15 @@ numpy==2.1.3
 websockets==13.1
 sentencepiece==0.2.0
 huggingface_hub==0.26.2
-compressed-tensors
 psutil
 zstandard==0.23.0
 tokenizers>=0.20
+# torch-free audio io / resample / NVIDIA probing (2026-07-04 torch-free spec).
+# nvidia-ml-py talks to the driver's NVML and is a no-op import elsewhere, so it
+# is safe to install on macOS/AMD boxes (probe degrades to "no NVIDIA GPUs").
+# Capped below the next untested major (12.x and 13.x verified on the 4070 box).
+soundfile>=0.13
+soxr>=0.5
+nvidia-ml-py>=12.535,<14
+# ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
+transcribe-cpp==0.1.1

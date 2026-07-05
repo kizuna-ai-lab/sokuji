@@ -46,7 +46,7 @@ class TtsEngine:
         self.close()                        # VRAM hygiene: free any prior model first
         mid = model_id or "moss-tts-nano"
         plans = accel.resolve_tts(mid, override=device or "auto")
-        self._backend, plan, notice, mem = accel.load_measured(plans)
+        self._backend, plan, notice, mem = accel.load_measured(plans, stage="tts")
         if hasattr(self._backend, "set_language"):
             self._backend.set_language(language or "")
         self._native_sr = getattr(self._backend, "sample_rate", TARGET_RATE)
@@ -125,16 +125,13 @@ class TtsEngine:
                     "generationTimeMs": int((time.time() - t0) * 1000)})
 
     def close(self):
+        from . import accel
+        accel.ledger_release("tts")
         backend = self._backend
         self._backend = None
         if backend is not None:
             try:
                 backend.unload()
-            except Exception:
-                pass
-            try:
-                import torch
-                torch.cuda.empty_cache()
             except Exception:
                 pass
 

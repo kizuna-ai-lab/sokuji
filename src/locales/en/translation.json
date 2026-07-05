@@ -916,7 +916,10 @@
     "confirmNo": "No",
     "recommended": "Recommended",
     "recommendedGroup": "Recommended",
-    "online": "Online"
+    "online": "Online",
+    "variantWontFit": "Needs ~{{need}} of GPU memory — this machine has {{have}}",
+    "variantWontFitNoMem": "Needs ~{{need}} of GPU memory",
+    "wontFit": "Won't fit on this machine"
   },
   "update": {
     "available": "New version v{{version}} available",

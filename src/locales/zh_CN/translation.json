@@ -852,7 +852,10 @@
     "confirmNo": "否",
     "recommended": "推荐",
     "recommendedGroup": "推荐",
-    "online": "在线"
+    "online": "在线",
+    "variantWontFit": "需要约 {{need}} 显存 — 本机为 {{have}}",
+    "variantWontFitNoMem": "需要约 {{need}} 显存",
+    "wontFit": "本机无法运行"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

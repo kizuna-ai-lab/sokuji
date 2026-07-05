@@ -843,7 +843,10 @@
     "confirmNo": "아니요",
     "recommended": "추천",
     "recommendedGroup": "추천",
-    "online": "온라인"
+    "online": "온라인",
+    "variantWontFit": "약 {{need}}의 GPU 메모리가 필요 — 이 컴퓨터는 {{have}}",
+    "variantWontFitNoMem": "약 {{need}}의 GPU 메모리가 필요",
+    "wontFit": "이 컴퓨터에서는 실행할 수 없습니다"
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",

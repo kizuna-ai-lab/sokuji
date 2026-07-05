@@ -75,7 +75,7 @@ export class LocalNativeClient implements IClient {
           threshold: config.vadThreshold,
           minSilence: config.vadMinSilenceDuration,
           minSpeech: config.vadMinSpeechDuration,
-        }, config.asrDevice);
+        }, config.asrDevice, config.asrVariant);
         store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
       } finally {
         store.setAsrLoading(false);

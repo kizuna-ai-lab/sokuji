@@ -1,20 +1,24 @@
-"""Declarative ASR model catalog: per model, which backends/hardware tiers run
-it and what artifact each needs. Pure data — adding a model is adding a row.
-Whisper rows carry a gpu-cuda (float16) deployment + a cpu (int8) floor; SenseVoice
-and Fun-ASR-MLT-Nano run on FunASR with gpu-cuda + cpu tiers (both float32)."""
+"""Declarative model catalog: per model, which backends/hardware tiers run it
+and what artifact each needs. Pure data — adding a model is adding a row.
+
+ASR (2026-07-04 decision): EVERY ASR card runs on transcribe.cpp (ggml family,
+official handy-computer GGUFs). One GGUF serves the gpu-vulkan / gpu-metal /
+cpu tiers — Vulkan covers NVIDIA/AMD/Intel from the stock wheel, Metal covers
+Apple Silicon (no CUDA runtime shipped; Vulkan measured 100x realtime on a
+4070). Quants follow the author's WER-validated cards: Q4_K_M for the big
+speech-LLMs, Q8_0 for whisper/SenseVoice, Q6_K for Fun-ASR-MLT (its card shows
+q6_k beating bf16). Note: transcribe.cpp SenseVoice emits raw text (no ITN /
+punctuation normalization) — accepted with the all-in decision."""
 import os
 from dataclasses import dataclass
-
-SENSE_VOICE_REPO = os.environ.get("SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
-FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "ctranslate2" | "sherpa" | "transformers" | "qwen3asr" | "cohere_transformers" | "voxtral_realtime" | "funasr_sensevoice" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
-    tier: str           # "cpu" (Phase 0); "gpu-cuda"/... later
-    compute_type: str   # "int8" | ...
-    artifact: str       # backend.load() model_ref: whisper size, or sherpa repo id
+    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
+    tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
+    compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
+    artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
     rank: float         # tie-breaker within a tier (higher = preferred)
     min_capability: tuple[int, int] | None = None   # min CUDA compute cap for a GPU variant
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
@@ -39,60 +43,152 @@ class AsrModel(_ModelBase):
     pass
 
 
+_TC_TIERS = ("gpu-vulkan", "gpu-metal", "cpu")
+
+
+def _tc_quant(fname):
+    return fname.rsplit("-", 1)[1].removesuffix(".gguf").lower()
+
+
+# Rank encodes the quant's ROLE, not just a tie-break:
+#   2.0 = the curated default; 1.0 = curated alternative (recommendation
+#   candidate); 0.5 = listed-only — shown in the variant list with a
+#   supported flag, but never auto-recommended (e.g. f16: the author's WER
+#   tables show no gain over q8_0, so recommending its 2x download would be
+#   waste — power users can still pick it).
+_TC_CURATED_MIN_RANK = 1.0
+
+
+def _tc_row(mid, name, langs, repo, base, order, quants, default,
+            recommended=False, backend="transcribe_cpp"):
+    """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
+    QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
+    curated default. The same GGUF serves every tier. Deployments are ordered
+    default-first so downloads/size_bytes key off the default; q6_k/q4_k_m/q8_0
+    are curated recommendation candidates, f16/q5_k_m are listed-only."""
+    curated = {"q8_0", "q6_k", "q4_k_m"}
+    deps = []
+    order_keys = [default] + [q for q in ("F16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M")
+                              if q in quants and q != default]
+    for q in order_keys:
+        quant = q.lower()
+        rank = 2.0 if q == default else (1.0 if quant in curated else 0.5)
+        deps += [Deployment(backend, tier, quant, f"{repo}/{base}-{q}.gguf", rank,
+                            est_bytes=quants[q]) for tier in _TC_TIERS]
+    return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
+                    sort_order=order, size_bytes=quants[default])
+
+
+# Curated ASR roster (2026-07-05 re-pick from the full transcribe.cpp family).
+# sort_order = quality ranking, seeded from the author's UNIFORM benchmark
+# (transcribe.cpp-measured librispeech test-clean WER, best rung per model;
+# noted per row) — gaps of 10 leave room for hand-tuning; language-specialized
+# cards (gigaam: ru) are slotted by their standing WITHIN their language, since
+# the renderer's source-language filter means only those users see them.
 ASR_MODELS: list[AsrModel] = [
-    AsrModel("cohere-transcribe-03-2026", "Cohere Transcribe",
-             ("en", "de", "fr", "it", "es", "pt", "el",
-              "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
-             (Deployment("cohere_transformers", "gpu-cuda", "bfloat16",
-                         "AEmotionStudio/cohere-transcribe-03-2026-models", 1.0),),
-             recommended=True, sort_order=0, size_bytes=4134989472),
-    AsrModel("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
-             (Deployment("funasr_sensevoice", "gpu-cuda", "float32", SENSE_VOICE_REPO, 1.0),
-              Deployment("funasr_sensevoice", "cpu", "float32", SENSE_VOICE_REPO, 1.0)),
-             recommended=True, sort_order=1, size_bytes=944624033),
-    AsrModel("whisper-tiny", "Whisper tiny", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "tiny", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "tiny", 1.0)), sort_order=2,
-             size_bytes=78850941),
-    AsrModel("whisper-base", "Whisper base", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "base", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "base", 1.0)), sort_order=3,
-             size_bytes=148530263),
-    AsrModel("whisper-small", "Whisper small", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "small", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "small", 1.0)), sort_order=4,
-             size_bytes=486859701),
-    AsrModel("whisper-medium", "Whisper medium", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "medium", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "medium", 1.0)), sort_order=5,
-             size_bytes=1531219071),
-    AsrModel("whisper-large-v3", "Whisper large-v3", ("multi",),
-             (Deployment("ctranslate2", "gpu-cuda", "float16", "large-v3", 1.0),
-              Deployment("ctranslate2", "cpu", "int8", "large-v3", 1.0)),
-             recommended=True, sort_order=6, size_bytes=3091483127),
-    AsrModel("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)", ("en", "fr", "de", "es", "pt", "ja"),
-             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b", 1.0),),
-             sort_order=7, size_bytes=4871717336),
-    AsrModel("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)", ("en", "fr", "de", "es", "pt"),
-             (Deployment("transformers", "gpu-cuda", "bfloat16", "ibm-granite/granite-speech-4.1-2b-plus", 1.0),),
-             sort_order=8, size_bytes=4231794140),
-    AsrModel("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
-             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
-              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
-             (Deployment("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B", 1.0),),
-             recommended=True, sort_order=9, size_bytes=4088288055),
-    AsrModel("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
-             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
-             (Deployment("voxtral_realtime", "gpu-cuda", "bfloat16",
-                         "mistralai/Voxtral-Mini-4B-Realtime-2602", 1.0),),
-             recommended=True, sort_order=10, size_bytes=8875021049),
-    AsrModel("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
-             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
-              "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
-              "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
-             (Deployment("funasr_nano", "gpu-cuda", "float32", FUN_ASR_MLT_REPO, 1.0),
-              Deployment("funasr_nano", "cpu", "float32", FUN_ASR_MLT_REPO, 1.0)),
-             recommended=True, sort_order=11, size_bytes=1989762711),
+    # WER 1.25 — best-in-benchmark all-rounder; historical usage #1.
+    _tc_row("cohere-transcribe-03-2026", "Cohere Transcribe",
+            ("en", "de", "fr", "it", "es", "pt", "el",
+             "nl", "pl", "ar", "vi", "zh", "ja", "ko"),
+            "handy-computer/cohere-transcribe-03-2026-gguf", "cohere-transcribe-03-2026",
+            10, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
+                 "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
+            default="Q4_K_M", recommended=True),
+    # Russian specialist (GigaAM v3, end-to-end w/ punctuation) — no librispeech
+    # figure (ru model); slotted top of its language view.
+    _tc_row("gigaam-v3-e2e-rnnt", "GigaAM v3 (Russian)", ("ru",),
+            "handy-computer/gigaam-v3-e2e-rnnt-gguf", "gigaam-v3-e2e-rnnt",
+            15, {"F16": 452381408, "Q8_0": 273724832, "Q6_K": 227953952,
+                 "Q5_K_M": 206392736, "Q4_K_M": 183948704}, default="Q8_0"),
+    # WER 1.29 / 1.46 — English/European quality alternates.
+    _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
+            ("en", "fr", "de", "es", "pt", "ja"),
+            "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
+            20, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
+                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
+    _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
+            ("en", "fr", "de", "es", "pt"),
+            "handy-computer/granite-speech-4.1-2b-plus-gguf", "granite-speech-4.1-2b-plus",
+            30, {"F16": 4229971808, "Q8_0": 2345973152, "Q6_K": 1859821504,
+                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M"),
+    # WER 1.61 — CJK quality mainstay (verified all-5-langs correct on real clips).
+    _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
+            ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
+             "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
+            "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B",
+            40, {"F16": 4091390944, "Q8_0": 2185030624, "Q6_K": 1692554208,
+                 "Q5_K_M": 1517290464, "Q4_K_M": 1319830496},
+            default="Q4_K_M", recommended=True),
+    # WER 1.69 (q6_k beats bf16 per the author's table) — 31-language coverage king.
+    _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
+            ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
+             "hi", "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga",
+             "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "sv"),
+            "handy-computer/Fun-ASR-MLT-Nano-2512-gguf", "Fun-ASR-MLT-Nano-2512",
+            50, {"F16": 1667504192, "Q8_0": 891271232, "Q6_K": 690744384,
+                 "Q5_K_M": 631129152, "Q4_K_M": 556975168},
+            default="Q6_K", recommended=True),
+    # WER 1.81 — 99-language quality reference.
+    _tc_row("whisper-large-v3", "Whisper large-v3", ("multi",),
+            "handy-computer/whisper-large-v3-gguf", "whisper-large-v3",
+            60, {"F16": 3107236640, "Q8_0": 1668741440, "Q6_K": 1297130208,
+                 "Q5_K_M": 1161143008, "Q4_K_M": 997303008}, default="Q8_0"),
+    # WER 1.91 — European quality tier (NVIDIA Canary, 25 langs).
+    _tc_row("canary-1b-v2", "Canary 1B v2",
+            ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
+             "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es",
+             "sv", "ru", "uk"),
+            "handy-computer/canary-1b-v2-gguf", "canary-1b-v2",
+            70, {"F16": 1966111456, "Q8_0": 1144290016, "Q6_K": 931986144,
+                 "Q5_K_M": 836664032, "Q4_K_M": 735476448}, default="Q8_0"),
+    # WER 1.92 at RTF 151 (metal) — the European SPEED tier (NVIDIA TDT).
+    _tc_row("parakeet-tdt-0.6b-v3", "Parakeet TDT 0.6B v3",
+            ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
+             "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "ru", "sk", "sl",
+             "es", "sv", "uk"),
+            "handy-computer/parakeet-tdt-0.6b-v3-gguf", "parakeet-tdt-0.6b-v3",
+            80, {"F16": 1255869856, "Q8_0": 739508576, "Q6_K": 610342240,
+                 "Q5_K_M": 548946272, "Q4_K_M": 485425504},
+            default="Q8_0", recommended=True),
+    # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
+    _tc_row("whisper-large-v3-turbo", "Whisper large-v3 turbo", ("multi",),
+            "handy-computer/whisper-large-v3-turbo-gguf", "whisper-large-v3-turbo",
+            90, {"F16": 1636749024, "Q8_0": 886381824, "Q6_K": 692536992,
+                 "Q5_K_M": 619628192, "Q4_K_M": 536069792},
+            default="Q8_0", recommended=True),
+    # WER 2.07 — heavy streaming flagship (committed/tentative partials).
+    _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
+            ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
+            "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf", "Voxtral-Mini-4B-Realtime-2602",
+            100, {"F16": 8879114528, "Q8_0": 4731791648, "Q6_K": 3661018912,
+                  "Q5_K_M": 3281439008, "Q4_K_M": 2830493984},
+            default="Q4_K_M", recommended=True, backend="transcribe_cpp_stream"),
+    # WER 2.10 — light CJK quality rung.
+    _tc_row("qwen3-asr-0.6b", "Qwen3-ASR 0.6B",
+            ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
+             "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
+            "handy-computer/Qwen3-ASR-0.6B-gguf", "Qwen3-ASR-0.6B",
+            110, {"F16": 1579793056, "Q8_0": 850423456, "Q6_K": 690417824,
+                  "Q5_K_M": 645356192, "Q4_K_M": 589560480}, default="Q8_0"),
+    # WER 3.03 — LIGHT streaming, 27 languages incl. zh/ja/ko (author-recommended).
+    _tc_row("nemotron-3.5-asr-streaming", "Nemotron 3.5 ASR Streaming",
+            ("en", "es", "fr", "it", "pt", "nl", "de", "tr", "ru", "ar", "hi",
+             "ja", "ko", "vi", "uk", "pl", "sv", "cs", "nb", "da", "bg", "fi",
+             "hr", "sk", "zh", "hu", "ro", "et"),
+            "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf", "nemotron-3.5-asr-streaming-0.6b",
+            120, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
+                  "Q5_K_M": 559647200, "Q4_K_M": 495831520},
+            default="Q8_0", recommended=True, backend="transcribe_cpp_stream"),
+    # WER 3.13 at RTF 289 (metal) — fastest/lightest CJK+yue (no ITN/punct).
+    _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
+            "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall",
+            130, {"F16": 470412128, "Q8_0": 252684608, "Q6_K": 196438336,
+                  "Q5_K_M": 172474880, "Q4_K_M": 145738304}, default="Q8_0"),
+    # WER 5.1 — the minimal 99-language floor for long-tail source languages.
+    _tc_row("whisper-base", "Whisper base", ("multi",),
+            "handy-computer/whisper-base-gguf", "whisper-base",
+            140, {"F16": 151145760, "Q8_0": 84962880, "Q6_K": 67865664,
+                  "Q5_K_M": 63786048, "Q4_K_M": 58870848}, default="Q8_0"),
 ]
 
 

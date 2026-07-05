@@ -15,8 +15,51 @@ of the Rust's explicit per-frame loop, but the arithmetic path (float64 through 
 magnitude and filterbank dot product) matches exactly.
 """
 
-import librosa
 import numpy as np
+
+
+def _hz_to_mel_slaney(freqs: np.ndarray) -> np.ndarray:
+    """Slaney (htk=False) Hz→mel: linear below 1 kHz, log-spaced above."""
+    freqs = np.asanyarray(freqs, dtype=np.float64)
+    f_sp = 200.0 / 3
+    mels = freqs / f_sp
+    min_log_hz = 1000.0
+    min_log_mel = min_log_hz / f_sp
+    logstep = np.log(6.4) / 27.0
+    return np.where(freqs >= min_log_hz,
+                    min_log_mel + np.log(np.maximum(freqs, min_log_hz) / min_log_hz) / logstep,
+                    mels)
+
+
+def _mel_to_hz_slaney(mels: np.ndarray) -> np.ndarray:
+    """Slaney mel→Hz, inverse of _hz_to_mel_slaney."""
+    mels = np.asanyarray(mels, dtype=np.float64)
+    f_sp = 200.0 / 3
+    freqs = mels * f_sp
+    min_log_hz = 1000.0
+    min_log_mel = min_log_hz / f_sp
+    logstep = np.log(6.4) / 27.0
+    return np.where(mels >= min_log_mel,
+                    min_log_hz * np.exp(logstep * (mels - min_log_mel)),
+                    freqs)
+
+
+def mel_filterbank(sr: int, n_fft: int, n_mels: int, fmin: float, fmax: float) -> np.ndarray:
+    """Slaney-scale, slaney-normalized triangular mel filterbank — a numpy
+    re-implementation of ``librosa.filters.mel(htk=False, norm='slaney')``
+    (verified bit-for-bit in tests), so the sidecar doesn't carry librosa's
+    numba/llvmlite dependency chain. Returns (n_mels, 1 + n_fft // 2) float64."""
+    fftfreqs = np.fft.rfftfreq(n_fft, 1.0 / sr)
+    mel_pts = _mel_to_hz_slaney(np.linspace(_hz_to_mel_slaney(fmin), _hz_to_mel_slaney(fmax),
+                                            n_mels + 2))
+    fdiff = np.diff(mel_pts)
+    ramps = mel_pts[:, None] - fftfreqs[None, :]
+    lower = -ramps[:-2] / fdiff[:-1, None]
+    upper = ramps[2:] / fdiff[1:, None]
+    weights = np.maximum(0.0, np.minimum(lower, upper))
+    # Slaney normalization: each triangle integrates to ~constant energy per band.
+    enorm = 2.0 / (mel_pts[2:n_mels + 2] - mel_pts[:n_mels])
+    return weights * enorm[:, None]
 
 
 def _reflect_pad(samples: np.ndarray, pad: int) -> np.ndarray:
@@ -87,15 +130,8 @@ def log_mel(samples: np.ndarray, cfg) -> np.ndarray:
     spectrum = np.fft.rfft(windowed, n=n_fft, axis=1)
     magnitude = np.sqrt(spectrum.real ** 2 + spectrum.imag ** 2 + 1e-9)  # (frame_count, freq_bins)
 
-    mel_basis = librosa.filters.mel(
-        sr=cfg.sample_rate,
-        n_fft=n_fft,
-        n_mels=cfg.num_mels,
-        fmin=cfg.fmin,
-        fmax=cfg.fmax,
-        htk=False,
-        norm="slaney",
-    ).astype(np.float64)  # (num_mels, freq_bins)
+    mel_basis = mel_filterbank(
+        cfg.sample_rate, n_fft, cfg.num_mels, cfg.fmin, cfg.fmax)  # (num_mels, freq_bins), float64
 
     mel = mel_basis @ magnitude.T  # (num_mels, frame_count), float64 accumulation
     return np.log(np.maximum(mel, 1e-5)).astype(np.float32)

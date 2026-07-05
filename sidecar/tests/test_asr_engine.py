@@ -14,7 +14,7 @@ class _FakeWS:
 
 class FakeAsr:
     def init(self, model_id=None, language="", sample_rate=24000,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto", **kw):
         self.sample_rate = sample_rate
         self.vad = (vad_threshold, vad_min_silence, vad_min_speech)
         return 33
@@ -127,10 +127,10 @@ def test_engine_init_uses_resolver(monkeypatch):
     # Stub VAD so no model/native lib is needed.
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
-    ms = eng.init(model_id="whisper-tiny", language="en", device="auto")
+    ms = eng.init(model_id="whisper-base", language="en", device="auto")
     assert isinstance(ms, int)
     assert eng.resolved == {"backend": "ctranslate2", "device": "cpu", "computeType": "int8"}
     # _drain uses the resolved backend's transcribe().text
@@ -203,10 +203,10 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
     eng = ae.AsrEngine()
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
-    eng.init(model_id="whisper-tiny", language="en", device="auto")
+    eng.init(model_id="whisper-base", language="en", device="auto")
     assert eng.resolved["device"] == "cuda"
     assert eng.resolved["rtf"] == 0.25
 
@@ -216,16 +216,16 @@ def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
     eng = ae.AsrEngine()
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
-    monkeypatch.setattr(accel, "load_measured", lambda plans: (_FakeBackend(), fake_plan, None, None))
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)  # benchmark failed
-    eng.init(model_id="whisper-tiny", device="auto")
+    eng.init(model_id="whisper-base", device="auto")
     assert "rtf" not in eng.resolved
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_FW_MODEL"),
-                    reason="set SOKUJI_RUN_FW_MODEL=1 (downloads faster-whisper model)")
-def test_real_faster_whisper_transcribes():
+                    reason="set SOKUJI_RUN_FW_MODEL=1 (downloads the whisper-base GGUF)")
+def test_real_whisper_base_transcribes():
     from huggingface_hub import snapshot_download
     d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
     w = wave.open(f"{d}/test_wavs/en.wav", "rb")
@@ -235,7 +235,7 @@ def test_real_faster_whisper_transcribes():
     i0 = np.clip(np.floor(np.arange(n) / ratio).astype(np.int64), 0, len(pcm16k) - 1)
     pcm24k = pcm16k[i0].astype(np.int16)
     eng = asr_engine.AsrEngine()
-    eng.init(model_id="whisper-tiny", language="en")
+    eng.init(model_id="whisper-base", language="en")
     results = []
     for i in range(0, len(pcm24k), 4096):
         results += [m["text"] for m in eng.feed(pcm24k[i:i + 4096].tobytes()) if m["type"] == "result"]
@@ -265,18 +265,18 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     backends = []
 
-    def fake_load(plans):
+    def fake_load(plans, **kw):
         b = _UnloadBackend()
         backends.append(b)
         return b, fake_plan, None, None
 
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto": [fake_plan])
+    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", fake_load)
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
 
-    eng.init(model_id="whisper-tiny")
+    eng.init(model_id="whisper-base")
     assert len(backends) == 1 and backends[0].unloaded is False
-    eng.init(model_id="whisper-tiny")                 # re-init frees the first
+    eng.init(model_id="whisper-base")                 # re-init frees the first
     assert backends[0].unloaded is True
     assert len(backends) == 2 and backends[1].unloaded is False
     eng.close()                                       # close frees the current
@@ -287,9 +287,9 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
 def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
     from sokuji_sidecar import accel, asr_engine
     fake_plan = type("P", (), {"backend": "ctranslate2", "device": "cpu", "compute_type": "int8"})()
-    monkeypatch.setattr(accel, "resolve", lambda mid, override=None: ["plan"])
+    monkeypatch.setattr(accel, "resolve", lambda mid, override=None, **kw: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
-                        lambda plans: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
+                        lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     eng = asr_engine.AsrEngine()
     eng.init("sense-voice", "en", 16000, None, None, None, "auto")
@@ -300,11 +300,11 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
 def test_streaming_init_sets_resolved_device_and_memory(monkeypatch):
     from sokuji_sidecar import asr_engine
     eng = asr_engine.AsrEngine()
-    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: object(),
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self, language=None: object(),
                              "unload": lambda self: None})()
     fake_plan = type("P", (), {"backend": "voxtral_realtime", "device": "cuda", "compute_type": "bfloat16"})()
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
-                        lambda model, device: (backend, fake_plan, None, 8_000_000_000))
+                        lambda model, device, *a, **kw: (backend, fake_plan, None, 8_000_000_000))
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="auto")
     assert eng.resolved["device"] == "cuda"
@@ -389,13 +389,13 @@ def _streaming_engine(monkeypatch, fake_stream, vad_segments):
     """Build an AsrEngine whose resolved backend is streaming and whose VAD is faked
     to yield a scripted speech_start then endpoint."""
     eng = AsrEngine()
-    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self: fake_stream,
+    backend = type("B", (), {"STREAMING": True, "open_stream": lambda self, language=None: fake_stream,
                              "unload": lambda self: None})()
     # bypass real resolve/VAD: inject the backend + a fake VAD endpoint generator
     fake_plan = type("P", (), {"backend": "voxtral_realtime",
                                "device": "cuda", "compute_type": "bfloat16"})()
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
-                        lambda model, device: (backend, fake_plan, None, None))
+                        lambda model, device, *a, **kw: (backend, fake_plan, None, None))
     monkeypatch.setattr(eng, "_vad_events", lambda samples: vad_segments)  # ['start'|'speech'|'end']
     return eng
 
@@ -441,10 +441,11 @@ def test_always_stream_cuts_on_endpoint_with_complete_tail(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "country can do for you."          # partial: the tail is MISSING here
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._speech_samples = 8000   # real utterance (speech seen)
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
 
     sent = []
@@ -453,7 +454,7 @@ def test_always_stream_cuts_on_endpoint_with_complete_tail(monkeypatch):
     results = [m for m in sent if m["type"] == "result"]
     assert results and "do for your country." in results[-1]["text"]   # the held tail is in the final
     assert opened["n"] == 1                                            # reopened
-    assert eng._pending == "" and eng._fed_s == 0.0 and eng._delta_count == 0
+    assert eng._pending == ""
 
 
 def test_always_stream_endpoint_with_no_text_does_not_cut(monkeypatch):
@@ -470,10 +471,11 @@ def test_always_stream_endpoint_with_no_text_does_not_cut(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = ""                                  # nothing transcribed
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 0
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._speech_samples = 0
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint, no speech
 
     sent = []
@@ -500,10 +502,10 @@ def test_always_stream_endpoint_flushes_held_text_with_empty_pending(monkeypatch
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = ""                                    # held text not yet drained
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0
+    import queue as _q; eng._audio_q = _q.Queue()
     eng._speech_samples = 8000                           # ~0.5s of speech happened in prior buffers
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
 
@@ -529,10 +531,10 @@ def test_always_stream_runon_cap_forces_cut(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "a very long run on"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0
+    import queue as _q; eng._audio_q = _q.Queue()
     eng._speech_samples = 20 * 16000                   # already at the run-on cap
     monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False, False))   # speaking, no endpoint
 
@@ -543,17 +545,57 @@ def test_always_stream_runon_cap_forces_cut(monkeypatch):
     assert [m for m in sent if m["type"] == "result"]
 
 
+def test_engine_open_stream_forwards_language():
+    """REGRESSION (PR #279 review): every stream (re)open must forward the
+    user's source language to the backend — all call sites go through
+    _open_stream so one check covers init, endpoint-reopen and salvage."""
+    from sokuji_sidecar import asr_engine as ae
+    eng = ae.AsrEngine()
+    eng._language = "ja"
+    seen = []
+    eng._backend = type("B", (), {
+        "open_stream": lambda self, language=None: (seen.append(language), "st")[1]})()
+    assert eng._open_stream() == "st"
+    assert seen == ["ja"]
+    eng._language = None                       # autodetect when unset
+    eng._open_stream()
+    assert seen == ["ja", None]
+
+
+def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
+    """REGRESSION (PR #279 review): the real pre-check referenced an undefined
+    `pin`; the swallowed NameError made EVERY streaming card silently take the
+    offline path. The pin must reach accel.resolve so the pre-check resolves
+    the same plan init_streaming will load."""
+    from sokuji_sidecar import asr_engine as ae, accel
+
+    seen = {}
+
+    def fake_resolve(model_id, override="auto", machine=None, pin=None):
+        seen["model"], seen["pin"] = model_id, pin
+        return [type("P", (), {"backend": "transcribe_cpp_stream"})()]
+
+    monkeypatch.setattr(accel, "resolve", fake_resolve)
+    eng = ae.AsrEngine()
+    assert eng.resolves_to_streaming("voxtral-mini-4b-realtime", "auto", pin="q8_0") is True
+    assert seen == {"model": "voxtral-mini-4b-realtime", "pin": "q8_0"}
+    # and without a pin it must not blow up either (the original regression)
+    assert eng.resolves_to_streaming("voxtral-mini-4b-realtime", "auto") is True
+    assert seen["pin"] is None
+
+
 def test_asr_init_starts_streaming_task_for_streaming_backend():
     started = {"task": False, "init_streaming": None}
 
     class FakeEng:
         resolved = {"backend": "voxtral_realtime", "device": "cuda", "computeType": "bfloat16"}
 
-        def resolves_to_streaming(self, model_id, device):
+        def resolves_to_streaming(self, model_id, device, pin=None):
+            started["precheck_pin"] = pin
             return True
 
         def init_streaming(self, model_id=None, language="", sample_rate=None,
-                           vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+                           vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto", **kw):
             started["init_streaming"] = {"model": model_id, "device": device}
 
         def init(self, *a, **k):
@@ -578,7 +620,7 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
         conn = server.Conn(type("WS", (), {"send": lambda self, d: None})())
         reply, _ = await server.handle_message(
             state, json.dumps({"type": "asr_init", "id": 1, "model": "voxtral-mini-4b-realtime",
-                               "language": "en", "device": "cuda"}), None, conn)
+                               "language": "en", "device": "cuda", "variant": "q8_0"}), None, conn)
         await asyncio.sleep(0)            # let the created task run once
         return reply, conn
 
@@ -594,6 +636,8 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
     # init_streaming was called with the right params
     assert started["init_streaming"]["model"] == "voxtral-mini-4b-realtime"
     assert started["init_streaming"]["device"] == "cuda"
+    # the pre-check received the user-pinned quant (must match what loads)
+    assert started["precheck_pin"] == "q8_0"
 
 
 def test_asr_init_offline_path_unchanged():
@@ -602,11 +646,11 @@ def test_asr_init_offline_path_unchanged():
     loaded = {"init_calls": 0}
 
     class OfflineEng:
-        def resolves_to_streaming(self, model_id, device):
+        def resolves_to_streaming(self, model_id, device, pin=None):
             return False
 
         def init(self, model_id=None, language="", sample_rate=None,
-                 vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto"):
+                 vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto", **kw):
             loaded["init_calls"] += 1
             return 42
 
@@ -654,7 +698,7 @@ def test_streaming_end_to_end_real_gpu():
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="cuda")
     opens = {"n": 0}
     _orig = eng._backend.open_stream
-    eng._backend.open_stream = lambda: (opens.__setitem__("n", opens["n"] + 1) or _orig())
+    eng._backend.open_stream = lambda language=None: (opens.__setitem__("n", opens["n"] + 1) or _orig(language))
     sent = []
     async def send(m): sent.append(m)
     step = int(0.1 * sr) * 2     # 100ms of int16 bytes
@@ -695,10 +739,10 @@ def test_always_stream_aborted_self_heals(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _AbortedStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _AbortedStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _AbortedStream())})()
     eng._pending = "partial words"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0
+    import queue as _q; eng._audio_q = _q.Queue()
     eng._speech_samples = 0
     monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False, False))
 
@@ -708,7 +752,7 @@ def test_always_stream_aborted_self_heals(monkeypatch):
     results = [m for m in sent if m["type"] == "result"]
     assert results and results[-1]["text"] == "partial words"   # pending flushed on self-heal
     assert opened["n"] == 1                                      # stream restarted
-    assert eng._pending == "" and eng._fed_s == 0.0 and eng._delta_count == 0 and eng._speech_samples == 0
+    assert eng._pending == "" and eng._speech_samples == 0
 
 
 def test_always_stream_endpoint_end_failure_still_reopens(monkeypatch):
@@ -725,10 +769,11 @@ def test_always_stream_endpoint_end_failure_still_reopens(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _FakeStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: (opened.__setitem__("n", opened["n"] + 1) or _FakeStream())})()
     eng._pending = "some words"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0; eng._speech_samples = 8000   # real utterance (speech seen)
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._speech_samples = 8000   # real utterance (speech seen)
     monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, True))   # endpoint this buffer
 
     sent = []
@@ -751,22 +796,189 @@ def test_backpressure_degrades_to_per_utterance(monkeypatch):
     eng = AsrEngine()
     eng._mode = "always_stream"; eng._src_rate = 16000
     eng._stream = _SlowStream()
-    eng._backend = type("B", (), {"open_stream": lambda self: _SlowStream()})()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _SlowStream()})()
     eng._pending = "held text"
     eng._sample_cursor = 0; eng._utt_start_sample = 0
-    eng._fed_s = 0.0; eng._delta_count = 0
+    import queue as _q; eng._audio_q = _q.Queue()
     eng._speech_samples = 0
     monkeypatch.setattr(eng, "_vad_state", lambda s: (True, False, False))
 
     sent = []
     async def send(m): sent.append(m)
     buf = b"\x00\x00" * 16000     # 1s of audio per call
-    # feed ~4s of audio with no deltas -> lag exceeds 3.0 -> degrade
+    # >3s of un-processed audio backed up in the queue = the model can't keep up
     for _ in range(4):
-        asyncio.run(eng._drive_always(send, buf))
+        eng._audio_q.put_nowait(buf)
+    asyncio.run(eng._drive_always(send, buf))
     assert eng._mode == "per_utterance"                     # degraded
-    assert eng._stream is None                              # always-stream session dropped
     assert any(m["type"] == "result" and m["text"] == "held text" for m in sent)  # pending flushed
+    # mid-speech degrade: a gated CONTINUATION stream opens immediately (the
+    # VAD is still in-speech, so no new rising edge would ever arrive) and the
+    # renderer gets a fresh speech_start for it.
+    assert eng._stream is not None
+    assert any(m["type"] == "speech_start" for m in sent)
+
+
+def test_silence_never_degrades_always_stream(monkeypatch):
+    """REGRESSION (onset-loss bug, 2026-07-05): the old lag formula counted
+    fed seconds against drained deltas, so a quiet room (model rightly emits
+    nothing) crossed the threshold within the first 3 silent seconds of EVERY
+    session and permanently degraded to the lossy VAD-gated mode — clipping
+    the first ~2-3 characters of every utterance. The queue-depth signal is
+    naturally immune: silence drains instantly, so no backlog ever forms."""
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _IdleStream:
+        def feed(self, samples): pass
+        def drain(self): return []
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _IdleStream()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _IdleStream()})()
+    eng._pending = ""
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._speech_samples = 0
+    monkeypatch.setattr(eng, "_vad_state", lambda s: (False, False, False))   # silence
+
+    sent = []
+    async def send(m): sent.append(m)
+    buf = b"\x00\x00" * 16000
+    for _ in range(8):                       # 8s of quiet room
+        asyncio.run(eng._drive_always(send, buf))
+    assert eng._mode == "always_stream"      # still in the lossless mode
+    assert eng._stream is not None
+
+
+def test_gated_mode_replays_preroll_on_start(monkeypatch):
+    """REGRESSION (onset-loss bug): in gated mode the stream opened at
+    silero's rising edge, which lags the true onset by 300-600ms — that audio
+    was silently dropped. A pre-roll ring must replay it into the new stream."""
+    import asyncio
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    feeds = []
+
+    class _RecStream:
+        def feed(self, s): feeds.append(np.asarray(s))
+        def drain(self): return []
+        def end(self): return "x"
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "per_utterance"; eng._src_rate = 16000
+    eng._stream = None; eng._sample_cursor = 0; eng._utt_start_sample = 0; eng._partial_acc = []
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _RecStream()})()
+    script = iter([[], [], ["start", "speech"], ["speech"]])
+    monkeypatch.setattr(eng, "_vad_events", lambda s: next(script))
+
+    async def send(m): pass
+    mk = lambda v: (np.full(8000, v, np.int16)).tobytes()    # 0.5s buffers
+    for v in (1000, 2000, 3000, 4000):                       # 3000 = the start buffer
+        asyncio.run(eng._drive_utterance(send, mk(v)))
+
+    # First thing fed = the pre-roll (the two pre-start buffers, within the cap),
+    # then the start buffer itself, then the following speech buffer.
+    assert len(feeds) == 3
+    assert len(feeds[0]) == 16000                            # both 0.5s pre-start buffers
+    assert feeds[0][0] > 0.02 and feeds[0][-1] > 0.05        # b1 then b2 content
+    assert abs(feeds[1][0] - 3000 / 32768.0) < 1e-4          # start buffer not duplicated
+    assert abs(feeds[2][0] - 4000 / 32768.0) < 1e-4
+
+
+def test_preroll_ring_is_capped(monkeypatch):
+    import asyncio
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    feeds = []
+
+    class _RecStream:
+        def feed(self, s): feeds.append(np.asarray(s))
+        def drain(self): return []
+
+    eng = AsrEngine()
+    eng._mode = "per_utterance"; eng._src_rate = 16000
+    eng._stream = None; eng._sample_cursor = 0; eng._utt_start_sample = 0; eng._partial_acc = []
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _RecStream()})()
+    events = [[]] * 10 + [["start", "speech"]]
+    script = iter(events)
+    monkeypatch.setattr(eng, "_vad_events", lambda s: next(script))
+
+    async def send(m): pass
+    buf = np.zeros(8000, np.int16).tobytes()                 # 0.5s each, 5s total silence
+    for _ in range(11):
+        asyncio.run(eng._drive_utterance(send, buf))
+    # pre-roll bounded: >= the 0.7s cap, < cap + one buffer
+    assert 11200 <= len(feeds[0]) < 11200 + 8000
+
+
+def test_preroll_cleared_after_finalize(monkeypatch):
+    """The ring restarts after each utterance — the next start must replay
+    only post-utterance audio, never the previous utterance's tail."""
+    import asyncio
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    feeds = []
+
+    class _RecStream:
+        def feed(self, s): feeds.append(np.asarray(s))
+        def drain(self): return []
+        def end(self): return "first"
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "per_utterance"; eng._src_rate = 16000
+    eng._stream = None; eng._sample_cursor = 0; eng._utt_start_sample = 0; eng._partial_acc = []
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _RecStream()})()
+    script = iter([["start", "speech"], ["speech", "end"], [], ["start", "speech"]])
+    monkeypatch.setattr(eng, "_vad_events", lambda s: next(script))
+
+    sent = []
+    async def send(m): sent.append(m)
+    mk = lambda v: (np.full(8000, v, np.int16)).tobytes()
+    for v in (1000, 2000, 3000, 4000):                       # 3000 = post-end silence
+        asyncio.run(eng._drive_utterance(send, mk(v)))
+
+    # second start's pre-roll = ONLY the post-end buffer (3000), one buffer long
+    second_preroll = feeds[-2]
+    assert len(second_preroll) == 8000
+    assert abs(second_preroll[0] - 3000 / 32768.0) < 1e-4
+
+
+def test_gated_fast_utterance_recovers_to_always(monkeypatch):
+    """A degrade is no longer a one-way door: when a gated utterance's
+    recognition ran faster than realtime, the engine returns to the lossless
+    always-stream mode."""
+    import asyncio
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _FastStream:
+        def feed(self, s): pass
+        def drain(self): return []
+        def end(self): return "quick"
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "per_utterance"; eng._src_rate = 16000
+    eng._stream = None; eng._sample_cursor = 0; eng._utt_start_sample = 0; eng._partial_acc = []
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _FastStream()})()
+    script = iter([["start", "speech"], ["speech"], ["end"]])
+    monkeypatch.setattr(eng, "_vad_events", lambda s: next(script))
+
+    sent = []
+    async def send(m): sent.append(m)
+    buf = np.zeros(16000, np.int16).tobytes()                # 1s buffers → dur >> rec
+    for _ in range(3):
+        asyncio.run(eng._drive_utterance(send, buf))
+    assert any(m["type"] == "result" and m["text"] == "quick" for m in sent)
+    assert eng._mode == "always_stream"                      # recovered
+    assert eng._stream is not None                           # lossless session reopened
 
 
 def test_vad_state_reports_rising_and_falling_edges():

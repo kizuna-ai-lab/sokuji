@@ -33,26 +33,47 @@ class Machine:
     dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
-
-
-def _cuda_count() -> int:
-    from ctranslate2 import get_cuda_device_count
-    return get_cuda_device_count()
+    # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
+    # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
+    # tiers (covers AMD/Intel via Vulkan where the NVML/DML probes see nothing).
+    tc_kinds: tuple[str, ...] = ()
+    # STABLE GPU identity from the same probe: (kind, name, mem_total_bytes)
+    # per accelerator device. Volatile mem_free is intentionally NOT here (the
+    # Machine is cached + fingerprinted) — planners read device_free_bytes()
+    # fresh at plan time instead.
+    gpus: tuple[tuple[str, str, int], ...] = ()
 
 
 def _nvidia_gpus() -> tuple[Gpu, ...]:
-    n = _cuda_count()
-    gpus = []
-    for i in range(n):
-        vram_mb, cap = 0, None
+    """Enumerate NVIDIA GPUs via NVML (nvidia-ml-py). Torch-free: NVML ships
+    with the driver, so this works in a venv with no CUDA runtime installed.
+    Any failure (no driver, no pynvml) degrades to 'no GPUs'."""
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+    except Exception:
+        return ()
+    try:
+        gpus = []
+        for i in range(pynvml.nvmlDeviceGetCount()):
+            h = pynvml.nvmlDeviceGetHandleByIndex(i)
+            vram_mb = int(pynvml.nvmlDeviceGetMemoryInfo(h).total // (1024 * 1024))
+            try:
+                cap = tuple(pynvml.nvmlDeviceGetCudaComputeCapability(h))
+            except Exception:
+                cap = None
+            name = pynvml.nvmlDeviceGetName(h)
+            if isinstance(name, bytes):
+                name = name.decode("utf-8", "replace")
+            gpus.append(Gpu("nvidia", name, vram_mb, cap))
+        return tuple(gpus)
+    except Exception:
+        return ()
+    finally:
         try:
-            import torch
-            vram_mb = int(torch.cuda.get_device_properties(i).total_memory // (1024 * 1024))
-            cap = tuple(torch.cuda.get_device_capability(i))  # (major, minor)
+            pynvml.nvmlShutdown()
         except Exception:
             pass
-        gpus.append(Gpu("nvidia", "", vram_mb, cap))
-    return tuple(gpus)
 
 
 def _apple_silicon() -> bool:
@@ -62,6 +83,51 @@ def _apple_silicon() -> bool:
 def _dml_adapters() -> tuple[str, ...]:
     import onnxruntime
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
+
+
+def _tc_devices():
+    """transcribe.cpp's device list — the vendor-agnostic ground truth (sees
+    AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
+    (probe() degrades via _safe)."""
+    import transcribe_cpp
+    return list(transcribe_cpp.backends())
+
+
+def _tc_kinds() -> tuple[str, ...]:
+    """Accelerator kinds transcribe.cpp can actually use here. Sorted for a
+    stable fingerprint; () when the wheel is absent (probe degrades)."""
+    return tuple(sorted({b.kind for b in _tc_devices()}))
+
+
+def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
+    """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
+    return tuple((b.kind, b.description, int(b.memory_total or 0))
+                 for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
+
+
+def device_free_bytes():
+    """FRESH free memory (bytes) of the primary accelerator device, or None
+    when there is none. transcribe.cpp's probe is primary (vendor-agnostic,
+    device-wide); NVML is the fallback when the wheel is missing. Volatile by
+    design — call at plan/load time, never cache in Machine."""
+    try:
+        for b in _tc_devices():
+            if getattr(b, "device_type", "gpu") != "cpu":
+                free = int(b.memory_free or 0)
+                if free > 0:
+                    return free
+    except Exception:
+        pass
+    return _cuda_free_bytes()
+
+
+def ram_free_bytes():
+    """FRESH available system RAM (bytes), or None when psutil is missing."""
+    try:
+        import psutil
+        return int(psutil.virtual_memory().available)
+    except Exception:
+        return None
 
 
 def _has_mod(mod: str) -> bool:
@@ -74,25 +140,13 @@ def _has_mod(mod: str) -> bool:
 
 
 def _installed() -> frozenset:
-    mods = {"ctranslate2": "faster_whisper", "sherpa": "sherpa_onnx",
+    mods = {"transcribe_cpp": "transcribe_cpp",
+            "transcribe_cpp_stream": "transcribe_cpp",
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
             "qwen3tts_onnx": "onnxruntime",
-            "funasr_sensevoice": "funasr",
-            "funasr_nano": "funasr",
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
-            "transformers": "transformers",
-            # qwen3asr needs the native qwen3_asr model (transformers 5.13.x+); until
-            # then it is "not installed" so resolve()/models_catalog exclude it.
-            "qwen3asr": "transformers.models.qwen3_asr",
-            # cohere_transformers needs the native cohere_asr model (mainline since
-            # transformers 5.4); present in our 5.13 venv. Same self-gate as qwen3asr.
-            "cohere_transformers": "transformers.models.cohere_asr",
-            # voxtral_realtime needs BOTH the native voxtral_realtime model (transformers >=5.2;
-            # present in our 5.13 fork) AND mistral_common (its processor/tokenizer) — gate on
-            # both so a half-installed env doesn't advertise it in the catalog then fail at load().
-            "voxtral_realtime": ("transformers.models.voxtral_realtime", "mistral_common"),
             # llamacpp_* backends run an external llama-server binary — a
             # downloadable artifact, not a Python runtime. Always "installed";
             # a missing binary fails at load() with a clear error instead of
@@ -129,14 +183,18 @@ def probe(force: bool = False) -> Machine:
     apple = _safe(_apple_silicon, False)
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
+    tc_kinds = _safe(_tc_kinds, ())
+    tc_gpus = _safe(_tc_gpus, ())
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
+              f"{','.join(tc_kinds)}|"
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
               f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
-    fp = hashlib.sha1(fp_src.encode()).hexdigest()[:12]
+    fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
-        fingerprint=fp)
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
     return _MACHINE
 
 
@@ -166,11 +224,13 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     if tier == "gpu-cuda":
         return bool(machine.nvidia)
     if tier == "gpu-metal":
-        return machine.apple_silicon
+        return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
-        return bool(machine.nvidia or machine.dml_adapters)
+        # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
+        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
+        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
     return False
 
 
@@ -182,8 +242,13 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
               if d.backend in machine.installed and _tier_available(d.tier, machine)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
-        pinned = [d for d in usable if TIER_DEVICE.get(d.tier) == override]
-        rest = [d for d in usable if TIER_DEVICE.get(d.tier) != override]
+        # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
+        # GPU — treat it as "any accelerator tier" so it also pins
+        # vulkan/metal deployments (transcribe.cpp cards have no cuda rows).
+        def _pinned(d):
+            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+        pinned = [d for d in usable if _pinned(d)]
+        rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest
     plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
              for d in usable]
@@ -208,12 +273,109 @@ def _resolve_model(model, model_id: str, override: str, machine: Machine) -> lis
     return plans
 
 
-def resolve(model_id: str, override: str = "auto", machine: Machine | None = None) -> list[Plan]:
+_TC_RESIDENT_FACTOR = 1.15
+
+
+def _quant_budget_bytes(machine: Machine):
+    """The STABLE per-machine basis for quant selection: the primary device's
+    TOTAL memory. Quant choice only decides WHICH FILE we recommend the user
+    download — and we always run exactly the file the user downloaded — so the
+    basis must never flap with transient VRAM pressure (that would recommend
+    re-downloads). Runtime pressure is placement's job (--fit / cpu fallback),
+    never a silent switch to a different model file."""
+    total = max((t for _k, _n, t in machine.gpus), default=0)
+    if total:
+        return total
+    if machine.nvidia and machine.nvidia[0].vram_mb:
+        return machine.nvidia[0].vram_mb << 20
+    return None
+
+
+def _downloaded_quants(model) -> set:
+    """compute_types of `model` whose artifact file is already in the local HF
+    cache. LOAD-time quant selection restricts itself to these (an absent
+    upgrade rung must never be chosen over a cached default — it would fail
+    to load); an empty set means nothing is cached yet, so selection falls
+    back to pure budget logic and the readiness gate drives the download."""
+    from . import catalog as _cat
+    from huggingface_hub import hf_hub_download
+    out = set()
+    seen = set()
+    for d in model.deployments:
+        if d.compute_type in seen:
+            continue
+        seen.add(d.compute_type)
+        repo, fname = _cat.split_artifact(d.artifact)
+        if not fname:
+            continue
+        try:
+            hf_hub_download(repo, fname, local_files_only=True)
+            out.add(d.compute_type)
+        except Exception:
+            pass
+    return out
+
+
+def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
+                   downloaded: set | None = None) -> str:
+    """Quant for a multi-quant transcribe.cpp card. pin wins; on a GPU-capable
+    machine walk quality-descending (largest first) and take the first that
+    fits FULLY resident within the budget, else the rank-default; without a
+    GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
+    from .catalog import _TC_CURATED_MIN_RANK
+    sizes_all = {}   # EVERY listed rung — pin and the downloaded restriction see these
+    sizes = {}       # curated rungs only — the auto-recommend walk
+    default = None   # highest-ranked rung of ANY kind (a hypothetical card with
+    best_rank = -1.0  # zero curated rungs falls back to its top listed-only one)
+    for d in model.deployments:
+        if d.est_bytes and (d.compute_type not in sizes_all or d.est_bytes > sizes_all[d.compute_type]):
+            sizes_all[d.compute_type] = d.est_bytes
+        if (d.rank >= _TC_CURATED_MIN_RANK and d.est_bytes
+                and (d.compute_type not in sizes or d.est_bytes > sizes[d.compute_type])):
+            sizes[d.compute_type] = d.est_bytes   # listed-only (f16/q5) never auto-recommended
+        if d.rank > best_rank:
+            best_rank, default = d.rank, d.compute_type
+    if pin in sizes_all:
+        return pin
+    # LOAD-time reality: only cached quants are loadable — restrict when any
+    # exist. A downloaded listed-only rung counts: we always RUN the file the
+    # user downloaded; the curated filter only shapes fresh recommendations.
+    if downloaded:
+        cached = {q: sz for q, sz in sizes_all.items() if q in downloaded}
+        if cached:
+            sizes = cached
+            if default not in sizes:
+                default = max(sizes, key=lambda q: sizes[q])
+    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+                       for d in model.deployments)
+    if not gpu_possible:
+        return min(sizes, key=sizes.get) if sizes else default
+    if budget is None or not sizes:
+        return default
+    for quant, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
+        if size * _TC_RESIDENT_FACTOR <= budget:
+            return quant
+    return default
+
+
+def resolve(model_id: str, override: str = "auto", machine: Machine | None = None,
+            pin: str | None = None) -> list[Plan]:
     from . import catalog
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    return _resolve_model(model, model_id, override, machine or probe())
+    machine = machine or probe()
+    # Multi-quant ladder (big transcribe.cpp cards): narrow to ONE quant before
+    # the generic tier resolution, so plans stay one-per-tier.
+    if len({d.compute_type for d in model.deployments}) > 1:
+        # Quant = the DOWNLOAD recommendation (stable, total-memory basis),
+        # restricted to what's actually cached — we always load the file the
+        # user downloaded; recommendation and load thus always agree.
+        quant = _tc_pick_quant(model, machine, pin, _quant_budget_bytes(machine),
+                               downloaded=_downloaded_quants(model))
+        model = dataclasses.replace(
+            model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
+    return _resolve_model(model, model_id, override, machine)
 
 
 def resolve_translate(model_id: str, override: str = "auto", machine: Machine | None = None,
@@ -230,7 +392,13 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
     # left the override path with a stale/zero reserved_bytes.
     llama_runtime.set_reserved_bytes(reserved_bytes)
     if override == "auto":
-        chosen = select_variant(model, machine, reserved_bytes, pin)
+        # Same STABLE basis as the download recommendation (_h_list_variants):
+        # we always run exactly the file the user downloaded, so choose it the
+        # same way we recommended it. Runtime VRAM pressure is handled by
+        # llama-server's --fit at placement, never by switching files.
+        chosen = select_variant(model, machine, reserved_bytes, pin,
+                                budget_bytes=_quant_budget_bytes(machine),
+                                downloaded=_downloaded_quants(model))
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
         # CPU deployment when that exact quant has none.
@@ -244,8 +412,20 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
         if not picks:
             raise NoUsablePlan(model_id)
-        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
-                for d in picks]
+        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+                 for d in picks]
+        # Bench correction (E6): when BOTH the GPU pick and its CPU floor have
+        # measured decode throughput, and the GPU is not actually faster,
+        # lead with CPU. tps is higher-is-better (unlike ASR's RTF).
+        if len(plans) > 1 and plans[0].device != "cpu":
+            cache = bench_load()
+            def _tps(p):
+                return cache.get("tps:" + _bench_key(
+                    machine.fingerprint, model_id, p.backend, p.device, p.compute_type))
+            gpu_tps, cpu_tps = _tps(plans[0]), _tps(plans[1])
+            if gpu_tps is not None and cpu_tps is not None and gpu_tps <= cpu_tps:
+                plans = [plans[1], plans[0]]
+        return plans
     # Explicit device override: unchanged tier-pinning path, EXCEPT a quant
     # `pin` (llamacpp cards only) must still be honored — otherwise a pinned
     # q8_0 silently resolves through whatever quant _resolve_model's plain
@@ -285,20 +465,76 @@ def resolve_tts(model_id: str, override: str = "auto", machine: Machine | None =
     return _resolve_model(model, model_id, override, machine or probe())
 
 
+# ── Cross-stage VRAM ledger ──────────────────────────────────────────────────
+# The three session stages (asr/translate/tts) share one accelerator. Each
+# engine claims its ACTUAL device footprint at load (0 when it landed on cpu)
+# and releases on close; placement/reserve math for one stage then uses the
+# real claims of loaded stages and falls back to estimates only for stages
+# that have not loaded yet — fixing the "reserve the download size of a model
+# that ended up on CPU anyway" over-reserve.
+_LEDGER: dict = {}
+
+
+def ledger_reset() -> None:
+    _LEDGER.clear()
+
+
+def ledger_claim(stage: str, nbytes: int) -> None:
+    _LEDGER[stage] = max(0, int(nbytes or 0))
+
+
+def ledger_release(stage: str) -> None:
+    _LEDGER.pop(stage, None)
+
+
+def ledger_other(stage: str) -> int:
+    """Total device bytes held by every OTHER loaded stage."""
+    return sum(v for k, v in _LEDGER.items() if k != stage)
+
+
+def ledger_effective_reserve(stage: str, planned_est: dict) -> int:
+    """Free-VRAM margin `stage` should leave for the OTHER stages (feeds
+    llama's --fit-target, whose unit is "free MiB to keep"). A stage that
+    already LOADED holds its memory NOW — it is already out of every free
+    reading --fit takes, so re-reserving its claim double-counts (measured on
+    the 4070: voxtral Q8's 6.2GB claim re-reserved pushed a 0.8B translate
+    LLM fully off a GPU with 3.2GB free, then its CUDA remnants crashed
+    llama-server). Loaded stages (any ledger entry, incl. 0 for cpu) reserve
+    NOTHING; not-yet-loaded stages reserve their planned estimate."""
+    total = 0
+    for other, est in planned_est.items():
+        if other == stage or other in _LEDGER:
+            continue          # loaded: footprint already materialized in free
+        total += int(est or 0)
+    return total
+
+
 class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
 
 
 def _cuda_free_bytes():
-    """Free VRAM (bytes) on the default CUDA device, or None when torch/CUDA is
-    absent. Best-effort: any failure degrades to None so callers skip gating."""
+    """Free VRAM (bytes) on the first NVIDIA device via NVML, or None when the
+    driver/pynvml is absent. Device-wide free (like cudaMemGetInfo), so VRAM
+    held by other processes (e.g. llama-server) is correctly excluded.
+    Best-effort: any failure degrades to None so callers skip gating."""
     try:
-        import torch
-        if not torch.cuda.is_available():
-            return None
-        return int(torch.cuda.mem_get_info()[0])
+        import pynvml
+        pynvml.nvmlInit()
     except Exception:
         return None
+    try:
+        if pynvml.nvmlDeviceGetCount() < 1:
+            return None
+        h = pynvml.nvmlDeviceGetHandleByIndex(0)
+        return int(pynvml.nvmlDeviceGetMemoryInfo(h).free)
+    except Exception:
+        return None
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except Exception:
+            pass
 
 
 def _rss_bytes():
@@ -321,18 +557,20 @@ def _rss_bytes():
         return None
 
 
-def load_measured(plans: list):
+def load_measured(plans: list, stage: str | None = None):
     """load_with_fallback + measure the loaded model's footprint on its RESOLVED
-    device: reserved-VRAM delta for cuda, RSS delta for cpu. Best-effort — memory
-    is None when unmeasurable or non-positive (e.g. no CUDA, allocator noise, a
-    failed-then-freed GPU attempt during a degrade). Returns
-    (backend, plan, notice, memory_bytes)."""
-    vram_before = _cuda_free_bytes()
+    device: device-free delta for any accelerator (vulkan/metal/cuda — read via
+    the vendor-agnostic device_free_bytes), RSS delta for cpu. Best-effort —
+    memory is None when unmeasurable or non-positive. When `stage` is given the
+    result is recorded in the cross-stage ledger (actual bytes on an
+    accelerator; an explicit 0 for a cpu landing, so reserve math knows the
+    stage holds no device memory). Returns (backend, plan, notice, memory_bytes)."""
+    vram_before = device_free_bytes()
     rss_before = _rss_bytes()
     backend, plan, notice = load_with_fallback(plans)
     memory = None
-    if plan.device == "cuda" and vram_before is not None:
-        vram_after = _cuda_free_bytes()
+    if plan.device != "cpu" and vram_before is not None:
+        vram_after = device_free_bytes()
         if vram_after is not None:
             delta = vram_before - vram_after
             memory = delta if delta > 0 else None
@@ -341,6 +579,12 @@ def load_measured(plans: list):
         if rss_after is not None:
             delta = rss_after - rss_before
             memory = delta if delta > 0 else None
+    if stage is not None:
+        if plan.device == "cpu":
+            ledger_claim(stage, 0)
+        else:
+            est = _model_weight_bytes(plan.artifact)
+            ledger_claim(stage, memory or est or 0)
     return backend, plan, notice, memory
 
 
@@ -407,8 +651,9 @@ def load_with_fallback(plans: list):
     for i, plan in enumerate(plans):
         has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
         # Read free VRAM and weights estimate ONCE per cuda plan; both the
-        # proactive gate and the honest OOM message reuse them. Capturing free
-        # BEFORE the load matters: torch's allocator reports ~0 free after an OOM.
+        # proactive gate and the honest OOM message reuse them. Capture free
+        # BEFORE the load: a failed load can leave allocator caches/fragments
+        # that make an after-the-fact reading meaningless.
         # llamacpp plans are exempt from the proactive gate: llama-server's --fit
         # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
         # guess here would only wrongly route a fittable model to CPU.
@@ -603,20 +848,79 @@ def _llamacpp_quant(model, pin: str | None) -> str:
     return max(quants.values(), key=lambda d: d.rank).compute_type
 
 
-def _llamacpp_variant_row(model, machine: Machine, pin: str | None):
-    """Quant = pin when valid else the rank-default; tier = best available.
-    No VRAM math: llama-server's --fit guarantees any quant runs (worst case
-    partially offloaded)."""
-    quant = _llamacpp_quant(model, pin)
-    rows = [d for d in model.deployments if d.compute_type == quant]
-    rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=True)
-    for d in rows:
-        if _tier_available(d.tier, machine):
-            return d
-    return next((d for d in rows if d.tier == "cpu"), None)
+# A fully-resident model needs its weights plus KV/context headroom.
+_LLAMA_RESIDENT_FACTOR = 1.1
+# Below this fraction of the smallest quant's size, --fit partial offload is
+# slower than running fully on CPU (most layers end up on CPU anyway, plus
+# PCIe traffic) — go straight to the cpu tier.
+_LLAMA_MIN_FIT_FRACTION = 0.5
 
 
-def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None):
+def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
+                          reserved_bytes: int = 0, budget_bytes: int | None = None,
+                          downloaded: set | None = None):
+    """Pick (quant, tier) for a llamacpp card.
+
+    pin → that quant unconditionally (user's will; --fit copes with memory).
+    budget known → the LARGEST quant that fits FULLY resident
+        (est_bytes × 1.1 ≤ budget − reserved): a fully-resident smaller quant
+        beats a partially-offloaded bigger one. Nothing fits → keep the GPU
+        tier with the rank-default quant via --fit only while the budget still
+        covers ≥50% of the smallest quant; below that, fully-CPU is faster.
+    budget unknown (no GPU memory reading) → the rank-default quant, best tier
+        (previous behavior; --fit is the safety net).
+    """
+    def _row(quant, want_gpu=True):
+        rows = [d for d in model.deployments if d.compute_type == quant]
+        rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=want_gpu)
+        for d in rows:
+            if _tier_available(d.tier, machine) and (want_gpu or d.tier == "cpu"):
+                return d
+        return next((d for d in rows if d.tier == "cpu"), None)
+
+    if pin is not None and _llamacpp_quant(model, pin) == pin:
+        return _row(pin)
+
+    default_quant = _llamacpp_quant(model, None)
+    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+                       for d in model.deployments)
+    if budget_bytes is None or not gpu_possible:
+        return _row(default_quant)
+
+    budget = budget_bytes - reserved_bytes
+    quants = {}
+    for d in model.deployments:
+        size = _est_bytes(d)
+        if size and (d.compute_type not in quants or size > quants[d.compute_type]):
+            quants[d.compute_type] = size
+    if downloaded:
+        cached = {q: sz for q, sz in quants.items() if q in downloaded}
+        if cached:
+            quants = cached
+            if default_quant not in quants:
+                default_quant = max(quants, key=lambda q: quants[q])
+    if not quants:
+        return _row(default_quant)
+    # largest fully-resident quant wins
+    for quant, size in sorted(quants.items(), key=lambda kv: -kv[1]):
+        if size * _LLAMA_RESIDENT_FACTOR <= budget:
+            return _row(quant)
+    # Nothing fully fits. On UNIFIED memory (Apple Silicon) the CPU shares the
+    # same pool — moving there frees nothing and loses Metal throughput, so
+    # stay on the GPU tier and let --fit manage pressure. On discrete GPUs,
+    # --fit at the default quant is only worth it while the budget still
+    # covers a meaningful fraction; below that, fully-CPU beats heavy offload
+    # over PCIe.
+    if machine.apple_silicon:
+        return _row(default_quant)
+    smallest = min(quants.values())
+    if budget >= smallest * _LLAMA_MIN_FIT_FRACTION:
+        return _row(default_quant)
+    return _row(default_quant, want_gpu=False)
+
+
+def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None,
+                   budget_bytes: int | None = None, downloaded: set | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
     CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
@@ -626,7 +930,8 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     VRAM-math-free path: llama-server's --fit handles memory via partial offload,
     so quant/tier selection is purely rank + tier-availability, never a byte budget."""
     if _is_llamacpp(model):
-        return _llamacpp_variant_row(model, machine, pin)
+        return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
+                                     downloaded=downloaded)
     gpu = machine.nvidia[0] if machine.nvidia else None
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
@@ -679,7 +984,10 @@ async def _h_list_variants(state, msg, _b, conn=None):
         return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
     reserve = sum((native_models.model_size(msg.get(k)) or 0)
                   for k in ("asrId", "ttsId") if msg.get(k))
-    chosen = select_variant(model, m, reserve, pin=msg.get("pin"))
+    # RECOMMENDATION basis must be STABLE across sessions (it drives which
+    # quant the user downloads): device mem_total, not the volatile free.
+    chosen = select_variant(model, m, reserve, pin=msg.get("pin"),
+                            budget_bytes=_quant_budget_bytes(m))
     # select_variant can return None for a model with no cpu floor (none today, but
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
@@ -752,9 +1060,14 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         models = [x for x in models if x.id in wanted]
     out = []
     for mdl in models:
-        tiers = [{"tier": d.tier, "backend": d.backend,
-                  "available": d.backend in m.installed and _tier_available(d.tier, m)}
-                 for d in mdl.deployments]
+        tiers = []
+        seen_tiers = set()
+        for d in mdl.deployments:
+            if d.tier in seen_tiers:
+                continue                      # multi-quant ladders repeat tiers
+            seen_tiers.add(d.tier)
+            tiers.append({"tier": d.tier, "backend": d.backend,
+                          "available": d.backend in m.installed and _tier_available(d.tier, m)})
         repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
@@ -765,12 +1078,49 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
-        if kind == "translate":
-            seen_cts = []
-            for d in mdl.deployments:
-                if d.compute_type not in seen_cts:
-                    seen_cts.append(d.compute_type)
+        seen_cts = []
+        sizes_by_ct = {}
+        artifact_by_ct = {}
+        for d in mdl.deployments:
+            if d.compute_type not in seen_cts:
+                seen_cts.append(d.compute_type)
+                artifact_by_ct[d.compute_type] = d.artifact
+            if d.est_bytes:
+                sizes_by_ct[d.compute_type] = max(sizes_by_ct.get(d.compute_type, 0), d.est_bytes)
+        if kind == "translate" or len(seen_cts) > 1:
             entry["variantIds"] = seen_cts
+        if len(seen_cts) > 1 and sizes_by_ct:
+            # Precomputed, machine-aware variant list: sorted quality-desc
+            # (size is monotone with quality within one model), each rung
+            # carrying supported (fits this machine at all) and recommended
+            # (the stable default-download pick). Context-free by design —
+            # cross-stage pressure is placement's job, and a recommendation
+            # that flapped with the OTHER stages' selections would read as
+            # noise. Renderer renders; it computes nothing.
+            budget = _quant_budget_bytes(m)
+            is_llama = _is_llamacpp(mdl)
+            if is_llama:
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                rec = chosen.compute_type if chosen is not None else None
+            else:
+                rec = _tc_pick_quant(mdl, m, None, budget)
+            variants = []
+            factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
+            for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                need = int(size * factor)                  # fit-check figure, for UI reasons
+                if is_llama:
+                    supported = True                       # --fit always runs
+                elif budget is None:
+                    supported = True                       # no GPU → CPU runs anything
+                else:
+                    supported = need <= budget
+                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
+                                 "repo": artifact_by_ct.get(ct),
+                                 "supported": supported, "recommended": ct == rec})
+            entry["variants"] = variants
+            # Machine context for the renderer's localized reason strings
+            # ("needs ~X — this machine has Y"); null on cpu-only machines.
+            entry["deviceMemBytes"] = budget
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

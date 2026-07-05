@@ -154,7 +154,7 @@ class MossOnnxTtsBackend:
 
     @staticmethod
     def _stage_layout(lm_dir: str, tok_dir: str) -> str:
-        key = hashlib.sha1(f"{lm_dir}|{tok_dir}".encode()).hexdigest()[:16]
+        key = hashlib.blake2s(f"{lm_dir}|{tok_dir}".encode(), digest_size=8).hexdigest()
         root = os.path.join(tempfile.gettempdir(), "sokuji_moss_tts", key)
         MossOnnxTtsBackend._link_tree(lm_dir, os.path.join(root, _MOSS_LM_DIRNAME))
         MossOnnxTtsBackend._link_tree(tok_dir, os.path.join(root, _MOSS_TOK_DIRNAME))
@@ -480,12 +480,12 @@ class Qwen3TtsOnnxBackend:
         self._dir = None
         try:
             from huggingface_hub import snapshot_download
-            from transformers import AutoTokenizer
+            from .qwen_tokenizer import load_qwen2_tokenizer
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
             self._cfg = _q3_config.load_model_config(d)
-            self._tok = AutoTokenizer.from_pretrained(d, local_files_only=True)
+            self._tok = load_qwen2_tokenizer(d)
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)
             self._codec = _q3_codec.Codec12Hz(sessions)
             self._sessions = sessions
@@ -500,7 +500,7 @@ class Qwen3TtsOnnxBackend:
             raise BackendLoadError(str(e))
 
     def _tokenize(self, text: str) -> np.ndarray:
-        ids = self._tok.encode(text, add_special_tokens=False)
+        ids = self._tok.encode(text, add_special_tokens=False).ids
         return np.array([ids], dtype=np.int64)
 
     def _spk_embed(self, wav24k: np.ndarray) -> np.ndarray:
@@ -519,8 +519,8 @@ class Qwen3TtsOnnxBackend:
         if wav.ndim > 1:
             wav = wav.mean(axis=0).astype(np.float32)
         if int(sr) != 24000:
-            import librosa
-            wav = librosa.resample(y=wav, orig_sr=int(sr), target_sr=24000).astype(np.float32)
+            import soxr
+            wav = soxr.resample(wav, int(sr), 24000).astype(np.float32)
         spk_embedding = self._spk_embed(wav)
         ref_code = self._codec.encode(wav) if ref_text else None
         self._voice_prompt = {
@@ -537,13 +537,16 @@ class Qwen3TtsOnnxBackend:
         same code path as a user-supplied clip. Unknown name / missing files →
         BackendLoadError (mirrors MossOnnxTtsBackend.set_builtin_voice)."""
         try:
-            import librosa
+            import soundfile
             wav_path = Path(self._dir) / "voices" / f"{name}.wav"
             txt_path = Path(self._dir) / "voices" / f"{name}.txt"
-            wav, sr = librosa.load(str(wav_path), sr=24000, mono=True)
+            wav, sr = soundfile.read(str(wav_path), dtype="float32", always_2d=False)
+            if wav.ndim > 1:  # soundfile layout is (frames, channels) — downmix here
+                wav = wav.mean(axis=1).astype(np.float32)
             ref_text = txt_path.read_text(encoding="utf-8").strip()
         except Exception:
             raise BackendLoadError(f"unknown builtin voice: {name}")
+        # set_voice resamples to 24k, so the clip's native rate is fine here.
         self.set_voice(wav, sr, ref_text=ref_text)
 
     @staticmethod

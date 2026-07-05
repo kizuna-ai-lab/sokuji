@@ -17,8 +17,9 @@ POCKET_SUB = "onnx/english_2026-04"
 # Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (llamacpp_qwen backend).
 # Upstream-sourced (Task 14b): an "org/repo/file.gguf" artifact, not a snapshot-able repo.
 TRANSLATE = _gguf_artifact("qwen2.5-0.5b", "q8_0")
-ASR_REPO = os.environ.get(
-    "SOKUJI_ASR_REPO", "FunAudioLLM/SenseVoiceSmall")
+# Catalog default ASR row: sense-voice via transcribe.cpp — one pinned GGUF.
+from sokuji_sidecar.catalog import asr_model as _asr_model
+ASR_ARTIFACT = _asr_model("sense-voice").deployments[0].artifact
 # silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical
 # file lives in the k2-fsa release (same source family as scripts/download-sherpa-wasm.sh).
 VAD_URL = os.environ.get(
@@ -51,8 +52,13 @@ def main():
     except Exception as e:  # one model failing must not abort the others
         print(f"  FAIL translate: {type(e).__name__}: {e}", file=sys.stderr)
 
-    print(f"\nASR sense-voice ({ASR_REPO}):")
-    fetch("asr", repo_id=ASR_REPO)
+    print(f"\nASR sense-voice ({ASR_ARTIFACT}):")
+    arepo, afname = split_artifact(ASR_ARTIFACT)
+    try:
+        path = hf_hub_download(arepo, afname)
+        print(f"  OK  asr: {path}")
+    except Exception as e:  # one model failing must not abort the others
+        print(f"  FAIL asr: {type(e).__name__}: {e}", file=sys.stderr)
 
     print(f"\nASR VAD ({VAD_URL}):")
     try:

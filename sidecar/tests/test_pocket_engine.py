@@ -6,7 +6,7 @@ from sokuji_sidecar import server, pocket_engine
 class FakeEngine:
     sample_rate = 24000
 
-    def init(self, model_dir=None):
+    def init(self, model_dir=None, **kw):
         return 12
 
     def set_voice(self, audio, sr):

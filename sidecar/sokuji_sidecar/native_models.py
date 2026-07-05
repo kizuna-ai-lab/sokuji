@@ -31,14 +31,6 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
-SENSE_VOICE_REPO = "FunAudioLLM/SenseVoiceSmall"
-FUN_ASR_MLT_REPO = os.environ.get("SOKUJI_FUNASR_NANO_REPO", "FunAudioLLM/Fun-ASR-MLT-Nano-2512")
-
-
-def _whisper_size(model_id):
-    return model_id.replace("faster-whisper-", "").replace("whisper-", "")
-
-
 def _vad_cache_path():
     cache = os.path.join(os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
     return os.path.join(cache, "silero_vad.onnx")
@@ -76,27 +68,17 @@ def _base_specs(model_id):
         # LLM cards: artifact is an "org/repo/filename.gguf" upstream path —
         # exactly one file to fetch.
         return {"repos": [], "urls": [], "files": [split_artifact(default_artifact)]}
+    am = _asr_model(model_id)
+    if am is not None:
+        # Every ASR card is a transcribe.cpp GGUF: artifact "org/repo/file.gguf"
+        # → exactly one pinned file to fetch (the repo ships 5+ quants).
+        repo, fname = split_artifact(am.deployments[0].artifact)
+        if fname:
+            return {"repos": [], "urls": [], "files": [(repo, fname)]}
+        return {"repos": [repo], "urls": []}
     if "piper" in model_id or "vits" in model_id:
         from .sherpa_tts import PIPER_REPOS
         return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
-    if "whisper" in model_id:
-        return {"repos": [f"Systran/faster-whisper-{_whisper_size(model_id)}"], "urls": []}
-    if model_id.startswith("granite-speech"):
-        # Granite speech-LLM ids (catalog) live under the ibm-granite/ org on HF.
-        return {"repos": [f"ibm-granite/{model_id}"], "urls": []}
-    if model_id == "sense-voice":
-        return {"repos": [os.environ.get("SOKUJI_ASR_REPO", SENSE_VOICE_REPO)], "urls": []}
-    if model_id == "fun-asr-mlt-nano":
-        return {"repos": [FUN_ASR_MLT_REPO], "urls": []}
-    if model_id == "qwen3-asr-1.7b":
-        return {"repos": ["bezzam/Qwen3-ASR-1.7B"], "urls": []}
-    if model_id == "cohere-transcribe-03-2026":
-        return {"repos": ["AEmotionStudio/cohere-transcribe-03-2026-models"], "urls": []}
-    if model_id == "voxtral-mini-4b-realtime":
-        # Repo ships model.safetensors (HF, needed) + consolidated.safetensors (Mistral
-        # format, 8.86GB, unused by transformers) — skip the duplicate.
-        return {"repos": ["mistralai/Voxtral-Mini-4B-Realtime-2602"], "urls": [],
-                "ignore": ["consolidated.safetensors"]}
     return {"repos": [model_id], "urls": []}
 
 
@@ -276,6 +258,27 @@ def delete_model(model_id, repo=None):
     return freed
 
 
+# Poll interval for streaming a big file's in-flight bytes (tests shrink it).
+_PROGRESS_POLL_S = 0.5
+# Display-only estimate for one llama-server flavor install (the real asset
+# size isn't cheaply known before the fetch; only weights the progress bar).
+_LLAMA_FLAVOR_EST_BYTES = 30_000_000
+
+
+def _incomplete_bytes(repo):
+    """Bytes of the repo's in-flight `.incomplete` blobs — hf_hub_download
+    streams into `<cache>/models--org--repo/blobs/<etag>.incomplete`, so their
+    combined size IS the current file's downloaded byte count. Best-effort."""
+    try:
+        from huggingface_hub import constants
+        d = os.path.join(constants.HF_HUB_CACHE,
+                         f"models--{repo.replace('/', '--')}", "blobs")
+        return sum(os.path.getsize(os.path.join(d, f))
+                   for f in os.listdir(d) if f.endswith(".incomplete"))
+    except Exception:
+        return 0
+
+
 def _download_url(url):
     import urllib.request
     dst = _vad_cache_path()
@@ -290,6 +293,13 @@ async def download(model_id, send, should_cancel=None, repo=None):
     `repo` overrides the model's default repo with a chosen variant's repo (e.g. an
     FP8 quant) — threaded through to `download_specs` so the fetched repo matches
     exactly what the deterministic load-path `select_variant` will load.
+
+    Progress is reported in BYTES when the model's total size is known (every
+    catalog card, via size_bytes): completed files contribute their real
+    on-disk size, and while a file is in flight a poller streams the growing
+    `.incomplete` blob size — so a single multi-GB GGUF (every ASR/LLM card)
+    moves the renderer's bar continuously instead of sitting at 0/N. Unknown
+    total → the old per-file unit counting.
 
     Returns 'ready' when complete or 'cancelled' if `should_cancel()` became true
     between files. hf_hub_download runs in a worker thread that cannot be killed
@@ -319,7 +329,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
     if specs["repos"] and not files:
         raise RuntimeError(
             f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
-    total = len(files) + len(specs["urls"])
+    total_units = len(files) + len(specs["urls"])
     # llamacpp cards need EVERY required llama-server flavor installed (the
     # machine's default flavor for a normal load, plus the tiny cpu floor for
     # device=cpu / the gpu->cpu fallback — see llama_runtime.required_flavors).
@@ -331,28 +341,89 @@ async def download(model_id, send, should_cancel=None, repo=None):
         from . import llama_runtime
         llama_flavors = [f for f in llama_runtime.required_flavors()
                          if llama_runtime.binary_path(f) is None]
-        total += len(llama_flavors)
-    done = 0
-    for r, fname in files:
+        total_units += len(llama_flavors)
+
+    # Byte mode when the total size is known (all catalog cards). Flavor
+    # installs weight in at a nominal estimate; the final event pins to total.
+    size = None
+    try:
+        size = model_size(model_id if not repo else repo)
+    except Exception:
+        size = None
+    if size and VAD_URL in specs["urls"]:
+        # Catalog size_bytes covers the model files only — add the shared VAD.
+        # Guarded on size_bytes being SET: for a (hypothetical) catalog row
+        # without it, model_size()'s live-lookup fallback already counted the
+        # VAD via specs["urls"], and adding it here would double-count.
+        cat = _asr_model(model_id)
+        if cat is not None and cat.size_bytes:
+            size += _SILERO_VAD_BYTES
+    total_bytes = (size + _LLAMA_FLAVOR_EST_BYTES * len(llama_flavors)) if size else None
+
+    done_units = 0
+    done_bytes = 0
+
+    async def progress(*, final=False):
+        if total_bytes:
+            n = total_bytes if final else min(done_bytes, total_bytes - 1)
+            await send({"type": "model_progress", "model": model_id,
+                        "downloaded": n, "total": total_bytes})
+        else:
+            await send({"type": "model_progress", "model": model_id,
+                        "downloaded": done_units, "total": total_units})
+
+    async def _fetch(fn, *args, poll_repo=None, est=0):
+        """Run one blocking fetch in a thread; while it runs, stream the
+        in-flight blob size (byte mode only). Returns the fetch's result."""
+        nonlocal done_bytes, done_units
+        stop = asyncio.Event()
+
+        async def _poll():
+            while not stop.is_set():
+                cur = _incomplete_bytes(poll_repo)
+                if cur:
+                    await send({"type": "model_progress", "model": model_id,
+                                "downloaded": min(done_bytes + cur, total_bytes - 1),
+                                "total": total_bytes})
+                try:
+                    await asyncio.wait_for(stop.wait(), _PROGRESS_POLL_S)
+                except asyncio.TimeoutError:
+                    pass
+
+        poller = asyncio.create_task(_poll()) if (total_bytes and poll_repo) else None
+        try:
+            result = await asyncio.to_thread(fn, *args)
+        finally:
+            if poller is not None:
+                stop.set()
+                await poller
+        got = 0
+        if total_bytes:
+            try:
+                got = os.path.getsize(os.path.realpath(result)) if result else est
+            except Exception:
+                got = est
+        done_bytes += got or est
+        done_units += 1
+        return result
+
+    is_last_stage = not specs["urls"] and not llama_flavors
+    for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
-        await asyncio.to_thread(hf_hub_download, r, fname)
-        done += 1
-        await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
-    for url in specs["urls"]:
+        await _fetch(hf_hub_download, r, fname, poll_repo=r)
+        await progress(final=is_last_stage and i == len(files) - 1)
+    for i, url in enumerate(specs["urls"]):
         if cancelled():
             return "cancelled"
-        await asyncio.to_thread(_download_url, url)
-        done += 1
-        await send({"type": "model_progress", "model": model_id, "downloaded": done, "total": total})
-    for flavor in llama_flavors:
+        await _fetch(_download_url, url, est=_SILERO_VAD_BYTES)
+        await progress(final=not llama_flavors and i == len(specs["urls"]) - 1)
+    for i, flavor in enumerate(llama_flavors):
         if cancelled():
             return "cancelled"
         from . import llama_runtime
-        await asyncio.to_thread(llama_runtime.ensure_binary, flavor)
-        done += 1
-        await send({"type": "model_progress", "model": model_id,
-                    "downloaded": done, "total": total})
+        await _fetch(llama_runtime.ensure_binary, flavor, est=_LLAMA_FLAVOR_EST_BYTES)
+        await progress(final=i == len(llama_flavors) - 1)
     return "ready"
 
 

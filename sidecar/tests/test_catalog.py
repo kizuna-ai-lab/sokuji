@@ -6,9 +6,8 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in {"ctranslate2", "sherpa", "transformers", "qwen3asr",
-                                 "cohere_transformers", "voxtral_realtime", "funasr_sensevoice",
-                                 "funasr_nano"}
+            assert d.backend in ("transcribe_cpp", "transcribe_cpp_stream")
+            assert d.tier in {"gpu-vulkan", "gpu-metal", "cpu"}
 
 
 def test_system_has_a_cpu_floor():
@@ -33,19 +32,23 @@ def test_language_regression_fixtures():
     assert catalog.asr_model("whisper-large-v3").languages == ("multi",)
 
 
-def test_sense_voice_uses_funasr_whisper_uses_ctranslate2():
-    assert catalog.asr_model("sense-voice").deployments[0].backend == "funasr_sensevoice"
-    assert catalog.asr_model("whisper-tiny").deployments[0].backend == "ctranslate2"
+def test_every_asr_row_is_transcribe_cpp_gguf():
+    for m in catalog.asr_models():
+        for d in m.deployments:
+            assert d.backend.startswith("transcribe_cpp")
+            repo, fname = catalog.split_artifact(d.artifact)
+            assert repo.startswith("handy-computer/") and fname.endswith(".gguf")
 
 
-def test_sense_voice_row_has_gpu_and_cpu_funasr():
+def test_sense_voice_row_transcribe_cpp_q8():
     m = catalog.asr_model("sense-voice")
-    assert m.recommended is True and m.sort_order == 1
-    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("funasr_sensevoice", "gpu-cuda", "float32"),
-        ("funasr_sensevoice", "cpu", "float32"),
-    ]
-    assert all(d.artifact == catalog.SENSE_VOICE_REPO for d in m.deployments)
+    assert m.recommended is False and m.sort_order == 130
+    # full ladder now: default (q8_0, rank 2.0) first, then f16 (listed-only,
+    # rank 0.5) / q6_k, q4_k_m (curated, 1.0) / q5_k_m (listed-only)
+    assert m.deployments[0].compute_type == "q8_0" and m.deployments[0].rank == 2.0
+    assert m.deployments[0].artifact == "handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf"
+    ct_rank = {d.compute_type: d.rank for d in m.deployments}
+    assert ct_rank == {"q8_0": 2.0, "f16": 0.5, "q6_k": 1.0, "q5_k_m": 0.5, "q4_k_m": 1.0}
 
 
 def test_granite_language_regression():
@@ -58,11 +61,12 @@ def test_qwen3_asr_row():
     assert m is not None
     assert m.languages == ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
                            "fr", "it", "pt", "ru", "th", "vi", "hi", "id")
-    assert m.recommended is True         # Phase 2: native runtime available → recommended
-    assert m.sort_order == 9
+    assert m.recommended is True
+    assert m.sort_order == 40   # WER 1.61 rank
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("qwen3asr", "gpu-cuda", "bfloat16", "bezzam/Qwen3-ASR-1.7B")
+        ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
+         "handy-computer/Qwen3-ASR-1.7B-gguf/Qwen3-ASR-1.7B-Q4_K_M.gguf")
 
 
 def test_cohere_asr_row():
@@ -72,17 +76,26 @@ def test_cohere_asr_row():
     assert m.languages == ("en", "de", "fr", "it", "es", "pt", "el",
                            "nl", "pl", "ar", "vi", "zh", "ja", "ko")
     assert m.recommended is True
-    assert m.sort_order == 0          # sorted first
-    d = m.deployments[0]
-    assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("cohere_transformers", "gpu-cuda", "bfloat16", "AEmotionStudio/cohere-transcribe-03-2026-models")
+    assert m.sort_order == 10         # WER 1.25: benchmark-best, sorted first
+    # 2026-07-04: transcribe.cpp GGUF (author-validated Q4_K_M default) +
+    # Phase E3 quality ladder: a q8_0 alt rung (rank 1.0) the resolver
+    # upgrades to when the memory budget allows. Default-quant rows come
+    # first so downloads/size_bytes key off the default.
+    assert m.deployments[0].compute_type == "q4_k_m" and m.deployments[0].rank == 2.0
+    assert m.deployments[0].artifact == ("handy-computer/cohere-transcribe-03-2026-gguf/"
+                                         "cohere-transcribe-03-2026-Q4_K_M.gguf")
+    ct_rank = {d.compute_type: d.rank for d in m.deployments}
+    assert ct_rank == {"q4_k_m": 2.0, "f16": 0.5, "q8_0": 1.0, "q6_k": 1.0, "q5_k_m": 0.5}
+    assert m.size_bytes == 1558162944
 
 
-def test_cohere_is_first_qwen3_shifted():
+def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
-    assert ids[0] == "cohere-transcribe-03-2026"           # inserted first in the list
-    assert catalog.asr_model("qwen3-asr-1.7b").sort_order == 9   # 7 → 8 (cohere) → 9 (whisper-medium)
-    assert catalog.asr_model("sense-voice").sort_order == 1      # shifted +1 from 0
+    assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
+    assert len(ids) == 15
+    orders = [m.sort_order for m in catalog.asr_models()]
+    assert orders == sorted(orders)                        # rows stay rank-ordered
+    assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
 
 
 def test_voxtral_realtime_row():
@@ -90,11 +103,14 @@ def test_voxtral_realtime_row():
     assert m is not None
     assert m.name == "Voxtral Mini 4B Realtime"
     assert m.languages == ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko")
-    assert m.recommended is True         # Phase 2: streaming landed → promote to recommended
-    assert m.sort_order == 10            # after whisper-medium inserted: Qwen3 → 9, Voxtral → 10
+    assert m.recommended is True
+    assert m.sort_order == 100           # WER 2.07 rank
     d = m.deployments[0]
+    # Streaming twin: routes through asr_engine's streaming loop via the
+    # session.stream() committed/tentative adapter.
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("voxtral_realtime", "gpu-cuda", "bfloat16", "mistralai/Voxtral-Mini-4B-Realtime-2602")
+        ("transcribe_cpp_stream", "gpu-vulkan", "q4_k_m",
+         "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf/Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")
 
 
 def test_fun_asr_mlt_nano_row():
@@ -103,11 +119,11 @@ def test_fun_asr_mlt_nano_row():
     assert m.recommended is True
     assert len(m.languages) == 31
     assert m.languages[:6] == ("zh", "en", "yue", "ja", "ko", "vi")
-    assert [(d.backend, d.tier, d.compute_type) for d in m.deployments] == [
-        ("funasr_nano", "gpu-cuda", "float32"),
-        ("funasr_nano", "cpu", "float32"),
-    ]
-    assert all(d.artifact == catalog.FUN_ASR_MLT_REPO for d in m.deployments)
+    # Q6_K default: the author's WER table shows q6_k (1.69) beating bf16 (1.74).
+    assert m.deployments[0].compute_type == "q6_k" and m.deployments[0].rank == 2.0
+    assert m.deployments[0].artifact == ("handy-computer/Fun-ASR-MLT-Nano-2512-gguf/"
+                                         "Fun-ASR-MLT-Nano-2512-Q6_K.gguf")
+    assert {d.compute_type for d in m.deployments} == {"q6_k", "f16", "q8_0", "q5_k_m", "q4_k_m"}
 
 
 def test_tts_models_have_deployments_languages_and_repos():
@@ -245,7 +261,7 @@ def test_every_model_exposes_size_bytes_field():
 def test_size_bytes_regression_values():
     # Frozen facts moved verbatim from the old hardcoded-sizes dict (native_models.py) —
     # must never silently regress.
-    assert catalog.asr_model("sense-voice").size_bytes == 944624033
+    assert catalog.asr_model("sense-voice").size_bytes == 252684608
     assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
     # aishell3 repoints to the existing HF repo with its measured kept-size
     # (the old vits-icefall id 404'd on HF and was never downloadable).
