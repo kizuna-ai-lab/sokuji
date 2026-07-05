@@ -18,23 +18,28 @@ from pathlib import Path
 PAIRS = ["ru-en", "zh-en", "en-zh", "hu-en", "en-es", "en-ar", "en-ru",
          "es-en", "en-vi", "ar-en", "ja-en", "en-jap", "ko-en"]
 OUT_ROOT = Path(__file__).resolve().parent.parent / "model-packs" / "opus-ct2"
+NEED = {"config.json", "model.bin", "shared_vocabulary.json",
+        "source.spm", "target.spm"}
+
+def _complete(out_dir: Path) -> bool:
+    """All required files present — a bare model.bin from an interrupted run
+    must NOT count as converted (matters for the 12-pair batch, which is more
+    likely to be interrupted mid-conversion)."""
+    return out_dir.is_dir() and NEED <= {p.name for p in out_dir.iterdir()}
 
 def convert(pair: str) -> None:
     src_repo = f"Helsinki-NLP/opus-mt-{pair}"
     out_dir = OUT_ROOT / f"opus-mt-{pair}-ct2"
-    if (out_dir / "model.bin").exists():
+    if _complete(out_dir):
         print(f"[skip] {pair} already converted")
         return
-    shutil.rmtree(out_dir, ignore_errors=True)
+    shutil.rmtree(out_dir, ignore_errors=True)   # clears any partial output too
     subprocess.run(
         ["ct2-transformers-converter", "--model", src_repo,
          "--output_dir", str(out_dir), "--quantization", "int8",
          "--copy_files", "source.spm", "target.spm"],
         check=True)
-    have = {p.name for p in out_dir.iterdir()}
-    need = {"config.json", "model.bin", "shared_vocabulary.json",
-            "source.spm", "target.spm"}
-    missing = need - have
+    missing = NEED - {p.name for p in out_dir.iterdir()}
     if missing:
         raise SystemExit(f"{pair}: converter output missing {missing}")
     print(f"[ok] {pair} -> {out_dir}")
