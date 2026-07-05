@@ -17,12 +17,12 @@ import os
 from .asr_engine import VAD_URL
 from .catalog import asr_model as _asr_model, split_artifact
 
-# The exact Xenova export files the opus_onnx_translate backend reads (see
-# marian_onnx.MarianOnnxSession). Xenova's opus-mt-* repos also ship unquantized
-# fp32/fp16 onnx we never load — pin the file set instead of snapshotting the repo.
-OPUS_FILES = ["config.json", "generation_config.json", "tokenizer.json",
-              "tokenizer_config.json", "onnx/encoder_model_quantized.onnx",
-              "onnx/decoder_model_merged_quantized.onnx"]
+# The exact CTranslate2 export files the ct2_opus_translate backend reads
+# (see ct2_opus.Ct2OpusSession). Our jiangzhuo9357/opus-mt-*-ct2 repos mirror
+# the gaudi/opus-mt-*-ctranslate2 layout; pin the file set instead of
+# snapshotting the repo.
+OPUS_FILES = ["config.json", "model.bin", "shared_vocabulary.json",
+              "source.spm", "target.spm"]
 
 
 def _ignored(filename, patterns):
@@ -59,10 +59,9 @@ def _base_specs(model_id):
         # default quant first). A pinned variant arrives via the `repo`
         # override in download_specs, exactly like the old FP8 flow.
         default_artifact = _trm.deployments[0].artifact
-        if _trm.deployments[0].backend == "opus_onnx_translate":
-            # Opus artifact is a plain "Xenova/opus-mt-xx-yy" repo id — the
-            # backend only needs 6 specific files out of the repo's full
-            # (multi-framework) export set.
+        if _trm.deployments[0].backend == "ct2_opus_translate":
+            # Opus artifact is a plain "jiangzhuo9357/opus-mt-xx-yy-ct2" repo
+            # id — the backend only needs the 5 CTranslate2 export files.
             return {"repos": [], "urls": [],
                     "files": [(default_artifact, f) for f in OPUS_FILES]}
         # LLM cards: artifact is an "org/repo/filename.gguf" upstream path —

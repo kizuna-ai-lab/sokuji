@@ -468,16 +468,22 @@ def test_h_model_download_passes_repo_through(monkeypatch):
 def test_download_specs_opus_maps_to_mirrored_repo():
     from sokuji_sidecar import native_models as nm
     from sokuji_sidecar import catalog
-    # Opus-MT now resolves directly to the upstream Xenova ONNX repo, pinned to
-    # the 6 files the opus_onnx_translate backend needs (OPUS_FILES) — the
-    # repo's other (unquantized/fp16) exports are never fetched.
+    # Opus-MT now resolves directly to our self-hosted CT2 repo, pinned to
+    # the 5 files the ct2_opus_translate backend needs (OPUS_FILES).
     zh_en = {"repos": [], "urls": [],
-             "files": [("Xenova/opus-mt-zh-en", f) for f in nm.OPUS_FILES]}
+             "files": [("jiangzhuo9357/opus-mt-zh-en-ct2", f) for f in nm.OPUS_FILES]}
     en_jap = {"repos": [], "urls": [],
-              "files": [("Xenova/opus-mt-en-jap", f) for f in nm.OPUS_FILES]}
+              "files": [("jiangzhuo9357/opus-mt-en-jap-ct2", f) for f in nm.OPUS_FILES]}
     assert nm.download_specs("opus-mt-zh-en") == zh_en
     assert nm.download_specs("opus-mt-en-jap") == en_jap
     assert "ignore" not in nm.download_specs("opus-mt-zh-en")
+
+
+def test_opus_files_are_the_ct2_set():
+    from sokuji_sidecar import native_models
+    assert native_models.OPUS_FILES == [
+        "config.json", "model.bin", "shared_vocabulary.json",
+        "source.spm", "target.spm"]
 
 
 def test_download_specs_hymt15():
@@ -605,7 +611,7 @@ def test_translate_specs_come_from_catalog():
     spec = nm.download_specs("qwen2.5-0.5b")
     assert spec["files"] == [catalog.split_artifact(catalog._gguf_artifact("qwen2.5-0.5b", "q8_0"))]
     spec = nm.download_specs("opus-mt-ja-en")
-    assert spec["files"] == [("Xenova/opus-mt-ja-en", f) for f in nm.OPUS_FILES]
+    assert spec["files"] == [("jiangzhuo9357/opus-mt-ja-en-ct2", f) for f in nm.OPUS_FILES]
     assert "ignore" not in spec  # the pinned file set needs no further filtering
 
 

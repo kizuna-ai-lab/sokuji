@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "opus_onnx_translate"
+    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
     tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
     compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
@@ -247,7 +247,7 @@ def _gguf_artifact(mid: str, quant: str) -> str:
 
 
 def _opus_repo(mid: str) -> str:
-    return f"Xenova/{mid}"
+    return f"jiangzhuo9357/{mid}-ct2"
 
 
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
@@ -270,7 +270,7 @@ def _opus_row(src, tgt, sort_order, size_bytes=115_000_000):
     mid = f"opus-mt-{src}-{tgt}"
     name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
     return TranslateModel(mid, name, (src, tgt), (
-        Deployment("opus_onnx_translate", "cpu", "int8", _opus_repo(mid), 1.0),
+        Deployment("ct2_opus_translate", "cpu", "int8", _opus_repo(mid), 1.0),
     ), sort_order=sort_order, size_bytes=size_bytes)
 
 
@@ -284,8 +284,11 @@ def _opus_disp(code):
 
 
 # Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
-# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are 6-file sums from the
-# same date (see OPUS_FILES in native_models.py for the file list).
+# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are still the 6-file ONNX
+# sums from that date; they describe the OLD Xenova export and are stale now
+# that _opus_repo/OPUS_FILES point at the 5-file CT2 layout — refreshed in
+# Task 7 once the jiangzhuo9357/opus-mt-*-ct2 repos are uploaded and their
+# real sizes can be measured (see OPUS_FILES in native_models.py).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
                        "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),

@@ -870,7 +870,7 @@ def test_opus_translate_self_gates_on_onnxruntime_and_tokenizers(monkeypatch):
             return object()
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "opus_onnx_translate" in accel._installed()
+    assert "ct2_opus_translate" in accel._installed()
 
 
 def test_resolve_translate_opus_is_cpu_only(monkeypatch):
@@ -880,11 +880,11 @@ def test_resolve_translate_opus_is_cpu_only(monkeypatch):
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
-                 installed=frozenset({"opus_onnx_translate"}))
+                 installed=frozenset({"ct2_opus_translate"}))
     plans = accel.resolve_translate("opus-mt-zh-en", "auto", m)
     assert [p.device for p in plans] == ["cpu"]
-    assert all(p.backend == "opus_onnx_translate" for p in plans)
-    assert plans[0].artifact == "Xenova/opus-mt-zh-en"
+    assert all(p.backend == "ct2_opus_translate" for p in plans)
+    assert plans[0].artifact == "jiangzhuo9357/opus-mt-zh-en-ct2"
 
 
 def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
