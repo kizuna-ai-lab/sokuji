@@ -74,7 +74,7 @@ Not worth it now: battery/thermal state, per-process GPU accounting.
 
 ### Layer 1 — MachineProfile (probe once, cache by fingerprint)
 
-```
+```text
 gpus      = tc.backends() devices (kind, memory_total, memory_free)   # primary
             + NVML capability where NVIDIA                             # detail
 ram_free  = psutil.virtual_memory().available
@@ -90,7 +90,7 @@ paths     = which stages have a GPU path on this machine:
 
 Replace the pairwise `reserved_bytes` dance with one allocator:
 
-```
+```text
 budget = gpu.memory_free − CONTEXT_SLAB(~1GiB)
 
 stages, in order of CPU-fallback cost (highest first):
@@ -172,8 +172,13 @@ the GGUF download flow already covers them). The download-time detector needs
 the same probes the planner uses (GPU vendor, OS) — but only the coarse
 subset; fine-grained planning still happens inside the installed sidecar.
 
-LLM translate and TTS must accelerate on AMD / Intel / Apple, matching what
-ASR already gets from transcribe.cpp's Vulkan/Metal wheel.
+LLM translate and TTS must accelerate on AMD / Intel / Apple **where a viable
+runtime exists** — matching what ASR already gets from transcribe.cpp's
+Vulkan/Metal wheel. Two documented exceptions remain deliberate, not gaps in
+this design (see the per-platform matrix + coverage table below): Linux AMD
+TTS stays CPU until a ROCm EP ships on PyPI, and macOS heavy TTS is deferred
+to the MLX path (CoreML rejected on evidence; small TTS is fast enough on
+Apple-Silicon CPU).
 
 ### Translate (llama-server) — add a `vulkan` flavor
 
@@ -285,7 +290,7 @@ Two consequences the v1 sketch missed:
 
 ### 8.2 DeviceRegistry (probe layer, runtime, inside the sidecar)
 
-```
+```text
 Device := { vendor, name, mem_total, mem_free,
             apis: subset of {vulkan, metal, cuda, dml, coreml},
             unified: bool }          # true on Apple Silicon
@@ -316,7 +321,7 @@ sidecar where the runtimes can be queried directly.
 
 ### 8.4 SessionPlanner v2
 
-```
+```text
 plan(session = {asr_model, translate_model, tts_model}, dev = registry.gpu):
 
   if dev is None:                            # cpu-only SKU/machine

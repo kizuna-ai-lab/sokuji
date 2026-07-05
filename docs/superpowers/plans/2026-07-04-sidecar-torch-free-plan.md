@@ -58,9 +58,11 @@ Research verdict (measured on the RTX 4070 SUPER box, PyPI `transcribe-cpp`
 | API | official Python bindings: Model/session.run(pcm) batch + stream() with committed/tentative | hand-rolled per-model KV loops |
 | risks | v0.1.x, 87★, single maintainer (pin version; MIT; vendored ggml); SenseVoice output lacks ITN/punctuation (keep sherpa row for it); PyPI cu12 is a placeholder (CUDA via GH release tarball if ever needed — Vulkan already 100×RT) | per-model debugging (CUDA empty-output class bugs) |
 
-Adopted plan: ONE `transcribe_cpp` backend (batch first) + catalog re-point for
-cohere/qwen3-asr/granite×2/voxtral/fun-asr-mlt (whisper may follow later,
-dropping faster-whisper/av; sense-voice stays sherpa for ITN). The Cohere ORT
+Adopted plan (first-pass wording; the "whisper may follow later" hedge was
+superseded the same day — Phase C below moved whisper to transcribe.cpp too):
+ONE `transcribe_cpp` backend (batch first) + catalog re-point for
+cohere/qwen3-asr/granite×2/voxtral/fun-asr-mlt (dropping faster-whisper/av;
+sense-voice stays sherpa for ITN). The Cohere ORT
 backend (`ort_speechllm.py`, `cohere_features.py`) is superseded and gets
 removed when the transcribe.cpp backend lands. onnxruntime remains for the TTS
 domain + Opus translate (CPU flavor may suffice — Phase D sizing).

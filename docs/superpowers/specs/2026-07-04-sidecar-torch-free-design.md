@@ -12,8 +12,11 @@ one of two runtime families:
 - **ONNX family**: onnxruntime (CPU + CUDA EP), sherpa-onnx, ctranslate2
 - **ggml family**: llama.cpp (`llama-server`, already the whole translate-LLM path)
 
-Install budget: **≤ 3 GB** for the GPU flavor, ideally ≤ 2 GB; CPU flavor well
-under 1.5 GB. No existing model card is deleted; a card whose torch-free runtime
+Install budget: **≈ 3 GB soft target** for the GPU flavor, ideally ≤ 2 GB; CPU
+flavor well under 1.5 GB. (Outcome: measured 3.1 GB GPU / 397 MB CPU, accepted
+2026-07-04 — the ~2.7 GB GPU delta is entirely nvidia cudnn/cublas for the TTS
+CUDA tiers and is not reducible without dropping TTS CUDA; see the Phase D
+table.) No existing model card is deleted; a card whose torch-free runtime
 is not ready yet keeps its row but loses only the affected *tier* (hardware
 gating already renders that correctly in the UI).
 
