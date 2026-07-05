@@ -543,13 +543,36 @@ def test_always_stream_runon_cap_forces_cut(monkeypatch):
     assert [m for m in sent if m["type"] == "result"]
 
 
+def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
+    """REGRESSION (PR #279 review): the real pre-check referenced an undefined
+    `pin`; the swallowed NameError made EVERY streaming card silently take the
+    offline path. The pin must reach accel.resolve so the pre-check resolves
+    the same plan init_streaming will load."""
+    from sokuji_sidecar import asr_engine as ae, accel
+
+    seen = {}
+
+    def fake_resolve(model_id, override="auto", machine=None, pin=None):
+        seen["model"], seen["pin"] = model_id, pin
+        return [type("P", (), {"backend": "transcribe_cpp_stream"})()]
+
+    monkeypatch.setattr(accel, "resolve", fake_resolve)
+    eng = ae.AsrEngine()
+    assert eng.resolves_to_streaming("voxtral-mini-4b-realtime", "auto", pin="q8_0") is True
+    assert seen == {"model": "voxtral-mini-4b-realtime", "pin": "q8_0"}
+    # and without a pin it must not blow up either (the original regression)
+    assert eng.resolves_to_streaming("voxtral-mini-4b-realtime", "auto") is True
+    assert seen["pin"] is None
+
+
 def test_asr_init_starts_streaming_task_for_streaming_backend():
     started = {"task": False, "init_streaming": None}
 
     class FakeEng:
         resolved = {"backend": "voxtral_realtime", "device": "cuda", "computeType": "bfloat16"}
 
-        def resolves_to_streaming(self, model_id, device):
+        def resolves_to_streaming(self, model_id, device, pin=None):
+            started["precheck_pin"] = pin
             return True
 
         def init_streaming(self, model_id=None, language="", sample_rate=None,
@@ -578,7 +601,7 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
         conn = server.Conn(type("WS", (), {"send": lambda self, d: None})())
         reply, _ = await server.handle_message(
             state, json.dumps({"type": "asr_init", "id": 1, "model": "voxtral-mini-4b-realtime",
-                               "language": "en", "device": "cuda"}), None, conn)
+                               "language": "en", "device": "cuda", "variant": "q8_0"}), None, conn)
         await asyncio.sleep(0)            # let the created task run once
         return reply, conn
 
@@ -594,6 +617,8 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
     # init_streaming was called with the right params
     assert started["init_streaming"]["model"] == "voxtral-mini-4b-realtime"
     assert started["init_streaming"]["device"] == "cuda"
+    # the pre-check received the user-pinned quant (must match what loads)
+    assert started["precheck_pin"] == "q8_0"
 
 
 def test_asr_init_offline_path_unchanged():
@@ -602,7 +627,7 @@ def test_asr_init_offline_path_unchanged():
     loaded = {"init_calls": 0}
 
     class OfflineEng:
-        def resolves_to_streaming(self, model_id, device):
+        def resolves_to_streaming(self, model_id, device, pin=None):
             return False
 
         def init(self, model_id=None, language="", sample_rate=None,

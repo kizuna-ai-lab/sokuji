@@ -399,12 +399,13 @@ class AsrEngine:
             self._mode = "per_utterance"
             self._pending = ""
 
-    def resolves_to_streaming(self, model_id, device):
+    def resolves_to_streaming(self, model_id, device, pin=None):
         """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
 
         Instantiates a bare backend object (no load()) and reads its STREAMING class flag.
-        Only the top-ranked plan is checked. Returns False on any resolution error so the
-        caller can safely fall back to the offline path."""
+        Only the top-ranked plan is checked; `pin` (the user-pinned quant) must match what
+        init/init_streaming will load so both resolve the same plan. Returns False on any
+        resolution error so the caller can safely fall back to the offline path."""
         from . import accel, backends
         try:
             plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
@@ -464,7 +465,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
     # Cheap pre-check: resolve the backend NAME without loading the model, then read
     # its STREAMING flag. This ensures each branch loads the model exactly once.
     is_streaming = (hasattr(eng, "resolves_to_streaming")
-                    and eng.resolves_to_streaming(model, device))
+                    and eng.resolves_to_streaming(model, device, pin=pin))
 
     if is_streaming:
         # Streaming path: init_streaming resolves+loads the backend once.
