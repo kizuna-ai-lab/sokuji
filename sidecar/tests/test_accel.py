@@ -1449,13 +1449,26 @@ def test_ledger_claim_release_other():
     assert accel.ledger_other("translate") == 0
 
 
-def test_ledger_effective_reserve_prefers_actuals():
+def test_ledger_effective_reserve_loaded_stage_reserves_zero():
+    """REGRESSION (voxtral Q8 + tiny translate crash, 2026-07-05): a LOADED
+    stage's VRAM is already OUT of every free reading --fit takes — re-
+    reserving its measured claim double-counts. Measured on the 4070: voxtral
+    Q8 claims 6.2GB at load; adding it to --fit-target pushed a 0.8B translate
+    LLM fully off a GPU that still had 3.2GB free, and its CUDA remnants then
+    crashed llama-server on the first request. Loaded stages contribute 0;
+    only not-yet-loaded stages reserve their planned estimate."""
     accel.ledger_reset()
-    # asr LOADED on gpu holding 1.2GB (real), tts NOT loaded (fall back to est)
-    accel.ledger_claim("asr", int(1.2 * (1 << 30)))
-    planned = {"asr": 3 << 30, "tts": 4 << 30}     # download-size estimates
+    accel.ledger_claim("asr", 6252 << 20)          # voxtral Q8 measured claim
+    planned = {"asr": 5 << 30, "tts": 80 << 20}    # piper is tiny
     r = accel.ledger_effective_reserve("translate", planned)
-    assert r == int(1.2 * (1 << 30)) + (4 << 30)   # actual beats est; est for unloaded
+    assert r == 80 << 20                           # only the unloaded stage
+
+
+def test_ledger_effective_reserve_unloaded_stages_use_estimates():
+    accel.ledger_reset()
+    planned = {"asr": 3 << 30, "tts": 4 << 30}     # nothing loaded yet
+    r = accel.ledger_effective_reserve("translate", planned)
+    assert r == (3 << 30) + (4 << 30)
 
 
 def test_ledger_effective_reserve_cpu_loaded_stage_reserves_nothing():

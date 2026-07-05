@@ -57,6 +57,7 @@ class _LlamaCppBase:
         self._proc = None
         self._ref = ""
         self._last_reply = None   # kept for tests/diagnostics
+        self._dead_reason = None  # set when the server crashed twice in a row
 
     def load(self, model_ref: str, device: str, compute_type: str) -> None:
         from . import llama_runtime as rt
@@ -76,6 +77,7 @@ class _LlamaCppBase:
             proc.start()
             self._proc = proc
             self._ref = model_ref
+            self._dead_reason = None
         except BackendLoadError:
             raise
         except Exception as e:
@@ -88,14 +90,31 @@ class _LlamaCppBase:
         return self._proc.chat(payload)
 
     def _send(self, payload: dict) -> dict:
+        if self._proc is None:
+            raise BackendLoadError(self._dead_reason or "llama-server is not running")
         try:
             reply = self._post(payload)
         except Exception:
             # One in-place restart when the child died (GGUF already on disk,
-            # restart is seconds); a second failure propagates.
+            # restart is seconds); a second death right after a fresh start is
+            # unrecoverable in-session (e.g. VRAM exhaustion crashing the CUDA
+            # backend on the first request) — LATCH dead instead of restarting
+            # on every utterance, which thrashed one model reload per ASR
+            # result. Subsequent calls fail fast with the crash reason.
             if self._proc is not None and not self._proc.alive():
                 self._proc.restart()
-                reply = self._post(payload)
+                try:
+                    reply = self._post(payload)
+                except Exception as e:
+                    if not self._proc.alive():
+                        tail = self._proc.stderr_tail()
+                        self._proc.stop()
+                        self._proc = None
+                        self._dead_reason = (
+                            f"llama-server crashed twice in a row; translation "
+                            f"disabled for this session: {tail[-300:]}")
+                        raise BackendLoadError(self._dead_reason) from e
+                    raise
             else:
                 raise
         self._last_reply = reply

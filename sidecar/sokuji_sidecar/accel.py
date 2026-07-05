@@ -493,14 +493,19 @@ def ledger_other(stage: str) -> int:
 
 
 def ledger_effective_reserve(stage: str, planned_est: dict) -> int:
-    """Reserve `stage` should assume for the other stages: the ledger's actual
-    claim once a stage is loaded (0 when it sits on cpu), else that stage's
-    planned estimate (typically the model download size)."""
+    """Free-VRAM margin `stage` should leave for the OTHER stages (feeds
+    llama's --fit-target, whose unit is "free MiB to keep"). A stage that
+    already LOADED holds its memory NOW — it is already out of every free
+    reading --fit takes, so re-reserving its claim double-counts (measured on
+    the 4070: voxtral Q8's 6.2GB claim re-reserved pushed a 0.8B translate
+    LLM fully off a GPU with 3.2GB free, then its CUDA remnants crashed
+    llama-server). Loaded stages (any ledger entry, incl. 0 for cpu) reserve
+    NOTHING; not-yet-loaded stages reserve their planned estimate."""
     total = 0
     for other, est in planned_est.items():
-        if other == stage:
-            continue
-        total += _LEDGER[other] if other in _LEDGER else int(est or 0)
+        if other == stage or other in _LEDGER:
+            continue          # loaded: footprint already materialized in free
+        total += int(est or 0)
     return total
 
 

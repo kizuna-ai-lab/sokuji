@@ -155,3 +155,49 @@ class TestOpusOnnx:
         b = backends.make_backend("opus_onnx_translate")
         with pytest.raises(backends.BackendLoadError):
             b.load(str(tmp_path), "cpu", "int8")
+
+
+class _DeadProc:
+    """A llama-server proxy that is dead and stays dead across restarts —
+    models the VRAM-exhaustion crash loop (cublasCreate fails on every
+    fresh start's first request)."""
+    def __init__(self):
+        self.restarts = 0
+        self.stopped = False
+
+    def chat(self, payload):
+        raise ConnectionError("Remote end closed connection without response")
+
+    completion = chat
+
+    def alive(self):
+        return False
+
+    def restart(self):
+        self.restarts += 1
+
+    def stop(self):
+        self.stopped = True
+
+    def stderr_tail(self):
+        return "CUDA error: the resource allocation failed"
+
+
+class TestDeadServerLatch:
+    def test_send_latches_dead_after_double_crash(self):
+        """REGRESSION (voxtral session, 2026-07-05): a server that dies again
+        right after its one in-place restart (VRAM exhaustion) must NOT be
+        restarted on every subsequent utterance — that thrashed one full model
+        reload per ASR result. Latch dead, surface the crash reason once,
+        fail fast afterwards."""
+        b = backends.make_backend("llamacpp_qwen")
+        b._proc = proc = _DeadProc()
+        with pytest.raises(backends.BackendLoadError) as ei:
+            b.translate("hi", "", "en", "zh", False)
+        assert "resource allocation" in str(ei.value)   # stderr tail surfaced
+        assert proc.restarts == 1 and proc.stopped
+        assert not b.is_loaded
+        # subsequent utterances fail fast: no further restart churn
+        with pytest.raises(backends.BackendLoadError):
+            b.translate("hi again", "", "en", "zh", False)
+        assert proc.restarts == 1

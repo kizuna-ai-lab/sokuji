@@ -53,9 +53,9 @@ class TranslateEngine:
 
 async def _h_translate_init(state, msg, _b, conn=None):
     from . import accel, native_models
-    # Ledger-aware reserve: a stage that already LOADED contributes its real
-    # device claim (0 when it sits on cpu); only not-yet-loaded stages fall
-    # back to their download-size estimate.
+    # Ledger-aware reserve: a stage that already LOADED reserves NOTHING (its
+    # footprint is already out of the free-VRAM reading --fit takes); only
+    # not-yet-loaded stages reserve their download-size estimate.
     planned = {}
     for stage, k in (("asr", "asrModel"), ("tts", "ttsModel")):
         mid = msg.get(k)
