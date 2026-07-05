@@ -32,7 +32,7 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 #                source for that pin; ggml family: CPU+Vulkan bundled on
 #                linux/win, Metal on macOS — the stock wheel accelerates
 #                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
-#   Translate -> llama-server binary (downloaded on demand) + Opus ONNX
+#   Translate -> llama-server binary (downloaded on demand) + Opus CTranslate2
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
 echo "[setup] stage runtimes: sherpa-onnx"
 "$PY" -m pip install -q sherpa-onnx
