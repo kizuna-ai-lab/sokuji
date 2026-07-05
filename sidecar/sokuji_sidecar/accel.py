@@ -154,7 +154,7 @@ def _installed() -> frozenset:
             "llamacpp_qwen": None,
             "llamacpp_hunyuan": None,
             "llamacpp_gemma": None,
-            "opus_onnx_translate": ("onnxruntime", "tokenizers")}
+            "ct2_opus_translate": ("ctranslate2", "sentencepiece")}
 
     def _ready(spec):
         if spec is None:

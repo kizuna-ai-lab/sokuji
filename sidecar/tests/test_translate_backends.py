@@ -127,7 +127,7 @@ class TestLlamaCppHunyuanGemma:
         b.unload()
 
 
-class TestOpusOnnx:
+class TestCt2Opus:
     def test_load_and_translate(self, monkeypatch, tmp_path):
         from sokuji_sidecar import translate_backends as tb
 
@@ -136,8 +136,8 @@ class TestOpusOnnx:
                 self.model_dir = model_dir
             def translate(self, text, max_new_tokens=512):
                 return f"UEBERSETZT:{text}", 4
-        monkeypatch.setattr(tb, "MarianOnnxSession", StubSession)
-        b = backends.make_backend("opus_onnx_translate")
+        monkeypatch.setattr(tb, "Ct2OpusSession", StubSession)
+        b = backends.make_backend("ct2_opus_translate")
         b.load(str(tmp_path), "cpu", "int8")
         assert b.is_loaded
         # direction is pair-baked: prompt/src/tgt/wrap are ignored
@@ -151,8 +151,8 @@ class TestOpusOnnx:
 
         def boom(model_dir):
             raise RuntimeError("no such file")
-        monkeypatch.setattr(tb, "MarianOnnxSession", boom)
-        b = backends.make_backend("opus_onnx_translate")
+        monkeypatch.setattr(tb, "Ct2OpusSession", boom)
+        b = backends.make_backend("ct2_opus_translate")
         with pytest.raises(backends.BackendLoadError):
             b.load(str(tmp_path), "cpu", "int8")
 
