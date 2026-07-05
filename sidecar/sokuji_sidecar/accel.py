@@ -322,15 +322,17 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
     machine walk quality-descending (largest first) and take the first that
     fits FULLY resident within the budget, else the rank-default; without a
     GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
+    from .catalog import _TC_CURATED_MIN_RANK
     sizes_all = {}   # EVERY listed rung — pin and the downloaded restriction see these
-    sizes = {}       # curated rungs only (rank >= 1.0) — the auto-recommend walk
-    default = None
-    best_rank = -1.0
+    sizes = {}       # curated rungs only — the auto-recommend walk
+    default = None   # highest-ranked rung of ANY kind (a hypothetical card with
+    best_rank = -1.0  # zero curated rungs falls back to its top listed-only one)
     for d in model.deployments:
         if d.est_bytes and (d.compute_type not in sizes_all or d.est_bytes > sizes_all[d.compute_type]):
             sizes_all[d.compute_type] = d.est_bytes
-            if d.rank >= 1.0:
-                sizes[d.compute_type] = d.est_bytes   # listed-only (f16/q5) never auto-recommended
+        if (d.rank >= _TC_CURATED_MIN_RANK and d.est_bytes
+                and (d.compute_type not in sizes or d.est_bytes > sizes[d.compute_type])):
+            sizes[d.compute_type] = d.est_bytes   # listed-only (f16/q5) never auto-recommended
         if d.rank > best_rank:
             best_rank, default = d.rank, d.compute_type
     if pin in sizes_all:

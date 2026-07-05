@@ -351,7 +351,13 @@ async def download(model_id, send, should_cancel=None, repo=None):
     except Exception:
         size = None
     if size and VAD_URL in specs["urls"]:
-        size += _SILERO_VAD_BYTES   # catalog size_bytes covers the model files only
+        # Catalog size_bytes covers the model files only — add the shared VAD.
+        # Guarded on size_bytes being SET: for a (hypothetical) catalog row
+        # without it, model_size()'s live-lookup fallback already counted the
+        # VAD via specs["urls"], and adding it here would double-count.
+        cat = _asr_model(model_id)
+        if cat is not None and cat.size_bytes:
+            size += _SILERO_VAD_BYTES
     total_bytes = (size + _LLAMA_FLAVOR_EST_BYTES * len(llama_flavors)) if size else None
 
     done_units = 0

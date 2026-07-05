@@ -696,7 +696,7 @@ def test_streaming_end_to_end_real_gpu():
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="cuda")
     opens = {"n": 0}
     _orig = eng._backend.open_stream
-    eng._backend.open_stream = lambda language=None: (opens.__setitem__("n", opens["n"] + 1) or _orig())
+    eng._backend.open_stream = lambda language=None: (opens.__setitem__("n", opens["n"] + 1) or _orig(language))
     sent = []
     async def send(m): sent.append(m)
     step = int(0.1 * sr) * 2     # 100ms of int16 bytes
