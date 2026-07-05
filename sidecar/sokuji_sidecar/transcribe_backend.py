@@ -53,13 +53,38 @@ class TranscribeCppBackend:
             self.unload()
             raise BackendLoadError(str(e))
 
+    def _match_language(self, language):
+        """Map the app's language code onto the tag set the LOADED model
+        publishes (capabilities.languages). Families disagree: whisper /
+        voxtral / sense-voice list bare ISO codes ('zh'), nemotron lists full
+        locales ('zh-CN') and HARD-REJECTS anything else (UnsupportedRequest,
+        status 10 — even bare 'en'). Exact match first, then primary-subtag
+        match ('zh' → 'zh-CN'); a tag the model doesn't know becomes None so
+        the session degrades to autodetect instead of failing to start (every
+        catalog card reports supports_language_detect)."""
+        if not language:
+            return None
+        caps = getattr(self._model, "capabilities", None)
+        tags = tuple(getattr(caps, "languages", ()) or ())
+        if not tags:
+            return language                # model publishes no list — pass through
+        want = language.lower().replace("_", "-")
+        for t in tags:
+            if t.lower() == want:
+                return t
+        primary = want.split("-")[0]
+        for t in tags:
+            if t.lower().split("-")[0] == primary:
+                return t
+        return None
+
     def transcribe(self, samples, language) -> AsrResult:
         if self._session is None:
             raise BackendLoadError("transcribe_cpp not loaded")
         pcm = np.ascontiguousarray(np.asarray(samples, dtype=np.float32).reshape(-1))
         if pcm.size == 0:
             return AsrResult("", language)
-        result = self._session.run(pcm, language=(language or None))
+        result = self._session.run(pcm, language=self._match_language(language))
         return AsrResult((result.text or "").strip(), language)
 
     def unload(self) -> None:
@@ -142,7 +167,8 @@ class TranscribeCppStreamBackend(TranscribeCppBackend):
 
     def open_stream(self, language=None) -> _TcStream:
         """`language` is the user's source-language hint — same contract as the
-        batch path's session.run(language=...); None/empty = autodetect."""
+        batch path's session.run(language=...); None/empty = autodetect. The
+        hint is mapped onto the model's own tag set first (see _match_language)."""
         if self._session is None:
             raise BackendLoadError("transcribe_cpp_stream not loaded")
-        return _TcStream(self._session, language)
+        return _TcStream(self._session, self._match_language(language))

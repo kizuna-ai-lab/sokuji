@@ -186,10 +186,12 @@ class _FakeStreamSession(_FakeSession):
 
 class _FakeStreamModel(_FakeModel):
     supports_streaming = True
+    languages = ()          # capabilities.languages — per-test override
 
     @property
     def capabilities(self):
-        return types.SimpleNamespace(supports_streaming=self.supports_streaming)
+        return types.SimpleNamespace(supports_streaming=self.supports_streaming,
+                                     languages=self.languages)
 
     def session(self):
         self._session = _FakeStreamSession(self.log)
@@ -242,6 +244,35 @@ def test_open_stream_passes_language(fake_stream_tc):
     assert session.stream_kwargs == {"language": None}
     b.open_stream()
     assert session.stream_kwargs == {"language": None}
+
+
+def test_stream_language_mapped_to_model_tag_set(fake_stream_tc):
+    """REGRESSION: nemotron-style models publish FULL locale tags (zh-CN,
+    en-US) and hard-reject bare codes with UnsupportedRequest status 10 —
+    passing the app's 'zh' straight through killed session init. The backend
+    must map onto whatever tag set the LOADED model publishes, and fall back
+    to autodetect (None) for a tag the model doesn't know."""
+    b = _load_stream_backend(fake_stream_tc)
+    model = fake_stream_tc["model"]
+    session = model._session
+    model.languages = ("en-US", "zh-CN", "ja-JP")   # nemotron shape
+    b.open_stream("zh")                              # bare code → the model's locale tag
+    assert session.stream_kwargs == {"language": "zh-CN"}
+    b.open_stream("ko")                              # not in this model's set → autodetect
+    assert session.stream_kwargs == {"language": None}
+    model.languages = ("en", "zh", "ja")             # whisper/voxtral shape: exact match
+    b.open_stream("zh")
+    assert session.stream_kwargs == {"language": "zh"}
+
+
+def test_batch_language_mapped_to_model_tag_set(fake_stream_tc):
+    """Same mapping on the batch path — session.run() rejects unknown tags on
+    locale-tagged models the same way."""
+    b = _load_stream_backend(fake_stream_tc)
+    model = fake_stream_tc["model"]
+    model.languages = ("en-US", "zh-CN")
+    b.transcribe(np.zeros(1600, np.float32), "zh")
+    assert model.log[-1]["language"] == "zh-CN"
 
 
 def test_stream_drain_emits_committed_deltas_only(fake_stream_tc):
