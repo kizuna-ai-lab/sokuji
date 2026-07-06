@@ -37,14 +37,17 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 echo "[setup] stage runtimes: sherpa-onnx"
 "$PY" -m pip install -q sherpa-onnx
 
-# onnxruntime flavor (TTS + Opus translate). The GPU build's CUDA EP needs
-# cuDNN/cuBLAS — installed as standalone nvidia wheels (_cudnn_preload pins
-# them process-wide). Override with ONNXRUNTIME_PACKAGE=... to bypass.
+# onnxruntime flavor (TTS + Opus translate). NVIDIA on Win/Linux uses
+# onnxruntime-gpu with ORT's official cuDNN/cuBLAS extras; __main__'s
+# _preload_cuda_dlls() (onnxruntime.preload_dlls) pins them at startup — no
+# hand-rolled preload, no LD_LIBRARY_PATH surgery (spec D8). Non-NVIDIA/macOS
+# use the CPU build here; the Windows DirectML SKU ships onnxruntime-directml
+# via the P7 bundle, not this dev script. Override with ONNXRUNTIME_PACKAGE=…
 if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
   case "$(uname -s)" in
     Darwin) ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
     *) if command -v nvidia-smi >/dev/null 2>&1; then
-         ONNXRUNTIME_PACKAGE="onnxruntime-gpu==1.23.2"
+         ONNXRUNTIME_PACKAGE="onnxruntime-gpu[cuda,cudnn]==1.23.2"
        else
          ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2"
        fi ;;
@@ -52,12 +55,6 @@ if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
 fi
 echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
 "$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
-# cuDNN pinned to 9.x: _cudnn_preload.py preloads hardcoded libcudnn_*.so.9
-# names — an unpinned major bump would match zero libraries and quietly drop
-# the CUDA EP to CPU. Keep this pin and the preload list in lockstep.
-case "$ONNXRUNTIME_PACKAGE" in
-  onnxruntime-gpu*) "$PY" -m pip install -q "nvidia-cudnn-cu12==9.*" "nvidia-cublas-cu12==12.*" ;;
-esac
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
