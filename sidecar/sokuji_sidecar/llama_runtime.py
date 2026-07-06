@@ -153,15 +153,24 @@ def _run_probe(rel: str, workdir: str) -> str:
     return out.stdout.strip().splitlines()[0]
 
 
+_METAL_CONFIGS = ("m1", "m2", "m3", "m4", "m5")   # newest LAST (fallback pick)
+
+
 def _metal_config() -> str:
-    """Apple chip family from the CPU brand string ('Apple M4 Pro' -> 'm4')."""
+    """Apple chip family from the CPU brand string ('Apple M4 Pro' -> 'm4').
+    An unknown/newer chip degrades to the newest known bucket config with a
+    stderr warning instead of raising — newer Apple GPUs run older Metal
+    binaries fine, and refusing to install would brick every future chip
+    until we ship an update (D11)."""
     brand = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
                            capture_output=True, text=True, timeout=10).stdout
     parts = brand.split()
-    if len(parts) >= 2 and parts[0] == "Apple" and parts[1][:2] in (
-            "M1", "M2", "M3", "M4", "M5"):
+    if len(parts) >= 2 and parts[0] == "Apple" and parts[1][:2].lower() in _METAL_CONFIGS:
         return parts[1][:2].lower()
-    raise BinaryFetchError(f"unsupported Apple chip: {brand.strip()!r}")
+    fallback = _METAL_CONFIGS[-1]
+    print(f"[llama_runtime] unknown Apple chip {brand.strip()!r}; "
+          f"using the {fallback} binary", file=sys.stderr)
+    return fallback
 
 
 def _probe_config(flavor: str) -> str:

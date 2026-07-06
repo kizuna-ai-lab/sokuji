@@ -220,3 +220,28 @@ def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
         gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
     assert rt.default_flavor() == "cpu"
+
+
+def test_metal_config_known_chip(monkeypatch):
+    class R:
+        stdout = "Apple M4 Pro\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m4"
+
+
+def test_metal_config_unknown_chip_degrades_with_warning(monkeypatch, capsys):
+    # D11: a future chip (M6, M7, ...) must not brick binary install — newer
+    # Apple GPUs run the newest known Metal build fine. Warn + degrade.
+    class R:
+        stdout = "Apple M7 Ultra\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err
+
+
+def test_metal_config_garbage_brand_degrades_with_warning(monkeypatch, capsys):
+    class R:
+        stdout = "\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err
