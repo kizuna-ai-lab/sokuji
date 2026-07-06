@@ -192,3 +192,69 @@ def test_windows_job_object_import_is_safe_on_non_windows():
     class _FakeProc:
         _handle = 1234
     assert rt._windows_job_object(_FakeProc()) is None
+
+
+def _probe_machine(gpus=(), apple=False):
+    from sokuji_sidecar import accel
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                         apple_silicon=apple, dml_adapters=(),
+                         installed=frozenset(), fingerprint="t", gpus=gpus)
+
+
+def test_default_flavor_cuda_from_tc_probe(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),)))
+    assert rt.default_flavor() == "cuda"
+
+
+def test_default_flavor_metal_on_apple(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(apple=True))
+    assert rt.default_flavor() == "metal"
+
+
+def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
+    # AMD/Intel GPUs get no cuda flavor; the vulkan flavor arrives in P4.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
+    assert rt.default_flavor() == "cpu"
+
+
+@pytest.mark.parametrize("brand,cfg", [
+    ("Apple M1\n", "m1"), ("Apple M2 Pro\n", "m2"), ("Apple M3 Max\n", "m3"),
+    ("Apple M4 Pro\n", "m4"), ("Apple M5 Ultra\n", "m5")])
+def test_metal_config_known_chip(monkeypatch, brand, cfg):
+    class R:
+        stdout = brand
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == cfg
+
+
+def test_metal_config_unknown_chip_degrades_with_warning(monkeypatch, capsys):
+    # D11: a future chip (M6, M7, ...) must not brick binary install — newer
+    # Apple GPUs run the newest known Metal build fine. Warn + degrade.
+    class R:
+        stdout = "Apple M7 Ultra\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err
+
+
+def test_metal_config_garbage_brand_degrades_with_warning(monkeypatch, capsys):
+    class R:
+        stdout = "\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err
+
+
+def test_metal_config_two_digit_chip_degrades(monkeypatch, capsys):
+    # "M10" must NOT truncate to "m1" (the old [:2] bug); it is unknown to the
+    # config table, so it degrades to the newest known binary.
+    class R:
+        stdout = "Apple M10 Max\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err

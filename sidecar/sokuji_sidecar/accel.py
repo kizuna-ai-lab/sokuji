@@ -16,64 +16,24 @@ from .backends import make_backend, BackendLoadError
 
 
 @dataclass(frozen=True)
-class Gpu:
-    vendor: str
-    name: str
-    vram_mb: int
-    capability: tuple[int, int] | None = None
-
-
-@dataclass(frozen=True)
 class Machine:
     os: str
     arch: str
     cpu_cores: int
-    nvidia: tuple[Gpu, ...]
     apple_silicon: bool
     dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
     # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
     # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
-    # tiers (covers AMD/Intel via Vulkan where the NVML/DML probes see nothing).
+    # tiers (covers AMD/Intel via Vulkan).
     tc_kinds: tuple[str, ...] = ()
-    # STABLE GPU identity from the same probe: (kind, name, mem_total_bytes)
-    # per accelerator device. Volatile mem_free is intentionally NOT here (the
-    # Machine is cached + fingerprinted) — planners read device_free_bytes()
-    # fresh at plan time instead.
+    # STABLE GPU identity from the same probe: (kind, description, mem_total)
+    # per accelerator device. NVIDIA presence = has_nvidia() over these
+    # descriptions. Volatile mem_free is intentionally NOT here (the Machine
+    # is cached + fingerprinted) — planners read device_free_bytes() fresh at
+    # plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
-
-
-def _nvidia_gpus() -> tuple[Gpu, ...]:
-    """Enumerate NVIDIA GPUs via NVML (nvidia-ml-py). Torch-free: NVML ships
-    with the driver, so this works in a venv with no CUDA runtime installed.
-    Any failure (no driver, no pynvml) degrades to 'no GPUs'."""
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-    except Exception:
-        return ()
-    try:
-        gpus = []
-        for i in range(pynvml.nvmlDeviceGetCount()):
-            h = pynvml.nvmlDeviceGetHandleByIndex(i)
-            vram_mb = int(pynvml.nvmlDeviceGetMemoryInfo(h).total // (1024 * 1024))
-            try:
-                cap = tuple(pynvml.nvmlDeviceGetCudaComputeCapability(h))
-            except Exception:
-                cap = None
-            name = pynvml.nvmlDeviceGetName(h)
-            if isinstance(name, bytes):
-                name = name.decode("utf-8", "replace")
-            gpus.append(Gpu("nvidia", name, vram_mb, cap))
-        return tuple(gpus)
-    except Exception:
-        return ()
-    finally:
-        try:
-            pynvml.nvmlShutdown()
-        except Exception:
-            pass
 
 
 def _apple_silicon() -> bool:
@@ -101,15 +61,25 @@ def _tc_kinds() -> tuple[str, ...]:
 
 def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
     """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
-    return tuple((b.kind, b.description, int(b.memory_total or 0))
+    # Coerce description to str at the source (like memory_total): a None from
+    # the native lib would otherwise crash every has_nvidia/_gpu_vendor consumer.
+    return tuple((b.kind, b.description or "", int(b.memory_total or 0))
                  for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
+
+
+def has_nvidia(machine: Machine) -> bool:
+    """NVIDIA presence, from the transcribe.cpp probe: any accelerator device
+    whose description names NVIDIA (case-insensitive substring — the D7
+    contract). Replaces the removed NVML enumeration; the tc probe is the
+    single all-vendor device-truth source."""
+    return any("nvidia" in name.lower() for _kind, name, _total in machine.gpus)
 
 
 def device_free_bytes():
     """FRESH free memory (bytes) of the primary accelerator device, or None
-    when there is none. transcribe.cpp's probe is primary (vendor-agnostic,
-    device-wide); NVML is the fallback when the wheel is missing. Volatile by
-    design — call at plan/load time, never cache in Machine."""
+    when there is none (tc wheel absent, or no accelerator device). Volatile
+    by design — call at plan/load time, never cache in Machine. Callers treat
+    None as 'skip VRAM gating/measurement'."""
     try:
         for b in _tc_devices():
             if getattr(b, "device_type", "gpu") != "cpu":
@@ -118,7 +88,7 @@ def device_free_bytes():
                     return free
     except Exception:
         pass
-    return _cuda_free_bytes()
+    return None
 
 
 def ram_free_bytes():
@@ -179,7 +149,6 @@ def probe(force: bool = False) -> Machine:
     global _MACHINE
     if _MACHINE is not None and not force:
         return _MACHINE
-    nvidia = _safe(_nvidia_gpus, ())
     apple = _safe(_apple_silicon, False)
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
@@ -188,12 +157,11 @@ def probe(force: bool = False) -> Machine:
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
-              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
-              f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}")
     fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
-        nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
+        apple_silicon=apple, dml_adapters=dml, installed=installed,
         fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
     return _MACHINE
 
@@ -222,15 +190,16 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     if tier == "cpu":
         return True
     if tier == "gpu-cuda":
-        return bool(machine.nvidia)
+        return has_nvidia(machine)
     if tier == "gpu-metal":
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
         # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
-        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
+        # devices); NVIDIA-by-description and DML remain as fallbacks.
+        return ("vulkan" in machine.tc_kinds or has_nvidia(machine)
+                or bool(machine.dml_adapters))
     return False
 
 
@@ -278,17 +247,18 @@ _TC_RESIDENT_FACTOR = 1.15
 
 def _quant_budget_bytes(machine: Machine):
     """The STABLE per-machine basis for quant selection: the primary device's
-    TOTAL memory. Quant choice only decides WHICH FILE we recommend the user
-    download — and we always run exactly the file the user downloaded — so the
-    basis must never flap with transient VRAM pressure (that would recommend
-    re-downloads). Runtime pressure is placement's job (--fit / cpu fallback),
-    never a silent switch to a different model file."""
+    TOTAL memory, from the transcribe.cpp probe (all vendors). Quant choice
+    only decides WHICH FILE we recommend the user download — and we always run
+    exactly the file the user downloaded — so the basis must never flap with
+    transient VRAM pressure (that would recommend re-downloads). Runtime
+    pressure is placement's job (--fit / cpu fallback), never a silent switch
+    to a different model file."""
+    # Largest-device basis: correct for the ~universal single-GPU case. On a rare
+    # dual-DISCRETE-vendor box (AMD + NVIDIA) this can budget a gpu-cuda download
+    # against the non-CUDA card's VRAM — accepted as a documented limitation
+    # (per-tier/vendor budgeting is out of P2's NVML-removal scope).
     total = max((t for _k, _n, t in machine.gpus), default=0)
-    if total:
-        return total
-    if machine.nvidia and machine.nvidia[0].vram_mb:
-        return machine.nvidia[0].vram_mb << 20
-    return None
+    return total or None
 
 
 def _downloaded_quants(model) -> set:
@@ -456,7 +426,6 @@ def resolve_tts(model_id: str, override: str = "auto", machine: Machine | None =
             model = catalog.TtsModel(
                 id=model_id, name=model_id, languages=("multi",),
                 deployments=(
-                    catalog.Deployment("sherpa_tts", "gpu-cuda", "fp32", model_id, 1.0),
                     catalog.Deployment("sherpa_tts", "cpu", "fp32", model_id, 1.0),
                 ),
                 repos=(model_id,), sample_rate=16000)
@@ -511,30 +480,6 @@ def ledger_effective_reserve(stage: str, planned_est: dict) -> int:
 
 class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
-
-
-def _cuda_free_bytes():
-    """Free VRAM (bytes) on the first NVIDIA device via NVML, or None when the
-    driver/pynvml is absent. Device-wide free (like cudaMemGetInfo), so VRAM
-    held by other processes (e.g. llama-server) is correctly excluded.
-    Best-effort: any failure degrades to None so callers skip gating."""
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-    except Exception:
-        return None
-    try:
-        if pynvml.nvmlDeviceGetCount() < 1:
-            return None
-        h = pynvml.nvmlDeviceGetHandleByIndex(0)
-        return int(pynvml.nvmlDeviceGetMemoryInfo(h).free)
-    except Exception:
-        return None
-    finally:
-        try:
-            pynvml.nvmlShutdown()
-        except Exception:
-            pass
 
 
 def _rss_bytes():
@@ -658,7 +603,7 @@ def load_with_fallback(plans: list):
         # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
         # guess here would only wrongly route a fittable model to CPU.
         is_llamacpp = plan.backend.startswith("llamacpp_")
-        free = _cuda_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
+        free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
         need = _model_weight_bytes(plan.artifact) if (plan.device == "cuda" and not is_llamacpp) else None
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
@@ -923,8 +868,9 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
                    budget_bytes: int | None = None, downloaded: set | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
-    CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
-    runtime is missing. `pin` (a compute_type) forces that variant when it's valid.
+    CPU floor when no GPU variant fits, the device memory total is unknown, or a
+    format's runtime is missing. `pin` (a compute_type) forces that variant when
+    it's valid.
 
     llamacpp-backed models (all current LLM translate cards) take a separate,
     VRAM-math-free path: llama-server's --fit handles memory via partial offload,
@@ -932,7 +878,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     if _is_llamacpp(model):
         return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
                                      downloaded=downloaded)
-    gpu = machine.nvidia[0] if machine.nvidia else None
+    total = _quant_budget_bytes(machine)
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
     def candidate(d) -> bool:
@@ -940,14 +886,12 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
             return False
         if d.backend not in machine.installed or not _format_ready(d.compute_type):
             return False
-        if gpu is None or not gpu.vram_mb or gpu.capability is None:
-            return False
-        if d.min_capability is not None and gpu.capability < d.min_capability:
+        if total is None or not _tier_available(d.tier, machine):
             return False
         need = _est_bytes(d)
         if need is None:
             return False
-        budget = gpu.vram_mb * 1024 * 1024 - reserved_bytes - _VRAM_CONTEXT_BYTES
+        budget = total - reserved_bytes - _VRAM_CONTEXT_BYTES
         return need * _weight_factor(d.compute_type) <= budget
 
     cands = [d for d in model.deployments if candidate(d)]
@@ -1007,8 +951,8 @@ async def _h_list_variants(state, msg, _b, conn=None):
                     for ct, d in seen.items()]
         return {"type": "list_variants_result", "id": msg.get("id"),
                 "variants": variants, "recommended": chosen.compute_type}, None
-    gpu = m.nvidia[0] if m.nvidia else None
-    budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
+    total = _quant_budget_bytes(m)
+    budget = (total - reserve - _VRAM_CONTEXT_BYTES) if total else 0
     variants = []
     for d in model.deployments:
         if d.tier == "cpu":
@@ -1016,10 +960,8 @@ async def _h_list_variants(state, msg, _b, conn=None):
         need = _est_bytes(d)
         if d.backend not in m.installed or not _format_ready(d.compute_type):
             supported, reason = False, "runtime not installed"
-        elif gpu is None or not gpu.vram_mb or gpu.capability is None:
+        elif total is None or not _tier_available(d.tier, m):
             supported, reason = False, "no usable GPU"
-        elif d.min_capability is not None and gpu.capability < d.min_capability:
-            supported, reason = False, f"needs compute capability {d.min_capability}"
         elif need is None:
             supported, reason = False, "size unknown"
         elif need * _weight_factor(d.compute_type) > budget:
@@ -1033,13 +975,28 @@ async def _h_list_variants(state, msg, _b, conn=None):
             "variants": variants, "recommended": chosen.compute_type}, None
 
 
+_GPU_VENDORS = ("nvidia", "amd", "intel", "apple")
+
+
+def _gpu_vendor(description: str) -> str:
+    """Vendor slug parsed from a tc-probe device description (best-effort)."""
+    d = description.lower()
+    for v in _GPU_VENDORS:
+        if v in d:
+            return v
+    return "unknown"
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
     return {"type": "hardware_info_result", "id": msg.get("id"),
             "os": m.os, "arch": m.arch, "cpuCores": m.cpu_cores,
-            "gpus": [{"vendor": g.vendor, "name": g.name, "vramMb": g.vram_mb} for g in m.nvidia],
+            # All-vendor gpus[] from the tc probe (Machine.gpus) — NVML only
+            # ever saw NVIDIA, leaving this empty on mac/AMD boxes.
+            "gpus": [{"vendor": _gpu_vendor(name), "name": name,
+                      "vramMb": total >> 20} for _kind, name, total in m.gpus],
             "backendsInstalled": sorted(m.installed),
-            "accelAvailable": bool(m.nvidia or m.apple_silicon or m.dml_adapters)}, None
+            "accelAvailable": bool(m.gpus or m.apple_silicon or m.dml_adapters)}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):

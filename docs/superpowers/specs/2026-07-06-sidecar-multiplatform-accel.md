@@ -54,3 +54,24 @@ remains in the codebase.
 2. DML AR-graph RTF vs same-machine CPU (MOSS nano, Qwen3-TTS 0.6B).
 3. VRAM / per-step recompilation behavior on a growing-KV decode loop.
 4. Only if results are unacceptable: revisit AR→CPU routing or model surgery.
+
+## D7 (NVML removal) — known limitation + hardware validation
+
+After P2, NVIDIA presence is derived **solely** from the transcribe.cpp device
+probe (`has_nvidia` = a tc-probe device description contains "nvidia"), replacing
+NVML's driver-level detection. Two consequences to gate the NVIDIA release on:
+
+- **Coupling (Important):** a real NVIDIA box where the tc probe can't enumerate
+  the GPU (no Vulkan ICD, headless, or a CPU-only transcribe-cpp build) but CUDA +
+  `onnxruntime-gpu` *can* will silently route ORT-CUDA TTS and the llama flavor to
+  CPU, with no `fallbackReason`. If a no-Vulkan/headless NVIDIA-CUDA config is in
+  scope, add a secondary presence signal (llama.cpp SM-probe / CUDA-runtime
+  cross-check — P4/P5 territory), else document as a known limitation.
+- **Substring contract (validated on real hardware, 2026-07-06):** on the dev
+  4070 box, `accel.probe().gpus` = `('vulkan', 'NVIDIA GeForce RTX 4070 SUPER',
+  12878610432)`, `has_nvidia()` = True, `device_free_bytes()` = ~11.2 GB — the
+  "nvidia" substring and the tc free-VRAM path hold against ground truth (CI only
+  ever exercised the synthetic string). Re-confirm on Windows+NVIDIA before ship.
+
+Both are consequences of the D7 decision (tc probe as sole device truth), not
+implementation defects; the P2 whole-branch review rated the branch ready to merge.

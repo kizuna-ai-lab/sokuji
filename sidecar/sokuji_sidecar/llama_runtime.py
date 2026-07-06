@@ -86,10 +86,12 @@ def gh_url(asset: str) -> str:
 
 
 def default_flavor() -> str:
-    """The best flavor for this machine (drives the model-download dependency)."""
+    """The best flavor for this machine (drives the model-download dependency):
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, else cpu. AMD/Intel
+    dGPUs stay on cpu until the vulkan flavor lands (P4)."""
     from . import accel
     m = accel.probe()
-    if m.nvidia:
+    if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"
@@ -151,15 +153,27 @@ def _run_probe(rel: str, workdir: str) -> str:
     return out.stdout.strip().splitlines()[0]
 
 
+_METAL_CONFIGS = ("m1", "m2", "m3", "m4", "m5")   # newest LAST (fallback pick)
+
+
 def _metal_config() -> str:
-    """Apple chip family from the CPU brand string ('Apple M4 Pro' -> 'm4')."""
+    """Apple chip family from the CPU brand string ('Apple M4 Pro' -> 'm4').
+    An unknown/newer chip degrades to the newest known bucket config with a
+    stderr warning instead of raising — newer Apple GPUs run older Metal
+    binaries fine, and refusing to install would brick every future chip
+    until we ship an update (D11)."""
     brand = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
                            capture_output=True, text=True, timeout=10).stdout
     parts = brand.split()
-    if len(parts) >= 2 and parts[0] == "Apple" and parts[1][:2] in (
-            "M1", "M2", "M3", "M4", "M5"):
-        return parts[1][:2].lower()
-    raise BinaryFetchError(f"unsupported Apple chip: {brand.strip()!r}")
+    # Match the WHOLE family token ("M4" -> "m4"), not a 2-char slice: an "M10"
+    # must degrade, not truncate to "m1" and pick the wrong binary.
+    fam = parts[1].lower() if len(parts) >= 2 and parts[0] == "Apple" else ""
+    if fam in _METAL_CONFIGS:
+        return fam
+    fallback = _METAL_CONFIGS[-1]
+    print(f"[llama_runtime] unknown Apple chip {brand.strip()!r}; "
+          f"using the {fallback} binary", file=sys.stderr)
+    return fallback
 
 
 def _probe_config(flavor: str) -> str:
