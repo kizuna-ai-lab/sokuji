@@ -16,6 +16,20 @@ interface NativeModelStore {
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
   sidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable';
+  /** Detected bundle SKU for this machine (nvidia | directml | mac). */
+  bundleSku: string | null;
+  /** Self-contained sidecar bundle lifecycle (spec D10). */
+  bundleStatus: 'unknown' | 'absent' | 'installing' | 'ready' | 'error';
+  /** Installed bundle version (from its bundle.json marker), if any. */
+  bundleVersion: string | null;
+  /** Live download progress while `bundleStatus === 'installing'`. */
+  bundleProgress: { downloaded: number; total: number };
+  /** Last bundle install error (empty when none). */
+  bundleError: string;
+  /** Query the main process for the detected SKU + installed bundle status. */
+  refreshBundle: () => Promise<void>;
+  /** Download + unpack the machine's bundle via IPC, streaming progress. */
+  installBundle: () => Promise<void>;
   /** Warm the sidecar and load the full model catalog (asr+translate+tts) + hardware.
    *  Idempotent: returns immediately when already `ready`. Sets `unavailable` on any
    *  failure (no silent catch) so surfaces can show an error + retry. */
@@ -79,6 +93,28 @@ async function revalidateNativeProvider(): Promise<void> {
   } catch { /* best-effort */ }
 }
 
+// Direct main-process IPC for the self-contained bundle flow. The bundle is
+// downloaded by the main process (the sidecar it provides is not yet running),
+// so this bypasses the WS NativeModelClient and talks to window.electron.
+function bundleInvoke(channel: string, data?: unknown): Promise<any> {
+  const e = (window as unknown as { electron?: { invoke(c: string, d?: unknown): Promise<any> } }).electron;
+  if (!e) throw new Error('window.electron unavailable (not running in Electron)');
+  return e.invoke(channel, data);
+}
+
+function onBundleProgress(cb: (p: { downloaded: number; total: number }) => void): (() => void) | null {
+  const e = (window as unknown as {
+    electron?: {
+      receive?: (c: string, f: (p: any) => void) => void;
+      removeListener?: (c: string, f: (p: any) => void) => void;
+    };
+  }).electron;
+  if (!e?.receive) return null;
+  const handler = (p: any) => cb(p);
+  e.receive('sidecar-bundle-progress', handler);
+  return () => e.removeListener?.('sidecar-bundle-progress', handler);
+}
+
 export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   statuses: {},
   progress: {},
@@ -93,6 +129,44 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   translationResolved: null,
   ttsLoading: false,
   ttsResolved: null,
+  bundleSku: null,
+  bundleStatus: 'unknown',
+  bundleVersion: null,
+  bundleProgress: { downloaded: 0, total: 0 },
+  bundleError: '',
+
+  refreshBundle: async () => {
+    try {
+      const r = await bundleInvoke('sidecar-bundle:status');
+      if (r?.ok) {
+        set({
+          bundleSku: r.sku ?? null,
+          bundleStatus: r.installed ? 'ready' : 'absent',
+          bundleVersion: r.version ?? null,
+        });
+      }
+    } catch {
+      // best-effort; a dev checkout with no bundle simply stays 'unknown'
+    }
+  },
+
+  installBundle: async () => {
+    set({ bundleStatus: 'installing', bundleProgress: { downloaded: 0, total: 0 }, bundleError: '' });
+    const off = onBundleProgress((p) =>
+      set({ bundleProgress: { downloaded: p.downloaded, total: p.total } }));
+    try {
+      const r = await bundleInvoke('sidecar-bundle:install');
+      off?.();
+      if (r?.ok) {
+        set({ bundleStatus: 'ready', bundleSku: r.sku ?? null, bundleVersion: r.version ?? null });
+      } else {
+        set({ bundleStatus: 'error', bundleError: r?.error || 'bundle install failed' });
+      }
+    } catch (err) {
+      off?.();
+      set({ bundleStatus: 'error', bundleError: err instanceof Error ? err.message : String(err) });
+    }
+  },
 
   refreshCatalog: async (models) => {
     try {
@@ -269,3 +343,5 @@ export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolv
 export const useNativeTranslationResolved = () => useNativeModelStore((s) => s.translationResolved);
 export const useNativeTtsLoading = () => useNativeModelStore((s) => s.ttsLoading);
 export const useNativeTtsResolved = () => useNativeModelStore((s) => s.ttsResolved);
+export const useNativeBundleStatus = () => useNativeModelStore((s) => s.bundleStatus);
+export const useNativeBundleProgress = () => useNativeModelStore((s) => s.bundleProgress);

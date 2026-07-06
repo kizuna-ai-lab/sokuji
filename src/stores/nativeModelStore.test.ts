@@ -233,3 +233,42 @@ describe('nativeModelStore sidecar lifecycle', () => {
     expect(modelsCatalogCallCount()).toBe(calls);
   });
 });
+
+describe('nativeModelStore bundle install (spec D10)', () => {
+  it('refreshBundle reflects the installed status', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'nvidia', installed: true, version: '0.30.6' }),
+    };
+    await useNativeModelStore.getState().refreshBundle();
+    const s = useNativeModelStore.getState();
+    expect(s.bundleSku).toBe('nvidia');
+    expect(s.bundleStatus).toBe('ready');
+    expect(s.bundleVersion).toBe('0.30.6');
+  });
+
+  it('installBundle streams progress then flips to ready', async () => {
+    let progressCb: ((p: any) => void) | null = null;
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'directml', version: '0.30.6' }),
+      receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') progressCb = f; },
+      removeListener: () => {},
+    };
+    const p = useNativeModelStore.getState().installBundle();
+    expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
+    progressCb?.({ downloaded: 5, total: 10 });
+    expect(useNativeModelStore.getState().bundleProgress).toEqual({ downloaded: 5, total: 10 });
+    await p;
+    expect(useNativeModelStore.getState().bundleStatus).toBe('ready');
+    expect(useNativeModelStore.getState().bundleVersion).toBe('0.30.6');
+  });
+
+  it('installBundle surfaces an install error (e.g. hosting not configured)', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: false, error: 'hosting not configured' }),
+      receive: () => {}, removeListener: () => {},
+    };
+    await useNativeModelStore.getState().installBundle();
+    expect(useNativeModelStore.getState().bundleStatus).toBe('error');
+    expect(useNativeModelStore.getState().bundleError).toBe('hosting not configured');
+  });
+});
