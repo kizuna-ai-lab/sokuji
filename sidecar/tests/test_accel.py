@@ -13,102 +13,45 @@ from sokuji_sidecar import server
 os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
-class _FakeNvml:
-    """Minimal pynvml stand-in: one device, RTX-4070-shaped. Records lifecycle
-    calls so tests can assert init/shutdown pairing."""
-
-    class _Mem:
-        total = 12 * 1024 * 1024 * 1024
-        free = 9 * 1024 * 1024 * 1024
-
-    def __init__(self, name="NVIDIA GeForce RTX 4070", count=1):
-        self._name = name
-        self._count = count
-        self.inits = 0
-        self.shutdowns = 0
-
-    def nvmlInit(self):
-        self.inits += 1
-
-    def nvmlShutdown(self):
-        self.shutdowns += 1
-
-    def nvmlDeviceGetCount(self):
-        return self._count
-
-    def nvmlDeviceGetHandleByIndex(self, i):
-        return i
-
-    def nvmlDeviceGetMemoryInfo(self, h):
-        return self._Mem()
-
-    def nvmlDeviceGetCudaComputeCapability(self, h):
-        return (8, 9)
-
-    def nvmlDeviceGetName(self, h):
-        return self._name
-
-
-def _install_fake_nvml(monkeypatch, fake):
-    import sys
-    monkeypatch.setitem(sys.modules, "pynvml", fake)
-
-
-def test_nvidia_gpus_probe_via_nvml(monkeypatch):
-    # torch is gone: GPU properties (vram, compute capability, name) come from NVML.
-    fake = _FakeNvml()
-    _install_fake_nvml(monkeypatch, fake)
-    gpus = accel._nvidia_gpus()
-    assert gpus == (accel.Gpu("nvidia", "NVIDIA GeForce RTX 4070", 12288, (8, 9)),)
-    assert fake.inits == 1 and fake.shutdowns == 1
-
-
-def test_nvidia_gpus_decodes_bytes_name(monkeypatch):
-    # older NVML bindings return bytes from nvmlDeviceGetName
-    _install_fake_nvml(monkeypatch, _FakeNvml(name=b"NVIDIA GeForce RTX 4070"))
-    gpus = accel._nvidia_gpus()
-    assert gpus[0].name == "NVIDIA GeForce RTX 4070"
-
-
-def test_nvidia_gpus_empty_without_nvml(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "pynvml", None)  # import raises ImportError
-    assert accel._nvidia_gpus() == ()
-
-
 def test_probe_assembles_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_tc_gpus",
+                        lambda: (("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     m = accel.probe(force=True)
-    assert m.nvidia and m.nvidia[0].name == "RTX 4070"
+    assert m.gpus == (("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),)
+    assert accel.has_nvidia(m)
     assert "sherpa" in m.installed
     assert m.fingerprint  # non-empty, stable hash
 
 
 def test_probe_degrades_when_detector_throws(monkeypatch):
-    def boom(): raise RuntimeError("driver broken")
-    monkeypatch.setattr(accel, "_nvidia_gpus", boom)
+    def boom(): raise RuntimeError("probe broken")
+    monkeypatch.setattr(accel, "_tc_gpus", boom)
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     m = accel.probe(force=True)
-    assert m.nvidia == ()  # broken GPU detection → treated as absent, no crash
+    assert m.gpus == ()  # broken GPU detection → treated as absent, no crash
 
 
 def test_probe_is_cached(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     first = accel.probe(force=True)
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "x", 0),))
+    monkeypatch.setattr(accel, "_tc_gpus",
+                        lambda: (("vulkan", "NVIDIA x", 1 << 30),))
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=(), gpus=()):
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
+def _machine(*, apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=(), gpus=()):
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
                          fingerprint="test", tc_kinds=tc, gpus=gpus)
 
@@ -434,7 +377,7 @@ def test_sense_voice_resolves_vulkan_then_cpu_on_nvidia():
 
 
 def test_vulkan_tier_from_tc_probe_alone():
-    # An AMD/Intel box: no NVML GPUs, no DML — transcribe.cpp's own Vulkan
+    # An AMD/Intel box: no NVIDIA device, no DML — transcribe.cpp's own Vulkan
     # probe is enough to light the gpu-vulkan tier.
     m = _machine(tc=("cpu", "vulkan"))
     plans = accel.resolve("whisper-base", machine=m)
@@ -705,10 +648,6 @@ def test_new_translate_backends_installed_and_resolvable():
     assert any(p.backend == "llamacpp_hunyuan" for p in plans)
     g = accel.resolve_translate("translategemma-4b", "auto")
     assert any(p.backend == "llamacpp_gemma" for p in g)
-
-
-# NVML probe coverage lives at the top of this file (test_nvidia_gpus_probe_via_nvml
-# and friends) — the torch-era probe tests were superseded by them.
 
 
 # ── select_variant tests ────────────────────────────────────────────────────
@@ -1057,14 +996,14 @@ def test_models_catalog_carries_size_bytes_per_model():
 # test that calls it.
 
 
-def _llm_machine(nvidia=False, apple=False):
-    return _machine(gpus=_nv_gpus(12282) if nvidia else (),
+def _llm_machine(gpu=False, apple=False):
+    return _machine(gpus=_nv_gpus(12282) if gpu else (),
                     apple=apple, installed=accel._installed())
 
 
 def test_select_variant_llamacpp_default_and_pin():
     m = catalog.translate_model("translategemma-4b")
-    mach = _llm_machine(nvidia=True)
+    mach = _llm_machine(gpu=True)
     chosen = accel.select_variant(m, mach, reserved_bytes=0, pin=None)
     assert (chosen.compute_type, chosen.tier) == ("q4_k_m", "gpu-cuda")
     pinned = accel.select_variant(m, mach, reserved_bytes=0, pin="q8_0")
@@ -1080,7 +1019,7 @@ def test_select_variant_llamacpp_metal_and_cpu():
 
 
 def test_resolve_translate_same_quant_cpu_floor(monkeypatch):
-    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(gpu=True))
     plans = accel.resolve_translate("hy-mt2-1.8b", pin="q8_0")
     assert [(p.tier, p.compute_type) for p in plans] == [
         ("gpu-cuda", "q8_0"), ("cpu", "q8_0")]
@@ -1088,7 +1027,7 @@ def test_resolve_translate_same_quant_cpu_floor(monkeypatch):
 
 def test_resolve_translate_sets_reserved(monkeypatch):
     from sokuji_sidecar import llama_runtime as rt
-    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(gpu=True))
     accel.resolve_translate("qwen2.5-0.5b", reserved_bytes=123456)
     assert rt.get_reserved_bytes() == 123456
     rt.set_reserved_bytes(0)
@@ -1113,7 +1052,7 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
 
 
 def test_list_variants_dedupes_llamacpp(monkeypatch):
-    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(nvidia=True))
+    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(gpu=True))
     reply, _ = asyncio.run(accel._h_list_variants({}, {"model": "translategemma-4b"}, None, None))
     ids = [v["id"] for v in reply["variants"]]
     assert sorted(ids) == ["q4_k_m", "q8_0"]        # deduped across tiers
@@ -1175,7 +1114,6 @@ def test_machine_gpus_stable_identity(monkeypatch):
         _FakeTcDev("vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
         _FakeTcDev("cpu", "Ryzen 7", 64 << 30, 60 << 30, device_type="cpu"),
     ]))
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
@@ -1190,7 +1128,6 @@ def test_fingerprint_ignores_volatile_free(monkeypatch):
     def probe_with_free(free):
         monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
             _FakeTcDev("vulkan", "RTX 4070", 12 << 30, free)]))
-        monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
         monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
         monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
         monkeypatch.setattr(accel, "_installed", lambda: frozenset())
@@ -1586,7 +1523,7 @@ def test_catalog_variants_translate_kind_included(monkeypatch):
 
 
 def _mac_machine(installed=frozenset({"llamacpp_gemma", "transcribe_cpp"})):
-    return accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, nvidia=(),
+    return accel.Machine(os="Darwin", arch="arm64", cpu_cores=10,
                          apple_silicon=True, dml_adapters=(), installed=installed,
                          fingerprint="mac", tc_kinds=("cpu", "metal"),
                          gpus=(("metal", "Apple M2", 16 << 30),))
@@ -1653,3 +1590,12 @@ def test_catalog_variants_carry_reason_data(monkeypatch):
     # "needs ~X — this machine has Y"
     assert f16["needBytes"] == int(f16["sizeBytes"] * 1.15)
     assert not f16["supported"]
+
+
+def test_no_nvml_left_in_package():
+    # D7: NVML is fully removed — no package module may import the NVML binding.
+    import pathlib
+    needle = "pyn" + "vml"  # split literal so this guard is not its own grep hit
+    pkg = pathlib.Path(accel.__file__).parent
+    hits = [p.name for p in pkg.glob("*.py") if needle in p.read_text()]
+    assert hits == []

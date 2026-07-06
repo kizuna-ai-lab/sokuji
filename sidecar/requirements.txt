@@ -9,12 +9,9 @@ zstandard==0.23.0
 tokenizers>=0.20
 # Opus-MT translation runtime (CPU int8; ~11x the old ORT numpy loop)
 ctranslate2==4.8.1
-# torch-free audio io / resample / NVIDIA probing (2026-07-04 torch-free spec).
-# nvidia-ml-py talks to the driver's NVML and is a no-op import elsewhere, so it
-# is safe to install on macOS/AMD boxes (probe degrades to "no NVIDIA GPUs").
-# Capped below the next untested major (12.x and 13.x verified on the 4070 box).
+# torch-free audio io / resample (2026-07-04 torch-free spec). GPU probing is
+# NVML-free since 2026-07-06 (D7): device truth = the transcribe.cpp probe.
 soundfile>=0.13
 soxr>=0.5
-nvidia-ml-py>=12.535,<14
 # ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
 transcribe-cpp==0.1.1

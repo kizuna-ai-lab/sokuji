@@ -16,64 +16,24 @@ from .backends import make_backend, BackendLoadError
 
 
 @dataclass(frozen=True)
-class Gpu:
-    vendor: str
-    name: str
-    vram_mb: int
-    capability: tuple[int, int] | None = None
-
-
-@dataclass(frozen=True)
 class Machine:
     os: str
     arch: str
     cpu_cores: int
-    nvidia: tuple[Gpu, ...]
     apple_silicon: bool
     dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
     # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
     # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
-    # tiers (covers AMD/Intel via Vulkan where the NVML/DML probes see nothing).
+    # tiers (covers AMD/Intel via Vulkan).
     tc_kinds: tuple[str, ...] = ()
-    # STABLE GPU identity from the same probe: (kind, name, mem_total_bytes)
-    # per accelerator device. Volatile mem_free is intentionally NOT here (the
-    # Machine is cached + fingerprinted) — planners read device_free_bytes()
-    # fresh at plan time instead.
+    # STABLE GPU identity from the same probe: (kind, description, mem_total)
+    # per accelerator device. NVIDIA presence = has_nvidia() over these
+    # descriptions. Volatile mem_free is intentionally NOT here (the Machine
+    # is cached + fingerprinted) — planners read device_free_bytes() fresh at
+    # plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
-
-
-def _nvidia_gpus() -> tuple[Gpu, ...]:
-    """Enumerate NVIDIA GPUs via NVML (nvidia-ml-py). Torch-free: NVML ships
-    with the driver, so this works in a venv with no CUDA runtime installed.
-    Any failure (no driver, no pynvml) degrades to 'no GPUs'."""
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-    except Exception:
-        return ()
-    try:
-        gpus = []
-        for i in range(pynvml.nvmlDeviceGetCount()):
-            h = pynvml.nvmlDeviceGetHandleByIndex(i)
-            vram_mb = int(pynvml.nvmlDeviceGetMemoryInfo(h).total // (1024 * 1024))
-            try:
-                cap = tuple(pynvml.nvmlDeviceGetCudaComputeCapability(h))
-            except Exception:
-                cap = None
-            name = pynvml.nvmlDeviceGetName(h)
-            if isinstance(name, bytes):
-                name = name.decode("utf-8", "replace")
-            gpus.append(Gpu("nvidia", name, vram_mb, cap))
-        return tuple(gpus)
-    except Exception:
-        return ()
-    finally:
-        try:
-            pynvml.nvmlShutdown()
-        except Exception:
-            pass
 
 
 def _apple_silicon() -> bool:
@@ -187,7 +147,6 @@ def probe(force: bool = False) -> Machine:
     global _MACHINE
     if _MACHINE is not None and not force:
         return _MACHINE
-    nvidia = _safe(_nvidia_gpus, ())
     apple = _safe(_apple_silicon, False)
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
@@ -196,12 +155,11 @@ def probe(force: bool = False) -> Machine:
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
-              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
-              f"{len(nvidia)}:{','.join(g.name for g in nvidia)}")
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}")
     fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
-        nvidia=nvidia, apple_silicon=apple, dml_adapters=dml, installed=installed,
+        apple_silicon=apple, dml_adapters=dml, installed=installed,
         fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
     return _MACHINE
 

@@ -196,7 +196,7 @@ def test_windows_job_object_import_is_safe_on_non_windows():
 
 def _probe_machine(gpus=(), apple=False):
     from sokuji_sidecar import accel
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=(),
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                          apple_silicon=apple, dml_adapters=(),
                          installed=frozenset(), fingerprint="t", gpus=gpus)
 
