@@ -343,3 +343,68 @@ def test_win_vulkan_asset_is_unpinned():
     asset = f"llama-{rt.BUCKET_VERSION}-bin-win-vulkan-x64.zip"
     assert asset not in rt.ASSET_SHA256          # intentionally unpinned (P4 follow-up)
     rt._verify(asset, b"anything")               # unknown asset -> stderr warning, no raise
+
+
+import tarfile
+
+
+def _tar_gz(files):
+    """A minimal gzip tarball: {member_path: bytes}."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name, data in files.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
+
+
+def test_exe_name_vulkan_is_server_on_linux(monkeypatch):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    assert rt._exe_name("vulkan") == "llama-server"
+    assert rt._exe_name("cuda") == "llama"
+    assert rt._exe_name() == "llama"
+
+
+def test_exe_name_windows_ignores_flavor(monkeypatch):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Windows")
+    assert rt._exe_name("vulkan") == "llama-server.exe"
+    assert rt._exe_name("cuda") == "llama-server.exe"
+
+
+def test_binary_path_vulkan_uses_server_name(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    d = tmp_path / rt.BUCKET_VERSION / "vulkan"
+    d.mkdir(parents=True)
+    (d / "llama-server").write_bytes(b"ELF")
+    assert rt.binary_path("vulkan") == str(d / "llama-server")
+
+
+def test_ensure_binary_vulkan_extracts_ubuntu_tarball(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    blob = _tar_gz({"build/bin/llama-server": b"ELF-vulkan-server",
+                    "build/bin/libggml-vulkan.so": b"SO"})
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return blob
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+
+    path = rt.ensure_binary("vulkan")
+    assert path == rt.binary_path("vulkan")
+    assert os.path.basename(path) == "llama-server"
+    assert open(path, "rb").read() == b"ELF-vulkan-server"
+    assert os.access(path, os.X_OK)
+    # the shared lib was flattened out of build/bin/ to sit beside the exe
+    assert os.path.isfile(os.path.join(os.path.dirname(path), "libggml-vulkan.so"))
+    assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz")]
+
+
+def test_ubuntu_vulkan_tar_is_unpinned():
+    asset = f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"
+    assert asset not in rt.ASSET_SHA256
+    rt._verify(asset, b"anything")   # unknown asset -> stderr warning, no raise

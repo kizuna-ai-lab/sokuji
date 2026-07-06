@@ -72,13 +72,20 @@ def bin_root() -> str:
     return os.path.join(base, BUCKET_VERSION)
 
 
-def _exe_name() -> str:
-    return "llama-server.exe" if platform.system() == "Windows" else "llama"
+def _exe_name(flavor: str | None = None) -> str:
+    if platform.system() == "Windows":
+        return "llama-server.exe"
+    # The official ubuntu-vulkan RELEASE tarball ships a `llama-server` binary
+    # (not the bucket's single-file `llama` app). Keep that name verbatim: it is
+    # what _build_args keys the `serve`-subcommand suppression on.
+    if flavor == "vulkan":
+        return "llama-server"
+    return "llama"
 
 
 def binary_path(flavor: str) -> str | None:
     """Installed binary path for `flavor`, or None when not yet downloaded."""
-    exe = os.path.join(bin_root(), flavor, _exe_name())
+    exe = os.path.join(bin_root(), flavor, _exe_name(flavor))
     return exe if os.path.isfile(exe) else None
 
 
@@ -244,6 +251,40 @@ def _install_from_github(flavor: str, dest_dir: str) -> str:
     return exe
 
 
+def _install_from_github_tar(flavor: str, dest_dir: str) -> str:
+    """Linux: official release tar.gz (currently only the ubuntu-vulkan build).
+    Mirrors the Windows zip path (_install_from_github): extract the archive,
+    then, if the server binary isn't already at the top level, flatten the
+    directory that holds it so its shared libraries (libggml*.so, libllama.so)
+    land next to the exe. Unlike the bucket's single-file `llama`, this ships a
+    `llama-server` binary + .so's under build/bin/.
+
+    glibc note: these are built against Ubuntu's glibc. The first REAL spawn is
+    the compatibility check — a too-old host glibc surfaces as a
+    BackendLoadError from LlamaServerProc.start(). Falling back to a
+    bucket-built vulkan binary is out of scope here."""
+    import io
+    import tarfile
+    asset = {"vulkan": f"llama-{BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"}[flavor]
+    blob = _fetch(gh_url(asset))
+    _verify(asset, blob)
+    with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
+        tf.extractall(dest_dir)
+    exe = os.path.join(dest_dir, _exe_name(flavor))
+    if not os.path.isfile(exe):
+        # tarball nests binaries + shared libs under build/bin/ — flatten
+        # the dir that holds the server so the .so's sit beside it.
+        for root, _dirs, files in os.walk(dest_dir):
+            if _exe_name(flavor) in files and root != dest_dir:
+                for fn in files:
+                    os.replace(os.path.join(root, fn), os.path.join(dest_dir, fn))
+                break
+    if not os.path.isfile(exe):
+        raise BinaryFetchError(f"{_exe_name(flavor)} not found in {asset}")
+    os.chmod(exe, 0o755)
+    return exe
+
+
 _ENSURE_BINARY_LOCK = threading.Lock()
 
 
@@ -277,6 +318,8 @@ def ensure_binary(flavor: str, progress=None) -> str:
         try:
             if platform.system() == "Windows":
                 _install_from_github(flavor, tmp_dir)
+            elif platform.system() == "Linux" and flavor == "vulkan":
+                _install_from_github_tar(flavor, tmp_dir)
             else:
                 _install_from_bucket(flavor, tmp_dir)
             shutil.rmtree(final_dir, ignore_errors=True)
@@ -287,7 +330,7 @@ def ensure_binary(flavor: str, progress=None) -> str:
         except Exception as e:
             shutil.rmtree(tmp_dir, ignore_errors=True)
             raise BinaryFetchError(str(e))
-        return os.path.join(final_dir, _exe_name())
+        return os.path.join(final_dir, _exe_name(flavor))
 
 
 _RESERVED_BYTES = 0
