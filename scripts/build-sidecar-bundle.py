@@ -96,7 +96,9 @@ def _fetch_python_prefix(triple: str, dest: Path) -> Path:
     print(f"[bundle] fetching {url}", flush=True)
     urllib.request.urlretrieve(url, tgz)
     with tarfile.open(tgz) as t:
-        t.extractall(dest)                 # -> dest/python/
+        # filter='data' sanitizes the upstream tarball (CVE-2007-4559 posture);
+        # needs py3.12+ (this module already targets Python 3.12).
+        t.extractall(dest, filter="data")  # -> dest/python/
     tgz.unlink()
     return dest / "python"
 
@@ -143,7 +145,11 @@ def pack_zst(src_dir: str, out_path: str) -> None:
     src = Path(src_dir)
     cctx = zstandard.ZstdCompressor(level=19)
     with open(out_path, "wb") as raw, cctx.stream_writer(raw) as z:
-        with tarfile.open(mode="w|", fileobj=z) as tar:
+        # dereference=True: follow symlinks/hardlinks so the archive contains
+        # only regular files. The JS extractor (extractTarZst) writes regular
+        # files only, so symlink members would land as empty files — a symlink-
+        # free archive keeps bin/python3 etc. as real, spawnable launchers.
+        with tarfile.open(mode="w|", fileobj=z, dereference=True) as tar:
             for name in sorted(os.listdir(src)):
                 tar.add(str(src / name), arcname=name)
 

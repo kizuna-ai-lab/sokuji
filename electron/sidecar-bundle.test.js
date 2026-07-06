@@ -42,4 +42,22 @@ describe('extractTarZst', () => {
     expect(readFileSync(path.join(out, 'app', 'hi.txt'), 'utf8')).toBe('hi');
     expect(existsSync(path.join(out, 'bundle.json'))).toBe(true);
   });
+
+  // Fixture generated with the sidecar dev venv (has `zstandard`):
+  //   sidecar/.venv/bin/python - <<'PY'
+  //   import io, tarfile, zstandard
+  //   buf = io.BytesIO()
+  //   with tarfile.open(mode="w", fileobj=buf) as t:
+  //       real = tarfile.TarInfo("real.txt"); data=b"x"; real.size=len(data)
+  //       t.addfile(real, io.BytesIO(data))
+  //       link = tarfile.TarInfo("link.txt"); link.type=tarfile.SYMTYPE; link.linkname="real.txt"
+  //       t.addfile(link)
+  //   comp = zstandard.ZstdCompressor().compress(buf.getvalue())
+  //   open("electron/__fixtures__/bundle-symlink.tar.zst","wb").write(comp)
+  //   PY
+  it('rejects a symlink member (bundles must be dereferenced)', async () => {
+    const out = mkdtempSync(path.join(tmpdir(), 'sb-sym-'));
+    const fixture = path.join(__dirname, '__fixtures__', 'bundle-symlink.tar.zst');
+    await expect(extractTarZst(fixture, out)).rejects.toThrow(/link member/);
+  });
 });

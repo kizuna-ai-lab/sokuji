@@ -10,7 +10,13 @@ function detectSku(platform, { hasNvidia }) {
   return 'nvidia';                                    // non-NVIDIA Linux: nvidia bundle w/ CPU fallback (D10 open item)
 }
 
+let _nvidiaProbe;  // memoized once per process — GPU presence is fixed at runtime
 function probeNvidia() {
+  if (_nvidiaProbe === undefined) _nvidiaProbe = _probeNvidiaUncached();
+  return _nvidiaProbe;
+}
+
+function _probeNvidiaUncached() {
   try {
     const { spawnSync } = require('child_process');
     const r = spawnSync('nvidia-smi', ['-L'], { timeout: 4000, stdio: 'ignore' });

@@ -20,7 +20,9 @@ jobs:
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
       - name: Build linux-nvidia bundle
-        run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "${{ inputs.version }}" --archive --out out/bundles
+        env:
+          VERSION: ${{ inputs.version }}
+        run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "$VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:
           name: sidecar-linux-nvidia
@@ -37,7 +39,9 @@ jobs:
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
       - name: Build ${{ matrix.sku }} bundle
-        run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "${{ inputs.version }}" --archive --out out/bundles
+        env:
+          VERSION: ${{ inputs.version }}
+        run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "$env:VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:
           name: sidecar-${{ matrix.sku }}
@@ -51,7 +55,9 @@ jobs:
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
       - name: Build mac bundle
-        run: python scripts/build-sidecar-bundle.py --sku mac --version "${{ inputs.version }}" --archive --out out/bundles
+        env:
+          VERSION: ${{ inputs.version }}
+        run: python scripts/build-sidecar-bundle.py --sku mac --version "$VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:
           name: sidecar-mac

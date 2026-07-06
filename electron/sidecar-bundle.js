@@ -56,6 +56,12 @@ function extractTarZst(archivePath, destDir) {
         stream.resume();
         return next(new Error(`unsafe path in archive: ${header.name}`));
       }
+      if (header.type === 'symlink' || header.type === 'link') {
+        // Bundles are packed with dereference=True, so a link member means a
+        // malformed/tampered archive — fail loud instead of writing an empty file.
+        stream.resume();
+        return next(new Error(`unsupported link member in archive: ${header.name} (bundles must be packed dereferenced)`));
+      }
       if (header.type === 'directory') {
         fs.mkdirSync(target, { recursive: true });
         stream.resume();
@@ -128,11 +134,17 @@ async function installBundle({ sku, baseUrl, userDataDir, onProgress, fetchImpl 
   await verifySha256(tmpArchive, entry.sha256);
 
   const tmpDir = `${dest}.tmp`;
+  const oldDir = `${dest}.old`;
   fs.rmSync(tmpDir, { recursive: true, force: true });
+  fs.rmSync(oldDir, { recursive: true, force: true });
   await extractTarZst(tmpArchive, tmpDir);
-  fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(dest), { recursive: true });
+  // Swap via two atomic renames rather than deleting dest first, so a crash
+  // can't leave dest destroyed with no replacement ready. (No auto-restore of
+  // .old: a failed install self-heals by re-downloading on the next attempt.)
+  if (fs.existsSync(dest)) fs.renameSync(dest, oldDir);
   fs.renameSync(tmpDir, dest);
+  fs.rmSync(oldDir, { recursive: true, force: true });
   fs.rmSync(tmpArchive, { force: true });
   fs.writeFileSync(path.join(dest, 'bundle.json'), JSON.stringify({ sku, version: entry.version }));
   return { version: entry.version };

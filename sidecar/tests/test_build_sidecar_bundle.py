@@ -97,6 +97,29 @@ def test_build_manifest_fields(tmp_path):
     assert m["url"].endswith("sidecar-mac-v2.tar.zst")
 
 
+def test_pack_zst_dereferences_symlinks(tmp_path):
+    """A source tree with a symlink must produce a symlink-FREE archive:
+    the JS extractor writes regular files only, so bin/python3-style symlinks
+    would otherwise land as empty files and break boot."""
+    src = tmp_path / "tree"
+    src.mkdir()
+    (src / "real.txt").write_text("payload")
+    (src / "link.txt").symlink_to("real.txt")  # relative symlink, like pbs bin/python3
+    out = tmp_path / "out.tar.zst"
+    b.pack_zst(str(src), str(out))
+    import zstandard
+    with open(out, "rb") as f, zstandard.ZstdDecompressor().stream_reader(f) as z:
+        data = z.read()
+    with _tarfile.open(fileobj=_io.BytesIO(data)) as t:
+        members = t.getmembers()
+    assert not any(m.issym() or m.islnk() for m in members), "archive must be symlink-free"
+    names = {m.name for m in members}
+    assert "real.txt" in names and "link.txt" in names
+    # the dereferenced link carries the target's content
+    link_member = next(m for m in members if m.name == "link.txt")
+    assert link_member.isfile() and link_member.size == len("payload")
+
+
 def test_merge_manifests_keeps_latest_per_sku():
     agg = b.merge_manifests([
         {"sku": "nvidia", "version": "0.30.5", "sha256": "a", "size": 1, "url": "u1"},
