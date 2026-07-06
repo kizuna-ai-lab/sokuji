@@ -611,8 +611,9 @@ def test_resolve_translate_override_cpu_pins_front():
     m = _machine(gpus=_nv_gpus(),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", "cpu", m)
-    assert [p.device for p in plans] == ["cpu", "cpu", "cuda", "cuda"]
-    assert plans[0].device == "cpu" and plans[-1].device == "cuda"
+    assert [p.device for p in plans] == [
+        "cpu", "cpu", "cuda", "cuda", "vulkan", "vulkan"]
+    assert plans[0].device == "cpu" and plans[-1].device == "vulkan"
 
 
 def test_resolve_translate_qwen35_no_longer_self_gates():
@@ -762,7 +763,7 @@ def test_resolve_translate_override_honors_quant_pin():
     m = _machine(gpus=_nv_gpus(),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", override="cpu", pin="q8_0", machine=m)
-    assert [p.device for p in plans] == ["cpu", "cuda"]
+    assert [p.device for p in plans] == ["cpu", "cuda", "vulkan"]
     assert all(p.compute_type == "q8_0" for p in plans)
 
 

@@ -253,15 +253,18 @@ def _opus_repo(mid: str) -> str:
 
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
                        alt_quant, alt_bytes, recommended=False):
-    """An LLM card: one llamacpp backend, two GGUF quant variants, three tiers
-    each. The same GGUF serves every tier; rank 2.0 marks the default quant."""
+    """An LLM card: one llamacpp backend, two GGUF quant variants, four tiers
+    each (gpu-cuda / gpu-metal / gpu-vulkan / cpu). The same GGUF serves every
+    tier; rank 2.0 marks the default quant. Plan ORDER across tiers is decided
+    by accel.TIER_RANK (gpu-cuda/gpu-metal 3.0 > gpu-vulkan 2.5 > cpu 1.0), not
+    by the order of this tuple."""
     backend = f"llamacpp_{family}"
     deps = []
     for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
                                 (alt_quant, alt_bytes, 1.0)):
         artifact = _gguf_artifact(mid, quant)
         deps += [Deployment(backend, tier, quant, artifact, rank, est_bytes=nbytes)
-                 for tier in ("gpu-cuda", "gpu-metal", "cpu")]
+                 for tier in ("gpu-cuda", "gpu-metal", "gpu-vulkan", "cpu")]
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
                           size_bytes=default_bytes)
