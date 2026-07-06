@@ -59,3 +59,49 @@ def test_host_supports_sku_matches_platform():
     assert b.host_supports_sku("win-nvidia") == (platform.system() == "Windows")
     assert b.host_supports_sku("mac") == (
         platform.system() == "Darwin" and platform.machine() == "arm64")
+
+
+import hashlib
+import io as _io
+import tarfile as _tarfile
+
+
+def test_archive_name_matches_js_contract():
+    assert b.archive_name("linux-nvidia", "0.30.6") == "sidecar-linux-nvidia-v0.30.6.tar.zst"
+
+
+def test_pack_zst_round_trips_with_children_at_root(tmp_path):
+    src = tmp_path / "sidecar-x-v1"
+    (src / "app").mkdir(parents=True)
+    (src / "app" / "hi.txt").write_text("hi")
+    (src / "bundle.json").write_text('{"sku":"x"}')
+    out = tmp_path / "b.tar.zst"
+    b.pack_zst(str(src), str(out))
+    assert out.exists() and out.stat().st_size > 0
+    import zstandard
+    with open(out, "rb") as f, zstandard.ZstdDecompressor().stream_reader(f) as z:
+        data = z.read()
+    with _tarfile.open(fileobj=_io.BytesIO(data)) as t:
+        names = sorted(t.getnames())
+    assert "app/hi.txt" in names and "bundle.json" in names
+    # Children live at the archive root - no "sidecar-x-v1/" wrapper dir.
+    assert not any(n.startswith("sidecar-x-v1/") for n in names)
+
+
+def test_build_manifest_fields(tmp_path):
+    arc = tmp_path / "sidecar-mac-v2.tar.zst"
+    arc.write_bytes(b"payload")
+    m = b.build_manifest("mac", "2", str(arc), "https://host/sidecar-mac-v2.tar.zst")
+    assert m["sha256"] == hashlib.sha256(b"payload").hexdigest()
+    assert m["sku"] == "mac" and m["version"] == "2" and m["size"] == 7
+    assert m["url"].endswith("sidecar-mac-v2.tar.zst")
+
+
+def test_merge_manifests_keeps_latest_per_sku():
+    agg = b.merge_manifests([
+        {"sku": "nvidia", "version": "0.30.5", "sha256": "a", "size": 1, "url": "u1"},
+        {"sku": "nvidia", "version": "0.30.6", "sha256": "b", "size": 2, "url": "u2"},
+        {"sku": "mac", "version": "0.30.6", "sha256": "c", "size": 3, "url": "u3"},
+    ])
+    got = {e["sku"]: e["version"] for e in agg["bundles"]}
+    assert got == {"nvidia": "0.30.6", "mac": "0.30.6"}

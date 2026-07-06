@@ -21,6 +21,7 @@ Add --archive to also produce sidecar-<sku>-v<version>.tar.zst + a manifest
 fragment (see Task 4).
 """
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -129,6 +130,59 @@ def build_bundle_dir(sku: str, version: str, out_root: str, repo_root: str) -> s
     (out / "bundle.json").write_text(json.dumps({"sku": sku, "version": version}))
     print(f"[bundle] built {out}", flush=True)
     return str(out)
+
+
+def archive_name(sku: str, version: str) -> str:
+    return f"{bundle_dirname(sku, version)}.tar.zst"
+
+
+def pack_zst(src_dir: str, out_path: str) -> None:
+    """Stream src_dir's CHILDREN into a zstd-compressed tar (no wrapper dir),
+    so extracting to <userData>/sidecar/<sku> yields python/ and app/ directly."""
+    import zstandard
+    src = Path(src_dir)
+    cctx = zstandard.ZstdCompressor(level=19)
+    with open(out_path, "wb") as raw, cctx.stream_writer(raw) as z:
+        with tarfile.open(mode="w|", fileobj=z) as tar:
+            for name in sorted(os.listdir(src)):
+                tar.add(str(src / name), arcname=name)
+
+
+def sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def build_manifest(sku: str, version: str, archive_path: str, url: str) -> dict:
+    return {"sku": sku, "version": version, "sha256": sha256_file(archive_path),
+            "size": os.path.getsize(archive_path), "url": url}
+
+
+def _vkey(v: str):
+    return tuple(int(x) for x in re.findall(r"\d+", v))
+
+
+def merge_manifests(fragments) -> dict:
+    best = {}
+    for f in fragments:
+        cur = best.get(f["sku"])
+        if cur is None or _vkey(f["version"]) > _vkey(cur["version"]):
+            best[f["sku"]] = f
+    return {"bundles": [best[k] for k in sorted(best)]}
+
+
+def _archive_and_manifest(sku, version, bundle_dir, out_root, base_url):
+    arc = str(Path(out_root) / archive_name(sku, version))
+    pack_zst(bundle_dir, arc)
+    url = f"{base_url.rstrip('/')}/{archive_name(sku, version)}" if base_url else ""
+    frag = build_manifest(sku, version, arc, url)
+    frag_path = Path(out_root) / f"{bundle_dirname(sku, version)}.json"
+    frag_path.write_text(json.dumps(frag, indent=2))
+    print(f"[bundle] archived {arc} ({frag['size']} bytes, sha256 {frag['sha256'][:12]})",
+          flush=True)
 
 
 def _main(argv=None) -> int:
