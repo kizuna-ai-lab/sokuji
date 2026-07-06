@@ -17,12 +17,15 @@ def _preload_cuda_dlls() -> str:
         import onnxruntime as ort
     except Exception as e:  # onnxruntime is a base dep, but stay defensive
         return f"cuda-dll-preload: skipped (onnxruntime import failed: {e})"
-    if "CUDAExecutionProvider" not in ort.get_available_providers():
-        return "cuda-dll-preload: skipped (no CUDA execution provider)"
-    preload = getattr(ort, "preload_dlls", None)
-    if not callable(preload):
-        return "cuda-dll-preload: skipped (preload_dlls unavailable)"
+    # Everything below runs at module import, before serve(): keep the whole
+    # probe inside try/except so a misbehaving get_available_providers/preload
+    # can never crash startup (honors the "never raises" contract).
     try:
+        if "CUDAExecutionProvider" not in ort.get_available_providers():
+            return "cuda-dll-preload: skipped (no CUDA execution provider)"
+        preload = getattr(ort, "preload_dlls", None)
+        if not callable(preload):
+            return "cuda-dll-preload: skipped (preload_dlls unavailable)"
         preload()
         return "cuda-dll-preload: onnxruntime.preload_dlls() done"
     except Exception as e:
