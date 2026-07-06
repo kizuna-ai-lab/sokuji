@@ -49,17 +49,24 @@ def test_flavor_for_device_includes_vulkan():
         rt.flavor_for_device("dml")
 
 
-def _fake_machine(*, nvidia=(), apple=False, tc_kinds=()):
-    """default_flavor only reads .nvidia/.apple_silicon/.tc_kinds."""
-    return types.SimpleNamespace(nvidia=nvidia, apple_silicon=apple,
+def _fake_machine(*, gpus=(), apple=False, tc_kinds=()):
+    """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon and
+    .tc_kinds. Post-P2 there is no Machine.nvidia field / accel.Gpu class:
+    NVIDIA presence is derived from the gpus device descriptions. `gpus` items
+    are (kind, description, mem_total) tuples."""
+    return types.SimpleNamespace(gpus=gpus, apple_silicon=apple,
                                  tc_kinds=tc_kinds)
+
+
+# An NVIDIA GPU as the tc probe reports it -> accel.has_nvidia() True.
+_NV = (("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),)
 
 
 def test_default_flavor_matrix(monkeypatch):
     from sokuji_sidecar import accel
     cases = [
-        (_fake_machine(nvidia=("g",)), "cuda"),
-        (_fake_machine(nvidia=("g",), tc_kinds=("cpu", "vulkan")), "cuda"),   # nvidia wins
+        (_fake_machine(gpus=_NV), "cuda"),
+        (_fake_machine(gpus=_NV, tc_kinds=("cpu", "vulkan")), "cuda"),        # nvidia wins
         (_fake_machine(apple=True), "metal"),
         (_fake_machine(apple=True, tc_kinds=("cpu", "vulkan")), "metal"),     # apple wins
         (_fake_machine(tc_kinds=("cpu", "vulkan")), "vulkan"),               # AMD/Intel GPU
@@ -81,10 +88,50 @@ def test_required_flavors_cpu_only_is_single(monkeypatch):
     assert rt.required_flavors() == ["cpu"]
 ```
 
+Then update the pre-existing stale test that P4's behavior change makes wrong.
+`test_default_flavor_cpu_for_non_nvidia_gpu` (currently ~line 217) builds an
+AMD GPU and asserts `"cpu"` with the comment "the vulkan flavor arrives in P4";
+that premise is exactly what this task changes. Extend the `_probe_machine`
+helper (currently `def _probe_machine(gpus=(), apple=False):`) to forward a
+`tc_kinds`:
+
+```python
+def _probe_machine(gpus=(), apple=False, tc=()):
+    from sokuji_sidecar import accel
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                         apple_silicon=apple, dml_adapters=(),
+                         installed=frozenset(), fingerprint="t",
+                         tc_kinds=tc, gpus=gpus)
+```
+
+(preserve whatever field values the current helper already passes; only add
+the `tc=()` parameter and the `tc_kinds=tc` argument). Then replace the stale
+test body:
+
+```python
+def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
+    # AMD/Intel GPUs get no cuda flavor; the vulkan flavor arrives in P4.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
+    assert rt.default_flavor() == "cpu"
+```
+
+with the P4 behavior (a tc-Vulkan-capable AMD GPU now selects the vulkan flavor):
+
+```python
+def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
+    # P4: an AMD/Intel GPU the tc probe drives via Vulkan selects the vulkan flavor.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),), tc=("cpu", "vulkan")))
+    assert rt.default_flavor() == "vulkan"
+```
+
 - [ ] **Step 2: Run to verify failure**
 
 Run: `cd sidecar && .venv/bin/python -m pytest tests/test_llama_runtime.py -q`
-Expected: FAIL — `test_flavor_for_device_includes_vulkan` raises `KeyError: 'vulkan'`; `test_default_flavor_matrix` fails the `("cpu","vulkan") -> "vulkan"` case (gets `"cpu"`).
+Expected: FAIL — `test_flavor_for_device_includes_vulkan` raises `KeyError: 'vulkan'`; `test_default_flavor_matrix` fails the `("cpu","vulkan") -> "vulkan"` case (gets `"cpu"`); `test_default_flavor_vulkan_for_amd_gpu` fails (gets `"cpu"`).
 
 - [ ] **Step 3: Implement**
 
@@ -100,14 +147,16 @@ with:
 _FLAVORS = {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "cpu": "cpu"}
 ```
 
-Replace `default_flavor` (lines 88-96):
+Replace `default_flavor` (post-P2 it uses `accel.has_nvidia(m)`, NOT the removed `m.nvidia`):
 
 ```python
 def default_flavor() -> str:
-    """The best flavor for this machine (drives the model-download dependency)."""
+    """The best flavor for this machine (drives the model-download dependency):
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, else cpu. AMD/Intel
+    dGPUs stay on cpu until the vulkan flavor lands (P4)."""
     from . import accel
     m = accel.probe()
-    if m.nvidia:
+    if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"
@@ -118,10 +167,12 @@ with:
 
 ```python
 def default_flavor() -> str:
-    """The best flavor for this machine (drives the model-download dependency)."""
+    """The best flavor for this machine (drives the model-download dependency):
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, AMD/Intel via the tc
+    Vulkan probe -> vulkan, else cpu."""
     from . import accel
     m = accel.probe()
-    if m.nvidia:
+    if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"
@@ -499,11 +550,14 @@ def test_llm_vulkan_tier_ranks_between_cuda_and_cpu():
     # above cpu (1.0). Ordering comes from accel.TIER_RANK, not the order of
     # the tiers tuple in _llm_translate_row.
     from sokuji_sidecar import accel
+    # Post-P2 Machine shape: NVIDIA presence comes from `gpus` descriptions via
+    # accel.has_nvidia (no `nvidia` field / accel.Gpu class). gpu-cuda is
+    # available (has_nvidia), gpu-vulkan via "vulkan" in tc_kinds, gpu-metal not.
     m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu("nvidia", "x", 12288),),
                       apple_silicon=False, dml_adapters=(),
                       installed=frozenset({"llamacpp_gemma"}),
-                      fingerprint="t", tc_kinds=("cpu", "vulkan"))
+                      fingerprint="t", tc_kinds=("cpu", "vulkan"),
+                      gpus=(("cuda", "NVIDIA x", 12288),))
     plans = accel.resolve_deployments(catalog.translate_model("translategemma-4b"), m)
     seen = []
     for p in plans:
