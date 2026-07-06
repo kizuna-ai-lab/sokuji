@@ -295,3 +295,13 @@ def test_qwen3_rows_and_capability():
         assert catalog.voice_capability(m) == {"builtin": "named", "custom": "clip", "transcriptRequired": True}
     # MOSS capability unchanged (no extra key)
     assert catalog.voice_capability(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
+
+
+def test_sherpa_tts_rows_are_cpu_only():
+    # Stock sherpa-onnx wheel is CPU-only (its bundled ORT exposes just
+    # CPUExecutionProvider, runtime-verified) — a gpu-cuda row shows a false
+    # GPU badge and claims phantom VRAM in the cross-stage ledger (D11).
+    for m in catalog.tts_models():
+        for d in m.deployments:
+            if d.backend == "sherpa_tts":
+                assert d.tier == "cpu", m.id

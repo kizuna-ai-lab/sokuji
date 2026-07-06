@@ -420,7 +420,6 @@ def resolve_tts(model_id: str, override: str = "auto", machine: Machine | None =
             model = catalog.TtsModel(
                 id=model_id, name=model_id, languages=("multi",),
                 deployments=(
-                    catalog.Deployment("sherpa_tts", "gpu-cuda", "fp32", model_id, 1.0),
                     catalog.Deployment("sherpa_tts", "cpu", "fp32", model_id, 1.0),
                 ),
                 repos=(model_id,), sample_rate=16000)

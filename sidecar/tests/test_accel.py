@@ -916,7 +916,19 @@ def test_resolve_tts_arbitrary_sherpa_repo_synthesizes_model():
     assert plans, "expected at least one plan for an arbitrary sherpa repo"
     assert all(p.backend == "sherpa_tts" for p in plans)
     assert all(p.artifact == repo for p in plans)
-    assert plans[-1].tier == "cpu"  # cpu floor survives
+    assert [p.tier for p in plans] == ["cpu"]  # sherpa is CPU-only (D11)
+
+
+def test_resolve_tts_sherpa_cards_cpu_only_even_on_gpu_machine():
+    machine = _machine(gpus=_nv_gpus(12288), installed=frozenset({"sherpa_tts"}))
+    # catalog piper card
+    plans = accel.resolve_tts("csukuangfj/vits-piper-en_US-amy-low",
+                              override="auto", machine=machine)
+    assert [p.tier for p in plans] == ["cpu"]
+    # ad-hoc (non-catalog) sherpa-family repo
+    plans = accel.resolve_tts("csukuangfj/vits-piper-en_US-kristin-medium",
+                              override="auto", machine=machine)
+    assert [p.tier for p in plans] == ["cpu"]
 
 
 def test_resolve_tts_unknown_non_sherpa_id_still_raises():
