@@ -80,6 +80,9 @@ def test_supertonic_load_selects_provider_list(monkeypatch, tmp_path, device, ex
     class _FakeSess:
         def __init__(self, path, sess_options=None, providers=None):
             captured.append(providers)
+            self._providers = list(providers or [])
+        def get_providers(self):
+            return self._providers
 
     class _Opts:
         pass
@@ -97,3 +100,39 @@ def test_supertonic_load_selects_provider_list(monkeypatch, tmp_path, device, ex
     b.load("Supertone/supertonic-3", device, "fp32")
     assert b.is_loaded
     assert captured == [expected] * 4   # dp, tenc, vest, voc
+
+
+def test_supertonic_dml_load_raises_when_session_drops_dml(monkeypatch, tmp_path):
+    """A DML load whose created session silently dropped DirectML (get_providers
+    lacks it) must raise BackendLoadError so load_with_fallback picks the cpu
+    plan instead of reporting gpu-dml while running on CPU (MOSS parity)."""
+    from sokuji_sidecar import tts_backends as tb
+    from sokuji_sidecar.backends import BackendLoadError
+
+    (tmp_path / "onnx").mkdir()
+    (tmp_path / "onnx" / "tts.json").write_text(_json.dumps({"ae": {"sample_rate": 44100}}))
+    (tmp_path / "onnx" / "unicode_indexer.json").write_text(_json.dumps({}))
+    (tmp_path / "voice_styles").mkdir()
+    style = {"style_ttl": {"data": [0.0], "dims": [1, 1]},
+             "style_dp": {"data": [0.0], "dims": [1, 1]}}
+    for code in tb._SUPERTONIC_PRESET_CODES:
+        (tmp_path / "voice_styles" / f"{code}.json").write_text(_json.dumps(style))
+
+    class _DropDmlSess:
+        def __init__(self, path, sess_options=None, providers=None):
+            pass
+        def get_providers(self):
+            return ["CPUExecutionProvider"]   # DirectML silently dropped
+
+    fake_ort = _types.SimpleNamespace(
+        InferenceSession=_DropDmlSess,
+        SessionOptions=lambda: type("O", (), {})(),
+        GraphOptimizationLevel=_types.SimpleNamespace(ORT_ENABLE_ALL=1),
+    )
+    monkeypatch.setitem(_sys.modules, "onnxruntime", fake_ort)
+    monkeypatch.setitem(_sys.modules, "huggingface_hub", _types.SimpleNamespace(
+        snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
+
+    b = tb.SupertonicBackend()
+    with _pytest.raises(BackendLoadError):
+        b.load("Supertone/supertonic-3", "dml", "fp32")

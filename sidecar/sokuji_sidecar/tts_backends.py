@@ -368,6 +368,15 @@ class SupertonicBackend:
             opts.intra_op_num_threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             self._sess = {k: ort.InferenceSession(f"{d}/{f}", sess_options=opts, providers=provider)
                           for k, f in self._MODEL_FILES.items()}
+            if device == "dml":
+                # Fail-fast (mirrors moss_tts _session): a session that silently
+                # dropped DirectML must raise so load_with_fallback picks the cpu
+                # plan instead of reporting gpu-dml while running on CPU.
+                for k, s in self._sess.items():
+                    if "DmlExecutionProvider" not in s.get_providers():
+                        raise RuntimeError(
+                            f"DmlExecutionProvider was requested but session {k!r} was "
+                            f"created without it (providers: {s.get_providers()})")
             with open(f"{d}/onnx/tts.json") as fh: self._cfg = _json.load(fh)
             with open(f"{d}/onnx/unicode_indexer.json") as fh: self._indexer = _json.load(fh)
             self.sample_rate = int(self._cfg["ae"]["sample_rate"])

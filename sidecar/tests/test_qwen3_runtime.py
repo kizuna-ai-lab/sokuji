@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import sys as _sys
 import types as _types
 from types import SimpleNamespace
@@ -75,9 +76,13 @@ def test_default_providers_dml_returns_dml_list(monkeypatch):
     assert runtime.default_providers("dml") == ["DmlExecutionProvider", "CPUExecutionProvider"]
 
 
-def test_default_providers_dml_absent_falls_back_to_cpu(monkeypatch):
+def test_default_providers_dml_absent_raises(monkeypatch):
+    # Fail-fast (MOSS parity): a dml request on a build without the DML EP must
+    # raise, not silently return CPU — so the gpu-dml load falls back to the
+    # cpu plan instead of reporting gpu-dml while running on CPU.
     monkeypatch.setitem(_sys.modules, "onnxruntime", _fake_ort(["CPUExecutionProvider"]))
-    assert runtime.default_providers("dml") == ["CPUExecutionProvider"]
+    with pytest.raises(RuntimeError):
+        runtime.default_providers("dml")
 
 
 def test_default_providers_dml_never_appends_cuda(monkeypatch):
@@ -98,3 +103,43 @@ def test_default_providers_cpu_unchanged(monkeypatch):
     monkeypatch.setitem(_sys.modules, "onnxruntime",
                         _fake_ort(["CUDAExecutionProvider", "CPUExecutionProvider"]))
     assert runtime.default_providers("cpu") == ["CPUExecutionProvider"]
+
+
+def _fake_ort_sessions(available, get_providers_for):
+    """Fake onnxruntime whose InferenceSession reports providers via get_providers_for."""
+    class _Sess:
+        def __init__(self, path, sess_options=None, providers=None):
+            self._req = list(providers or [])
+        def get_providers(self):
+            return get_providers_for(self._req)
+
+    class _Opts:
+        graph_optimization_level = 0
+        log_severity_level = 0
+        intra_op_num_threads = 0
+
+    return _types.SimpleNamespace(
+        get_available_providers=lambda: list(available),
+        InferenceSession=_Sess,
+        SessionOptions=lambda: _Opts(),
+        GraphOptimizationLevel=_types.SimpleNamespace(ORT_ENABLE_ALL=1))
+
+
+def test_build_sessions_dml_raises_when_hot_graph_drops_dml(monkeypatch, tmp_path):
+    # A HOT graph created without DirectML (silently on CPU) must raise so
+    # load_with_fallback picks the cpu plan instead of running gpu-dml on CPU.
+    fake = _fake_ort_sessions(["DmlExecutionProvider", "CPUExecutionProvider"],
+                              lambda req: ["CPUExecutionProvider"])  # DML dropped
+    monkeypatch.setitem(_sys.modules, "onnxruntime", fake)
+    with pytest.raises(RuntimeError):
+        runtime.build_sessions(tmp_path, "dml", 1)
+
+
+def test_build_sessions_dml_ok_when_hot_graphs_retain_dml(monkeypatch, tmp_path):
+    # HOT graphs keep DirectML, COLD graphs are CPU-only by design -> no raise.
+    fake = _fake_ort_sessions(["DmlExecutionProvider", "CPUExecutionProvider"],
+                              lambda req: req)  # session honors requested providers
+    monkeypatch.setitem(_sys.modules, "onnxruntime", fake)
+    sessions = runtime.build_sessions(tmp_path, "dml", 1)
+    assert "DmlExecutionProvider" in sessions["talker_decode"].get_providers()      # HOT
+    assert sessions["speaker_encoder"].get_providers() == ["CPUExecutionProvider"]  # COLD

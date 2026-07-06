@@ -71,8 +71,15 @@ def default_providers(device: str | None = None) -> list[str]:
         return ["CPUExecutionProvider"]
     providers: list[str] = []
     if dev == "dml":
-        if "DmlExecutionProvider" in available:
-            providers.append("DmlExecutionProvider")
+        # Fail-fast (mirrors moss_tts _resolve_ort_providers): a "dml" request on
+        # an onnxruntime build without the DML EP must NOT silently return CPU —
+        # the gpu-dml load then raises and load_with_fallback picks the cpu plan
+        # (labeled cpu) instead of reporting gpu-dml while running on CPU.
+        if "DmlExecutionProvider" not in available:
+            raise RuntimeError(
+                "DmlExecutionProvider was requested but this onnxruntime build does "
+                f"not expose it. Available providers: {', '.join(available) or 'none'}")
+        providers.append("DmlExecutionProvider")
     elif "CUDAExecutionProvider" in available:
         providers.append("CUDAExecutionProvider")
     providers.append("CPUExecutionProvider")
@@ -128,6 +135,21 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
     prefill_path = onnx_dir / "talker_prefill.onnx"
     if prefill_path.exists():
         sessions["talker_prefill"] = _make_session(prefill_path, hot_providers)
+
+    if str(device).lower() == "dml":
+        # Fail-fast if a HOT graph silently fell back to CPU — either _make_session's
+        # CPU retry fired, or ORT dropped DirectML at session creation. Without this
+        # the gpu-dml plan would load "successfully" and run the AR graphs on CPU
+        # while reporting gpu-dml; raising lets load_with_fallback pick the cpu plan
+        # (labeled cpu). Mirrors moss_tts OrtCpuRuntime._session. COLD graphs are
+        # CPU by design and are exempt.
+        for name, sess in sessions.items():
+            if name in _COLD_GRAPH_NAMES:
+                continue
+            if "DmlExecutionProvider" not in sess.get_providers():
+                raise RuntimeError(
+                    f"DmlExecutionProvider was requested but the HOT graph {name!r} was "
+                    f"created without it (providers: {sess.get_providers()})")
 
     return sessions
 
