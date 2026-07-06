@@ -1699,3 +1699,40 @@ def test_resolve_tts_gpu_dml_absent_on_linux(monkeypatch):
     # P3 drops the windows-only gpu-dml row on Linux; only gpu-cuda + cpu remain.
     assert [p.tier for p in plans] == ["gpu-cuda", "cpu"]
     assert all(p.tier != "gpu-dml" for p in plans)
+
+
+def test_mlx_audio_tts_gated_on_mlx_audio(monkeypatch):
+    from sokuji_sidecar import accel
+    real = accel.importlib.util.find_spec
+
+    def present(name, *a, **k):
+        if name == "mlx_audio":
+            return object()
+        return real(name, *a, **k)
+    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
+    assert "mlx_audio_tts" in accel._installed()
+
+
+def test_mlx_audio_tts_absent_without_wheel():
+    from sokuji_sidecar import accel
+    # mlx_audio is not installed in the Linux dev venv → the backend is filtered out.
+    assert "mlx_audio_tts" not in accel._installed()
+
+
+def test_gpu_metal_tier_available_on_apple_silicon():
+    from sokuji_sidecar import accel
+    m = accel.Machine(os="Darwin", arch="arm64", cpu_cores=8,
+                      apple_silicon=True, dml_adapters=(), installed=frozenset(),
+                      fingerprint="as", tc_kinds=())
+    assert accel._tier_available("gpu-metal", m) is True
+
+
+def test_gpu_metal_tier_available_via_tc_metal_kind():
+    from sokuji_sidecar import accel
+    # Intel Mac: the metal ACCELERATOR is present (tc reports it), so the tier is
+    # available — the Apple-Silicon requirement is enforced separately by
+    # _platform_ok(requires_apple_silicon), not here.
+    m = accel.Machine(os="Darwin", arch="arm64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=(), installed=frozenset(),
+                      fingerprint="intel-mac", tc_kinds=("cpu", "metal"))
+    assert accel._tier_available("gpu-metal", m) is True
