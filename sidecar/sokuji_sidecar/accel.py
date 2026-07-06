@@ -40,6 +40,19 @@ def _apple_silicon() -> bool:
     return platform.system() == "Darwin" and platform.machine() in ("arm64", "aarch64")
 
 
+_PLATFORM_MAP = {"Linux": "linux", "Windows": "windows", "Darwin": "macos"}
+
+
+def current_platform() -> str:
+    """This host's platform tag ('linux' | 'windows' | 'macos'), mapped from
+    platform.system(). The single source of truth for the catalog's per-deployment
+    `platforms` filter (D9); monkeypatched in tests to exercise the filter without
+    the host OS. An unmapped platform.system() falls through to its lowercased
+    name — harmless: no deployment lists it, so such a host resolves nothing."""
+    sysname = platform.system()
+    return _PLATFORM_MAP.get(sysname, sysname.lower())
+
+
 def _dml_adapters() -> tuple[str, ...]:
     import onnxruntime
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
@@ -203,12 +216,26 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     return False
 
 
+def _platform_ok(d, machine: Machine) -> bool:
+    """Whether deployment `d` is runnable on THIS host's OS (D9). A row is dropped
+    when this platform is not in its `platforms` set, or when it demands Apple
+    Silicon and the machine lacks it. Every shipped card defaults to all three
+    OSes + no AS requirement, so this is a no-op until platform-specific tiers
+    (windows-only gpu-dml, macOS/AS-only mlx) land in P5/P6."""
+    if current_platform() not in d.platforms:
+        return False
+    if d.requires_apple_silicon and not machine.apple_silicon:
+        return False
+    return True
+
+
 def resolve_deployments(model, machine: Machine, override: str = "auto", bench: dict | None = None) -> list[Plan]:
     """Ordered Plans for `model` on `machine`: filter to runnable, rank by tier
     (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front, then
     the bench cache demotes a proven-slow GPU plan. CPU floor always survives."""
     usable = [d for d in model.deployments
-              if d.backend in machine.installed and _tier_available(d.tier, machine)]
+              if d.backend in machine.installed and _tier_available(d.tier, machine)
+              and _platform_ok(d, machine)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
         # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
@@ -361,6 +388,13 @@ def resolve_translate(model_id: str, override: str = "auto", machine: Machine | 
     # off the same reserved-VRAM figure — leaving this only in the auto branch
     # left the override path with a stale/zero reserved_bytes.
     llama_runtime.set_reserved_bytes(reserved_bytes)
+    # The `auto` branch below builds Plans via select_variant + a hand-picked cpu
+    # floor and never flows through resolve_deployments' choke point, so drop
+    # off-platform deployments up front here (all current translate cards are
+    # cross-platform → a no-op today). The override branch re-filters idempotently
+    # via resolve_deployments.
+    model = dataclasses.replace(
+        model, deployments=tuple(d for d in model.deployments if _platform_ok(d, machine)))
     if override == "auto":
         # Same STABLE basis as the download recommendation (_h_list_variants):
         # we always run exactly the file the user downloaded, so choose it the
@@ -1020,6 +1054,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         tiers = []
         seen_tiers = set()
         for d in mdl.deployments:
+            if not _platform_ok(d, m):
+                continue                      # off-platform tier (e.g. windows-only gpu-dml on linux)
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)

@@ -305,3 +305,21 @@ def test_sherpa_tts_rows_are_cpu_only():
         for d in m.deployments:
             if d.backend == "sherpa_tts":
                 assert d.tier == "cpu", m.id
+
+
+def test_deployment_platform_defaults():
+    # D9: every deployment is all-platforms + no Apple-Silicon requirement unless
+    # a card opts in. Positional construction (backend, tier, compute_type,
+    # artifact, rank) still works with the two new trailing fields.
+    d = catalog.Deployment("be", "cpu", "int8", "repo", 1.0)
+    assert d.platforms == ("linux", "windows", "macos")
+    assert d.requires_apple_silicon is False
+
+
+def test_deployment_platform_fields_are_settable():
+    d = catalog.Deployment("be", "gpu-dml", "fp32", "repo", 1.0,
+                           platforms=("windows",), requires_apple_silicon=False)
+    assert d.platforms == ("windows",)
+    mlx = catalog.Deployment("be", "gpu-metal", "fp16", "repo", 1.0,
+                             platforms=("macos",), requires_apple_silicon=True)
+    assert mlx.requires_apple_silicon is True

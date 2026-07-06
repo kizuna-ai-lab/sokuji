@@ -26,7 +26,7 @@
 - Test: `sidecar/tests/test_catalog.py` (append two functions; file currently ends at `:296`)
 
 **Interfaces:**
-- Produces: `catalog.Deployment` with two new keyword-defaulted fields — `platforms: tuple[str, ...] = ("linux", "windows", "macos")` and `requires_apple_silicon: bool = False`. Task 2/3 consume these attributes. Every existing positional construction (`Deployment(backend, tier, compute_type, artifact, rank, ...)`) is unaffected because the new fields sit after `est_bytes` and all callers pass `min_capability`/`est_bytes` by keyword.
+- Produces: `catalog.Deployment` with two new keyword-defaulted fields — `platforms: tuple[str, ...] = ("linux", "windows", "macos")` and `requires_apple_silicon: bool = False`. Task 2/3 consume these attributes. Every existing positional construction (`Deployment(backend, tier, compute_type, artifact, rank, ...)`) is unaffected because the new fields sit after `est_bytes`, the current last field, and all callers pass `est_bytes` by keyword. (P2 already removed the old `min_capability` field, so `est_bytes` really is the tail.)
 
 - [ ] **Step 1: Write the failing tests** — append to the end of `sidecar/tests/test_catalog.py`:
 
@@ -106,10 +106,19 @@ import asyncio
 from sokuji_sidecar import accel, catalog
 
 
-def _machine(*, apple=False, nvidia=(), installed=frozenset({"be"})):
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=nvidia,
+# Machine shape mirrors tests/test_accel.py (post-P2): NVIDIA presence comes
+# from `gpus` device descriptions via accel.has_nvidia (the old `nvidia` field
+# and accel.Gpu class were removed in P2). `gpus` items are (kind, description,
+# mem_total) tuples; `tc_kinds` lists the accelerator kinds the probe reported.
+def _machine(*, apple=False, gpus=(), tc=(), installed=frozenset({"be"})):
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                          apple_silicon=apple, dml_adapters=(), installed=installed,
-                         fingerprint="pf-test")
+                         fingerprint="pf-test", tc_kinds=tc, gpus=gpus)
+
+
+# An NVIDIA GPU as the tc probe reports it on the dev 4070 box; makes
+# has_nvidia() True → the gpu-vulkan tier is available.
+_NV_GPUS = (("vulkan", "NVIDIA GeForce RTX 4070 SUPER", 12 << 30),)
 
 
 def _asr(*deps):
@@ -161,19 +170,21 @@ def test_resolve_translate_auto_drops_off_platform(monkeypatch):
     # resolve would raise NoUsablePlan instead of falling back to r-all.
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
     model = catalog.TranslateModel("syn", "Syn", ("multi",), (
-        catalog.Deployment("opus_onnx_translate", "cpu", "int8", "r-win", 1.0, platforms=("windows",)),
-        catalog.Deployment("opus_onnx_translate", "cpu", "int8", "r-all", 1.0),
+        catalog.Deployment("ct2_opus_translate", "cpu", "int8", "r-win", 1.0, platforms=("windows",)),
+        catalog.Deployment("ct2_opus_translate", "cpu", "int8", "r-all", 1.0),
     ))
     monkeypatch.setattr(catalog, "translate_model", lambda mid: model if mid == "syn" else None)
-    m = _machine(installed=frozenset({"opus_onnx_translate"}))
+    m = _machine(installed=frozenset({"ct2_opus_translate"}))
     plans = accel.resolve_translate("syn", "auto", m)
     assert [p.artifact for p in plans] == ["r-all"]
 
 
 def test_linux_real_card_resolution_unchanged(monkeypatch):
     # Regression: a real all-platforms card resolves exactly as before on linux.
+    # whisper-base's tiers are (gpu-vulkan, gpu-metal, cpu); on an NVIDIA-Linux
+    # box gpu-vulkan is available (has_nvidia), gpu-metal is not → vulkan, cpu.
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"transcribe_cpp"}))
+    m = _machine(gpus=_NV_GPUS, installed=frozenset({"transcribe_cpp"}))
     plans = accel.resolve("whisper-base", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
 ```
@@ -215,26 +226,28 @@ def current_platform() -> str:
 def _dml_adapters() -> tuple[str, ...]:
 ```
 
-- [ ] **Step 3b: Add `_platform_ok()`.** In `sidecar/sokuji_sidecar/accel.py`, replace the tail of `_tier_available` and the `resolve_deployments` header:
+- [ ] **Step 3b: Add `_platform_ok()`.** In `sidecar/sokuji_sidecar/accel.py`, insert the new `_platform_ok` helper between the end of `_tier_available` and the `def resolve_deployments` header. The current tail of `_tier_available` (post-P2 — `has_nvidia(machine)`, no `machine.nvidia`) is:
 
 ```python
     if tier == "gpu-vulkan":
         # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
-        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
+        # devices); NVIDIA-by-description and DML remain as fallbacks.
+        return ("vulkan" in machine.tc_kinds or has_nvidia(machine)
+                or bool(machine.dml_adapters))
     return False
 
 
 def resolve_deployments(model, machine: Machine, override: str = "auto", bench: dict | None = None) -> list[Plan]:
 ```
 
-with:
+Replace it with (the `_tier_available` body is unchanged; only the new function is added before `resolve_deployments`):
 
 ```python
     if tier == "gpu-vulkan":
         # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
-        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
+        # devices); NVIDIA-by-description and DML remain as fallbacks.
+        return ("vulkan" in machine.tc_kinds or has_nvidia(machine)
+                or bool(machine.dml_adapters))
     return False
 
 
