@@ -412,6 +412,21 @@ def test_gpu_vulkan_tier_gated_to_x64():
     assert accel._tier_available("gpu-vulkan", arm) is False
 
 
+def test_gpu_vulkan_tier_not_lit_by_dml_alone():
+    # A DirectX12/DML adapter is NOT a Vulkan signal (P4 review, codex; P5): the
+    # llama.cpp vulkan flavor's binary is fetched only when the tc probe reports
+    # "vulkan", and llama.cpp has no DML flavor — so a DML-only box must NOT be
+    # offered the gpu-vulkan tier, else resolve_translate leads with a
+    # missing-binary vulkan plan. A genuinely Vulkan-capable box still reports
+    # "vulkan" in tc_kinds and keeps the tier.
+    dml_only = _machine(dml=("Intel Arc",), installed=frozenset({"llamacpp_qwen"}))
+    assert accel._tier_available("gpu-vulkan", dml_only) is False
+    assert accel._tier_available("gpu-vulkan", _machine(tc=("cpu", "vulkan"))) is True
+    # translate resolves to cpu on that box — no leading vulkan plan.
+    plans = accel.resolve_translate("qwen3-0.6b", "auto", dml_only)
+    assert [p.device for p in plans] == ["cpu"]
+
+
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     assert accel.bench_load() == {}  # nothing yet

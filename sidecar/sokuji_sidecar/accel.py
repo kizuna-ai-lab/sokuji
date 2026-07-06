@@ -210,14 +210,16 @@ def _tier_available(tier: str, machine: Machine) -> bool:
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
         # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices); NVIDIA-by-description and DML remain as fallbacks. Gated to
-        # x86_64: the vulkan binaries (llama-server release asset; transcribe.cpp
-        # vulkan build) are x64-only, so a non-x64 host must not be offered a
-        # vulkan plan whose binary it cannot run (P4). NOTE: the dml_adapters
-        # fallback can still light this tier on a DML-only Windows box where no
-        # vulkan binary gets downloaded — reconciled in P5 (owns the DML lane).
-        return (("vulkan" in machine.tc_kinds or has_nvidia(machine)
-                 or bool(machine.dml_adapters))
+        # devices); NVIDIA-by-description is the fallback. DML is deliberately
+        # NOT a signal here: a DirectX12 adapter doesn't imply a usable Vulkan
+        # runtime, llama.cpp has no DML flavor, and the vulkan binary is fetched
+        # only when the tc probe reports "vulkan" — so lighting this tier off
+        # dml_adapters alone made resolve_translate lead with a missing-binary
+        # vulkan plan on DML-only boxes (P5). A genuinely Vulkan-capable box
+        # already reports "vulkan" in tc_kinds. Gated to x86_64: the vulkan
+        # binaries (llama-server release asset; transcribe.cpp vulkan build) are
+        # x64-only, so a non-x64 host is never offered an unrunnable vulkan plan.
+        return (("vulkan" in machine.tc_kinds or has_nvidia(machine))
                 and machine.arch in ("x86_64", "AMD64"))
     return False
 
