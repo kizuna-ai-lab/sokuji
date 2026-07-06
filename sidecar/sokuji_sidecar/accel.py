@@ -230,15 +230,16 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     if tier == "cpu":
         return True
     if tier == "gpu-cuda":
-        return bool(machine.nvidia)
+        return has_nvidia(machine)
     if tier == "gpu-metal":
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
         # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices the NVML/DML heuristics can't); NVML/DML remain as fallbacks.
-        return "vulkan" in machine.tc_kinds or bool(machine.nvidia or machine.dml_adapters)
+        # devices); NVIDIA-by-description and DML remain as fallbacks.
+        return ("vulkan" in machine.tc_kinds or has_nvidia(machine)
+                or bool(machine.dml_adapters))
     return False
 
 
@@ -1041,13 +1042,28 @@ async def _h_list_variants(state, msg, _b, conn=None):
             "variants": variants, "recommended": chosen.compute_type}, None
 
 
+_GPU_VENDORS = ("nvidia", "amd", "intel", "apple")
+
+
+def _gpu_vendor(description: str) -> str:
+    """Vendor slug parsed from a tc-probe device description (best-effort)."""
+    d = description.lower()
+    for v in _GPU_VENDORS:
+        if v in d:
+            return v
+    return "unknown"
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
     return {"type": "hardware_info_result", "id": msg.get("id"),
             "os": m.os, "arch": m.arch, "cpuCores": m.cpu_cores,
-            "gpus": [{"vendor": g.vendor, "name": g.name, "vramMb": g.vram_mb} for g in m.nvidia],
+            # All-vendor gpus[] from the tc probe (Machine.gpus) — NVML only
+            # ever saw NVIDIA, leaving this empty on mac/AMD boxes.
+            "gpus": [{"vendor": _gpu_vendor(name), "name": name,
+                      "vramMb": total >> 20} for _kind, name, total in m.gpus],
             "backendsInstalled": sorted(m.installed),
-            "accelAvailable": bool(m.nvidia or m.apple_silicon or m.dml_adapters)}, None
+            "accelAvailable": bool(m.gpus or m.apple_silicon or m.dml_adapters)}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):

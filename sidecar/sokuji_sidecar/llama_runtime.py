@@ -86,10 +86,12 @@ def gh_url(asset: str) -> str:
 
 
 def default_flavor() -> str:
-    """The best flavor for this machine (drives the model-download dependency)."""
+    """The best flavor for this machine (drives the model-download dependency):
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, else cpu. AMD/Intel
+    dGPUs stay on cpu until the vulkan flavor lands (P4)."""
     from . import accel
     m = accel.probe()
-    if m.nvidia:
+    if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"

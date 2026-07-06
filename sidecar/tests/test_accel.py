@@ -132,6 +132,12 @@ def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe
                          fingerprint="test", tc_kinds=tc, gpus=gpus)
 
 
+def _nv_gpus(vram_mb=0):
+    """tc-probe-shaped NVIDIA device identity: (kind, description, mem_total).
+    vram_mb=0 models a probe that saw the device but no memory figure."""
+    return (("vulkan", "NVIDIA GeForce RTX 4070", vram_mb << 20),)
+
+
 def test_has_nvidia_from_tc_description():
     m = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     assert accel.has_nvidia(m) is True
@@ -161,7 +167,7 @@ def _model_cpu_and_cuda():
 
 
 def test_resolve_prefers_gpu_when_nvidia_present():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     plans = accel.resolve_deployments(_model_cpu_and_cuda(), m)
     assert [p.device for p in plans] == ["cuda", "cpu"]  # GPU first, CPU floor last
 
@@ -172,7 +178,7 @@ def test_resolve_cpu_only_machine_drops_gpu_plan():
 
 
 def test_resolve_override_pins_cpu():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     plans = accel.resolve_deployments(_model_cpu_and_cuda(), m, override="cpu")
     assert [p.device for p in plans] == ["cpu", "cuda"]  # CPU pinned to front, GPU still present
 
@@ -184,7 +190,7 @@ def test_resolve_gpu_only_model_on_cpu_machine_is_empty():
 
 
 def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
@@ -334,7 +340,9 @@ def test_load_measured_omits_nonpositive_delta(monkeypatch):
 
 
 def test_hardware_info_handler(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
+    monkeypatch.setattr(accel, "_tc_gpus",
+                        lambda: (("cuda", "NVIDIA GeForce RTX 4070", 12288 << 20),))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "cuda"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
@@ -345,12 +353,29 @@ def test_hardware_info_handler(monkeypatch):
         st, json.dumps({"type": "hardware_info", "id": 7}), None, None))
     assert reply["type"] == "hardware_info_result" and reply["id"] == 7
     assert reply["accelAvailable"] is True
-    assert reply["gpus"][0]["name"] == "RTX 4070"
+    assert reply["gpus"] == [{"vendor": "nvidia",
+                              "name": "NVIDIA GeForce RTX 4070", "vramMb": 12288}]
     assert "sherpa" in reply["backendsInstalled"]
 
 
+def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
+    # THE D7 bugfix: gpus[] used to come from NVML, so mac/AMD boxes reported
+    # an empty list. The tc probe sees every vendor.
+    monkeypatch.setattr(accel, "_tc_gpus",
+                        lambda: (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),))
+    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+    accel.probe(force=True)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["gpus"] == [{"vendor": "amd", "name": "AMD Radeon RX 7800 XT",
+                              "vramMb": 16384}]
+    assert reply["accelAvailable"] is True
+
+
 def test_models_catalog_handler_cpu_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
@@ -377,7 +402,7 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
@@ -391,7 +416,7 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
 
 
 def test_whisper_resolves_vulkan_first_on_nvidia():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288),))
+    m = _machine(gpus=_nv_gpus(12288))
     plans = accel.resolve("whisper-base", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
     assert all(p.backend == "transcribe_cpp" and p.compute_type == "q8_0" for p in plans)
@@ -403,13 +428,13 @@ def test_whisper_cpu_only_machine_drops_gpu():
 
 
 def test_whisper_cpu_override_pins_cpu_on_nvidia():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     plans = accel.resolve("whisper-base", override="cpu", machine=m)
     assert plans[0].device == "cpu"
 
 
 def test_sense_voice_resolves_vulkan_then_cpu_on_nvidia():
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     plans = accel.resolve("sense-voice", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
 
@@ -500,7 +525,7 @@ def test_apply_bench_demotes_slow_gpu():
 
 def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     accel.probe(force=True)
     # seed the cache keyed by the machine we resolve for (m.fingerprint == "test")
     fp = m.fingerprint
@@ -514,7 +539,7 @@ def test_resolve_demotes_gpu_when_cache_says_slower(tmp_path, monkeypatch):
 
 def test_resolve_override_beats_demotion(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     fp = m.fingerprint
     # cache says cuda is slower than cpu — AUTO would demote, but an explicit
     # override must win (the benchmark never overrides the user's forced device).
@@ -568,18 +593,15 @@ def test_granite_gated_off_without_transformers_installed():
     # has a GPU but transformers not installed → backend filtered → NoUsablePlan
     with pytest.raises(accel.NoUsablePlan):
         accel.resolve("granite-speech-4.1-2b",
-                      machine=_machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+                      machine=_machine(gpus=_nv_gpus(),
                                        installed=frozenset({"ctranslate2"})))
 
 
 def test_qwen3asr_model_unavailable_without_runtime(monkeypatch):
     from sokuji_sidecar import accel, catalog
     # a GPU machine, but qwen3asr backend not installed (transformers lacks qwen3_asr)
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),
-                      fingerprint="testfp")
+    m = _machine(gpus=_nv_gpus(12000),
+                 installed=frozenset({"ctranslate2", "sherpa", "transformers"}))
     plans = accel.resolve_deployments(catalog.asr_model("qwen3-asr-1.7b"), m)
     assert plans == []     # gated off: no usable deployment
 
@@ -605,11 +627,8 @@ def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
 
 def test_voxtral_model_unavailable_without_runtime():
     from sokuji_sidecar import accel, catalog
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu(vendor="nvidia", name="x", vram_mb=12000),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"ctranslate2", "sherpa", "transformers"}),  # no voxtral_realtime
-                      fingerprint="testfp")
+    m = _machine(gpus=_nv_gpus(12000),
+                 installed=frozenset({"ctranslate2", "sherpa", "transformers"}))  # no voxtral_realtime
     plans = accel.resolve_deployments(catalog.asr_model("voxtral-mini-4b-realtime"), m)
     assert plans == []     # GPU-only + runtime absent → no usable deployment
 
@@ -619,7 +638,7 @@ def test_resolve_translate_prefers_gpu(monkeypatch):
     # stub (vram_mb=0, capability=None) correctly falls back to CPU now.
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
+    m = _machine(gpus=_nv_gpus(12288),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
     assert plans[0].device == "cuda"
@@ -638,7 +657,7 @@ def test_resolve_translate_override_cpu_pins_front():
     # An explicit device override bypasses select_variant/quant-default picking
     # and returns every installed+tier-available deployment (both quants), CPU
     # pinned to the front.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+    m = _machine(gpus=_nv_gpus(),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", "cpu", m)
     assert [p.device for p in plans] == ["cpu", "cpu", "cuda", "cuda"]
@@ -651,7 +670,7 @@ def test_resolve_translate_qwen35_no_longer_self_gates():
     # llamacpp_qwen, an external binary that accel._installed() always reports
     # present (no Python-runtime dependency) — so qwen3.5 resolves like any other
     # LLM translate card, self-gating no longer applies.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),), installed=accel._installed())
+    m = _machine(gpus=_nv_gpus(), installed=accel._installed())
     plans = accel.resolve_translate("qwen3.5-0.8b", "auto", m)
     assert plans[0].device == "cuda"
     assert any(p.backend == "llamacpp_qwen" for p in plans)
@@ -664,7 +683,7 @@ def test_resolve_translate_unknown_id_raises():
 
 def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
-        nvidia=(accel.Gpu("nvidia", "x", 0),), installed=frozenset({"llamacpp_qwen"})))
+        gpus=_nv_gpus(), installed=frozenset({"llamacpp_qwen"})))
     reply, _ = asyncio.run(accel._h_models_catalog(
         {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
     ids = [m["id"] for m in reply["models"]]
@@ -794,7 +813,7 @@ def test_resolve_translate_override_honors_quant_pin():
     # _resolve_model's plain tier ranking picked (the rank-default, q4_k_m
     # for qwen3-0.6b, ignoring the pin). override='cpu' + pin='q8_0' must
     # yield ONLY q8_0 rows, cpu pinned to the front.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+    m = _machine(gpus=_nv_gpus(),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", override="cpu", pin="q8_0", machine=m)
     assert [p.device for p in plans] == ["cpu", "cuda"]
@@ -804,7 +823,7 @@ def test_resolve_translate_override_honors_quant_pin():
 def test_resolve_translate_override_without_pin_unchanged():
     # No pin -> unchanged behavior: every installed+tier-available deployment
     # across BOTH quants (mirrors test_resolve_translate_override_cpu_pins_front).
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),),
+    m = _machine(gpus=_nv_gpus(),
                  installed=frozenset({"llamacpp_qwen"}))
     plans = accel.resolve_translate("qwen3-0.6b", override="cpu", machine=m)
     assert {p.compute_type for p in plans} == {"q8_0", "q4_k_m"}
@@ -816,7 +835,7 @@ def test_resolve_translate_override_cuda_sets_reserved(monkeypatch):
     # a first-class UI control) with a stale/zero reserved-bytes figure, so
     # --fit-target would be sized wrong for a llamacpp cuda load.
     from sokuji_sidecar import llama_runtime as rt
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12288, (8, 9)),),
+    m = _machine(gpus=_nv_gpus(12288),
                  installed=frozenset({"llamacpp_qwen"}))
     accel.resolve_translate("qwen3-0.6b", override="cuda", reserved_bytes=654321, machine=m)
     assert rt.get_reserved_bytes() == 654321
@@ -906,7 +925,7 @@ def test_resolve_translate_opus_is_cpu_only(monkeypatch):
     # a gpu-cuda deployment simply doesn't exist for this model any more.
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
+    m = _machine(gpus=_nv_gpus(12288),
                  installed=frozenset({"ct2_opus_translate"}))
     plans = accel.resolve_translate("opus-mt-zh-en", "auto", m)
     assert [p.device for p in plans] == ["cpu"]
@@ -918,7 +937,7 @@ def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
     from sokuji_sidecar import accel
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
+    m = _machine(gpus=_nv_gpus(12288),
                  installed=frozenset({"llamacpp_hunyuan"}))
     plans = accel.resolve_translate("hy-mt15-1.8b", "auto", m)
     assert plans[0].device == "cuda"
@@ -929,13 +948,10 @@ def test_resolve_translate_hymt15_prefers_gpu(monkeypatch):
 
 
 def test_resolve_tts_orders_gpu_over_cpu(monkeypatch):
-    from sokuji_sidecar import accel, catalog
+    from sokuji_sidecar import accel
     # a machine with an NVIDIA GPU and both tts backends installed
-    gpu = accel.Gpu("nvidia", "", 12000, (8, 9))
-    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                            nvidia=(gpu,), apple_silicon=False, dml_adapters=(),
-                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
-                            fingerprint="testfp")
+    machine = _machine(gpus=_nv_gpus(12000),
+                       installed=frozenset({"sherpa_tts", "moss_onnx"}))
     plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=machine)
     assert plans[0].tier == "gpu-cuda" and plans[0].device == "cuda"
     assert plans[-1].tier == "cpu"  # cpu floor survives
@@ -943,10 +959,7 @@ def test_resolve_tts_orders_gpu_over_cpu(monkeypatch):
 
 def test_resolve_tts_cpu_only_machine(monkeypatch):
     from sokuji_sidecar import accel
-    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                            nvidia=(), apple_silicon=False, dml_adapters=(),
-                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
-                            fingerprint="testfp2")
+    machine = _machine(installed=frozenset({"sherpa_tts", "moss_onnx"}))
     plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=machine)
     assert [p.tier for p in plans] == ["cpu"]
 
@@ -965,11 +978,8 @@ def test_resolve_tts_arbitrary_sherpa_repo_synthesizes_model():
     # so resolve_tts must synthesize an ad-hoc sherpa_tts model instead of raising.
     from sokuji_sidecar import accel
     repo = "csukuangfj/vits-piper-en_US-libritts_r-medium"
-    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                            nvidia=(accel.Gpu("nvidia", "", 12000, (8, 9)),),
-                            apple_silicon=False, dml_adapters=(),
-                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
-                            fingerprint="testfp-piper")
+    machine = _machine(gpus=_nv_gpus(12000),
+                       installed=frozenset({"sherpa_tts", "moss_onnx"}))
     plans = accel.resolve_tts(repo, override="auto", machine=machine)
     assert plans, "expected at least one plan for an arbitrary sherpa repo"
     assert all(p.backend == "sherpa_tts" for p in plans)
@@ -981,10 +991,7 @@ def test_resolve_tts_unknown_non_sherpa_id_still_raises():
     from sokuji_sidecar import accel
     import pytest
     # An id with no sherpa-family hint must still raise (no blind synthesis).
-    machine = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                            nvidia=(), apple_silicon=False, dml_adapters=(),
-                            installed=frozenset({"sherpa_tts", "moss_onnx"}),
-                            fingerprint="testfp-bad")
+    machine = _machine(installed=frozenset({"sherpa_tts", "moss_onnx"}))
     with pytest.raises(ValueError):
         accel.resolve_tts("some-org/random-llm-model", machine=machine)
 
@@ -1058,11 +1065,8 @@ def test_models_catalog_carries_size_bytes_per_model():
 
 
 def _llm_machine(nvidia=False, apple=False):
-    gpus = (accel.Gpu(vendor="nvidia", name="RTX 4070", vram_mb=12282,
-                      capability=(8, 9)),) if nvidia else ()
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=gpus,
-                         apple_silicon=apple, dml_adapters=(),
-                         installed=accel._installed(), fingerprint="test")
+    return _machine(gpus=_nv_gpus(12282) if nvidia else (),
+                    apple=apple, installed=accel._installed())
 
 
 def test_select_variant_llamacpp_default_and_pin():
@@ -1136,7 +1140,7 @@ def test_models_catalog_variant_ids(monkeypatch):
 def test_speech_llms_resolve_vulkan_then_cpu_on_nvidia():
     # granite/qwen3/voxtral/cohere all share the transcribe_cpp rows now —
     # on an NVIDIA box they resolve vulkan first with a cpu floor.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12288),))
+    m = _machine(gpus=_nv_gpus(12288))
     for mid in ("granite-speech-4.1-2b", "qwen3-asr-1.7b",
                 "voxtral-mini-4b-realtime", "cohere-transcribe-03-2026",
                 "fun-asr-mlt-nano"):
@@ -1237,7 +1241,7 @@ def _gemma():
 
 
 def _gpu_m():
-    return _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+    return _machine(gpus=_nv_gpus(12282),
                     installed=frozenset({"llamacpp_gemma", "transcribe_cpp"}))
 
 
@@ -1296,7 +1300,7 @@ def test_resolve_translate_auto_matches_recommendation_basis(monkeypatch):
     # (we always run the downloaded file): a 12GB card recommends+loads q8_0
     # even under transient VRAM pressure (--fit handles placement).
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+    m = _machine(gpus=_nv_gpus(12282),
                  installed=frozenset({"llamacpp_gemma"}))
     plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
     assert plans[0].compute_type == "q8_0" and plans[0].device != "cpu"
@@ -1305,7 +1309,7 @@ def test_resolve_translate_auto_matches_recommendation_basis(monkeypatch):
 def test_resolve_translate_auto_loads_the_downloaded_file(monkeypatch):
     # ... but when the user has (only) q4 downloaded, that IS the model we run.
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
-    m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+    m = _machine(gpus=_nv_gpus(12282),
                  installed=frozenset({"llamacpp_gemma"}))
     plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
     assert plans[0].compute_type == "q4_k_m"
@@ -1314,11 +1318,7 @@ def test_resolve_translate_auto_loads_the_downloaded_file(monkeypatch):
 def test_list_variants_recommends_on_stable_total(monkeypatch):
     # recommendation keys on mem_total (12GB → q8 recommended) even when the
     # transient free is tiny — download advice must not flap session-to-session.
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
-                      apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"llamacpp_gemma"}), fingerprint="t",
-                      gpus=(("vulkan", "RTX 4070", 12 << 30),))
+    m = _machine(gpus=_nv_gpus(12288), installed=frozenset({"llamacpp_gemma"}))
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)
     import asyncio as _a, json as _j
@@ -1337,7 +1337,7 @@ def test_asr_roomy_budget_upgrades_to_q8(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
     # 12 GB card: cohere's q8_0 (2.41GB×1.15) fits → recommend the quality
     # rung. STABLE basis (mem_total) — this is a download recommendation.
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q8_0" and plans[0].device == "vulkan"
     # one plan per tier — the ladder narrowed to ONE quant
@@ -1347,7 +1347,7 @@ def test_asr_roomy_budget_upgrades_to_q8(monkeypatch):
 def test_asr_tight_budget_keeps_default(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
     # a 2 GB card: q8 (2.77GB need) never fits → default stays recommended
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 2048),))
+    m = _machine(gpus=_nv_gpus(2048))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q4_k_m"
 
@@ -1365,14 +1365,14 @@ def test_asr_unknown_memory_keeps_default_on_gpu(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
     # GPU present but no memory reading at all (vram_mb=0, no tc gpus) →
     # conservative default quant
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 0),))
+    m = _machine(gpus=_nv_gpus())
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q4_k_m" and plans[0].device == "vulkan"
 
 
 def test_asr_pin_narrows_ladder(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 2048),))  # q8 wouldn't fit
+    m = _machine(gpus=_nv_gpus(2048))  # q8 wouldn't fit
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="q8_0")
     assert all(p.compute_type == "q8_0" for p in plans)   # user's will
 
@@ -1382,7 +1382,7 @@ def test_asr_pin_listed_only_quant_honored(monkeypatch):
     never auto-recommended) but fully pickable in the UI — a pin on them
     must win, not silently fall back to a curated rung."""
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m, pin="f16")
     assert all(p.compute_type == "f16" for p in plans)
 
@@ -1392,7 +1392,7 @@ def test_asr_downloaded_listed_only_quant_loads(monkeypatch):
     quant is a listed-only rung (f16), auto must load it, not resolve to a
     curated quant that isn't on disk."""
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"f16"})
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "f16"
 
@@ -1402,20 +1402,19 @@ def test_asr_fresh_recommendation_never_listed_only(monkeypatch):
     # 24GB GPU fits even f16, but the budget walk only considers curated
     # rungs — q8_0 stays the recommendation.
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 24564),))
+    m = _machine(gpus=_nv_gpus(24564))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q8_0"
 
 
 def test_asr_single_quant_cards_unaffected(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("sense-voice", machine=m)
     assert [p.compute_type for p in plans] == ["q8_0", "q8_0"]
 
 
 def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream"}))
@@ -1441,14 +1440,14 @@ def test_asr_quant_pick_prefers_downloaded(monkeypatch):
     # a 12GB card would recommend q8_0, but only q4_k_m is in the local cache
     # → we run the model the user downloaded, full stop.
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q4_k_m"
 
 
 def test_translate_quant_pick_prefers_downloaded(monkeypatch):
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+    m = _machine(gpus=_nv_gpus(12282),
                  installed=frozenset({"llamacpp_gemma"}))
     plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
     assert plans[0].compute_type == "q4_k_m"
@@ -1458,7 +1457,7 @@ def test_quant_pick_ignores_download_state_when_nothing_cached(monkeypatch):
     # fresh machine, nothing downloaded: recommend by the stable basis (the
     # gate then walks the user through downloading that quant)
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     plans = accel.resolve("cohere-transcribe-03-2026", machine=m)
     assert plans[0].compute_type == "q8_0"
 
@@ -1538,8 +1537,7 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
 # ── Phase E5(sidecar): full variant list precomputed in models_catalog ───────
 
 
-def _catalog_reply(monkeypatch, gpus=(), nvidia=(), kind="asr", models=None):
-    monkeypatch.setattr(accel, "_nvidia_gpus", lambda: nvidia)
+def _catalog_reply(monkeypatch, gpus=(), kind="asr", models=None):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed",
@@ -1585,8 +1583,7 @@ def test_catalog_variants_cpu_only_recommends_smallest(monkeypatch):
 
 def test_catalog_variants_translate_kind_included(monkeypatch):
     # translate needs an NVIDIA/Metal machine (no vulkan llama flavor yet)
-    by_id = _catalog_reply(monkeypatch, gpus=(("vulkan", "RTX 4070", 12 << 30),),
-                           nvidia=(accel.Gpu("nvidia", "RTX 4070", 12282),),
+    by_id = _catalog_reply(monkeypatch, gpus=_nv_gpus(12288),
                            kind="translate", models=["translategemma-4b"])
     v = by_id["translategemma-4b"]["variants"]
     assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
@@ -1622,7 +1619,7 @@ def test_llamacpp_unified_memory_never_degrades_to_cpu_for_memory():
 def test_translate_auto_demotes_gpu_when_bench_says_cpu_faster(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+    m = _machine(gpus=_nv_gpus(12282),
                  installed=frozenset({"llamacpp_gemma"}))
     # measured: gpu decodes SLOWER than cpu (tps lower) for the chosen quant
     accel.bench_save({
@@ -1636,7 +1633,7 @@ def test_translate_auto_demotes_gpu_when_bench_says_cpu_faster(tmp_path, monkeyp
 def test_translate_auto_keeps_gpu_without_bench(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),),
+    m = _machine(gpus=_nv_gpus(12282),
                  installed=frozenset({"llamacpp_gemma"}))
     plans = accel.resolve_translate("translategemma-4b", "auto", machine=m)
     assert plans[0].device == "cuda"       # no measurements → estimate order
@@ -1646,7 +1643,7 @@ def test_asr_bench_demotion_uses_quant_keyed_entries(tmp_path, monkeypatch):
     # post-E3 narrowing: plans carry ONE quant; bench keys must match it
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q4_k_m"})
-    m = _machine(nvidia=(accel.Gpu("nvidia", "x", 12282),))
+    m = _machine(gpus=_nv_gpus(12282))
     accel.bench_save({
         accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "vulkan", "q4_k_m"): 0.9,
         accel._bench_key(m.fingerprint, "cohere-transcribe-03-2026", "transcribe_cpp", "cpu", "q4_k_m"): 0.2,

@@ -192,3 +192,31 @@ def test_windows_job_object_import_is_safe_on_non_windows():
     class _FakeProc:
         _handle = 1234
     assert rt._windows_job_object(_FakeProc()) is None
+
+
+def _probe_machine(gpus=(), apple=False):
+    from sokuji_sidecar import accel
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, nvidia=(),
+                         apple_silicon=apple, dml_adapters=(),
+                         installed=frozenset(), fingerprint="t", gpus=gpus)
+
+
+def test_default_flavor_cuda_from_tc_probe(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),)))
+    assert rt.default_flavor() == "cuda"
+
+
+def test_default_flavor_metal_on_apple(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(apple=True))
+    assert rt.default_flavor() == "metal"
+
+
+def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
+    # AMD/Intel GPUs get no cuda flavor; the vulkan flavor arrives in P4.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
+    assert rt.default_flavor() == "cpu"
