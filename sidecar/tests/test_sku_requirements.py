@@ -1,0 +1,53 @@
+"""Structural invariants for the per-SKU bundle requirements files (spec D1/D7/D10/D12).
+These files are parsed (not installed) here, so the checks run on any host."""
+import pathlib
+import re
+
+import pytest
+
+SIDE = pathlib.Path(__file__).resolve().parents[1]
+FILES = {
+    "nvidia": SIDE / "requirements-nvidia.txt",
+    "directml": SIDE / "requirements-directml.txt",
+    "mac": SIDE / "requirements-mac.txt",
+}
+# The three ORT variant wheels all provide the `onnxruntime` module; a bundle
+# must install exactly one (spec D1).
+ORT_LINE = re.compile(r"^onnxruntime(-gpu|-directml)?\b")
+TORCH_LINE = re.compile(r"^(torch|torchaudio|torchvision)\b")
+
+
+def _reqs(path):
+    return [ln.strip() for ln in path.read_text().splitlines()
+            if ln.strip() and not ln.strip().startswith("#")]
+
+
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+def test_sku_file_includes_shared_base(sku):
+    assert "-r requirements.txt" in _reqs(FILES[sku])
+
+
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+def test_exactly_one_ort_flavor(sku):
+    ort = [ln for ln in _reqs(FILES[sku]) if ORT_LINE.match(ln)]
+    assert len(ort) == 1, ort
+
+
+def test_ort_flavor_matches_sku():
+    assert any(ln.startswith("onnxruntime-gpu[cuda,cudnn]==1.23.2")
+               for ln in _reqs(FILES["nvidia"]))
+    assert any(ln.startswith("onnxruntime-directml==1.24.4")
+               for ln in _reqs(FILES["directml"]))
+    mac_ort = [ln for ln in _reqs(FILES["mac"]) if ORT_LINE.match(ln)][0]
+    assert (mac_ort.startswith("onnxruntime==")
+            and "-gpu" not in mac_ort and "-directml" not in mac_ort)
+
+
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+def test_no_torch_in_sku_files(sku):
+    assert not [ln for ln in _reqs(FILES[sku]) if TORCH_LINE.match(ln)]
+
+
+def test_nvml_not_reintroduced():
+    for sku in FILES:
+        assert not any("nvidia-ml-py" in ln for ln in _reqs(FILES[sku]))

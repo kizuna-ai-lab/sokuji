@@ -11,7 +11,11 @@ cd "$(dirname "$0")"   # sidecar/
 
 PYTHON="${PYTHON:-}"
 if [ -z "$PYTHON" ]; then
-  if command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11; else PYTHON=python3; fi
+  # Spec D12: dev venv + all SKU bundles unify on CPython 3.12 (DML needs >=3.11;
+  # cp312 wheels verified for the full runtime set). Fall back progressively.
+  if command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+  elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+  else PYTHON=python3; fi
 fi
 
 VENV="${SOKUJI_VENV:-.venv}"

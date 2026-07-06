@@ -1,0 +1,8 @@
+# Sidecar bundle SKU: macOS (Apple Silicon) - MLX lane (spec D5/D10).
+# CoreML EP rejected (no Attention/GQA/MatMulNBits kernels); ORT stays CPU.
+-r requirements.txt
+onnxruntime==1.23.2
+sherpa-onnx==1.13.3
+# Apple MLX audio TTS (Qwen3-TTS + MOSS nano). The exact pin is owned by the P6
+# macOS MLX lane; left unpinned here so P6 controls the version in one place.
+mlx-audio
