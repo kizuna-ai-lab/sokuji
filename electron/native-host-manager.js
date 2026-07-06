@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 function resolvePython() {
   if (process.env.SOKUJI_SIDECAR_PYTHON) return process.env.SOKUJI_SIDECAR_PYTHON;
@@ -6,6 +7,24 @@ function resolvePython() {
   return process.platform === 'win32'
     ? path.join(venv, 'Scripts', 'python.exe')
     : path.join(venv, 'bin', 'python');
+}
+
+// Launch order for the sidecar interpreter (spec D10):
+//   1. SOKUJI_SIDECAR_PYTHON env override (developer / manual testing)
+//   2. installed self-contained bundle under userData/sidecar/<sku>
+//   3. dev venv fallback (repo checkout - current behavior)
+// Pure + injectable (platform / existsSync) so it is unit-testable off-Electron.
+function resolveSidecarLaunch({ platform, envOverride, bundleRoot, devVenvPython, devCwd, existsSync }) {
+  if (envOverride) return { python: envOverride, cwd: devCwd, source: 'env' };
+  if (bundleRoot) {
+    const bundlePython = platform === 'win32'
+      ? path.join(bundleRoot, 'python', 'python.exe')
+      : path.join(bundleRoot, 'python', 'bin', 'python3');
+    if (existsSync(bundlePython)) {
+      return { python: bundlePython, cwd: path.join(bundleRoot, 'app'), source: 'bundle' };
+    }
+  }
+  return { python: devVenvPython, cwd: devCwd, source: 'venv' };
 }
 
 function parseHandshake(line) {
@@ -34,12 +53,31 @@ class NativeHostManager {
       // Respect a pre-set HF_HOME (e.g. populated by sidecar/setup.sh) so manual
       // testing reuses the same model cache; otherwise isolate under userData.
       const hfHome = process.env.HF_HOME || path.join(app.getPath('userData'), 'hf-cache');
-      const pythonPath = resolvePython();
+      const envOverride = process.env.SOKUJI_SIDECAR_PYTHON;
+      // Skip SKU detection / userData resolution entirely when an explicit
+      // override is set: resolveSidecarLaunch ignores bundleRoot in that case
+      // anyway, and this keeps start() usable without a live Electron `app`
+      // (dev/manual testing, unit tests) - mirrors the HF_HOME short-circuit above.
+      let bundleRoot = null;
+      if (!envOverride) {
+        const { detectSku, probeNvidia, bundleRootFor } = require('./sidecar-sku');
+        const sku = detectSku(process.platform, { hasNvidia: probeNvidia() });
+        const userData = process.env.SOKUJI_USERDATA || app.getPath('userData');
+        bundleRoot = bundleRootFor(userData, sku);
+      }
+      const launch = resolveSidecarLaunch({
+        platform: process.platform,
+        envOverride,
+        bundleRoot,
+        devVenvPython: resolvePython(),
+        devCwd: path.join(__dirname, '..', 'sidecar'),
+        existsSync: fs.existsSync,
+      });
       // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
       // via onnxruntime.preload_dlls() at startup (spec D8).
       const env = { ...process.env, HF_HOME: hfHome };
-      const child = spawn(pythonPath, ['-m', 'sokuji_sidecar'], {
-        cwd: path.join(__dirname, '..', 'sidecar'), env,
+      const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {
+        cwd: launch.cwd, env,
       });
       this.proc = child;
       const rl = readline.createInterface({ input: child.stdout });
@@ -84,4 +122,4 @@ class NativeHostManager {
   }
 }
 
-module.exports = { resolvePython, parseHandshake, NativeHostManager };
+module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, NativeHostManager };
