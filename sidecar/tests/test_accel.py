@@ -132,6 +132,25 @@ def _machine(*, nvidia=(), apple=False, dml=(), installed=frozenset({"transcribe
                          fingerprint="test", tc_kinds=tc, gpus=gpus)
 
 
+def test_has_nvidia_from_tc_description():
+    m = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
+    assert accel.has_nvidia(m) is True
+
+
+def test_has_nvidia_case_insensitive():
+    m = _machine(gpus=(("cuda", "nVidia geforce rtx 5080", 16 << 30),))
+    assert accel.has_nvidia(m) is True
+
+
+def test_has_nvidia_false_for_amd():
+    m = _machine(gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),))
+    assert accel.has_nvidia(m) is False
+
+
+def test_has_nvidia_false_without_devices():
+    assert accel.has_nvidia(_machine()) is False
+
+
 def _model_cpu_and_cuda():
     # synthetic rows exercising the generic resolver mechanics (tier ranking,
     # override pinning) — backend name only needs to be in `installed`

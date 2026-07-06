@@ -105,6 +105,14 @@ def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
                  for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
 
 
+def has_nvidia(machine: Machine) -> bool:
+    """NVIDIA presence, from the transcribe.cpp probe: any accelerator device
+    whose description names NVIDIA (case-insensitive substring — the D7
+    contract). Replaces the removed NVML enumeration; the tc probe is the
+    single all-vendor device-truth source."""
+    return any("nvidia" in name.lower() for _kind, name, _total in machine.gpus)
+
+
 def device_free_bytes():
     """FRESH free memory (bytes) of the primary accelerator device, or None
     when there is none. transcribe.cpp's probe is primary (vendor-agnostic,
