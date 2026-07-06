@@ -21,13 +21,13 @@ def test_flavor_for_device_includes_vulkan():
         rt.flavor_for_device("dml")
 
 
-def _fake_machine(*, gpus=(), apple=False, tc_kinds=()):
-    """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon and
-    .tc_kinds. Post-P2 there is no Machine.nvidia field / accel.Gpu class:
-    NVIDIA presence is derived from the gpus device descriptions. `gpus` items
-    are (kind, description, mem_total) tuples."""
+def _fake_machine(*, gpus=(), apple=False, tc_kinds=(), arch="x86_64"):
+    """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon,
+    .tc_kinds and .arch. Post-P2 there is no Machine.nvidia field / accel.Gpu
+    class: NVIDIA presence is derived from the gpus device descriptions. `gpus`
+    items are (kind, description, mem_total) tuples."""
     return types.SimpleNamespace(gpus=gpus, apple_silicon=apple,
-                                 tc_kinds=tc_kinds)
+                                 tc_kinds=tc_kinds, arch=arch)
 
 
 # An NVIDIA GPU as the tc probe reports it -> accel.has_nvidia() True.
@@ -242,9 +242,9 @@ def test_windows_job_object_import_is_safe_on_non_windows():
     assert rt._windows_job_object(_FakeProc()) is None
 
 
-def _probe_machine(gpus=(), apple=False, tc=()):
+def _probe_machine(gpus=(), apple=False, tc=(), arch="x86_64"):
     from sokuji_sidecar import accel
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+    return accel.Machine(os="Linux", arch=arch, cpu_cores=8,
                          apple_silicon=apple, dml_adapters=(),
                          installed=frozenset(), fingerprint="t",
                          tc_kinds=tc, gpus=gpus)
@@ -269,6 +269,16 @@ def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
         gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),), tc=("cpu", "vulkan")))
     assert rt.default_flavor() == "vulkan"
+
+
+def test_default_flavor_cpu_on_aarch64_vulkan(monkeypatch):
+    # The vulkan llama-server release asset is x86_64-only, so a Vulkan-capable
+    # aarch64 host must stay on cpu rather than download an unrunnable x64 binary
+    # (P4 review, codex). x64 hosts are covered by test_default_flavor_vulkan_for_amd_gpu.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "ARM Mali-G710", 8 << 30),), tc=("cpu", "vulkan"), arch="aarch64"))
+    assert rt.default_flavor() == "cpu"
 
 
 @pytest.mark.parametrize("brand,cfg", [

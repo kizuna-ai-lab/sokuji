@@ -109,8 +109,10 @@ def default_flavor() -> str:
         return "metal"
     # Non-NVIDIA / non-Apple GPU that transcribe.cpp's probe can drive via
     # Vulkan (AMD/Intel discrete or integrated) — the D6 target for the
-    # vulkan llama-server flavor. NVIDIA and Apple are handled above.
-    if "vulkan" in m.tc_kinds:
+    # vulkan llama-server flavor. NVIDIA and Apple are handled above. Gated to
+    # x86_64: the vulkan release asset is x64-only, so a non-x64 host (e.g.
+    # Linux/aarch64) must stay on cpu rather than fetch an unrunnable x64 binary.
+    if "vulkan" in m.tc_kinds and m.arch in ("x86_64", "AMD64"):
         return "vulkan"
     return "cpu"
 
