@@ -571,8 +571,8 @@ def test_voxtral_model_unavailable_without_runtime():
 
 
 def test_resolve_translate_prefers_gpu(monkeypatch):
-    # select_variant requires known VRAM + capability to prefer a GPU; the old
-    # stub (vram_mb=0, capability=None) correctly falls back to CPU now.
+    # select_variant needs a GPU with known VRAM (tc-probe total) to prefer a
+    # GPU tier; the 12GB device below qualifies qwen2.5-0.5b for cuda.
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(gpus=_nv_gpus(12288),
@@ -1609,5 +1609,6 @@ def test_no_nvml_left_in_package():
     import pathlib
     needle = "pyn" + "vml"  # split literal so this guard is not its own grep hit
     pkg = pathlib.Path(accel.__file__).parent
-    hits = [p.name for p in pkg.glob("*.py") if needle in p.read_text()]
+    # rglob so subpackages (qwen3_tts/, moss_tts/, …) are covered, not just top level.
+    hits = [str(p.relative_to(pkg)) for p in pkg.rglob("*.py") if needle in p.read_text()]
     assert hits == []

@@ -222,11 +222,14 @@ def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
     assert rt.default_flavor() == "cpu"
 
 
-def test_metal_config_known_chip(monkeypatch):
+@pytest.mark.parametrize("brand,cfg", [
+    ("Apple M1\n", "m1"), ("Apple M2 Pro\n", "m2"), ("Apple M3 Max\n", "m3"),
+    ("Apple M4 Pro\n", "m4"), ("Apple M5 Ultra\n", "m5")])
+def test_metal_config_known_chip(monkeypatch, brand, cfg):
     class R:
-        stdout = "Apple M4 Pro\n"
+        stdout = brand
     monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
-    assert rt._metal_config() == "m4"
+    assert rt._metal_config() == cfg
 
 
 def test_metal_config_unknown_chip_degrades_with_warning(monkeypatch, capsys):
