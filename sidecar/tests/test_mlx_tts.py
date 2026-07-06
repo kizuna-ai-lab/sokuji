@@ -134,6 +134,22 @@ def test_set_voice_stages_reference_clip_and_uses_it(monkeypatch):
     assert not os.path.exists(path)              # temp ref cleaned up on unload
 
 
+def test_set_voice_downmixes_channel_first(monkeypatch):
+    # Multi-channel reference clips arrive channel-first ([channels, samples]),
+    # like MOSS/Qwen3 set_voice. Downmix must average over channels (axis 0), so
+    # a [2, N] stereo clip stages an N-sample mono wav — NOT a 2-sample one
+    # (which axis=1 would produce, destroying the clip).
+    import soundfile
+    _install_mlx(monkeypatch, lambda repo: _StubModel())
+    b = backends.make_backend("mlx_audio_tts")
+    b.load("mlx-community/x", "metal", "fp32")
+    stereo = np.zeros((2, 320), np.float32)
+    b.set_voice(stereo, 16000)
+    data, sr = soundfile.read(b._voice)
+    assert data.shape == (320,) and sr == 16000
+    b.unload()
+
+
 def test_extract_samples_prefers_audio_then_falls_back():
     from sokuji_sidecar import mlx_tts
 

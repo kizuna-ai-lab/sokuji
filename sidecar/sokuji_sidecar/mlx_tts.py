@@ -90,12 +90,17 @@ class MlxAudioTtsBackend:
         import soundfile
         wav = np.asarray(audio, dtype=np.float32)
         if wav.ndim > 1:
-            wav = wav.mean(axis=1).astype(np.float32)
+            # Reference clips reach set_voice channel-first ([channels, samples]),
+            # matching MOSS._encode_reference and Qwen3TtsOnnxBackend.set_voice —
+            # average over the CHANNEL axis (0), not the sample/time axis.
+            wav = wav.mean(axis=0).astype(np.float32)
         self._clear_ref_file()
         fd, path = tempfile.mkstemp(prefix="sokuji_mlx_ref_", suffix=".wav")
         os.close(fd)
-        soundfile.write(path, wav, int(sr))
+        # Track the temp path BEFORE writing so a soundfile.write failure can't
+        # leak it — the next _clear_ref_file()/unload() then removes it.
         self._ref_path = path
+        soundfile.write(path, wav, int(sr))
         self._voice = path
         self._ref_text = ref_text or ""
 
@@ -111,8 +116,10 @@ class MlxAudioTtsBackend:
         parts = [_extract_samples(c)
                  for c in self._model.generate(**self._gen_kwargs(text, speed))]
         parts = [p for p in parts if p.size]
+        # _extract_samples already returns float32 and np.concatenate preserves
+        # it, so `full` is float32 — no redundant astype copy of the whole clip.
         full = np.concatenate(parts) if parts else np.zeros(0, dtype=np.float32)
-        return full.astype(np.float32), int((time.time() - t0) * 1000)
+        return full, int((time.time() - t0) * 1000)
 
     def generate_stream(self, text, speed=1.0):
         for chunk in self._model.generate(**self._gen_kwargs(text, speed)):
