@@ -305,7 +305,7 @@ def test_supertonic_row():
     assert m.clones is False and m.style_voices is True and m.named_voices is True
     assert m.repos == ("Supertone/supertonic-3",)
     assert {d.backend for d in m.deployments} == {"supertonic"}
-    assert {d.tier for d in m.deployments} == {"gpu-cuda", "cpu"}
+    assert {d.tier for d in m.deployments} == {"gpu-cuda", "gpu-dml", "cpu"}
 
 
 def test_qwen3_rows_and_capability():
@@ -345,3 +345,42 @@ def test_deployment_platform_fields_are_settable():
     mlx = catalog.Deployment("be", "gpu-metal", "fp16", "repo", 1.0,
                              platforms=("macos",), requires_apple_silicon=True)
     assert mlx.requires_apple_silicon is True
+
+
+def test_shipped_deployments_are_all_platform_except_gpu_dml():
+    # P3 default is all-three; P5 introduces the first platform-restricted rows:
+    # the Windows-only gpu-dml heavy-TTS tiers. Nothing else may be restricted
+    # until P6 (MLX / macOS).
+    for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
+        for d in m.deployments:
+            if d.tier == "gpu-dml":
+                assert d.platforms == ("windows",), (m.id, d.tier)
+            else:
+                assert d.platforms == ("linux", "windows", "macos"), (m.id, d.tier)
+            assert d.requires_apple_silicon is False, (m.id, d.tier)
+
+
+def test_heavy_tts_cards_have_windows_only_gpu_dml_rows():
+    for mid, backend in (("moss-tts-nano", "moss_onnx"),
+                         ("supertonic-3", "supertonic"),
+                         ("qwen3-tts-0.6b", "qwen3tts_onnx"),
+                         ("qwen3-tts-1.7b", "qwen3tts_onnx")):
+        m = catalog.tts_model(mid)
+        by_tier = {}
+        for d in m.deployments:
+            by_tier.setdefault(d.tier, []).append(d)
+        assert "gpu-dml" in by_tier, mid
+        assert len(by_tier["gpu-dml"]) == 1, mid
+        d = by_tier["gpu-dml"][0]
+        assert d.backend == backend
+        assert d.platforms == ("windows",), mid           # DirectML SKU is Windows-only
+        assert d.compute_type == "fp32"
+        # Same artifact as the CUDA row: DML runs the identical graphs (spec D2).
+        assert d.artifact == by_tier["gpu-cuda"][0].artifact
+
+
+def test_sherpa_tts_cards_have_no_gpu_dml_row():
+    # spec D11: the stock sherpa-onnx wheel is CPU-only; no DirectML tier.
+    for m in catalog.tts_models():
+        if any(d.backend == "sherpa_tts" for d in m.deployments):
+            assert all(d.tier != "gpu-dml" for d in m.deployments), m.id

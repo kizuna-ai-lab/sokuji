@@ -137,7 +137,10 @@ class MossOnnxTtsBackend:
             lm_dir = snapshot_download(repo_id=model_ref, local_files_only=True)
             tok_dir = snapshot_download(repo_id=tok_repo, local_files_only=True)
             root = self._stage_layout(lm_dir, tok_dir)
-            provider = "cuda" if device == "cuda" else "cpu"
+            # device is the resolver's TIER_DEVICE string: cuda | dml | cpu. Pass
+            # the accelerator label straight to OrtCpuRuntime (which resolves the
+            # provider list + verifies the session); anything else falls to cpu.
+            provider = device if device in ("cuda", "dml") else "cpu"
             # OrtCpuRuntime resolves the codec repo from the manifest itself, so it
             # only takes the staged root as model_dir (no separate codec arg).
             self._rt = OrtCpuRuntime(
@@ -353,14 +356,27 @@ class SupertonicBackend:
             import onnxruntime as ort
             from huggingface_hub import snapshot_download
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
-            provider = (["CUDAExecutionProvider", "CPUExecutionProvider"]
-                        if device == "cuda" else ["CPUExecutionProvider"])
+            # device is the resolver's TIER_DEVICE string: cuda | dml | cpu.
+            # DML runs every diffusion stage (spec D2 — no AR here, but the same
+            # all-graphs-on-DML rule).
+            provider = (["CUDAExecutionProvider", "CPUExecutionProvider"] if device == "cuda"
+                        else ["DmlExecutionProvider", "CPUExecutionProvider"] if device == "dml"
+                        else ["CPUExecutionProvider"])
             opts = ort.SessionOptions()
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             opts.log_severity_level = 3
             opts.intra_op_num_threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             self._sess = {k: ort.InferenceSession(f"{d}/{f}", sess_options=opts, providers=provider)
                           for k, f in self._MODEL_FILES.items()}
+            if device == "dml":
+                # Fail-fast (mirrors moss_tts _session): a session that silently
+                # dropped DirectML must raise so load_with_fallback picks the cpu
+                # plan instead of reporting gpu-dml while running on CPU.
+                for k, s in self._sess.items():
+                    if "DmlExecutionProvider" not in s.get_providers():
+                        raise RuntimeError(
+                            f"DmlExecutionProvider was requested but session {k!r} was "
+                            f"created without it (providers: {s.get_providers()})")
             with open(f"{d}/onnx/tts.json") as fh: self._cfg = _json.load(fh)
             with open(f"{d}/onnx/unicode_indexer.json") as fh: self._indexer = _json.load(fh)
             self.sample_rate = int(self._cfg["ae"]["sample_rate"])

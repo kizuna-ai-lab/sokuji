@@ -4,11 +4,38 @@ os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import signal
 import sys
-# Pin one consistent cuDNN (the nvidia-cudnn-cu12 wheel) for the whole process
-# BEFORE any onnxruntime CUDA provider loads, so onnxruntime-gpu doesn't mix it with a
-# different system cuDNN and silently fall back to CPU. See _cudnn_preload.
-from ._cudnn_preload import preload_cudnn
-print(preload_cudnn(), file=sys.stderr, flush=True)
+
+
+def _preload_cuda_dlls() -> str:
+    """Officialized cuDNN/CUDA handling (spec D8): when the CUDA EP is present,
+    ORT's own preload_dlls() pins the wheel-shipped cuDNN/cuBLAS/MSVC runtime
+    BEFORE any session is created — replacing the hand-rolled _cudnn_preload
+    ctypes loader and the Electron LD_LIBRARY_PATH injection. No-op on the
+    DirectML / CPU / macOS SKUs (no CUDA EP) and on ORT builds without the
+    helper. Best-effort: never raises. Returns a short status string."""
+    try:
+        import onnxruntime as ort
+    except Exception as e:  # onnxruntime is a base dep, but stay defensive
+        return f"cuda-dll-preload: skipped (onnxruntime import failed: {e})"
+    # Everything below runs at module import, before serve(): keep the whole
+    # probe inside try/except so a misbehaving get_available_providers/preload
+    # can never crash startup (honors the "never raises" contract).
+    try:
+        if "CUDAExecutionProvider" not in ort.get_available_providers():
+            return "cuda-dll-preload: skipped (no CUDA execution provider)"
+        preload = getattr(ort, "preload_dlls", None)
+        if not callable(preload):
+            return "cuda-dll-preload: skipped (preload_dlls unavailable)"
+        preload()
+        return "cuda-dll-preload: onnxruntime.preload_dlls() done"
+    except Exception as e:
+        return f"cuda-dll-preload: failed ({e})"
+
+
+# Pin one consistent CUDA/cuDNN set for the whole process BEFORE any engine
+# imports onnxruntime, so onnxruntime-gpu never mixes the wheel's cuDNN with a
+# different system copy and silently drops the CUDA EP to CPU.
+print(_preload_cuda_dlls(), file=sys.stderr, flush=True)
 
 import asyncio, json
 from .server import serve
