@@ -76,25 +76,6 @@ def test_nvidia_gpus_empty_without_nvml(monkeypatch):
     assert accel._nvidia_gpus() == ()
 
 
-def test_cuda_free_bytes_via_nvml(monkeypatch):
-    fake = _FakeNvml()
-    _install_fake_nvml(monkeypatch, fake)
-    assert accel._cuda_free_bytes() == 9 * 1024 * 1024 * 1024
-    assert fake.inits == 1 and fake.shutdowns == 1
-
-
-def test_cuda_free_bytes_none_without_nvml(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "pynvml", None)
-    assert accel._cuda_free_bytes() is None
-
-
-def test_cuda_free_bytes_none_without_devices(monkeypatch):
-    fake = _FakeNvml(count=0)
-    _install_fake_nvml(monkeypatch, fake)
-    assert accel._cuda_free_bytes() is None
-
-
 def test_probe_assembles_machine(monkeypatch):
     monkeypatch.setattr(accel, "_nvidia_gpus", lambda: (accel.Gpu("nvidia", "RTX 4070", 12288),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
@@ -247,7 +228,7 @@ _GIB = 1 << 30
 def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
     # A flexible model (cuda + cpu floor) whose weights can't fit free VRAM is
     # routed straight to CPU — the cuda plan is never even attempted (no OOM).
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 2 * _GIB)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
@@ -259,7 +240,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
 
 
 def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 10 * _GIB)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct): self.device = device; self.loaded = True
@@ -271,7 +252,7 @@ def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
 def test_vram_gate_inert_without_estimates(monkeypatch):
     # No CUDA / unknown footprint → gate stays out of the way; the existing
     # try/except path still steps cuda → cpu on a real OOM.
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     class FakeBackend:
         def __init__(self, ok): self.ok = ok
@@ -284,10 +265,23 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
     assert plan.device == "cpu"
 
 
+def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
+    # The proactive gate must read device_free_bytes (tc probe), never NVML.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
+    attempted = []
+    class FakeBackend:
+        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    _b, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    assert plan.device == "cpu" and attempted == ["cpu"]
+    assert notice and "CPU" in notice
+
+
 def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     # A GPU-only model (no cpu plan) that OOMs must NOT claim it is "falling
     # back" — there is nowhere to fall back to. Surface an honest VRAM message.
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 1 * _GIB)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct):
             raise backends.BackendLoadError("CUDA out of memory. Tried to allocate 54.00 MiB")
@@ -312,7 +306,7 @@ def test_load_measured_reports_vram_delta_for_cuda(monkeypatch):
 
 def test_load_measured_reports_rss_delta_for_cpu(monkeypatch):
     rss = iter([1000 * _GIB // 1000, 1400 * _GIB // 1000])  # +400/1000 GiB
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_rss_bytes", lambda: next(rss))
     monkeypatch.setattr(accel, "load_with_fallback",
                         lambda plans: ("BE", _plan("cpu"), "cuda skipped; using CPU"))
@@ -322,7 +316,7 @@ def test_load_measured_reports_rss_delta_for_cpu(monkeypatch):
 
 
 def test_load_measured_omits_memory_when_unmeasurable(monkeypatch):
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
     monkeypatch.setattr(accel, "load_with_fallback",
                         lambda plans: ("BE", _plan("cuda"), None))
@@ -332,7 +326,7 @@ def test_load_measured_omits_memory_when_unmeasurable(monkeypatch):
 
 def test_load_measured_omits_nonpositive_delta(monkeypatch):
     free = iter([2 * _GIB, 3 * _GIB])  # "after" higher than "before" -> delta < 0
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: next(free))
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))
     monkeypatch.setattr(accel, "load_with_fallback",
                         lambda plans: ("BE", _plan("cuda"), None))
     _b, _p, _n, mem = accel.load_measured([_plan("cuda")])
@@ -885,7 +879,7 @@ def test_fp8_weight_factor_larger_than_bf16_in_select_variant(monkeypatch):
 def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     # An fp8 plan should use factor 1.5; on a 12GiB free machine with 8GiB weights:
     # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → cuda proactively skipped.
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 12 * _GIB)
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 12 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 * _GIB)
     fp8_plan = accel.Plan("hunyuan_translate", "gpu-cuda", "cuda", "fp8", "repo", 1.0)
     cpu_pl = _plan("cpu")
@@ -1103,7 +1097,7 @@ def test_resolve_translate_sets_reserved(monkeypatch):
 def test_vram_gate_skipped_for_llamacpp(monkeypatch):
     """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
     llama-server's --fit handles memory by partial offload."""
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 1 << 30)  # 1 GiB free
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
 
@@ -1211,18 +1205,16 @@ def test_device_free_bytes_prefers_tc(monkeypatch):
     assert accel.device_free_bytes() == 9 << 30
 
 
-def test_device_free_bytes_nvml_fallback(monkeypatch):
+def test_device_free_bytes_none_without_tc(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "transcribe_cpp", None)   # import fails
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: 7 << 30)
-    assert accel.device_free_bytes() == 7 << 30
+    assert accel.device_free_bytes() is None   # no NVML fallback: degrade to None
 
 
 def test_device_free_bytes_none_without_gpu(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
         _FakeTcDev("cpu", "Ryzen", 64 << 30, 60 << 30, device_type="cpu")]))
-    monkeypatch.setattr(accel, "_cuda_free_bytes", lambda: None)
     assert accel.device_free_bytes() is None
 
 

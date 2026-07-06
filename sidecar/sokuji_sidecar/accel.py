@@ -115,9 +115,9 @@ def has_nvidia(machine: Machine) -> bool:
 
 def device_free_bytes():
     """FRESH free memory (bytes) of the primary accelerator device, or None
-    when there is none. transcribe.cpp's probe is primary (vendor-agnostic,
-    device-wide); NVML is the fallback when the wheel is missing. Volatile by
-    design — call at plan/load time, never cache in Machine."""
+    when there is none (tc wheel absent, or no accelerator device). Volatile
+    by design — call at plan/load time, never cache in Machine. Callers treat
+    None as 'skip VRAM gating/measurement'."""
     try:
         for b in _tc_devices():
             if getattr(b, "device_type", "gpu") != "cpu":
@@ -126,7 +126,7 @@ def device_free_bytes():
                     return free
     except Exception:
         pass
-    return _cuda_free_bytes()
+    return None
 
 
 def ram_free_bytes():
@@ -519,30 +519,6 @@ class AllPlansFailed(Exception):
     """Every plan failed to load, including the CPU floor."""
 
 
-def _cuda_free_bytes():
-    """Free VRAM (bytes) on the first NVIDIA device via NVML, or None when the
-    driver/pynvml is absent. Device-wide free (like cudaMemGetInfo), so VRAM
-    held by other processes (e.g. llama-server) is correctly excluded.
-    Best-effort: any failure degrades to None so callers skip gating."""
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-    except Exception:
-        return None
-    try:
-        if pynvml.nvmlDeviceGetCount() < 1:
-            return None
-        h = pynvml.nvmlDeviceGetHandleByIndex(0)
-        return int(pynvml.nvmlDeviceGetMemoryInfo(h).free)
-    except Exception:
-        return None
-    finally:
-        try:
-            pynvml.nvmlShutdown()
-        except Exception:
-            pass
-
-
 def _rss_bytes():
     """Best-effort resident set size of this process, in bytes. Linux reads
     /proc/self/status (VmRSS, KiB); other platforms fall back to
@@ -664,7 +640,7 @@ def load_with_fallback(plans: list):
         # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
         # guess here would only wrongly route a fittable model to CPU.
         is_llamacpp = plan.backend.startswith("llamacpp_")
-        free = _cuda_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
+        free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
         need = _model_weight_bytes(plan.artifact) if (plan.device == "cuda" and not is_llamacpp) else None
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
