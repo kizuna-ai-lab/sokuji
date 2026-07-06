@@ -49,7 +49,8 @@ def current_platform() -> str:
     `platforms` filter (D9); monkeypatched in tests to exercise the filter without
     the host OS. An unmapped platform.system() falls through to its lowercased
     name — harmless: no deployment lists it, so such a host resolves nothing."""
-    return _PLATFORM_MAP.get(platform.system(), platform.system().lower())
+    sysname = platform.system()
+    return _PLATFORM_MAP.get(sysname, sysname.lower())
 
 
 def _dml_adapters() -> tuple[str, ...]:
