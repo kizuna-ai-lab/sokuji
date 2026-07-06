@@ -1004,18 +1004,19 @@ function resolveSidecarLaunch({ platform, envOverride, bundleRoot, devVenvPython
 
 - [ ] **Step 5: Wire it into `start()`**
 
-In `electron/native-host-manager.js`, replace lines 69–74:
+In `electron/native-host-manager.js`, the current (post-P5) `start()` env-construction block reads:
 
 ```javascript
       const pythonPath = resolvePython();
-      const venvRoot = path.dirname(path.dirname(pythonPath));   // <venv>/bin/python → <venv>
-      const env = withTorchCudaLibs({ ...process.env, HF_HOME: hfHome }, venvRoot, process.platform);
+      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
+      // via onnxruntime.preload_dlls() at startup (spec D8).
+      const env = { ...process.env, HF_HOME: hfHome };
       const child = spawn(pythonPath, ['-m', 'sokuji_sidecar'], {
         cwd: path.join(__dirname, '..', 'sidecar'), env,
       });
 ```
 
-with:
+Replace it with (P5 already removed `withTorchCudaLibs`/`nvidiaLibDirs`/`venvRoot` — do NOT reintroduce them; the env stays the plain `{ ...process.env, HF_HOME: hfHome }` and cuDNN is loaded in-process via `onnxruntime.preload_dlls()`, spec D8):
 
 ```javascript
       const { detectSku, probeNvidia, bundleRootFor } = require('./sidecar-sku');
@@ -1029,34 +1030,43 @@ with:
         devCwd: path.join(__dirname, '..', 'sidecar'),
         existsSync: fs.existsSync,
       });
-      const pythonPath = launch.python;
-      const venvRoot = path.dirname(path.dirname(pythonPath));   // python prefix (bundle or venv)
-      const env = withTorchCudaLibs({ ...process.env, HF_HOME: hfHome }, venvRoot, process.platform);
-      const child = spawn(pythonPath, ['-m', 'sokuji_sidecar'], {
+      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
+      // via onnxruntime.preload_dlls() at startup (spec D8).
+      const env = { ...process.env, HF_HOME: hfHome };
+      const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {
         cwd: launch.cwd, env,
       });
 ```
 
-(`app` is already destructured from `require('electron')` at line 65; `fs` is required at line 2. `withTorchCudaLibs` is retained as-is; it is a linux-only no-op elsewhere and, per spec D8/P5, the nvidia bundle's cuDNN is loaded in-process via `onnxruntime.preload_dlls()` — do not re-derive CUDA lib logic here.)
+(`app` is already destructured from `require('electron')` inside `start()`. **`fs` is NOT required in this file anymore — P5 removed the `const fs = require('fs');` line — so re-add it** at the top next to `const path = require('path');` (Step 5b below), since `resolveSidecarLaunch`'s caller passes `fs.existsSync`.)
+
+- [ ] **Step 5b: Re-add the `fs` require (P5 removed it)**
+
+At the top of `electron/native-host-manager.js`, the first line is `const path = require('path');`. Add an `fs` require directly after it:
+
+```javascript
+const path = require('path');
+const fs = require('fs');
+```
 
 - [ ] **Step 6: Extend the exports**
 
-In `electron/native-host-manager.js`, replace line 118:
+In `electron/native-host-manager.js`, the current (post-P5) exports line reads:
 
 ```javascript
-module.exports = { resolvePython, parseHandshake, nvidiaLibDirs, withTorchCudaLibs, NativeHostManager };
+module.exports = { resolvePython, parseHandshake, NativeHostManager };
 ```
 
-with:
+Replace it with (just add `resolveSidecarLaunch` — `nvidiaLibDirs`/`withTorchCudaLibs` were removed in P5 and must NOT come back):
 
 ```javascript
-module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, nvidiaLibDirs, withTorchCudaLibs, NativeHostManager };
+module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, NativeHostManager };
 ```
 
 - [ ] **Step 7: Run to verify pass**
 
 Run: `npx vitest run electron/sidecar-sku.test.js electron/native-host-manager.test.js`
-Expected: PASS (existing `parseHandshake` / `resolvePython` / `withTorchCudaLibs` / timeout suites still green + the new `resolveSidecarLaunch` and `detectSku` suites).
+Expected: PASS (existing `parseHandshake` / `resolvePython` / `start()` handshake-timeout suites still green — the `withTorchCudaLibs` suite was already removed in P5 — plus the new `resolveSidecarLaunch` and `detectSku` suites).
 
 - [ ] **Step 8: Commit**
 
