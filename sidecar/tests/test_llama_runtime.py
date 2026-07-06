@@ -408,3 +408,36 @@ def test_ubuntu_vulkan_tar_is_unpinned():
     asset = f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"
     assert asset not in rt.ASSET_SHA256
     rt._verify(asset, b"anything")   # unknown asset -> stderr warning, no raise
+
+
+def test_install_from_github_tar_rejects_path_traversal(monkeypatch, tmp_path):
+    # The Vulkan tarball is unpinned, so a tampered/MITM'd archive with a
+    # path-traversal member (CVE-2007-4559) must be rejected before extraction,
+    # not written outside dest_dir.
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    evil = _tar_gz({"../escaped.txt": b"pwned"})
+    monkeypatch.setattr(rt, "_fetch", lambda url: evil)
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))
+    # nothing escaped dest_dir
+    assert not (tmp_path / "escaped.txt").exists()
+
+
+def test_install_from_github_tar_rejects_symlink_member(monkeypatch, tmp_path):
+    # A symlink member (which could point outside dest on later deref) is rejected.
+    import io
+    import tarfile
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        link = tarfile.TarInfo("llama-server")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "/etc/passwd"
+        tf.addfile(link)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))

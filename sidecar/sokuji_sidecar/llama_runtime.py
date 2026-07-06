@@ -269,6 +269,20 @@ def _install_from_github_tar(flavor: str, dest_dir: str) -> str:
     blob = _fetch(gh_url(asset))
     _verify(asset, blob)
     with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
+        # Guard against path-traversal / link tar entries (CVE-2007-4559) BEFORE
+        # extracting. Python 3.12's extractall(filter="data") does this, but the
+        # dev venv is 3.10, so vet members by hand: every entry must resolve
+        # inside dest_dir and be a regular file or directory. This matters
+        # because the Vulkan asset is intentionally unpinned (see ASSET_SHA256),
+        # so _verify only warns — the extraction guard is the fail-safe. The
+        # official ubuntu-vulkan build is exactly binaries + .so's, no links.
+        base = os.path.realpath(dest_dir)
+        for m in tf.getmembers():
+            target = os.path.realpath(os.path.join(dest_dir, m.name))
+            if target != base and not target.startswith(base + os.sep):
+                raise BinaryFetchError(f"unsafe tar entry escapes dest: {m.name!r}")
+            if m.issym() or m.islnk():
+                raise BinaryFetchError(f"link tar entry not allowed: {m.name!r}")
         tf.extractall(dest_dir)
     exe = os.path.join(dest_dir, _exe_name(flavor))
     if not os.path.isfile(exe):
