@@ -284,11 +284,10 @@ def _opus_disp(code):
 
 
 # Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
-# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are still the 6-file ONNX
-# sums from that date; they describe the OLD Xenova export and are stale now
-# that _opus_repo/OPUS_FILES point at the 5-file CT2 layout — refreshed in
-# Task 7 once the jiangzhuo9357/opus-mt-*-ct2 repos are uploaded and their
-# real sizes can be measured (see OPUS_FILES in native_models.py).
+# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are the 5-file CT2 sums
+# (config.json + model.bin + shared_vocabulary.json + source.spm + target.spm)
+# of the jiangzhuo9357/opus-mt-*-ct2 repos, HF API fetch 2026-07-06 (see
+# OPUS_FILES in native_models.py).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
                        "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
@@ -308,13 +307,13 @@ TRANSLATE_MODELS: list[TranslateModel] = [
                        "q4_k_m", 1133080512, "q8_0", 1908528288),
     _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
                        "q4_k_m", 4624649312, "q8_0", 7981929344),
-    _opus_row("ru", "en", 20, 117767359), _opus_row("zh", "en", 21, 119495849),
-    _opus_row("en", "zh", 22, 119495576), _opus_row("hu", "en", 23, 116699316),
-    _opus_row("en", "es", 24, 119377271), _opus_row("en", "ar", 25, 117602786),
-    _opus_row("en", "ru", 26, 117767359), _opus_row("es", "en", 27, 119377236),
-    _opus_row("en", "vi", 28, 106645206), _opus_row("ar", "en", 29, 117621466),
-    _opus_row("ja", "en", 30, 114701000), _opus_row("en", "jap", 31, 98933769),
-    _opus_row("ko", "en", 32, 119601552),
+    _opus_row("ru", "en", 20, 82459917), _opus_row("zh", "en", 21, 82483063),
+    _opus_row("en", "zh", 22, 82482780), _opus_row("hu", "en", 23, 81185270),
+    _opus_row("en", "es", 24, 82471554), _opus_row("en", "ar", 25, 81957408),
+    _opus_row("en", "ru", 26, 82459917), _opus_row("es", "en", 27, 82471554),
+    _opus_row("en", "vi", 28, 76183416), _opus_row("ar", "en", 29, 81988818),
+    _opus_row("ja", "en", 30, 80132256), _opus_row("en", "jap", 31, 72783549),
+    _opus_row("ko", "en", 32, 82628751),
 ]
 
 
