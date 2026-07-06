@@ -475,6 +475,31 @@ app.on('will-quit', cleanupAndExit);
 // IPC handler for app version
 nativeHost.registerIpc(ipcMain);
 
+// ---- Self-contained sidecar bundle install/status (spec D10) ----
+// SKU detection + bundle download live in the main process because the sidecar
+// (which the bundle provides) is not yet running. Progress is pushed to the
+// renderer on 'sidecar-bundle-progress', mirroring the model-download UX.
+const { detectSku: _detectSku, probeNvidia: _probeNvidia } = require('./sidecar-sku');
+const sidecarBundle = require('./sidecar-bundle');
+ipcMain.handle('sidecar-bundle:status', () => {
+  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia() });
+  return { ok: true, sku, ...sidecarBundle.bundleStatus(app.getPath('userData'), sku) };
+});
+ipcMain.handle('sidecar-bundle:install', async (event) => {
+  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia() });
+  try {
+    const r = await sidecarBundle.installBundle({
+      sku,
+      baseUrl: process.env.SOKUJI_SIDECAR_BUNDLE_BASE_URL || null,
+      userDataDir: app.getPath('userData'),
+      onProgress: (p) => event.sender.send('sidecar-bundle-progress', { sku, ...p }),
+    });
+    return { ok: true, sku, ...r };
+  } catch (e) {
+    return { ok: false, sku, error: e.message };
+  }
+});
+
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 // ---- Window controls for the custom title bar ----

@@ -9,4 +9,11 @@ describe('preload invoke whitelist', () => {
       expect(src).toContain(`'${ch}'`);
     }
   });
+
+  it('includes the sidecar-bundle channels', () => {
+    const src = readFileSync(join(__dirname, 'preload.js'), 'utf8');
+    for (const ch of ['sidecar-bundle:status', 'sidecar-bundle:install', 'sidecar-bundle-progress']) {
+      expect(src).toContain(`'${ch}'`);
+    }
+  });
 });
