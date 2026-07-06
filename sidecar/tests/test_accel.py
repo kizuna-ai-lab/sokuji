@@ -77,6 +77,20 @@ def test_has_nvidia_false_for_amd():
     assert accel.has_nvidia(m) is False
 
 
+def test_tc_gpus_coerces_none_description(monkeypatch):
+    # A None description from the native lib must not reach has_nvidia/_gpu_vendor
+    # (they call .lower()/`in`) — _tc_gpus coerces it to "" at the source.
+    class B:
+        kind = "vulkan"
+        description = None
+        memory_total = 8 << 30
+        device_type = "gpu"
+    monkeypatch.setattr(accel, "_tc_devices", lambda: [B()])
+    gpus = accel._tc_gpus()
+    assert gpus == (("vulkan", "", 8 << 30),)
+    assert accel.has_nvidia(_machine(gpus=gpus)) is False   # no AttributeError
+
+
 def test_has_nvidia_false_without_devices():
     assert accel.has_nvidia(_machine()) is False
 

@@ -248,3 +248,13 @@ def test_metal_config_garbage_brand_degrades_with_warning(monkeypatch, capsys):
     monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
     assert rt._metal_config() == "m5"
     assert "unknown Apple chip" in capsys.readouterr().err
+
+
+def test_metal_config_two_digit_chip_degrades(monkeypatch, capsys):
+    # "M10" must NOT truncate to "m1" (the old [:2] bug); it is unknown to the
+    # config table, so it degrades to the newest known binary.
+    class R:
+        stdout = "Apple M10 Max\n"
+    monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
+    assert rt._metal_config() == "m5"
+    assert "unknown Apple chip" in capsys.readouterr().err

@@ -61,7 +61,9 @@ def _tc_kinds() -> tuple[str, ...]:
 
 def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
     """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
-    return tuple((b.kind, b.description, int(b.memory_total or 0))
+    # Coerce description to str at the source (like memory_total): a None from
+    # the native lib would otherwise crash every has_nvidia/_gpu_vendor consumer.
+    return tuple((b.kind, b.description or "", int(b.memory_total or 0))
                  for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
 
 
@@ -251,6 +253,10 @@ def _quant_budget_bytes(machine: Machine):
     transient VRAM pressure (that would recommend re-downloads). Runtime
     pressure is placement's job (--fit / cpu fallback), never a silent switch
     to a different model file."""
+    # Largest-device basis: correct for the ~universal single-GPU case. On a rare
+    # dual-DISCRETE-vendor box (AMD + NVIDIA) this can budget a gpu-cuda download
+    # against the non-CUDA card's VRAM — accepted as a documented limitation
+    # (per-tier/vendor budgeting is out of P2's NVML-removal scope).
     total = max((t for _k, _n, t in machine.gpus), default=0)
     return total or None
 

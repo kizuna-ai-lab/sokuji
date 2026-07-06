@@ -165,8 +165,11 @@ def _metal_config() -> str:
     brand = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"],
                            capture_output=True, text=True, timeout=10).stdout
     parts = brand.split()
-    if len(parts) >= 2 and parts[0] == "Apple" and parts[1][:2].lower() in _METAL_CONFIGS:
-        return parts[1][:2].lower()
+    # Match the WHOLE family token ("M4" -> "m4"), not a 2-char slice: an "M10"
+    # must degrade, not truncate to "m1" and pick the wrong binary.
+    fam = parts[1].lower() if len(parts) >= 2 and parts[0] == "Apple" else ""
+    if fam in _METAL_CONFIGS:
+        return fam
     fallback = _METAL_CONFIGS[-1]
     print(f"[llama_runtime] unknown Apple chip {brand.strip()!r}; "
           f"using the {fallback} binary", file=sys.stderr)
