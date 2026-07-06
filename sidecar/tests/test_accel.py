@@ -861,22 +861,30 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     assert notice and "CPU" in notice
 
 
-def test_opus_translate_self_gates_on_onnxruntime_and_tokenizers(monkeypatch):
+def test_opus_translate_self_gates_on_ctranslate2_and_sentencepiece(monkeypatch):
     from sokuji_sidecar import accel
     real = accel.importlib.util.find_spec
 
     def present(name, *a, **k):
-        if name in ("onnxruntime", "tokenizers"):
+        if name in ("ctranslate2", "sentencepiece"):
             return object()
         return real(name, *a, **k)
     monkeypatch.setattr(accel.importlib.util, "find_spec", present)
     assert "ct2_opus_translate" in accel._installed()
 
+    # ...and gates OFF when a required dep is missing — this half fails if the
+    # dependency map names the wrong module, which the present-only check
+    # (deps happen to be installed in the dev venv) would silently pass.
+    def hide_ct2(name, *a, **k):
+        return None if name == "ctranslate2" else object()
+    monkeypatch.setattr(accel.importlib.util, "find_spec", hide_ct2)
+    assert "ct2_opus_translate" not in accel._installed()
+
 
 def test_resolve_translate_opus_is_cpu_only(monkeypatch):
     from sokuji_sidecar import accel
-    # Opus-MT moved to a single cpu/int8 ONNX deployment (no GPU tier); a
-    # gpu-cuda deployment simply doesn't exist for this model any more.
+    # Opus-MT moved to a single cpu/int8 CTranslate2 deployment (no GPU tier);
+    # a gpu-cuda deployment simply doesn't exist for this model any more.
     monkeypatch.setattr(accel, "_format_ready", lambda ct: True)
     monkeypatch.setattr(accel, "_est_bytes", lambda d: 1 * 1024**3)  # 1 GiB, fits any GPU
     m = _machine(nvidia=(accel.Gpu("nvidia", "RTX 4070", 12288, (8, 9)),),
