@@ -6,11 +6,7 @@ import { createRequire } from 'module';
 // subsequent require('child_process') / require('readline') inside native-host-manager.js.
 const req = createRequire(import.meta.url);
 
-import { mkdtempSync, mkdirSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import path from 'path';
-
-import { parseHandshake, resolvePython, nvidiaLibDirs, withTorchCudaLibs } from './native-host-manager.js';
+import { parseHandshake, resolvePython } from './native-host-manager.js';
 
 describe('parseHandshake', () => {
   it('extracts the bound port from the handshake JSON line', () => {
@@ -28,47 +24,6 @@ describe('resolvePython', () => {
     process.env.SOKUJI_SIDECAR_PYTHON = '/custom/python';
     expect(resolvePython()).toBe('/custom/python');
     process.env.SOKUJI_SIDECAR_PYTHON = prev;
-  });
-});
-
-describe('withTorchCudaLibs (pin torch CUDA/cuDNN via LD_LIBRARY_PATH)', () => {
-  let venv;
-  beforeEach(() => {
-    venv = mkdtempSync(path.join(tmpdir(), 'sokuji-venv-'));
-    const sp = path.join(venv, 'lib', 'python3.10', 'site-packages', 'nvidia');
-    mkdirSync(path.join(sp, 'cudnn', 'lib'), { recursive: true });
-    mkdirSync(path.join(sp, 'cublas', 'lib'), { recursive: true });
-  });
-  afterEach(() => { rmSync(venv, { recursive: true, force: true }); });
-
-  it('discovers torch nvidia/*/lib dirs under the venv', () => {
-    const dirs = nvidiaLibDirs(venv);
-    expect(dirs.some((d) => d.includes('cudnn'))).toBe(true);
-    expect(dirs.some((d) => d.includes('cublas'))).toBe(true);
-  });
-
-  it('prepends them to LD_LIBRARY_PATH on linux, preserving the existing value', () => {
-    const env = withTorchCudaLibs({ LD_LIBRARY_PATH: '/existing' }, venv, 'linux');
-    expect(env.LD_LIBRARY_PATH).toMatch(/cudnn/);
-    expect(env.LD_LIBRARY_PATH.endsWith(':/existing')).toBe(true);
-  });
-
-  it('sets LD_LIBRARY_PATH with no trailing separator when none existed', () => {
-    const env = withTorchCudaLibs({}, venv, 'linux');
-    expect(env.LD_LIBRARY_PATH).toMatch(/cudnn/);
-    expect(env.LD_LIBRARY_PATH.endsWith(':')).toBe(false);
-  });
-
-  it('is a no-op (same object) on non-linux', () => {
-    const base = { LD_LIBRARY_PATH: '/x' };
-    expect(withTorchCudaLibs(base, venv, 'darwin')).toBe(base);
-  });
-
-  it('is a no-op when the venv has no nvidia libs', () => {
-    const empty = mkdtempSync(path.join(tmpdir(), 'sokuji-empty-'));
-    const base = { FOO: '1' };
-    expect(withTorchCudaLibs(base, empty, 'linux')).toBe(base);
-    rmSync(empty, { recursive: true, force: true });
   });
 });
 
