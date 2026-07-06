@@ -63,8 +63,8 @@ def test_resolve_deployments_apple_silicon_gate(monkeypatch):
 def test_resolve_translate_auto_drops_off_platform(monkeypatch):
     # The translate `auto` branch builds Plans via select_variant and never flows
     # through resolve_deployments, so it needs the up-front filter. Without it the
-    # first cpu deployment (r-win) would be picked as the floor and the whole
-    # resolve would raise NoUsablePlan instead of falling back to r-all.
+    # first cpu deployment (r-win) would be picked as the floor and the resolve
+    # would return the off-platform ["r-win"] instead of falling back to r-all.
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
     model = catalog.TranslateModel("syn", "Syn", ("multi",), (
         catalog.Deployment("ct2_opus_translate", "cpu", "int8", "r-win", 1.0, platforms=("windows",)),
