@@ -1,4 +1,6 @@
 import os
+import types
+
 import pytest
 
 from sokuji_sidecar import llama_runtime as rt
@@ -10,6 +12,52 @@ def test_flavor_for_device():
     assert rt.flavor_for_device("cpu") == "cpu"
     with pytest.raises(KeyError):
         rt.flavor_for_device("dml")
+
+
+def test_flavor_for_device_includes_vulkan():
+    assert rt.flavor_for_device("vulkan") == "vulkan"
+    # dml is still unsupported (P5's DML lane is not a llama.cpp flavor)
+    with pytest.raises(KeyError):
+        rt.flavor_for_device("dml")
+
+
+def _fake_machine(*, gpus=(), apple=False, tc_kinds=(), arch="x86_64"):
+    """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon,
+    .tc_kinds and .arch. Post-P2 there is no Machine.nvidia field / accel.Gpu
+    class: NVIDIA presence is derived from the gpus device descriptions. `gpus`
+    items are (kind, description, mem_total) tuples."""
+    return types.SimpleNamespace(gpus=gpus, apple_silicon=apple,
+                                 tc_kinds=tc_kinds, arch=arch)
+
+
+# An NVIDIA GPU as the tc probe reports it -> accel.has_nvidia() True.
+_NV = (("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),)
+
+
+def test_default_flavor_matrix(monkeypatch):
+    from sokuji_sidecar import accel
+    cases = [
+        (_fake_machine(gpus=_NV), "cuda"),
+        (_fake_machine(gpus=_NV, tc_kinds=("cpu", "vulkan")), "cuda"),        # nvidia wins
+        (_fake_machine(apple=True), "metal"),
+        (_fake_machine(apple=True, tc_kinds=("cpu", "vulkan")), "metal"),     # apple wins
+        (_fake_machine(tc_kinds=("cpu", "vulkan")), "vulkan"),               # AMD/Intel GPU
+        (_fake_machine(tc_kinds=("cpu",)), "cpu"),                            # cpu-only probe
+        (_fake_machine(), "cpu"),                                             # nothing detected
+    ]
+    for machine, expected in cases:
+        monkeypatch.setattr(accel, "probe", lambda force=False, m=machine: m)
+        assert rt.default_flavor() == expected, expected
+
+
+def test_required_flavors_vulkan_adds_cpu_floor(monkeypatch):
+    monkeypatch.setattr(rt, "default_flavor", lambda: "vulkan")
+    assert rt.required_flavors() == ["vulkan", "cpu"]
+
+
+def test_required_flavors_cpu_only_is_single(monkeypatch):
+    monkeypatch.setattr(rt, "default_flavor", lambda: "cpu")
+    assert rt.required_flavors() == ["cpu"]
 
 
 def test_bin_root_env_override(monkeypatch, tmp_path):
@@ -194,11 +242,12 @@ def test_windows_job_object_import_is_safe_on_non_windows():
     assert rt._windows_job_object(_FakeProc()) is None
 
 
-def _probe_machine(gpus=(), apple=False):
+def _probe_machine(gpus=(), apple=False, tc=(), arch="x86_64"):
     from sokuji_sidecar import accel
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+    return accel.Machine(os="Linux", arch=arch, cpu_cores=8,
                          apple_silicon=apple, dml_adapters=(),
-                         installed=frozenset(), fingerprint="t", gpus=gpus)
+                         installed=frozenset(), fingerprint="t",
+                         tc_kinds=tc, gpus=gpus)
 
 
 def test_default_flavor_cuda_from_tc_probe(monkeypatch):
@@ -214,11 +263,21 @@ def test_default_flavor_metal_on_apple(monkeypatch):
     assert rt.default_flavor() == "metal"
 
 
-def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
-    # AMD/Intel GPUs get no cuda flavor; the vulkan flavor arrives in P4.
+def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
+    # P4: an AMD/Intel GPU the tc probe drives via Vulkan selects the vulkan flavor.
     from sokuji_sidecar import accel
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
-        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),), tc=("cpu", "vulkan")))
+    assert rt.default_flavor() == "vulkan"
+
+
+def test_default_flavor_cpu_on_aarch64_vulkan(monkeypatch):
+    # The vulkan llama-server release asset is x86_64-only, so a Vulkan-capable
+    # aarch64 host must stay on cpu rather than download an unrunnable x64 binary
+    # (P4 review, codex). x64 hosts are covered by test_default_flavor_vulkan_for_amd_gpu.
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "ARM Mali-G710", 8 << 30),), tc=("cpu", "vulkan"), arch="aarch64"))
     assert rt.default_flavor() == "cpu"
 
 
@@ -258,3 +317,151 @@ def test_metal_config_two_digit_chip_degrades(monkeypatch, capsys):
     monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
     assert rt._metal_config() == "m5"
     assert "unknown Apple chip" in capsys.readouterr().err
+
+
+import zipfile
+
+
+def _win_zip(names):
+    """A minimal Windows release zip: `names` at the archive top level."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for n in names:
+            z.writestr(n, b"MZfake")
+    return buf.getvalue()
+
+
+def test_install_from_github_vulkan_single_asset(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Windows")
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return _win_zip(["llama-server.exe", "ggml.dll"])
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    exe = rt._install_from_github("vulkan", str(dest))
+    assert os.path.basename(exe) == "llama-server.exe"
+    assert os.path.isfile(exe)
+    # exactly one asset: unlike cuda, win-vulkan has no cudart companion zip
+    assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-win-vulkan-x64.zip")]
+
+
+def test_win_vulkan_asset_is_unpinned():
+    asset = f"llama-{rt.BUCKET_VERSION}-bin-win-vulkan-x64.zip"
+    assert asset not in rt.ASSET_SHA256          # intentionally unpinned (P4 follow-up)
+    rt._verify(asset, b"anything")               # unknown asset -> stderr warning, no raise
+
+
+import tarfile
+
+
+def _tar_gz(files):
+    """A minimal gzip tarball: {member_path: bytes}."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name, data in files.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
+
+
+def test_exe_name_vulkan_is_server_on_linux(monkeypatch):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    assert rt._exe_name("vulkan") == "llama-server"
+    assert rt._exe_name("cuda") == "llama"
+    assert rt._exe_name() == "llama"
+
+
+def test_exe_name_windows_ignores_flavor(monkeypatch):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Windows")
+    assert rt._exe_name("vulkan") == "llama-server.exe"
+    assert rt._exe_name("cuda") == "llama-server.exe"
+
+
+def test_binary_path_vulkan_uses_server_name(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    d = tmp_path / rt.BUCKET_VERSION / "vulkan"
+    d.mkdir(parents=True)
+    (d / "llama-server").write_bytes(b"ELF")
+    assert rt.binary_path("vulkan") == str(d / "llama-server")
+
+
+def test_ensure_binary_vulkan_extracts_ubuntu_tarball(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    blob = _tar_gz({"build/bin/llama-server": b"ELF-vulkan-server",
+                    "build/bin/libggml-vulkan.so": b"SO"})
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return blob
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+
+    path = rt.ensure_binary("vulkan")
+    assert path == rt.binary_path("vulkan")
+    assert os.path.basename(path) == "llama-server"
+    assert open(path, "rb").read() == b"ELF-vulkan-server"
+    assert os.access(path, os.X_OK)
+    # the shared lib was flattened out of build/bin/ to sit beside the exe
+    assert os.path.isfile(os.path.join(os.path.dirname(path), "libggml-vulkan.so"))
+    assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz")]
+
+
+def test_ubuntu_vulkan_tar_is_unpinned():
+    asset = f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"
+    assert asset not in rt.ASSET_SHA256
+    rt._verify(asset, b"anything")   # unknown asset -> stderr warning, no raise
+
+
+def test_install_from_github_tar_rejects_path_traversal(monkeypatch, tmp_path):
+    # The Vulkan tarball is unpinned, so a tampered/MITM'd archive with a
+    # path-traversal member (CVE-2007-4559) must be rejected before extraction,
+    # not written outside dest_dir.
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    evil = _tar_gz({"../escaped.txt": b"pwned"})
+    monkeypatch.setattr(rt, "_fetch", lambda url: evil)
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))
+    # nothing escaped dest_dir
+    assert not (tmp_path / "escaped.txt").exists()
+
+
+def test_install_from_github_tar_rejects_symlink_member(monkeypatch, tmp_path):
+    # A symlink member (which could point outside dest on later deref) is rejected.
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        link = tarfile.TarInfo("llama-server")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "/etc/passwd"
+        tf.addfile(link)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))
+
+
+def test_install_from_github_tar_rejects_exotic_member(monkeypatch, tmp_path):
+    # Regular files + dirs only: an exotic (fifo/device) member is rejected too,
+    # matching the guard's "regular file or directory" contract.
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        fifo = tarfile.TarInfo("llama-server")
+        fifo.type = tarfile.FIFOTYPE
+        tf.addfile(fifo)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))

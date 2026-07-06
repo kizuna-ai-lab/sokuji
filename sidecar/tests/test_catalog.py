@@ -160,7 +160,8 @@ def test_llm_translate_rows_shape():
     assert quants == {"q4_k_m", "q8_0"}
     tiers = {(d.compute_type, d.tier) for d in m.deployments}
     for q in quants:
-        assert {(q, "gpu-cuda"), (q, "gpu-metal"), (q, "cpu")} <= tiers
+        assert {(q, "gpu-cuda"), (q, "gpu-metal"),
+                (q, "gpu-vulkan"), (q, "cpu")} <= tiers
     # default quant (rank 2.0) is q4_k_m for the 4B card
     default = max(m.deployments, key=lambda d: d.rank)
     assert default.compute_type == "q4_k_m"
@@ -169,6 +170,27 @@ def test_llm_translate_rows_shape():
     per_quant = {q: {d.artifact for d in m.deployments if d.compute_type == q}
                  for q in quants}
     assert all(len(a) == 1 for a in per_quant.values())
+
+
+def test_llm_vulkan_tier_ranks_between_cuda_and_cpu():
+    # gpu-vulkan (TIER_RANK 2.5) resolves below gpu-cuda/gpu-metal (3.0) and
+    # above cpu (1.0). Ordering comes from accel.TIER_RANK, not the order of
+    # the tiers tuple in _llm_translate_row.
+    from sokuji_sidecar import accel
+    # Post-P2 Machine shape: NVIDIA presence comes from `gpus` descriptions via
+    # accel.has_nvidia (no `nvidia` field / accel.Gpu class). gpu-cuda is
+    # available (has_nvidia), gpu-vulkan via "vulkan" in tc_kinds, gpu-metal not.
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"llamacpp_gemma"}),
+                      fingerprint="t", tc_kinds=("cpu", "vulkan"),
+                      gpus=(("cuda", "NVIDIA x", 12288),))
+    plans = accel.resolve_deployments(catalog.translate_model("translategemma-4b"), m)
+    seen = []
+    for p in plans:
+        if p.tier not in seen:
+            seen.append(p.tier)
+    assert seen == ["gpu-cuda", "gpu-vulkan", "cpu"]   # gpu-metal filtered (no Apple/Metal)
 
 
 def test_small_qwen_defaults_to_q8():

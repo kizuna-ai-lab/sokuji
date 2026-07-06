@@ -52,8 +52,13 @@ ASSET_SHA256: dict[str, str] = {
     "llama-b9835-bin-win-cpu-x64.zip": "982860c8dfc36ee82e41aa0885e1f49faa8d7cf07c7481a83f36fb0154e1c64c",
 }
 # NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
+# The Vulkan-flavor release assets (llama-<ver>-bin-win-vulkan-x64.zip and
+# llama-<ver>-bin-ubuntu-vulkan-x64.tar.gz) are intentionally UNPINNED here:
+# _verify() accepts an unrecorded asset with a stderr warning rather than
+# bricking the first Vulkan users. Record their sha256 on a target machine and
+# add them above (P4 follow-up).
 
-_FLAVORS = {"cuda": "cuda", "metal": "metal", "cpu": "cpu"}
+_FLAVORS = {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "cpu": "cpu"}
 
 
 def flavor_for_device(device: str) -> str:
@@ -67,13 +72,20 @@ def bin_root() -> str:
     return os.path.join(base, BUCKET_VERSION)
 
 
-def _exe_name() -> str:
-    return "llama-server.exe" if platform.system() == "Windows" else "llama"
+def _exe_name(flavor: str | None = None) -> str:
+    if platform.system() == "Windows":
+        return "llama-server.exe"
+    # The official ubuntu-vulkan RELEASE tarball ships a `llama-server` binary
+    # (not the bucket's single-file `llama` app). Keep that name verbatim: it is
+    # what _build_args keys the `serve`-subcommand suppression on.
+    if flavor == "vulkan":
+        return "llama-server"
+    return "llama"
 
 
 def binary_path(flavor: str) -> str | None:
     """Installed binary path for `flavor`, or None when not yet downloaded."""
-    exe = os.path.join(bin_root(), flavor, _exe_name())
+    exe = os.path.join(bin_root(), flavor, _exe_name(flavor))
     return exe if os.path.isfile(exe) else None
 
 
@@ -87,14 +99,21 @@ def gh_url(asset: str) -> str:
 
 def default_flavor() -> str:
     """The best flavor for this machine (drives the model-download dependency):
-    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, else cpu. AMD/Intel
-    dGPUs stay on cpu until the vulkan flavor lands (P4)."""
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, AMD/Intel via the tc
+    Vulkan probe -> vulkan, else cpu."""
     from . import accel
     m = accel.probe()
     if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"
+    # Non-NVIDIA / non-Apple GPU that transcribe.cpp's probe can drive via
+    # Vulkan (AMD/Intel discrete or integrated) — the D6 target for the
+    # vulkan llama-server flavor. NVIDIA and Apple are handled above. Gated to
+    # x86_64: the vulkan release asset is x64-only, so a non-x64 host (e.g.
+    # Linux/aarch64) must stay on cpu rather than fetch an unrunnable x64 binary.
+    if "vulkan" in m.tc_kinds and m.arch in ("x86_64", "AMD64"):
+        return "vulkan"
     return "cpu"
 
 
@@ -214,6 +233,7 @@ def _install_from_github(flavor: str, dest_dir: str) -> str:
     import zipfile
     assets = {"cuda": [f"llama-{BUCKET_VERSION}-bin-win-cuda-12.4-x64.zip",
                        f"cudart-llama-bin-win-cuda-12.4-x64.zip"],
+              "vulkan": [f"llama-{BUCKET_VERSION}-bin-win-vulkan-x64.zip"],
               "cpu": [f"llama-{BUCKET_VERSION}-bin-win-cpu-x64.zip"]}[flavor]
     for asset in assets:
         blob = _fetch(gh_url(asset))
@@ -230,6 +250,57 @@ def _install_from_github(flavor: str, dest_dir: str) -> str:
                 break
     if not os.path.isfile(exe):
         raise BinaryFetchError(f"{_exe_name()} not found in {assets}")
+    return exe
+
+
+def _install_from_github_tar(flavor: str, dest_dir: str) -> str:
+    """Linux: official release tar.gz (currently only the ubuntu-vulkan build).
+    Mirrors the Windows zip path (_install_from_github): extract the archive,
+    then, if the server binary isn't already at the top level, flatten the
+    directory that holds it so its shared libraries (libggml*.so, libllama.so)
+    land next to the exe. Unlike the bucket's single-file `llama`, this ships a
+    `llama-server` binary + .so's under build/bin/.
+
+    glibc note: these are built against Ubuntu's glibc. The first REAL spawn is
+    the compatibility check — a too-old host glibc surfaces as a
+    BackendLoadError from LlamaServerProc.start(). Falling back to a
+    bucket-built vulkan binary is out of scope here."""
+    import io
+    import tarfile
+    asset = {"vulkan": f"llama-{BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"}[flavor]
+    blob = _fetch(gh_url(asset))
+    _verify(asset, blob)
+    with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
+        # Guard against path-traversal / link tar entries (CVE-2007-4559) BEFORE
+        # extracting. Python 3.12's extractall(filter="data") does this, but the
+        # dev venv is 3.10, so vet members by hand: every entry must resolve
+        # inside dest_dir and be a regular file or directory. This matters
+        # because the Vulkan asset is intentionally unpinned (see ASSET_SHA256),
+        # so _verify only warns — the extraction guard is the fail-safe. The
+        # official ubuntu-vulkan build is exactly binaries + .so's, no links.
+        base = os.path.realpath(dest_dir)
+        for m in tf.getmembers():
+            target = os.path.realpath(os.path.join(dest_dir, m.name))
+            if target != base and not target.startswith(base + os.sep):
+                raise BinaryFetchError(f"unsafe tar entry escapes dest: {m.name!r}")
+            # Regular files + dirs only. This rejects sym/hardlinks (the classic
+            # CVE-2007-4559 two-step) AND exotic device/fifo members in one check,
+            # matching the comment above — the official build is binaries + .so's.
+            if not (m.isfile() or m.isdir()):
+                raise BinaryFetchError(f"disallowed tar entry type: {m.name!r}")
+        tf.extractall(dest_dir)
+    exe = os.path.join(dest_dir, _exe_name(flavor))
+    if not os.path.isfile(exe):
+        # tarball nests binaries + shared libs under build/bin/ — flatten
+        # the dir that holds the server so the .so's sit beside it.
+        for root, _dirs, files in os.walk(dest_dir):
+            if _exe_name(flavor) in files and root != dest_dir:
+                for fn in files:
+                    os.replace(os.path.join(root, fn), os.path.join(dest_dir, fn))
+                break
+    if not os.path.isfile(exe):
+        raise BinaryFetchError(f"{_exe_name(flavor)} not found in {asset}")
+    os.chmod(exe, 0o755)
     return exe
 
 
@@ -266,6 +337,8 @@ def ensure_binary(flavor: str, progress=None) -> str:
         try:
             if platform.system() == "Windows":
                 _install_from_github(flavor, tmp_dir)
+            elif platform.system() == "Linux" and flavor == "vulkan":
+                _install_from_github_tar(flavor, tmp_dir)
             else:
                 _install_from_bucket(flavor, tmp_dir)
             shutil.rmtree(final_dir, ignore_errors=True)
@@ -276,7 +349,7 @@ def ensure_binary(flavor: str, progress=None) -> str:
         except Exception as e:
             shutil.rmtree(tmp_dir, ignore_errors=True)
             raise BinaryFetchError(str(e))
-        return os.path.join(final_dir, _exe_name())
+        return os.path.join(final_dir, _exe_name(flavor))
 
 
 _RESERVED_BYTES = 0
