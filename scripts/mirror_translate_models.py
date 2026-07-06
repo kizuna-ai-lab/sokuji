@@ -3,7 +3,8 @@
 """Mirror the chosen translate artifacts into the owned HF namespace.
 
 GGUF: one repo per card-variant holding exactly one .gguf.
-Opus: one repo per pair holding the 6-file Xenova export set.
+(Opus-MT is no longer mirrored here — it is converted to CTranslate2 and
+self-hosted by scripts/convert-opus-ct2.py.)
 
 Requires: `huggingface-cli login` with write access to NS.
 Usage: python3 scripts/mirror_translate_models.py [--dry-run] [--only CARD_ID]
@@ -63,13 +64,6 @@ GGUF_SOURCES = {
         "q8_0":   ("tencent/HY-MT1.5-7B-GGUF", "*[Qq]8_0*.gguf")},
 }
 
-OPUS_PAIRS = ["ru-en", "zh-en", "en-zh", "hu-en", "en-es", "en-ar", "en-ru",
-              "es-en", "en-vi", "ar-en", "ja-en", "en-jap", "ko-en"]
-OPUS_FILES = ["config.json", "generation_config.json", "tokenizer.json",
-              "tokenizer_config.json", "onnx/encoder_model_quantized.onnx",
-              "onnx/decoder_model_merged_quantized.onnx"]
-
-
 def pick_gguf(api, repo, glob):
     hits = [f for f in api.list_repo_files(repo)
             if f.endswith(".gguf") and fnmatch.fnmatch(f.lower(), glob.lower())]
@@ -124,27 +118,6 @@ def main():
                     local = hf_hub_download(src, fname, local_dir=td)
                     api.upload_file(path_or_fileobj=local, path_in_repo=fname, repo_id=dst)
                     sizes[(card, quant)] = os.path.getsize(local)
-    for pair in OPUS_PAIRS:
-        card = f"opus-mt-{pair}"
-        if args.only and card != args.only:
-            continue
-        src = f"Xenova/opus-mt-{pair}"
-        dst = f"{NS}/sokuji-translate-{card}"
-        print(f"{dst}  <-  {src} ({len(OPUS_FILES)} files)")
-        if not args.dry_run:
-            api.create_repo(dst, exist_ok=True, private=False)
-            total = 0
-            for f in OPUS_FILES:
-                skip, existing_size = already_mirrored(api, src, dst, f)
-                if skip:
-                    print(f"  {f}: skip (already mirrored, {existing_size} bytes)")
-                    total += existing_size
-                    continue
-                with tempfile.TemporaryDirectory() as td:
-                    local = hf_hub_download(src, f, local_dir=td)
-                    api.upload_file(path_or_fileobj=local, path_in_repo=f, repo_id=dst)
-                    total += os.path.getsize(local)
-            sizes[(card, "int8")] = total
     print("\n# exact sizes for catalog.py:")
     for (card, quant), n in sorted(sizes.items()):
         print(f"#   {card} {quant}: {n}")

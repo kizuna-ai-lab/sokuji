@@ -1,2 +1,5 @@
 # Packed WASM model directories (large binary files, hosted on HF/CDN)
 tts/wasm-*/
+
+# Converted CTranslate2 Opus-MT model dirs (large, self-hosted on HF)
+opus-ct2/*-ct2/

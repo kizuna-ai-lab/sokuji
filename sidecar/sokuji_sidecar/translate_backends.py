@@ -13,13 +13,13 @@ shared backends registry on import.
                         child started with --no-jinja, driven via /completion
                         with a self-rendered prompt (its jinja chat template
                         crashes llama-server at load time otherwise).
-  opus_onnx_translate — MarianMT via ONNX Runtime, MarianOnnxSession
+  ct2_opus_translate  — Opus-MT via CTranslate2 int8, Ct2OpusSession
                         (pair-baked direction)."""
 import os
 import re
 
 from .backends import register_backend, BackendLoadError
-from .marian_onnx import MarianOnnxSession
+from .ct2_opus import Ct2OpusSession
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
 
@@ -248,8 +248,8 @@ def _gemma_code(name: str) -> str:
 
 
 @register_backend
-class OpusOnnxTranslateBackend:
-    NAME = "opus_onnx_translate"
+class Ct2OpusTranslateBackend:
+    NAME = "ct2_opus_translate"
 
     def __init__(self):
         self._session = None
@@ -261,7 +261,7 @@ class OpusOnnxTranslateBackend:
             if not os.path.isdir(path):
                 from huggingface_hub import snapshot_download
                 path = snapshot_download(model_ref, local_files_only=True)
-            self._session = MarianOnnxSession(path)
+            self._session = Ct2OpusSession(path)
         except Exception as e:
             raise BackendLoadError(str(e))
 

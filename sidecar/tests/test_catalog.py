@@ -190,8 +190,8 @@ def test_opus_rows_cpu_only():
     m = catalog.translate_model("opus-mt-ja-en")
     assert len(m.deployments) == 1
     d = m.deployments[0]
-    assert (d.backend, d.tier, d.compute_type) == ("opus_onnx_translate", "cpu", "int8")
-    assert d.artifact == "Xenova/opus-mt-ja-en"
+    assert (d.backend, d.tier, d.compute_type) == ("ct2_opus_translate", "cpu", "int8")
+    assert d.artifact == "jiangzhuo9357/opus-mt-ja-en-ct2"
 
 
 def test_gguf_artifact_naming():
@@ -211,7 +211,8 @@ def test_split_artifact():
         "mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf") == (
         "mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q4_K_M.gguf")
     # plain 2-segment repo id: no filename.
-    assert catalog.split_artifact("Xenova/opus-mt-ja-en") == ("Xenova/opus-mt-ja-en", None)
+    assert catalog.split_artifact("jiangzhuo9357/opus-mt-ja-en-ct2") == (
+        "jiangzhuo9357/opus-mt-ja-en-ct2", None)
     # deep path (filename itself contains a slash, e.g. an onnx/ subdir).
     assert catalog.split_artifact("org/repo/onnx/model.onnx") == ("org/repo", "onnx/model.onnx")
 
