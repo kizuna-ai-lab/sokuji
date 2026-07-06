@@ -133,7 +133,8 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.languages, f"{m.id} has no languages"
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
-            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic", "qwen3tts_onnx"}
+            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
+                                 "qwen3tts_onnx", "mlx_audio_tts"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -313,7 +314,7 @@ def test_qwen3_rows_and_capability():
         m = catalog.tts_model(mid)
         assert m and m.clones is True and m.streaming is False and m.sample_rate == 24000
         assert m.transcript_required is True and m.recommended is rec
-        assert {d.backend for d in m.deployments} == {"qwen3tts_onnx"}
+        assert {d.backend for d in m.deployments} == {"qwen3tts_onnx", "mlx_audio_tts"}
         assert catalog.voice_capability(m) == {"builtin": "named", "custom": "clip", "transcriptRequired": True}
     # MOSS capability unchanged (no extra key)
     assert catalog.voice_capability(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
@@ -348,16 +349,21 @@ def test_deployment_platform_fields_are_settable():
 
 
 def test_shipped_deployments_are_all_platform_except_gpu_dml():
-    # P3 default is all-three; P5 introduces the first platform-restricted rows:
-    # the Windows-only gpu-dml heavy-TTS tiers. Nothing else may be restricted
-    # until P6 (MLX / macOS).
+    # P3 default is all-three; P5 carved out the windows-only gpu-dml rows; P6
+    # adds the macOS-only, Apple-Silicon MLX TTS rows. Those are the ONLY two
+    # kinds of platform-restricted shipped deployment — everything else stays
+    # all-platform.
     for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
         for d in m.deployments:
             if d.tier == "gpu-dml":
                 assert d.platforms == ("windows",), (m.id, d.tier)
+                assert d.requires_apple_silicon is False, (m.id, d.tier)
+            elif d.backend == "mlx_audio_tts":
+                assert d.platforms == ("macos",), (m.id, d.tier)      # Apple-Silicon MLX (D5)
+                assert d.requires_apple_silicon is True, (m.id, d.tier)
             else:
                 assert d.platforms == ("linux", "windows", "macos"), (m.id, d.tier)
-            assert d.requires_apple_silicon is False, (m.id, d.tier)
+                assert d.requires_apple_silicon is False, (m.id, d.tier)
 
 
 def test_heavy_tts_cards_have_windows_only_gpu_dml_rows():
@@ -384,3 +390,36 @@ def test_sherpa_tts_cards_have_no_gpu_dml_row():
     for m in catalog.tts_models():
         if any(d.backend == "sherpa_tts" for d in m.deployments):
             assert all(d.tier != "gpu-dml" for d in m.deployments), m.id
+
+
+def test_mlx_tts_deployment_rows():
+    # spec D5 / P6: each MLX-lane card gains ONE Apple-Silicon macOS metal row,
+    # pointed at the mlx-community repo, reusing the card's compute_type so the
+    # card still exposes exactly one variant (no new TTS variantIds).
+    expect = {
+        "moss-tts-nano": "mlx-community/MOSS-TTS-Nano-100M",
+        "qwen3-tts-0.6b": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+        "qwen3-tts-1.7b": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
+    }
+    for mid, repo in expect.items():
+        m = catalog.tts_model(mid)
+        mlx = [d for d in m.deployments if d.backend == "mlx_audio_tts"]
+        assert len(mlx) == 1, mid
+        d = mlx[0]
+        assert d.tier == "gpu-metal"
+        assert d.artifact == repo
+        assert d.platforms == ("macos",)
+        assert d.requires_apple_silicon is True
+        # compute_type reused from the card's ONNX rows → still a single variant
+        onnx_cts = {x.compute_type for x in m.deployments if x.backend != "mlx_audio_tts"}
+        assert d.compute_type in onnx_cts
+        assert len({x.compute_type for x in m.deployments}) == 1, mid
+
+
+def test_mlx_cards_keep_onnx_cpu_fallback_rows():
+    # The ONNX cpu row survives on every MLX-lane card (the mac fallback + the
+    # runnable row on Linux/Windows/Intel-Mac).
+    for mid in ("moss-tts-nano", "qwen3-tts-0.6b", "qwen3-tts-1.7b"):
+        m = catalog.tts_model(mid)
+        assert any(d.tier == "cpu" and d.backend != "mlx_audio_tts"
+                   for d in m.deployments), mid

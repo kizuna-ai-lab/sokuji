@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
+    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
     tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
     compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
@@ -375,6 +375,15 @@ _QWEN3_TTS_06B_REPO = os.environ.get(
 _QWEN3_TTS_17B_REPO = os.environ.get(
     "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx")
 
+# macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
+# same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
+_MOSS_NANO_MLX_REPO = os.environ.get(
+    "SOKUJI_MOSS_TTS_NANO_MLX_REPO", "mlx-community/MOSS-TTS-Nano-100M")
+_QWEN3_TTS_06B_MLX_REPO = os.environ.get(
+    "SOKUJI_QWEN3_TTS_06B_MLX_REPO", "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit")
+_QWEN3_TTS_17B_MLX_REPO = os.environ.get(
+    "SOKUJI_QWEN3_TTS_17B_MLX_REPO", "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit")
+
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
                     "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
                     "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi")
@@ -383,7 +392,9 @@ TTS_MODELS: list[TtsModel] = [
     TtsModel("moss-tts-nano", "MOSS-TTS-Nano (100M)",
              ("zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru",
               "ar", "pl", "cs", "da", "sv", "el", "tr", "hu", "fa", "nl"),
-             (Deployment("moss_onnx", "gpu-cuda", "fp32", _MOSS_NANO_LM_REPO, 1.0),
+             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _MOSS_NANO_MLX_REPO, 1.0,
+                         platforms=("macos",), requires_apple_silicon=True),
+              Deployment("moss_onnx", "gpu-cuda", "fp32", _MOSS_NANO_LM_REPO, 1.0),
               Deployment("moss_onnx", "gpu-dml", "fp32", _MOSS_NANO_LM_REPO, 1.0,
                          platforms=("windows",)),
               Deployment("moss_onnx", "cpu", "fp32", _MOSS_NANO_LM_REPO, 1.0)),
@@ -400,7 +411,9 @@ TTS_MODELS: list[TtsModel] = [
              recommended=True, sort_order=1, size_bytes=400_600_000),
     TtsModel("qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
-             (Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_REPO, 1.0),
+             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_06B_MLX_REPO, 1.0,
+                         platforms=("macos",), requires_apple_silicon=True),
+              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_REPO, 1.0),
               Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_06B_REPO, 1.0,
                          platforms=("windows",)),
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_REPO, 1.0)),
@@ -409,7 +422,9 @@ TTS_MODELS: list[TtsModel] = [
              recommended=True, sort_order=2, size_bytes=4315672915),
     TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
-             (Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_REPO, 1.0),
+             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_17B_MLX_REPO, 1.0,
+                         platforms=("macos",), requires_apple_silicon=True),
+              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_REPO, 1.0),
               Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_17B_REPO, 1.0,
                          platforms=("windows",)),
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_REPO, 1.0)),

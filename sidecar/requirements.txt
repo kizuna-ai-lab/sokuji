@@ -15,3 +15,7 @@ soundfile>=0.13
 soxr>=0.5
 # ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
 transcribe-cpp==0.1.1
+# macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
+# environment marker keeps it out of the Linux/Windows venvs (mlx_tts.py
+# lazy-imports mlx_audio, so those platforms stay importable). Metal-only.
+mlx-audio==0.4.4 ; sys_platform == "darwin" and platform_machine == "arm64"

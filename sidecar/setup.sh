@@ -34,6 +34,8 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 #                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
 #   Translate -> llama-server binary (downloaded on demand) + Opus CTranslate2
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
+#                + mlx-audio (Qwen3-TTS / MOSS on Apple Silicon macOS; installed
+#                via requirements.txt's platform-marked pin — a no-op elsewhere)
 echo "[setup] stage runtimes: sherpa-onnx"
 "$PY" -m pip install -q sherpa-onnx
 
