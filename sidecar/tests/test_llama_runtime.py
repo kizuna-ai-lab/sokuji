@@ -427,8 +427,6 @@ def test_install_from_github_tar_rejects_path_traversal(monkeypatch, tmp_path):
 
 def test_install_from_github_tar_rejects_symlink_member(monkeypatch, tmp_path):
     # A symlink member (which could point outside dest on later deref) is rejected.
-    import io
-    import tarfile
     monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
@@ -436,6 +434,22 @@ def test_install_from_github_tar_rejects_symlink_member(monkeypatch, tmp_path):
         link.type = tarfile.SYMTYPE
         link.linkname = "/etc/passwd"
         tf.addfile(link)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))
+
+
+def test_install_from_github_tar_rejects_exotic_member(monkeypatch, tmp_path):
+    # Regular files + dirs only: an exotic (fifo/device) member is rejected too,
+    # matching the guard's "regular file or directory" contract.
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        fifo = tarfile.TarInfo("llama-server")
+        fifo.type = tarfile.FIFOTYPE
+        tf.addfile(fifo)
     monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
     dest = tmp_path / "vulkan"
     dest.mkdir()

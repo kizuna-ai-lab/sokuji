@@ -281,8 +281,11 @@ def _install_from_github_tar(flavor: str, dest_dir: str) -> str:
             target = os.path.realpath(os.path.join(dest_dir, m.name))
             if target != base and not target.startswith(base + os.sep):
                 raise BinaryFetchError(f"unsafe tar entry escapes dest: {m.name!r}")
-            if m.issym() or m.islnk():
-                raise BinaryFetchError(f"link tar entry not allowed: {m.name!r}")
+            # Regular files + dirs only. This rejects sym/hardlinks (the classic
+            # CVE-2007-4559 two-step) AND exotic device/fifo members in one check,
+            # matching the comment above — the official build is binaries + .so's.
+            if not (m.isfile() or m.isdir()):
+                raise BinaryFetchError(f"disallowed tar entry type: {m.name!r}")
         tf.extractall(dest_dir)
     exe = os.path.join(dest_dir, _exe_name(flavor))
     if not os.path.isfile(exe):
