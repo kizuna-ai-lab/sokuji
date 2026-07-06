@@ -46,3 +46,54 @@ def test_list_builtin_voices():
     v = SupertonicBackend().list_builtin_voices()
     assert [x["voice"] for x in v] == SUPERTONIC_VOICE_NAMES
     assert [x["gender"] for x in v] == ["F"]*5 + ["M"]*5
+
+
+import json as _json
+import sys as _sys
+import types as _types
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("device,expected", [
+    ("cpu", ["CPUExecutionProvider"]),
+    ("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]),
+    ("dml", ["DmlExecutionProvider", "CPUExecutionProvider"]),
+])
+def test_supertonic_load_selects_provider_list(monkeypatch, tmp_path, device, expected):
+    """SupertonicBackend.load builds its 4 raw-ORT sessions with the device's
+    provider list. onnxruntime + huggingface_hub are stubbed; the JSON/preset
+    layout is a minimal on-disk fixture (no real 400MB model)."""
+    from sokuji_sidecar import tts_backends as tb
+
+    (tmp_path / "onnx").mkdir()
+    (tmp_path / "onnx" / "tts.json").write_text(_json.dumps({"ae": {"sample_rate": 44100}}))
+    (tmp_path / "onnx" / "unicode_indexer.json").write_text(_json.dumps({}))
+    (tmp_path / "voice_styles").mkdir()
+    style = {"style_ttl": {"data": [0.0], "dims": [1, 1]},
+             "style_dp": {"data": [0.0], "dims": [1, 1]}}
+    for code in tb._SUPERTONIC_PRESET_CODES:
+        (tmp_path / "voice_styles" / f"{code}.json").write_text(_json.dumps(style))
+
+    captured = []
+
+    class _FakeSess:
+        def __init__(self, path, sess_options=None, providers=None):
+            captured.append(providers)
+
+    class _Opts:
+        pass
+
+    fake_ort = _types.SimpleNamespace(
+        InferenceSession=_FakeSess,
+        SessionOptions=lambda: _Opts(),
+        GraphOptimizationLevel=_types.SimpleNamespace(ORT_ENABLE_ALL=1),
+    )
+    monkeypatch.setitem(_sys.modules, "onnxruntime", fake_ort)
+    monkeypatch.setitem(_sys.modules, "huggingface_hub", _types.SimpleNamespace(
+        snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
+
+    b = tb.SupertonicBackend()
+    b.load("Supertone/supertonic-3", device, "fp32")
+    assert b.is_loaded
+    assert captured == [expected] * 4   # dp, tenc, vest, voc

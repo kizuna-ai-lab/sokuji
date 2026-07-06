@@ -356,8 +356,12 @@ class SupertonicBackend:
             import onnxruntime as ort
             from huggingface_hub import snapshot_download
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
-            provider = (["CUDAExecutionProvider", "CPUExecutionProvider"]
-                        if device == "cuda" else ["CPUExecutionProvider"])
+            # device is the resolver's TIER_DEVICE string: cuda | dml | cpu.
+            # DML runs every diffusion stage (spec D2 — no AR here, but the same
+            # all-graphs-on-DML rule).
+            provider = (["CUDAExecutionProvider", "CPUExecutionProvider"] if device == "cuda"
+                        else ["DmlExecutionProvider", "CPUExecutionProvider"] if device == "dml"
+                        else ["CPUExecutionProvider"])
             opts = ort.SessionOptions()
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             opts.log_severity_level = 3
