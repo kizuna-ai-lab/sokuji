@@ -137,7 +137,10 @@ class MossOnnxTtsBackend:
             lm_dir = snapshot_download(repo_id=model_ref, local_files_only=True)
             tok_dir = snapshot_download(repo_id=tok_repo, local_files_only=True)
             root = self._stage_layout(lm_dir, tok_dir)
-            provider = "cuda" if device == "cuda" else "cpu"
+            # device is the resolver's TIER_DEVICE string: cuda | dml | cpu. Pass
+            # the accelerator label straight to OrtCpuRuntime (which resolves the
+            # provider list + verifies the session); anything else falls to cpu.
+            provider = device if device in ("cuda", "dml") else "cpu"
             # OrtCpuRuntime resolves the codec repo from the manifest itself, so it
             # only takes the staged root as model_dir (no separate codec arg).
             self._rt = OrtCpuRuntime(

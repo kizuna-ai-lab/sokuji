@@ -110,3 +110,35 @@ def test_sherpa_defaults_to_speaker_zero():
     b._tts = _FakeOfflineTts()
     b.generate("hello")
     assert b._tts.calls == [0]
+
+
+import sys as _sys
+import types as _types
+
+
+@pytest.mark.parametrize("device,expected", [("cpu", "cpu"), ("cuda", "cuda"), ("dml", "dml")])
+def test_moss_load_maps_device_to_execution_provider(monkeypatch, tmp_path, device, expected):
+    """MossOnnxTtsBackend.load must hand OrtCpuRuntime the device label unchanged
+    for cuda/dml and 'cpu' otherwise. The runtime itself (provider list, session
+    verification) is covered by test_moss_ort_runtime.py; here it is stubbed."""
+    from sokuji_sidecar import tts_backends as tb
+    captured = {}
+
+    class FakeRt:
+        def __init__(self, model_dir, execution_provider, thread_count):
+            captured["ep"] = execution_provider
+            self.codec_meta = {"codec_config": {"sample_rate": 24000}}
+
+    monkeypatch.setattr("sokuji_sidecar.moss_tts.ort_runtime.OrtCpuRuntime", FakeRt)
+    monkeypatch.setitem(_sys.modules, "sentencepiece",
+                        _types.SimpleNamespace(SentencePieceProcessor=lambda model_file: object()))
+    monkeypatch.setitem(_sys.modules, "huggingface_hub",
+                        _types.SimpleNamespace(
+                            snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
+    monkeypatch.setattr(tb.MossOnnxTtsBackend, "_stage_layout",
+                        staticmethod(lambda lm, tok: str(tmp_path)))
+
+    b = tb.MossOnnxTtsBackend()
+    b.load("some/lm-repo", device, "fp32")
+    assert captured["ep"] == expected
+    assert b.is_loaded

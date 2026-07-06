@@ -23,6 +23,7 @@ SAMPLE_MODE_FIXED = "fixed"
 SAMPLE_MODE_FULL = "full"
 EXECUTION_PROVIDER_CPU = "cpu"
 EXECUTION_PROVIDER_CUDA = "cuda"
+EXECUTION_PROVIDER_DML = "dml"
 
 MANIFEST_CANDIDATE_RELATIVE_PATHS = (
     "browser_poc_manifest.json",
@@ -45,7 +46,9 @@ def _normalize_execution_provider(raw_execution_provider: str | None) -> str:
         return EXECUTION_PROVIDER_CPU
     if normalized in {EXECUTION_PROVIDER_CUDA, "gpu", "CUDAExecutionProvider".lower()}:
         return EXECUTION_PROVIDER_CUDA
-    raise ValueError("execution_provider must be one of: cpu, cuda")
+    if normalized in {EXECUTION_PROVIDER_DML, "gpu-dml", "DmlExecutionProvider".lower()}:
+        return EXECUTION_PROVIDER_DML
+    raise ValueError("execution_provider must be one of: cpu, cuda, dml")
 
 
 def _resolve_ort_providers(execution_provider: str) -> list[Any]:
@@ -53,6 +56,17 @@ def _resolve_ort_providers(execution_provider: str) -> list[Any]:
     if normalized == EXECUTION_PROVIDER_CPU:
         return ["CPUExecutionProvider"]
     available_providers = set(ort.get_available_providers())
+    if normalized == EXECUTION_PROVIDER_DML:
+        # DirectML SKU (spec D2): ALL graphs on DML, including the autoregressive
+        # ones. No preload_dlls (that is CUDA/cuDNN-only).
+        if "DmlExecutionProvider" not in available_providers:
+            available = ", ".join(ort.get_available_providers()) or "none"
+            raise RuntimeError(
+                "DmlExecutionProvider was requested, but this onnxruntime build does not expose it. "
+                "Install onnxruntime-directml that matches this platform. "
+                f"Available providers: {available}"
+            )
+        return ["DmlExecutionProvider", "CPUExecutionProvider"]
     if "CUDAExecutionProvider" not in available_providers:
         available = ", ".join(ort.get_available_providers()) or "none"
         raise RuntimeError(
@@ -393,6 +407,11 @@ class OrtCpuRuntime:
         if self.execution_provider == EXECUTION_PROVIDER_CUDA and "CUDAExecutionProvider" not in session.get_providers():
             raise RuntimeError(
                 "CUDAExecutionProvider was requested, but ONNX Runtime created a session without CUDA support "
+                f"for {path_value}. Actual providers: {session.get_providers()}"
+            )
+        if self.execution_provider == EXECUTION_PROVIDER_DML and "DmlExecutionProvider" not in session.get_providers():
+            raise RuntimeError(
+                "DmlExecutionProvider was requested, but ONNX Runtime created a session without DirectML support "
                 f"for {path_value}. Actual providers: {session.get_providers()}"
             )
         return session
@@ -835,6 +854,7 @@ __all__ = [
     "CodecStreamingDecodeSession",
     "EXECUTION_PROVIDER_CPU",
     "EXECUTION_PROVIDER_CUDA",
+    "EXECUTION_PROVIDER_DML",
     "OrtCpuRuntime",
     "SAMPLE_MODE_FIXED",
     "SAMPLE_MODE_FULL",
