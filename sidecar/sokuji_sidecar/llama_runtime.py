@@ -52,6 +52,11 @@ ASSET_SHA256: dict[str, str] = {
     "llama-b9835-bin-win-cpu-x64.zip": "982860c8dfc36ee82e41aa0885e1f49faa8d7cf07c7481a83f36fb0154e1c64c",
 }
 # NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
+# The Vulkan-flavor release assets (llama-<ver>-bin-win-vulkan-x64.zip and
+# llama-<ver>-bin-ubuntu-vulkan-x64.tar.gz) are intentionally UNPINNED here:
+# _verify() accepts an unrecorded asset with a stderr warning rather than
+# bricking the first Vulkan users. Record their sha256 on a target machine and
+# add them above (P4 follow-up).
 
 _FLAVORS = {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "cpu": "cpu"}
 
@@ -219,6 +224,7 @@ def _install_from_github(flavor: str, dest_dir: str) -> str:
     import zipfile
     assets = {"cuda": [f"llama-{BUCKET_VERSION}-bin-win-cuda-12.4-x64.zip",
                        f"cudart-llama-bin-win-cuda-12.4-x64.zip"],
+              "vulkan": [f"llama-{BUCKET_VERSION}-bin-win-vulkan-x64.zip"],
               "cpu": [f"llama-{BUCKET_VERSION}-bin-win-cpu-x64.zip"]}[flavor]
     for asset in assets:
         blob = _fetch(gh_url(asset))

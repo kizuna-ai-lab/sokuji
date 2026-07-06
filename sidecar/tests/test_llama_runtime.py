@@ -307,3 +307,39 @@ def test_metal_config_two_digit_chip_degrades(monkeypatch, capsys):
     monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: R())
     assert rt._metal_config() == "m5"
     assert "unknown Apple chip" in capsys.readouterr().err
+
+
+import zipfile
+
+
+def _win_zip(names):
+    """A minimal Windows release zip: `names` at the archive top level."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for n in names:
+            z.writestr(n, b"MZfake")
+    return buf.getvalue()
+
+
+def test_install_from_github_vulkan_single_asset(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt.platform, "system", lambda: "Windows")
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return _win_zip(["llama-server.exe", "ggml.dll"])
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    exe = rt._install_from_github("vulkan", str(dest))
+    assert os.path.basename(exe) == "llama-server.exe"
+    assert os.path.isfile(exe)
+    # exactly one asset: unlike cuda, win-vulkan has no cudart companion zip
+    assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-win-vulkan-x64.zip")]
+
+
+def test_win_vulkan_asset_is_unpinned():
+    asset = f"llama-{rt.BUCKET_VERSION}-bin-win-vulkan-x64.zip"
+    assert asset not in rt.ASSET_SHA256          # intentionally unpinned (P4 follow-up)
+    rt._verify(asset, b"anything")               # unknown asset -> stderr warning, no raise
