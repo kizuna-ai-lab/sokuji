@@ -1,4 +1,6 @@
 import numpy as np
+import sys as _sys
+import types as _types
 from types import SimpleNamespace
 from sokuji_sidecar.qwen3_tts import runtime
 
@@ -61,3 +63,38 @@ def test_ar_loop_zero_past_eos_and_groups():
     assert (codes[0][:, 0] == 5).all()              # scripted first codes
     assert (codes[0][:, 1:] == 7).all()             # 3 sub-codes per frame from code_predictor
     assert hidden[0].shape == (2, H)
+
+
+def _fake_ort(providers):
+    return _types.SimpleNamespace(get_available_providers=lambda: list(providers))
+
+
+def test_default_providers_dml_returns_dml_list(monkeypatch):
+    monkeypatch.setitem(_sys.modules, "onnxruntime",
+                        _fake_ort(["DmlExecutionProvider", "CPUExecutionProvider"]))
+    assert runtime.default_providers("dml") == ["DmlExecutionProvider", "CPUExecutionProvider"]
+
+
+def test_default_providers_dml_absent_falls_back_to_cpu(monkeypatch):
+    monkeypatch.setitem(_sys.modules, "onnxruntime", _fake_ort(["CPUExecutionProvider"]))
+    assert runtime.default_providers("dml") == ["CPUExecutionProvider"]
+
+
+def test_default_providers_dml_never_appends_cuda(monkeypatch):
+    # A dml device must not pull CUDA even when the CUDA EP is also present.
+    monkeypatch.setitem(_sys.modules, "onnxruntime",
+                        _fake_ort(["CUDAExecutionProvider", "DmlExecutionProvider", "CPUExecutionProvider"]))
+    assert runtime.default_providers("dml") == ["DmlExecutionProvider", "CPUExecutionProvider"]
+
+
+def test_default_providers_cuda_and_none_unchanged(monkeypatch):
+    monkeypatch.setitem(_sys.modules, "onnxruntime",
+                        _fake_ort(["CUDAExecutionProvider", "CPUExecutionProvider"]))
+    assert runtime.default_providers("cuda") == ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    assert runtime.default_providers(None) == ["CUDAExecutionProvider", "CPUExecutionProvider"]
+
+
+def test_default_providers_cpu_unchanged(monkeypatch):
+    monkeypatch.setitem(_sys.modules, "onnxruntime",
+                        _fake_ort(["CUDAExecutionProvider", "CPUExecutionProvider"]))
+    assert runtime.default_providers("cpu") == ["CPUExecutionProvider"]

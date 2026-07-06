@@ -57,14 +57,23 @@ class _Session:
 
 
 def default_providers(device: str | None = None) -> list[str]:
-    """Resolve the ONNX Runtime execution providers for `device`."""
+    """Resolve the ONNX Runtime execution providers for `device`.
+
+    "dml" pins DirectML (Windows non-NVIDIA SKU) for the HOT graphs;
+    build_sessions keeps the cheap one-shot COLD graphs on CPU regardless
+    (spec D2: the autoregressive HOT graphs run on DML, the COLD ones stay
+    CPU). A "dml" device never appends CUDA even when the CUDA EP is present."""
     import onnxruntime as ort
 
     available = ort.get_available_providers()
-    if device and str(device).lower() == "cpu":
+    dev = str(device).lower() if device else ""
+    if dev == "cpu":
         return ["CPUExecutionProvider"]
-    providers = []
-    if "CUDAExecutionProvider" in available:
+    providers: list[str] = []
+    if dev == "dml":
+        if "DmlExecutionProvider" in available:
+            providers.append("DmlExecutionProvider")
+    elif "CUDAExecutionProvider" in available:
         providers.append("CUDAExecutionProvider")
     providers.append("CPUExecutionProvider")
     return providers
