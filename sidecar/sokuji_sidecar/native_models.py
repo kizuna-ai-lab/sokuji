@@ -41,7 +41,19 @@ def _base_specs(model_id):
     from .catalog import tts_model as _tts_model
     _tm = _tts_model(model_id) if model_id else None
     if _tm is not None:
-        spec = {"repos": list(_tm.repos), "urls": list(_tm.urls)}
+        repos = list(_tm.repos)
+        # macOS on Apple Silicon runs the MLX lane (spec D5): fetch the single
+        # self-contained mlx-community repo (the mlx_audio_tts deployment's
+        # artifact) instead of the multi-GB ONNX assets. Every other platform —
+        # Linux, Windows, and Intel Macs (where requires_apple_silicon drops the
+        # MLX row) — keeps the ONNX repos. current_platform() is checked first,
+        # so the non-macOS path never probes hardware.
+        mlx = next((d for d in _tm.deployments if d.backend == "mlx_audio_tts"), None)
+        if mlx is not None:
+            from . import accel
+            if accel.current_platform() == "macos" and accel.probe().apple_silicon:
+                repos = [mlx.artifact]
+        spec = {"repos": repos, "urls": list(_tm.urls)}
         if model_id == "supertonic-3":
             # The Supertone HF repo ships ~14MB of audio_samples/*.wav + img/*.png
             # (demo assets) that the runtime never loads.

@@ -526,8 +526,9 @@ def test_h_model_status_applies_repos_map(monkeypatch):
     assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
 
 
-def test_download_specs_for_tts_moss_nano_has_two_repos_no_vad():
-    from sokuji_sidecar import native_models
+def test_download_specs_for_tts_moss_nano_has_two_repos_no_vad(monkeypatch):
+    from sokuji_sidecar import native_models, accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
     spec = native_models.download_specs("moss-tts-nano")
     assert len(spec["repos"]) == 2
     assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
@@ -587,9 +588,55 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
     assert nm.model_size("unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf") == 811843840
 
 
-def test_qwen3_download_specs_point_at_per_size_repos():
+def test_qwen3_download_specs_point_at_per_size_repos(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
     assert "qwen3-tts-0.6b-onnx" in native_models.download_specs("qwen3-tts-0.6b")["repos"][0]
     assert "qwen3-tts-1.7b-onnx" in native_models.download_specs("qwen3-tts-1.7b")["repos"][0]
+
+
+def test_download_specs_moss_mlx_on_apple_silicon(monkeypatch):
+    import types
+    from sokuji_sidecar import native_models as nm, accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
+    spec = nm.download_specs("moss-tts-nano")
+    assert spec["repos"] == ["mlx-community/MOSS-TTS-Nano-100M"]
+    assert spec["urls"] == []
+
+
+def test_download_specs_qwen_mlx_on_apple_silicon(monkeypatch):
+    import types
+    from sokuji_sidecar import native_models as nm, accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
+    assert nm.download_specs("qwen3-tts-0.6b")["repos"] == \
+        ["mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit"]
+    assert nm.download_specs("qwen3-tts-1.7b")["repos"] == \
+        ["mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit"]
+
+
+def test_download_specs_moss_onnx_on_intel_mac(monkeypatch):
+    import types
+    from sokuji_sidecar import native_models as nm, accel
+    # Intel Mac: platform is macos but NOT Apple Silicon → the MLX row isn't the
+    # runnable one, so download the ONNX assets (both repos), same as elsewhere.
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=False))
+    spec = nm.download_specs("moss-tts-nano")
+    assert len(spec["repos"]) == 2
+    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
+
+
+def test_download_specs_moss_onnx_on_linux_without_probing(monkeypatch):
+    from sokuji_sidecar import native_models as nm, accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+
+    def boom(force=False):
+        raise AssertionError("probe() must not run on non-macOS (short-circuit)")
+    monkeypatch.setattr(accel, "probe", boom)
+    spec = nm.download_specs("moss-tts-nano")
+    assert len(spec["repos"]) == 2   # ONNX assets; probe was short-circuited
 
 
 def test_aishell3_download_ignores_unused_large_files():
