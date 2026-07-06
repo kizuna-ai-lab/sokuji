@@ -144,3 +144,29 @@ def test_extract_samples_prefers_audio_then_falls_back():
     assert np.allclose(mlx_tts._extract_samples(a), [1.0, 2.0])
     # a raw array (no wrapper attributes) is accepted directly
     assert np.allclose(mlx_tts._extract_samples([3.0, 4.0]), [3.0, 4.0])
+
+
+def test_resolve_tts_leads_with_mlx_on_apple_silicon(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    m = accel.Machine(os="Darwin", arch="arm64", cpu_cores=8,
+                      apple_silicon=True, dml_adapters=(),
+                      installed=frozenset({"mlx_audio_tts", "moss_onnx", "qwen3tts_onnx"}),
+                      fingerprint="mac-p6", tc_kinds=("cpu", "metal"))
+    for mid, cpu_backend in (("moss-tts-nano", "moss_onnx"),
+                             ("qwen3-tts-0.6b", "qwen3tts_onnx")):
+        plans = accel.resolve_tts(mid, machine=m)
+        assert plans[0].backend == "mlx_audio_tts" and plans[0].tier == "gpu-metal"
+        assert plans[-1].backend == cpu_backend and plans[-1].tier == "cpu"
+
+
+def test_resolve_tts_has_no_mlx_row_on_linux(monkeypatch):
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"mlx_audio_tts", "moss_onnx"}),
+                      fingerprint="lin-p6", tc_kinds=("cpu",))
+    plans = accel.resolve_tts("moss-tts-nano", machine=m)
+    assert all(p.backend != "mlx_audio_tts" for p in plans)
+    assert plans[-1].tier == "cpu"
