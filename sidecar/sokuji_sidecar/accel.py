@@ -1053,6 +1053,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         tiers = []
         seen_tiers = set()
         for d in mdl.deployments:
+            if not _platform_ok(d, m):
+                continue                      # off-platform tier (e.g. windows-only gpu-dml on linux)
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)

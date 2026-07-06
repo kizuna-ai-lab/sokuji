@@ -84,3 +84,33 @@ def test_linux_real_card_resolution_unchanged(monkeypatch):
     m = _machine(gpus=_NV_GPUS, installed=frozenset({"transcribe_cpp"}))
     plans = accel.resolve("whisper-base", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
+
+
+def _dml_model():
+    # Synthetic card with a windows-only gpu-dml tier over a cross-platform cpu
+    # floor (the P5 shape). Same compute_type on both tiers, so the multi-quant
+    # variants block never triggers — the test isolates tier visibility.
+    return catalog.AsrModel("syn", "Syn", ("multi",), (
+        catalog.Deployment("moss_onnx", "gpu-dml", "q8_0", "r", 1.0, platforms=("windows",)),
+        catalog.Deployment("moss_onnx", "cpu", "q8_0", "r", 1.0),
+    ))
+
+
+def test_models_catalog_hides_off_platform_tier_on_linux(monkeypatch):
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+    monkeypatch.setattr(catalog, "asr_models", lambda: [_dml_model()])
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine(installed=frozenset({"moss_onnx"})))
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"type": "models_catalog", "id": 1}, None))
+    tiers = reply["models"][0]["tiers"]
+    assert [t["tier"] for t in tiers] == ["cpu"]  # windows-only gpu-dml tier hidden on linux
+
+
+def test_models_catalog_shows_on_platform_tier_with_availability(monkeypatch):
+    monkeypatch.setattr(accel, "current_platform", lambda: "windows")
+    monkeypatch.setattr(catalog, "asr_models", lambda: [_dml_model()])
+    monkeypatch.setattr(accel, "probe", lambda force=False: _machine(installed=frozenset({"moss_onnx"})))
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"type": "models_catalog", "id": 1}, None))
+    tiers = {t["tier"]: t for t in reply["models"][0]["tiers"]}
+    assert set(tiers) == {"gpu-dml", "cpu"}          # both tiers listed on windows
+    assert tiers["gpu-dml"]["available"] is False    # on-platform, but this machine has no DML adapter
+    assert tiers["cpu"]["available"] is True
