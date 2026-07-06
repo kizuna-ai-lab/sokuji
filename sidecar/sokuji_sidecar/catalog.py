@@ -20,7 +20,6 @@ class Deployment:
     compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
     rank: float         # tie-breaker within a tier (higher = preferred)
-    min_capability: tuple[int, int] | None = None   # min CUDA compute cap for a GPU variant
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
 
 

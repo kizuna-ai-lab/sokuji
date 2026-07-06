@@ -287,17 +287,14 @@ _TC_RESIDENT_FACTOR = 1.15
 
 def _quant_budget_bytes(machine: Machine):
     """The STABLE per-machine basis for quant selection: the primary device's
-    TOTAL memory. Quant choice only decides WHICH FILE we recommend the user
-    download — and we always run exactly the file the user downloaded — so the
-    basis must never flap with transient VRAM pressure (that would recommend
-    re-downloads). Runtime pressure is placement's job (--fit / cpu fallback),
-    never a silent switch to a different model file."""
+    TOTAL memory, from the transcribe.cpp probe (all vendors). Quant choice
+    only decides WHICH FILE we recommend the user download — and we always run
+    exactly the file the user downloaded — so the basis must never flap with
+    transient VRAM pressure (that would recommend re-downloads). Runtime
+    pressure is placement's job (--fit / cpu fallback), never a silent switch
+    to a different model file."""
     total = max((t for _k, _n, t in machine.gpus), default=0)
-    if total:
-        return total
-    if machine.nvidia and machine.nvidia[0].vram_mb:
-        return machine.nvidia[0].vram_mb << 20
-    return None
+    return total or None
 
 
 def _downloaded_quants(model) -> set:
@@ -932,8 +929,9 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
                    budget_bytes: int | None = None, downloaded: set | None = None):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
-    CPU floor when no GPU variant fits, the GPU/estimate is unknown, or a format's
-    runtime is missing. `pin` (a compute_type) forces that variant when it's valid.
+    CPU floor when no GPU variant fits, the device memory total is unknown, or a
+    format's runtime is missing. `pin` (a compute_type) forces that variant when
+    it's valid.
 
     llamacpp-backed models (all current LLM translate cards) take a separate,
     VRAM-math-free path: llama-server's --fit handles memory via partial offload,
@@ -941,7 +939,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     if _is_llamacpp(model):
         return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
                                      downloaded=downloaded)
-    gpu = machine.nvidia[0] if machine.nvidia else None
+    total = _quant_budget_bytes(machine)
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
     def candidate(d) -> bool:
@@ -949,14 +947,12 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
             return False
         if d.backend not in machine.installed or not _format_ready(d.compute_type):
             return False
-        if gpu is None or not gpu.vram_mb or gpu.capability is None:
-            return False
-        if d.min_capability is not None and gpu.capability < d.min_capability:
+        if total is None or not _tier_available(d.tier, machine):
             return False
         need = _est_bytes(d)
         if need is None:
             return False
-        budget = gpu.vram_mb * 1024 * 1024 - reserved_bytes - _VRAM_CONTEXT_BYTES
+        budget = total - reserved_bytes - _VRAM_CONTEXT_BYTES
         return need * _weight_factor(d.compute_type) <= budget
 
     cands = [d for d in model.deployments if candidate(d)]
@@ -1016,8 +1012,8 @@ async def _h_list_variants(state, msg, _b, conn=None):
                     for ct, d in seen.items()]
         return {"type": "list_variants_result", "id": msg.get("id"),
                 "variants": variants, "recommended": chosen.compute_type}, None
-    gpu = m.nvidia[0] if m.nvidia else None
-    budget = (gpu.vram_mb * 1024 * 1024 - reserve - _VRAM_CONTEXT_BYTES) if (gpu and gpu.vram_mb) else 0
+    total = _quant_budget_bytes(m)
+    budget = (total - reserve - _VRAM_CONTEXT_BYTES) if total else 0
     variants = []
     for d in model.deployments:
         if d.tier == "cpu":
@@ -1025,10 +1021,8 @@ async def _h_list_variants(state, msg, _b, conn=None):
         need = _est_bytes(d)
         if d.backend not in m.installed or not _format_ready(d.compute_type):
             supported, reason = False, "runtime not installed"
-        elif gpu is None or not gpu.vram_mb or gpu.capability is None:
+        elif total is None or not _tier_available(d.tier, m):
             supported, reason = False, "no usable GPU"
-        elif d.min_capability is not None and gpu.capability < d.min_capability:
-            supported, reason = False, f"needs compute capability {d.min_capability}"
         elif need is None:
             supported, reason = False, "size unknown"
         elif need * _weight_factor(d.compute_type) > budget:
