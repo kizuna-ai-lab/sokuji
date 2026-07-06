@@ -1641,3 +1641,46 @@ def test_no_nvml_left_in_package():
     # rglob so subpackages (qwen3_tts/, moss_tts/, …) are covered, not just top level.
     hits = [str(p.relative_to(pkg)) for p in pkg.rglob("*.py") if needle in p.read_text()]
     assert hits == []
+
+
+def test_dml_tier_constants_place_dml_below_cuda():
+    # P5 relies on these pre-existing constants; guard them.
+    assert accel.TIER_RANK["gpu-cuda"] > accel.TIER_RANK["gpu-dml"] > accel.TIER_RANK["cpu"]
+    assert accel.TIER_DEVICE["gpu-dml"] == "dml"
+
+
+# Post-P2 Machine shape: no `nvidia` field / accel.Gpu class — NVIDIA presence
+# comes from `gpus` (kind, description, mem_total) via accel.has_nvidia. tc_kinds
+# and gpus default to (); a DML box needs only dml_adapters.
+def test_resolve_tts_surfaces_gpu_dml_on_windows(monkeypatch):
+    monkeypatch.setattr(accel, "current_platform", lambda: "windows")
+    m = accel.Machine(os="Windows", arch="AMD64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=("dml",),
+                      installed=frozenset({"moss_onnx"}), fingerprint="fp-dml-win")
+    plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=m)
+    # no NVIDIA -> gpu-cuda filtered; gpu-dml (2.5) leads, cpu floor survives
+    assert [p.tier for p in plans] == ["gpu-dml", "cpu"]
+    assert plans[0].device == "dml"
+
+
+def test_resolve_tts_override_cuda_pins_gpu_dml(monkeypatch):
+    # The renderer's GPU control sends 'cuda'; the "cuda == any accelerator"
+    # override rule must pin the gpu-dml plan to the front too.
+    monkeypatch.setattr(accel, "current_platform", lambda: "windows")
+    m = accel.Machine(os="Windows", arch="AMD64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=("dml",),
+                      installed=frozenset({"supertonic"}), fingerprint="fp-dml-win2")
+    plans = accel.resolve_tts("supertonic-3", override="cuda", machine=m)
+    assert plans[0].tier == "gpu-dml" and plans[0].device == "dml"
+
+
+def test_resolve_tts_gpu_dml_absent_on_linux(monkeypatch):
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
+                      apple_silicon=False, dml_adapters=(),
+                      installed=frozenset({"moss_onnx"}), fingerprint="fp-linux-nodml",
+                      gpus=(("cuda", "NVIDIA x", 12 << 30),))
+    plans = accel.resolve_tts("moss-tts-nano", override="auto", machine=m)
+    # P3 drops the windows-only gpu-dml row on Linux; only gpu-cuda + cpu remain.
+    assert [p.tier for p in plans] == ["gpu-cuda", "cpu"]
+    assert all(p.tier != "gpu-dml" for p in plans)
