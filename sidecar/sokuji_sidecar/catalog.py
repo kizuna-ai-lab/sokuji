@@ -21,6 +21,8 @@ class Deployment:
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
     rank: float         # tie-breaker within a tier (higher = preferred)
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
+    platforms: tuple[str, ...] = ("linux", "windows", "macos")  # OSes this deployment runs on (D9)
+    requires_apple_silicon: bool = False             # gate: needs Apple Silicon (mlx / metal-only rows)
 
 
 @dataclass(frozen=True)
