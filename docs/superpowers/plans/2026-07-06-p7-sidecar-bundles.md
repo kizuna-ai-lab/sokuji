@@ -356,7 +356,8 @@ def test_bundle_dirname():
 def test_host_supports_sku_matches_platform():
     assert b.host_supports_sku("linux-nvidia") == (platform.system() == "Linux")
     assert b.host_supports_sku("win-nvidia") == (platform.system() == "Windows")
-    assert b.host_supports_sku("mac") == (platform.system() == "Darwin")
+    assert b.host_supports_sku("mac") == (
+        platform.system() == "Darwin" and platform.machine() == "arm64")
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -395,6 +396,7 @@ import argparse
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -433,7 +435,8 @@ def host_supports_sku(sku: str) -> bool:
     if "windows" in triple:
         return sysname == "Windows"
     if "darwin" in triple:
-        return sysname == "Darwin"
+        # mac bundle is Apple-Silicon-only (arm64); an Intel Mac must not pass.
+        return sysname == "Darwin" and platform.machine() == "arm64"
     return False
 
 
@@ -446,8 +449,14 @@ def select_python_asset(assets, triple: str, py_series: str = "3.12") -> str:
              and a["name"].endswith(suffix)]
     if not cands:
         raise SystemExit(f"no python-build-standalone {py_series} asset for {triple}")
-    # Newer patch/date sorts lexicographically last within a series.
-    return sorted(cands, key=lambda a: a["name"])[-1]["browser_download_url"]
+    # Sort by (patch, build-date) parsed numerically — a lexicographic name
+    # sort misorders 3.12.10 before 3.12.9. Asset names look like
+    # cpython-3.12.7+20241016-<triple>-install_only.tar.gz.
+    ver = re.escape(py_series)
+    def _key(a):
+        m = re.search(rf"cpython-{ver}\.(\d+)\+(\d+)", a["name"])
+        return (int(m.group(1)), int(m.group(2))) if m else (-1, -1)
+    return max(cands, key=_key)["browser_download_url"]
 
 
 def _fetch_python_prefix(triple: str, dest: Path) -> Path:
