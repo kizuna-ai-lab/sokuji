@@ -1,4 +1,6 @@
 import os
+import types
+
 import pytest
 
 from sokuji_sidecar import llama_runtime as rt
@@ -10,6 +12,52 @@ def test_flavor_for_device():
     assert rt.flavor_for_device("cpu") == "cpu"
     with pytest.raises(KeyError):
         rt.flavor_for_device("dml")
+
+
+def test_flavor_for_device_includes_vulkan():
+    assert rt.flavor_for_device("vulkan") == "vulkan"
+    # dml is still unsupported (P5's DML lane is not a llama.cpp flavor)
+    with pytest.raises(KeyError):
+        rt.flavor_for_device("dml")
+
+
+def _fake_machine(*, gpus=(), apple=False, tc_kinds=()):
+    """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon and
+    .tc_kinds. Post-P2 there is no Machine.nvidia field / accel.Gpu class:
+    NVIDIA presence is derived from the gpus device descriptions. `gpus` items
+    are (kind, description, mem_total) tuples."""
+    return types.SimpleNamespace(gpus=gpus, apple_silicon=apple,
+                                 tc_kinds=tc_kinds)
+
+
+# An NVIDIA GPU as the tc probe reports it -> accel.has_nvidia() True.
+_NV = (("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),)
+
+
+def test_default_flavor_matrix(monkeypatch):
+    from sokuji_sidecar import accel
+    cases = [
+        (_fake_machine(gpus=_NV), "cuda"),
+        (_fake_machine(gpus=_NV, tc_kinds=("cpu", "vulkan")), "cuda"),        # nvidia wins
+        (_fake_machine(apple=True), "metal"),
+        (_fake_machine(apple=True, tc_kinds=("cpu", "vulkan")), "metal"),     # apple wins
+        (_fake_machine(tc_kinds=("cpu", "vulkan")), "vulkan"),               # AMD/Intel GPU
+        (_fake_machine(tc_kinds=("cpu",)), "cpu"),                            # cpu-only probe
+        (_fake_machine(), "cpu"),                                             # nothing detected
+    ]
+    for machine, expected in cases:
+        monkeypatch.setattr(accel, "probe", lambda force=False, m=machine: m)
+        assert rt.default_flavor() == expected, expected
+
+
+def test_required_flavors_vulkan_adds_cpu_floor(monkeypatch):
+    monkeypatch.setattr(rt, "default_flavor", lambda: "vulkan")
+    assert rt.required_flavors() == ["vulkan", "cpu"]
+
+
+def test_required_flavors_cpu_only_is_single(monkeypatch):
+    monkeypatch.setattr(rt, "default_flavor", lambda: "cpu")
+    assert rt.required_flavors() == ["cpu"]
 
 
 def test_bin_root_env_override(monkeypatch, tmp_path):
@@ -194,11 +242,12 @@ def test_windows_job_object_import_is_safe_on_non_windows():
     assert rt._windows_job_object(_FakeProc()) is None
 
 
-def _probe_machine(gpus=(), apple=False):
+def _probe_machine(gpus=(), apple=False, tc=()):
     from sokuji_sidecar import accel
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                          apple_silicon=apple, dml_adapters=(),
-                         installed=frozenset(), fingerprint="t", gpus=gpus)
+                         installed=frozenset(), fingerprint="t",
+                         tc_kinds=tc, gpus=gpus)
 
 
 def test_default_flavor_cuda_from_tc_probe(monkeypatch):
@@ -214,12 +263,12 @@ def test_default_flavor_metal_on_apple(monkeypatch):
     assert rt.default_flavor() == "metal"
 
 
-def test_default_flavor_cpu_for_non_nvidia_gpu(monkeypatch):
-    # AMD/Intel GPUs get no cuda flavor; the vulkan flavor arrives in P4.
+def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
+    # P4: an AMD/Intel GPU the tc probe drives via Vulkan selects the vulkan flavor.
     from sokuji_sidecar import accel
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
-        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)))
-    assert rt.default_flavor() == "cpu"
+        gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),), tc=("cpu", "vulkan")))
+    assert rt.default_flavor() == "vulkan"
 
 
 @pytest.mark.parametrize("brand,cfg", [

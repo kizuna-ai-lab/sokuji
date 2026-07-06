@@ -53,7 +53,7 @@ ASSET_SHA256: dict[str, str] = {
 }
 # NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
 
-_FLAVORS = {"cuda": "cuda", "metal": "metal", "cpu": "cpu"}
+_FLAVORS = {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "cpu": "cpu"}
 
 
 def flavor_for_device(device: str) -> str:
@@ -87,14 +87,19 @@ def gh_url(asset: str) -> str:
 
 def default_flavor() -> str:
     """The best flavor for this machine (drives the model-download dependency):
-    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, else cpu. AMD/Intel
-    dGPUs stay on cpu until the vulkan flavor lands (P4)."""
+    NVIDIA (tc probe) -> cuda, Apple Silicon -> metal, AMD/Intel via the tc
+    Vulkan probe -> vulkan, else cpu."""
     from . import accel
     m = accel.probe()
     if accel.has_nvidia(m):
         return "cuda"
     if m.apple_silicon:
         return "metal"
+    # Non-NVIDIA / non-Apple GPU that transcribe.cpp's probe can drive via
+    # Vulkan (AMD/Intel discrete or integrated) — the D6 target for the
+    # vulkan llama-server flavor. NVIDIA and Apple are handled above.
+    if "vulkan" in m.tc_kinds:
+        return "vulkan"
     return "cpu"
 
 
