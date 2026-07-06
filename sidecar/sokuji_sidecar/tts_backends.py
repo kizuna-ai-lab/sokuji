@@ -616,3 +616,10 @@ class Qwen3TtsOnnxBackend:
     @property
     def is_loaded(self) -> bool:
         return self._sessions is not None
+
+
+# Registered in a separate module (Apple-Silicon-only mlx-audio), imported here so
+# `from . import tts_backends` (tts_engine startup) self-registers mlx_audio_tts
+# too — mirrors backends.py bottom-importing transcribe_backend. Import-safe on
+# Linux: mlx_tts only touches mlx_audio lazily inside load().
+from . import mlx_tts  # noqa: E402,F401
