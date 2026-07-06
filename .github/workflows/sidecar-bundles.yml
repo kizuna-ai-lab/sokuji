@@ -1,0 +1,58 @@
+# .github/workflows/sidecar-bundles.yml
+# Build the self-contained sidecar bundles per SKU (spec D10). Only build-linux
+# is exercised on the dev machine; build-windows / build-mac are the deferred
+# hardware path (see the plan's deferred-verification section). Signing and
+# hosting are operator follow-ups - this workflow only uploads unsigned artifacts.
+name: sidecar-bundles
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Bundle version (e.g. 0.30.6)
+        required: true
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build linux-nvidia bundle
+        run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "${{ inputs.version }}" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-linux-nvidia
+          path: out/bundles/sidecar-linux-nvidia-v${{ inputs.version }}.*
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        sku: [win-nvidia, win-directml]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build ${{ matrix.sku }} bundle
+        run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "${{ inputs.version }}" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.sku }}
+          path: out/bundles/sidecar-${{ matrix.sku }}-v${{ inputs.version }}.*
+
+  build-mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build mac bundle
+        run: python scripts/build-sidecar-bundle.py --sku mac --version "${{ inputs.version }}" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-mac
+          path: out/bundles/sidecar-mac-v${{ inputs.version }}.*
