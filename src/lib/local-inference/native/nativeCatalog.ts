@@ -285,6 +285,75 @@ export function formatTps(tps: number): string {
   return `${Math.round(tps)} tok/s`;
 }
 
+/** One row of the model-card backend/device tooltip. `key` selects the localized
+ *  label in the component; `warn` marks the degraded/fallback row. */
+export type BackendTooltipRow = { key: string; value: string; warn?: boolean };
+
+const FRAMEWORK_LABELS: Record<string, string> = {
+  transcribe_cpp: 'transcribe.cpp',
+  transcribe_cpp_stream: 'transcribe.cpp',
+  ct2_opus_translate: 'CTranslate2',
+  llamacpp_qwen: 'llama.cpp',
+  llamacpp_hunyuan: 'llama.cpp',
+  llamacpp_gemma: 'llama.cpp',
+  moss_onnx: 'ONNXRuntime',
+  qwen3tts_onnx: 'ONNXRuntime',
+  sherpa_tts: 'sherpa-onnx',
+  supertonic: 'Supertonic',
+  mlx_audio_tts: 'MLX',
+};
+
+/** Engine/library label for a sidecar backend id. Falls back by prefix so a new
+ *  llamacpp_X, X_onnx, or transcribe_cpp_X id still resolves, else echoes the raw id. */
+export function frameworkLabel(backendId: string): string {
+  if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
+  if (backendId.startsWith('llamacpp_')) return 'llama.cpp';
+  if (backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
+  if (backendId.endsWith('_onnx')) return 'ONNXRuntime';
+  return backendId;
+}
+
+/** Hardware acceleration API for a GPU tier; null for cpu/unknown (no API row). */
+export function accelApiLabel(tier: string): string | null {
+  switch (tier) {
+    case 'gpu-cuda': return 'CUDA';
+    case 'gpu-metal': return 'Metal';
+    case 'gpu-vulkan': return 'Vulkan';
+    case 'gpu-dml': return 'DirectML';
+    default: return null;
+  }
+}
+
+/** Ordered rows for the tier-badge tooltip. `resolved` present = model loaded
+ *  (adds precision/speed/memory/fallback); null/undefined = idle catalog view. */
+export function buildBackendTooltipRows(input: {
+  tier: string;
+  backendId?: string;
+  resolved?: { computeType?: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null;
+  sizeMb?: number | null;
+  repo?: string;
+}): BackendTooltipRow[] {
+  const { tier, backendId, resolved, sizeMb, repo } = input;
+  const rows: BackendTooltipRow[] = [];
+  if (backendId) rows.push({ key: 'framework', value: frameworkLabel(backendId) });
+  rows.push({ key: 'device', value: tier === 'cpu' ? 'CPU' : 'GPU' });
+  const api = accelApiLabel(tier);
+  if (api) rows.push({ key: 'api', value: api });
+  if (resolved?.computeType) rows.push({ key: 'precision', value: resolved.computeType.toUpperCase() });
+  if (resolved) {
+    if (resolved.rtf !== undefined) rows.push({ key: 'speed', value: formatRtf(resolved.rtf) });
+    else if (resolved.tokensPerSec !== undefined) {
+      const tps = formatTps(resolved.tokensPerSec);
+      if (tps) rows.push({ key: 'speed', value: tps });
+    }
+  }
+  if (resolved?.memoryBytes) rows.push({ key: 'memory', value: formatMemMb(Math.round(resolved.memoryBytes / 1_048_576)) });
+  if (sizeMb != null) rows.push({ key: 'size', value: formatMemMb(sizeMb) });
+  if (repo) rows.push({ key: 'repo', value: repo });
+  if (resolved?.fallbackReason) rows.push({ key: 'fallback', value: resolved.fallbackReason, warn: true });
+  return rows;
+}
+
 /** sid encoded as the suffix of a `sid:<n>` ttsVoice ('sid:5' → 5; anything else → 0). */
 export function sidFromTtsVoice(v: string): number {
   return v.startsWith('sid:') ? (Number(v.slice(4)) || 0) : 0;
