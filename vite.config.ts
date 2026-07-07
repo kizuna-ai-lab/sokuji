@@ -136,6 +136,8 @@ export default defineConfig(({ command, mode }) => {
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
             'native-host-manager': 'electron/native-host-manager.js',
+            'sidecar-sku': 'electron/sidecar-sku.js',
+            'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
