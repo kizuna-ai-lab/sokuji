@@ -4,6 +4,10 @@
 # hardware path (see the plan's deferred-verification section). Signing and
 # hosting are operator follow-ups - this workflow only uploads unsigned artifacts.
 name: sidecar-bundles
+
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -16,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
@@ -35,6 +41,8 @@ jobs:
         sku: [win-nvidia, win-directml]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
@@ -51,6 +59,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard

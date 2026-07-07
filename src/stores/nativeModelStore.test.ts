@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNativeModelStore } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 
+// The store's bundle IPC helpers (bundleInvoke/onBundleProgress) gate on the
+// centralized isElectron() check; force the Electron branch so the FakeWS/
+// window.electron mocks below actually get exercised under jsdom, which
+// otherwise reports no Electron signals (mirrors settingsStore.nativeGate.test.ts).
+vi.mock('../utils/environment', async () => {
+  const actual = await vi.importActual<typeof import('../utils/environment')>('../utils/environment');
+  return { ...actual, isElectron: () => true };
+});
+
 // ---------------------------------------------------------------------------
 // Helpers for controlling FakeWS catalog behaviour in lifecycle tests
 // ---------------------------------------------------------------------------
@@ -237,11 +246,11 @@ describe('nativeModelStore sidecar lifecycle', () => {
 describe('nativeModelStore bundle install (spec D10)', () => {
   it('refreshBundle reflects the installed status', async () => {
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'nvidia', installed: true, version: '0.30.6' }),
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'linux-nvidia', installed: true, version: '0.30.6' }),
     };
     await useNativeModelStore.getState().refreshBundle();
     const s = useNativeModelStore.getState();
-    expect(s.bundleSku).toBe('nvidia');
+    expect(s.bundleSku).toBe('linux-nvidia');
     expect(s.bundleStatus).toBe('ready');
     expect(s.bundleVersion).toBe('0.30.6');
   });
@@ -249,7 +258,7 @@ describe('nativeModelStore bundle install (spec D10)', () => {
   it('installBundle streams progress then flips to ready', async () => {
     let progressCb: ((p: any) => void) | null = null;
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'directml', version: '0.30.6' }),
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'win-directml', version: '0.30.6' }),
       receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') progressCb = f; },
       removeListener: () => {},
     };

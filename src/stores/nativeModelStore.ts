@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
 import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { isElectron } from '../utils/environment';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
 
@@ -97,18 +98,22 @@ async function revalidateNativeProvider(): Promise<void> {
 // downloaded by the main process (the sidecar it provides is not yet running),
 // so this bypasses the WS NativeModelClient and talks to window.electron.
 function bundleInvoke(channel: string, data?: unknown): Promise<any> {
-  const e = (window as unknown as { electron?: { invoke(c: string, d?: unknown): Promise<any> } }).electron;
+  // isElectron() does not check window.electron specifically (that's the preload's
+  // custom invoke bridge, distinct from the electronAPI/require/userAgent/process
+  // signals it does check) — gate on isElectron() per the project's centralized
+  // detection convention, then defensively re-check window.electron itself.
+  const e = isElectron() ? (window as unknown as { electron?: { invoke(c: string, d?: unknown): Promise<any> } }).electron : undefined;
   if (!e) throw new Error('window.electron unavailable (not running in Electron)');
   return e.invoke(channel, data);
 }
 
 function onBundleProgress(cb: (p: { downloaded: number; total: number }) => void): (() => void) | null {
-  const e = (window as unknown as {
+  const e = isElectron() ? (window as unknown as {
     electron?: {
       receive?: (c: string, f: (p: any) => void) => void;
       removeListener?: (c: string, f: (p: any) => void) => void;
     };
-  }).electron;
+  }).electron : undefined;
   if (!e?.receive) return null;
   const handler = (p: any) => cb(p);
   e.receive('sidecar-bundle-progress', handler);
@@ -143,6 +148,11 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
           bundleSku: r.sku ?? null,
           bundleStatus: r.installed ? 'ready' : 'absent',
           bundleVersion: r.version ?? null,
+          // Clear any stale error/progress from a previous failed install attempt —
+          // otherwise a retry-by-refresh (e.g. after fixing hosting config) would
+          // still show the old error banner even though status now reads cleanly.
+          bundleError: '',
+          bundleProgress: { downloaded: 0, total: 0 },
         });
       }
     } catch {
@@ -151,6 +161,10 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   installBundle: async () => {
+    // Reentrancy guard: ignore a second call while one install is already running
+    // (e.g. a double-click on the install button) rather than racing two IPC
+    // round-trips against the same tmp/old bundle dirs in the main process.
+    if (get().bundleStatus === 'installing') return;
     set({ bundleStatus: 'installing', bundleProgress: { downloaded: 0, total: 0 }, bundleError: '' });
     const off = onBundleProgress((p) =>
       set({ bundleProgress: { downloaded: p.downloaded, total: p.total } }));

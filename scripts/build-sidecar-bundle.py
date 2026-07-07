@@ -97,8 +97,13 @@ def _fetch_python_prefix(triple: str, dest: Path) -> Path:
     urllib.request.urlretrieve(url, tgz)
     with tarfile.open(tgz) as t:
         # filter='data' sanitizes the upstream tarball (CVE-2007-4559 posture);
-        # needs py3.12+ (this module already targets Python 3.12).
-        t.extractall(dest, filter="data")  # -> dest/python/
+        # available since py3.12 (this module targets 3.12) but some interpreters
+        # running this script (e.g. an older system python invoking the builder)
+        # predate PEP 706 and raise TypeError on the unknown kwarg.
+        try:
+            t.extractall(dest, filter="data")  # -> dest/python/
+        except TypeError:
+            t.extractall(dest)                 # older interpreter without PEP 706 filter
     tgz.unlink()
     return dest / "python"
 

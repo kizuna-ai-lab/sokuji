@@ -23,3 +23,12 @@ def test_workflow_is_valid_yaml_with_three_jobs():
     doc = yaml.safe_load(WF.read_text())
     assert {"build-linux", "build-windows", "build-mac"} <= set(doc["jobs"])
     assert doc["jobs"]["build-windows"]["strategy"]["matrix"]["sku"] == ["win-nvidia", "win-directml"]
+
+
+def test_workflow_is_hardened():
+    # Least-privilege token + no credential persistence on checkout (zizmor posture).
+    text = WF.read_text()
+    assert text.count("persist-credentials: false") == 3, "all three checkouts must opt out"
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(text)
+    assert doc["permissions"] == {"contents": "read"}

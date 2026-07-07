@@ -49,6 +49,12 @@ function extractTarZst(archivePath, destDir) {
     fs.mkdirSync(destDir, { recursive: true });
     const root = path.resolve(destDir);
     const extract = tarStream.extract();
+    const rs = fs.createReadStream(archivePath);
+    // Destroy both streams and reject exactly once. Without this, an error partway
+    // through (traversal guard, corrupt zstd frame, disk error) left the tar
+    // `extract` transform and/or the archive read stream open — a file descriptor
+    // leak on every failed install attempt.
+    const fail = (err) => { try { rs.destroy(); } catch {} try { extract.destroy(); } catch {} reject(err); };
 
     extract.on('entry', (header, stream, next) => {
       const target = path.resolve(destDir, header.name);
@@ -69,28 +75,41 @@ function extractTarZst(archivePath, destDir) {
       }
       fs.mkdirSync(path.dirname(target), { recursive: true });
       const ws = fs.createWriteStream(target, { mode: header.mode || 0o644 });
-      stream.on('error', reject);
-      ws.on('error', reject);
+      stream.on('error', fail);
+      ws.on('error', fail);
       ws.on('finish', next);
       stream.pipe(ws);
     });
     extract.on('finish', resolve);
-    extract.on('error', reject);
+    extract.on('error', fail);
 
     let draining = false;
     const dctx = new fzstd.Decompress((chunk) => {
       if (!extract.write(Buffer.from(chunk))) draining = true;
     });
-    const rs = fs.createReadStream(archivePath);
-    rs.on('error', reject);
+    rs.on('error', fail);
     rs.on('data', (d) => {
-      dctx.push(new Uint8Array(d));
+      // fzstd's push() decodes synchronously and can throw on a corrupt/truncated
+      // zstd frame — without this guard that throw escapes the 'data' event and
+      // crashes the main process instead of rejecting this promise.
+      try {
+        dctx.push(new Uint8Array(d));
+      } catch (err) {
+        return fail(err);
+      }
       if (draining) {
         rs.pause();
         extract.once('drain', () => { draining = false; rs.resume(); });
       }
     });
-    rs.on('end', () => { dctx.push(new Uint8Array(0), true); extract.end(); });
+    rs.on('end', () => {
+      try {
+        dctx.push(new Uint8Array(0), true);
+      } catch (err) {
+        return fail(err);
+      }
+      extract.end();
+    });
   });
 }
 
@@ -106,15 +125,25 @@ async function _downloadToFile(url, dest, onProgress, fetchImpl) {
   const total = Number(r.headers.get('content-length') || 0);
   let downloaded = 0;
   const ws = fs.createWriteStream(dest);
-  const reader = r.body.getReader();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    downloaded += value.length;
-    if (!ws.write(Buffer.from(value))) {
-      await new Promise((res) => ws.once('drain', res));
+  try {
+    const reader = r.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      downloaded += value.length;
+      if (!ws.write(Buffer.from(value))) {
+        await new Promise((res, rej) => {
+          const onDrain = () => { ws.off('error', onErr); res(); };
+          const onErr = (e) => { ws.off('drain', onDrain); rej(e); };
+          ws.once('drain', onDrain);
+          ws.once('error', onErr);
+        });
+      }
+      onProgress?.({ downloaded, total });
     }
-    onProgress?.({ downloaded, total });
+  } catch (err) {
+    ws.destroy();
+    throw err;
   }
   await new Promise((res, rej) => ws.end((e) => (e ? rej(e) : res())));
 }
@@ -139,11 +168,16 @@ async function installBundle({ sku, baseUrl, userDataDir, onProgress, fetchImpl 
   fs.rmSync(oldDir, { recursive: true, force: true });
   await extractTarZst(tmpArchive, tmpDir);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  // Swap via two atomic renames rather than deleting dest first, so a crash
-  // can't leave dest destroyed with no replacement ready. (No auto-restore of
-  // .old: a failed install self-heals by re-downloading on the next attempt.)
-  if (fs.existsSync(dest)) fs.renameSync(dest, oldDir);
-  fs.renameSync(tmpDir, dest);
+  // Two-rename swap: dest is never deleted before the replacement is ready; on
+  // failure the previous bundle is restored from .old before rethrowing.
+  let movedExisting = false;
+  try {
+    if (fs.existsSync(dest)) { fs.renameSync(dest, oldDir); movedExisting = true; }
+    fs.renameSync(tmpDir, dest);
+  } catch (error) {
+    if (movedExisting && !fs.existsSync(dest) && fs.existsSync(oldDir)) fs.renameSync(oldDir, dest);
+    throw error;
+  }
   fs.rmSync(oldDir, { recursive: true, force: true });
   fs.rmSync(tmpArchive, { force: true });
   fs.writeFileSync(path.join(dest, 'bundle.json'), JSON.stringify({ sku, version: entry.version }));
