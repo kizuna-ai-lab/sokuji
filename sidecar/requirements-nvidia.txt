@@ -1,0 +1,11 @@
+# Sidecar bundle SKU: NVIDIA (CUDA) - Windows + Linux (spec D1/D10).
+# Base pins (torch-free, platform-agnostic) come from requirements.txt.
+-r requirements.txt
+# ORT CUDA build. onnxruntime-gpu / onnxruntime-directml / plain onnxruntime all
+# expose the SAME `onnxruntime` module - exactly ONE per bundle (spec D1). The
+# [cuda,cudnn] extras pull the matching NVIDIA CUDA/cuDNN wheels so
+# onnxruntime.preload_dlls() finds them (spec D8, official since ORT 1.21).
+onnxruntime-gpu[cuda,cudnn]==1.23.2
+# VAD + VITS TTS runtime - stays CPU (out of scope for acceleration); the stock
+# sherpa-onnx wheel bundles a CPU-only ORT.
+sherpa-onnx==1.13.3

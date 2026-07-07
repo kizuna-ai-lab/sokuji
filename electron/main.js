@@ -475,6 +475,42 @@ app.on('will-quit', cleanupAndExit);
 // IPC handler for app version
 nativeHost.registerIpc(ipcMain);
 
+// ---- Self-contained sidecar bundle install/status (spec D10) ----
+// SKU detection + bundle download live in the main process because the sidecar
+// (which the bundle provides) is not yet running. Progress is pushed to the
+// renderer on 'sidecar-bundle-progress', mirroring the model-download UX.
+const { detectSku: _detectSku, probeNvidia: _probeNvidia } = require('./sidecar-sku');
+const sidecarBundle = require('./sidecar-bundle');
+ipcMain.handle('sidecar-bundle:status', () => {
+  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
+  if (sku === null) return { ok: true, sku: null, installed: false, version: null };
+  return { ok: true, sku, ...sidecarBundle.bundleStatus(app.getPath('userData'), sku) };
+});
+// In-flight guard: a second concurrent install request must not race the first
+// (two parallel downloads into the same tmp/old dirs would corrupt the swap).
+let _bundleInstalling = false;
+ipcMain.handle('sidecar-bundle:install', async (event) => {
+  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
+  if (sku === null) return { ok: false, sku: null, error: 'no sidecar bundle for this platform' };
+  if (_bundleInstalling) return { ok: false, sku, error: 'bundle install already in progress' };
+  _bundleInstalling = true;
+  try {
+    const r = await sidecarBundle.installBundle({
+      sku,
+      baseUrl: process.env.SOKUJI_SIDECAR_BUNDLE_BASE_URL || null,
+      userDataDir: app.getPath('userData'),
+      onProgress: (p) => {
+        if (!event.sender.isDestroyed()) event.sender.send('sidecar-bundle-progress', { sku, ...p });
+      },
+    });
+    return { ok: true, sku, ...r };
+  } catch (e) {
+    return { ok: false, sku, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    _bundleInstalling = false;
+  }
+});
+
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 // ---- Window controls for the custom title bar ----

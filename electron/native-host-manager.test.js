@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'module';
+import path from 'path';
 
 // CJS require() that shares the Node module cache with the module under test.
 // Monkey-patching built-ins (child_process, readline) here is visible to any
@@ -120,5 +121,48 @@ describe('NativeHostManager.start() handshake timeout', () => {
     const p2settled = p2.catch(() => {});
     await vi.advanceTimersByTimeAsync(30001);
     await p2settled;
+  });
+});
+
+import { resolveSidecarLaunch } from './native-host-manager.js';
+
+describe('resolveSidecarLaunch launch order', () => {
+  const devCwd = '/repo/sidecar';
+  const devVenv = '/repo/sidecar/.venv/bin/python';
+
+  it('env override wins and keeps the dev cwd', () => {
+    const l = resolveSidecarLaunch({
+      platform: 'linux', envOverride: '/x/py', bundleRoot: '/u/sidecar/nvidia',
+      devVenvPython: devVenv, devCwd, existsSync: () => true,
+    });
+    expect(l).toEqual({ python: '/x/py', cwd: devCwd, source: 'env' });
+  });
+
+  it('uses the installed bundle python when present (linux)', () => {
+    const l = resolveSidecarLaunch({
+      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/nvidia',
+      devVenvPython: devVenv, devCwd,
+      existsSync: (p) => p === '/u/sidecar/nvidia/python/bin/python3',
+    });
+    expect(l.python).toBe('/u/sidecar/nvidia/python/bin/python3');
+    expect(l.cwd).toBe('/u/sidecar/nvidia/app');
+    expect(l.source).toBe('bundle');
+  });
+
+  it('windows bundle python is python/python.exe', () => {
+    const l = resolveSidecarLaunch({
+      platform: 'win32', envOverride: undefined, bundleRoot: 'C:\\u\\sidecar\\directml',
+      devVenvPython: devVenv, devCwd, existsSync: () => true,
+    });
+    expect(l.python.endsWith(path.join('python', 'python.exe'))).toBe(true);
+    expect(l.source).toBe('bundle');
+  });
+
+  it('falls back to the dev venv when no bundle is installed', () => {
+    const l = resolveSidecarLaunch({
+      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/nvidia',
+      devVenvPython: devVenv, devCwd, existsSync: () => false,
+    });
+    expect(l).toEqual({ python: devVenv, cwd: devCwd, source: 'venv' });
   });
 });

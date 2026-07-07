@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tier-0 setup for the native Python sidecar: venv + all stage runtimes + models.
 # Idempotent. Reuses an existing .venv. Override knobs via env:
-#   PYTHON=python3.11            interpreter for a fresh venv (default: python3.11 else python3)
+#   PYTHON=python3.12            interpreter for a fresh venv (default: python3.12, else python3.11, else python3)
 #   HF_HOME=/path/to/cache       where models are cached (default: HF default ~/.cache/huggingface)
 #   SOKUJI_VENV=/path/to/venv    venv dir (default: .venv) — lets CI/size checks build clean envs
 # Flags:
@@ -11,7 +11,11 @@ cd "$(dirname "$0")"   # sidecar/
 
 PYTHON="${PYTHON:-}"
 if [ -z "$PYTHON" ]; then
-  if command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11; else PYTHON=python3; fi
+  # Spec D12: dev venv + all SKU bundles unify on CPython 3.12 (DML needs >=3.11;
+  # cp312 wheels verified for the full runtime set). Fall back progressively.
+  if command -v python3.12 >/dev/null 2>&1; then PYTHON=python3.12
+  elif command -v python3.11 >/dev/null 2>&1; then PYTHON=python3.11
+  else PYTHON=python3; fi
 fi
 
 VENV="${SOKUJI_VENV:-.venv}"
