@@ -67,18 +67,18 @@ interface NativeModelStore {
   /** True while a native ASR session is loading its model (init→ready). */
   asrLoading: boolean;
   /** The resolved ASR plan from the last session `ready` (device + measured rtf + memory). */
-  asrResolved: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
+  asrResolved: { model: string; device: string; backend?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
   /** The resolved translation plan from the last session `ready` (model + device + memory). */
-  translationResolved: { model: string; device: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null;
+  translationResolved: { model: string; device: string; backend?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null;
   /** True while a native TTS session is loading its model (init→ready). */
   ttsLoading: boolean;
   /** The resolved TTS plan from the last session `ready` (device + measured rtf + memory). */
-  ttsResolved: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
+  ttsResolved: { model: string; device: string; backend?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null;
   setAsrLoading: (v: boolean) => void;
-  setAsrResolved: (r: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
-  setTranslationResolved: (r: { model: string; device: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
+  setAsrResolved: (r: { model: string; device: string; backend?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
+  setTranslationResolved: (r: { model: string; device: string; backend?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
   setTtsLoading: (v: boolean) => void;
-  setTtsResolved: (r: { model: string; device: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
+  setTtsResolved: (r: { model: string; device: string; backend?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string } | null) => void;
 }
 
 // Singleton management connection (separate from session-stage clients).
