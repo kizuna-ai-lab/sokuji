@@ -195,9 +195,13 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }),
 }));
 
-// Tooltip uses FloatingPortal which causes jsdom issues; replace with a passthrough.
+// Tooltip uses FloatingPortal which causes jsdom issues; replace with a passthrough
+// that also surfaces `content` inline (unconditionally, unlike the real hover-gated
+// tooltip) so tests can assert on tooltip content without simulating hover/floating-ui.
 vi.mock('../../Tooltip/Tooltip', () => ({
-  default: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  default: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+    <>{children}{content}</>
+  ),
 }));
 
 vi.mock('../../../stores/settingsStore', () => ({
@@ -502,6 +506,36 @@ describe('NativeModelManagementSection — store-driven voice wiring (Task 13)',
       expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
     } finally {
       mockSettings.ttsModel = prevTtsModel;
+    }
+  });
+});
+
+describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
+  // sense-voice is the selected ('sense-voice' === mockSettings.asrModel), ja-compatible
+  // ASR card already exercised elsewhere in this file. Give its available tier a known
+  // backend id so the tooltip's row builder resolves a real framework/API label pair.
+  it('tier badge tooltip lists the inference engine and device', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      'sense-voice': {
+        ...mockCatalog['sense-voice'],
+        tiers: [{ tier: 'gpu-vulkan', backend: 'llamacpp_gemma', available: true }],
+      },
+    };
+    try {
+      render(<NativeModelManagementSection />);
+      const card = screen.getByTestId('model-card-sense-voice');
+
+      // The Tooltip mock (above) renders `content` inline unconditionally, so no
+      // hover/floating-ui simulation is needed in jsdom. Each tooltip row renders as
+      // "<label>: <value>" where only the ": <value>" half is the row's own direct
+      // text node (the label lives in a nested <span>) — match on that "colon +
+      // value" substring so this doesn't also match the tier badge itself, which
+      // separately renders "GPU · Vulkan" (a "·", not ":") from tierLabel().
+      expect(await within(card).findByText(/: llama\.cpp/)).toBeInTheDocument();
+      expect(within(card).getByText(/: Vulkan/)).toBeInTheDocument();
+    } finally {
+      mockCatalogOverride = null;
     }
   });
 });

@@ -23,7 +23,7 @@ export function TierIcon({ tier, size = 10 }: { tier: string; size?: number }): 
   if (!entry) return null;
   const { Icon, label } = entry;
   return (
-    <span role="img" aria-label={label} title={label} data-tier={tier} className="tier-icon">
+    <span role="img" aria-label={label} data-tier={tier} className="tier-icon">
       <Icon size={size} aria-hidden={true} />
     </span>
   );
