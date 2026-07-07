@@ -19,6 +19,7 @@ import {
   resolvedTierState,
   formatMemMb,
   statusReposFor,
+  buildBackendTooltipRows,
   type NativeModelCardSpec,
   type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -43,11 +44,28 @@ import NativeVoiceSection from './NativeVoiceSection';
 // The resolved plan a card may display: device + one speed metric + optional memory
 // footprint and fallback reason. ASR carries rtf ("Nx realtime"), translation carries
 // tokensPerSec ("N tok/s"); never both. memoryBytes and fallbackReason come from the
-// native gate when it measured VRAM or moved the model off GPU.
-type CardResolved = { model: string; device: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string };
+// native gate when it measured VRAM or moved the model off GPU. backend/computeType
+// identify the actual inference engine + precision that served the request, feeding
+// the tier-badge tooltip.
+type CardResolved = {
+  model: string; device: string; backend?: string; computeType?: string;
+  rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
+};
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 
 type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
+
+// [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
+const TT_LABEL: Record<string, [string, string]> = {
+  framework: ['models.hwFramework', 'Engine'],
+  device: ['models.hwDevice', 'Device'],
+  api: ['models.hwApi', 'Acceleration'],
+  precision: ['models.hwPrecision', 'Precision'],
+  speed: ['models.hwSpeed', 'Speed'],
+  memory: ['models.hwMemory', 'Memory'],
+  size: ['models.hwSize', 'Size'],
+  repo: ['models.hwRepo', 'Repo'],
+};
 
 /** Props bundle for the optional variant chooser on multi-quant translation cards. */
 type VariantCardProps = {
@@ -289,11 +307,41 @@ const NativeModelCard: React.FC<{
                   + (view ? ' model-card__lang-tag--live' : '')
                   + (view && !view.degraded && tl.accel ? ' model-card__lang-tag--accel' : '')
                   + (view?.degraded ? ' model-card__lang-tag--warn' : '');
+                // Framework id for the tooltip: the loaded model's runtime backend
+                // when resolved, else the catalog's best-tier backend. The fallback
+                // assumes `ready.backend` is always present (sidecar + frontend ship
+                // together); a resolved plan that omitted it would show the idle-tier
+                // framework, which for a backend-varies-by-tier model could disagree
+                // with a degraded device — not reachable with the bundled sidecar.
+                const backendId = (showResolved && resolved?.backend) ? resolved.backend : activeTier?.backend;
+                const ttRows = buildBackendTooltipRows({
+                  tier,
+                  backendId,
+                  resolved: showResolved ? resolved : null,
+                  sizeMb,
+                  repo: chosenVariant?.repo ?? info?.repo,
+                });
                 return (
                   <>
-                    <span className={cls}>
-                      <TierIcon tier={tier} size={10} />{tl.label}{metric}
-                    </span>
+                    <Tooltip
+                      position="top"
+                      icon="none"
+                      content={
+                        <div style={{ display: 'grid', gap: 2, textAlign: 'left', fontSize: 12, lineHeight: 1.35 }}>
+                          {ttRows.map((r) => r.key === 'fallback' ? (
+                            <div key={r.key} style={{ color: '#e74c3c' }}>⚠ {r.value}</div>
+                          ) : (
+                            <div key={r.key}>
+                              <span style={{ opacity: 0.6 }}>{t(TT_LABEL[r.key]?.[0] ?? r.key, TT_LABEL[r.key]?.[1] ?? r.key)}</span>{`: ${r.value}`}
+                            </div>
+                          ))}
+                        </div>
+                      }
+                    >
+                      <span className={cls}>
+                        <TierIcon tier={tier} size={10} />{tl.label}{metric}
+                      </span>
+                    </Tooltip>
                     {view?.degraded && (
                       <span className="model-card__lang-tag model-card__lang-tag--warn"
                             title={resolved!.fallbackReason}>

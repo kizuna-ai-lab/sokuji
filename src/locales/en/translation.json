@@ -919,7 +919,15 @@
     "online": "Online",
     "variantWontFit": "Needs ~{{need}} of GPU memory — this machine has {{have}}",
     "variantWontFitNoMem": "Needs ~{{need}} of GPU memory",
-    "wontFit": "Won't fit on this machine"
+    "wontFit": "Won't fit on this machine",
+    "hwFramework": "Engine",
+    "hwDevice": "Device",
+    "hwApi": "Acceleration",
+    "hwPrecision": "Precision",
+    "hwSpeed": "Speed",
+    "hwMemory": "Memory",
+    "hwSize": "Size",
+    "hwRepo": "Repo"
   },
   "update": {
     "available": "New version v{{version}} available",

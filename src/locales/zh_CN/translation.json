@@ -855,7 +855,15 @@
     "online": "在线",
     "variantWontFit": "需要约 {{need}} 显存 — 本机为 {{have}}",
     "variantWontFitNoMem": "需要约 {{need}} 显存",
-    "wontFit": "本机无法运行"
+    "wontFit": "本机无法运行",
+    "hwFramework": "推理引擎",
+    "hwDevice": "设备",
+    "hwApi": "加速 API",
+    "hwPrecision": "精度",
+    "hwSpeed": "速度",
+    "hwMemory": "内存",
+    "hwSize": "模型大小",
+    "hwRepo": "仓库"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

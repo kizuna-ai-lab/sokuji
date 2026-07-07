@@ -816,7 +816,15 @@
     "online": "線上",
     "variantWontFit": "需要約 {{need}} 顯示記憶體 — 本機為 {{have}}",
     "variantWontFitNoMem": "需要約 {{need}} 顯示記憶體",
-    "wontFit": "本機無法執行"
+    "wontFit": "本機無法執行",
+    "hwFramework": "推理引擎",
+    "hwDevice": "裝置",
+    "hwApi": "加速 API",
+    "hwPrecision": "精度",
+    "hwSpeed": "速度",
+    "hwMemory": "記憶體",
+    "hwSize": "模型大小",
+    "hwRepo": "倉庫"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

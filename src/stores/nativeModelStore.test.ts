@@ -243,6 +243,18 @@ describe('nativeModelStore sidecar lifecycle', () => {
   });
 });
 
+describe('nativeModelStore resolved plans retain backend and computeType', () => {
+  it('resolved plans retain backend and computeType', () => {
+    const s = useNativeModelStore.getState();
+    s.setAsrResolved({ model: 'a', device: 'cuda', backend: 'moss_onnx', computeType: 'int8', rtf: 0.02 });
+    expect(useNativeModelStore.getState().asrResolved).toMatchObject({ backend: 'moss_onnx', computeType: 'int8' });
+    s.setTranslationResolved({ model: 't', device: 'cpu', backend: 'ct2_opus_translate', computeType: 'int8', tokensPerSec: 120 });
+    expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'ct2_opus_translate', computeType: 'int8' });
+    s.setTtsResolved({ model: 'v', device: 'metal', backend: 'mlx_audio_tts', computeType: 'fp32' });
+    expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ backend: 'mlx_audio_tts', computeType: 'fp32' });
+  });
+});
+
 describe('nativeModelStore bundle install (spec D10)', () => {
   it('refreshBundle reflects the installed status', async () => {
     (globalThis as any).window.electron = {

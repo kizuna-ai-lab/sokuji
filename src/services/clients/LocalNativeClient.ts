@@ -66,7 +66,7 @@ export class LocalNativeClient implements IClient {
         config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice,
         config.asrModelId, config.ttsModelId, config.translationVariant,
       );
-      store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', tokensPerSec: tr.tokensPerSec, memoryBytes: tr.memoryBytes, fallbackReason: tr.fallbackReason });
+      store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', backend: tr.backend, computeType: tr.computeType, tokensPerSec: tr.tokensPerSec, memoryBytes: tr.memoryBytes, fallbackReason: tr.fallbackReason });
     };
     const initAsr = async () => {
       store.setAsrLoading(true);
@@ -76,7 +76,7 @@ export class LocalNativeClient implements IClient {
           minSilence: config.vadMinSilenceDuration,
           minSpeech: config.vadMinSpeechDuration,
         }, config.asrDevice, config.asrVariant);
-        store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
+        store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', backend: res.backend, computeType: res.computeType, rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
       } finally {
         store.setAsrLoading(false);
       }
@@ -101,7 +101,7 @@ export class LocalNativeClient implements IClient {
       try {
         const r = await this.tts.init(config.ttsModelId, config.ttsDevice);
         this.ttsStreaming = !!r.streaming;
-        store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu',
+        store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu', backend: r.backend, computeType: r.computeType,
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
         // Apply the selected voice (next-session semantics), driven by the
         // model's capability (built-in named/range and/or custom clip/style)

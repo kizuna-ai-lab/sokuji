@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -511,5 +511,97 @@ describe('nativeCatalog', () => {
   it('passes variantIds through infoToCard', () => {
     const info = M('translategemma-4b', 'translate', ['multi'], 5, false, { variantIds: ['q4_k_m', 'q8_0'] });
     expect(infoToCard(info).variantIds).toEqual(['q4_k_m', 'q8_0']);
+  });
+});
+
+describe('frameworkLabel', () => {
+  it('maps every known backend id to its engine label', () => {
+    const cases: Record<string, string> = {
+      transcribe_cpp: 'transcribe.cpp',
+      transcribe_cpp_stream: 'transcribe.cpp',
+      ct2_opus_translate: 'CTranslate2',
+      llamacpp_qwen: 'llama.cpp',
+      llamacpp_hunyuan: 'llama.cpp',
+      llamacpp_gemma: 'llama.cpp',
+      moss_onnx: 'ONNXRuntime',
+      qwen3tts_onnx: 'ONNXRuntime',
+      sherpa_tts: 'sherpa-onnx',
+      supertonic: 'Supertonic',
+      mlx_audio_tts: 'MLX',
+    };
+    for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
+  });
+  it('derives future ids by prefix, else echoes the raw id', () => {
+    expect(frameworkLabel('llamacpp_newmodel')).toBe('llama.cpp');
+    expect(frameworkLabel('foo_onnx')).toBe('ONNXRuntime');
+    expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
+    expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
+  });
+});
+
+describe('accelApiLabel', () => {
+  it('names the GPU API and returns null for cpu/unknown', () => {
+    expect(accelApiLabel('gpu-cuda')).toBe('CUDA');
+    expect(accelApiLabel('gpu-metal')).toBe('Metal');
+    expect(accelApiLabel('gpu-vulkan')).toBe('Vulkan');
+    expect(accelApiLabel('gpu-dml')).toBe('DirectML');
+    expect(accelApiLabel('cpu')).toBeNull();
+    expect(accelApiLabel('weird')).toBeNull();
+  });
+});
+
+describe('buildBackendTooltipRows', () => {
+  it('idle GPU tier: framework/device/api/size/repo, no runtime rows', () => {
+    const rows = buildBackendTooltipRows({
+      tier: 'gpu-vulkan', backendId: 'llamacpp_gemma', resolved: null, sizeMb: 1843, repo: 'org/model',
+    });
+    expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'api', 'size', 'repo']);
+    expect(rows[0]).toEqual({ key: 'framework', value: 'llama.cpp' });
+    expect(rows[1]).toEqual({ key: 'device', value: 'GPU' });
+    expect(rows[2]).toEqual({ key: 'api', value: 'Vulkan' });
+    expect(rows.find((r) => r.key === 'size')?.value).toBe('1.8 GB');
+  });
+  it('idle CPU tier: no api row, still has framework/device/size', () => {
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: null, sizeMb: 300 });
+    expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'size']);
+    expect(rows[1]).toEqual({ key: 'device', value: 'CPU' });
+    expect(rows[0].value).toBe('CTranslate2');
+  });
+  it('active tier adds precision/speed/memory from the resolved plan', () => {
+    const rows = buildBackendTooltipRows({
+      tier: 'gpu-cuda', backendId: 'moss_onnx',
+      resolved: { computeType: 'int8', rtf: 0.02, memoryBytes: 3_400_000_000 },
+      sizeMb: 100, repo: 'org/tts',
+    });
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    expect(byKey.precision).toBe('INT8');
+    expect(byKey.speed).toBe('50× realtime');
+    expect(byKey.memory).toBe('3.2 GB');
+  });
+  it('translate speed uses tok/s; empty tps omits the speed row', () => {
+    const withTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 131 } });
+    expect(withTps.find((r) => r.key === 'speed')?.value).toBe('131 tok/s');
+    const zeroTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 0 } });
+    expect(zeroTps.find((r) => r.key === 'speed')).toBeUndefined();
+  });
+  it('fallbackReason becomes a trailing warn row', () => {
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'llamacpp_gemma', resolved: { fallbackReason: 'Low VRAM → CPU' } });
+    const last = rows[rows.length - 1];
+    expect(last).toEqual({ key: 'fallback', value: 'Low VRAM → CPU', warn: true });
+  });
+  it('omits the framework row when no backend id is known', () => {
+    const rows = buildBackendTooltipRows({ tier: 'cpu', resolved: null, sizeMb: 10 });
+    expect(rows.find((r) => r.key === 'framework')).toBeUndefined();
+  });
+  it('omits the speed row for an unmeasured (zero) rtf, like zero tps', () => {
+    const rows = buildBackendTooltipRows({ tier: 'gpu-cuda', backendId: 'moss_onnx', resolved: { rtf: 0 } });
+    expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
+  });
+  it('hides the repo row on MLX tiers (info.repo is the ONNX repo, would mislabel)', () => {
+    const mlx = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'mlx_audio_tts', resolved: null, repo: 'org/onnx-assets' });
+    expect(mlx.find((r) => r.key === 'repo')).toBeUndefined();
+    // non-MLX still shows repo
+    const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });
+    expect(onnx.find((r) => r.key === 'repo')?.value).toBe('org/onnx-assets');
   });
 });
