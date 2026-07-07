@@ -593,4 +593,15 @@ describe('buildBackendTooltipRows', () => {
     const rows = buildBackendTooltipRows({ tier: 'cpu', resolved: null, sizeMb: 10 });
     expect(rows.find((r) => r.key === 'framework')).toBeUndefined();
   });
+  it('omits the speed row for an unmeasured (zero) rtf, like zero tps', () => {
+    const rows = buildBackendTooltipRows({ tier: 'gpu-cuda', backendId: 'moss_onnx', resolved: { rtf: 0 } });
+    expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
+  });
+  it('hides the repo row on MLX tiers (info.repo is the ONNX repo, would mislabel)', () => {
+    const mlx = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'mlx_audio_tts', resolved: null, repo: 'org/onnx-assets' });
+    expect(mlx.find((r) => r.key === 'repo')).toBeUndefined();
+    // non-MLX still shows repo
+    const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });
+    expect(onnx.find((r) => r.key === 'repo')?.value).toBe('org/onnx-assets');
+  });
 });

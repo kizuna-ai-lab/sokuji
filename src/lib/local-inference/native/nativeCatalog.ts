@@ -341,7 +341,10 @@ export function buildBackendTooltipRows(input: {
   if (api) rows.push({ key: 'api', value: api });
   if (resolved?.computeType) rows.push({ key: 'precision', value: resolved.computeType.toUpperCase() });
   if (resolved) {
-    if (resolved.rtf !== undefined) rows.push({ key: 'speed', value: formatRtf(resolved.rtf) });
+    // Guard rtf like tokensPerSec: a zero/unmeasured rtf is omitted rather than
+    // shown as a degenerate "realtime" row (formatRtf already floors non-positive
+    // rtf to 'realtime', so this is symmetry, not a divide-by-zero fix).
+    if (resolved.rtf) rows.push({ key: 'speed', value: formatRtf(resolved.rtf) });
     else if (resolved.tokensPerSec !== undefined) {
       const tps = formatTps(resolved.tokensPerSec);
       if (tps) rows.push({ key: 'speed', value: tps });
@@ -349,7 +352,11 @@ export function buildBackendTooltipRows(input: {
   }
   if (resolved?.memoryBytes) rows.push({ key: 'memory', value: formatMemMb(Math.round(resolved.memoryBytes / 1_048_576)) });
   if (sizeMb != null) rows.push({ key: 'size', value: formatMemMb(sizeMb) });
-  if (repo) rows.push({ key: 'repo', value: repo });
+  // TODO(#287): the frontend catalog only exposes the model-level repo
+  // (info.repo = the ONNX/primary repo). MLX TTS tiers on Apple Silicon load a
+  // different per-tier artifact, so info.repo would mislabel them — hide the repo
+  // row for MLX until the sidecar sends a per-tier repo, then drop this guard.
+  if (repo && !(backendId && frameworkLabel(backendId) === 'MLX')) rows.push({ key: 'repo', value: repo });
   if (resolved?.fallbackReason) rows.push({ key: 'fallback', value: resolved.fallbackReason, warn: true });
   return rows;
 }

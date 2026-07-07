@@ -332,7 +332,7 @@ const NativeModelCard: React.FC<{
                             <div key={r.key} style={{ color: '#e74c3c' }}>⚠ {r.value}</div>
                           ) : (
                             <div key={r.key}>
-                              <span style={{ opacity: 0.6 }}>{t(TT_LABEL[r.key][0], TT_LABEL[r.key][1])}</span>{`: ${r.value}`}
+                              <span style={{ opacity: 0.6 }}>{t(TT_LABEL[r.key]?.[0] ?? r.key, TT_LABEL[r.key]?.[1] ?? r.key)}</span>{`: ${r.value}`}
                             </div>
                           ))}
                         </div>
