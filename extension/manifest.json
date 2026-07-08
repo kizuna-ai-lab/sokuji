@@ -37,7 +37,8 @@
     "wss://openspeech.bytedance.com/*",
     "https://speech.platform.bing.com/*",
     "wss://speech.platform.bing.com/*",
-    "https://www.bing.com/*"
+    "https://www.bing.com/*",
+    "https://api.zoom.us/*"
   ],
   "background": {
     "service_worker": "background.js",
