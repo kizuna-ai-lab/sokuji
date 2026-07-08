@@ -583,13 +583,30 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             />
           )}
 
-          <ToggleSwitch
-            checked={keepReplayAudio}
-            onChange={() => setKeepReplayAudio(!keepReplayAudio)}
-            label={t('simpleConfig.keepReplayAudio', 'Keep audio for replay')}
-            disabled={isSessionActive}
-            tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
-          />
+          {/* Inherently text-only providers (e.g. Zoom AI, Volcengine ST) show a
+              permanently-on, non-interactive switch so users can see at a glance
+              that the provider produces text only and never synthesizes audio. */}
+          {providerConfig.capabilities.textOnlyCapability === 'always' && (
+            <ToggleSwitch
+              checked={true}
+              onChange={() => {}}
+              label={t('simpleConfig.textOnly', 'Text Only')}
+              disabled
+              tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+            />
+          )}
+
+          {/* Text-only providers generate no audio, so replay-audio storage is
+              irrelevant — hide the toggle for them. */}
+          {providerConfig.capabilities.textOnlyCapability !== 'always' && (
+            <ToggleSwitch
+              checked={keepReplayAudio}
+              onChange={() => setKeepReplayAudio(!keepReplayAudio)}
+              label={t('simpleConfig.keepReplayAudio', 'Keep audio for replay')}
+              disabled={isSessionActive}
+              tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
+            />
+          )}
 
           {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
             <div className="language-model-warning">

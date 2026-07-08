@@ -58,7 +58,6 @@ import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
-import ToggleSwitch from '../shared/ToggleSwitch';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
@@ -1969,15 +1968,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <option key={lang.value} value={lang.value}>{lang.name}</option>
               ))}
             </select>
-          </div>
-          <div className="setting-item">
-            <ToggleSwitch
-              checked={true}
-              onChange={() => {}}
-              label={t('simpleConfig.textOnly', 'Text Only')}
-              disabled
-              tooltip={t('simpleConfig.textOnlyDesc', 'Zoom AI produces text only; audio synthesis is not available.')}
-            />
           </div>
         </div>
 
