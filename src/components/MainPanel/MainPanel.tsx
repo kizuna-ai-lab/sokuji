@@ -30,7 +30,7 @@ import {
   useSubtitleModeActive,
   useKeepReplayAudio,
 } from '../../stores/settingsStore';
-import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
+import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -48,7 +48,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -602,7 +602,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
    */
   const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
-    const swappedSystemInstructions = provider === Provider.LOCAL_INFERENCE
+    const swappedSystemInstructions = (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE)
       ? getProcessedLocalPrompt(true)
       : getProcessedSystemInstructions(true);
     const baseConfig = createSessionConfig(swappedSystemInstructions);
@@ -644,6 +644,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (config.provider === 'volcengine_ast2') {
       const ast2 = config as VolcengineAST2SessionConfig;
       [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    } else if (config.provider === 'local_native') {
+      // Native ASR/translate carry the translation direction in
+      // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
+      // Opus model bakes the direction in; a source-specific ASR only handles one
+      // language). Reverse the direction and re-resolve both models for the
+      // reversed pair — see createParticipantLocalNativeConfig.
+      const result = createParticipantLocalNativeConfig(config as LocalNativeSessionConfig);
+
+      if (!result.success) {
+        addRealtimeEvent(
+          { type: 'participant.error', data: { message: result.detail } },
+          'client', 'participant.error'
+        );
+        return null;
+      }
+
+      if (!result.translationAvailable) {
+        addRealtimeEvent(
+          { type: 'participant.warning', data: { message: `No translation model for ${result.config.sourceLanguage} → ${result.config.targetLanguage} — transcription only` } },
+          'client', 'participant.warning'
+        );
+      }
+
+      return result.config;
     } else if (config.provider === 'volcengine_st') {
       const st = config as VolcengineSTSessionConfig;
       const oldSource = st.sourceLanguage;
