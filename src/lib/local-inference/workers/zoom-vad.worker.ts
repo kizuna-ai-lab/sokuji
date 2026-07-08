@@ -20,9 +20,20 @@ let frameProcessor: FrameProcessor | null = null;
 let audioBuffer = new Float32Array(0);
 let maxSpeechFrames = Math.ceil(20000 / VAD_FRAME_MS);
 let speechFramesSinceStart = 0;
-let processing = false;
 
-const post = (msg: any, transfer?: Transferable[]) =>
+type WorkerInbound =
+  | { type: 'init'; ortWasmBaseUrl?: string; vadModelUrl?: string }
+  | { type: 'audio'; pcm: Int16Array; sampleRate: number }
+  | { type: 'flush' }
+  | { type: 'dispose' };
+
+type WorkerOutbound =
+  | { type: 'ready' }
+  | { type: 'utterance'; audio: Float32Array }
+  | { type: 'speech_start' }
+  | { type: 'error'; message: string };
+
+const post = (msg: WorkerOutbound, transfer?: Transferable[]) =>
   (self as any).postMessage(msg, transfer ?? []);
 
 /** Linear resample Int16 PCM to Float32 [-1,1] @ 16kHz. */
@@ -87,51 +98,46 @@ function emitUtterance(audio: Float32Array) {
 }
 
 async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void> {
-  if (!vadSession || !frameProcessor || processing) return;
-  processing = true;
-  try {
-    const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
-    const newBuf = new Float32Array(audioBuffer.length + resampled.length);
-    newBuf.set(audioBuffer);
-    newBuf.set(resampled, audioBuffer.length);
-    audioBuffer = newBuf;
+  if (!vadSession || !frameProcessor) return;
+  const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
+  const newBuf = new Float32Array(audioBuffer.length + resampled.length);
+  newBuf.set(audioBuffer);
+  newBuf.set(resampled, audioBuffer.length);
+  audioBuffer = newBuf;
 
-    while (audioBuffer.length >= VAD_FRAME_SAMPLES) {
-      const frame = audioBuffer.slice(0, VAD_FRAME_SAMPLES);
-      audioBuffer = audioBuffer.slice(VAD_FRAME_SAMPLES);
-      const events: FrameProcessorEvent[] = [];
-      await frameProcessor.process(frame, (ev) => events.push(ev));
-      for (const ev of events) {
-        switch (ev.msg) {
-          case Message.SpeechStart:
-            speechFramesSinceStart = 0;
-            post({ type: 'speech_start' });
-            break;
-          case Message.SpeechEnd:
-            speechFramesSinceStart = 0;
-            emitUtterance(ev.audio);
-            break;
-          case Message.VADMisfire:
-            speechFramesSinceStart = 0;
-            break;
-        }
-      }
-      if (frameProcessor.speaking) {
-        speechFramesSinceStart++;
-        if (speechFramesSinceStart >= maxSpeechFrames) {
-          const endEvents: FrameProcessorEvent[] = [];
-          frameProcessor.endSegment((ev) => endEvents.push(ev));
-          for (const ev of endEvents) {
-            if (ev.msg === Message.SpeechEnd) emitUtterance(ev.audio);
-          }
+  while (audioBuffer.length >= VAD_FRAME_SAMPLES) {
+    const frame = audioBuffer.slice(0, VAD_FRAME_SAMPLES);
+    audioBuffer = audioBuffer.slice(VAD_FRAME_SAMPLES);
+    const events: FrameProcessorEvent[] = [];
+    await frameProcessor.process(frame, (ev) => events.push(ev));
+    for (const ev of events) {
+      switch (ev.msg) {
+        case Message.SpeechStart:
           speechFramesSinceStart = 0;
-        }
-      } else {
-        speechFramesSinceStart = 0;
+          post({ type: 'speech_start' });
+          break;
+        case Message.SpeechEnd:
+          speechFramesSinceStart = 0;
+          emitUtterance(ev.audio);
+          break;
+        case Message.VADMisfire:
+          speechFramesSinceStart = 0;
+          break;
       }
     }
-  } finally {
-    processing = false;
+    if (frameProcessor.speaking) {
+      speechFramesSinceStart++;
+      if (speechFramesSinceStart >= maxSpeechFrames) {
+        const endEvents: FrameProcessorEvent[] = [];
+        frameProcessor.endSegment((ev) => endEvents.push(ev));
+        for (const ev of endEvents) {
+          if (ev.msg === Message.SpeechEnd) emitUtterance(ev.audio);
+        }
+        speechFramesSinceStart = 0;
+      }
+    } else {
+      speechFramesSinceStart = 0;
+    }
   }
 }
 
@@ -145,24 +151,54 @@ function flush(): void {
   speechFramesSinceStart = 0;
 }
 
-self.onmessage = async (e: MessageEvent) => {
-  const msg = e.data;
-  try {
-    switch (msg.type) {
-      case 'init':
-        if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
-          ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-        }
-        await initVad(msg.vadModelUrl);
-        break;
-      case 'audio': await feedAudio(msg.pcm as Int16Array, msg.sampleRate as number); break;
-      case 'flush': flush(); break;
-      case 'dispose':
-        vadSession?.session?.release?.();
-        vadSession = null; frameProcessor = null; audioBuffer = new Float32Array(0);
-        break;
-    }
-  } catch (err: any) {
-    post({ type: 'error', message: err?.message ?? String(err) });
-  }
+// Messages are queued and processed one at a time. Without this, a slow
+// 'init' (async model load) racing an 'audio' or 'dispose' message could
+// interleave — e.g. dropping audio fed before init completes, or disposing
+// state mid-flush. Serializing preserves the order the main thread sent them.
+const messageQueue: WorkerInbound[] = [];
+let isHandling = false;
+
+self.onmessage = (e: MessageEvent<WorkerInbound>) => {
+  messageQueue.push(e.data);
+  void processQueue();
 };
+
+async function processQueue(): Promise<void> {
+  if (isHandling) return;
+  isHandling = true;
+  try {
+    while (messageQueue.length) {
+      const msg = messageQueue.shift()!;
+      try {
+        await handleMessage(msg);
+      } catch (err) {
+        post({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  } finally {
+    isHandling = false;
+  }
+}
+
+async function handleMessage(msg: WorkerInbound): Promise<void> {
+  switch (msg.type) {
+    case 'init':
+      if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+        ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+      }
+      await initVad(msg.vadModelUrl);
+      break;
+    case 'audio':
+      await feedAudio(msg.pcm, msg.sampleRate);
+      break;
+    case 'flush':
+      flush();
+      break;
+    case 'dispose':
+      vadSession?.session?.release?.();
+      vadSession = null;
+      frameProcessor = null;
+      audioBuffer = new Float32Array(0);
+      break;
+  }
+}

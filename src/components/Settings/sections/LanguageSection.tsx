@@ -229,13 +229,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       }
       case Provider.ZOOM_AI: {
-        const availableTargets = ZoomAIProviderConfig.getTargetLanguagesForSource(value);
-        const currentTarget = zoomAISettings.targetLanguage;
-        const updates: Record<string, string> = { sourceLanguage: value };
-        if (!availableTargets.some(t => t.value === currentTarget)) {
-          updates.targetLanguage = availableTargets[0]?.value || 'en-US';
-        }
-        updateZoomAISettings(updates);
+        updateZoomAISettings({
+          sourceLanguage: value,
+          targetLanguage: ZoomAIProviderConfig.reconcileTarget(value, zoomAISettings.targetLanguage),
+        });
         break;
       }
     }
@@ -541,7 +538,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               <button
                 className="language-swap-btn"
                 onClick={handleSwapLanguages}
-                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto' || currentProviderSettings.sourceLanguage === 'zhen'}
+                disabled={
+                  isSessionActive ||
+                  currentProviderSettings.sourceLanguage === 'auto' ||
+                  currentProviderSettings.sourceLanguage === 'zhen' ||
+                  (provider === Provider.ZOOM_AI &&
+                    !ZoomAIProviderConfig.getSourceLanguages().some(l => l.value === currentProviderSettings.targetLanguage))
+                }
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"
               >

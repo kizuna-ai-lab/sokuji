@@ -51,12 +51,23 @@ export function encodeWavDataUri(samples: Float32Array, sampleRate: number): str
   return `data:audio/wav;base64,${bytesToBase64(new Uint8Array(buffer))}`;
 }
 
-async function post(path: string, token: string, body: unknown): Promise<any> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
+interface ZoomTranscribeResponse { result?: { text_display?: string } }
+interface ZoomTranslateResponse { result?: { translations?: Record<string, string> } }
+
+async function post<T = unknown>(path: string, token: string, body: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   const raw = await res.text();
   if (!res.ok) {
     let reason: string | undefined;
@@ -68,11 +79,15 @@ async function post(path: string, token: string, body: unknown): Promise<any> {
     } catch { /* keep raw */ }
     throw new ZoomApiError(res.status, message, reason);
   }
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new ZoomApiError(res.status, 'Failed to parse response: ' + raw.slice(0, 200));
+  }
 }
 
 export async function transcribe(token: string, wavDataUri: string, language: string): Promise<string> {
-  const json = await post('/scribe/transcribe', token, {
+  const json = await post<ZoomTranscribeResponse>('/scribe/transcribe', token, {
     file: wavDataUri,
     config: { language, word_time_offsets: true },
   });
@@ -85,7 +100,7 @@ export async function translate(
   sourceLanguage: string,
   targetLanguage: string,
 ): Promise<string> {
-  const json = await post('/translator/translate', token, {
+  const json = await post<ZoomTranslateResponse>('/translator/translate', token, {
     text,
     config: { source_language: sourceLanguage, target_languages: [targetLanguage] },
   });

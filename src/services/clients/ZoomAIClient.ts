@@ -19,6 +19,7 @@ export class ZoomAIClient implements IClient {
   private connected = false;
   private instanceId: string;
   private itemCounter = 0;
+  private utteranceChain: Promise<void> = Promise.resolve();
 
   constructor(apiKey: string, apiSecret: string) {
     this.signer = new ZoomJwtSigner(apiKey, apiSecret);
@@ -51,9 +52,16 @@ export class ZoomAIClient implements IClient {
         } else if (msg.type === 'speech_start') {
           this.eventHandlers.onRealtimeEvent?.({ source: 'client', event: { type: 'zoom.speech_start', data: {} } });
         } else if (msg.type === 'utterance') {
-          void this.handleUtterance(msg.audio as Float32Array);
+          this.utteranceChain = this.utteranceChain
+            .then(() => this.handleUtterance(msg.audio as Float32Array))
+            .catch(() => {});
         } else if (msg.type === 'error') {
-          this.eventHandlers.onError?.(new Error(msg.message));
+          if (!this.connected) {
+            clearTimeout(timer);
+            reject(new Error(msg.message));
+          } else {
+            this.eventHandlers.onError?.(new Error(msg.message));
+          }
         }
       };
       worker.onerror = (err) => { clearTimeout(timer); reject(err); };
@@ -69,13 +77,15 @@ export class ZoomAIClient implements IClient {
 
   private async handleUtterance(audio: Float32Array): Promise<void> {
     const cfg = this.currentConfig;
-    if (!cfg) return;
+    if (!cfg || !this.connected) return;
     const target = cfg.targetLanguages[0];
+    if (!target) { this.emitError(new Error('No target language configured')); return; }
     try {
       const token = await this.signer.getToken();
+      if (!this.connected) return;
       const wav = encodeWavDataUri(audio, 16000);
       const transcriptText = await transcribe(token, wav, cfg.sourceLanguage);
-      if (!transcriptText) return;
+      if (!transcriptText || !this.connected) return;
 
       const userItem: ConversationItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
@@ -86,8 +96,9 @@ export class ZoomAIClient implements IClient {
       this.conversationItems.push(userItem);
       this.eventHandlers.onConversationUpdated?.({ item: userItem });
 
+      if (!this.connected) return;
       const translated = await translate(token, transcriptText, cfg.sourceLanguage, target);
-      if (!translated) return;
+      if (!translated || !this.connected) return;
 
       const asstItem: ConversationItem = {
         id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'completed',
@@ -98,7 +109,7 @@ export class ZoomAIClient implements IClient {
       this.conversationItems.push(asstItem);
       this.eventHandlers.onConversationUpdated?.({ item: asstItem });
     } catch (err) {
-      this.emitError(err);
+      if (this.connected) this.emitError(err);
     }
   }
 

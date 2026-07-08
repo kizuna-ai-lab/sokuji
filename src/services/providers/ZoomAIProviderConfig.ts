@@ -24,8 +24,7 @@ export class ZoomAIProviderConfig {
     { name: 'Español', value: 'es-ES', englishName: 'Spanish' },
     { name: 'Français', value: 'fr-FR', englishName: 'French' },
     { name: 'Deutsch', value: 'de-DE', englishName: 'German' },
-    { name: 'Português (PT)', value: 'pt-PT', englishName: 'Portuguese (Portugal)' },
-    { name: 'Português (BR)', value: 'pt-BR', englishName: 'Portuguese (Brazil)' },
+    // Portuguese (pt-PT/pt-BR) omitted — Zoom Translator returns 500 for both as of 2026-07.
     { name: 'Italiano', value: 'it-IT', englishName: 'Italian' },
   ];
 
@@ -53,6 +52,15 @@ export class ZoomAIProviderConfig {
 
   static getTargetLanguagesForSource(src: string): LanguageOption[] {
     return ZoomAIProviderConfig.PAIRS[src] ?? ZoomAIProviderConfig.EN_ONLY;
+  }
+
+  /** Reconciles a target language against a (possibly new) source, falling back
+   * to the first allowed target — or 'en-US' if none — when the current target
+   * is no longer valid for the source. Shared by LanguageSection and
+   * ProviderSpecificSettings so the fallback rule lives in one place. */
+  static reconcileTarget(sourceValue: string, currentTarget: string): string {
+    const allowed = this.getTargetLanguagesForSource(sourceValue).map(l => l.value);
+    return allowed.includes(currentTarget) ? currentTarget : (allowed[0] || 'en-US');
   }
 
   getConfig(): ProviderConfig {
