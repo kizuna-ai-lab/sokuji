@@ -60,15 +60,17 @@ export class LocalNativeClient implements IClient {
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
     // Best-effort machine snapshot so the Logs panel shows which GPU/backends
-    // the session resolved against (helps diagnose "GPU wasn't used"). Null when
-    // the sidecar is unavailable — skip the line rather than fail the session.
-    const hw = await nativeHardwareInfo();
-    if (hw) {
-      this.emitEvent('local.native.hardware', 'client', {
-        os: hw.os, arch: hw.arch, cpuCores: hw.cpuCores,
-        gpus: hw.gpus, backendsInstalled: hw.backendsInstalled, accelAvailable: hw.accelAvailable,
-      });
-    }
+    // the session resolved against (helps diagnose "GPU wasn't used"). Fire-and-
+    // forget: this diagnostic probe must never delay ASR/translation init on the
+    // startup critical path. Null (sidecar unavailable) simply skips the line.
+    nativeHardwareInfo().then((hw) => {
+      if (hw) {
+        this.emitEvent('local.native.hardware', 'client', {
+          os: hw.os, arch: hw.arch, cpuCores: hw.cpuCores,
+          gpus: hw.gpus, backendsInstalled: hw.backendsInstalled, accelAvailable: hw.accelAvailable,
+        });
+      }
+    }).catch(() => { /* diagnostics only — ignore probe failures */ });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     const store = useNativeModelStore.getState();
@@ -289,7 +291,18 @@ export class LocalNativeClient implements IClient {
       sourceText: text, modelId: this.cfg?.translationModelId,
       systemPrompt: this.cfg?.instructions ?? '', wrapTranscript: !!this.cfg?.wrapTranscript,
     });
-    const tr = await this.translate.translate(text, this.cfg?.instructions ?? '', !!this.cfg?.wrapTranscript);
+    // Stage-local catch so a translation failure surfaces in the Logs panel with
+    // translation-stage context (which model/text), rather than only through the
+    // generic queue catch. Aborts this job — no assistant item is produced.
+    let tr: { sourceText?: string; translatedText: string; inferenceTimeMs?: number };
+    try {
+      tr = await this.translate.translate(text, this.cfg?.instructions ?? '', !!this.cfg?.wrapTranscript);
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      this.emitEvent('local.native.error', 'client', { stage: 'translation', modelId: this.cfg?.translationModelId, sourceText: text, error });
+      this.handlers.onError?.(error);
+      return;
+    }
     this.emitEvent('local.native.translation.end', 'server', {
       sourceText: tr.sourceText ?? text, translatedText: tr.translatedText,
       inferenceTimeMs: tr.inferenceTimeMs, modelId: this.cfg?.translationModelId,

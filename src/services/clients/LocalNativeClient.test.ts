@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
@@ -630,6 +630,9 @@ describe('LocalNativeClient enriched log fields', () => {
     asrResolved: null, translationResolved: null, ttsResolved: null,
     asrLoading: false, ttsLoading: false, catalog: {}, sizes: {},
   } as any));
+  // Restore module spies (nativeHardwareInfo) so they don't leak into later
+  // tests — the shared vitest setup doesn't enable restoreMocks.
+  afterEach(() => vi.restoreAllMocks());
 
   it('asr.end carries modelId + timing + rtf, and partials are logged', async () => {
     const m = mocks();
@@ -723,10 +726,41 @@ describe('LocalNativeClient enriched log fields', () => {
     c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
+    await new Promise((r) => setTimeout(r, 0)); // hardware probe runs off the critical path
 
     const hw = events.find((e) => e.type === 'local.native.hardware');
     expect(hw.data).toMatchObject({ os: 'linux', arch: 'x64', cpuCores: 16, accelAvailable: true });
     expect(hw.data.gpus[0].name).toBe('RTX 4070');
     expect(hw.data.backendsInstalled).toContain('ort-cuda');
+  });
+
+  it('does not block session startup on a slow hardware probe', async () => {
+    // A hardware probe that never resolves must not hang connect() — the ASR/
+    // translation init is the critical path; hardware logging is diagnostic-only.
+    vi.spyOn(await import('../../stores/nativeModelStore'), 'nativeHardwareInfo')
+      .mockReturnValue(new Promise(() => { /* never resolves */ }));
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
+    expect(m.asr.init).toHaveBeenCalled(); // reached here → connect resolved despite the stalled probe
+  });
+
+  it('translation failure emits a stage-tagged local.native.error', async () => {
+    const m = mocks();
+    m.translate.translate = vi.fn().mockRejectedValue(new Error('translate boom'));
+    const c = new LocalNativeClient(m);
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event), onError() {} });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
+    await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const err = events.find((e) => e.type === 'local.native.error' && e.data.stage === 'translation');
+    expect(err).toBeDefined();
+    expect(err.data.modelId).toBe('qwen2.5-0.5b');
+    expect(err.data.error).toContain('translate boom');
   });
 });
