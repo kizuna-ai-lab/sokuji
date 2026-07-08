@@ -11,6 +11,7 @@ import {
   GeminiSessionConfig,
   PalabraAISessionConfig,
   VolcengineSTSessionConfig,
+  ZoomAISessionConfig,
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig,
   TranslateTargetLanguage
@@ -135,6 +136,14 @@ export interface PalabraAISettings {
 export interface VolcengineSTSettings {
   accessKeyId: string;
   secretAccessKey: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+// Zoom AI Services Settings
+export interface ZoomAISettings {
+  apiKey: string;
+  apiSecret: string;
   sourceLanguage: string;
   targetLanguage: string;
 }
@@ -319,6 +328,13 @@ const defaultVolcengineSTSettings: VolcengineSTSettings = {
   targetLanguage: 'en',
 };
 
+const defaultZoomAISettings: ZoomAISettings = {
+  apiKey: '',
+  apiSecret: '',
+  sourceLanguage: 'ja-JP',
+  targetLanguage: 'en-US',
+};
+
 const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
   appId: '',
   accessToken: '',
@@ -372,6 +388,7 @@ interface SettingsStore {
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
   volcengineST: VolcengineSTSettings;
+  zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
@@ -454,6 +471,7 @@ interface SettingsStore {
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
+  updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
@@ -467,7 +485,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings | VolcengineAST2Settings | LocalInferenceSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
@@ -593,6 +611,20 @@ function createVolcengineSTSessionConfig(
     instructions: systemInstructions,
     sourceLanguage: settings.sourceLanguage,
     targetLanguages: [settings.targetLanguage],
+  };
+}
+
+function createZoomAISessionConfig(
+  settings: ZoomAISettings,
+  systemInstructions: string,
+): ZoomAISessionConfig {
+  return {
+    provider: 'zoom_ai',
+    model: 'zoom-scribe-translator-v1',
+    instructions: systemInstructions,
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguages: [settings.targetLanguage],
+    textOnly: true,
   };
 }
 
@@ -799,6 +831,7 @@ const useSettingsStore = create<SettingsStore>()(
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
     volcengineST: defaultVolcengineSTSettings,
+    zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
@@ -1101,6 +1134,18 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateZoomAI: async (settings) => {
+      set((state) => ({ zoomAI: { ...state.zoomAI, ...settings } }));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.zoomAI.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Zoom AI settings:', error);
+      }
+    },
+
     updateVolcengineAST2: async (settings) => {
       set((state) => ({volcengineAST2: {...state.volcengineAST2, ...settings}}));
       try {
@@ -1293,6 +1338,13 @@ const useSettingsStore = create<SettingsStore>()(
           });
           return {valid: false, message: '', validating: false};
         }
+      } else if (provider === Provider.ZOOM_AI) {
+        const zoomSettings = currentSettings as ZoomAISettings;
+        apiKey = zoomSettings.apiKey || '';
+        if (!zoomSettings.apiKey || !zoomSettings.apiSecret) {
+          set({ isApiKeyValid: null, availableModels: [], validationMessage: '', isValidating: false });
+          return { valid: false, message: '', validating: false };
+        }
       } else if (provider === Provider.VOLCENGINE_AST2) {
         const ast2Settings = currentSettings as VolcengineAST2Settings;
         apiKey = String(ast2Settings.appId || '');
@@ -1329,6 +1381,8 @@ const useSettingsStore = create<SettingsStore>()(
         cacheKey = `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`;
       } else if (provider === Provider.VOLCENGINE_ST) {
         cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineSTSettings).secretAccessKey}`;
+      } else if (provider === Provider.ZOOM_AI) {
+        cacheKey = `${provider}:${apiKey}:${(currentSettings as ZoomAISettings).apiSecret}`;
       } else if (provider === Provider.VOLCENGINE_AST2) {
         cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineAST2Settings).accessToken}`;
       } else {
@@ -1360,6 +1414,8 @@ const useSettingsStore = create<SettingsStore>()(
           clientSecret = (currentSettings as PalabraAISettings).clientSecret;
         } else if (provider === Provider.VOLCENGINE_ST) {
           clientSecret = (currentSettings as VolcengineSTSettings).secretAccessKey;
+        } else if (provider === Provider.ZOOM_AI) {
+          clientSecret = (currentSettings as ZoomAISettings).apiSecret;
         } else if (provider === Provider.VOLCENGINE_AST2) {
           clientSecret = String((currentSettings as VolcengineAST2Settings).accessToken || '');
         }
@@ -1514,12 +1570,13 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, volcengineST, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, volcengineST, zoomAI, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
           loadProviderSettings('settings.palabraai', defaultPalabraAISettings),
           loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
+          loadProviderSettings('settings.zoomAI', defaultZoomAISettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
           loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
@@ -1544,6 +1601,7 @@ const useSettingsStore = create<SettingsStore>()(
           openaiCompatible,
           palabraai,
           volcengineST,
+          zoomAI,
           volcengineAST2,
           localInference,
           openaiTranslate,
@@ -1582,6 +1640,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.openaiTranslate;
         case Provider.VOLCENGINE_ST:
           return state.volcengineST;
+        case Provider.ZOOM_AI:
+          return state.zoomAI;
         case Provider.VOLCENGINE_AST2:
           return state.volcengineAST2;
         case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
@@ -1674,6 +1734,9 @@ const useSettingsStore = create<SettingsStore>()(
         case Provider.VOLCENGINE_ST:
           config = createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
           break;
+        case Provider.ZOOM_AI:
+          config = createZoomAISessionConfig(state.zoomAI, systemInstructions);
+          break;
         case Provider.VOLCENGINE_AST2:
           config = createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
           break;
@@ -1729,6 +1792,7 @@ export const useOpenAICompatibleSettings = () => useSettingsStore((state) => sta
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
+export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
@@ -1778,6 +1842,7 @@ export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
+export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
