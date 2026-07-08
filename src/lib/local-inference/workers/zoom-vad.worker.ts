@@ -6,7 +6,7 @@
  *
  * VAD scaffolding mirrors whisper-webgpu.worker.ts (same constants/loop).
  */
-import { InferenceSession, Tensor } from './_shared/onnxruntime-all';
+import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 
@@ -59,8 +59,8 @@ function vadResetStates() {
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(): Promise<void> {
-  const session = await InferenceSession.create('./wasm/vad/silero_vad_v5.onnx', {
+async function initVad(vadModelUrl?: string): Promise<void> {
+  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
   vadSession = { session, state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]) };
@@ -149,7 +149,12 @@ self.onmessage = async (e: MessageEvent) => {
   const msg = e.data;
   try {
     switch (msg.type) {
-      case 'init': await initVad(); break;
+      case 'init':
+        if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+          ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+        }
+        await initVad(msg.vadModelUrl);
+        break;
       case 'audio': await feedAudio(msg.pcm as Int16Array, msg.sampleRate as number); break;
       case 'flush': flush(); break;
       case 'dispose':
