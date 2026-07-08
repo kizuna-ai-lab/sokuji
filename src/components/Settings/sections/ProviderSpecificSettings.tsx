@@ -2,6 +2,7 @@ import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'reac
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
+import { ZoomAIProviderConfig } from '../../../services/providers/ZoomAIProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
   useProvider,
@@ -16,6 +17,7 @@ import {
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
@@ -30,6 +32,7 @@ import {
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
@@ -55,6 +58,7 @@ import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import VoiceLibrarySection from './VoiceLibrarySection';
+import ToggleSwitch from '../shared/ToggleSwitch';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { useAnalytics } from '../../../lib/analytics';
@@ -106,6 +110,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -123,6 +128,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateZoomAISettings = useUpdateZoomAI();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -390,6 +396,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
+    } else if (provider === Provider.ZOOM_AI) {
+      updateZoomAISettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
@@ -1921,6 +1929,71 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderZoomAISettings = () => {
+    if (provider !== Provider.ZOOM_AI) return null;
+
+    const sourceLanguages = ZoomAIProviderConfig.getSourceLanguages();
+    const targetLanguages = ZoomAIProviderConfig.getTargetLanguagesForSource(zoomAISettings.sourceLanguage);
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label"><span>{t('settings.sourceLanguage')}</span></div>
+            <select
+              className="select-dropdown"
+              value={zoomAISettings.sourceLanguage}
+              onChange={(e) => {
+                const newSource = e.target.value;
+                const allowed = ZoomAIProviderConfig.getTargetLanguagesForSource(newSource).map((l) => l.value);
+                const nextTarget = allowed.includes(zoomAISettings.targetLanguage) ? zoomAISettings.targetLanguage : allowed[0];
+                updateZoomAISettings({ sourceLanguage: newSource, targetLanguage: nextTarget });
+              }}
+              disabled={isSessionActive}
+            >
+              {sourceLanguages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label"><span>{t('settings.targetLanguage')}</span></div>
+            <select
+              className="select-dropdown"
+              value={zoomAISettings.targetLanguage}
+              onChange={(e) => updateZoomAISettings({ targetLanguage: e.target.value })}
+              disabled={isSessionActive}
+            >
+              {targetLanguages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <ToggleSwitch
+              checked={true}
+              onChange={() => {}}
+              label={t('simpleConfig.textOnly', 'Text Only')}
+              disabled
+              tooltip={t('simpleConfig.textOnlyDesc', 'Zoom AI produces text only; audio synthesis is not available.')}
+            />
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.zoomAIInfo', 'Zoom AI Services Info')}</h2>
+          <div className="setting-item">
+            <div className="volcengine-st-info-notice" style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}>
+              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
+              {t('settings.zoomAIInfoText', 'Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.')}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
   const renderLocalInferenceSettings = () => {
     if (provider !== Provider.LOCAL_INFERENCE) {
       return null;
@@ -2418,6 +2491,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
+      {renderZoomAISettings()}
       {renderLocalInferenceSettings()}
     </Fragment>
   );

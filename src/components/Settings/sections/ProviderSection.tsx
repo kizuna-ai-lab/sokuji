@@ -12,6 +12,7 @@ import {
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useIsApiKeyValid,
   useSetProvider,
   useUpdateOpenAI,
@@ -21,6 +22,7 @@ import {
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -78,6 +80,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
   const isApiKeyValid = useIsApiKeyValid();
 
   const setProvider = useSetProvider();
@@ -88,6 +91,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateZoomAISettings = useUpdateZoomAI();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -184,6 +188,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         return volcengineSTSettings.accessKeyId;
       case Provider.VOLCENGINE_AST2:
         return volcengineAST2Settings.appId;
+      case Provider.ZOOM_AI:
+        return zoomAISettings.apiKey;
       default:
         return '';
     }
@@ -212,6 +218,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.VOLCENGINE_AST2:
         updateVolcengineAST2Settings({ appId: value });
+        break;
+      case Provider.ZOOM_AI:
+        updateZoomAISettings({ apiKey: value });
         break;
     }
   };
@@ -305,6 +314,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           name: t('providers.volcengine_ast2.name'),
           icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
+        };
+      case Provider.ZOOM_AI:
+        return {
+          name: t('providers.zoom_ai.name', 'Zoom AI Services'),
+          icon: VolcengineIcon, // TODO: Zoom icon
+          description: t('providers.zoom_ai.description', 'Zoom Scribe transcription + Translator (text only)')
         };
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         // Relay-managed twin of OpenAI Translate. Locale strings not yet added;
@@ -590,6 +605,38 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 ) : (
                   t('simpleSettings.validate')
                 )}
+              </button>
+            </div>
+          </div>
+        ) : provider === Provider.ZOOM_AI ? (
+          // Zoom AI requires both an API Key and an API Secret (Build Platform)
+          <div className="volcengine-st-credentials-group">
+            <div className="api-key-input-group">
+              <input
+                type="text"
+                value={zoomAISettings.apiKey}
+                onChange={(e) => updateZoomAISettings({ apiKey: e.target.value })}
+                placeholder={t('providers.zoom_ai.apiKeyPlaceholder', 'API Key')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+            </div>
+            <div className="api-key-input-group">
+              <input
+                type="password"
+                value={zoomAISettings.apiSecret}
+                onChange={(e) => updateZoomAISettings({ apiSecret: e.target.value })}
+                placeholder={t('providers.zoom_ai.apiSecretPlaceholder', 'API Secret')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+              <button
+                className="validate-button"
+                onClick={handleValidateApiKey}
+                disabled={!zoomAISettings.apiKey || !zoomAISettings.apiSecret || isValidating || isSessionActive}
+                title={t('simpleSettings.validate')}
+              >
+                {isValidating ? <span className="spinner" /> : isApiKeyValid ? <CheckCircle size={16} /> : t('simpleSettings.validate')}
               </button>
             </div>
           </div>
