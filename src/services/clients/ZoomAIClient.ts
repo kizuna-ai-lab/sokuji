@@ -11,8 +11,6 @@ import { createVadWorker } from './zoom/createVadWorker';
 const VAD_INPUT_SAMPLE_RATE = 24000; // Sokuji recorder output
 
 export class ZoomAIClient implements IClient {
-  private apiKey: string;
-  private apiSecret: string;
   private signer: ZoomJwtSigner;
   private worker: Worker | null = null;
   private eventHandlers: ClientEventHandlers = {};
@@ -23,8 +21,6 @@ export class ZoomAIClient implements IClient {
   private itemCounter = 0;
 
   constructor(apiKey: string, apiSecret: string) {
-    this.apiKey = apiKey;
-    this.apiSecret = apiSecret;
     this.signer = new ZoomJwtSigner(apiKey, apiSecret);
     this.instanceId = `zoom_ai_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
