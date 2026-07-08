@@ -12,6 +12,7 @@ import {
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useLocalInferenceSettings,
   useIsApiKeyValid,
   useAvailableModels,
@@ -259,6 +260,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
@@ -526,6 +528,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       clientSecret = volcengineSTSettings.secretAccessKey;
     } else if (provider === Provider.VOLCENGINE_AST2) {
       clientSecret = volcengineAST2Settings.accessToken;
+    } else if (provider === Provider.ZOOM_AI) {
+      clientSecret = zoomAISettings.apiSecret;
     }
 
     return ClientFactory.createClient(
@@ -537,7 +541,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, zoomAISettings.apiSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -1477,6 +1481,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Volcengine AST2 uses appId as the "apiKey" parameter for ClientFactory
           apiKey = volcengineAST2Settings.appId;
           break;
+        case Provider.ZOOM_AI:
+          apiKey = zoomAISettings.apiKey;
+          break;
         case Provider.LOCAL_INFERENCE:
           // Local inference doesn't need an API key; placeholder for ClientFactory
           apiKey = 'local';
@@ -1885,6 +1892,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAITranslateSettings,
     volcengineSTSettings,
     volcengineAST2Settings,
+    zoomAISettings,
     localInferenceSettings,
     noiseSuppressionMode,
     provider,
