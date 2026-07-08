@@ -11,7 +11,7 @@ import { sidFromTtsVoice, voiceCapability } from '../../lib/local-inference/nati
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
-import { useNativeModelStore, nativeListTtsVoices } from '../../stores/nativeModelStore';
+import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '../../stores/nativeModelStore';
 
 interface Deps {
   asr?: NativeAsrClient | any;
@@ -37,6 +37,7 @@ export class LocalNativeClient implements IClient {
   private ttsEnabled = false;
   private ttsStreaming = false;
   private ttsSpeed = 1.0;
+  private ttsVoiceLabel = '';
   private keepReplayAudio: boolean = false;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
@@ -58,6 +59,18 @@ export class LocalNativeClient implements IClient {
       asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
     });
+    // Best-effort machine snapshot so the Logs panel shows which GPU/backends
+    // the session resolved against (helps diagnose "GPU wasn't used"). Fire-and-
+    // forget: this diagnostic probe must never delay ASR/translation init on the
+    // startup critical path. Null (sidecar unavailable) simply skips the line.
+    nativeHardwareInfo().then((hw) => {
+      if (hw) {
+        this.emitEvent('local.native.hardware', 'client', {
+          os: hw.os, arch: hw.arch, cpuCores: hw.cpuCores,
+          gpus: hw.gpus, backendsInstalled: hw.backendsInstalled, accelAvailable: hw.accelAvailable,
+        });
+      }
+    }).catch(() => { /* diagnostics only — ignore probe failures */ });
     this.ttsSpeed = config.ttsSpeed ?? 1.0;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     const store = useNativeModelStore.getState();
@@ -67,6 +80,7 @@ export class LocalNativeClient implements IClient {
         config.asrModelId, config.ttsModelId, config.translationVariant,
       );
       store.setTranslationResolved({ model: config.translationModelId ?? '', device: tr.device ?? 'cpu', backend: tr.backend, computeType: tr.computeType, tokensPerSec: tr.tokensPerSec, memoryBytes: tr.memoryBytes, fallbackReason: tr.fallbackReason });
+      this.emitInitReady('translation', config.translationModelId ?? '', tr);
     };
     const initAsr = async () => {
       store.setAsrLoading(true);
@@ -77,6 +91,7 @@ export class LocalNativeClient implements IClient {
           minSpeech: config.vadMinSpeechDuration,
         }, config.asrDevice, config.asrVariant);
         store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', backend: res.backend, computeType: res.computeType, rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
+        this.emitInitReady('asr', config.asrModelId ?? '', res);
       } finally {
         store.setAsrLoading(false);
       }
@@ -103,6 +118,7 @@ export class LocalNativeClient implements IClient {
         this.ttsStreaming = !!r.streaming;
         store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu', backend: r.backend, computeType: r.computeType,
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
+        this.emitInitReady('tts', config.ttsModelId!, r);
         // Apply the selected voice (next-session semantics), driven by the
         // model's capability (built-in named/range and/or custom clip/style)
         // rather than a MOSS-specific "clones" flag, so any current or future
@@ -125,6 +141,7 @@ export class LocalNativeClient implements IClient {
         }
         const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];
         const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        this.ttsVoiceLabel = voice;   // e.g. builtin:Bella | custom:7 | sid:3 — logged on tts.start
         if (voice.startsWith('builtin:')) {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));
         } else if (voice.startsWith('custom:') && voiceStore) {
@@ -184,6 +201,26 @@ export class LocalNativeClient implements IClient {
   }
 
   /**
+   * Surface the sidecar's resolved plan for one stage into the Logs panel:
+   * which device/backend/quant it landed on, its load time and RTF/tokens, and
+   * — critically — a distinct `.fallback` line when the stage was moved off the
+   * requested device (e.g. GPU→CPU), which was previously silent. Only defined
+   * metrics are attached so CPU-only stages don't log empty `rtf`/`memoryBytes`.
+   */
+  private emitInitReady(engine: 'asr' | 'translation' | 'tts', modelId: string, r: any): void {
+    this.emitEvent(`local.native.init.${engine}.ready`, 'client', {
+      model: modelId, device: r.device ?? 'cpu', backend: r.backend, computeType: r.computeType,
+      ...(r.rtf !== undefined && { rtf: r.rtf }),
+      ...(r.tokensPerSec !== undefined && { tokensPerSec: r.tokensPerSec }),
+      ...(r.memoryBytes !== undefined && { memoryBytes: r.memoryBytes }),
+      loadTimeMs: r.loadTimeMs,
+    });
+    if (r.fallbackReason) {
+      this.emitEvent(`local.native.init.${engine}.fallback`, 'client', { model: modelId, fallbackReason: r.fallbackReason });
+    }
+  }
+
+  /**
    * Accumulate a TTS audio chunk onto the item so the inline replay button has
    * a complete buffer. Gated on `keepReplayAudio`; real-time playback (via the
    * audio delta) is unaffected when this is skipped.
@@ -203,6 +240,7 @@ export class LocalNativeClient implements IClient {
 
   private onAsrPartial(text: string): void {
     if (!text) return;
+    this.emitEvent('local.native.asr.partial', 'server', { text });
     if (!this.partialUserItem) {
       this.partialUserItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'in_progress',
@@ -216,9 +254,18 @@ export class LocalNativeClient implements IClient {
     }
   }
 
-  private onAsrResult(r: { text: string }): void {
+  private onAsrResult(r: { text: string; durationMs?: number; recognitionTimeMs?: number; startSample?: number }): void {
     if (!r.text?.trim()) return;
-    this.emitEvent('local.native.asr.result', 'server', { text: r.text });
+    // rtf = compute time / audio duration — the single "can it keep up with
+    // real time" number. Only derived when the sidecar sent both timings.
+    const rtf = r.durationMs && r.recognitionTimeMs !== undefined
+      ? Math.round((r.recognitionTimeMs / r.durationMs) * 1000) / 1000 : undefined;
+    this.emitEvent('local.native.asr.end', 'server', {
+      text: r.text, modelId: this.cfg?.asrModelId,
+      ...(r.durationMs !== undefined && { durationMs: r.durationMs }),
+      ...(r.recognitionTimeMs !== undefined && { recognitionTimeMs: r.recognitionTimeMs }),
+      ...(rtf !== undefined && { rtf }),
+    });
     let userItem = this.partialUserItem;
     if (userItem) {
       userItem.status = 'completed';
@@ -240,9 +287,26 @@ export class LocalNativeClient implements IClient {
   }
 
   private async runJob(text: string): Promise<void> {
-    this.emitEvent('local.native.translation.start', 'client', { text });
-    const tr = await this.translate.translate(text, this.cfg?.instructions ?? '', !!this.cfg?.wrapTranscript);
-    this.emitEvent('local.native.translation.end', 'server', { translatedText: tr.translatedText, inferenceTimeMs: tr.inferenceTimeMs });
+    this.emitEvent('local.native.translation.start', 'client', {
+      sourceText: text, modelId: this.cfg?.translationModelId,
+      systemPrompt: this.cfg?.instructions ?? '', wrapTranscript: !!this.cfg?.wrapTranscript,
+    });
+    // Stage-local catch so a translation failure surfaces in the Logs panel with
+    // translation-stage context (which model/text), rather than only through the
+    // generic queue catch. Aborts this job — no assistant item is produced.
+    let tr: { sourceText?: string; translatedText: string; inferenceTimeMs?: number };
+    try {
+      tr = await this.translate.translate(text, this.cfg?.instructions ?? '', !!this.cfg?.wrapTranscript);
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      this.emitEvent('local.native.error', 'client', { stage: 'translation', modelId: this.cfg?.translationModelId, sourceText: text, error });
+      this.handlers.onError?.(error);
+      return;
+    }
+    this.emitEvent('local.native.translation.end', 'server', {
+      sourceText: tr.sourceText ?? text, translatedText: tr.translatedText,
+      inferenceTimeMs: tr.inferenceTimeMs, modelId: this.cfg?.translationModelId,
+    });
     const item: ConversationItem = {
       id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
       createdAt: Date.now(), formatted: { transcript: tr.translatedText },
@@ -250,32 +314,47 @@ export class LocalNativeClient implements IClient {
     this.items.push(item);
     this.emit(item);
     if (this.ttsEnabled) {
-      this.emitEvent('local.native.tts.start', 'client', {});
       const displayText = tr.translatedText;
-      const sentences = splitSentences(displayText, this.cfg?.targetLanguage);
+      // Iterate the non-empty sentences so sentenceIndex/sentenceCount are clean
+      // and consistent with the per-sentence events emitted below.
+      const sentences = splitSentences(displayText, this.cfg?.targetLanguage).filter((s) => s.trim());
+      const sentenceCount = sentences.length;
+      this.emitEvent('local.native.tts.start', 'client', {
+        text: displayText, sentenceCount, modelId: this.cfg?.ttsModelId,
+        voice: this.ttsVoiceLabel, speed: this.ttsSpeed,
+      });
+      const ttsStartTime = performance.now();
       item.formatted!.audioSegments = [];
       let searchFrom = 0;
       let cumulativeAudioDuration = 0;
 
-      for (const sentence of sentences) {
-        if (!sentence.trim()) continue;
-
+      for (let i = 0; i < sentences.length; i++) {
+        const sentence = sentences[i];
         const pos = displayText.indexOf(sentence, searchFrom);
         const textEnd = pos >= 0 ? pos + sentence.length : searchFrom + sentence.length;
         searchFrom = textEnd;
 
+        this.emitEvent('local.native.tts.sentence.start', 'client', {
+          sentenceIndex: i, sentenceCount, text: sentence,
+        });
+        const sentenceStart = performance.now();
+
         try {
+          let sentenceSamples: number;
+          let generateMs: number | undefined;
           if (this.ttsStreaming) {
             // Pre-set audioTextEnd so every chunk delta already carries current karaoke
             // metadata — mirrors LocalInferenceClient streaming path (LIC line 647).
             item.formatted!.audioTextEnd = textEnd;
             let chunkSampleCount = 0;
-            await this.tts.generate(sentence, this.ttsSpeed, (pcm: Float32Array) => {
+            const done = await this.tts.generate(sentence, this.ttsSpeed, (pcm: Float32Array) => {
               const int16 = float32ToInt16(resampleFloat32(pcm, 24000, 24000));
               chunkSampleCount += int16.length;
               if (this.keepReplayAudio) this.appendItemAudio(item, int16);
               this.emit(item, { audio: int16 });
             });
+            sentenceSamples = chunkSampleCount;
+            generateMs = done?.generationTimeMs;
             cumulativeAudioDuration += chunkSampleCount / 24000;
             item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
             // Bare emit (no delta) publishes finalized segment metadata to the renderer
@@ -287,24 +366,39 @@ export class LocalNativeClient implements IClient {
             item.formatted!.audioTextEnd = textEnd;
             const res = await this.tts.generate(sentence, this.ttsSpeed);
             const int16 = float32ToInt16(resampleFloat32(res.samples as Float32Array, res.sampleRate, 24000));
+            sentenceSamples = int16.length;
+            generateMs = res.generationTimeMs;
             cumulativeAudioDuration += int16.length / 24000;
             item.formatted!.audioSegments.push({ textEnd, audioEnd: cumulativeAudioDuration });
             if (this.keepReplayAudio) this.appendItemAudio(item, int16);
             this.emit(item, { audio: int16 });
           }
+
+          const audioDurationMs = Math.round((sentenceSamples / 24000) * 1000);
+          // Prefer the sidecar's reported synth time; fall back to wall time when
+          // it isn't provided so the log always carries a generateMs.
+          const gm = generateMs ?? Math.round(performance.now() - sentenceStart);
+          const rtf = audioDurationMs > 0 ? Math.round((gm / audioDurationMs) * 1000) / 1000 : undefined;
+          this.emitEvent('local.native.tts.sentence.end', 'server', {
+            sentenceIndex: i, sentenceCount, text: sentence,
+            generateMs: gm, audioDurationMs, ...(rtf !== undefined && { rtf }),
+          });
         } catch (ttsError) {
           // Mirror LocalInferenceClient lines 751-757: log + skip failed sentence,
           // loop continues so the item still reaches status='completed'.
           console.warn('[LocalNative] TTS failed for sentence, skipping:', ttsError);
-          this.emitEvent('local.native.tts.error', 'client', {
+          this.emitEvent('local.native.tts.error', 'server', {
             error: ttsError instanceof Error ? ttsError.message : String(ttsError),
+            sentenceIndex: i,
           });
         }
       }
 
       // Ensure trailing whitespace is covered
       item.formatted!.audioTextEnd = displayText.length;
-      this.emitEvent('local.native.tts.end', 'server', { samples: Math.round(cumulativeAudioDuration * 24000) });
+      this.emitEvent('local.native.tts.end', 'server', {
+        sentenceCount, durationMs: Math.round(performance.now() - ttsStartTime),
+      });
     }
     item.status = 'completed';
     this.emit(item);
