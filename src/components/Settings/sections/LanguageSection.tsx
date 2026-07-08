@@ -586,6 +586,19 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             />
           )}
 
+          {/* Inherently text-only providers (e.g. Zoom AI, Volcengine ST) show a
+              permanently-on, non-interactive switch so users can see at a glance
+              that the provider produces text only and never synthesizes audio. */}
+          {providerConfig.capabilities.textOnlyCapability === 'always' && (
+            <ToggleSwitch
+              checked={true}
+              onChange={() => {}}
+              label={t('simpleConfig.textOnly', 'Text Only')}
+              disabled
+              tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+            />
+          )}
+
           <ToggleSwitch
             checked={keepReplayAudio}
             onChange={() => setKeepReplayAudio(!keepReplayAudio)}
