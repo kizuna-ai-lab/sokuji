@@ -4,6 +4,7 @@ import { GeminiClient } from './clients/GeminiClient';
 import { PalabraAIClient } from './clients/PalabraAIClient';
 import { VolcengineSTClient } from './clients/VolcengineSTClient';
 import { VolcengineAST2Client } from './clients/VolcengineAST2Client';
+import { ZoomAIClient } from './clients/ZoomAIClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
@@ -92,6 +93,14 @@ export class ClientOperations {
           };
         }
         return await VolcengineAST2Client.validateApiKeyAndFetchModels(apiKey, clientSecret);
+      case Provider.ZOOM_AI:
+        if (!clientSecret || !apiKey) {
+          return {
+            validation: { valid: false, message: 'Both API Key and API Secret are required for Zoom AI Services', validating: false },
+            models: [],
+          };
+        }
+        return await ZoomAIClient.validateApiKeyAndFetchModels(apiKey, clientSecret);
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
       case Provider.KIZUNA_AI_VOLCENGINE_AST2:
         // Backend-managed (relay) twins: the "apiKey" is a Better Auth session token,
@@ -147,6 +156,8 @@ export class ClientOperations {
         return 'speech-translate-v1';
       case Provider.VOLCENGINE_AST2:
         return 'ast-v2-s2s';
+      case Provider.ZOOM_AI:
+        return 'zoom-scribe-translator-v1';
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         // Relay twin of OpenAI Translate — fixed single model.
         return filteredModels[0]?.id ?? 'gpt-realtime-translate';
