@@ -108,6 +108,7 @@ export class ZoomAIClient implements IClient {
       : (err as Error)?.message ?? String(err);
     const errorItem: ConversationItem = {
       id: this.nextId('error'), role: 'system', type: 'error', status: 'completed',
+      createdAt: Date.now(),
       formatted: { text: message }, content: [{ type: 'text', text: message }],
     };
     this.conversationItems.push(errorItem);

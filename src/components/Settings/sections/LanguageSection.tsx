@@ -15,6 +15,7 @@ import {
   useLocalInferenceSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
@@ -26,6 +27,7 @@ import {
   useUpdateLocalInference,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useNavigateToSettings,
   useSetUIMode,
   useTextOnly,
@@ -38,6 +40,7 @@ import { ProviderConfigFactory } from '../../../services/providers/ProviderConfi
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
+import { ZoomAIProviderConfig } from '../../../services/providers/ZoomAIProviderConfig';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
@@ -78,6 +81,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const localInferenceSettings = useLocalInferenceSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   const modelStatuses = useModelStatuses();
@@ -102,6 +106,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
+  const updateZoomAISettings = useUpdateZoomAI();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
   // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
@@ -149,10 +154,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return kizunaVolcengineAst2Settings;
       case Provider.LOCAL_INFERENCE:
         return localInferenceSettings;
+      case Provider.ZOOM_AI:
+        return zoomAISettings;
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings, zoomAISettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -221,6 +228,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         updateLocalInferenceSettings(updates);
         break;
       }
+      case Provider.ZOOM_AI: {
+        const availableTargets = ZoomAIProviderConfig.getTargetLanguagesForSource(value);
+        const currentTarget = zoomAISettings.targetLanguage;
+        const updates: Record<string, string> = { sourceLanguage: value };
+        if (!availableTargets.some(t => t.value === currentTarget)) {
+          updates.targetLanguage = availableTargets[0]?.value || 'en-US';
+        }
+        updateZoomAISettings(updates);
+        break;
+      }
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -283,6 +300,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
+      case Provider.ZOOM_AI:
+        updateZoomAISettings({ targetLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -311,6 +331,14 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       updateActiveVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
       trackEvent('language_changed', { to_language: src, language_type: 'target' });
+    } else if (provider === Provider.ZOOM_AI) {
+      const sources = ZoomAIProviderConfig.getSourceLanguages().map(l => l.value);
+      if (!sources.includes(tgt)) return; // target isn't a Scribe source; cannot become the new source
+      const allowed = ZoomAIProviderConfig.getTargetLanguagesForSource(tgt).map(l => l.value);
+      const newTarget = allowed.includes(src) ? src : (allowed[0] || 'en-US');
+      updateZoomAISettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
+      trackEvent('language_changed', { to_language: newTarget, language_type: 'target' });
     } else {
       updateSourceLanguage(tgt);
       // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
@@ -324,7 +352,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, trackEvent]);
+  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, updateZoomAISettings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -332,6 +360,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const targetLanguages = useMemo(() => {
     if (provider === Provider.LOCAL_INFERENCE) {
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
+    }
+    if (provider === Provider.ZOOM_AI) {
+      return ZoomAIProviderConfig.getTargetLanguagesForSource(currentProviderSettings.sourceLanguage || 'ja-JP');
     }
     return providerConfig.targetLanguages ?? providerConfig.languages;
   }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
