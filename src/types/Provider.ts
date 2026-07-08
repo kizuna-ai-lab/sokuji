@@ -2,7 +2,7 @@
  * Provider types and enums for AI service providers
  */
 
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled } from '../utils/environment';
 
 /**
  * Supported AI service providers
@@ -17,13 +17,14 @@ export enum Provider {
   OPENAI_TRANSLATE = 'openai_translate',
   VOLCENGINE_ST = 'volcengine_st',
   VOLCENGINE_AST2 = 'volcengine_ast2',
-  LOCAL_INFERENCE = 'local_inference'
+  LOCAL_INFERENCE = 'local_inference',
+  ZOOM_AI = 'zoom_ai'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.ZOOM_AI;
 
 /**
  * Array of all supported providers
@@ -39,6 +40,7 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI_OPENAI_TRANSLATE, Provider.KIZUNA_AI_VOLCENGINE_AST2] : []),
   ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
   ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
+  ...(isZoomAIEnabled() ? [Provider.ZOOM_AI] : []),
   Provider.OPENAI_COMPATIBLE,
 ];
 
@@ -85,6 +87,8 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'Doubao AST 2.0';
     case Provider.LOCAL_INFERENCE:
       return 'Free';
+    case Provider.ZOOM_AI:
+      return 'Zoom AI Services';
     default:
       return provider;
   }

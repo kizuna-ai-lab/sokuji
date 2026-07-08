@@ -229,6 +229,17 @@ export function isVolcengineAST2Enabled(): boolean {
   return import.meta.env.VITE_ENABLE_VOLCENGINE_AST2 === 'true';
 }
 
+/**
+ * Check if Zoom AI Services features should be enabled.
+ * Development: always true. Production: requires VITE_ENABLE_ZOOM_AI === 'true'.
+ */
+export function isZoomAIEnabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+  return import.meta.env.VITE_ENABLE_ZOOM_AI === 'true';
+}
+
 // ============================================================================
 // Operating System Detection
 // ============================================================================
