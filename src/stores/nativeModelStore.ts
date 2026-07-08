@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
 import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 
@@ -343,6 +343,18 @@ export async function nativeListTtsVoices(model?: string): Promise<NativeVoiceIn
     return await client.listTtsVoices(model);
   } catch {
     return [];
+  }
+}
+
+/** Best-effort detected hardware (CPU/GPU + installed backends) for the Logs
+ *  panel. Returns null when the sidecar is unavailable (e.g. not running in
+ *  Electron) so callers can skip the log line rather than crash. Exported at
+ *  this module boundary so the renderer can mock it in tests. */
+export async function nativeHardwareInfo(): Promise<HardwareInfoResultMsg | null> {
+  try {
+    return await client.hardwareInfo();
+  } catch {
+    return null;
   }
 }
 

@@ -94,7 +94,7 @@ describe('LocalNativeClient', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(types).toContain('local.native.init.start');
     expect(types).toContain('local.native.init.ready');
-    expect(types).toContain('local.native.asr.result');
+    expect(types).toContain('local.native.asr.end');
     expect(types).toContain('local.native.translation.end');
   });
 
@@ -617,5 +617,116 @@ describe('LocalNativeClient voice selection', () => {
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsVoice: 'custom:8' } as any);
     expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, undefined);
+  });
+});
+
+// ── Enriched Logs-panel event payloads ───────────────────────────────────────
+// Native events must carry the same rich fields the WASM LocalInferenceClient
+// logs (modelId + timing + rtf per stage) and surface the sidecar's resolved
+// hardware plan (device/backend/computeType/memory) + fallback + machine info.
+
+describe('LocalNativeClient enriched log fields', () => {
+  beforeEach(() => useNativeModelStore.setState({
+    asrResolved: null, translationResolved: null, ttsResolved: null,
+    asrLoading: false, ttsLoading: false, catalog: {}, sizes: {},
+  } as any));
+
+  it('asr.end carries modelId + timing + rtf, and partials are logged', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
+    m.asr.onPartialResult('ho');
+    await m.asr.onResult({ text: 'hola', durationMs: 200, recognitionTimeMs: 10 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const partial = events.find((e) => e.type === 'local.native.asr.partial');
+    expect(partial?.data.text).toBe('ho');
+    const end = events.find((e) => e.type === 'local.native.asr.end');
+    expect(end.data).toMatchObject({ text: 'hola', modelId: 'sense-voice', durationMs: 200, recognitionTimeMs: 10, rtf: 0.05 });
+  });
+
+  it('translation.start/end carry sourceText, modelId, systemPrompt, wrapTranscript', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b', instructions: 'be terse', wrapTranscript: true } as any);
+    await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const start = events.find((e) => e.type === 'local.native.translation.start');
+    expect(start.data).toMatchObject({ sourceText: 'hola', modelId: 'qwen2.5-0.5b', systemPrompt: 'be terse', wrapTranscript: true });
+    const end = events.find((e) => e.type === 'local.native.translation.end');
+    expect(end.data).toMatchObject({ sourceText: 'hola', translatedText: 'hello', inferenceTimeMs: 2, modelId: 'qwen2.5-0.5b' });
+  });
+
+  it('tts.start carries text/sentenceCount/modelId/voice/speed and per-sentence events fire with generateMs', async () => {
+    const deps = fakeDeps(); // translate → 'Hello there. How are you?' (2 sentences); generate generationTimeMs:3
+    const c = new LocalNativeClient(deps as any);
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'q',
+      ttsModelId: 'csukuangfj/vits-piper-en_US-amy-low', ttsSpeed: 1.25, textOnly: false } as any);
+    await (c as any).runJob('hola');
+
+    const start = events.find((e) => e.type === 'local.native.tts.start');
+    expect(start.data).toMatchObject({ sentenceCount: 2, modelId: 'csukuangfj/vits-piper-en_US-amy-low', speed: 1.25 });
+    expect(start.data.text).toContain('Hello');
+    const sentEnds = events.filter((e) => e.type === 'local.native.tts.sentence.end');
+    expect(sentEnds.length).toBe(2);
+    expect(sentEnds[0].data).toMatchObject({ sentenceIndex: 0, sentenceCount: 2, generateMs: 3 });
+    expect(sentEnds[0].data.audioDurationMs).toBeGreaterThan(0);
+    const ttsEnd = events.find((e) => e.type === 'local.native.tts.end');
+    expect(ttsEnd.data).toMatchObject({ sentenceCount: 2 });
+    expect(ttsEnd.data.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('init.{engine}.ready carry device/backend/computeType/memory/loadTimeMs; fallback event emitted', async () => {
+    const asr = {
+      onResult: null as any, onError: null as any, onPartialResult: null as any,
+      init: async () => ({ loadTimeMs: 5, device: 'cuda', backend: 'ort', computeType: 'fp16', rtf: 0.02, memoryBytes: 8_000_000_000 }),
+      feedAudio() {}, flush: async () => {}, dispose() {},
+    };
+    const translate = {
+      onError: null as any,
+      init: async () => ({ loadTimeMs: 9, device: 'cpu', backend: 'llamacpp', computeType: 'q4', tokensPerSec: 12.5, memoryBytes: 4_000_000_000, fallbackReason: 'cuda skipped; using CPU' }),
+      translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {},
+    };
+    const c = new LocalNativeClient({ asr, translate, tts: fakeTts() });
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModelId: 'granite', translationModelId: 'q', textOnly: true } as any);
+
+    const asrReady = events.find((e) => e.type === 'local.native.init.asr.ready');
+    expect(asrReady.data).toMatchObject({ model: 'granite', device: 'cuda', backend: 'ort', computeType: 'fp16', rtf: 0.02, memoryBytes: 8_000_000_000, loadTimeMs: 5 });
+    const trReady = events.find((e) => e.type === 'local.native.init.translation.ready');
+    expect(trReady.data).toMatchObject({ model: 'q', device: 'cpu', backend: 'llamacpp', tokensPerSec: 12.5, loadTimeMs: 9 });
+    const fb = events.find((e) => e.type === 'local.native.init.translation.fallback');
+    expect(fb.data).toMatchObject({ model: 'q', fallbackReason: 'cuda skipped; using CPU' });
+  });
+
+  it('emits local.native.hardware from nativeHardwareInfo', async () => {
+    vi.spyOn(await import('../../stores/nativeModelStore'), 'nativeHardwareInfo')
+      .mockResolvedValue({
+        type: 'hardware_info_result', id: 1, os: 'linux', arch: 'x64', cpuCores: 16,
+        gpus: [{ vendor: 'nvidia', name: 'RTX 4070', vramMb: 12000 }], backendsInstalled: ['ort-cuda'], accelAvailable: true,
+      } as any);
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const events: any[] = [];
+    c.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
+
+    const hw = events.find((e) => e.type === 'local.native.hardware');
+    expect(hw.data).toMatchObject({ os: 'linux', arch: 'x64', cpuCores: 16, accelAvailable: true });
+    expect(hw.data.gpus[0].name).toBe('RTX 4070');
+    expect(hw.data.backendsInstalled).toContain('ort-cuda');
   });
 });
