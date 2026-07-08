@@ -50,7 +50,7 @@ mic → ModernAudioRecorder (mono PCM16 @ 24 kHz)
                  on speech_end → utterance PCM16@16k
                     → encode WAV (16k mono) → data URI
                     → POST Scribe (sign JWT)      → transcript
-                        emit ConversationItem{role:'user', in_progress→completed}
+                        emit ConversationItem{role:'user', completed}
                     → POST Translator (sign JWT)  → translation
                         emit ConversationItem{role:'assistant', completed}
 ```
@@ -106,7 +106,7 @@ Expose `getSourceLanguages()` and `getTargetLanguagesForSource(src)`. The target
 
 - **BYOK, two secrets**: `apiKey` + `apiSecret`, entered in Settings (two-field block, copy Volcengine ST's `ProviderSection.tsx:558–595`).
 - **Client-side JWT**: `ZoomJwtSigner` builds an HS256 JWT (`iss`=apiKey, `iat`, `exp≈now+2h`) signed with `apiSecret` via Web Crypto. Regenerate when near expiry (cache a signed token with its exp). No secret ever leaves the client except as the derived JWT sent to Zoom (`Authorization: Bearer`).
-- Consistent with Sokuji's existing model: the Volcengine provider already signs with a client-held secret in-browser. `apiSecret` is treated like other user-managed keys — held in `clientSecret` at validate/connect time, **never persisted** to settings storage (per the existing `apiKey`-exclusion rule in settingsStore).
+- Consistent with Sokuji's existing model: the Volcengine provider already signs with a client-held secret in-browser. `apiKey` + `apiSecret` are **persisted to the settings service** (via `updateZoomAI`) the same way every other BYOK provider stores its credentials — OpenAI `apiKey`, Volcengine `secretAccessKey` — so the user doesn't re-enter them each session. They are held client-side only and sent to Zoom exclusively as the derived Bearer JWT.
 - **CORS**: POC confirmed `api.zoom.us/v2/aiservices/*` is callable directly. Extension CSP must allow `api.zoom.us` (add to `extension/` connect-src if not already permitted) — verify during implementation.
 
 ## 7. BYOK registration (files to change)
@@ -115,7 +115,7 @@ Mirror the Volcengine ST provider throughout.
 
 - **`src/types/Provider.ts`**: add `ZOOM_AI = 'zoom_ai'` to the enum + `ProviderType` union; add to `SUPPORTED_PROVIDERS` gated by `isZoomAIEnabled()`; add `getProviderDisplayName` case.
 - **`src/utils/environment.ts`**: add `isZoomAIEnabled()` (dev-on; prod gated by `VITE_ENABLE_ZOOM_AI==='true'`). Import in `Provider.ts`, `ProviderConfigFactory.ts`, `ClientFactory.ts`.
-- **`src/services/interfaces/IClient.ts`**: add `ZoomAISessionConfig extends BaseSessionConfig { provider:'zoom_ai'; sourceLanguage; targetLanguage }` (uses existing `BaseSessionConfig.textOnly`), add to `SessionConfig` union + an `isZoomAISessionConfig` guard.
+- **`src/services/interfaces/IClient.ts`**: add `ZoomAISessionConfig extends BaseSessionConfig { provider:'zoom_ai'; sourceLanguage: string; targetLanguages: string[] }` (uses existing `BaseSessionConfig.textOnly`; the client consumes `targetLanguages[0]`), add to `SessionConfig` union + an `isZoomAISessionConfig` guard.
 - **`src/stores/settingsStore.ts`**: `ZoomAISettings { apiKey; apiSecret; sourceLanguage; targetLanguage }`, `defaultZoomAISettings`, `zoomAI` field, `updateZoomAI` action + hooks (`useZoomAISettings`/`useUpdateZoomAI`), `createZoomAISessionConfig`, `case Provider.ZOOM_AI` in `createSessionConfig` and `getCurrentProviderSettings`, and a `validateApiKey` branch (short-circuit if key or secret empty; cache key from both).
 - **`src/services/ClientOperations.ts`**: `case Provider.ZOOM_AI` in `validateApiKeyAndFetchModels` + `getLatestRealtimeModel`.
 - **`src/services/clients/ClientFactory.ts`**: `case Provider.ZOOM_AI` gated on `isZoomAIEnabled()`, requires `clientSecret`, returns `new ZoomAIClient(apiKey, clientSecret)`.

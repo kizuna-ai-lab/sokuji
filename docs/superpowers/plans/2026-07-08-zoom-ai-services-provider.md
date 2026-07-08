@@ -16,7 +16,7 @@
 - **JWT:** HS256; payload `{ iss: apiKey, iat: now-30, exp: now+7200 }`; signed with apiSecret; base64url (no padding).
 - **Scribe request:** `{ file: "data:audio/wav;base64,<bytes>", config: { language, word_time_offsets: true } }`. Response transcript = `result.text_display`. `file` MUST be a data URI (bare base64 → `400 UNSUPPORTED_MEDIA`).
 - **Translator request:** `{ text, config: { source_language, target_languages: [target] } }`. Response text = `result.translations[target]`. A pair MUST have English on one side.
-- **BYOK two secrets:** `apiKey` (Zoom API Key) + `clientSecret` (Zoom API Secret), held only at validate/connect time, never persisted beyond the settings inputs. Signed client-side (same model as Volcengine).
+- **BYOK two secrets:** `apiKey` (Zoom API Key) + `clientSecret` (Zoom API Secret). Persisted in the settings service like every other BYOK provider's credentials (OpenAI `apiKey`, Volcengine `secretAccessKey`); held client-side and sent to Zoom only as the derived Bearer JWT. Signed client-side (same model as Volcengine).
 - **Language matrix (asymmetric):** sources = `en-US, zh-CN, ja-JP, es-ES, it-IT`. `en-US → {zh-CN, zh-TW, ja-JP, ko-KR, es-ES, fr-FR, de-DE, pt-PT, pt-BR, it-IT}`; each of `zh-CN, ja-JP, es-ES, it-IT → en-US` only.
 - **Text-only:** `textOnlyCapability: 'always'`; the Zoom settings panel renders a permanently-checked, disabled `ToggleSwitch` labelled "Text Only".
 - **Audio format in:** `appendInputAudio(Int16Array)` delivers mono PCM16 @ 24000 Hz; resample to 16000 Hz for VAD + the WAV sent to Scribe.
