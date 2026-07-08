@@ -8,9 +8,10 @@ import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { VolcengineSTClient } from './VolcengineSTClient';
 import { VolcengineAST2Client } from './VolcengineAST2Client';
+import { ZoomAIClient } from './ZoomAIClient';
 import { LocalInferenceClient } from './LocalInferenceClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
+import { getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
 
 /**
@@ -143,6 +144,16 @@ export class ClientFactory {
         // Volcengine AST2 uses protobuf binary over WebSocket
         // apiKey is the APP ID, clientSecret is the Access Token
         return new VolcengineAST2Client(apiKey, clientSecret);
+
+      case Provider.ZOOM_AI:
+        if (!isZoomAIEnabled()) {
+          throw new Error(`Provider ${provider} is not available in this build`);
+        }
+        if (!clientSecret) {
+          throw new Error(`API Secret is required for ${provider} provider`);
+        }
+        // apiKey = Zoom API Key, clientSecret = Zoom API Secret
+        return new ZoomAIClient(apiKey, clientSecret);
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);
