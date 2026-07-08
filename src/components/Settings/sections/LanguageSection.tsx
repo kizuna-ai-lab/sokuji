@@ -526,7 +526,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
+                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.ZOOM_AI && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (
