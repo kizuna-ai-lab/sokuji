@@ -18,7 +18,7 @@ import {
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards, nativeAsrCards, nativeTtsCards } from '../lib/local-inference/native/nativeCatalog';
+import { resolveNativeTts, resolveNativeTranslation, requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards, nativeAsrCards, nativeTtsCards, autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 import type { NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
 import { useNativeModelStore } from './nativeModelStore';
 import { isElectron } from '../utils/environment';
@@ -890,6 +890,79 @@ export function createParticipantLocalInferenceConfig(
       ttsModelId: undefined,
     },
     status,
+  };
+}
+
+export type ParticipantLocalNativeResult =
+  | { success: true; config: LocalNativeSessionConfig; translationAvailable: boolean }
+  | { success: false; reason: 'no_asr'; detail: string };
+
+/**
+ * Build a participant (other-speaker) session config for the native provider.
+ *
+ * The participant channel translates the OTHER speaker — who speaks the user's
+ * TARGET language — so the direction is reversed. Reversing must re-resolve the
+ * ASR and translation models, not just swap the language fields, because:
+ *   - the native ASR model is language-conditioned; a source-specific ASR can't
+ *     transcribe the reversed source language, and
+ *   - directional Opus-MT translation models bake the direction into the model
+ *     and ignore src/tgt (translate_backends.py), so the speaker-direction model
+ *     would translate the wrong way.
+ * Multilingual models (qwen*) handle both directions, so for them the
+ * re-resolution is a no-op and the same model is reused (no extra memory).
+ *
+ * Model re-resolution reuses `autoSelectNative` — the same download-/hardware-
+ * aware logic the settings UI uses — so an un-downloaded reverse model is never
+ * selected; it falls back to a downloaded multilingual model, else to
+ * transcription-only. TTS is dropped (participant channel is text-only).
+ *
+ * Returns `{ success: false, reason: 'no_asr' }` when no ASR model can serve the
+ * reversed source language, so the caller can skip the participant channel.
+ */
+export function createParticipantLocalNativeConfig(
+  baseConfig: LocalNativeSessionConfig
+): ParticipantLocalNativeResult {
+  const store = useNativeModelStore.getState();
+  const catalog = store.catalog;
+  const statuses = store.statuses;
+  const isDownloaded = (id: string | null) => id === null || statuses[id] === 'ready';
+  const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
+
+  // Reversed direction: the participant speaks the user's target language.
+  const revSrc = baseConfig.targetLanguage;
+  const revTgt = baseConfig.sourceLanguage;
+
+  const current: NativeSelection = {
+    asrModel: baseConfig.asrModelId,
+    translationModel: baseConfig.translationModelId ?? '',
+    ttsModel: '',
+  };
+  const updates = autoSelectNative(
+    revSrc, revTgt, current, isDownloaded, store.recallModels(revSrc, revTgt), isHardwareGated, catalog,
+  );
+  const asrModel = updates?.asrModel ?? current.asrModel;
+  const translationModel = updates?.translationModel ?? current.translationModel;
+
+  if (!asrModel) {
+    return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };
+  }
+
+  return {
+    success: true,
+    translationAvailable: !!translationModel,
+    config: {
+      ...baseConfig,
+      sourceLanguage: revSrc,
+      targetLanguage: revTgt,
+      asrModelId: asrModel,
+      translationModelId: translationModel || undefined,
+      // Variant pins are keyed by model id: keep the pin only when the reversed
+      // direction reuses the same model, else let the sidecar auto-select.
+      asrVariant: asrModel === baseConfig.asrModelId ? baseConfig.asrVariant : undefined,
+      translationVariant: translationModel === (baseConfig.translationModelId ?? '')
+        ? baseConfig.translationVariant : undefined,
+      ttsModelId: undefined,
+    },
   };
 }
 

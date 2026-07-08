@@ -30,7 +30,7 @@ import {
   useSubtitleModeActive,
   useKeepReplayAudio,
 } from '../../stores/settingsStore';
-import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
+import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -645,17 +645,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const ast2 = config as VolcengineAST2SessionConfig;
       [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
     } else if (config.provider === 'local_native') {
-      // Native ASR/translate carry direction in sourceLanguage/targetLanguage
-      // (the ASR model is language-conditioned; passing the speaker direction
-      // makes it decode the participant's speech in the wrong language). Swap
-      // them so the participant channel does "their speech → user's language".
-      // Both ASR and translation models are multilingual, so no reverse-direction
-      // model swap is needed (unlike local_inference's per-pair WASM models).
-      const nativeConfig = config as LocalNativeSessionConfig;
-      [nativeConfig.sourceLanguage, nativeConfig.targetLanguage] = [nativeConfig.targetLanguage, nativeConfig.sourceLanguage];
-      // Participant channel is text-only; drop the TTS model resolved for the
-      // original target language.
-      nativeConfig.ttsModelId = undefined;
+      // Native ASR/translate carry the translation direction in
+      // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
+      // Opus model bakes the direction in; a source-specific ASR only handles one
+      // language). Reverse the direction and re-resolve both models for the
+      // reversed pair — see createParticipantLocalNativeConfig.
+      const result = createParticipantLocalNativeConfig(config as LocalNativeSessionConfig);
+
+      if (!result.success) {
+        addRealtimeEvent(
+          { type: 'participant.error', data: { message: result.detail } },
+          'client', 'participant.error'
+        );
+        return null;
+      }
+
+      if (!result.translationAvailable) {
+        addRealtimeEvent(
+          { type: 'participant.warning', data: { message: `No translation model for ${result.config.sourceLanguage} → ${result.config.targetLanguage} — transcription only` } },
+          'client', 'participant.warning'
+        );
+      }
+
+      return result.config;
     } else if (config.provider === 'volcengine_st') {
       const st = config as VolcengineSTSessionConfig;
       const oldSource = st.sourceLanguage;
