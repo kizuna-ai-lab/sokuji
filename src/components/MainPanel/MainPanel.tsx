@@ -48,7 +48,7 @@ import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSe
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -644,6 +644,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const oldSource = st.sourceLanguage;
       st.sourceLanguage = st.targetLanguages[0] || oldSource;
       st.targetLanguages = [oldSource];
+    } else if (config.provider === 'zoom_ai') {
+      const z = config as ZoomAISessionConfig;
+      const oldSource = z.sourceLanguage;
+      z.sourceLanguage = z.targetLanguages[0] || oldSource;
+      z.targetLanguages = [oldSource];
     } else if (config.provider === 'local_inference') {
       const localConfig = config as LocalInferenceSessionConfig;
       const result = createParticipantLocalInferenceConfig(localConfig);

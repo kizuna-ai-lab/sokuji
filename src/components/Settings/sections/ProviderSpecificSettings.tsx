@@ -1945,9 +1945,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               value={zoomAISettings.sourceLanguage}
               onChange={(e) => {
                 const newSource = e.target.value;
-                const allowed = ZoomAIProviderConfig.getTargetLanguagesForSource(newSource).map((l) => l.value);
-                const nextTarget = allowed.includes(zoomAISettings.targetLanguage) ? zoomAISettings.targetLanguage : allowed[0];
-                updateZoomAISettings({ sourceLanguage: newSource, targetLanguage: nextTarget });
+                updateZoomAISettings({
+                  sourceLanguage: newSource,
+                  targetLanguage: ZoomAIProviderConfig.reconcileTarget(newSource, zoomAISettings.targetLanguage),
+                });
               }}
               disabled={isSessionActive}
             >

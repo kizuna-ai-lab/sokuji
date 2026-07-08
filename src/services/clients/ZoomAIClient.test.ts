@@ -32,6 +32,11 @@ describe('ZoomAIClient cascade', () => {
     client = new ZoomAIClient('KEY', 'SECRET');
     client.setEventHandlers({ onConversationUpdated: (d) => items.push(d.item) });
     (client as any).currentConfig = { provider: 'zoom_ai', sourceLanguage: 'ja-JP', targetLanguages: ['en-US'] };
+    // handleUtterance now no-ops unless the client is connected (guards added
+    // to avoid processing utterances after disconnect races) — tests call
+    // handleUtterance directly without going through connect(), so simulate
+    // the post-connect state here.
+    (client as any).connected = true;
   });
 
   it('emits a user (transcript) then assistant (translation) item for an utterance', async () => {
