@@ -9,8 +9,9 @@ import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2Pr
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
+import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled, isElectron, isExtension } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -52,6 +53,11 @@ export class ProviderConfigFactory {
     // Register Volcengine AST 2.0 in Electron (IPC proxy) and Extension (declarativeNetRequest header injection)
     if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
+    }
+
+    // Only register Zoom AI Services if the feature flag is enabled
+    if (isZoomAIEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
     }
   }
 
