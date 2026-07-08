@@ -1003,7 +1003,13 @@ export class ZoomAIClient implements IClient {
         }
       };
       worker.onerror = (err) => { clearTimeout(timer); reject(err); };
-      worker.postMessage({ type: 'init' });
+      // Resolve ORT wasm + Silero model on the MAIN thread (self.location is
+      // unreliable across Electron/extension/web) — same pattern as AsrEngine.
+      worker.postMessage({
+        type: 'init',
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+      });
     });
   }
 
