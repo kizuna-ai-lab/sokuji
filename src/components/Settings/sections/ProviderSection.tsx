@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
-import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -318,7 +318,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.ZOOM_AI:
         return {
           name: t('providers.zoom_ai.name', 'Zoom AI Services'),
-          icon: VolcengineIcon, // TODO: Zoom icon
+          icon: ZoomIcon,
           description: t('providers.zoom_ai.description', 'Zoom Scribe transcription + Translator (text only)')
         };
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
