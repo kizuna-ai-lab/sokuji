@@ -395,28 +395,32 @@ const useAudioStore = create<AudioStore>()(
         // Try to restore saved input device, or select default
         const currentInputDevice = get().selectedInputDevice;
         if (!currentInputDevice || !devices.inputs.some(d => d.deviceId === currentInputDevice?.deviceId)) {
-          if (savedInputDeviceId) {
-            // Try to restore saved input device
-            const savedInputDevice = devices.inputs.find(d => d.deviceId === savedInputDeviceId);
-            if (savedInputDevice) {
-              console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
-              set({ selectedInputDevice: savedInputDevice });
-            } else if (devices.inputs.length > 0) {
-              // Saved device not found, fall back to the first real (non-virtual) input.
-              const fallback = pickDefaultInputDevice(devices.inputs);
-              if (fallback) {
-                set({ selectedInputDevice: fallback });
-              } else {
-                console.warn('[Sokuji] [AudioStore] No real microphone found — only virtual/loopback input devices are available. Leaving mic unselected to avoid capturing Sokuji\'s own audio output.');
-              }
-            }
-          } else if (devices.inputs.length > 0) {
-            // No saved preference, select the first real (non-virtual) input.
+          const savedInputDevice = savedInputDeviceId
+            ? devices.inputs.find(d => d.deviceId === savedInputDeviceId)
+            : undefined;
+
+          if (savedInputDevice) {
+            console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
+            set({ selectedInputDevice: savedInputDevice });
+          } else {
+            // No saved device (or it's gone) — fall back to the first real
+            // (non-virtual) input.
             const fallback = pickDefaultInputDevice(devices.inputs);
             if (fallback) {
               set({ selectedInputDevice: fallback });
             } else {
-              console.warn('[Sokuji] [AudioStore] No real microphone found — only virtual/loopback input devices are available. Leaving mic unselected to avoid capturing Sokuji\'s own audio output.');
+              // No real microphone available — either no input devices were
+              // enumerated at all, or the only ones present are virtual/loopback
+              // (e.g. Sokuji's own "Sokuji_Virtual_Mic"). Turn the mic off
+              // explicitly instead of leaving selectedInputDevice unset with
+              // isMicMuted still false: the device picker's "Off" option (see
+              // DeviceList.tsx) only renders as selected when isMicMuted is
+              // true, so an unset device + unmuted mic shows nothing selected
+              // at all rather than a clear "Off" state.
+              console.warn('[Sokuji] [AudioStore] No real microphone found — turning mic off.');
+              set({ isMicMuted: true });
+              settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, true)
+                .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-muted mic state:', error));
             }
           }
         }
