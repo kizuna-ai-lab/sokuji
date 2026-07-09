@@ -1,0 +1,53 @@
+// Engine (sidecar bundle) card — dark-theme styling consistent with the
+// model-management cards (see ModelManagementSection.scss).
+.engine-section {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__header { display: flex; align-items: center; gap: 8px; color: #e0e0e0; }
+  &__title { font-weight: 600; font-size: 13px; flex: 1; }
+  &__version { display: inline-flex; align-items: center; gap: 4px; color: #10a37f; font-size: 12px; }
+
+  &__row {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b0b0b0;
+    &--muted { color: #888; }
+    &--warn { color: #e6a23c; }
+    &--error { color: #e74c3c; }
+  }
+
+  &__bar { height: 6px; border-radius: 3px; background: #333; overflow: hidden; }
+  &__bar-fill {
+    height: 100%; background: #10a37f; transition: width 0.2s ease;
+    &--busy { width: 100%; animation: engine-busy 1.2s linear infinite; }
+  }
+
+  &__action {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+    background: #10a37f; color: #fff; border: none; border-radius: 6px;
+    padding: 6px 12px; font-size: 12px; cursor: pointer;
+    &:hover { background: #0e9271; }
+    &:disabled { opacity: 0.5; cursor: default; }
+    &--secondary { background: #444; &:hover { background: #555; } }
+  }
+
+  &__link {
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none;
+    color: #888; font-size: 12px; cursor: pointer; padding: 0; margin-left: auto;
+    &:hover { color: #e74c3c; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+
+  &__models-placeholder { font-size: 12px; color: #888; padding: 10px 4px 2px; }
+}
+
+@keyframes engine-busy {
+  0% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.35; }
+}

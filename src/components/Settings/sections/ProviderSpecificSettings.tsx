@@ -56,9 +56,10 @@ import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
+import { EngineSection } from './EngineSection';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
-import { useNativeCatalog } from '../../../stores/nativeModelStore';
+import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -113,6 +114,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateLocalNativeSettings = useUpdateLocalNative();
   const nativeCatalog = useNativeCatalog();
   const modelStatuses = useModelStatuses();
+  // Engine gate (spec S10): the native model list only renders once the engine
+  // is usable (installed bundle at the right version, or a dev venv checkout).
+  const engineBundleStatus = useNativeModelStore((s) => s.bundleStatus);
+  const engineDevVenv = useNativeModelStore((s) => s.bundleDevVenv);
+  const engineUsable = engineBundleStatus === 'ready' || engineDevVenv;
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -1711,8 +1717,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        {/* Selection + download (collapsible per-stage cards) lead, like LOCAL_INFERENCE. */}
-        <NativeModelManagementSection isSessionActive={isSessionActive} />
+        {/* Engine gate first (spec S10), then selection + download cards like LOCAL_INFERENCE. */}
+        <EngineSection isSessionActive={isSessionActive} />
+        {engineUsable ? (
+          <NativeModelManagementSection isSessionActive={isSessionActive} />
+        ) : (
+          <div className="engine-section__models-placeholder">
+            {t('engine.installHint', 'Install the engine to browse and download models')}
+          </div>
+        )}
 
         {ttsActive && (
           <TtsSpeedControl
