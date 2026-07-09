@@ -91,7 +91,7 @@ let lastAudioStatus = null;
 /**
  * Figure out *why* virtual audio device setup failed so the renderer can show
  * an actionable message instead of a generic failure.
- * @returns {Promise<{ok: boolean, platform: string, reason: string, message: string}>}
+ * @returns {Promise<{ok: boolean, platform: string, reason: string | null, message: string | null}>}
  */
 async function buildAudioStatus(devicesCreated) {
   if (devicesCreated) {
@@ -442,7 +442,7 @@ app.whenReady().then(async () => {
     }
   } catch (error) {
     console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
-    lastAudioStatus = { ok: false, platform: process.platform, reason: 'other', message: error.message || 'Failed to create virtual audio devices' };
+    lastAudioStatus = { ok: false, platform: process.platform, reason: 'other', message: error?.message || 'Failed to create virtual audio devices' };
   }
 
   // Create the application menu
@@ -709,10 +709,10 @@ ipcMain.handle('create-virtual-speaker', async () => {
     };
   } catch (error) {
     console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
-    sendAudioStatus({ ok: false, platform: process.platform, reason: 'other', message: error.message || 'Failed to create virtual audio devices' });
+    sendAudioStatus({ ok: false, platform: process.platform, reason: 'other', message: error?.message || 'Failed to create virtual audio devices' });
     return {
       success: false,
-      error: error.message || 'Failed to create virtual audio devices'
+      error: error?.message || 'Failed to create virtual audio devices'
     };
   }
 });

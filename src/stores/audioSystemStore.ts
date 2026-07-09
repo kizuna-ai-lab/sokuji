@@ -40,6 +40,8 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
       await (window as any).electron?.invoke('create-virtual-speaker');
       // Result also arrives via the 'audio-status' push below; this just
       // guards against a broken IPC round trip leaving the spinner stuck.
+    } catch (error) {
+      console.error('[Sokuji] [AudioSystemStore] Failed to retry virtual speaker creation:', error);
     } finally {
       set({ retrying: false });
     }
@@ -57,19 +59,24 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
       statusHandler = null;
     }
 
-    const applyStatus = (data: any) => {
+    // `isLiveUpdate` distinguishes a fresh push (a status change actually
+    // happened, e.g. after retry) from the one-time hydration pull below
+    // (just fetching whatever was last computed). Only a live update should
+    // re-surface a banner the user already dismissed — otherwise every
+    // remount of the listener (e.g. entering/exiting subtitle mode) would
+    // silently un-dismiss a still-unresolved, already-acknowledged failure.
+    const applyStatus = (data: any, isLiveUpdate: boolean) => {
       if (!data) return;
       set({
         status: data.ok ? 'ok' : 'unavailable',
         platform: data.platform ?? null,
         reason: data.reason ?? null,
         message: data.message ?? null,
-        // A fresh unavailable status (e.g. after retry) should re-surface the banner
-        dismissed: data.ok ? get().dismissed : false,
+        dismissed: (isLiveUpdate && !data.ok) ? false : get().dismissed,
       });
     };
 
-    statusHandler = applyStatus;
+    statusHandler = (data: any) => applyStatus(data, true);
     electron.receive('audio-status', statusHandler);
 
     // The main process may have already pushed 'audio-status' (on
@@ -77,7 +84,7 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
     // asynchronously, so that push can easily be missed. Pull the current
     // status once now to cover that race; future changes still arrive live
     // via the push above.
-    electron.invoke('get-audio-status').then(applyStatus).catch(() => {});
+    electron.invoke('get-audio-status').then((data: any) => applyStatus(data, false)).catch(() => {});
   },
 
   cleanupListeners: () => {
