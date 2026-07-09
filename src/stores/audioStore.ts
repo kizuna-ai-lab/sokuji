@@ -32,6 +32,21 @@ export interface AudioDevice {
   isVirtual?: boolean;
 }
 
+/**
+ * Pick a default microphone from an enumerated input list, excluding virtual
+ * ones (e.g. Sokuji's own "Sokuji_Virtual_Mic" — the monitor of Sokuji's own
+ * virtual speaker, meant for other apps to consume, not for Sokuji to listen
+ * to itself). Returns null when only virtual/loopback devices are available
+ * rather than falling back to one — auto-selecting a loopback device as the
+ * mic would feed Sokuji's own TTS output back into ASR as "user speech",
+ * creating a self-sustaining transcription loop (observed on machines with
+ * no physical microphone, where a virtual device is the only input listed).
+ */
+export function pickDefaultInputDevice(inputs: AudioDevice[]): AudioDevice | null {
+  const nonVirtualInputs = inputs.filter(device => !device.isVirtual);
+  return nonVirtualInputs[0] ?? null;
+}
+
 interface AudioStore {
   // State
   audioInputDevices: AudioDevice[];
@@ -387,21 +402,21 @@ const useAudioStore = create<AudioStore>()(
               console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
               set({ selectedInputDevice: savedInputDevice });
             } else if (devices.inputs.length > 0) {
-              // Saved device not found, fall back to first non-virtual input device
-              const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
-              if (nonVirtualInputs.length > 0) {
-                set({ selectedInputDevice: nonVirtualInputs[0] });
+              // Saved device not found, fall back to the first real (non-virtual) input.
+              const fallback = pickDefaultInputDevice(devices.inputs);
+              if (fallback) {
+                set({ selectedInputDevice: fallback });
               } else {
-                set({ selectedInputDevice: devices.inputs[0] });
+                console.warn('[Sokuji] [AudioStore] No real microphone found — only virtual/loopback input devices are available. Leaving mic unselected to avoid capturing Sokuji\'s own audio output.');
               }
             }
           } else if (devices.inputs.length > 0) {
-            // No saved preference, select first non-virtual input device
-            const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
-            if (nonVirtualInputs.length > 0) {
-              set({ selectedInputDevice: nonVirtualInputs[0] });
+            // No saved preference, select the first real (non-virtual) input.
+            const fallback = pickDefaultInputDevice(devices.inputs);
+            if (fallback) {
+              set({ selectedInputDevice: fallback });
             } else {
-              set({ selectedInputDevice: devices.inputs[0] });
+              console.warn('[Sokuji] [AudioStore] No real microphone found — only virtual/loopback input devices are available. Leaving mic unselected to avoid capturing Sokuji\'s own audio output.');
             }
           }
         }

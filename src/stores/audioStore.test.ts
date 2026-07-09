@@ -1,6 +1,34 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import useAudioStore from './audioStore';
-import type { AudioMode } from './audioStore';
+import useAudioStore, { pickDefaultInputDevice } from './audioStore';
+import type { AudioMode, AudioDevice } from './audioStore';
+
+// Regression test: on a machine with no physical microphone, the only
+// enumerated "audioinput" device can be a virtual/loopback one — notably
+// Sokuji's own "Sokuji_Virtual_Mic", the monitor of Sokuji's own virtual
+// speaker (electron/pulseaudio-utils.js). Auto-selecting it as the mic feeds
+// Sokuji's own TTS output back into ASR as "user speech", producing an
+// infinite transcribe -> translate -> speak loop. The fallback must never
+// pick a virtual device, even when it's the only one available.
+describe('pickDefaultInputDevice', () => {
+  it('picks the first non-virtual device when a real mic is present', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+      { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
+    ];
+    expect(pickDefaultInputDevice(inputs)?.deviceId).toBe('real-1');
+  });
+
+  it('returns null when every available input is virtual (no physical mic)', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+    ];
+    expect(pickDefaultInputDevice(inputs)).toBeNull();
+  });
+
+  it('returns null for an empty device list', () => {
+    expect(pickDefaultInputDevice([])).toBeNull();
+  });
+});
 
 describe('audioStore — mode + mute flags', () => {
   beforeEach(() => {
