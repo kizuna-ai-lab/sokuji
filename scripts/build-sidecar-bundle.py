@@ -69,6 +69,16 @@ def host_supports_sku(sku: str) -> bool:
     return False
 
 
+def default_version(repo_root: str) -> str:
+    """The sidecar's canonical version = package.json `sidecarVersion` (spec S1).
+    One field, one bump; the sidecar-vX.Y.Z tag must match it (CI-asserted)."""
+    pkg = json.loads((Path(repo_root) / "package.json").read_text())
+    v = pkg.get("sidecarVersion")
+    if not v:
+        raise SystemExit("package.json has no sidecarVersion field")
+    return v
+
+
 def select_python_asset(assets, triple: str, py_series: str = "3.12") -> str:
     """Pick the python-build-standalone `install_only` tarball for `triple`.
     Excludes `install_only_stripped` (name suffix differs) and other series."""
@@ -199,7 +209,8 @@ def _archive_and_manifest(sku, version, bundle_dir, out_root, base_url):
 def _main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sku", required=True, choices=sorted(SKU_TRIPLE))
-    ap.add_argument("--version", required=True)
+    ap.add_argument("--version", default="",
+                    help="override; defaults to package.json sidecarVersion")
     ap.add_argument("--out", default="out/bundles")
     ap.add_argument("--archive", action="store_true",
                     help="also pack .tar.zst + manifest fragment (Task 4)")
@@ -207,9 +218,10 @@ def _main(argv=None) -> int:
                     help="hosting base URL for the manifest `url` field (operator-set)")
     args = ap.parse_args(argv)
     repo_root = str(Path(__file__).resolve().parent.parent)
-    bundle_dir = build_bundle_dir(args.sku, args.version, args.out, repo_root)
+    version = args.version or default_version(repo_root)
+    bundle_dir = build_bundle_dir(args.sku, version, args.out, repo_root)
     if args.archive:
-        _archive_and_manifest(args.sku, args.version, bundle_dir, args.out, args.base_url)
+        _archive_and_manifest(args.sku, version, bundle_dir, args.out, args.base_url)
     return 0
 
 

@@ -1,8 +1,10 @@
 """Pure-helper tests for the bundle build script. The full linux build is a
 manual acceptance step in the plan (needs network + wheels), not a unit test."""
 import importlib.util
+import json
 import pathlib
 import platform
+import re
 
 import pytest
 
@@ -128,3 +130,21 @@ def test_merge_manifests_keeps_latest_per_sku():
     ])
     got = {e["sku"]: e["version"] for e in agg["bundles"]}
     assert got == {"nvidia": "0.30.6", "mac": "0.30.6"}
+
+
+def test_default_version_reads_package_json(tmp_path):
+    (tmp_path / "package.json").write_text(
+        json.dumps({"version": "9.9.9", "sidecarVersion": "0.1.0"}))
+    assert b.default_version(str(tmp_path)) == "0.1.0"
+
+
+def test_default_version_missing_field_exits(tmp_path):
+    (tmp_path / "package.json").write_text(json.dumps({"version": "9.9.9"}))
+    with pytest.raises(SystemExit):
+        b.default_version(str(tmp_path))
+
+
+def test_repo_package_json_declares_sidecar_version():
+    root = pathlib.Path(__file__).resolve().parents[2]
+    pkg = json.loads((root / "package.json").read_text())
+    assert re.fullmatch(r"\d+\.\d+\.\d+", pkg["sidecarVersion"])
