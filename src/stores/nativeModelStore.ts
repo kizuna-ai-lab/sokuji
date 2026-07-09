@@ -17,20 +17,39 @@ interface NativeModelStore {
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
   sidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable';
-  /** Detected bundle SKU for this machine (nvidia | directml | mac). */
+  /** Detected bundle SKU for this machine (linux-nvidia | win-nvidia | win-directml | mac). */
   bundleSku: string | null;
-  /** Self-contained sidecar bundle lifecycle (spec D10). */
-  bundleStatus: 'unknown' | 'absent' | 'installing' | 'ready' | 'error';
+  /** Self-contained sidecar bundle lifecycle (distribution spec S2/S7/S10). */
+  bundleStatus: 'unknown' | 'unsupported' | 'absent' | 'mismatch' | 'paused' | 'installing' | 'ready' | 'error';
+  /** Install pipeline phase while `bundleStatus === 'installing'`. */
+  bundlePhase: 'download' | 'verify' | 'extract' | null;
   /** Installed bundle version (from its bundle.json marker), if any. */
   bundleVersion: string | null;
+  /** Engine version this app build requires (package.json sidecarVersion). */
+  bundleRequiredVersion: string | null;
+  /** Bytes already staged from an interrupted download (drives 'paused'). */
+  bundleStagedBytes: number;
+  /** Detected GPU marketing name (nvidia-smi), for the engine card. */
+  bundleGpuName: string | null;
+  /** True when a dev venv python exists — dev checkout, quiet card note. */
+  bundleDevVenv: boolean;
+  /** Download / unpacked sizes from the manifest peek (null while unknown). */
+  bundleSize: number | null;
+  bundleInstalledSize: number | null;
   /** Live download progress while `bundleStatus === 'installing'`. */
   bundleProgress: { downloaded: number; total: number };
   /** Last bundle install error (empty when none). */
   bundleError: string;
-  /** Query the main process for the detected SKU + installed bundle status. */
+  /** Query the main process for SKU + install/mismatch/staged state. */
   refreshBundle: () => Promise<void>;
-  /** Download + unpack the machine's bundle via IPC, streaming progress. */
+  /** Download + unpack the machine's bundle via IPC, streaming phased progress. */
   installBundle: () => Promise<void>;
+  /** Abort the in-flight download; staging is kept so install resumes later. */
+  cancelBundle: () => Promise<void>;
+  /** Delete the installed engine (frees disk) and re-read status. */
+  removeBundle: () => Promise<void>;
+  /** Best-effort manifest peek for exact sizes on the absent/mismatch card. */
+  fetchBundleEntry: () => Promise<void>;
   /** Warm the sidecar and load the full model catalog (asr+translate+tts) + hardware.
    *  Idempotent: returns immediately when already `ready`. Sets `unavailable` on any
    *  failure (no silent catch) so surfaces can show an error + retry. */
@@ -136,50 +155,98 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   ttsResolved: null,
   bundleSku: null,
   bundleStatus: 'unknown',
+  bundlePhase: null,
   bundleVersion: null,
+  bundleRequiredVersion: null,
+  bundleStagedBytes: 0,
+  bundleGpuName: null,
+  bundleDevVenv: false,
+  bundleSize: null,
+  bundleInstalledSize: null,
   bundleProgress: { downloaded: 0, total: 0 },
   bundleError: '',
 
   refreshBundle: async () => {
+    if (get().bundleStatus === 'installing') return; // never clobber a live install
     try {
       const r = await bundleInvoke('sidecar-bundle:status');
-      if (r?.ok) {
-        set({
-          bundleSku: r.sku ?? null,
-          bundleStatus: r.installed ? 'ready' : 'absent',
-          bundleVersion: r.version ?? null,
-          // Clear any stale error/progress from a previous failed install attempt —
-          // otherwise a retry-by-refresh (e.g. after fixing hosting config) would
-          // still show the old error banner even though status now reads cleanly.
-          bundleError: '',
-          bundleProgress: { downloaded: 0, total: 0 },
-        });
-      }
+      if (!r?.ok) return;
+      const base = r.sku === null ? 'unsupported' : (r.state as 'absent' | 'mismatch' | 'ready');
+      // Staged bytes from an interrupted download surface as 'paused' (spec S7)
+      // so the card offers Resume instead of a from-scratch Download.
+      const status = (base === 'absent' || base === 'mismatch') && r.stagedBytes > 0 ? 'paused' : base;
+      set({
+        bundleSku: r.sku ?? null,
+        bundleStatus: status,
+        bundleVersion: r.installedVersion ?? null,
+        bundleRequiredVersion: r.requiredVersion ?? null,
+        bundleStagedBytes: r.stagedBytes ?? 0,
+        bundleGpuName: r.gpuName ?? null,
+        bundleDevVenv: !!r.devVenvPresent,
+        bundleError: '',
+        bundleProgress: { downloaded: 0, total: 0 },
+        bundlePhase: null,
+      });
     } catch {
       // best-effort; a dev checkout with no bundle simply stays 'unknown'
     }
   },
 
   installBundle: async () => {
-    // Reentrancy guard: ignore a second call while one install is already running
-    // (e.g. a double-click on the install button) rather than racing two IPC
-    // round-trips against the same tmp/old bundle dirs in the main process.
+    // Reentrancy guard: a double-click must not race two IPC installs.
     if (get().bundleStatus === 'installing') return;
-    set({ bundleStatus: 'installing', bundleProgress: { downloaded: 0, total: 0 }, bundleError: '' });
+    set({
+      bundleStatus: 'installing', bundlePhase: 'download',
+      bundleProgress: { downloaded: get().bundleStagedBytes, total: 0 }, bundleError: '',
+    });
     const off = onBundleProgress((p) =>
-      set({ bundleProgress: { downloaded: p.downloaded, total: p.total } }));
+      set({
+        bundleProgress: { downloaded: p.downloaded ?? 0, total: p.total ?? 0 },
+        bundlePhase: p.phase ?? 'download',
+      }));
     try {
       const r = await bundleInvoke('sidecar-bundle:install');
       off?.();
       if (r?.ok) {
-        set({ bundleStatus: 'ready', bundleSku: r.sku ?? null, bundleVersion: r.version ?? null });
+        set({
+          bundleStatus: 'ready', bundleSku: r.sku ?? null, bundleVersion: r.version ?? null,
+          bundlePhase: null, bundleStagedBytes: 0,
+        });
+        // Unlock the provider gate + warm the freshly installed sidecar.
+        void revalidateNativeProvider();
+      } else if (r?.cancelled) {
+        set({
+          bundleStatus: 'paused', bundlePhase: null,
+          bundleStagedBytes: get().bundleProgress.downloaded,
+        });
       } else {
-        set({ bundleStatus: 'error', bundleError: r?.error || 'bundle install failed' });
+        set({ bundleStatus: 'error', bundlePhase: null, bundleError: r?.error || 'bundle install failed' });
       }
     } catch (err) {
       off?.();
-      set({ bundleStatus: 'error', bundleError: err instanceof Error ? err.message : String(err) });
+      set({
+        bundleStatus: 'error', bundlePhase: null,
+        bundleError: err instanceof Error ? err.message : String(err),
+      });
     }
+  },
+
+  cancelBundle: async () => {
+    try { await bundleInvoke('sidecar-bundle:cancel'); } catch { /* main unreachable */ }
+  },
+
+  removeBundle: async () => {
+    try {
+      const r = await bundleInvoke('sidecar-bundle:remove');
+      if (r?.ok) await get().refreshBundle();
+    } catch { /* best-effort */ }
+  },
+
+  fetchBundleEntry: async () => {
+    try {
+      const r = await bundleInvoke('sidecar-bundle:manifest');
+      if (r?.ok) set({ bundleSize: r.size ?? null, bundleInstalledSize: r.installedSize ?? null });
+    } catch { /* offline — the card shows a placeholder size */ }
   },
 
   refreshCatalog: async (models) => {
@@ -206,7 +273,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   ensureCatalog: async () => {
     const st = get().sidecarStatus;
     if (st === 'ready' || st === 'starting') return;
+    // Flip to 'starting' synchronously (UI shows it immediately and re-entry is
+    // blocked), THEN check the bundle. Strict matching (spec S2): never boot a
+    // stale bundle — 'mismatch' surfaces as unavailable + the card's update CTA.
     set({ sidecarStatus: 'starting' });
+    await get().refreshBundle();
+    if (get().bundleStatus === 'mismatch') {
+      set({ sidecarStatus: 'unavailable' });
+      return;
+    }
     try {
       // The first modelsCatalog call's connect() performs the native-host:start
       // handshake; tier availability comes from the catalog tiers array for each
@@ -371,3 +446,4 @@ export const useNativeTtsLoading = () => useNativeModelStore((s) => s.ttsLoading
 export const useNativeTtsResolved = () => useNativeModelStore((s) => s.ttsResolved);
 export const useNativeBundleStatus = () => useNativeModelStore((s) => s.bundleStatus);
 export const useNativeBundleProgress = () => useNativeModelStore((s) => s.bundleProgress);
+export const useNativeBundlePhase = () => useNativeModelStore((s) => s.bundlePhase);

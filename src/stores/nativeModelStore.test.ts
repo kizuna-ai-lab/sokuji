@@ -255,41 +255,121 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
   });
 });
 
-describe('nativeModelStore bundle install (spec D10)', () => {
-  it('refreshBundle reflects the installed status', async () => {
+describe('nativeModelStore bundle state machine (distribution spec)', () => {
+  const statusReply = (over: Record<string, unknown> = {}) => ({
+    ok: true, sku: 'linux-nvidia', state: 'ready', installed: true,
+    installedVersion: '0.1.0', requiredVersion: '0.1.0',
+    gpuName: 'NVIDIA GeForce RTX 4070', stagedBytes: 0, devVenvPresent: false,
+    ...over,
+  });
+
+  beforeEach(() => {
+    useNativeModelStore.setState({
+      bundleStatus: 'unknown', bundlePhase: null, bundleSku: null, bundleVersion: null,
+      bundleRequiredVersion: null, bundleStagedBytes: 0, bundleGpuName: null,
+      bundleDevVenv: false, bundleSize: null, bundleInstalledSize: null,
+      bundleProgress: { downloaded: 0, total: 0 }, bundleError: '',
+    });
+  });
+
+  it('refreshBundle maps ready + carries gpu/dev metadata', async () => {
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'linux-nvidia', installed: true, version: '0.30.6' }),
+      invoke: vi.fn().mockResolvedValue(statusReply()),
     };
     await useNativeModelStore.getState().refreshBundle();
     const s = useNativeModelStore.getState();
-    expect(s.bundleSku).toBe('linux-nvidia');
     expect(s.bundleStatus).toBe('ready');
-    expect(s.bundleVersion).toBe('0.30.6');
+    expect(s.bundleVersion).toBe('0.1.0');
+    expect(s.bundleRequiredVersion).toBe('0.1.0');
+    expect(s.bundleGpuName).toBe('NVIDIA GeForce RTX 4070');
   });
 
-  it('installBundle streams progress then flips to ready', async () => {
+  it('refreshBundle maps mismatch and unsupported', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue(statusReply({
+        state: 'mismatch', installedVersion: '0.1.0', requiredVersion: '0.2.0' })),
+    };
+    await useNativeModelStore.getState().refreshBundle();
+    expect(useNativeModelStore.getState().bundleStatus).toBe('mismatch');
+
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue(statusReply({ sku: null, state: 'unsupported', installed: false })),
+    };
+    await useNativeModelStore.getState().refreshBundle();
+    expect(useNativeModelStore.getState().bundleStatus).toBe('unsupported');
+  });
+
+  it('refreshBundle maps absent+stagedBytes to paused', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue(statusReply({
+        state: 'absent', installed: false, installedVersion: null, stagedBytes: 812 })),
+    };
+    await useNativeModelStore.getState().refreshBundle();
+    const s = useNativeModelStore.getState();
+    expect(s.bundleStatus).toBe('paused');
+    expect(s.bundleStagedBytes).toBe(812);
+  });
+
+  it('refreshBundle is a no-op while installing', async () => {
+    useNativeModelStore.setState({ bundleStatus: 'installing' });
+    const invoke = vi.fn();
+    (globalThis as any).window.electron = { invoke };
+    await useNativeModelStore.getState().refreshBundle();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
+  });
+
+  it('installBundle streams phased progress then flips to ready', async () => {
     let progressCb: ((p: any) => void) | null = null;
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'win-directml', version: '0.30.6' }),
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'linux-nvidia', version: '0.1.0' }),
       receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') progressCb = f; },
       removeListener: () => {},
     };
     const p = useNativeModelStore.getState().installBundle();
     expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
-    progressCb?.({ downloaded: 5, total: 10 });
+    progressCb?.({ phase: 'download', downloaded: 5, total: 10 });
     expect(useNativeModelStore.getState().bundleProgress).toEqual({ downloaded: 5, total: 10 });
+    expect(useNativeModelStore.getState().bundlePhase).toBe('download');
+    progressCb?.({ phase: 'extract', downloaded: 10, total: 10 });
+    expect(useNativeModelStore.getState().bundlePhase).toBe('extract');
     await p;
-    expect(useNativeModelStore.getState().bundleStatus).toBe('ready');
-    expect(useNativeModelStore.getState().bundleVersion).toBe('0.30.6');
+    const s = useNativeModelStore.getState();
+    expect(s.bundleStatus).toBe('ready');
+    expect(s.bundleVersion).toBe('0.1.0');
+    expect(s.bundlePhase).toBeNull();
   });
 
-  it('installBundle surfaces an install error (e.g. hosting not configured)', async () => {
+  it('installBundle cancelled -> paused with staged bytes kept', async () => {
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: false, error: 'hosting not configured' }),
+      invoke: vi.fn().mockResolvedValue({ ok: false, sku: 'linux-nvidia', cancelled: true }),
+      receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') f({ phase: 'download', downloaded: 812, total: 2000 }); },
+      removeListener: () => {},
+    };
+    await useNativeModelStore.getState().installBundle();
+    const s = useNativeModelStore.getState();
+    expect(s.bundleStatus).toBe('paused');
+    expect(s.bundleStagedBytes).toBe(812);
+  });
+
+  it('installBundle surfaces an install error', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: false, error: 'not enough disk space: need ~7.4 GB free, have 3.1 GB' }),
       receive: () => {}, removeListener: () => {},
     };
     await useNativeModelStore.getState().installBundle();
-    expect(useNativeModelStore.getState().bundleStatus).toBe('error');
-    expect(useNativeModelStore.getState().bundleError).toBe('hosting not configured');
+    const s = useNativeModelStore.getState();
+    expect(s.bundleStatus).toBe('error');
+    expect(s.bundleError).toMatch(/disk space/);
+  });
+
+  it('fetchBundleEntry stores manifest sizes best-effort', async () => {
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: true, size: 2040, installedSize: 4900 }),
+    };
+    await useNativeModelStore.getState().fetchBundleEntry();
+    const s = useNativeModelStore.getState();
+    expect(s.bundleSize).toBe(2040);
+    expect(s.bundleInstalledSize).toBe(4900);
   });
 });
