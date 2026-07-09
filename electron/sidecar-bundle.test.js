@@ -1,11 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'fs';
+import { describe, it, expect, vi } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import crypto from 'crypto';
 import { createRequire } from 'module';
 import {
   archiveName, bundleInstallDir, pickBundle, verifySha256, extractTarZst, installBundle,
+  requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
+  downloadPart, concatParts,
 } from './sidecar-bundle.js';
 
 // Shares the Node module cache with sidecar-bundle.js's own `require('fs')` (core
@@ -139,5 +141,120 @@ describe('installBundle rollback', () => {
     expect(existsSync(dest)).toBe(true);
     expect(readFileSync(path.join(dest, 'marker.txt'), 'utf8')).toBe('PREVIOUS');
     expect(existsSync(`${dest}.old`)).toBe(false);
+  });
+});
+
+// A minimal fetch Response stand-in: one chunk, then done.
+function fetchResponse(bytes, { status = 200 } = {}) {
+  let sent = false;
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: () => String(bytes.length) },
+    body: {
+      getReader: () => ({
+        read: async () =>
+          sent ? { done: true } : ((sent = true), { done: false, value: Uint8Array.from(bytes) }),
+      }),
+    },
+  };
+}
+
+const sha = (buf) => crypto.createHash('sha256').update(Buffer.from(buf)).digest('hex');
+
+describe('requiredSidecarVersion / bundleBaseUrl (spec S1/S4/S11)', () => {
+  it('env override wins; package field is the default; missing field throws', () => {
+    expect(requiredSidecarVersion({ env: { SOKUJI_SIDECAR_VERSION: '9.9.9' } })).toBe('9.9.9');
+    expect(requiredSidecarVersion({ env: {}, pkg: { sidecarVersion: '0.1.0' } })).toBe('0.1.0');
+    expect(requiredSidecarVersion({ env: {} })).toBe(req('../package.json').sidecarVersion);
+    expect(() => requiredSidecarVersion({ env: {}, pkg: {} })).toThrow(/sidecarVersion/);
+  });
+  it('derives the GitHub release URL from the version, env override replaces it', () => {
+    expect(bundleBaseUrl('0.1.0', {}))
+      .toBe('https://github.com/kizuna-ai-lab/sokuji/releases/download/sidecar-v0.1.0');
+    expect(bundleBaseUrl('0.1.0', { SOKUJI_SIDECAR_BUNDLE_BASE_URL: 'http://localhost:8000/' }))
+      .toBe('http://localhost:8000');
+  });
+});
+
+describe('staging (spec S6)', () => {
+  it('stagedBytes counts only files of this sku+version; pruneStaging drops the rest', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-stage-'));
+    mkdirSync(stagingDir(u), { recursive: true });
+    const keep = archiveName('mac', '0.1.0');
+    writeFileSync(path.join(stagingDir(u), `${keep}.001`), Buffer.alloc(10));
+    writeFileSync(path.join(stagingDir(u), `${keep}.002`), Buffer.alloc(5));
+    writeFileSync(path.join(stagingDir(u), archiveName('mac', '0.0.9')), Buffer.alloc(99));
+    expect(stagedBytes(u, 'mac', '0.1.0')).toBe(15);
+    pruneStaging(u, keep);
+    expect(existsSync(path.join(stagingDir(u), archiveName('mac', '0.0.9')))).toBe(false);
+    expect(existsSync(path.join(stagingDir(u), `${keep}.001`))).toBe(true);
+  });
+});
+
+describe('downloadPart resume decision table (spec S7)', () => {
+  const payload = Buffer.from('0123456789abcdef');
+  const part = { name: 'p', size: payload.length, sha256: sha(payload) };
+
+  it('complete + valid staged part: no fetch at all', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-dl-'));
+    const dest = path.join(d, 'p');
+    writeFileSync(dest, payload);
+    const fetchImpl = vi.fn();
+    await downloadPart({ url: 'u', dest, part, fetchImpl });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('partial staged part: resumes with a Range header and appends', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-dl-'));
+    const dest = path.join(d, 'p');
+    writeFileSync(dest, payload.subarray(0, 6));
+    const fetchImpl = vi.fn(async (_u, opts) => {
+      expect(opts.headers.Range).toBe('bytes=6-');
+      return fetchResponse(payload.subarray(6), { status: 206 });
+    });
+    const seen = [];
+    await downloadPart({ url: 'u', dest, part, fetchImpl, onPartProgress: (n) => seen.push(n) });
+    expect(readFileSync(dest)).toEqual(payload);
+    expect(seen.at(-1)).toBe(payload.length); // progress includes the staged offset
+  });
+
+  it('server ignoring Range (HTTP 200) restarts from zero', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-dl-'));
+    const dest = path.join(d, 'p');
+    writeFileSync(dest, payload.subarray(0, 6));
+    const fetchImpl = vi.fn(async () => fetchResponse(payload, { status: 200 }));
+    await downloadPart({ url: 'u', dest, part, fetchImpl });
+    expect(readFileSync(dest)).toEqual(payload);
+  });
+
+  it('corrupt complete staged part: re-downloads from zero', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-dl-'));
+    const dest = path.join(d, 'p');
+    writeFileSync(dest, Buffer.alloc(payload.length, 0x7a)); // right size, wrong bytes
+    const fetchImpl = vi.fn(async (_u, opts) => {
+      expect(opts.headers.Range).toBeUndefined();
+      return fetchResponse(payload);
+    });
+    await downloadPart({ url: 'u', dest, part, fetchImpl });
+    expect(readFileSync(dest)).toEqual(payload);
+  });
+
+  it('sha mismatch after download deletes the part and rejects', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-dl-'));
+    const dest = path.join(d, 'p');
+    const fetchImpl = vi.fn(async () => fetchResponse(Buffer.from('WRONG-BYTES-16!!')));
+    await expect(downloadPart({ url: 'u', dest, part, fetchImpl })).rejects.toThrow(/sha256/);
+    expect(existsSync(dest)).toBe(false);
+  });
+});
+
+describe('concatParts', () => {
+  it('reassembles parts byte-identically', async () => {
+    const d = mkdtempSync(path.join(tmpdir(), 'sb-cat-'));
+    writeFileSync(path.join(d, 'a'), 'hello ');
+    writeFileSync(path.join(d, 'b'), 'world');
+    await concatParts([path.join(d, 'a'), path.join(d, 'b')], path.join(d, 'out'));
+    expect(readFileSync(path.join(d, 'out'), 'utf8')).toBe('hello world');
   });
 });

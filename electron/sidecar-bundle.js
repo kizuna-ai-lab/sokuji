@@ -21,6 +21,63 @@ function bundleStatus(userDataDir, sku) {
   }
 }
 
+const GITHUB_RELEASES_BASE = 'https://github.com/kizuna-ai-lab/sokuji/releases/download';
+
+// The engine version this app build requires (spec S1/S2): package.json's
+// `sidecarVersion` — packaged into the asar by both forge and electron-builder.
+// SOKUJI_SIDECAR_VERSION overrides it for hardware verification of a
+// not-yet-adopted release (spec S11).
+function requiredSidecarVersion({ env = process.env, pkg = null } = {}) {
+  if (env.SOKUJI_SIDECAR_VERSION) return env.SOKUJI_SIDECAR_VERSION;
+  const p = pkg || require('../package.json');
+  if (!p.sidecarVersion) throw new Error('package.json has no sidecarVersion field');
+  return p.sidecarVersion;
+}
+
+// Where the per-version manifest + archives live (spec S4). The env override is
+// the mirror/staging knob (spec S11): it replaces the whole base; the relative
+// path layout (manifest.json + part names) is identical everywhere.
+function bundleBaseUrl(version, env = process.env) {
+  const o = env.SOKUJI_SIDECAR_BUNDLE_BASE_URL;
+  if (o) return o.replace(/\/+$/, '');
+  return `${GITHUB_RELEASES_BASE}/sidecar-v${version}`;
+}
+
+// Download staging lives under userData, NOT os.tmpdir(): /tmp is commonly
+// tmpfs on Linux (a 2 GB download must not eat RAM) and does not survive
+// reboots (which would kill resume) — spec S6.
+function stagingDir(userDataDir) {
+  return path.join(userDataDir, 'sidecar', '.staging');
+}
+
+// Bytes already staged for this sku+version (drives the renderer's 'paused' state).
+function stagedBytes(userDataDir, sku, version) {
+  const prefix = archiveName(sku, version);
+  const dir = stagingDir(userDataDir);
+  let total = 0;
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (f === prefix || f.startsWith(`${prefix}.`)) {
+        total += fs.statSync(path.join(dir, f)).size;
+      }
+    }
+  } catch { /* no staging dir yet */ }
+  return total;
+}
+
+// Drop staged files that do not belong to this archive. Version is part of the
+// file name, so stale downloads from an older sidecarVersion never survive.
+function pruneStaging(userDataDir, keepArchiveName) {
+  const dir = stagingDir(userDataDir);
+  let names;
+  try { names = fs.readdirSync(dir); } catch { return; }
+  for (const f of names) {
+    if (f !== keepArchiveName && !f.startsWith(`${keepArchiveName}.`)) {
+      fs.rmSync(path.join(dir, f), { force: true });
+    }
+  }
+}
+
 function pickBundle(manifest, sku) {
   return (manifest.bundles || []).find((e) => e.sku === sku);
 }
@@ -113,6 +170,79 @@ function extractTarZst(archivePath, destDir) {
   });
 }
 
+// Download one part into `dest`, resuming from already-staged bytes with an
+// HTTP Range request (spec S7; GitHub release assets honor Range). The part's
+// sha256 is verified afterwards; a mismatching file is deleted before the
+// error propagates, so the next attempt restarts that part from zero.
+// Resume is not a separate code path — the whole function is idempotent.
+async function downloadPart({ url, dest, part, onPartProgress, fetchImpl = fetch, signal }) {
+  let offset = 0;
+  try { offset = fs.statSync(dest).size; } catch { /* nothing staged */ }
+  if (offset > part.size) { fs.rmSync(dest, { force: true }); offset = 0; }
+  if (offset === part.size) {
+    try {
+      await verifySha256(dest, part.sha256);
+      onPartProgress?.(part.size);
+      return;                                   // complete + valid: skip
+    } catch {
+      fs.rmSync(dest, { force: true });
+      offset = 0;                               // complete + corrupt: restart
+    }
+  }
+  const headers = offset > 0 ? { Range: `bytes=${offset}-` } : {};
+  const r = await fetchImpl(url, { headers, signal });
+  if (offset > 0 && r.status === 200) {
+    offset = 0;                                 // server ignored Range: restart
+  } else if (r.status !== 200 && r.status !== 206) {
+    throw new Error(`part fetch failed: HTTP ${r.status}`);
+  }
+  if (!r.body) throw new Error('part fetch failed: empty body');
+  const ws = fs.createWriteStream(dest, { flags: offset > 0 ? 'a' : 'w' });
+  let received = offset;
+  try {
+    const reader = r.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.length;
+      if (!ws.write(Buffer.from(value))) {
+        await new Promise((res, rej) => {
+          const onDrain = () => { ws.off('error', onErr); res(); };
+          const onErr = (e) => { ws.off('drain', onDrain); rej(e); };
+          ws.once('drain', onDrain);
+          ws.once('error', onErr);
+        });
+      }
+      onPartProgress?.(received);
+    }
+  } catch (err) {
+    ws.destroy();
+    throw err;
+  }
+  await new Promise((res, rej) => ws.end((e) => (e ? rej(e) : res())));
+  try {
+    await verifySha256(dest, part.sha256);
+  } catch (err) {
+    fs.rmSync(dest, { force: true });
+    throw err;
+  }
+}
+
+// Reassemble split parts into the whole archive (multi-part case, spec S5).
+async function concatParts(partPaths, outPath) {
+  const ws = fs.createWriteStream(outPath);
+  for (const p of partPaths) {
+    await new Promise((res, rej) => {
+      const rs = fs.createReadStream(p);
+      rs.on('error', rej);
+      ws.on('error', rej);
+      rs.on('end', res);
+      rs.pipe(ws, { end: false });
+    });
+  }
+  await new Promise((res, rej) => ws.end((e) => (e ? rej(e) : res())));
+}
+
 async function _fetchJson(url, fetchImpl) {
   const r = await fetchImpl(url);
   if (!r.ok) throw new Error(`manifest fetch failed: HTTP ${r.status}`);
@@ -187,4 +317,6 @@ async function installBundle({ sku, baseUrl, userDataDir, onProgress, fetchImpl 
 module.exports = {
   archiveName, bundleInstallDir, bundleStatus, pickBundle,
   verifySha256, extractTarZst, installBundle,
+  requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
+  downloadPart, concatParts,
 };
