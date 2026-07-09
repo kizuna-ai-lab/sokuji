@@ -869,6 +869,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (כלי שורת הפקודה של PulseAudio) לא נמצא, ולכן Sokuji לא הצליח להגדיר את המיקרופון/הרמקול הווירטואליים שלו. התקן אותו ולאחר מכן נסה שוב:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji לא הצליח להגדיר את המיקרופון/הרמקול הווירטואליים שלו. ודא ש-PulseAudio או PipeWire פועלים.",
+    "retry": "נסה שוב",
+    "retrying": "מנסה שוב..."
+  },
   "subtitle": {
     "sessionEnded": "ההפעלה הסתיימה",
     "backToMain": "חזרה לחלון הראשי",

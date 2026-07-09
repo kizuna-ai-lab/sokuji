@@ -778,6 +778,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio కమాండ్-లైన్ సాధనాలు) కనుగొనబడలేదు, కాబట్టి Sokuji తన వర్చువల్ మైక్రోఫోన్/స్పీకర్‌ను సెటప్ చేయలేకపోయింది. దీన్ని ఇన్‌స్టాల్ చేసి, ఆపై మళ్లీ ప్రయత్నించండి:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji తన వర్చువల్ మైక్రోఫోన్/స్పీకర్‌ను సెటప్ చేయలేకపోయింది. PulseAudio లేదా PipeWire రన్ అవుతోందని నిర్ధారించుకోండి.",
+    "retry": "మళ్లీ ప్రయత్నించండి",
+    "retrying": "మళ్లీ ప్రయత్నిస్తోంది..."
+  },
   "subtitle": {
     "sessionEnded": "సెషన్ ముగిసింది",
     "backToMain": "ప్రధాన విండోకి తిరిగి వెళ్ళు",

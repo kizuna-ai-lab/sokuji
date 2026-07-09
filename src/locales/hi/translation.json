@@ -815,6 +815,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio कमांड-लाइन टूल्स) नहीं मिला, इसलिए Sokuji अपना वर्चुअल माइक्रोफ़ोन/स्पीकर सेट अप नहीं कर सका। इसे इंस्टॉल करें, फिर पुनः प्रयास करें:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji अपना वर्चुअल माइक्रोफ़ोन/स्पीकर सेट अप नहीं कर सका। सुनिश्चित करें कि PulseAudio या PipeWire चल रहा है।",
+    "retry": "पुनः प्रयास करें",
+    "retrying": "पुनः प्रयास हो रहा है..."
+  },
   "subtitle": {
     "sessionEnded": "सत्र समाप्त हुआ",
     "backToMain": "मुख्य विंडो पर लौटें",

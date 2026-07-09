@@ -863,6 +863,13 @@
     "linuxMigrateTitle": "새 버전 v{{version}} 사용 가능",
     "linuxMigrateBody": "AppImage 형식에서 자동 업데이트가 지원됩니다. v{{version}} 다운로드 형식을 선택하세요."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl(PulseAudio 명령줄 도구)를 찾을 수 없어 Sokuji가 가상 마이크/스피커를 설정하지 못했습니다. 설치한 후 다시 시도하세요:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji가 가상 마이크/스피커를 설정하지 못했습니다. PulseAudio 또는 PipeWire가 실행 중인지 확인하세요.",
+    "retry": "다시 시도",
+    "retrying": "다시 시도하는 중..."
+  },
   "subtitle": {
     "sessionEnded": "세션이 종료되었습니다",
     "backToMain": "메인 창으로 돌아가기",

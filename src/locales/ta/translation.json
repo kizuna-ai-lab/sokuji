@@ -796,6 +796,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio கட்டளை-வரி கருவிகள்) கிடைக்கவில்லை, எனவே Sokuji தனது மெய்நிகர் மைக்ரோஃபோன்/ஸ்பீக்கரை அமைக்க முடியவில்லை. அதை நிறுவிய பிறகு மீண்டும் முயற்சிக்கவும்:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji தனது மெய்நிகர் மைக்ரோஃபோன்/ஸ்பீக்கரை அமைக்க முடியவில்லை. PulseAudio அல்லது PipeWire இயங்குகிறதா என்பதை உறுதிப்படுத்தவும்.",
+    "retry": "மீண்டும் முயற்சி",
+    "retrying": "மீண்டும் முயற்சிக்கிறது..."
+  },
   "subtitle": {
     "sessionEnded": "அமர்வு முடிந்தது",
     "backToMain": "முதன்மை சாளரத்திற்குத் திரும்பு",

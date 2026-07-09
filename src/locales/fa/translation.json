@@ -871,6 +871,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (ابزارهای خط فرمان PulseAudio) یافت نشد، بنابراین Sokuji نتوانست میکروفون/بلندگوی مجازی خود را راه‌اندازی کند. آن را نصب کنید و سپس دوباره امتحان کنید:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji نتوانست میکروفون/بلندگوی مجازی خود را راه‌اندازی کند. مطمئن شوید PulseAudio یا PipeWire در حال اجراست.",
+    "retry": "تلاش دوباره",
+    "retrying": "در حال تلاش دوباره..."
+  },
   "subtitle": {
     "sessionEnded": "جلسه پایان یافت",
     "backToMain": "بازگشت به پنجره اصلی",
