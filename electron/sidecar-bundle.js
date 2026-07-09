@@ -1,5 +1,4 @@
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
@@ -249,54 +248,76 @@ async function _fetchJson(url, fetchImpl) {
   return r.json();
 }
 
-async function _downloadToFile(url, dest, onProgress, fetchImpl) {
-  const r = await fetchImpl(url);
-  if (!r.ok || !r.body) throw new Error(`bundle fetch failed: HTTP ${r.status}`);
-  const total = Number(r.headers.get('content-length') || 0);
-  let downloaded = 0;
-  const ws = fs.createWriteStream(dest);
-  try {
-    const reader = r.body.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      downloaded += value.length;
-      if (!ws.write(Buffer.from(value))) {
-        await new Promise((res, rej) => {
-          const onDrain = () => { ws.off('error', onErr); res(); };
-          const onErr = (e) => { ws.off('drain', onDrain); rej(e); };
-          ws.once('drain', onDrain);
-          ws.once('error', onErr);
-        });
-      }
-      onProgress?.({ downloaded, total });
-    }
-  } catch (err) {
-    ws.destroy();
-    throw err;
-  }
-  await new Promise((res, rej) => ws.end((e) => (e ? rej(e) : res())));
-}
-
-// Download → verify → extract → atomic swap into userData/sidecar/<sku>.
-async function installBundle({ sku, baseUrl, userDataDir, onProgress, fetchImpl = fetch }) {
-  if (!baseUrl) {
-    throw new Error('sidecar bundle hosting is not configured (set SOKUJI_SIDECAR_BUNDLE_BASE_URL)');
-  }
-  const manifest = await _fetchJson(`${baseUrl.replace(/\/$/, '')}/manifest.json`, fetchImpl);
+// Full install pipeline (spec S4-S9):
+//   manifest → strict version check → disk preflight → per-part download with
+//   resume → reassemble+verify → stop sidecar → extract → atomic swap → clean
+//   staging. Idempotent per part, so cancel/crash + re-invoke resumes naturally.
+async function installBundle({
+  sku, version, userDataDir, onProgress,
+  fetchImpl = fetch, signal, stopSidecar, env = process.env,
+  statfs = (p) => fs.statfsSync(p),
+}) {
+  const baseUrl = bundleBaseUrl(version, env);
+  const manifest = await _fetchJson(`${baseUrl}/manifest.json`, fetchImpl);
   const entry = pickBundle(manifest, sku);
   if (!entry) throw new Error(`no bundle for sku ${sku} in manifest`);
+  if (entry.version !== version) {
+    throw new Error(
+      `manifest version ${entry.version} does not match required ${version} (strict matching)`);
+  }
+
+  // Disk preflight (spec S8): the archive and the unpacked tree coexist briefly.
+  let free = null;
+  try {
+    const s = statfs(userDataDir);
+    free = Number(s.bavail) * Number(s.bsize);
+  } catch { /* fs without statfs support: skip the preflight */ }
+  const need = entry.size + (entry.installedSize || 0) + 512 * 1024 * 1024;
+  if (free !== null && free < need) {
+    const gb = (n) => (n / 1e9).toFixed(1);
+    throw new Error(`not enough disk space: need ~${gb(need)} GB free, have ${gb(free)} GB`);
+  }
+
+  const stage = stagingDir(userDataDir);
+  fs.mkdirSync(stage, { recursive: true });
+  const wholeName = archiveName(sku, version);
+  pruneStaging(userDataDir, wholeName);
+
+  const total = entry.size;
+  let completed = 0;
+  for (const part of entry.parts) {
+    await downloadPart({
+      url: `${baseUrl}/${part.name}`,
+      dest: path.join(stage, part.name),
+      part, fetchImpl, signal,
+      onPartProgress: (received) =>
+        onProgress?.({ phase: 'download', downloaded: completed + received, total }),
+    });
+    completed += part.size;
+  }
+
+  onProgress?.({ phase: 'verify', downloaded: total, total });
+  const archive = path.join(stage, wholeName);
+  if (entry.parts.length > 1) {
+    await concatParts(entry.parts.map((p) => path.join(stage, p.name)), archive);
+    await verifySha256(archive, entry.sha256);   // whole-archive identity check
+    for (const p of entry.parts) fs.rmSync(path.join(stage, p.name), { force: true });
+  }
+  // Single part: the staged part IS the archive (same file name) and its
+  // sha256 was already verified by downloadPart — no second 2 GB hash pass.
+
+  // A running sidecar holds its python open; on Windows the rename swap below
+  // would fail on the locked exe. Stop it first (spec S9) — the renderer
+  // restarts it on demand after install.
+  stopSidecar?.();
 
   const dest = bundleInstallDir(userDataDir, sku);
-  const tmpArchive = path.join(os.tmpdir(), archiveName(sku, entry.version));
-  await _downloadToFile(entry.url, tmpArchive, onProgress, fetchImpl);
-  await verifySha256(tmpArchive, entry.sha256);
-
   const tmpDir = `${dest}.tmp`;
   const oldDir = `${dest}.old`;
   fs.rmSync(tmpDir, { recursive: true, force: true });
   fs.rmSync(oldDir, { recursive: true, force: true });
-  await extractTarZst(tmpArchive, tmpDir);
+  onProgress?.({ phase: 'extract', downloaded: total, total });
+  await extractTarZst(archive, tmpDir);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   // Two-rename swap: dest is never deleted before the replacement is ready; on
   // failure the previous bundle is restored from .old before rethrowing.
@@ -309,14 +330,21 @@ async function installBundle({ sku, baseUrl, userDataDir, onProgress, fetchImpl 
     throw error;
   }
   fs.rmSync(oldDir, { recursive: true, force: true });
-  fs.rmSync(tmpArchive, { force: true });
-  fs.writeFileSync(path.join(dest, 'bundle.json'), JSON.stringify({ sku, version: entry.version }));
-  return { version: entry.version };
+  fs.rmSync(archive, { force: true });
+  fs.writeFileSync(path.join(dest, 'bundle.json'), JSON.stringify({ sku, version }));
+  return { version };
+}
+
+// Delete an installed bundle (frees several GB — the engine card's Remove action).
+// Staged downloads are left alone: version-named files never go stale silently
+// (pruneStaging on the next install drops anything that no longer matches).
+function removeBundle(userDataDir, sku) {
+  fs.rmSync(bundleInstallDir(userDataDir, sku), { recursive: true, force: true });
 }
 
 module.exports = {
   archiveName, bundleInstallDir, bundleStatus, pickBundle,
   verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts,
+  downloadPart, concatParts, removeBundle,
 };

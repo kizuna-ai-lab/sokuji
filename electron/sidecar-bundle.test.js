@@ -7,7 +7,7 @@ import { createRequire } from 'module';
 import {
   archiveName, bundleInstallDir, pickBundle, verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts,
+  downloadPart, concatParts, removeBundle,
 } from './sidecar-bundle.js';
 
 // Shares the Node module cache with sidecar-bundle.js's own `require('fs')` (core
@@ -89,18 +89,25 @@ describe('installBundle rollback', () => {
     const fixture = path.join(__dirname, '__fixtures__', 'bundle-sample.tar.zst');
     const archiveBuf = readFileSync(fixture);
     const sha256 = crypto.createHash('sha256').update(archiveBuf).digest('hex');
+    const partName = archiveName(sku, version);
 
     const fetchImpl = async (url) => {
       if (url.endsWith('/manifest.json')) {
         return {
           ok: true,
+          status: 200,
           json: async () => ({
-            bundles: [{ sku, version, url: 'https://example.invalid/a.tar.zst', sha256 }],
+            version,
+            bundles: [{
+              sku, version, sha256, size: archiveBuf.length, installedSize: 64,
+              parts: [{ name: partName, size: archiveBuf.length, sha256 }],
+            }],
           }),
         };
       }
       return {
         ok: true,
+        status: 200,
         headers: { get: (n) => (n === 'content-length' ? String(archiveBuf.length) : null) },
         body: {
           getReader: () => {
@@ -129,11 +136,13 @@ describe('installBundle rollback', () => {
 
     try {
       await expect(
-        installBundle({ sku, baseUrl: 'https://example.invalid', userDataDir: root, fetchImpl })
+        installBundle({
+          sku, version, userDataDir: root, fetchImpl,
+          statfs: () => ({ bavail: 1e9, bsize: 4096 }), env: {},
+        })
       ).rejects.toThrow('simulated rename failure');
     } finally {
       fsMod.renameSync = realRenameSync;
-      fsMod.rmSync(path.join(tmpdir(), archiveName(sku, version)), { force: true });
     }
 
     // Rollback worked: dest exists and is still the PREVIOUS bundle — not a
@@ -256,5 +265,107 @@ describe('concatParts', () => {
     writeFileSync(path.join(d, 'b'), 'world');
     await concatParts([path.join(d, 'a'), path.join(d, 'b')], path.join(d, 'out'));
     expect(readFileSync(path.join(d, 'out'), 'utf8')).toBe('hello world');
+  });
+});
+
+describe('installBundle v2 pipeline (spec S4-S9)', () => {
+  const fixture = readFileSync(path.join(__dirname, '__fixtures__', 'bundle-sample.tar.zst'));
+  const bigStatfs = () => ({ bavail: 1e9, bsize: 4096 });   // plenty of space
+  const jsonResponse = (obj) => ({ ok: true, status: 200, json: async () => obj });
+
+  function manifestFor(parts, { version = '9.9.9' } = {}) {
+    return {
+      version,
+      bundles: [{
+        sku: 'mac', version, sha256: sha(fixture), size: fixture.length,
+        installedSize: 64, parts,
+      }],
+    };
+  }
+
+  function fetchFor(manifest, partBytes) {
+    return vi.fn(async (url, opts) => {
+      if (String(url).endsWith('/manifest.json')) return jsonResponse(manifest);
+      const name = String(url).split('/').pop();
+      // Serve staged-resume requests too: honor a Range header with a 206 slice.
+      const bytes = partBytes[name];
+      const range = opts?.headers?.Range;
+      if (range) {
+        const from = Number(/bytes=(\d+)-/.exec(range)[1]);
+        return fetchResponse(bytes.subarray(from), { status: 206 });
+      }
+      return fetchResponse(bytes);
+    });
+  }
+
+  it('single part: downloads, extracts, swaps, writes bundle.json, stops sidecar', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
+    const name = archiveName('mac', '9.9.9');
+    const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }]);
+    const stopSidecar = vi.fn();
+    const phases = [];
+    const r = await installBundle({
+      sku: 'mac', version: '9.9.9', userDataDir: u,
+      fetchImpl: fetchFor(manifest, { [name]: fixture }),
+      statfs: bigStatfs, stopSidecar, env: {},
+      onProgress: (p) => phases.push(p.phase),
+    });
+    expect(r).toEqual({ version: '9.9.9' });
+    expect(readFileSync(path.join(u, 'sidecar', 'mac', 'app', 'hi.txt'), 'utf8')).toBe('hi');
+    expect(JSON.parse(readFileSync(path.join(u, 'sidecar', 'mac', 'bundle.json'), 'utf8')))
+      .toEqual({ sku: 'mac', version: '9.9.9' });
+    expect(stopSidecar).toHaveBeenCalled();
+    expect(phases).toContain('download');
+    expect(phases).toContain('extract');
+    expect(stagedBytes(u, 'mac', '9.9.9')).toBe(0);          // staging cleaned
+  });
+
+  it('multi part: reassembles, verifies the whole archive, installs', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
+    const name = archiveName('mac', '9.9.9');
+    const cut = Math.floor(fixture.length / 2);
+    const p1 = fixture.subarray(0, cut);
+    const p2 = fixture.subarray(cut);
+    const manifest = manifestFor([
+      { name: `${name}.001`, size: p1.length, sha256: sha(p1) },
+      { name: `${name}.002`, size: p2.length, sha256: sha(p2) },
+    ]);
+    await installBundle({
+      sku: 'mac', version: '9.9.9', userDataDir: u,
+      fetchImpl: fetchFor(manifest, { [`${name}.001`]: p1, [`${name}.002`]: p2 }),
+      statfs: bigStatfs, env: {},
+    });
+    expect(readFileSync(path.join(u, 'sidecar', 'mac', 'app', 'hi.txt'), 'utf8')).toBe('hi');
+  });
+
+  it('rejects a manifest whose entry version differs (strict matching, spec S2)', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
+    const name = archiveName('mac', '8.8.8');
+    const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }],
+      { version: '8.8.8' });
+    await expect(installBundle({
+      sku: 'mac', version: '9.9.9', userDataDir: u,
+      fetchImpl: fetchFor(manifest, { [name]: fixture }), statfs: bigStatfs, env: {},
+    })).rejects.toThrow(/strict matching/);
+  });
+
+  it('fails early with exact numbers when disk is short (spec S8)', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
+    const name = archiveName('mac', '9.9.9');
+    const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }]);
+    await expect(installBundle({
+      sku: 'mac', version: '9.9.9', userDataDir: u,
+      fetchImpl: fetchFor(manifest, { [name]: fixture }),
+      statfs: () => ({ bavail: 1, bsize: 4096 }),          // ~4 KB free
+      env: {},
+    })).rejects.toThrow(/disk space/);
+  });
+
+  it('removeBundle deletes the installed tree', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-rm-'));
+    mkdirSync(path.join(u, 'sidecar', 'mac'), { recursive: true });
+    writeFileSync(path.join(u, 'sidecar', 'mac', 'bundle.json'), '{}');
+    removeBundle(u, 'mac');
+    expect(existsSync(path.join(u, 'sidecar', 'mac'))).toBe(false);
   });
 });
