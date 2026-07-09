@@ -1371,9 +1371,18 @@ const useSettingsStore = create<SettingsStore>()(
         await nstore.ensureCatalog();
         const status = useNativeModelStore.getState().sidecarStatus;
         if (status !== 'ready') {
-          const message = status === 'unavailable'
-            ? i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')
-            : i18n.t('settings.localNativeStarting', 'Starting the local engine…');
+          // When the ENGINE (bundle) is the reason, say so precisely — the
+          // engine card in provider settings carries the matching CTA (spec S10).
+          const bundle = useNativeModelStore.getState().bundleStatus;
+          const message = bundle === 'mismatch'
+            ? i18n.t('settings.localNativeEngineUpdateRequired',
+                'The inference engine needs an update — open provider settings to update it')
+            : (bundle === 'absent' || bundle === 'paused')
+              ? i18n.t('settings.localNativeEngineRequired',
+                  'Download the inference engine in provider settings')
+              : status === 'unavailable'
+                ? i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')
+                : i18n.t('settings.localNativeStarting', 'Starting the local engine…');
           set({ isApiKeyValid: false, availableModels: [], validationMessage: message, isValidating: false });
           return { valid: false, message, validating: false };
         }
