@@ -135,6 +135,9 @@ contextBridge.exposeInMainWorld(
         // Self-contained sidecar bundle install/status (renderer → main)
         'sidecar-bundle:status',
         'sidecar-bundle:install',
+        'sidecar-bundle:cancel',
+        'sidecar-bundle:manifest',
+        'sidecar-bundle:remove',
         // Auto-update channels (renderer → main)
         'update-check',
         'update-download',

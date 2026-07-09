@@ -475,40 +475,96 @@ app.on('will-quit', cleanupAndExit);
 // IPC handler for app version
 nativeHost.registerIpc(ipcMain);
 
-// ---- Self-contained sidecar bundle install/status (spec D10) ----
+// ---- Self-contained sidecar bundle install/status (distribution spec) ----
 // SKU detection + bundle download live in the main process because the sidecar
 // (which the bundle provides) is not yet running. Progress is pushed to the
 // renderer on 'sidecar-bundle-progress', mirroring the model-download UX.
-const { detectSku: _detectSku, probeNvidia: _probeNvidia } = require('./sidecar-sku');
+const { detectSku: _detectSku, probeNvidia: _probeNvidia, nvidiaGpuName: _nvidiaGpuName } = require('./sidecar-sku');
+const { resolvePython: _resolveSidecarPython } = require('./native-host-manager');
 const sidecarBundle = require('./sidecar-bundle');
+const _currentSku = () =>
+  _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
 ipcMain.handle('sidecar-bundle:status', () => {
-  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
-  if (sku === null) return { ok: true, sku: null, installed: false, version: null };
-  return { ok: true, sku, ...sidecarBundle.bundleStatus(app.getPath('userData'), sku) };
+  const sku = _currentSku();
+  if (sku === null) {
+    return { ok: true, sku: null, state: 'unsupported', installed: false,
+             installedVersion: null, requiredVersion: null, gpuName: null,
+             stagedBytes: 0, devVenvPresent: false };
+  }
+  let requiredVersion = null;
+  try { requiredVersion = sidecarBundle.requiredSidecarVersion(); }
+  catch { /* tree without the field — no version gate */ }
+  const st = sidecarBundle.bundleStatus(app.getPath('userData'), sku);
+  // Strict matching (spec S2): an installed bundle at any other version is a
+  // 'mismatch' — the renderer presents it as "engine update required".
+  const state = !st.installed ? 'absent'
+    : (requiredVersion === null || st.version === requiredVersion) ? 'ready' : 'mismatch';
+  let devVenvPresent = false;
+  try { devVenvPresent = require('fs').existsSync(_resolveSidecarPython()); } catch { /* keep false */ }
+  return {
+    ok: true, sku, state,
+    installed: st.installed, installedVersion: st.version, requiredVersion,
+    gpuName: _nvidiaGpuName(),
+    stagedBytes: requiredVersion === null ? 0
+      : sidecarBundle.stagedBytes(app.getPath('userData'), sku, requiredVersion),
+    devVenvPresent,
+  };
 });
-// In-flight guard: a second concurrent install request must not race the first
-// (two parallel downloads into the same tmp/old dirs would corrupt the swap).
+// Best-effort manifest peek so the engine card can show exact sizes pre-install.
+ipcMain.handle('sidecar-bundle:manifest', async () => {
+  const sku = _currentSku();
+  if (sku === null) return { ok: false, error: 'unsupported platform' };
+  try {
+    const version = sidecarBundle.requiredSidecarVersion();
+    const r = await fetch(`${sidecarBundle.bundleBaseUrl(version)}/manifest.json`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const entry = sidecarBundle.pickBundle(await r.json(), sku);
+    if (!entry) throw new Error(`no bundle for sku ${sku}`);
+    return { ok: true, size: entry.size ?? null, installedSize: entry.installedSize ?? null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+});
+// In-flight guard + cancellation. Cancel aborts the network stream but KEEPS
+// the staging files — re-invoking install resumes from the staged bytes (S7).
 let _bundleInstalling = false;
+let _bundleAbort = null;
 ipcMain.handle('sidecar-bundle:install', async (event) => {
-  const sku = _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
+  const sku = _currentSku();
   if (sku === null) return { ok: false, sku: null, error: 'no sidecar bundle for this platform' };
   if (_bundleInstalling) return { ok: false, sku, error: 'bundle install already in progress' };
   _bundleInstalling = true;
+  _bundleAbort = new AbortController();
   try {
     const r = await sidecarBundle.installBundle({
       sku,
-      baseUrl: process.env.SOKUJI_SIDECAR_BUNDLE_BASE_URL || null,
+      version: sidecarBundle.requiredSidecarVersion(),
       userDataDir: app.getPath('userData'),
+      signal: _bundleAbort.signal,
+      stopSidecar: () => nativeHost.stop(),
       onProgress: (p) => {
         if (!event.sender.isDestroyed()) event.sender.send('sidecar-bundle-progress', { sku, ...p });
       },
     });
     return { ok: true, sku, ...r };
   } catch (e) {
+    if (e && e.name === 'AbortError') return { ok: false, sku, cancelled: true };
     return { ok: false, sku, error: e instanceof Error ? e.message : String(e) };
   } finally {
     _bundleInstalling = false;
+    _bundleAbort = null;
   }
+});
+ipcMain.handle('sidecar-bundle:cancel', () => {
+  _bundleAbort?.abort();
+  return { ok: true };
+});
+ipcMain.handle('sidecar-bundle:remove', () => {
+  const sku = _currentSku();
+  if (sku === null) return { ok: false, error: 'unsupported platform' };
+  nativeHost.stop();  // release file locks before deleting (Windows)
+  sidecarBundle.removeBundle(app.getPath('userData'), sku);
+  return { ok: true };
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());

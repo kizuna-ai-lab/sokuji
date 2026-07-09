@@ -26,8 +26,27 @@ function _probeNvidiaUncached() {
   }
 }
 
+// "GPU 0: NVIDIA GeForce RTX 4070 (UUID: GPU-...)" -> "NVIDIA GeForce RTX 4070"
+function parseGpuName(stdout) {
+  const m = /^GPU \d+:\s*(.+?)\s*\(/m.exec(stdout || '');
+  return m ? m[1] : null;
+}
+
+let _gpuName;  // memoized once per process, like probeNvidia
+function nvidiaGpuName() {
+  if (_gpuName !== undefined) return _gpuName;
+  try {
+    const { spawnSync } = require('child_process');
+    const r = spawnSync('nvidia-smi', ['-L'], { timeout: 4000, encoding: 'utf8' });
+    _gpuName = r.status === 0 ? parseGpuName(r.stdout) : null;
+  } catch {
+    _gpuName = null;
+  }
+  return _gpuName;
+}
+
 function bundleRootFor(userDataDir, sku) {
   return path.join(userDataDir, 'sidecar', sku);
 }
 
-module.exports = { detectSku, probeNvidia, bundleRootFor };
+module.exports = { detectSku, probeNvidia, bundleRootFor, parseGpuName, nvidiaGpuName };

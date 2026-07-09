@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
-import { detectSku, bundleRootFor } from './sidecar-sku.js';
+import { detectSku, bundleRootFor, parseGpuName } from './sidecar-sku.js';
 
 describe('detectSku (spec D10)', () => {
   it('darwin arm64 -> mac regardless of nvidia', () => {
@@ -25,5 +25,17 @@ describe('detectSku (spec D10)', () => {
 describe('bundleRootFor', () => {
   it('joins userData/sidecar/<sku>', () => {
     expect(bundleRootFor('/u', 'win-directml')).toBe(path.join('/u', 'sidecar', 'win-directml'));
+  });
+});
+
+describe('parseGpuName', () => {
+  it('extracts the marketing name from nvidia-smi -L', () => {
+    expect(parseGpuName('GPU 0: NVIDIA GeForce RTX 4070 (UUID: GPU-1234)\n'))
+      .toBe('NVIDIA GeForce RTX 4070');
+  });
+  it('returns null on empty/garbage output', () => {
+    expect(parseGpuName('')).toBeNull();
+    expect(parseGpuName(undefined)).toBeNull();
+    expect(parseGpuName('No devices found')).toBeNull();
   });
 });
