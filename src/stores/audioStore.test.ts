@@ -103,6 +103,57 @@ describe('audioStore — refreshDevices with no real microphone', () => {
     expect(s.selectedInputDevice?.deviceId).toBe('real-1');
     expect(s.isMicMuted).toBe(false);
   });
+
+  // Regression for code review finding: canStartSession (MainPanel.tsx) gates
+  // purely on !!selectedInputDevice and "mute state does not block start" by
+  // design, so a stale device object left in place after it's unplugged would
+  // still satisfy the start gate — and unmuting mid-session would reconnect
+  // straight to it.
+  it('clears a stale selectedInputDevice (now disconnected) when no real mic remains', async () => {
+    useAudioStore.setState({
+      selectedInputDevice: { deviceId: 'unplugged-real-mic', label: 'USB Microphone', isVirtual: false },
+      isMicMuted: false,
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
+
+  // Regression for code review finding: a user who hit the original bug may
+  // already have SELECTED_INPUT_DEVICE_ID persisted as the virtual mic's id.
+  // The saved-device restore path must reject it rather than blindly trusting
+  // whatever's on disk — otherwise the fix does nothing for exactly the users
+  // it's meant to protect.
+  it('does not restore a persisted device id that resolves to a virtual device', async () => {
+    localStorage.setItem('audio.selectedInputDeviceId', 'virtual-1');
+    useAudioStore.setState({
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
 });
 
 describe('audioStore — mode + mute flags', () => {

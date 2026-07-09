@@ -7,7 +7,7 @@ import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
-import { isVirtualMic, isVirtualSpeaker } from '../../components/Settings/shared/hooks';
+import { isVirtualMic, isVirtualSpeaker } from '../../utils/audioDevices';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
