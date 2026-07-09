@@ -944,6 +944,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio command-line tools) was not found, so Sokuji couldn't set up its virtual microphone/speaker. Install it, then retry:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji couldn't set up its virtual microphone/speaker. Make sure PulseAudio or PipeWire is running.",
+    "retry": "Retry",
+    "retrying": "Retrying..."
+  },
   "subtitle": {
     "sessionEnded": "Session ended",
     "backToMain": "Return to main window",

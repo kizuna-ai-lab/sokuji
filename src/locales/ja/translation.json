@@ -875,6 +875,13 @@
     "linuxMigrateTitle": "新しいバージョン v{{version}} が利用できます",
     "linuxMigrateBody": "AppImage 形式なら自動更新を利用できます。v{{version}} をダウンロードする形式を選択してください。"
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl（PulseAudio のコマンドラインツール）が見つからなかったため、Sokuji は仮想マイク/スピーカーを設定できませんでした。インストールしてから再試行してください：",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji は仮想マイク/スピーカーを設定できませんでした。PulseAudio または PipeWire が実行されていることを確認してください。",
+    "retry": "再試行",
+    "retrying": "再試行中..."
+  },
   "subtitle": {
     "sessionEnded": "セッションが終了しました",
     "backToMain": "メイン画面に戻る",

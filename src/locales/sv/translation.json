@@ -819,6 +819,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudios kommandoradsverktyg) hittades inte, så Sokuji kunde inte konfigurera sin virtuella mikrofon/högtalare. Installera det och försök igen:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji kunde inte konfigurera sin virtuella mikrofon/högtalare. Kontrollera att PulseAudio eller PipeWire körs.",
+    "retry": "Försök igen",
+    "retrying": "Försöker igen..."
+  },
   "subtitle": {
     "sessionEnded": "Sessionen avslutad",
     "backToMain": "Tillbaka till huvudfönstret",

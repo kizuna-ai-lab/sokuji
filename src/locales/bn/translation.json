@@ -871,6 +871,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio কমান্ড-লাইন টুলস) খুঁজে পাওয়া যায়নি, তাই Sokuji তার ভার্চুয়াল মাইক্রোফোন/স্পিকার সেট আপ করতে পারেনি। এটি ইনস্টল করুন, তারপর আবার চেষ্টা করুন:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji তার ভার্চুয়াল মাইক্রোফোন/স্পিকার সেট আপ করতে পারেনি। PulseAudio বা PipeWire চলছে কিনা তা নিশ্চিত করুন।",
+    "retry": "পুনরায় চেষ্টা করুন",
+    "retrying": "পুনরায় চেষ্টা করা হচ্ছে..."
+  },
   "subtitle": {
     "sessionEnded": "সেশন শেষ হয়েছে",
     "backToMain": "মূল উইন্ডোতে ফিরুন",
