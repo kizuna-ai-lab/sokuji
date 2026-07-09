@@ -32,6 +32,21 @@ export interface AudioDevice {
   isVirtual?: boolean;
 }
 
+/**
+ * Pick a default microphone from an enumerated input list, excluding virtual
+ * ones (e.g. Sokuji's own "Sokuji_Virtual_Mic" — the monitor of Sokuji's own
+ * virtual speaker, meant for other apps to consume, not for Sokuji to listen
+ * to itself). Returns null when only virtual/loopback devices are available
+ * rather than falling back to one — auto-selecting a loopback device as the
+ * mic would feed Sokuji's own TTS output back into ASR as "user speech",
+ * creating a self-sustaining transcription loop (observed on machines with
+ * no physical microphone, where a virtual device is the only input listed).
+ */
+export function pickDefaultInputDevice(inputs: AudioDevice[]): AudioDevice | null {
+  const nonVirtualInputs = inputs.filter(device => !device.isVirtual);
+  return nonVirtualInputs[0] ?? null;
+}
+
 interface AudioStore {
   // State
   audioInputDevices: AudioDevice[];
@@ -380,28 +395,40 @@ const useAudioStore = create<AudioStore>()(
         // Try to restore saved input device, or select default
         const currentInputDevice = get().selectedInputDevice;
         if (!currentInputDevice || !devices.inputs.some(d => d.deviceId === currentInputDevice?.deviceId)) {
-          if (savedInputDeviceId) {
-            // Try to restore saved input device
-            const savedInputDevice = devices.inputs.find(d => d.deviceId === savedInputDeviceId);
-            if (savedInputDevice) {
-              console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
-              set({ selectedInputDevice: savedInputDevice });
-            } else if (devices.inputs.length > 0) {
-              // Saved device not found, fall back to first non-virtual input device
-              const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
-              if (nonVirtualInputs.length > 0) {
-                set({ selectedInputDevice: nonVirtualInputs[0] });
-              } else {
-                set({ selectedInputDevice: devices.inputs[0] });
-              }
-            }
-          } else if (devices.inputs.length > 0) {
-            // No saved preference, select first non-virtual input device
-            const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
-            if (nonVirtualInputs.length > 0) {
-              set({ selectedInputDevice: nonVirtualInputs[0] });
+          // Reject a persisted device if it's virtual: a user who hit the old
+          // auto-select bug may have SELECTED_INPUT_DEVICE_ID pointing at
+          // Sokuji's own virtual mic. Restoring it here would silently
+          // reintroduce the feedback loop for exactly the users this fix is
+          // meant to protect, since it'd never reach pickDefaultInputDevice.
+          const savedInputDevice = savedInputDeviceId
+            ? devices.inputs.find(d => d.deviceId === savedInputDeviceId && !d.isVirtual)
+            : undefined;
+
+          if (savedInputDevice) {
+            console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
+            set({ selectedInputDevice: savedInputDevice });
+          } else {
+            // No saved device (or it's gone, or it was virtual) — fall back
+            // to the first real (non-virtual) input.
+            const fallback = pickDefaultInputDevice(devices.inputs);
+            if (fallback) {
+              set({ selectedInputDevice: fallback });
             } else {
-              set({ selectedInputDevice: devices.inputs[0] });
+              // No real microphone available — either no input devices were
+              // enumerated at all, or the only ones present are virtual/loopback
+              // (e.g. Sokuji's own "Sokuji_Virtual_Mic"). Clear the selection
+              // AND mute: canStartSession (MainPanel.tsx) gates purely on
+              // !!selectedInputDevice — by design "mute state does not block
+              // start" — so leaving a stale device object in place would let
+              // a session start (and later unmute) against a device that's
+              // no longer connected or was never meant to be listened to.
+              const currentlyMuted = get().isMicMuted;
+              set({ selectedInputDevice: null, isMicMuted: true });
+              if (!currentlyMuted) {
+                console.warn('[Sokuji] [AudioStore] No real microphone found — clearing selection and turning mic off.');
+                settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, true)
+                  .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-muted mic state:', error));
+              }
             }
           }
         }
