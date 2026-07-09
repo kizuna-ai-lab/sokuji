@@ -16,9 +16,10 @@ Only the SKU whose triple matches the current OS is buildable on this host
 (wheels are per-platform); win/mac SKUs run on their native CI runners.
 
 Usage:
-    python scripts/build-sidecar-bundle.py --sku linux-nvidia --version 0.30.6 --out out/bundles
-Add --archive to also produce sidecar-<sku>-v<version>.tar.zst + a manifest
-fragment (see Task 4).
+    python scripts/build-sidecar-bundle.py --sku linux-nvidia --archive --out out/bundles
+Version defaults to package.json `sidecarVersion`. Archives over PART_LIMIT are
+byte-split into `.001/.002/...` parts. `--merge-fragments a.json b.json` merges
+per-SKU fragments into the release manifest.json.
 """
 import argparse
 import hashlib
@@ -46,6 +47,9 @@ SKU_REQUIREMENTS = {
     "mac": "requirements-mac.txt",
 }
 _PBS_LATEST = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
+
+# GitHub release assets max out at 2 GiB; keep ~100 MiB headroom (spec S5).
+PART_LIMIT = int(1.9 * 1024 ** 3)
 
 
 def sku_requirements(sku: str) -> str:
@@ -177,51 +181,107 @@ def sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def build_manifest(sku: str, version: str, archive_path: str, url: str) -> dict:
-    return {"sku": sku, "version": version, "sha256": sha256_file(archive_path),
-            "size": os.path.getsize(archive_path), "url": url}
+def dir_size(path: str) -> int:
+    """Unpacked byte size of a bundle dir (`installedSize`, for disk preflight)."""
+    total = 0
+    for root, _dirs, files in os.walk(path):
+        for f in files:
+            total += os.path.getsize(os.path.join(root, f))
+    return total
 
 
-def _vkey(v: str):
-    return tuple(int(x) for x in re.findall(r"\d+", v))
+def split_parts(archive_path: str, limit: int = PART_LIMIT) -> list:
+    """Byte-split an archive into `.001/.002/...` chunks of at most `limit`
+    bytes when it exceeds `limit`; otherwise return a single-entry parts list
+    for the file itself. Multi-part: the original archive is deleted (the
+    parts replace it). The manifest always carries `parts`, so the installer
+    has exactly one code path (spec S5)."""
+    size = os.path.getsize(archive_path)
+    base = os.path.basename(archive_path)
+    if size <= limit:
+        return [{"name": base, "size": size, "sha256": sha256_file(archive_path)}]
+    parts = []
+    with open(archive_path, "rb") as src:
+        idx = 1
+        while True:
+            h = hashlib.sha256()
+            written = 0
+            chunk_path = f"{archive_path}.{idx:03d}"
+            with open(chunk_path, "wb") as out:
+                while written < limit:
+                    buf = src.read(min(1 << 20, limit - written))
+                    if not buf:
+                        break
+                    out.write(buf)
+                    h.update(buf)
+                    written += len(buf)
+            if written == 0:
+                os.unlink(chunk_path)
+                break
+            parts.append({"name": os.path.basename(chunk_path), "size": written,
+                          "sha256": h.hexdigest()})
+            idx += 1
+    os.unlink(archive_path)
+    return parts
+
+
+def build_manifest(sku: str, version: str, *, sha256: str, size: int,
+                   installed_size: int, parts: list) -> dict:
+    """Per-SKU manifest fragment (spec S4/S5). Part names are RELATIVE — the
+    installer resolves them against its base URL (mirror-friendly)."""
+    return {"sku": sku, "version": version, "sha256": sha256, "size": size,
+            "installedSize": installed_size, "parts": parts}
 
 
 def merge_manifests(fragments) -> dict:
-    best = {}
-    for f in fragments:
-        cur = best.get(f["sku"])
-        if cur is None or _vkey(f["version"]) > _vkey(cur["version"]):
-            best[f["sku"]] = f
-    return {"bundles": [best[k] for k in sorted(best)]}
+    """Merge same-version per-SKU fragments into the release's manifest.json.
+    All fragments MUST carry one version (per-version manifest, spec S4)."""
+    versions = sorted({f["version"] for f in fragments})
+    if len(versions) != 1:
+        raise SystemExit(f"manifest fragments span multiple versions: {versions}")
+    return {"version": versions[0],
+            "bundles": sorted(fragments, key=lambda f: f["sku"])}
 
 
-def _archive_and_manifest(sku, version, bundle_dir, out_root, base_url):
+def _archive_and_manifest(sku, version, bundle_dir, out_root):
     arc = str(Path(out_root) / archive_name(sku, version))
+    installed = dir_size(bundle_dir)
     pack_zst(bundle_dir, arc)
-    url = f"{base_url.rstrip('/')}/{archive_name(sku, version)}" if base_url else ""
-    frag = build_manifest(sku, version, arc, url)
+    whole_sha = sha256_file(arc)
+    whole_size = os.path.getsize(arc)
+    parts = split_parts(arc)
+    frag = build_manifest(sku, version, sha256=whole_sha, size=whole_size,
+                          installed_size=installed, parts=parts)
     frag_path = Path(out_root) / f"{bundle_dirname(sku, version)}.json"
     frag_path.write_text(json.dumps(frag, indent=2))
-    print(f"[bundle] archived {arc} ({frag['size']} bytes, sha256 {frag['sha256'][:12]})",
-          flush=True)
+    print(f"[bundle] archived {archive_name(sku, version)} ({whole_size} bytes, "
+          f"{len(parts)} part(s), sha256 {whole_sha[:12]})", flush=True)
 
 
 def _main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sku", required=True, choices=sorted(SKU_TRIPLE))
+    ap.add_argument("--sku", required=False, choices=sorted(SKU_TRIPLE))
     ap.add_argument("--version", default="",
                     help="override; defaults to package.json sidecarVersion")
     ap.add_argument("--out", default="out/bundles")
     ap.add_argument("--archive", action="store_true",
-                    help="also pack .tar.zst + manifest fragment (Task 4)")
-    ap.add_argument("--base-url", default="",
-                    help="hosting base URL for the manifest `url` field (operator-set)")
+                    help="also pack .tar.zst (split if >PART_LIMIT) + manifest fragment")
+    ap.add_argument("--merge-fragments", nargs="+", default=None,
+                    help="merge per-SKU fragment JSONs into one manifest.json and exit")
+    ap.add_argument("--merged-out", default="manifest.json")
     args = ap.parse_args(argv)
     repo_root = str(Path(__file__).resolve().parent.parent)
+    if args.merge_fragments:
+        frags = [json.loads(Path(p).read_text()) for p in args.merge_fragments]
+        Path(args.merged_out).write_text(json.dumps(merge_manifests(frags), indent=2))
+        print(f"[bundle] merged {len(frags)} fragment(s) -> {args.merged_out}", flush=True)
+        return 0
+    if not args.sku:
+        ap.error("--sku is required unless --merge-fragments is given")
     version = args.version or default_version(repo_root)
     bundle_dir = build_bundle_dir(args.sku, version, args.out, repo_root)
     if args.archive:
-        _archive_and_manifest(args.sku, version, bundle_dir, args.out, args.base_url)
+        _archive_and_manifest(args.sku, version, bundle_dir, args.out)
     return 0
 
 
