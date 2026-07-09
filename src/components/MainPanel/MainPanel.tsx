@@ -65,6 +65,8 @@ import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
+import AudioSystemBanner from '../AudioSystemBanner/AudioSystemBanner';
+import { useInitAudioSystemListeners, useCleanupAudioSystemListeners } from '../../stores/audioSystemStore';
 import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
@@ -689,6 +691,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     initUpdateListeners();
     return () => cleanupUpdateListeners();
   }, [initUpdateListeners, cleanupUpdateListeners]);
+
+  // Initialize virtual audio device status listeners (e.g. missing pactl on Linux)
+  const initAudioSystemListeners = useInitAudioSystemListeners();
+  const cleanupAudioSystemListeners = useCleanupAudioSystemListeners();
+  useEffect(() => {
+    initAudioSystemListeners();
+    return () => cleanupAudioSystemListeners();
+  }, [initAudioSystemListeners, cleanupAudioSystemListeners]);
 
   /**
    * Initialize the audio service and set up the virtual audio output
@@ -3047,6 +3057,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } as React.CSSProperties}
     >
       <UpdateBanner />
+      <AudioSystemBanner />
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
