@@ -14,14 +14,22 @@ function resolvePython() {
 //   2. installed self-contained bundle under userData/sidecar/<sku>
 //   3. dev venv fallback (repo checkout - current behavior)
 // Pure + injectable (platform / existsSync) so it is unit-testable off-Electron.
-function resolveSidecarLaunch({ platform, envOverride, bundleRoot, devVenvPython, devCwd, existsSync }) {
+function resolveSidecarLaunch({ platform, envOverride, bundleRoot, requiredVersion, readVersion, devVenvPython, devCwd, existsSync }) {
   if (envOverride) return { python: envOverride, cwd: devCwd, source: 'env' };
   if (bundleRoot) {
     const bundlePython = platform === 'win32'
       ? path.join(bundleRoot, 'python', 'python.exe')
       : path.join(bundleRoot, 'python', 'bin', 'python3');
     if (existsSync(bundlePython)) {
-      return { python: bundlePython, cwd: path.join(bundleRoot, 'app'), source: 'bundle' };
+      // Strict matching (spec S2): an installed bundle is only usable when its
+      // version equals the app's sidecarVersion. A stale bundle falls through to
+      // the venv path — which does not exist in packaged apps, so the start
+      // fails and the UI shows "engine update required" instead of silently
+      // running an untested app x sidecar combination.
+      const installed = readVersion ? readVersion(bundleRoot) : null;
+      if (!requiredVersion || installed === requiredVersion) {
+        return { python: bundlePython, cwd: path.join(bundleRoot, 'app'), source: 'bundle' };
+      }
     }
   }
   return { python: devVenvPython, cwd: devCwd, source: 'venv' };
@@ -69,10 +77,20 @@ class NativeHostManager {
           bundleRoot = bundleRootFor(userData, sku);
         }
       }
+      let requiredVersion = null;
+      if (!envOverride) {
+        try { requiredVersion = require('./sidecar-bundle').requiredSidecarVersion(); }
+        catch { /* tree without the field — no version gate */ }
+      }
       const launch = resolveSidecarLaunch({
         platform: process.platform,
         envOverride,
         bundleRoot,
+        requiredVersion,
+        readVersion: (root) => {
+          try { return JSON.parse(fs.readFileSync(path.join(root, 'bundle.json'), 'utf8')).version ?? null; }
+          catch { return null; }
+        },
         devVenvPython: resolvePython(),
         devCwd: path.join(__dirname, '..', 'sidecar'),
         existsSync: fs.existsSync,

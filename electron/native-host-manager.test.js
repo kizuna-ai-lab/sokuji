@@ -166,3 +166,29 @@ describe('resolveSidecarLaunch launch order', () => {
     expect(l).toEqual({ python: devVenv, cwd: devCwd, source: 'venv' });
   });
 });
+
+describe('resolveSidecarLaunch strict version matching (spec S2)', () => {
+  const base = {
+    platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/linux-nvidia',
+    devVenvPython: '/repo/sidecar/.venv/bin/python', devCwd: '/repo/sidecar',
+    existsSync: () => true,
+  };
+  it('accepts the bundle when versions match', () => {
+    const l = resolveSidecarLaunch({ ...base, requiredVersion: '0.1.0', readVersion: () => '0.1.0' });
+    expect(l.source).toBe('bundle');
+  });
+  it('rejects a stale bundle and falls back to venv', () => {
+    const l = resolveSidecarLaunch({ ...base, requiredVersion: '0.2.0', readVersion: () => '0.1.0' });
+    expect(l.source).toBe('venv');
+  });
+  it('no requiredVersion keeps the old behavior (bundle accepted)', () => {
+    const l = resolveSidecarLaunch({ ...base, requiredVersion: null, readVersion: () => '0.1.0' });
+    expect(l.source).toBe('bundle');
+  });
+  it('env override bypasses the version gate entirely', () => {
+    const l = resolveSidecarLaunch({
+      ...base, envOverride: '/x/py', requiredVersion: '9.9.9', readVersion: () => '0.0.1',
+    });
+    expect(l.source).toBe('env');
+  });
+});
