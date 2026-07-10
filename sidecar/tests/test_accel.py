@@ -399,14 +399,15 @@ def test_vulkan_tier_from_tc_probe_alone():
 
 
 def _arm_machine(installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream",
-                                      "llamacpp_qwen"})):
+                                      "llamacpp_qwen"}), ort_cuda=False):
     """Linux/aarch64 NVIDIA box as the tc probe reports it on a DGX Spark:
     Vulkan-capable (the aarch64 wheel bundles the ggml Vulkan backend)."""
     return accel.Machine(os="Linux", arch="aarch64", cpu_cores=20,
                          apple_silicon=False, dml_adapters=(),
                          installed=installed, fingerprint="t",
                          tc_kinds=("cpu", "vulkan"),
-                         gpus=(("vulkan", "NVIDIA GB10", 97 << 30),))
+                         gpus=(("vulkan", "NVIDIA GB10", 97 << 30),),
+                         ort_cuda=ort_cuda)
 
 
 def test_gpu_vulkan_tier_covers_linux_aarch64():
@@ -432,6 +433,48 @@ def test_gpu_cuda_tier_gated_to_x64():
     # this gate an ARM NVIDIA box leads every resolve with a doomed cuda plan.
     assert accel._tier_available("gpu-cuda", _machine(gpus=_nv_gpus(12288))) is True
     assert accel._tier_available("gpu-cuda", _arm_machine()) is False
+
+
+def test_gpu_cuda_tier_capability_unlock_on_aarch64():
+    # Installing NVIDIA's sbsa onnxruntime-gpu wheel (exposes the CUDA EP)
+    # unlocks the cuda tier for ORT backends on Linux/aarch64 — field-tested
+    # on a DGX Spark: Qwen3-TTS 0.6B runs 0.38x realtime on CPU (unusable)
+    # vs 1.15x on CUDA. llamacpp never rides this unlock (the llama bucket's
+    # aarch64 cuda builds crash on GB10), and without the wheel (ort_cuda
+    # False, the PyPI CPU build) nothing changes.
+    m = _arm_machine(ort_cuda=True)
+    assert accel._tier_available("gpu-cuda", m, backend="qwen3tts_onnx") is True
+    assert accel._tier_available("gpu-cuda", m, backend="moss_onnx") is True
+    assert accel._tier_available("gpu-cuda", m, backend="llamacpp_qwen") is False
+    assert accel._tier_available("gpu-cuda", m) is False              # no backend info
+    assert accel._tier_available(
+        "gpu-cuda", _arm_machine(), backend="qwen3tts_onnx") is False  # CPU wheel
+
+
+def test_arm_ort_cuda_resolves_tts_cuda_translate_stays_vulkan():
+    # With the sbsa wheel installed: ORT TTS leads with cuda, while llamacpp
+    # translate STILL has no cuda plan (vulkan first, cpu floor).
+    m = _arm_machine(ort_cuda=True,
+                     installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream",
+                                          "llamacpp_qwen", "qwen3tts_onnx"}))
+    tts = accel.resolve_tts("qwen3-tts-0.6b", machine=m)
+    assert tts[0].device == "cuda"
+    tr = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
+    assert not any(p.device == "cuda" for p in tr)
+    assert tr[0].device == "vulkan"
+
+
+def test_probe_helper_reads_ort_cuda_capability(monkeypatch):
+    import sys
+    import types as _types
+    fake_gpu = _types.SimpleNamespace(get_available_providers=lambda: [
+        "TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"])
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_gpu)
+    assert accel._ort_cuda() is True
+    fake_cpu = _types.SimpleNamespace(get_available_providers=lambda: [
+        "AzureExecutionProvider", "CPUExecutionProvider"])
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_cpu)
+    assert accel._ort_cuda() is False
 
 
 def test_arm_nvidia_resolves_vulkan_first_cpu_floor():

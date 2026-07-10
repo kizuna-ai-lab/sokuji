@@ -34,6 +34,12 @@ class Machine:
     # is cached + fingerprinted) — planners read device_free_bytes() fresh at
     # plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
+    # Whether the RUNNING onnxruntime build exposes the CUDA execution
+    # provider (build capability, not device presence — the x64 nvidia bundle
+    # lists it even on a GPU-less box). On Linux/aarch64 this is the signal
+    # that NVIDIA's sbsa onnxruntime-gpu wheel was hand-installed (DGX Spark,
+    # Jetson), unlocking the ORT cuda lane there.
+    ort_cuda: bool = False
 
 
 def _apple_silicon() -> bool:
@@ -147,6 +153,13 @@ def _installed() -> frozenset:
     return frozenset(b for b, spec in mods.items() if _ready(spec))
 
 
+def _ort_cuda() -> bool:
+    """Whether the running onnxruntime BUILD exposes the CUDA EP. Session
+    creation can still fail (missing libs / no device); pair with has_nvidia."""
+    import onnxruntime
+    return "CUDAExecutionProvider" in onnxruntime.get_available_providers()
+
+
 def _safe(fn, default):
     try:
         return fn()
@@ -168,15 +181,17 @@ def probe(force: bool = False) -> Machine:
     installed = _safe(_installed, frozenset())
     tc_kinds = _safe(_tc_kinds, ())
     tc_gpus = _safe(_tc_gpus, ())
+    ort_cuda = _safe(_ort_cuda, False)
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
-              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}")
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
+              f"{int(ort_cuda)}")
     fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         apple_silicon=apple, dml_adapters=dml, installed=installed,
-        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus, ort_cuda=ort_cuda)
     return _MACHINE
 
 
@@ -200,16 +215,29 @@ class Plan:
     rank: float
 
 
-def _tier_available(tier: str, machine: Machine) -> bool:
+def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> bool:
     if tier == "cpu":
         return True
     if tier == "gpu-cuda":
-        # x86_64-only lane: onnxruntime-gpu ships no aarch64 wheels, and the
-        # llama bucket's aarch64 cuda builds lack current-SM kernel images
-        # (GB10/SM121 field-crashed with "no kernel image is available") —
-        # without the arch gate an ARM NVIDIA box (DGX Spark, Jetson) leads
-        # every resolve with a doomed cuda plan before falling back.
-        return has_nvidia(machine) and machine.arch in ("x86_64", "AMD64")
+        if not has_nvidia(machine):
+            return False
+        # x86_64: the nvidia bundle ships onnxruntime-gpu and the llama
+        # bucket's cuda builds work — device presence is the whole gate.
+        if machine.arch in ("x86_64", "AMD64"):
+            return True
+        # Linux/aarch64 (DGX Spark, Jetson): PyPI has no aarch64
+        # onnxruntime-gpu, but NVIDIA's sbsa-index wheel exposes the CUDA EP
+        # when hand-installed — capability-detect it instead of hard-gating
+        # the arch. Field-tested on a GB10: Qwen3-TTS 0.6B runs 0.38x
+        # realtime on CPU (unusable) vs 1.15x on CUDA. llamacpp_* never
+        # rides this unlock: its cuda lane is the llama bucket binary, whose
+        # aarch64 builds lack current-SM kernel images (GB10 field-crashed
+        # with "no kernel image is available") — llama GPU stays on the
+        # vulkan flavor. `backend is None` (capability summaries without a
+        # deployment in hand) stays conservative.
+        return (machine.os == "Linux" and machine.arch == "aarch64"
+                and machine.ort_cuda
+                and backend is not None and not backend.startswith("llamacpp"))
     if tier == "gpu-metal":
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
@@ -251,7 +279,7 @@ def resolve_deployments(model, machine: Machine, override: str = "auto", bench: 
     (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front, then
     the bench cache demotes a proven-slow GPU plan. CPU floor always survives."""
     usable = [d for d in model.deployments
-              if d.backend in machine.installed and _tier_available(d.tier, machine)
+              if d.backend in machine.installed and _tier_available(d.tier, machine, d.backend)
               and _platform_ok(d, machine)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
@@ -360,7 +388,7 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
             sizes = cached
             if default not in sizes:
                 default = max(sizes, key=lambda q: sizes[q])
-    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+    gpu_possible = any(_tier_available(d.tier, machine, d.backend) and d.tier != "cpu"
                        for d in model.deployments)
     if not gpu_possible:
         return min(sizes, key=sizes.get) if sizes else default
@@ -870,7 +898,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
         rows = [d for d in model.deployments if d.compute_type == quant]
         rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=want_gpu)
         for d in rows:
-            if _tier_available(d.tier, machine) and (want_gpu or d.tier == "cpu"):
+            if _tier_available(d.tier, machine, d.backend) and (want_gpu or d.tier == "cpu"):
                 return d
         return next((d for d in rows if d.tier == "cpu"), None)
 
@@ -878,7 +906,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
         return _row(pin)
 
     default_quant = _llamacpp_quant(model, None)
-    gpu_possible = any(_tier_available(d.tier, machine) and d.tier != "cpu"
+    gpu_possible = any(_tier_available(d.tier, machine, d.backend) and d.tier != "cpu"
                        for d in model.deployments)
     if budget_bytes is None or not gpu_possible:
         return _row(default_quant)
@@ -937,7 +965,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
             return False
         if d.backend not in machine.installed or not _format_ready(d.compute_type):
             return False
-        if total is None or not _tier_available(d.tier, machine):
+        if total is None or not _tier_available(d.tier, machine, d.backend):
             return False
         need = _est_bytes(d)
         if need is None:
@@ -1011,7 +1039,7 @@ async def _h_list_variants(state, msg, _b, conn=None):
         need = _est_bytes(d)
         if d.backend not in m.installed or not _format_ready(d.compute_type):
             supported, reason = False, "runtime not installed"
-        elif total is None or not _tier_available(d.tier, m):
+        elif total is None or not _tier_available(d.tier, m, d.backend):
             supported, reason = False, "no usable GPU"
         elif need is None:
             supported, reason = False, "size unknown"
@@ -1077,7 +1105,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)
             tiers.append({"tier": d.tier, "backend": d.backend,
-                          "available": d.backend in m.installed and _tier_available(d.tier, m)})
+                          "available": d.backend in m.installed and _tier_available(d.tier, m, d.backend)})
         repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
