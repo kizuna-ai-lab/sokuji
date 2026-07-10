@@ -1,6 +1,13 @@
 const path = require('path');
 const fs = require('fs');
 
+// Handshake watchdog budget. Field-measured (Level B): the FIRST boot after a
+// bundle install — cold page cache over a freshly extracted ~5 GB tree, first
+// onnxruntime import, CUDA DLL preload — exceeded 30s even on NVMe; slower
+// disks will be worse. Genuine crashes don't wait for this: a pre-handshake
+// child exit rejects immediately (see start()).
+const HANDSHAKE_TIMEOUT_MS = 90000;
+
 function resolvePython() {
   if (process.env.SOKUJI_SIDECAR_PYTHON) return process.env.SOKUJI_SIDECAR_PYTHON;
   const venv = path.join(__dirname, '..', 'sidecar', '.venv');
@@ -111,7 +118,11 @@ class NativeHostManager {
       child.stderr.on('data', (d) => console.error('[Sokuji] [native-host]', d.toString().trim()));
       child.on('exit', (code) => {
         console.warn('[Sokuji] [native-host] exited', code);
+        const preHandshake = !this.port;
         this.proc = null; this.port = null; this._starting = null;
+        // A crash before the handshake must fail fast — without this the
+        // start() promise would sit pending until the watchdog below fires.
+        if (preHandshake) reject(new Error(`native-host exited before handshake (code ${code})`));
       });
       child.on('error', (err) => { this._starting = null; reject(err); });
       setTimeout(() => {
@@ -122,7 +133,7 @@ class NativeHostManager {
           this._starting = null;
           reject(new Error('native-host handshake timeout'));
         }
-      }, 30000);
+      }, HANDSHAKE_TIMEOUT_MS);
     });
     return this._starting;
   }
@@ -144,4 +155,4 @@ class NativeHostManager {
   }
 }
 
-module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, NativeHostManager };
+module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, NativeHostManager, HANDSHAKE_TIMEOUT_MS };

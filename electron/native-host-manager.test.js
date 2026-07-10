@@ -94,14 +94,15 @@ describe('NativeHostManager.start() handshake timeout', () => {
     const { NativeHostManager } = await import('./native-host-manager.js');
     const manager = new NativeHostManager();
 
-    // Call start() — no handshake will ever arrive → will timeout after 30 s.
+    // Call start() — no handshake will ever arrive → will timeout at the deadline.
     const p1 = manager.start();
     // Attach a catch immediately so Node does not report an unhandled rejection
     // while fake timers fire before the assertion below can add its own handler.
     const p1settled = p1.catch((e) => e);
 
-    // Advance past the 30-second deadline.
-    await vi.advanceTimersByTimeAsync(30001);
+    // Advance past the handshake deadline.
+    const { HANDSHAKE_TIMEOUT_MS } = await import('./native-host-manager.js');
+    await vi.advanceTimersByTimeAsync(HANDSHAKE_TIMEOUT_MS + 1);
 
     // 1. Promise rejects with the expected timeout message.
     const err = await p1settled;
@@ -119,8 +120,31 @@ describe('NativeHostManager.start() handshake timeout', () => {
     // Attach a catch handler BEFORE advancing timers to avoid an unhandled
     // rejection warning while the second timeout fires.
     const p2settled = p2.catch(() => {});
-    await vi.advanceTimersByTimeAsync(30001);
+    await vi.advanceTimersByTimeAsync(HANDSHAKE_TIMEOUT_MS + 1);
     await p2settled;
+  });
+
+  it('first-boot budget: handshake deadline is at least 90s (cold bundle import)', async () => {
+    // Level B field finding: the first boot after a bundle install (cold page
+    // cache + first onnxruntime import + CUDA preload) exceeded 30s on NVMe.
+    const { HANDSHAKE_TIMEOUT_MS } = await import('./native-host-manager.js');
+    expect(HANDSHAKE_TIMEOUT_MS).toBeGreaterThanOrEqual(90000);
+  });
+
+  it('rejects immediately (no watchdog wait) when the child exits pre-handshake', async () => {
+    const { NativeHostManager } = await import('./native-host-manager.js');
+    const manager = new NativeHostManager();
+    const p = manager.start();
+    const settled = p.catch((e) => e);
+    // Fire the recorded 'exit' listener: the child crashed on boot.
+    const fakeChild = cp.spawn.mock.results[0].value;
+    const exitHandler = fakeChild.on.mock.calls.find(([ev]) => ev === 'exit')[1];
+    exitHandler(1);
+    const err = await settled;
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toMatch(/exited before handshake/);
+    // Cleared state → an immediate retry gets a fresh promise.
+    expect(manager.start()).not.toBe(p);
   });
 });
 
