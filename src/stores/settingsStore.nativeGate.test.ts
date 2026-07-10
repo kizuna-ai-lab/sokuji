@@ -131,8 +131,9 @@ function setNative(over: Record<string, unknown>) {
 }
 
 function reposArg(): unknown {
-  // The required-models refresh (variant-aware) is the LAST refresh call; the
-  // first is the pre-auto-select candidate-status refresh (default repos).
+  // The required-models refresh is the LAST refresh call; the first is the
+  // pre-auto-select candidate-status refresh (also variant-aware since the
+  // cold-start selection-wipe fix — see the dedicated tests below).
   return mockRefresh.mock.calls.at(-1)?.[1];
 }
 
@@ -216,6 +217,56 @@ describe('LOCAL_NATIVE gate is variant-aware on cold start', () => {
     expect(mockListVariants).not.toHaveBeenCalled();
     expect(mockRefresh).toHaveBeenCalledTimes(2);
     expect(reposArg()).toBeUndefined();
+  });
+
+  it('resolves variant repos for the PRE-auto-select candidate refresh too (cold-start wipe)', async () => {
+    // Field bug: a multi-variant ASR card (Fun-ASR) whose user-downloaded quant
+    // is the RECOMMENDED one, not the catalog default. On cold start the gate's
+    // first (pre-auto-select) candidate refresh checked the DEFAULT repos, the
+    // statuses came back absent, and auto-select wiped the persisted selection
+    // to '' — the user saw ASR "None" on every app restart and had to reselect.
+    const catalog: Record<string, NativeModelInfo> = {
+      ...DEFAULT_CATALOG,
+      'fun-asr-mlt-nano': {
+        id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', kind: 'asr',
+        languages: ['multi'], recommended: true, tiers: [], order: 1, repo: '',
+        variantIds: ['q6_k', 'q4_k_m'],
+        variants: [
+          { id: 'q6_k', sizeBytes: 7e8, repo: 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q6_K.gguf', supported: true, recommended: false },
+          { id: 'q4_k_m', sizeBytes: 6e8, repo: 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q4_K_M.gguf', supported: true, recommended: true },
+        ],
+      },
+    };
+    setNative({ asrModel: 'fun-asr-mlt-nano' });
+    mockNativeSidecar({ status: 'ready', catalog, downloaded: ['fun-asr-mlt-nano'] });
+    await useSettingsStore.getState().validateApiKey();
+    const first = mockRefresh.mock.calls[0];
+    expect(first?.[0]).toContain('fun-asr-mlt-nano');
+    expect(first?.[1]).toMatchObject({
+      'fun-asr-mlt-nano': 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q4_K_M.gguf',
+    });
+  });
+
+  it('the pre-auto-select refresh honors an explicit variant pin', async () => {
+    const catalog: Record<string, NativeModelInfo> = {
+      ...DEFAULT_CATALOG,
+      'fun-asr-mlt-nano': {
+        id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', kind: 'asr',
+        languages: ['multi'], recommended: true, tiers: [], order: 1, repo: '',
+        variantIds: ['q6_k', 'q8_0'],
+        variants: [
+          { id: 'q6_k', sizeBytes: 7e8, repo: 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q6_K.gguf', supported: true, recommended: true },
+          { id: 'q8_0', sizeBytes: 9e8, repo: 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q8_0.gguf', supported: true, recommended: false },
+        ],
+      },
+    };
+    setNative({ asrModel: 'fun-asr-mlt-nano',
+                translationVariantByModel: { 'fun-asr-mlt-nano': 'q8_0' } });
+    mockNativeSidecar({ status: 'ready', catalog, downloaded: ['fun-asr-mlt-nano'] });
+    await useSettingsStore.getState().validateApiKey();
+    expect(mockRefresh.mock.calls[0]?.[1]).toMatchObject({
+      'fun-asr-mlt-nano': 'handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q8_0.gguf',
+    });
   });
 
   it('refreshes the pair candidate statuses BEFORE auto-select (so a downloaded model gets picked)', async () => {

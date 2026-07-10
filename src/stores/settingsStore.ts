@@ -1397,7 +1397,28 @@ const useSettingsStore = create<SettingsStore>()(
           ...nativeTranslationCards(s0.sourceLanguage, s0.targetLanguage, catalog),
           ...nativeTtsCards(s0.targetLanguage, catalog),
         ].map((c) => c.downloadId).filter((id): id is string => !!id)));
-        await useNativeModelStore.getState().refresh(candidateIds);
+        // This FIRST refresh must be variant-aware too: on a cold start the
+        // Settings panel (which normally publishes statusRepos) has never
+        // mounted, so checking the catalog DEFAULT repos here marks a card
+        // whose user-downloaded quant is the recommended/pinned one (e.g.
+        // Fun-ASR: default Q6_K, downloaded Q4_K_M) as absent — and the
+        // auto-select below then wipes the persisted selection to '' on
+        // every app restart (the "ASR shows None after reopening" bug).
+        const resolveVariantRepos = (ids: string[]): Record<string, string> => {
+          const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+          for (const mid of ids) {
+            const vs = catalog[mid]?.variants;
+            if (!vs || vs.length < 2) continue;
+            vd[mid] = {
+              variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
+              recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+            };
+          }
+          return statusReposFor(Object.keys(vd), vd, s0.translationVariantByModel);
+        };
+        const candidateRepos = resolveVariantRepos(candidateIds);
+        await useNativeModelStore.getState().refresh(
+          candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
         // Global auto-select: reconcile the stale selection for this pair against
         // the catalog + live download statuses, and persist it (fixes both the
         // Start button and the model-info "None" on a language reversal).
@@ -1419,16 +1440,7 @@ const useSettingsStore = create<SettingsStore>()(
         // quant even on cold start — no list_variants round-trip needed: the
         // models_catalog feed carries the full ladder per card.
         let statusRepos: Record<string, string> | undefined;
-        const variantData: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
-        for (const mid of [s.asrModel, s.translationModel]) {
-          const vs = catalog[mid]?.variants;
-          if (!vs || vs.length < 2) continue;
-          variantData[mid] = {
-            variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
-            recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
-          };
-        }
-        const resolved = statusReposFor(Object.keys(variantData), variantData, s.translationVariantByModel);
+        const resolved = resolveVariantRepos([s.asrModel, s.translationModel]);
         // Only override when resolution actually produced a repo; an empty
         // map ({}) would defeat refresh's `repos ?? cache` fallback.
         if (Object.keys(resolved).length > 0) statusRepos = resolved;
