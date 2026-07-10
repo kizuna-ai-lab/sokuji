@@ -134,6 +134,10 @@ def _fetch_python_prefix(triple: str, dest: Path) -> Path:
 
 
 def _bundle_python_exe(prefix: Path) -> Path:
+    # Absolute always: the pip subprocesses run with cwd=sidecar/, where a
+    # relative prefix (CI passes --out out/bundles) would dangle — POSIX
+    # resolves a relative executable in the child's NEW cwd after chdir.
+    prefix = prefix.resolve()
     win = prefix / "python.exe"
     return win if win.exists() else prefix / "bin" / "python3"
 

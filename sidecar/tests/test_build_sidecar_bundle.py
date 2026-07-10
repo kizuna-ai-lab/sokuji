@@ -222,3 +222,16 @@ def test_pbs_release_request_anonymous_without_token():
     req = b._pbs_release_request(env={})
     assert req.get_header("Authorization") is None
     assert req.full_url == b._PBS_LATEST
+
+
+def test_bundle_python_exe_absolute_even_for_relative_prefix(tmp_path, monkeypatch):
+    """The pip subprocesses run with cwd=sidecar/ — a relative interpreter path
+    (CI passes --out out/bundles) would dangle after the chdir (POSIX resolves
+    the exe in the child's NEW cwd). Locally this hid behind absolute --out."""
+    monkeypatch.chdir(tmp_path)
+    rel = pathlib.Path("python")
+    (rel / "bin").mkdir(parents=True)
+    (rel / "bin" / "python3").write_text("")
+    got = b._bundle_python_exe(pathlib.Path("python"))
+    assert got.is_absolute()
+    assert got == tmp_path / "python" / "bin" / "python3"
