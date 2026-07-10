@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
 import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
-import { autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { autoSelectNative, hardwareGated, statusReposFor, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -104,6 +104,34 @@ interface NativeModelStore {
 const client = new NativeModelClient();
 
 // Re-run provider validation so the Start button gates with the cache state.
+/**
+ * Catalog-derived statusRepos defaults: each multi-variant card's CHOSEN
+ * (pinned ?? recommended) quant repo. Populated the moment the catalog lands,
+ * so every bare refresh() caller — ProviderSection's chips before the Settings
+ * panel ever mounts, and any future one — is variant-aware from cold start.
+ * Before this, the Settings panel was the only cache writer: a card whose
+ * downloaded quant is the recommended one (Fun-ASR: default Q6_K, downloaded
+ * Q8_0) read 'absent' from the default-repo check and the ASR chip showed
+ * "None" until a variant-aware caller happened to run.
+ */
+async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
+  let pins: Record<string, string> = {};
+  try {
+    const { useSettingsStore } = await import('./settingsStore');
+    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
+  } catch { /* settings store unavailable — fall back to recommendations */ }
+  const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+  for (const m of list) {
+    const vs = m.variants;
+    if (!vs || vs.length < 2) continue;
+    vd[m.id] = {
+      variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
+      recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+    };
+  }
+  return statusReposFor(Object.keys(vd), vd, pins);
+}
+
 async function revalidateNativeProvider(): Promise<void> {
   try {
     const { useSettingsStore } = await import('./settingsStore');
@@ -261,9 +289,11 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // the panel no longer needs a separate model_sizes round-trip.
       const newSizes = Object.fromEntries(
         list.filter((m) => m.sizeBytes).map((m) => [m.id, m.sizeBytes as number]));
+      const derivedRepos = await catalogStatusRepos(list);
       set((s) => ({
         catalog: { ...s.catalog, ...Object.fromEntries(list.map((m) => [m.id, m])) },
         sizes: { ...s.sizes, ...newSizes },
+        statusRepos: { ...s.statusRepos, ...derivedRepos },
       }));
     } catch {
       // best-effort badge refresh; ensureCatalog owns the authoritative lifecycle
@@ -296,11 +326,13 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // here too so cards show a download size immediately, no model_sizes call.
       const sizes = Object.fromEntries(
         list.filter((m) => m.sizeBytes).map((m) => [m.id, m.sizeBytes as number]));
-      set({
+      const derivedRepos = await catalogStatusRepos(list);
+      set((s) => ({
         catalog: Object.fromEntries(list.map((m) => [m.id, m])),
         sizes,
         sidecarStatus: 'ready',
-      });
+        statusRepos: { ...s.statusRepos, ...derivedRepos },
+      }));
     } catch {
       set({ sidecarStatus: 'unavailable' });
     }

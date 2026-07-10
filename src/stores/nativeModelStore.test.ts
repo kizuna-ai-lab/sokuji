@@ -15,6 +15,7 @@ vi.mock('../utils/environment', async () => {
 // Helpers for controlling FakeWS catalog behaviour in lifecycle tests
 // ---------------------------------------------------------------------------
 let _shouldReject = false;
+let _asrExtraModels: any[] = [];
 let _catalogCallCount = 0;
 function mockModelsCatalogResolve() { _shouldReject = false; }
 function mockModelsCatalogReject() { _shouldReject = true; }
@@ -48,7 +49,8 @@ class FakeWS {
              tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];
       } else {
         models = [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
-             tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }], sizeBytes: 944624033 }];
+             tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }], sizeBytes: 944624033 },
+           ..._asrExtraModels];
       }
       queueMicrotask(() => this.emit({ type: 'models_catalog_result', id: msg.id, models }));
     }
@@ -69,8 +71,9 @@ beforeEach(() => {
   (globalThis as any).window.electron = { invoke: vi.fn().mockResolvedValue({ ok: true, port: 9 }) };
   (globalThis as any).__lastStatusRepos = undefined;
   _shouldReject = false;
+  _asrExtraModels = [];
   _catalogCallCount = 0;
-  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {} } as any);
+  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {} } as any);
 });
 
 describe('nativeModelStore.isReady', () => {
@@ -142,6 +145,63 @@ describe('nativeModelStore.refreshCatalog', () => {
     expect(sizes['sense-voice']).toBe(944624033);
     expect(sizes['qwen2.5-0.5b']).toBe(999604126);
     expect(sizes['moss-tts-nano']).toBe(763206064);
+  });
+});
+
+describe('catalog-derived statusRepos cache (cold-start variant awareness)', () => {
+  // Field bug: ProviderSection's chips issue a bare refresh(ids) with no repos.
+  // Before the Settings panel ever mounts, nothing had populated the statusRepos
+  // cache, so the sidecar checked each card's DEFAULT quant repo — a card whose
+  // downloaded quant is the machine-recommended one (Fun-ASR: default Q6_K,
+  // downloaded Q8_0) read 'absent' and the ASR chip showed "None" until a
+  // variant-aware caller happened to run. The catalog feed already carries the
+  // full variant ladder, so the store derives the cache when the catalog lands.
+  const FUN_ASR = {
+    id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', languages: ['multi'], recommended: true,
+    tiers: [{ tier: 'cpu', backend: 'transcribe_cpp', available: true }], sizeBytes: 690744384,
+    variantIds: ['q6_k', 'q8_0'],
+    variants: [
+      { id: 'q6_k', sizeBytes: 690744384, repo: 'handy/Fun-ASR-gguf/Fun-ASR-Q6_K.gguf', supported: true, recommended: false },
+      { id: 'q8_0', sizeBytes: 891271232, repo: 'handy/Fun-ASR-gguf/Fun-ASR-Q8_0.gguf', supported: true, recommended: true },
+    ],
+  };
+
+  it('a bare refresh() after ensureCatalog checks the RECOMMENDED variant repo', async () => {
+    _asrExtraModels = [FUN_ASR];
+    await useNativeModelStore.getState().ensureCatalog();
+    await useNativeModelStore.getState().refresh(['fun-asr-mlt-nano']);
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({
+      'fun-asr-mlt-nano': 'handy/Fun-ASR-gguf/Fun-ASR-Q8_0.gguf',
+    });
+  });
+
+  it('an explicit variant pin wins over the recommendation', async () => {
+    _asrExtraModels = [FUN_ASR];
+    const { default: useSettingsStore } = await import('./settingsStore');
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        translationVariantByModel: { 'fun-asr-mlt-nano': 'q6_k' },
+      },
+    } as any);
+    await useNativeModelStore.getState().ensureCatalog();
+    await useNativeModelStore.getState().refresh(['fun-asr-mlt-nano']);
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({
+      'fun-asr-mlt-nano': 'handy/Fun-ASR-gguf/Fun-ASR-Q6_K.gguf',
+    });
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        translationVariantByModel: {},
+      },
+    } as any);
+  });
+
+  it('single-variant cards stay out of the cache (default repo is correct for them)', async () => {
+    await useNativeModelStore.getState().ensureCatalog();
+    await useNativeModelStore.getState().refresh(['sense-voice']);
+    const repos = (globalThis as any).__lastStatusRepos ?? {};
+    expect(repos['sense-voice']).toBeUndefined();
   });
 });
 
