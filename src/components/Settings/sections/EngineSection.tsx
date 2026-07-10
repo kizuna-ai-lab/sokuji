@@ -19,8 +19,9 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
   const {
     bundleStatus, bundleSku, bundleVersion, bundleRequiredVersion, bundleProgress,
     bundlePhase, bundleError, bundleStagedBytes, bundleGpuName, bundleDevVenv,
-    bundleSize, bundleInstalledSize,
+    bundleSize, bundleInstalledSize, sidecarStatus,
     refreshBundle, installBundle, cancelBundle, removeBundle, fetchBundleEntry,
+    retrySidecar,
   } = useNativeModelStore();
 
   useEffect(() => { void refreshBundle(); }, [refreshBundle]);
@@ -33,6 +34,21 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
   }, [bundleStatus, bundleSize, fetchBundleEntry]);
 
   if (bundleStatus === 'unknown') return null;
+
+  // Sidecar-RUNTIME failure is an engine concern, so its error lives inside this
+  // card (not as a floating banner in the model area below). Only rendered in
+  // states where the engine itself is fine (ready / dev venv) — in absent/
+  // mismatch states the card's own CTA is the message.
+  const sidecarError = sidecarStatus === 'unavailable' ? (
+    <>
+      <div className="engine-section__row engine-section__row--error">
+        {t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}
+      </div>
+      <button className="engine-section__action" onClick={() => void retrySidecar()}>
+        <RefreshCw size={14} /> {t('common.retry', 'Retry')}
+      </button>
+    </>
+  ) : null;
 
   if (bundleStatus === 'unsupported') {
     return (
@@ -54,6 +70,7 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
           <Cpu size={14} />
           <span>{t('engine.devMode', 'Development mode · local venv')}</span>
         </div>
+        {sidecarError}
       </div>
     );
   }
@@ -171,6 +188,8 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
           </button>
         </div>
       )}
+
+      {bundleStatus === 'ready' && sidecarError}
     </div>
   );
 };

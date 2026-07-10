@@ -635,14 +635,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
   }
   if (sidecarStatus === 'unavailable') {
-    return (
-      <div className="native-models-error">
-        <span>{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</span>
-        <button type="button" onClick={() => useNativeModelStore.getState().retrySidecar()}>
-          {t('common.retry', 'Retry')}
-        </button>
-      </div>
-    );
+    // The runtime error (+ retry) is rendered inside EngineSection's card — an
+    // engine concern belongs on the engine surface, not floating down here.
+    return null;
   }
 
   return (

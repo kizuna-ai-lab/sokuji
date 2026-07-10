@@ -1255,8 +1255,10 @@
   padding: 6px 10px;
   border-radius: vars.$radius-sm;
   font-size: vars.$font-caption;
-  margin-top: vars.$space-2;
-  margin-bottom: vars.$space-2;
+  // Last child of .config-section, whose own padding-bottom already provides
+  // the space below — a bottom margin here read as an asymmetric double gap.
+  margin-top: vars.$space-3;
+  margin-bottom: 0;
 
   &.success {
     background: rgba(68, 255, 68, 0.1);

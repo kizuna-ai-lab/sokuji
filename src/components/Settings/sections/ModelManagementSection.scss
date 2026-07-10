@@ -692,21 +692,17 @@
   }
 }
 
-// LOCAL_NATIVE sidecar lifecycle placeholders, shown in place of the model cards
-// while the sidecar is warming up (`starting`/`idle`) or can't be reached
-// (`unavailable`). Top-level classes because they are returned standalone, not
-// nested inside .model-management-section.
-.native-models-loading,
-.native-models-error {
+// LOCAL_NATIVE sidecar lifecycle placeholder, shown in place of the model cards
+// while the sidecar is warming up (`starting`/`idle`). The `unavailable` error
+// lives inside EngineSection's card. Top-level class because it is returned
+// standalone, not nested inside .model-management-section.
+.native-models-loading {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 16px;
   border-radius: vars.$radius-md;
   font-size: vars.$font-body;
-}
-
-.native-models-loading {
   justify-content: center;
   color: vars.$text-muted;
   background: vars.$bg-surface;

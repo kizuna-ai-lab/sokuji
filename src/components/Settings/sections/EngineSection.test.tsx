@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { EngineSection } from './EngineSection';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
 
@@ -24,6 +24,7 @@ describe('EngineSection states (spec S10)', () => {
     bundleSku: null, bundleVersion: null, bundleRequiredVersion: null,
     bundleSize: null, bundleInstalledSize: null, bundleStagedBytes: 0,
     bundlePhase: null, bundleProgress: { downloaded: 0, total: 0 }, bundleError: '',
+    sidecarStatus: 'idle',
   }));
 
   it('renders nothing while unknown', () => {
@@ -102,5 +103,27 @@ describe('EngineSection states (spec S10)', () => {
     render(<EngineSection />);
     expect(screen.getByText(/Engine 0\.1\.0/)).toBeTruthy();
     expect(screen.getByText(/Remove engine/)).toBeTruthy();
+  });
+
+  it('ready + sidecar unavailable: runtime error + retry live inside the card', () => {
+    const retrySidecar = vi.fn(async () => {});
+    setBundle({
+      bundleStatus: 'ready', bundleVersion: '0.1.0',
+      sidecarStatus: 'unavailable', retrySidecar,
+    });
+    render(<EngineSection />);
+    expect(screen.getByText(/unavailable/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Retry/));
+    expect(retrySidecar).toHaveBeenCalled();
+  });
+
+  it('dev venv + sidecar unavailable: error + retry inside the quiet dev card', () => {
+    setBundle({
+      bundleStatus: 'absent', bundleDevVenv: true,
+      sidecarStatus: 'unavailable', retrySidecar: vi.fn(async () => {}),
+    });
+    render(<EngineSection />);
+    expect(screen.getByText(/Development mode/)).toBeTruthy();
+    expect(screen.getByText(/unavailable/)).toBeTruthy();
   });
 });

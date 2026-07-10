@@ -452,11 +452,10 @@ describe('NativeModelManagementSection — sidecar lifecycle states', () => {
     expect(screen.getByText(/starting the local engine/i)).toBeInTheDocument();
   });
 
-  it('shows an error + retry when the sidecar is unavailable', () => {
+  it('renders nothing when the sidecar is unavailable (EngineSection owns the error)', () => {
     mockSidecarStatus = 'unavailable';
-    render(<NativeModelManagementSection />);
-    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
-    expect(mockRetrySidecar).toHaveBeenCalled();
+    const { container } = render(<NativeModelManagementSection />);
+    expect(container.firstChild).toBeNull();
   });
 });
 
