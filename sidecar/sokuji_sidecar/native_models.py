@@ -190,11 +190,37 @@ def _repos_cached(specs) -> bool:
     return True
 
 
+def _ladder_artifacts(model_id):
+    """Every quant rung's artifact for a multi-quant catalog card (ASR or
+    llamacpp translate), [] for single-variant/unknown ids. model_status's
+    no-override path treats a card as RUNNABLE when ANY rung is cached —
+    load-time resolution only ever loads downloaded quants (accel's
+    downloaded= restriction), so runnability must not depend on the static
+    default rung (field bug: Fun-ASR default Q6_K vs downloaded Q8_0 read
+    'absent' from every bare status query)."""
+    m = _asr_model(model_id) if model_id else None
+    if m is None:
+        from .catalog import translate_model as _translate_model
+        m = _translate_model(model_id) if model_id else None
+    if m is None:
+        return []
+    arts, seen = [], set()
+    for d in m.deployments:
+        if d.compute_type in seen:
+            continue
+        seen.add(d.compute_type)
+        arts.append(d.artifact)
+    return arts if len(arts) > 1 else []
+
+
 def model_status(model_id, repo=None):
     """'ready' only if every repo + url is cached locally AND complete, else 'absent'.
 
     `repo` overrides the model's default repo with a chosen variant's repo (mirrors
     download_specs), so status reflects the variant the card actually downloads.
+    WITHOUT an override, a multi-quant card's file requirement is satisfied by
+    ANY cached rung of its ladder (see _ladder_artifacts) — the override form
+    keeps per-quant semantics for the download buttons.
 
     llamacpp_* translate cards additionally need the shared llama-server binary
     installed for EVERY required flavor (see download() / llama_runtime.
@@ -206,7 +232,20 @@ def model_status(model_id, repo=None):
     try:
         if not _repos_cached(specs):
             return "absent"
-        if specs.get("files"):
+        ladder = _ladder_artifacts(model_id) if repo is None else []
+        if ladder:
+            from huggingface_hub import hf_hub_download
+
+            def _rung_cached(artifact):
+                r, fname = split_artifact(artifact)
+                try:
+                    hf_hub_download(r, fname, local_files_only=True)
+                    return True
+                except Exception:
+                    return False
+            if not any(_rung_cached(a) for a in ladder):
+                return "absent"
+        elif specs.get("files"):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
                 hf_hub_download(r, fname, local_files_only=True)

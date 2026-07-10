@@ -840,3 +840,64 @@ def test_download_falls_back_to_unit_counting_without_size(monkeypatch, tmp_path
     assert asyncio.run(nm.download("mystery-model", send)) == "ready"
     prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
     assert prog == [(1, 2), (2, 2)]    # old per-file behavior preserved
+
+
+def test_model_status_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
+    """A multi-quant card is RUNNABLE when ANY rung is cached — load-time
+    resolution prefers downloaded quants, so status must not depend on the
+    static default rung. Field bug: Fun-ASR (default Q6_K) with only the
+    machine-recommended Q8_0 downloaded read 'absent' from every bare
+    (no-repo-override) status query, and the renderer's ASR chip showed
+    "None" until a variant-aware caller repaired the map."""
+    import huggingface_hub
+    from sokuji_sidecar import native_models
+
+    cached = {"Fun-ASR-MLT-Nano-2512-Q8_0.gguf"}
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname in cached:
+            return str(tmp_path / fname)
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+    vad = tmp_path / "silero_vad.onnx"
+    vad.write_bytes(b"vad")
+    monkeypatch.setattr(native_models, "_vad_cache_path", lambda: str(vad))
+
+    # default rung (Q6_K) absent, Q8_0 cached -> runnable
+    assert native_models.model_status("fun-asr-mlt-nano") == "ready"
+    # nothing cached -> absent
+    cached.clear()
+    assert native_models.model_status("fun-asr-mlt-nano") == "absent"
+
+
+def test_model_status_repo_override_keeps_specific_quant_semantics(monkeypatch, tmp_path):
+    """With an explicit repo override (the download button's 'is THIS quant
+    downloaded?' question) the any-rung relaxation must NOT apply."""
+    import huggingface_hub
+    from sokuji_sidecar import native_models
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname == "Fun-ASR-MLT-Nano-2512-Q8_0.gguf":
+            return str(tmp_path / fname)
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    q6 = "handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q6_K.gguf"
+    q8 = "handy-computer/Fun-ASR-MLT-Nano-2512-gguf/Fun-ASR-MLT-Nano-2512-Q8_0.gguf"
+    assert native_models.model_status("fun-asr-mlt-nano", repo=q6) == "absent"
+    assert native_models.model_status("fun-asr-mlt-nano", repo=q8) == "ready"
+
+
+def test_model_status_translate_ladder_still_needs_llama_binary(monkeypatch, tmp_path):
+    """The any-rung relaxation covers the FILE requirement only: a llamacpp
+    card with a cached rung but missing llama-server flavors stays absent."""
+    import huggingface_hub
+    from sokuji_sidecar import native_models, llama_runtime
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
+                        lambda repo, fname, **kw: str(tmp_path / fname))
+    monkeypatch.setattr(llama_runtime, "required_flavors", lambda: ["cpu"])
+    monkeypatch.setattr(llama_runtime, "binary_path", lambda f: None)
+    assert native_models.model_status("qwen2.5-0.5b") == "absent"
+    monkeypatch.setattr(llama_runtime, "binary_path", lambda f: "/x/llama")
+    assert native_models.model_status("qwen2.5-0.5b") == "ready"
