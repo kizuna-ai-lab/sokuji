@@ -36,9 +36,10 @@ latest-per-sku with an operator-supplied `--version`).
 - App releases publish to GitHub Releases via `softprops/action-gh-release`;
   auto-update via electron-updater (GitHub provider, reads `latest*.yml` from
   the latest release).
-- Bundle sizes are **unmeasured** (P7 spike deferred: dev box at 99% disk).
-  The nvidia SKU (onnxruntime-gpu[cuda,cudnn], ~4–5 GB unpacked) plausibly
-  straddles GitHub's 2 GiB per-asset limit after zstd-19.
+- Bundle sizes were **unmeasured** at design time (P7 spike deferred: dev box
+  at 99% disk); the nvidia SKU plausibly straddled GitHub's 2 GiB per-asset
+  limit after zstd-19. RESOLVED same day — see the Field addendum at the end:
+  all four SKUs fit single-part.
 
 ## Decisions
 
@@ -214,3 +215,58 @@ fallback until the usual batch pass.
 - Signing/notarization of bundles (existing operator follow-up from P7).
 - Linux non-NVIDIA CPU SKU (P7/D10 open item — unchanged: nvidia bundle's CPU
   fallback).
+
+## Field addendum (2026-07-10, same day: local E2E + first release cycle)
+
+Everything below was learned or changed AFTER the decisions above were
+implemented — during local Level A/B testing on the 4070 box and the first
+real release cycle. Decisions S1–S11 stand unchanged; refinements are
+marked S9+/S10+.
+
+### Measured facts
+
+| Fact | Value |
+|------|-------|
+| Archive sizes (v0.1.3) | linux-nvidia **1.74 GB** · win-nvidia **1.48 GB** · win-directml **0.12 GB** · mac **0.16 GB** |
+| Installed sizes | 4.72 / ~4 / 0.59 / 0.82 GB |
+| Splitting needed? | **No SKU splits** — all under the 1.9 GiB line; S5's multi-part machinery stays a dormant safety net (exercised in tests only) |
+| Handshake latency | ~0.2 s hot AND cold (the sidecar binds its port before any heavy import); **14.3 s** on the first boot after an install — the post-extract writeback of the ~5 GB tree saturates the disk. NOT an import/cold-read problem; do not "optimize" imports for this. |
+| electron-updater isolation (S3) | Verified live: with sidecar prereleases present, `/releases/latest` still resolves to the app release. |
+
+### Amendments from field testing
+
+- **S9+ (boot watchdog)**: handshake budget raised 30 s → 90 s
+  (`HANDSHAKE_TIMEOUT_MS`), and a pre-handshake child exit now rejects
+  immediately so genuine crashes never wait for the watchdog. Rationale: the
+  automatic first boot after an install lands inside the writeback window
+  (one field boot was watchdog-killed at 30 s; the production-path run
+  measured 14.3 s).
+- **S10+ (gate refresh)**: `retrySidecar` re-runs provider validation after
+  `ensureCatalog` (mirroring `installBundle`) — without it a successful
+  manual retry left a stale "unavailable" validation message and a locked
+  Start button.
+- **S10+ (error placement)**: the sidecar-RUNTIME error (+ Retry) renders
+  inside the engine card, and only in states where the engine itself is fine
+  (ready / dev venv); the standalone model-area error banner was removed.
+  Known leftover: ProviderSection's `.local-native-status` chip duplicates
+  the validation message — dedup tracked as a follow-up.
+- **Observability**: the main process logs
+  `handshake in <ms> (source: env|bundle|venv, port N)` on every sidecar
+  start — twice during testing, "how long did the boot take" was
+  unanswerable retroactively.
+
+### CI-only failures (each invisible to local testing)
+
+The first three release attempts burned versions per the S4 fix-forward
+convention (~4 minutes per cycle, nothing half-published):
+
+| Burned | Cause | Fix |
+|--------|-------|-----|
+| 0.1.0 | Anonymous `api.github.com` PBS lookup → HTTP 403 (hosted runners share egress IPs with exhausted anonymous quota) | send the workflow `GITHUB_TOKEN` with the release-lookup request |
+| 0.1.1 | Relative `--out` made the embedded interpreter path dangle under pip's `cwd=sidecar/` (POSIX resolves a relative exe AFTER chdir); local builds hid this behind absolute `--out` paths | `_bundle_python_exe()` resolves to an absolute path |
+| 0.1.2 | mac: `mlx-audio 0.4.4` requires `huggingface_hub>=1.0`, conflicting with the base `==0.26.2` pin — that dependency combination had never been resolved on any machine before | platform-split pin: darwin/arm64 gets `>=1.0,<2`, every other platform keeps the field-tested 0.26.2 (the sidecar's hf surface — `snapshot_download`/`hf_hub_download` with `repo_id`/`allow_patterns` only — is stable across 1.x) |
+
+**`sidecar-v0.1.3` shipped with all four SKUs + `manifest.json`.** The
+production path was then verified end-to-end with zero overrides: manifest
+peek and 1.74 GB download from the real GitHub CDN → install → boot from the
+embedded interpreter → translation session.
