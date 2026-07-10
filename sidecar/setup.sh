@@ -29,7 +29,9 @@ echo "[setup] venv python: $($PY --version 2>&1)"
 "$PY" -m pip install -q --upgrade pip
 
 echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, huggingface_hub) + pytest"
-"$PY" -m pip install -q -r requirements.txt pytest
+# scipy is a test-only dep (tests/test_qwen3_backend.py builds WAV fixtures with
+# scipy.io.wavfile); it is NOT in requirements.txt so bundles never ship it.
+"$PY" -m pip install -q -r requirements.txt pytest scipy
 
 # Stage runtimes (torch-free since 2026-07-04):
 #   ASR       -> transcribe-cpp (pinned in requirements.txt — the single
@@ -52,7 +54,10 @@ echo "[setup] stage runtimes: sherpa-onnx"
 if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
   case "$(uname -s)" in
     Darwin) ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
-    *) if command -v nvidia-smi >/dev/null 2>&1; then
+    *) # onnxruntime-gpu ships no aarch64 wheels (verified 1.23.2): ARM boxes
+       # with NVIDIA GPUs (DGX Spark, Jetson) take the CPU build; their GPU
+       # acceleration comes from the ggml/Vulkan family, not the ORT CUDA EP.
+       if command -v nvidia-smi >/dev/null 2>&1 && [ "$(uname -m)" = "x86_64" ]; then
          ONNXRUNTIME_PACKAGE="onnxruntime-gpu[cuda,cudnn]==1.23.2"
        else
          ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2"
