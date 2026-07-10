@@ -1,11 +1,14 @@
 const path = require('path');
 const fs = require('fs');
 
-// Handshake watchdog budget. Field-measured (Level B): the FIRST boot after a
-// bundle install — cold page cache over a freshly extracted ~5 GB tree, first
-// onnxruntime import, CUDA DLL preload — exceeded 30s even on NVMe; slower
-// disks will be worse. Genuine crashes don't wait for this: a pre-handshake
-// child exit rejects immediately (see start()).
+// Handshake watchdog budget. Field-measured (first real bundle install): the
+// handshake itself is trivially fast (~0.2s hot AND cold — the sidecar binds
+// its port before any heavy import), but the boot that immediately follows a
+// bundle install competes with the writeback of the freshly extracted ~5 GB
+// tree — the disk is saturated flushing dirty pages and even that 0.2s of
+// reads blew a 30s deadline on NVMe. 90s covers the writeback window on slower
+// disks too. Genuine crashes don't wait for this: a pre-handshake child exit
+// rejects immediately (see start()).
 const HANDSHAKE_TIMEOUT_MS = 90000;
 
 function resolvePython() {
