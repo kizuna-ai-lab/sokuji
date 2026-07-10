@@ -241,6 +241,23 @@ describe('nativeModelStore sidecar lifecycle', () => {
     await useNativeModelStore.getState().ensureCatalog();
     expect(modelsCatalogCallCount()).toBe(calls);
   });
+
+  it('retrySidecar re-runs provider validation so the stale gate message clears', async () => {
+    // Boot fails once → the gate stores an "unavailable" message.
+    mockModelsCatalogReject();
+    useNativeModelStore.setState({ sidecarStatus: 'idle', catalog: {} } as any);
+    await useNativeModelStore.getState().ensureCatalog();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('unavailable');
+    // Retry succeeds — validateApiKey owns validationMessage/isApiKeyValid
+    // (Start button + banner); a successful retry must re-run it.
+    const { useSettingsStore } = await import('./settingsStore');
+    const validateApiKey = vi.fn(async () => ({ valid: true, validating: false }));
+    useSettingsStore.setState({ provider: 'local_native', validateApiKey } as never);
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().retrySidecar();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
+    expect(validateApiKey).toHaveBeenCalled();
+  });
 });
 
 describe('nativeModelStore resolved plans retain backend and computeType', () => {

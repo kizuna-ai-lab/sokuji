@@ -309,6 +309,11 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   retrySidecar: async () => {
     set({ sidecarStatus: 'idle' });
     await get().ensureCatalog();
+    // validateApiKey owns settingsStore's validationMessage / isApiKeyValid
+    // (the Start-button gate and the provider banner); nothing else re-runs it
+    // after a manual retry, so a successful boot would leave a stale
+    // "unavailable" message and a locked Start button without this.
+    await revalidateNativeProvider();
   },
 
   setStatusRepos: (repos) => set({ statusRepos: repos }),
