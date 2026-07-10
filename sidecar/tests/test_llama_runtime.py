@@ -272,15 +272,21 @@ def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
     assert rt.default_flavor() == "vulkan"
 
 
-def test_default_flavor_vulkan_on_linux_aarch64_nvidia(monkeypatch):
-    # Linux/aarch64 NVIDIA (DGX Spark, Jetson) routes to vulkan, NOT cuda: the
-    # bucket's aarch64 cuda builds lack current-SM kernel images (GB10/SM121
-    # field-crashed with "no kernel image is available for execution").
+def test_bucket_version_is_b9940():
+    # The ASSET_SHA256 table below is recorded against exactly this version;
+    # bumping one without the other bricks every pinned download.
+    assert rt.BUCKET_VERSION == "b9940"
+
+
+def test_default_flavor_cuda_on_linux_aarch64_nvidia(monkeypatch):
+    # Linux/aarch64 NVIDIA (DGX Spark, Jetson) routes to cuda like x86: the
+    # b9940+ buckets ship sm_121 builds (llama-install.sh #60 fixed the probe
+    # that used to hand GB10 an sm_120-only binary).
     from sokuji_sidecar import accel
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
         gpus=(("vulkan", "NVIDIA GB10", 97 << 30),), tc=("cpu", "vulkan"),
         arch="aarch64"))
-    assert rt.default_flavor() == "vulkan"
+    assert rt.default_flavor() == "cuda"
 
 
 def test_default_flavor_vulkan_on_linux_aarch64_generic_gpu(monkeypatch):

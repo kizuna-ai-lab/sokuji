@@ -426,12 +426,14 @@ def test_gpu_vulkan_tier_covers_linux_aarch64():
     assert accel._tier_available("gpu-vulkan", woa) is False
 
 
-def test_gpu_cuda_tier_gated_to_x64():
-    # CUDA is an x86_64-only lane: onnxruntime-gpu ships no aarch64 wheels and
-    # the llama bucket's aarch64 cuda builds lack current-SM kernel images
-    # (GB10/SM121 field-crashed with "no kernel image is available"). Without
-    # this gate an ARM NVIDIA box leads every resolve with a doomed cuda plan.
+def test_gpu_cuda_tier_backend_split_on_aarch64():
+    # x86: NVIDIA presence is the whole gate. Linux/aarch64 splits by backend:
+    # llamacpp_* is allowed (the b9940+ bucket ships sm_121 builds since
+    # llama-install.sh #60), the ORT lane still needs the hand-installed sbsa
+    # onnxruntime-gpu wheel (see the capability test below), and a call with
+    # no backend info stays conservative.
     assert accel._tier_available("gpu-cuda", _machine(gpus=_nv_gpus(12288))) is True
+    assert accel._tier_available("gpu-cuda", _arm_machine(), backend="llamacpp_qwen") is True
     assert accel._tier_available("gpu-cuda", _arm_machine()) is False
 
 
@@ -439,29 +441,24 @@ def test_gpu_cuda_tier_capability_unlock_on_aarch64():
     # Installing NVIDIA's sbsa onnxruntime-gpu wheel (exposes the CUDA EP)
     # unlocks the cuda tier for ORT backends on Linux/aarch64 — field-tested
     # on a DGX Spark: Qwen3-TTS 0.6B runs 0.38x realtime on CPU (unusable)
-    # vs 1.15x on CUDA. llamacpp never rides this unlock (the llama bucket's
-    # aarch64 cuda builds crash on GB10), and without the wheel (ort_cuda
-    # False, the PyPI CPU build) nothing changes.
+    # vs 1.15x on CUDA. Without the wheel (ort_cuda False, the PyPI CPU
+    # build) the ORT lane stays closed; llamacpp doesn't need it (its cuda
+    # lane is the bucket binary, not onnxruntime).
     m = _arm_machine(ort_cuda=True)
     assert accel._tier_available("gpu-cuda", m, backend="qwen3tts_onnx") is True
     assert accel._tier_available("gpu-cuda", m, backend="moss_onnx") is True
-    assert accel._tier_available("gpu-cuda", m, backend="llamacpp_qwen") is False
     assert accel._tier_available("gpu-cuda", m) is False              # no backend info
     assert accel._tier_available(
         "gpu-cuda", _arm_machine(), backend="qwen3tts_onnx") is False  # CPU wheel
 
 
-def test_arm_ort_cuda_resolves_tts_cuda_translate_stays_vulkan():
-    # With the sbsa wheel installed: ORT TTS leads with cuda, while llamacpp
-    # translate STILL has no cuda plan (vulkan first, cpu floor).
+def test_arm_ort_cuda_resolves_tts_cuda():
+    # With the sbsa wheel installed, ORT TTS leads with cuda on aarch64.
     m = _arm_machine(ort_cuda=True,
                      installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream",
                                           "llamacpp_qwen", "qwen3tts_onnx"}))
     tts = accel.resolve_tts("qwen3-tts-0.6b", machine=m)
     assert tts[0].device == "cuda"
-    tr = accel.resolve_translate("qwen2.5-0.5b", "auto", m)
-    assert not any(p.device == "cuda" for p in tr)
-    assert tr[0].device == "vulkan"
 
 
 def test_probe_helper_reads_ort_cuda_capability(monkeypatch):
@@ -477,14 +474,15 @@ def test_probe_helper_reads_ort_cuda_capability(monkeypatch):
     assert accel._ort_cuda() is False
 
 
-def test_arm_nvidia_resolves_vulkan_first_cpu_floor():
-    # DGX Spark / Jetson end-to-end: ASR leads with vulkan; translate leads
-    # with vulkan and keeps the cpu floor; no cuda plan anywhere.
+def test_arm_nvidia_resolves_asr_vulkan_translate_cuda():
+    # DGX Spark / Jetson end-to-end: ASR leads with vulkan (transcribe_cpp has
+    # no cuda tier); llamacpp translate leads with cuda (bucket sm_121 builds
+    # exist since b9940) and keeps the cpu floor.
     asr = accel.resolve("sense-voice", machine=_arm_machine())
     assert asr[0].device == "vulkan"
     tr = accel.resolve_translate("qwen2.5-0.5b", "auto", _arm_machine())
-    assert [p.device for p in tr[:2]] == ["vulkan", "cpu"]
-    assert not any(p.device == "cuda" for p in tr)
+    assert tr[0].device == "cuda"
+    assert any(p.device == "cpu" for p in tr)
 
 
 def test_gpu_vulkan_tier_not_lit_by_dml_alone():

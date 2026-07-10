@@ -25,7 +25,7 @@ import time
 
 from .backends import BackendLoadError
 
-BUCKET_VERSION = "b9835"
+BUCKET_VERSION = "b9940"
 _BUCKET_BASE = "https://huggingface.co/buckets/ggml-org/install.sh/resolve"
 _GH_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
 
@@ -33,30 +33,35 @@ _GH_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
 # A missing entry logs a warning instead of failing: the bucket grows new
 # SM/chip configs without notice and we must not brick those machines.
 ASSET_SHA256: dict[str, str] = {
-    "x86_64/linux/cuda/probe/probe.zst": "355863c29bbabb9a89705d696d9aedbc94cbd8b3e4c79f0f0c78935da17ef3b3",
-    "x86_64/linux/cuda/75/llama-app.zst": "53ca317f5736fc73c8fb56323a1228bc2d46bcae1f039564d8dcc6e1dd01d0fb",
-    "x86_64/linux/cuda/80/llama-app.zst": "a946440f7dfe7b8ad0138fd06fc86432de827a37e30bc8484ce7d62e5b619086",
-    "x86_64/linux/cuda/86/llama-app.zst": "d8b152097e88f8807f68955548207bfbd3a7d3f9727789bade455880ed60d158",
-    "x86_64/linux/cuda/89/llama-app.zst": "4daafe12e7aeacabeb43d7c85b45137bbadd60be3aa8869074be78fcf21b64a4",
-    "x86_64/linux/cuda/90/llama-app.zst": "a2e02e4410844c72d3e951773cd1163a097468d9695f8e15e1078a58ddaf6ebf",
-    "x86_64/linux/cuda/100/llama-app.zst": "b2f7e64bf057d8f862224063f8fd503c09c852f0ebc9689b52ffa0d31d73c2f6",
-    "x86_64/linux/cuda/120/llama-app.zst": "89917bc3fbc4640273a4054fe3dae0f1fa33b1859a42d9c7ba663b51b3569969",
+    # Recorded 2026-07-11 against the b9940 bucket/release (see
+    # scripts/record_llama_checksums.py). 121 is the GB10 / DGX Spark config
+    # the llama-install.sh #60 fix added; the aarch64 cuda 121 + cpu 'ql'
+    # assets were verified end-to-end on a DGX Spark.
+    "x86_64/linux/cuda/probe/probe.zst": "ae2e19df4de6aa0736179c8cd1fb902512d27c6d49b356eae6a21376cc100fbb",
+    "x86_64/linux/cuda/75/llama-app.zst": "17daa135f6a954144821ccaf112806917a3b46c3ffc9a0d28960d5b2b03c1dfd",
+    "x86_64/linux/cuda/80/llama-app.zst": "227c9faf2d141eed590276af077b8d3f8248e575450d1bb30b3c92ee8b0253f9",
+    "x86_64/linux/cuda/86/llama-app.zst": "c4c577543bac490b451b3280ebad17ee214224579be7a0013bf0b73487275d85",
+    "x86_64/linux/cuda/89/llama-app.zst": "2f030fb9c79b36a8efb68ddee2f5021eaba0184ceb71592026b60a1ed6e13397",
+    "x86_64/linux/cuda/90/llama-app.zst": "d84759560f1c1697f2694cc42d72e88697dc8c3265566473319927875a5d0ee3",
+    "x86_64/linux/cuda/100/llama-app.zst": "f634b8614f73ef333895a7692e4267e262c7f826675400ba2e62c4c14121a23b",
+    "x86_64/linux/cuda/120/llama-app.zst": "a4280a8559ac743631bcc019b90c10185c347c6991589807389363e3c90c2c8a",
+    "x86_64/linux/cuda/121/llama-app.zst": "6cb8d9ed69932137c404111f784afa8566967d462f1814a3a93c289d65a7f26f",
     "x86_64/linux/featcode": "8bd4f1ce7147c27283ccb9558f4d80b2dcb1348df383be2f0750ac7cfb537af4",
-    "aarch64/macos/metal/m1/llama-app.zst": "8b3339d445e617cbd1b96b3acaef9ab299fd08a6908582b8fa811468b9898fb0",
-    "aarch64/macos/metal/m2/llama-app.zst": "7ff1253d0a8a5e3ffd1115bcad30fb6120811d79058c49c951fe9c973b0d0e99",
-    "aarch64/macos/metal/m3/llama-app.zst": "f41d8be26a3b708dadb15c6450688654b453015e47c7070554137cdfa2076766",
-    "aarch64/macos/metal/m4/llama-app.zst": "a55d2c82ab79ba99ab1e6bf6ac45fc4b4d5ac0654fefe19b6bb3f91e7605742f",
-    "aarch64/macos/metal/m5/llama-app.zst": "c074eebf2fdd4b8767d7b8d1697ecdecd9833e12cbfed18c5acb6d4d126e0b4c",
-    "llama-b9835-bin-win-cuda-12.4-x64.zip": "46a7e68e4012f41936e5d8dc096e91bf71f189fb2150a3b5198f4ad4aa15f4c5",
-    "cudart-llama-bin-win-cuda-12.4-x64.zip": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
-    "llama-b9835-bin-win-cpu-x64.zip": "982860c8dfc36ee82e41aa0885e1f49faa8d7cf07c7481a83f36fb0154e1c64c",
-    # aarch64 lane, recorded on a DGX Spark (GB10) and verified end-to-end
-    # there: featcode probe + its 'ql' cpu build, and both ubuntu-vulkan
-    # release tarballs (the arm64 one boot-tested through llama-server).
+    "aarch64/linux/cuda/probe/probe.zst": "69ca18dadb4a3c8bfa73631ab2a0e42180d7aff66d1bfb00472f3608aee84b6c",
+    "aarch64/linux/cuda/86/llama-app.zst": "75d4a8bd75016bcd3dc3b00beda1bad9ac4eefaebf8ebf0e2159787a4d069a26",
+    "aarch64/linux/cuda/121/llama-app.zst": "8ce57636210036374c07a19d019e06ebdf0aef22fa0b1102503bf6182c72d45d",
     "aarch64/linux/featcode": "0d21a3e7430d04bfb07fa5ee136eb8d3cc3c3b4cafff084a4fba1ac99a7bbac4",
-    "aarch64/linux/cpu/ql/llama-app.zst": "5ef1a95d56037ad3270eaac77bf84a0eeb65b266f3be0985f38c38b3b59aad30",
-    "llama-b9835-bin-ubuntu-vulkan-x64.tar.gz": "513debc0497ba6936ef037907d48bca5c2b250756cb7700b5111f1ed2a59323f",
-    "llama-b9835-bin-ubuntu-vulkan-arm64.tar.gz": "d2ad0ca81924714022bad9c8b7fc32ed2334690054132e57abaafeb7e4bba689",
+    "aarch64/linux/cpu/ql/llama-app.zst": "07400870cfbaafb9fafd015609ff2d4da99034b203559fac8e03ed5e2e8f47d9",
+    "aarch64/macos/metal/m1/llama-app.zst": "22edaa30639727b28bf9da27428e3e74df6d01c514b1925601789b67687e0202",
+    "aarch64/macos/metal/m2/llama-app.zst": "9881923030106abca5fc47b15ca33f2245cf6f087d6b986490f4e3c72a4b9111",
+    "aarch64/macos/metal/m3/llama-app.zst": "391baf2186ede57947b6bd5743bcb5afcd937b0f890dbb8608a6c9e3683bf8ce",
+    "aarch64/macos/metal/m4/llama-app.zst": "a14392f37d35a864fd00bf31fad32bec76639d56c41ce30ea7af639b6280fc78",
+    "aarch64/macos/metal/m5/llama-app.zst": "81831a7b8fe0639e5eb619e0f36ffb18964157d750453ad04d378522ba8c4cdf",
+    "llama-b9940-bin-win-cuda-12.4-x64.zip": "1eb3afec18662b69a8e6716978e61263c8b9f4829a6e929b8fcdcc142be51893",
+    "cudart-llama-bin-win-cuda-12.4-x64.zip": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+    "llama-b9940-bin-win-cpu-x64.zip": "d5d7248c7aacaeb0c8f15311acb0f1081874aa7a5de55843702e9e2394a05788",
+    "llama-b9940-bin-ubuntu-vulkan-x64.tar.gz": "b7295aae75f0d6e262ae0fa1085a3b8fa400ee813767ab8b773dfcbf680973f8",
+    "llama-b9940-bin-ubuntu-vulkan-arm64.tar.gz": "13af8dc1d9000e96ea96a757e31123e8b2799de1fdc567ceaa8ff55cca9243fc",
 }
 # NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
 # The win-vulkan release zip (llama-<ver>-bin-win-vulkan-x64.zip) is still
@@ -110,12 +115,10 @@ def default_flavor() -> str:
     from . import accel
     m = accel.probe()
     if accel.has_nvidia(m):
-        # Linux/aarch64 NVIDIA (DGX Spark, Jetson) accelerates through the
-        # official ubuntu-vulkan-arm64 release, NOT cuda: the bucket's aarch64
-        # cuda builds lack current-SM kernel images (GB10/SM121 field-crashed
-        # with "no kernel image is available for execution on the device").
-        if m.os == "Linux" and m.arch in ("aarch64", "arm64"):
-            return "vulkan"
+        # Includes Linux/aarch64 (DGX Spark, Jetson): the b9940+ buckets ship
+        # sm_121 builds and a probe that maps GB10 correctly (llama-install.sh
+        # #60 — the pre-fix bucket handed sm_121 devices an sm_120-only
+        # binary, which crashed with "no kernel image is available").
         return "cuda"
     if m.apple_silicon:
         return "metal"

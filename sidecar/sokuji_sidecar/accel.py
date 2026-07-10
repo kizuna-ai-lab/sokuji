@@ -225,19 +225,24 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
         # bucket's cuda builds work — device presence is the whole gate.
         if machine.arch in ("x86_64", "AMD64"):
             return True
-        # Linux/aarch64 (DGX Spark, Jetson): PyPI has no aarch64
-        # onnxruntime-gpu, but NVIDIA's sbsa-index wheel exposes the CUDA EP
-        # when hand-installed — capability-detect it instead of hard-gating
-        # the arch. Field-tested on a GB10: Qwen3-TTS 0.6B runs 0.38x
-        # realtime on CPU (unusable) vs 1.15x on CUDA. llamacpp_* never
-        # rides this unlock: its cuda lane is the llama bucket binary, whose
-        # aarch64 builds lack current-SM kernel images (GB10 field-crashed
-        # with "no kernel image is available") — llama GPU stays on the
-        # vulkan flavor. `backend is None` (capability summaries without a
-        # deployment in hand) stays conservative.
-        return (machine.os == "Linux" and machine.arch == "aarch64"
-                and machine.ort_cuda
-                and backend is not None and not backend.startswith("llamacpp"))
+        # Linux/aarch64 (DGX Spark, Jetson) splits by backend family:
+        #   llamacpp_* -> allowed. Its cuda lane is the llama bucket binary,
+        #     and the b9940+ buckets ship sm_121 builds with a correct probe
+        #     (llama-install.sh #60; the pre-fix bucket handed GB10 an
+        #     sm_120-only binary that crashed with "no kernel image").
+        #   ORT backends -> need the CUDA EP in the RUNNING onnxruntime:
+        #     PyPI has no aarch64 onnxruntime-gpu, so this means NVIDIA's
+        #     hand-installed sbsa wheel. Field-tested on a GB10: Qwen3-TTS
+        #     0.6B runs 0.38x realtime on CPU (unusable) vs 1.15x on CUDA.
+        #   `backend is None` (capability summaries without a deployment in
+        #     hand) stays conservative.
+        if machine.os == "Linux" and machine.arch == "aarch64":
+            if backend is None:
+                return False
+            if backend.startswith("llamacpp"):
+                return True
+            return machine.ort_cuda
+        return False
     if tier == "gpu-metal":
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":

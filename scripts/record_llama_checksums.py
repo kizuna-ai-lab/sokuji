@@ -10,21 +10,27 @@ import hashlib
 import sys
 import urllib.request
 
-VERSION = "b9835"
+VERSION = "b9940"
 BUCKET = f"https://huggingface.co/buckets/ggml-org/install.sh/resolve/{VERSION}"
 GH = f"https://github.com/ggml-org/llama.cpp/releases/download/{VERSION}"
 
-CUDA_SMS = ["61", "70", "75", "80", "86", "89", "90", "100", "110", "120"]
+# 121 (GB10 / DGX Spark) exists since the llama-install.sh #60 fix — the
+# b9940+ buckets ship it for both arches.
+CUDA_SMS = ["61", "70", "75", "80", "86", "89", "90", "100", "110", "120", "121"]
 METAL = ["m1", "m2", "m3", "m4", "m5"]
 
 # aarch64 linux cpu configs are featcode-keyed; 'ql' is the one recorded on a
 # DGX Spark (GB10). Extend as more target machines report their featcode.
 ARM_CPU_CONFIGS = ["ql"]
+# aarch64 cuda configs we realistically serve: GB10 (121) and Orin-class (86).
+ARM_CUDA_SMS = ["86", "121"]
 
 CANDIDATES = (
     [f"x86_64/linux/cuda/probe/probe.zst"]
     + [f"x86_64/linux/cuda/{sm}/llama-app.zst" for sm in CUDA_SMS]
     + [f"x86_64/linux/featcode"]
+    + [f"aarch64/linux/cuda/probe/probe.zst"]
+    + [f"aarch64/linux/cuda/{sm}/llama-app.zst" for sm in ARM_CUDA_SMS]
     + [f"aarch64/linux/featcode"]
     + [f"aarch64/linux/cpu/{c}/llama-app.zst" for c in ARM_CPU_CONFIGS]
     + [f"aarch64/macos/metal/{m}/llama-app.zst" for m in METAL]
