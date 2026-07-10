@@ -21,6 +21,7 @@ _spec.loader.exec_module(b)
 
 def test_sku_triple_mapping():
     assert b.SKU_TRIPLE["linux-nvidia"] == "x86_64-unknown-linux-gnu"
+    assert b.SKU_TRIPLE["linux-arm64"] == "aarch64-unknown-linux-gnu"
     assert b.SKU_TRIPLE["win-nvidia"] == "x86_64-pc-windows-msvc"
     assert b.SKU_TRIPLE["win-directml"] == "x86_64-pc-windows-msvc"
     assert b.SKU_TRIPLE["mac"] == "aarch64-apple-darwin"
@@ -28,6 +29,7 @@ def test_sku_triple_mapping():
 
 def test_sku_requirements_mapping():
     assert b.sku_requirements("linux-nvidia") == "requirements-nvidia.txt"
+    assert b.sku_requirements("linux-arm64") == "requirements-arm64.txt"
     assert b.sku_requirements("win-nvidia") == "requirements-nvidia.txt"
     assert b.sku_requirements("win-directml") == "requirements-directml.txt"
     assert b.sku_requirements("mac") == "requirements-mac.txt"
@@ -57,7 +59,12 @@ def test_bundle_dirname():
 
 
 def test_host_supports_sku_matches_platform():
-    assert b.host_supports_sku("linux-nvidia") == (platform.system() == "Linux")
+    # Linux SKUs are machine-gated like mac: an aarch64 box must not build the
+    # x86_64 SKU (wheels are per-arch) and vice versa.
+    assert b.host_supports_sku("linux-nvidia") == (
+        platform.system() == "Linux" and platform.machine() == "x86_64")
+    assert b.host_supports_sku("linux-arm64") == (
+        platform.system() == "Linux" and platform.machine() == "aarch64")
     assert b.host_supports_sku("win-nvidia") == (platform.system() == "Windows")
     assert b.host_supports_sku("mac") == (
         platform.system() == "Darwin" and platform.machine() == "arm64")

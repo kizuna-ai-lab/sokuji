@@ -10,6 +10,7 @@ FILES = {
     "nvidia": SIDE / "requirements-nvidia.txt",
     "directml": SIDE / "requirements-directml.txt",
     "mac": SIDE / "requirements-mac.txt",
+    "arm64": SIDE / "requirements-arm64.txt",
 }
 # The three ORT variant wheels all provide the `onnxruntime` module; a bundle
 # must install exactly one (spec D1).
@@ -22,12 +23,12 @@ def _reqs(path):
             if ln.strip() and not ln.strip().startswith("#")]
 
 
-@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac", "arm64"])
 def test_sku_file_includes_shared_base(sku):
     assert "-r requirements.txt" in _reqs(FILES[sku])
 
 
-@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac", "arm64"])
 def test_exactly_one_ort_flavor(sku):
     ort = [ln for ln in _reqs(FILES[sku]) if ORT_LINE.match(ln)]
     assert len(ort) == 1, ort
@@ -41,9 +42,23 @@ def test_ort_flavor_matches_sku():
     mac_ort = [ln for ln in _reqs(FILES["mac"]) if ORT_LINE.match(ln)][0]
     assert (mac_ort.startswith("onnxruntime==")
             and "-gpu" not in mac_ort and "-directml" not in mac_ort)
+    # linux-arm64: onnxruntime-gpu ships no aarch64 wheels (verified 1.23.2) —
+    # ORT stays CPU; GPU acceleration comes from the ggml/Vulkan family (D6).
+    arm_ort = [ln for ln in _reqs(FILES["arm64"]) if ORT_LINE.match(ln)][0]
+    assert (arm_ort.startswith("onnxruntime==")
+            and "-gpu" not in arm_ort and "-directml" not in arm_ort)
 
 
-@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac"])
+def test_arm64_is_mac_minus_mlx():
+    """The arm64 SKU mirrors the mac recipe (CPU ORT + pinned sherpa-onnx);
+    mlx stays darwin-only via the platform marker in the shared base."""
+    arm = _reqs(FILES["arm64"])
+    assert any(ln.startswith("onnxruntime==1.23.2") for ln in arm)
+    assert any(ln.startswith("sherpa-onnx==1.13.3") for ln in arm)
+    assert not any("mlx" in ln for ln in arm)
+
+
+@pytest.mark.parametrize("sku", ["nvidia", "directml", "mac", "arm64"])
 def test_no_torch_in_sku_files(sku):
     assert not [ln for ln in _reqs(FILES[sku]) if TORCH_LINE.match(ln)]
 

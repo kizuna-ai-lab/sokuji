@@ -1,0 +1,10 @@
+# Sidecar bundle SKU: linux-arm64 (aarch64) - CPU ORT + ggml/Vulkan lane (spec D6).
+# onnxruntime-gpu ships no aarch64 wheels (verified 1.23.2), so ORT stays CPU
+# (only affects the heavy ORT TTS backends); NVIDIA/AMD/Intel GPU acceleration
+# comes from the ggml family through Vulkan, mirroring the mac SKU's
+# "ORT CPU + accelerated ggml" recipe.
+-r requirements.txt
+onnxruntime==1.23.2
+sherpa-onnx==1.13.3
+# mlx-audio is darwin/arm64-gated by its platform marker in the shared
+# requirements.txt above - a no-op on linux/aarch64, so no exclusion needed.

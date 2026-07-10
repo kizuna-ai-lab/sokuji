@@ -36,12 +36,14 @@ from pathlib import Path
 
 SKU_TRIPLE = {
     "linux-nvidia": "x86_64-unknown-linux-gnu",
+    "linux-arm64": "aarch64-unknown-linux-gnu",
     "win-nvidia": "x86_64-pc-windows-msvc",
     "win-directml": "x86_64-pc-windows-msvc",
     "mac": "aarch64-apple-darwin",
 }
 SKU_REQUIREMENTS = {
     "linux-nvidia": "requirements-nvidia.txt",
+    "linux-arm64": "requirements-arm64.txt",
     "win-nvidia": "requirements-nvidia.txt",
     "win-directml": "requirements-directml.txt",
     "mac": "requirements-mac.txt",
@@ -64,7 +66,10 @@ def host_supports_sku(sku: str) -> bool:
     triple = SKU_TRIPLE[sku]
     sysname = platform.system()
     if "linux" in triple:
-        return sysname == "Linux"
+        # Machine-gated like darwin below: wheels are per-arch, so an aarch64
+        # box must not build the x86_64 SKU and vice versa.
+        want = "aarch64" if triple.startswith("aarch64") else "x86_64"
+        return sysname == "Linux" and platform.machine() == want
     if "windows" in triple:
         return sysname == "Windows"
     if "darwin" in triple:

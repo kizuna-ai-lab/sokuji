@@ -20,11 +20,14 @@ describe('detectSku (spec D10)', () => {
   it('non-nvidia linux -> linux-nvidia bundle (CPU fallback, D10 open item)', () => {
     expect(detectSku('linux', { hasNvidia: false, arch: 'x64' })).toBe('linux-nvidia');
   });
-  it('non-x64 linux/windows -> null (no ARM bundles exist; honest beats exec-format-error)', () => {
-    expect(detectSku('linux', { hasNvidia: true, arch: 'arm64' })).toBeNull();   // Jetson / DGX Spark
-    expect(detectSku('linux', { hasNvidia: false, arch: 'arm64' })).toBeNull();
+  it('linux arm64 -> linux-arm64 regardless of nvidia (CPU ORT + ggml/Vulkan lane)', () => {
+    expect(detectSku('linux', { hasNvidia: true, arch: 'arm64' })).toBe('linux-arm64');   // Jetson / DGX Spark
+    expect(detectSku('linux', { hasNvidia: false, arch: 'arm64' })).toBe('linux-arm64');
+  });
+  it('non-x64 windows and other linux arches -> null (no bundles exist; honest beats exec-format-error)', () => {
     expect(detectSku('win32', { hasNvidia: true, arch: 'arm64' })).toBeNull();   // Windows-on-ARM
     expect(detectSku('win32', { hasNvidia: false, arch: 'arm64' })).toBeNull();
+    expect(detectSku('linux', { hasNvidia: false, arch: 'riscv64' })).toBeNull();
   });
 });
 

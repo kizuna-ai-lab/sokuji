@@ -50,6 +50,60 @@ jobs:
           name: sidecar-linux-nvidia
           path: out/bundles/sidecar-linux-nvidia-v*
 
+  build-linux-arm:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build linux-arm64 bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku linux-arm64 --version "$VERSION" --archive --out out/bundles
+      - name: Boot smoke the packed bundle
+        # This runner IS the target arch (unlike the cross-hosted x64 lanes), so
+        # unpack the archive we just built and boot the bundled interpreter to
+        # the {"port": n} handshake — catches exec-format, symlink and perm
+        # regressions before release. `cat` concatenates split .001/.002 parts
+        # transparently (single archives match the same glob).
+        run: |
+          mkdir smoke
+          cat out/bundles/sidecar-linux-arm64-v*.tar.zst* > smoke-joined.tar.zst
+          python - <<'EOF'
+          import tarfile, zstandard
+          with open("smoke-joined.tar.zst", "rb") as f, \
+               zstandard.ZstdDecompressor().stream_reader(f) as z:
+              with tarfile.open(fileobj=z, mode="r|") as t:
+                  t.extractall("smoke", filter="data")
+          EOF
+          cd smoke
+          timeout 120 python - <<'EOF'
+          import json, pathlib, subprocess
+          py = str(pathlib.Path("python/bin/python3").resolve())
+          p = subprocess.Popen([py, "-m", "sokuji_sidecar"], cwd="app",
+                               stdout=subprocess.PIPE, text=True)
+          line = p.stdout.readline()
+          port = json.loads(line)["port"]
+          assert isinstance(port, int), line
+          print("boot smoke OK, port", port)
+          p.terminate()
+          p.wait(timeout=10)
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-linux-arm64
+          path: out/bundles/sidecar-linux-arm64-v*
+
   build-windows:
     runs-on: windows-latest
     strategy:
@@ -106,7 +160,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/sidecar-v')
-    needs: [build-linux, build-windows, build-mac]
+    needs: [build-linux, build-linux-arm, build-windows, build-mac]
     runs-on: ubuntu-latest
     permissions:
       contents: write
