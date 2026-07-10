@@ -108,6 +108,7 @@ class NativeHostManager {
       // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
       // via onnxruntime.preload_dlls() at startup (spec D8).
       const env = { ...process.env, HF_HOME: hfHome };
+      const spawnedAt = Date.now();
       const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {
         cwd: launch.cwd, env,
       });
@@ -115,7 +116,12 @@ class NativeHostManager {
       const rl = readline.createInterface({ input: child.stdout });
       const onLine = (line) => {
         const port = parseHandshake(line);
-        if (port) { this.port = port; rl.off('line', onLine); resolve({ port }); }
+        if (port) {
+          // Duration in the log = the field observability for "engine starts
+          // slowly" reports (normal ~0.2s; post-install writeback can stretch it).
+          console.log(`[Sokuji] [native-host] handshake in ${Date.now() - spawnedAt} ms (source: ${launch.source}, port ${port})`);
+          this.port = port; rl.off('line', onLine); resolve({ port });
+        }
       };
       rl.on('line', onLine);
       child.stderr.on('data', (d) => console.error('[Sokuji] [native-host]', d.toString().trim()));

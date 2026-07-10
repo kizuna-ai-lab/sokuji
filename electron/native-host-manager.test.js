@@ -131,6 +131,20 @@ describe('NativeHostManager.start() handshake timeout', () => {
     expect(HANDSHAKE_TIMEOUT_MS).toBeGreaterThanOrEqual(90000);
   });
 
+  it('logs the handshake duration and launch source on success', async () => {
+    const { NativeHostManager } = await import('./native-host-manager.js');
+    const manager = new NativeHostManager();
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const p = manager.start();
+    // Feed the handshake line through the recorded readline 'line' handler.
+    const fakeRl = rl.createInterface.mock.results[0].value;
+    const onLine = fakeRl.on.mock.calls.find(([ev]) => ev === 'line')[1];
+    onLine(JSON.stringify({ port: 12345 }));
+    await expect(p).resolves.toEqual({ port: 12345 });
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/handshake in \d+ ms \(source: env, port 12345\)/));
+  });
+
   it('rejects immediately (no watchdog wait) when the child exits pre-handshake', async () => {
     const { NativeHostManager } = await import('./native-host-manager.js');
     const manager = new NativeHostManager();
