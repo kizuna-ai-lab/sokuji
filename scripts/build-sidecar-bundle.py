@@ -102,8 +102,19 @@ def select_python_asset(assets, triple: str, py_series: str = "3.12") -> str:
     return max(cands, key=_key)["browser_download_url"]
 
 
+def _pbs_release_request(env=os.environ) -> urllib.request.Request:
+    """Request for the PBS latest-release lookup. GitHub-hosted runners share
+    egress IPs whose ANONYMOUS api.github.com quota is permanently exhausted
+    (403 rate limit) — send the workflow token when one is in the env."""
+    req = urllib.request.Request(_PBS_LATEST)
+    token = env.get("GITHUB_TOKEN") or env.get("GH_TOKEN")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    return req
+
+
 def _fetch_python_prefix(triple: str, dest: Path) -> Path:
-    with urllib.request.urlopen(_PBS_LATEST, timeout=60) as r:
+    with urllib.request.urlopen(_pbs_release_request(), timeout=60) as r:
         release = json.load(r)
     url = select_python_asset(release["assets"], triple)
     tgz = dest / "python.tar.gz"

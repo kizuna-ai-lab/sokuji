@@ -41,6 +41,9 @@ jobs:
       - name: Build linux-nvidia bundle
         env:
           VERSION: ${{ inputs.version }}
+          # Authenticates the python-build-standalone release lookup: hosted
+          # runners share egress IPs whose anonymous API quota is exhausted.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "$VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:
@@ -69,6 +72,7 @@ jobs:
       - name: Build ${{ matrix.sku }} bundle
         env:
           VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "$env:VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:
@@ -93,6 +97,7 @@ jobs:
       - name: Build mac bundle
         env:
           VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/build-sidecar-bundle.py --sku mac --version "$VERSION" --archive --out out/bundles
       - uses: actions/upload-artifact@v4
         with:

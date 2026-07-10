@@ -209,3 +209,16 @@ def test_cli_merge_fragments(tmp_path):
                     "--merged-out", str(out)]) == 0
     merged = json.loads(out.read_text())
     assert merged["version"] == "0.1.0" and len(merged["bundles"]) == 2
+
+
+def test_pbs_release_request_carries_ci_token_when_present():
+    req = b._pbs_release_request(env={"GITHUB_TOKEN": "tok-123"})
+    assert req.get_header("Authorization") == "Bearer tok-123"
+    req = b._pbs_release_request(env={"GH_TOKEN": "tok-456"})
+    assert req.get_header("Authorization") == "Bearer tok-456"
+
+
+def test_pbs_release_request_anonymous_without_token():
+    req = b._pbs_release_request(env={})
+    assert req.get_header("Authorization") is None
+    assert req.full_url == b._PBS_LATEST
