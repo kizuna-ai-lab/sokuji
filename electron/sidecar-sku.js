@@ -5,6 +5,11 @@ const path = require('path');
 // NVML is gone (D7); NVIDIA presence is probed with nvidia-smi and passed in.
 function detectSku(platform, { hasNvidia, arch }) {
   if (platform === 'darwin') return arch === 'arm64' ? 'mac' : null;  // only the arm64 mac bundle exists
+  // Every linux/windows bundle is x86_64 (SKU_TRIPLE in the builder). On ARM
+  // (Jetson, DGX Spark, Windows-on-ARM) an x86_64 bundle would download and
+  // install fine, then die at spawn with an exec-format error — return null so
+  // the UI shows the honest "unsupported" card instead (same as Intel mac).
+  if (arch !== 'x64') return null;
   if (hasNvidia) return platform === 'win32' ? 'win-nvidia' : 'linux-nvidia';  // CUDA
   if (platform === 'win32') return 'win-directml';                    // non-NVIDIA Windows
   return 'linux-nvidia';  // non-NVIDIA Linux: nvidia bundle w/ CPU fallback (D10)

@@ -254,6 +254,14 @@ marked S9+/S10+.
   `handshake in <ms> (source: env|bundle|venv, port N)` on every sidecar
   start — twice during testing, "how long did the boot take" was
   unanswerable retroactively.
+- **ARM gate**: `detectSku` returns `null` for any non-x64 linux/windows
+  machine (Jetson, DGX Spark, Windows-on-ARM). Every linux/windows bundle is
+  x86_64; without the gate those users would download 1.7 GB, install
+  cleanly, and die at spawn with an exec-format error. They now get the same
+  honest "unsupported" card as Intel macs. A `linux-arm64` SKU is a future
+  decision (PBS ships aarch64 interpreters; the open question is the
+  onnxruntime-gpu SBSA / transcribe-cpp native wheel matrix — gauge demand
+  via telemetry first).
 
 ### CI-only failures (each invisible to local testing)
 
