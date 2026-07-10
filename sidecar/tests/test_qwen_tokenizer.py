@@ -21,6 +21,10 @@ def _snapshot_dir():
 
 
 GOLDEN_TEXTS = [
+    # Chat-template text FIRST: specials live in tokenizer_config.json's
+    # added_tokens_decoder (ids 151643+), not vocab.json — parity here is
+    # what keeps the talker-prompt slicing sane (see the atomic test below).
+    "<|im_start|>assistant\nHello<|im_end|>\n<|im_start|>assistant\n",
     "Hello, world!",
     "The weather is lovely today, so I will go for a walk in the park.",
     "你好，世界。今天天气不错。",
@@ -53,6 +57,22 @@ def test_golden_parity_with_transformers():
         expected = ref.encode(text, add_special_tokens=False)
         actual = tok.encode(text, add_special_tokens=False).ids
         assert actual == expected, f"mismatch for {text!r}"
+
+
+@pytest.mark.skipif(_snapshot_dir() is None, reason="qwen3-tts snapshot not cached")
+def test_special_tokens_encode_atomically():
+    """<|im_start|>/<|im_end|>/tts specials come from tokenizer_config.json's
+    added_tokens_decoder — without registering them the chat template shreds
+    into byte-BPE pieces ('<','|','im','_start',...) and the talker prompt's
+    [:3] role / [-5:] closing slices grab garbage. Field-debugged as Qwen3-TTS
+    babbling on every device: the model never saw the text."""
+    d = _snapshot_dir()
+    tok = load_qwen2_tokenizer(d)
+    assert tok.encode("<|im_start|>", add_special_tokens=False).ids == [151644]
+    ids = tok.encode("<|im_start|>assistant\nHi<|im_end|>\n<|im_start|>assistant\n",
+                     add_special_tokens=False).ids
+    assert ids[:3] == [151644, 77091, 198]                 # im_start, 'assistant', '\n'
+    assert ids[-5:] == [151645, 198, 151644, 77091, 198]   # im_end, '\n', im_start, 'assistant', '\n'
 
 
 def test_missing_dir_raises():
