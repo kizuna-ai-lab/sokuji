@@ -398,18 +398,50 @@ def test_vulkan_tier_from_tc_probe_alone():
     assert plans[0].device == "vulkan"
 
 
-def test_gpu_vulkan_tier_gated_to_x64():
-    # The vulkan binaries (llama-server release asset; transcribe.cpp vulkan
-    # build) are x86_64-only, so a Vulkan-capable non-x64 host must NOT get the
-    # gpu-vulkan tier — otherwise resolve leads with a vulkan plan whose binary
-    # is unrunnable on that arch (P4 review, codex). x64 hosts are unaffected.
+def _arm_machine(installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream",
+                                      "llamacpp_qwen"})):
+    """Linux/aarch64 NVIDIA box as the tc probe reports it on a DGX Spark:
+    Vulkan-capable (the aarch64 wheel bundles the ggml Vulkan backend)."""
+    return accel.Machine(os="Linux", arch="aarch64", cpu_cores=20,
+                         apple_silicon=False, dml_adapters=(),
+                         installed=installed, fingerprint="t",
+                         tc_kinds=("cpu", "vulkan"),
+                         gpus=(("vulkan", "NVIDIA GB10", 97 << 30),))
+
+
+def test_gpu_vulkan_tier_covers_linux_aarch64():
+    # The old "vulkan binaries are x86_64-only" premise is dead: the
+    # transcribe-cpp aarch64 wheel bundles the ggml Vulkan backend and llama.cpp
+    # ships ubuntu-vulkan-arm64, so a Vulkan-capable Linux/aarch64 host (DGX
+    # Spark, Jetson) gets the tier. x64 hosts are unaffected.
     x64 = _machine(tc=("cpu", "vulkan"))                     # arch defaults to x86_64
     assert accel._tier_available("gpu-vulkan", x64) is True
-    arm = accel.Machine(os="Linux", arch="aarch64", cpu_cores=8,
+    assert accel._tier_available("gpu-vulkan", _arm_machine()) is True
+    # ...but other non-x64 hosts (Windows-on-ARM) still have no vulkan asset lane.
+    woa = accel.Machine(os="Windows", arch="ARM64", cpu_cores=8,
                         apple_silicon=False, dml_adapters=(),
                         installed=frozenset(), fingerprint="t",
                         tc_kinds=("cpu", "vulkan"), gpus=())
-    assert accel._tier_available("gpu-vulkan", arm) is False
+    assert accel._tier_available("gpu-vulkan", woa) is False
+
+
+def test_gpu_cuda_tier_gated_to_x64():
+    # CUDA is an x86_64-only lane: onnxruntime-gpu ships no aarch64 wheels and
+    # the llama bucket's aarch64 cuda builds lack current-SM kernel images
+    # (GB10/SM121 field-crashed with "no kernel image is available"). Without
+    # this gate an ARM NVIDIA box leads every resolve with a doomed cuda plan.
+    assert accel._tier_available("gpu-cuda", _machine(gpus=_nv_gpus(12288))) is True
+    assert accel._tier_available("gpu-cuda", _arm_machine()) is False
+
+
+def test_arm_nvidia_resolves_vulkan_first_cpu_floor():
+    # DGX Spark / Jetson end-to-end: ASR leads with vulkan; translate leads
+    # with vulkan and keeps the cpu floor; no cuda plan anywhere.
+    asr = accel.resolve("sense-voice", machine=_arm_machine())
+    assert asr[0].device == "vulkan"
+    tr = accel.resolve_translate("qwen2.5-0.5b", "auto", _arm_machine())
+    assert [p.device for p in tr[:2]] == ["vulkan", "cpu"]
+    assert not any(p.device == "cuda" for p in tr)
 
 
 def test_gpu_vulkan_tier_not_lit_by_dml_alone():

@@ -50,13 +50,19 @@ ASSET_SHA256: dict[str, str] = {
     "llama-b9835-bin-win-cuda-12.4-x64.zip": "46a7e68e4012f41936e5d8dc096e91bf71f189fb2150a3b5198f4ad4aa15f4c5",
     "cudart-llama-bin-win-cuda-12.4-x64.zip": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
     "llama-b9835-bin-win-cpu-x64.zip": "982860c8dfc36ee82e41aa0885e1f49faa8d7cf07c7481a83f36fb0154e1c64c",
+    # aarch64 lane, recorded on a DGX Spark (GB10) and verified end-to-end
+    # there: featcode probe + its 'ql' cpu build, and both ubuntu-vulkan
+    # release tarballs (the arm64 one boot-tested through llama-server).
+    "aarch64/linux/featcode": "0d21a3e7430d04bfb07fa5ee136eb8d3cc3c3b4cafff084a4fba1ac99a7bbac4",
+    "aarch64/linux/cpu/ql/llama-app.zst": "5ef1a95d56037ad3270eaac77bf84a0eeb65b266f3be0985f38c38b3b59aad30",
+    "llama-b9835-bin-ubuntu-vulkan-x64.tar.gz": "513debc0497ba6936ef037907d48bca5c2b250756cb7700b5111f1ed2a59323f",
+    "llama-b9835-bin-ubuntu-vulkan-arm64.tar.gz": "d2ad0ca81924714022bad9c8b7fc32ed2334690054132e57abaafeb7e4bba689",
 }
 # NOTE: linux cpu configs are featcode-keyed; run ensure_binary('cpu') on target machines or extend CANDIDATES when configs are known.
-# The Vulkan-flavor release assets (llama-<ver>-bin-win-vulkan-x64.zip and
-# llama-<ver>-bin-ubuntu-vulkan-x64.tar.gz) are intentionally UNPINNED here:
-# _verify() accepts an unrecorded asset with a stderr warning rather than
-# bricking the first Vulkan users. Record their sha256 on a target machine and
-# add them above (P4 follow-up).
+# The win-vulkan release zip (llama-<ver>-bin-win-vulkan-x64.zip) is still
+# UNPINNED: _verify() accepts an unrecorded asset with a stderr warning rather
+# than bricking the first Vulkan users. Record its sha256 on a target machine
+# and add it above (P4 follow-up; the ubuntu vulkan tarballs are pinned now).
 
 _FLAVORS = {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "cpu": "cpu"}
 
@@ -104,15 +110,23 @@ def default_flavor() -> str:
     from . import accel
     m = accel.probe()
     if accel.has_nvidia(m):
+        # Linux/aarch64 NVIDIA (DGX Spark, Jetson) accelerates through the
+        # official ubuntu-vulkan-arm64 release, NOT cuda: the bucket's aarch64
+        # cuda builds lack current-SM kernel images (GB10/SM121 field-crashed
+        # with "no kernel image is available for execution on the device").
+        if m.os == "Linux" and m.arch in ("aarch64", "arm64"):
+            return "vulkan"
         return "cuda"
     if m.apple_silicon:
         return "metal"
     # Non-NVIDIA / non-Apple GPU that transcribe.cpp's probe can drive via
-    # Vulkan (AMD/Intel discrete or integrated) — the D6 target for the
-    # vulkan llama-server flavor. NVIDIA and Apple are handled above. Gated to
-    # x86_64: the vulkan release asset is x64-only, so a non-x64 host (e.g.
-    # Linux/aarch64) must stay on cpu rather than fetch an unrunnable x64 binary.
-    if "vulkan" in m.tc_kinds and m.arch in ("x86_64", "AMD64"):
+    # Vulkan (AMD/Intel discrete or integrated) — the D6 target for the vulkan
+    # llama-server flavor. NVIDIA and Apple are handled above. Arch-gated to
+    # hosts with a matching release asset: x86_64 everywhere, plus Linux/aarch64
+    # (ubuntu-vulkan-arm64). Other arches (Windows-on-ARM) stay on cpu.
+    if "vulkan" in m.tc_kinds and (
+            m.arch in ("x86_64", "AMD64")
+            or (m.os == "Linux" and m.arch in ("aarch64", "arm64"))):
         return "vulkan"
     return "cpu"
 
@@ -267,26 +281,40 @@ def _install_from_github_tar(flavor: str, dest_dir: str) -> str:
     bucket-built vulkan binary is out of scope here."""
     import io
     import tarfile
-    asset = {"vulkan": f"llama-{BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"}[flavor]
+    # Upstream publishes per-arch ubuntu tarballs; aarch64 hosts (DGX Spark,
+    # Jetson) must take the arm64 asset — the x64 one dies at spawn with an
+    # exec-format error.
+    arch_tag = "arm64" if platform.machine() in ("arm64", "aarch64") else "x64"
+    asset = {"vulkan": f"llama-{BUCKET_VERSION}-bin-ubuntu-vulkan-{arch_tag}.tar.gz"}[flavor]
     blob = _fetch(gh_url(asset))
     _verify(asset, blob)
     with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as tf:
         # Guard against path-traversal / link tar entries (CVE-2007-4559) BEFORE
         # extracting. Python 3.12's extractall(filter="data") does this, but the
         # dev venv is 3.10, so vet members by hand: every entry must resolve
-        # inside dest_dir and be a regular file or directory. This matters
-        # because the Vulkan asset is intentionally unpinned (see ASSET_SHA256),
-        # so _verify only warns — the extraction guard is the fail-safe. The
-        # official ubuntu-vulkan build is exactly binaries + .so's, no links.
+        # inside dest_dir and be a regular file, directory, or an in-archive
+        # symlink. This matters because the Vulkan asset is intentionally
+        # unpinned (see ASSET_SHA256), so _verify only warns — the extraction
+        # guard is the fail-safe. The official b9835 tarballs ship versioned
+        # .so's with same-dir relative soname chains (libggml.so ->
+        # libggml.so.0 -> libggml.so.0.15.3) on BOTH x64 and arm64, so symlinks
+        # whose resolved target stays inside dest_dir must pass; absolute or
+        # escaping link targets (the classic two-step) are still rejected, as
+        # are hardlinks and device/fifo members.
         base = os.path.realpath(dest_dir)
+
+        def _inside(p):
+            rp = os.path.realpath(p)
+            return rp == base or rp.startswith(base + os.sep)
+
         for m in tf.getmembers():
-            target = os.path.realpath(os.path.join(dest_dir, m.name))
-            if target != base and not target.startswith(base + os.sep):
+            if not _inside(os.path.join(dest_dir, m.name)):
                 raise BinaryFetchError(f"unsafe tar entry escapes dest: {m.name!r}")
-            # Regular files + dirs only. This rejects sym/hardlinks (the classic
-            # CVE-2007-4559 two-step) AND exotic device/fifo members in one check,
-            # matching the comment above — the official build is binaries + .so's.
-            if not (m.isfile() or m.isdir()):
+            if m.issym():
+                if os.path.isabs(m.linkname) or not _inside(
+                        os.path.join(dest_dir, os.path.dirname(m.name), m.linkname)):
+                    raise BinaryFetchError(f"unsafe symlink target: {m.name!r} -> {m.linkname!r}")
+            elif not (m.isfile() or m.isdir()):
                 raise BinaryFetchError(f"disallowed tar entry type: {m.name!r}")
         tf.extractall(dest_dir)
     exe = os.path.join(dest_dir, _exe_name(flavor))

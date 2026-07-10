@@ -204,7 +204,12 @@ def _tier_available(tier: str, machine: Machine) -> bool:
     if tier == "cpu":
         return True
     if tier == "gpu-cuda":
-        return has_nvidia(machine)
+        # x86_64-only lane: onnxruntime-gpu ships no aarch64 wheels, and the
+        # llama bucket's aarch64 cuda builds lack current-SM kernel images
+        # (GB10/SM121 field-crashed with "no kernel image is available") —
+        # without the arch gate an ARM NVIDIA box (DGX Spark, Jetson) leads
+        # every resolve with a doomed cuda plan before falling back.
+        return has_nvidia(machine) and machine.arch in ("x86_64", "AMD64")
     if tier == "gpu-metal":
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-dml":
@@ -217,11 +222,14 @@ def _tier_available(tier: str, machine: Machine) -> bool:
         # only when the tc probe reports "vulkan" — so lighting this tier off
         # dml_adapters alone made resolve_translate lead with a missing-binary
         # vulkan plan on DML-only boxes (P5). A genuinely Vulkan-capable box
-        # already reports "vulkan" in tc_kinds. Gated to x86_64: the vulkan
-        # binaries (llama-server release asset; transcribe.cpp vulkan build) are
-        # x64-only, so a non-x64 host is never offered an unrunnable vulkan plan.
+        # already reports "vulkan" in tc_kinds. Arch-gated to hosts whose vulkan
+        # binaries actually exist: x86_64 everywhere, plus Linux/aarch64 (the
+        # transcribe-cpp aarch64 wheel bundles the ggml Vulkan backend and
+        # llama.cpp ships ubuntu-vulkan-arm64 — the DGX Spark / Jetson lane).
+        # Other arches (Windows-on-ARM) are never offered an unrunnable plan.
         return (("vulkan" in machine.tc_kinds or has_nvidia(machine))
-                and machine.arch in ("x86_64", "AMD64"))
+                and (machine.arch in ("x86_64", "AMD64")
+                     or (machine.os == "Linux" and machine.arch == "aarch64")))
     return False
 
 

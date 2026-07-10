@@ -1,4 +1,5 @@
 import os
+import re
 import types
 
 import pytest
@@ -21,13 +22,13 @@ def test_flavor_for_device_includes_vulkan():
         rt.flavor_for_device("dml")
 
 
-def _fake_machine(*, gpus=(), apple=False, tc_kinds=(), arch="x86_64"):
+def _fake_machine(*, gpus=(), apple=False, tc_kinds=(), arch="x86_64", os="Linux"):
     """default_flavor reads accel.has_nvidia(m) (-> m.gpus), .apple_silicon,
-    .tc_kinds and .arch. Post-P2 there is no Machine.nvidia field / accel.Gpu
-    class: NVIDIA presence is derived from the gpus device descriptions. `gpus`
-    items are (kind, description, mem_total) tuples."""
+    .tc_kinds, .arch and .os. Post-P2 there is no Machine.nvidia field /
+    accel.Gpu class: NVIDIA presence is derived from the gpus device
+    descriptions. `gpus` items are (kind, description, mem_total) tuples."""
     return types.SimpleNamespace(gpus=gpus, apple_silicon=apple,
-                                 tc_kinds=tc_kinds, arch=arch)
+                                 tc_kinds=tc_kinds, arch=arch, os=os)
 
 
 # An NVIDIA GPU as the tc probe reports it -> accel.has_nvidia() True.
@@ -271,13 +272,27 @@ def test_default_flavor_vulkan_for_amd_gpu(monkeypatch):
     assert rt.default_flavor() == "vulkan"
 
 
-def test_default_flavor_cpu_on_aarch64_vulkan(monkeypatch):
-    # The vulkan llama-server release asset is x86_64-only, so a Vulkan-capable
-    # aarch64 host must stay on cpu rather than download an unrunnable x64 binary
-    # (P4 review, codex). x64 hosts are covered by test_default_flavor_vulkan_for_amd_gpu.
+def test_default_flavor_vulkan_on_linux_aarch64_nvidia(monkeypatch):
+    # Linux/aarch64 NVIDIA (DGX Spark, Jetson) routes to vulkan, NOT cuda: the
+    # bucket's aarch64 cuda builds lack current-SM kernel images (GB10/SM121
+    # field-crashed with "no kernel image is available for execution").
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
+        gpus=(("vulkan", "NVIDIA GB10", 97 << 30),), tc=("cpu", "vulkan"),
+        arch="aarch64"))
+    assert rt.default_flavor() == "vulkan"
+
+
+def test_default_flavor_vulkan_on_linux_aarch64_generic_gpu(monkeypatch):
+    # Any Vulkan-capable Linux/aarch64 GPU takes the ubuntu-vulkan-arm64 lane
+    # (tc probe evidence is authoritative); the cpu floor still backstops a
+    # binary that fails to load. Windows-on-ARM stays cpu (no vulkan asset).
     from sokuji_sidecar import accel
     monkeypatch.setattr(accel, "probe", lambda force=False: _probe_machine(
         gpus=(("vulkan", "ARM Mali-G710", 8 << 30),), tc=("cpu", "vulkan"), arch="aarch64"))
+    assert rt.default_flavor() == "vulkan"
+    monkeypatch.setattr(accel, "probe", lambda force=False: _fake_machine(
+        tc_kinds=("cpu", "vulkan"), arch="ARM64", os="Windows"))
     assert rt.default_flavor() == "cpu"
 
 
@@ -392,6 +407,7 @@ def test_binary_path_vulkan_uses_server_name(monkeypatch, tmp_path):
 
 
 def test_ensure_binary_vulkan_extracts_ubuntu_tarball(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
     monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
     monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
     monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
@@ -414,16 +430,103 @@ def test_ensure_binary_vulkan_extracts_ubuntu_tarball(monkeypatch, tmp_path):
     assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz")]
 
 
-def test_ubuntu_vulkan_tar_is_unpinned():
-    asset = f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-x64.tar.gz"
-    assert asset not in rt.ASSET_SHA256
-    rt._verify(asset, b"anything")   # unknown asset -> stderr warning, no raise
+def test_install_from_github_tar_accepts_soname_symlink_chains(monkeypatch, tmp_path):
+    # The official b9835 ubuntu tarballs (x64 AND arm64) ship versioned .so's
+    # with same-dir relative soname chains (libggml.so -> libggml.so.0 ->
+    # libggml.so.0.15.3). These are safe and must install; rejecting every
+    # symlink bricked the vulkan lane on both arches.
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name, data in (("llama-b9835/llama-server", b"ELF-server"),
+                           ("llama-b9835/libggml.so.0.15.3", b"SO")):
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            info.mode = 0o755
+            tf.addfile(info, io.BytesIO(data))
+        for link, target in (("llama-b9835/libggml.so.0", "libggml.so.0.15.3"),
+                             ("llama-b9835/libggml.so", "libggml.so.0")):
+            li = tarfile.TarInfo(link)
+            li.type = tarfile.SYMTYPE
+            li.linkname = target
+            tf.addfile(li)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    exe = rt._install_from_github_tar("vulkan", str(dest))
+    assert open(exe, "rb").read() == b"ELF-server"
+    # the soname chain was flattened alongside the exe and still resolves
+    chain_head = os.path.join(os.path.dirname(exe), "libggml.so")
+    assert os.path.islink(chain_head)
+    assert open(chain_head, "rb").read() == b"SO"
+
+
+def test_install_from_github_tar_rejects_escaping_symlink(monkeypatch, tmp_path):
+    # Relative links that RESOLVE outside dest are still rejected — only
+    # in-archive soname chains pass.
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "x86_64")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        li = tarfile.TarInfo("llama-b9835/libggml.so")
+        li.type = tarfile.SYMTYPE
+        li.linkname = "../../outside.so"
+        tf.addfile(li)
+    monkeypatch.setattr(rt, "_fetch", lambda url: buf.getvalue())
+    dest = tmp_path / "vulkan"
+    dest.mkdir()
+    with pytest.raises(rt.BinaryFetchError):
+        rt._install_from_github_tar("vulkan", str(dest))
+
+
+def test_ensure_binary_vulkan_fetches_arm64_tarball_on_aarch64(monkeypatch, tmp_path):
+    # Linux/aarch64 picks the official ubuntu-vulkan-ARM64 release asset; the
+    # x64 name would be an unrunnable binary (exec-format error at spawn).
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
+    monkeypatch.setenv("SOKUJI_LLAMA_BIN_DIR", str(tmp_path))
+    monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(rt.platform, "machine", lambda: "aarch64")
+    blob = _tar_gz({"build/bin/llama-server": b"ELF-aarch64-vulkan-server",
+                    "build/bin/libggml-vulkan.so": b"SO"})
+    fetched = []
+
+    def fake_fetch(url):
+        fetched.append(url)
+        return blob
+    monkeypatch.setattr(rt, "_fetch", fake_fetch)
+
+    path = rt.ensure_binary("vulkan")
+    assert open(path, "rb").read() == b"ELF-aarch64-vulkan-server"
+    assert fetched == [rt.gh_url(f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-arm64.tar.gz")]
+
+
+def test_ubuntu_vulkan_tars_are_pinned():
+    # The P4 follow-up landed: both ubuntu-vulkan tarballs were recorded on a
+    # target machine (arm64 verified end-to-end on a DGX Spark), so a tampered
+    # download now FAILS verification instead of warning through.
+    for arch_tag in ("x64", "arm64"):
+        asset = f"llama-{rt.BUCKET_VERSION}-bin-ubuntu-vulkan-{arch_tag}.tar.gz"
+        assert re.fullmatch(r"[0-9a-f]{64}", rt.ASSET_SHA256.get(asset, "")), asset
+        with pytest.raises(rt.BinaryFetchError):
+            rt._verify(asset, b"tampered")
+
+
+def test_aarch64_bucket_cpu_assets_are_pinned():
+    # The aarch64 cpu lane assets exercised on the target machine: the featcode
+    # probe and this machine's featcode-keyed ('ql') cpu llama-app. Other
+    # featcode configs stay warn-and-proceed until recorded.
+    for rel in ("aarch64/linux/featcode", "aarch64/linux/cpu/ql/llama-app.zst"):
+        assert re.fullmatch(r"[0-9a-f]{64}", rt.ASSET_SHA256.get(rel, "")), rel
 
 
 def test_install_from_github_tar_rejects_path_traversal(monkeypatch, tmp_path):
     # The Vulkan tarball is unpinned, so a tampered/MITM'd archive with a
     # path-traversal member (CVE-2007-4559) must be rejected before extraction,
     # not written outside dest_dir.
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
     monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
     evil = _tar_gz({"../escaped.txt": b"pwned"})
     monkeypatch.setattr(rt, "_fetch", lambda url: evil)
@@ -437,6 +540,7 @@ def test_install_from_github_tar_rejects_path_traversal(monkeypatch, tmp_path):
 
 def test_install_from_github_tar_rejects_symlink_member(monkeypatch, tmp_path):
     # A symlink member (which could point outside dest on later deref) is rejected.
+    monkeypatch.setattr(rt, "ASSET_SHA256", {})  # fake blobs: test extraction, not pins
     monkeypatch.setattr(rt.platform, "system", lambda: "Linux")
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tf:
