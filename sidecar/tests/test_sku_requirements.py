@@ -51,3 +51,13 @@ def test_no_torch_in_sku_files(sku):
 def test_nvml_not_reintroduced():
     for sku in FILES:
         assert not any("nvidia-ml-py" in ln for ln in _reqs(FILES[sku]))
+
+
+def test_hf_hub_pin_is_platform_split():
+    """mlx-audio (darwin/arm64 only) requires huggingface_hub>=1.0; every other
+    platform keeps the field-tested 0.26.2. Exactly one pin per environment."""
+    base = SIDE / "requirements.txt"
+    lines = [ln for ln in _reqs(base) if ln.startswith("huggingface_hub")]
+    assert len(lines) == 2, lines
+    assert any("==0.26.2" in ln and 'sys_platform != "darwin"' in ln for ln in lines)
+    assert any(">=1.0" in ln and 'sys_platform == "darwin"' in ln for ln in lines)
