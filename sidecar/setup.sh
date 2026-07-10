@@ -51,21 +51,32 @@ echo "[setup] stage runtimes: sherpa-onnx"
 # hand-rolled preload, no LD_LIBRARY_PATH surgery (spec D8). Non-NVIDIA/macOS
 # use the CPU build here; the Windows DirectML SKU ships onnxruntime-directml
 # via the P7 bundle, not this dev script. Override with ONNXRUNTIME_PACKAGE=…
-if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
-  case "$(uname -s)" in
-    Darwin) ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
-    *) # onnxruntime-gpu ships no aarch64 wheels (verified 1.23.2): ARM boxes
-       # with NVIDIA GPUs (DGX Spark, Jetson) take the CPU build; their GPU
-       # acceleration comes from the ggml/Vulkan family, not the ORT CUDA EP.
-       if command -v nvidia-smi >/dev/null 2>&1 && [ "$(uname -m)" = "x86_64" ]; then
-         ONNXRUNTIME_PACKAGE="onnxruntime-gpu[cuda,cudnn]==1.23.2"
-       else
-         ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2"
-       fi ;;
-  esac
+if [ -z "${ONNXRUNTIME_PACKAGE:-}" ] && [ "$(uname -m)" != "x86_64" ] \
+    && "$PY" -m pip show onnxruntime-gpu >/dev/null 2>&1; then
+  # A hand-installed GPU build (e.g. NVIDIA's sbsa-index onnxruntime-gpu on
+  # DGX Spark / Jetson — PyPI ships no aarch64 GPU wheel) must survive setup
+  # re-runs: installing the CPU wheel next to it would conflict (both provide
+  # the `onnxruntime` module). x86_64 is exempt — there the pinned PyPI
+  # package below is authoritative.
+  echo "[setup] onnxruntime: keeping hand-installed onnxruntime-gpu"
+else
+  if [ -z "${ONNXRUNTIME_PACKAGE:-}" ]; then
+    case "$(uname -s)" in
+      Darwin) ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2" ;;
+      *) # onnxruntime-gpu ships no aarch64 wheels on PyPI (verified 1.23.2):
+         # ARM boxes with NVIDIA GPUs (DGX Spark, Jetson) take the CPU build
+         # by default; ggml/Vulkan or the hand-installed sbsa wheel (kept by
+         # the branch above) provide their GPU acceleration.
+         if command -v nvidia-smi >/dev/null 2>&1 && [ "$(uname -m)" = "x86_64" ]; then
+           ONNXRUNTIME_PACKAGE="onnxruntime-gpu[cuda,cudnn]==1.23.2"
+         else
+           ONNXRUNTIME_PACKAGE="onnxruntime==1.23.2"
+         fi ;;
+    esac
+  fi
+  echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
+  "$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
 fi
-echo "[setup] onnxruntime: $ONNXRUNTIME_PACKAGE"
-"$PY" -m pip install -q "$ONNXRUNTIME_PACKAGE"
 
 if [ "${1:-}" = "--no-models" ]; then
   echo "[setup] deps installed; skipping models (--no-models). Done."
