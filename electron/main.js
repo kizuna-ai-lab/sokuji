@@ -487,9 +487,14 @@ const _currentSku = () =>
 ipcMain.handle('sidecar-bundle:status', () => {
   const sku = _currentSku();
   if (sku === null) {
+    // Even without a bundle SKU (ARM linux/windows, Intel mac) a dev checkout
+    // with a venv keeps the whole native lane usable — report it so the UI
+    // shows the dev note + unlocked model area instead of a dead end.
+    let devVenvPresent = false;
+    try { devVenvPresent = require('fs').existsSync(_resolveSidecarPython()); } catch { /* keep false */ }
     return { ok: true, sku: null, state: 'unsupported', installed: false,
              installedVersion: null, requiredVersion: null, gpuName: null,
-             stagedBytes: 0, devVenvPresent: false };
+             stagedBytes: 0, devVenvPresent };
   }
   let requiredVersion = null;
   try { requiredVersion = sidecarBundle.requiredSidecarVersion(); }

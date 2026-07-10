@@ -50,20 +50,10 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
     </>
   ) : null;
 
-  if (bundleStatus === 'unsupported') {
-    return (
-      <div className="engine-section">
-        <div className="engine-section__row engine-section__row--muted">
-          <AlertTriangle size={14} />
-          <span>{t('engine.unsupported', 'Local inference is not supported on this device')}</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Dev checkout with a venv and no bundle: quiet note, no download nag —
-  // the venv launch path keeps working (spec S2 exemption).
-  if (bundleDevVenv && (bundleStatus === 'absent' || bundleStatus === 'paused')) {
+  // Dev checkout with a venv: quiet note, no download nag — the venv launch
+  // path keeps working (spec S2 exemption). Checked BEFORE 'unsupported' so an
+  // ARM dev box (sku=null, venv built) gets a working dev lane, not a dead end.
+  if (bundleDevVenv && (bundleStatus === 'unsupported' || bundleStatus === 'absent' || bundleStatus === 'paused')) {
     return (
       <div className="engine-section">
         <div className="engine-section__row engine-section__row--muted">
@@ -71,6 +61,17 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
           <span>{t('engine.devMode', 'Development mode · local venv')}</span>
         </div>
         {sidecarError}
+      </div>
+    );
+  }
+
+  if (bundleStatus === 'unsupported') {
+    return (
+      <div className="engine-section">
+        <div className="engine-section__row engine-section__row--muted">
+          <AlertTriangle size={14} />
+          <span>{t('engine.unsupported', 'Local inference is not supported on this device')}</span>
+        </div>
       </div>
     );
   }

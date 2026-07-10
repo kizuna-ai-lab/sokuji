@@ -45,6 +45,13 @@ describe('EngineSection states (spec S10)', () => {
     expect(screen.queryByText(/Download engine/)).toBeNull();
   });
 
+  it('dev venv on an unsupported-SKU machine (ARM dev box): dev note, not "unsupported"', () => {
+    setBundle({ bundleStatus: 'unsupported', bundleDevVenv: true });
+    render(<EngineSection />);
+    expect(screen.getByText(/Development mode/)).toBeTruthy();
+    expect(screen.queryByText(/not supported/)).toBeNull();
+  });
+
   it('absent: download CTA with sku, gpu and size', () => {
     setBundle({
       bundleStatus: 'absent', bundleSku: 'linux-nvidia',
