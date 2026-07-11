@@ -499,7 +499,14 @@ class Qwen3TtsOnnxBackend:
             from .qwen_tokenizer import load_qwen2_tokenizer
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
-            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
+            # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
+            # code_predictor) alongside the fp32 set; bf16 has no CPU or DML
+            # kernels, so only the cuda device picks them up.
+            variant_dir = None
+            if str(device).lower() == "cuda" and os.path.isdir(f"{d}/onnx-bf16"):
+                variant_dir = f"{d}/onnx-bf16"
+            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
+                                                  variant_dir=variant_dir)
             self._cfg = _q3_config.load_model_config(d)
             self._tok = load_qwen2_tokenizer(d)
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)
@@ -581,16 +588,32 @@ class Qwen3TtsOnnxBackend:
         suppress_tokens = [i for i in range(vocab_size - 1024, vocab_size) if i != eos_token_id]
         max_new_tokens = int(os.environ.get("SOKUJI_QWEN3_TTS_MAX_FRAMES", "600"))
 
+        # Verification hooks: a fixed seed and/or greedy decoding make runs
+        # reproducible so optimized code paths can be A/B-compared numerically.
+        seed = os.environ.get("SOKUJI_QWEN3_TTS_SEED")
+        rng = np.random.default_rng(int(seed)) if seed else np.random.default_rng()
+        sampling_params = _QWEN3_TTS_SAMPLING_PARAMS
+        if os.environ.get("SOKUJI_QWEN3_TTS_GREEDY"):
+            sampling_params = dict(sampling_params, do_sample=False, subtalker_dosample=False)
+
         codes_list, _hidden_list = _q3_runtime.generate_codes(
             self._sessions, self._cfg.talker,
             talker_embed, attention_mask, trailing_text_hidden, tts_pad_embed,
-            max_new_tokens=max_new_tokens, sampling_params=_QWEN3_TTS_SAMPLING_PARAMS,
+            max_new_tokens=max_new_tokens, sampling_params=sampling_params,
             eos_token_id=eos_token_id, suppress_tokens=suppress_tokens,
-            rng=np.random.default_rng())
+            rng=rng)
         codes = codes_list[0]
 
         ref_code = self._voice_prompt["ref_code"][0] if self._voice_prompt else None
         if ref_code is not None:
+            # The ref prefix exists only to warm up the vocoder's receptive
+            # field before the generated frames; decoding all ~100 frames of
+            # the reference clip costs more codec time than a short utterance
+            # itself. Keep a ~1s tail as context (ASR-loopback verified);
+            # SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES=-1 restores the full prefix.
+            max_ref = int(os.environ.get("SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES", "12"))
+            if 0 <= max_ref < int(ref_code.shape[0]):
+                ref_code = ref_code[int(ref_code.shape[0]) - max_ref:]
             codes_for_decode = np.concatenate([ref_code, codes], axis=0)
         else:
             codes_for_decode = codes

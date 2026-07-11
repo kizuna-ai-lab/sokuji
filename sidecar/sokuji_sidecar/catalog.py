@@ -419,7 +419,7 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_REPO, 1.0)),
              repos=(_QWEN3_TTS_06B_REPO,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=True, sort_order=2, size_bytes=4315672915),
+             recommended=True, sort_order=2, size_bytes=5426257741),
     TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
              (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_17B_MLX_REPO, 1.0,
@@ -430,7 +430,7 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_REPO, 1.0)),
              repos=(_QWEN3_TTS_17B_REPO,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=False, sort_order=3, size_bytes=8372109691),
+             recommended=False, sort_order=3, size_bytes=11431100174),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,

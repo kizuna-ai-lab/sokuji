@@ -618,8 +618,10 @@ def load_measured(plans: list, stage: str | None = None):
 
 
 # Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
-# negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF safetensors.
-_WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx")
+# negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF
+# safetensors; .onnx.data is the external-data payload of >2GB ONNX graphs
+# (e.g. the qwen3-tts 1.7B talker) — its .onnx proto alone is tiny.
+_WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx", ".onnx.data")
 
 
 def _model_weight_bytes(artifact: str):
@@ -634,10 +636,21 @@ def _model_weight_bytes(artifact: str):
             from huggingface_hub import snapshot_download
             path = snapshot_download(artifact, local_files_only=True)
         total = 0
+        # Both callers estimate CUDA loads. A snapshot may ship CUDA-only
+        # graph rebuilds under onnx-bf16/ that are loaded INSTEAD of the
+        # same-named fp32 graphs in onnx/ (see Qwen3TtsOnnxBackend.load) —
+        # counting both copies would roughly double the estimate and wrongly
+        # demote GPUs that comfortably fit the actual load.
+        variant_root = os.path.join(path, "onnx-bf16")
+        has_variant = os.path.isdir(variant_root)
         for root, _dirs, files in os.walk(path):
             for fn in files:
-                if fn.endswith(_WEIGHT_EXTS):
-                    total += os.path.getsize(os.path.realpath(os.path.join(root, fn)))
+                if not fn.endswith(_WEIGHT_EXTS):
+                    continue
+                if (has_variant and os.path.basename(root) == "onnx"
+                        and os.path.exists(os.path.join(variant_root, fn))):
+                    continue
+                total += os.path.getsize(os.path.realpath(os.path.join(root, fn)))
         return total or None
     except Exception:
         return None

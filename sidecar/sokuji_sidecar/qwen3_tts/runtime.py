@@ -86,7 +86,9 @@ def default_providers(device: str | None = None) -> list[str]:
     return providers
 
 
-def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> dict[str, Any]:
+def build_sessions(
+    onnx_dir: str | Path, device: str | None, threads: int, variant_dir: str | None = None
+) -> dict[str, Any]:
     """Build the Qwen3-TTS talker ONNX sessions with per-graph device placement.
 
     COLD graphs (`speaker_encoder`, `tokenizer12hz_encode`, `text_project`)
@@ -95,12 +97,24 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
     in try/except with a CPU-only retry, mirroring the reference
     `_make_session` pattern.
 
+    `variant_dir` (e.g. the snapshot's `onnx-bf16/`) overrides individual
+    graph files when present there — a repo ships one fp32 set plus a few
+    device-specific rebuilds, and the caller decides per device which variant
+    applies (bf16 graphs have no CPU/DML kernels).
+
     `talker_prefill` is included only if `talker_prefill.onnx` exists in
     `onnx_dir` — its absence puts `generate_codes` into zero-past mode.
     """
     import onnxruntime as ort  # local import: fake-session tests never touch ORT
 
     onnx_dir = Path(onnx_dir)
+
+    def _graph_path(filename: str) -> Path:
+        if variant_dir is not None:
+            candidate = Path(variant_dir) / filename
+            if candidate.exists():
+                return candidate
+        return onnx_dir / filename
 
     options = ort.SessionOptions()
     options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -130,7 +144,7 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
     sessions: dict[str, Any] = {}
     for name, filename in graph_files.items():
         providers = cold_providers if name in _COLD_GRAPH_NAMES else hot_providers
-        sessions[name] = _make_session(onnx_dir / filename, providers)
+        sessions[name] = _make_session(_graph_path(filename), providers)
 
     prefill_path = onnx_dir / "talker_prefill.onnx"
     if prefill_path.exists():
@@ -150,6 +164,10 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
                 raise RuntimeError(
                     f"DmlExecutionProvider was requested but the HOT graph {name!r} was "
                     f"created without it (providers: {sess.get_providers()})")
+
+    # The CUDA fast path lazily builds extra sessions (CUDA-graph
+    # code_predictor) from the graph files, so remember where each one lives.
+    sessions["_graph_paths"] = {name: str(_graph_path(f)) for name, f in graph_files.items()}
 
     return sessions
 
@@ -206,7 +224,9 @@ class Embeddings:
         )
 
 
-def _zero_past_feeds(decode_session: Any, past_names: list[str], batch: int) -> dict[str, np.ndarray]:
+def _zero_past_feeds(
+    decode_session: Any, past_names: list[str], batch: int, dtype: Any = np.float32
+) -> dict[str, np.ndarray]:
     """Build zero-length past-KV feeds for `talker_decode`'s past inputs.
 
     Reads concrete (heads, head_dim) dims from the decode graph's declared
@@ -222,8 +242,80 @@ def _zero_past_feeds(decode_session: Any, past_names: list[str], batch: int) -> 
         head_dim = (
             shape[3] if shape is not None and len(shape) > 3 and isinstance(shape[3], int) else _DEFAULT_PAST_HEAD_DIM
         )
-        feeds[name] = np.zeros((batch, heads, 0, head_dim), dtype=np.float32)
+        feeds[name] = np.zeros((batch, heads, 0, head_dim), dtype=dtype)
     return feeds
+
+
+def _float_input_dtype(sess: Any) -> Any:
+    """The dtype of a session's first (float) input: fp16 for fp16-converted
+    graphs, else fp32. Test doubles without `.type` metadata default to fp32."""
+    try:
+        type_str = sess.get_inputs()[0].type
+    except Exception:
+        return np.float32
+    return np.float16 if type_str == "tensor(float16)" else np.float32
+
+
+def _is_binding_capable(sess: Any) -> bool:
+    """True when `sess` is a CUDA session exposing the IOBinding surface.
+
+    The AR-loop test fakes define no `get_providers`, so they (and any CPU
+    session) stay on the numpy reference path; DirectML sessions also return
+    False (no CUDA device strings for OrtValue binding)."""
+    get_providers = getattr(sess, "get_providers", None)
+    if not callable(get_providers) or "CUDAExecutionProvider" not in get_providers():
+        return False
+    return callable(getattr(sess, "io_binding", None)) and callable(
+        getattr(sess, "run_with_iobinding", None))
+
+
+class _SessionDecodeRunner:
+    """Reference decode runner: numpy feeds, KV cache round-trips through the
+    host every step. Preserves the original `generate_codes` semantics exactly,
+    including the prefill-session path and the no-KV re-prefill fallback (which
+    needs the prompt embeddings grown by one codec frame per step)."""
+
+    def __init__(self, sessions: dict[str, Any]) -> None:
+        decode_raw = sessions["talker_decode"]
+        self._decode_raw = decode_raw
+        self._decode = _Session(decode_raw)
+        self._past_names = self._decode.input_names[2:] if len(self._decode.input_names) > 2 else []
+        prefill_raw = sessions.get("talker_prefill")
+        self._prefill = _Session(prefill_raw) if prefill_raw is not None else None
+        self._past: list | None = None
+        self._inputs_np: np.ndarray | None = None
+
+    def prefill(self, inputs_np: np.ndarray, mask_np: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        self._inputs_np = inputs_np
+        if self._prefill is not None:
+            outputs = self._prefill.run({"inputs_embeds": inputs_np, "attention_mask": mask_np})
+            if len(outputs) < 2:
+                raise RuntimeError("talker_prefill session must output logits and last_hidden")
+        else:
+            zero_past = _zero_past_feeds(self._decode_raw, self._past_names, inputs_np.shape[0])
+            outputs = self._decode.run({"inputs_embeds": inputs_np, "attention_mask": mask_np, **zero_past})
+            if len(outputs) < 2:
+                raise RuntimeError("talker_decode session must output logits and last_hidden")
+        self._past = list(outputs[2:]) if len(outputs) > 2 else None
+        return outputs[0], outputs[1]
+
+    def step(self, codec_sum: np.ndarray, mask_np: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        self._inputs_np = np.concatenate([self._inputs_np, codec_sum], axis=1)
+        if self._past is None or len(self._past_names) == 0:
+            # Reference's no-KV re-prefill fallback. In zero-past mode there
+            # is no prefill session to fall back to, so a missing KV cache
+            # here means the decode graph doesn't thread state — a hard
+            # runtime error rather than a silent behavior change.
+            if self._prefill is None:
+                raise RuntimeError("talker_decode produced no KV cache and no talker_prefill is available")
+            outputs = self._prefill.run({"inputs_embeds": self._inputs_np, "attention_mask": mask_np})
+        else:
+            feed = {"inputs_embeds": codec_sum, "attention_mask": mask_np}
+            for name, value in zip(self._past_names, self._past, strict=True):
+                feed[name] = value
+            outputs = self._decode.run(feed)
+        self._past = list(outputs[2:]) if len(outputs) > 2 else None
+        return outputs[0], outputs[1]
 
 
 def generate_codes(
@@ -270,6 +362,62 @@ def generate_codes(
         [effective_len, hidden] float32 hidden states, truncated at the
         first EOS frame (or the full length if no EOS was generated).
     """
+    if _is_binding_capable(sessions["talker_decode"]):
+        from . import runtime_cuda  # lazy: only real CUDA sessions reach this
+
+        runner: Any = runtime_cuda.BindingDecodeRunner(sessions["talker_decode"])
+        embeddings: Any = runtime_cuda.table_embeds_for(sessions, cfg_talker)
+        code_predictor: Any = runtime_cuda.graphed_code_predictor_for(
+            sessions, cfg_talker, hidden=int(inputs_embeds.shape[-1]))
+    else:
+        runner = _SessionDecodeRunner(sessions)
+        embeddings = Embeddings(
+            codec_embed_session=sessions["codec_embed"],
+            code_predictor_embed_session=sessions["code_predictor_embed"],
+        )
+        code_predictor = _Session(sessions["code_predictor"])
+    return _ar_loop(
+        runner,
+        embeddings,
+        code_predictor,
+        cfg_talker,
+        inputs_embeds,
+        attention_mask,
+        trailing_text_hidden,
+        tts_pad_embed,
+        max_new_tokens=max_new_tokens,
+        sampling_params=sampling_params,
+        eos_token_id=eos_token_id,
+        suppress_tokens=suppress_tokens,
+        rng=rng,
+    )
+
+
+def _ar_loop(
+    runner: Any,
+    embeddings: Any,
+    code_predictor: _Session,
+    cfg_talker: Any,
+    inputs_embeds: np.ndarray,
+    attention_mask: np.ndarray,
+    trailing_text_hidden: np.ndarray,
+    tts_pad_embed: np.ndarray,
+    *,
+    max_new_tokens: int,
+    sampling_params: dict,
+    eos_token_id: int,
+    suppress_tokens: list | None,
+    rng: np.random.Generator,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Shared AR loop over a decode `runner` and an `embeddings` provider.
+
+    `runner` owns talker_decode invocation and KV-cache threading
+    (`_SessionDecodeRunner` for numpy feeds, `runtime_cuda.BindingDecodeRunner`
+    for the device-resident IOBinding path); `embeddings` provides
+    `codec_embed(ids)` / `code_predictor_embed(ids, step)` (per-step sessions
+    or pre-extracted tables). Everything else — sampling, EOS bookkeeping,
+    trailing-hidden switch, truncation — is identical for both paths.
+    """
     do_sample = sampling_params["do_sample"]
     top_k = sampling_params["top_k"]
     top_p = sampling_params["top_p"]
@@ -279,14 +427,6 @@ def generate_codes(
     subtalker_top_k = sampling_params["subtalker_top_k"]
     subtalker_top_p = sampling_params["subtalker_top_p"]
     subtalker_temperature = sampling_params["subtalker_temperature"]
-
-    decode_raw = sessions["talker_decode"]
-    decode = _Session(decode_raw)
-    code_predictor = _Session(sessions["code_predictor"])
-    embeddings = Embeddings(
-        codec_embed_session=sessions["codec_embed"],
-        code_predictor_embed_session=sessions["code_predictor_embed"],
-    )
 
     inputs_np = inputs_embeds.astype(np.float32)
     mask_np = attention_mask.astype(np.int64)
@@ -305,27 +445,15 @@ def generate_codes(
 
     finished = np.zeros((batch,), dtype=bool)
 
-    decode_past_names = decode.input_names[2:] if len(decode.input_names) > 2 else []
+    # fp16-converted graphs expose fp16 float I/O; sampling and host-side
+    # accumulation stay fp32 (np.asarray is a no-op for fp32 graphs/fakes).
+    cp_dtype = _float_input_dtype(code_predictor.session)
 
-    prefill_raw = sessions.get("talker_prefill")
-    if prefill_raw is not None:
-        prefill = _Session(prefill_raw)
-        prefill_outputs = prefill.run({"inputs_embeds": inputs_np, "attention_mask": mask_np})
-        if len(prefill_outputs) < 2:
-            raise RuntimeError("talker_prefill session must output logits and last_hidden")
-        logits, last_hidden = prefill_outputs[0], prefill_outputs[1]
-        past = prefill_outputs[2:] if len(prefill_outputs) > 2 else None
-    else:
-        prefill = None
-        zero_past = _zero_past_feeds(decode_raw, decode_past_names, batch)
-        init_feed = {"inputs_embeds": inputs_np, "attention_mask": mask_np, **zero_past}
-        init_outputs = decode.run(init_feed)
-        if len(init_outputs) < 2:
-            raise RuntimeError("talker_decode session must output logits and last_hidden")
-        logits, last_hidden = init_outputs[0], init_outputs[1]
-        past = init_outputs[2:] if len(init_outputs) > 2 else None
+    logits, last_hidden = runner.prefill(inputs_np, mask_np)
 
     for step in range(max_new_tokens):
+        logits = np.asarray(logits, dtype=np.float32)
+        last_hidden = np.asarray(last_hidden, dtype=np.float32)
         step_logits = logits[:, -1, :]
         step_logits = apply_suppress_tokens(step_logits, suppress_tokens)
 
@@ -358,9 +486,10 @@ def generate_codes(
             inputs_embed = np.concatenate(embed_seq, axis=1)
             gen_step = np.full((batch,), j, dtype=np.int64)
             sub_logits = code_predictor.run(
-                {"inputs_embeds": inputs_embed.astype(np.float32), "generation_step": gen_step},
+                {"inputs_embeds": inputs_embed.astype(cp_dtype), "generation_step": gen_step},
                 output_names=["logits"],
             )[0]
+            sub_logits = np.asarray(sub_logits, dtype=np.float32)
             sub_next = sample_next_token(
                 sub_logits,
                 rng=rng,
@@ -384,7 +513,6 @@ def generate_codes(
         else:
             codec_sum = codec_sum + tts_pad
 
-        inputs_np = np.concatenate([inputs_np, codec_sum.astype(np.float32)], axis=1)
         mask_np = np.concatenate([mask_np, np.ones((batch, 1), dtype=np.int64)], axis=1)
 
         step_codes = np.concatenate([next_ids[:, None], subcode_ids], axis=1)
@@ -394,23 +522,7 @@ def generate_codes(
         if finished.all():
             break
 
-        if past is None or len(decode_past_names) == 0:
-            # Reference's no-KV re-prefill fallback. In zero-past mode there
-            # is no prefill session to fall back to, so a missing KV cache
-            # here means the decode graph doesn't thread state — a hard
-            # runtime error rather than a silent behavior change.
-            if prefill is None:
-                raise RuntimeError("talker_decode produced no KV cache and no talker_prefill is available")
-            next_outputs = prefill.run({"inputs_embeds": inputs_np, "attention_mask": mask_np})
-            logits, last_hidden = next_outputs[0], next_outputs[1]
-            past = next_outputs[2:] if len(next_outputs) > 2 else None
-        else:
-            feed = {"inputs_embeds": codec_sum.astype(np.float32), "attention_mask": mask_np}
-            for name, value in zip(decode_past_names, past):
-                feed[name] = value
-            next_outputs = decode.run(feed)
-            logits, last_hidden = next_outputs[0], next_outputs[1]
-            past = next_outputs[2:]
+        logits, last_hidden = runner.step(codec_sum.astype(np.float32), mask_np)
 
     if not generated_steps:
         empty = [np.empty((0, num_code_groups), dtype=np.int64) for _ in range(batch)]

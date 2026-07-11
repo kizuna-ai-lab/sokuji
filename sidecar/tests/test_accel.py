@@ -1809,3 +1809,30 @@ def test_gpu_metal_tier_available_via_tc_metal_kind():
                       apple_silicon=False, dml_adapters=(), installed=frozenset(),
                       fingerprint="intel-mac", tc_kinds=("cpu", "metal"))
     assert accel._tier_available("gpu-metal", m) is True
+
+
+def test_model_weight_bytes_counts_variant_shadowing_and_external_data(tmp_path):
+    # A qwen3-tts-style snapshot: fp32 graphs under onnx/, CUDA-only bf16
+    # rebuilds under onnx-bf16/. The estimator serves CUDA-plan gating, and
+    # CUDA loads the bf16 rebuild INSTEAD of the same-named fp32 graph — the
+    # shadowed fp32 file must not be double-counted. External weight payloads
+    # (<name>.onnx.data) count toward their graph.
+    onnx_dir = tmp_path / "onnx"
+    bf16_dir = tmp_path / "onnx-bf16"
+    onnx_dir.mkdir()
+    bf16_dir.mkdir()
+    (onnx_dir / "talker.onnx").write_bytes(b"x" * 100)      # shadowed by bf16
+    (onnx_dir / "codec.onnx").write_bytes(b"x" * 20)
+    (onnx_dir / "codec.onnx.data").write_bytes(b"x" * 30)   # external payload
+    (bf16_dir / "talker.onnx").write_bytes(b"x" * 40)
+    from sokuji_sidecar import accel
+    assert accel._model_weight_bytes(str(tmp_path)) == 40 + 20 + 30
+
+
+def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
+    onnx_dir = tmp_path / "onnx"
+    onnx_dir.mkdir()
+    (onnx_dir / "talker.onnx").write_bytes(b"x" * 100)
+    (onnx_dir / "talker.onnx.data").write_bytes(b"x" * 50)
+    from sokuji_sidecar import accel
+    assert accel._model_weight_bytes(str(tmp_path)) == 150
