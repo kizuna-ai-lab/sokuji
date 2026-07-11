@@ -156,7 +156,7 @@ const defaultCommonSettings: CommonSettings = {
 
 // ==================== Store Definition ====================
 
-interface SettingsStore {
+export interface SettingsStore {
   // === State ===
   // Common settings
   provider: ProviderType;
@@ -1081,75 +1081,17 @@ const useSettingsStore = create<SettingsStore>()(
         }
       }
 
-      // Get current API key and custom endpoint (if applicable)
+      // Get normalized credentials from the provider's descriptor — replaces
+      // the four hand-copied per-provider extraction chains that used to live
+      // here (see git history for the pre-descriptor shape).
+      const descriptor = ProviderConfigFactory.getDescriptor(provider);
       const currentSettings = state.getCurrentProviderSettings();
-      let apiKey = '';
-      let customEndpoint: string | undefined = undefined;
+      const creds = await descriptor.extractCredentials(currentSettings, { getAuthToken });
 
-      if (provider === Provider.PALABRA_AI) {
-        const palabraSettings = currentSettings as PalabraAISettings;
-        apiKey = palabraSettings.clientId;
-
-        // Check if both clientId and clientSecret are present for PalabraAI
-        if (!palabraSettings.clientId || !palabraSettings.clientSecret) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-            isValidated: false,
-            validationError: null
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else if (provider === Provider.OPENAI_COMPATIBLE) {
-        // OpenAI Compatible provider requires both API key and custom endpoint
-        const compatSettings = currentSettings as OpenAICompatibleSettings;
-        apiKey = compatSettings.apiKey || '';
-        customEndpoint = compatSettings.customEndpoint;
-      } else if (isKizunaManagedProvider(provider) && getAuthToken) {
-        apiKey = await getAuthToken() || '';
-      } else if (provider === Provider.VOLCENGINE_ST) {
-        // Volcengine ST uses accessKeyId as apiKey and secretAccessKey as clientSecret
-        const volcSettings = currentSettings as VolcengineSTSettings;
-        apiKey = volcSettings.accessKeyId || '';
-
-        // Check if both accessKeyId and secretAccessKey are present
-        if (!volcSettings.accessKeyId || !volcSettings.secretAccessKey) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else if (provider === Provider.ZOOM_AI) {
-        const zoomSettings = currentSettings as ZoomAISettings;
-        apiKey = zoomSettings.apiKey || '';
-        if (!zoomSettings.apiKey || !zoomSettings.apiSecret) {
-          set({ isApiKeyValid: null, availableModels: [], validationMessage: '', isValidating: false });
-          return { valid: false, message: '', validating: false };
-        }
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        const ast2Settings = currentSettings as VolcengineAST2Settings;
-        apiKey = String(ast2Settings.appId || '');
-
-        if (!ast2Settings.appId || !ast2Settings.accessToken) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else {
-        apiKey = (currentSettings as any).apiKey || '';
-      }
-
-      // Check if API key is empty for non-PalabraAI providers
-      if (!apiKey && provider !== Provider.PALABRA_AI) {
+      // Empty/incomplete credentials: silent reset, same as before (no error
+      // banner while typing). Two-field providers (Palabra, Volcengine, Zoom)
+      // already reject incomplete pairs inside their extractCredentials override.
+      if (!creds.ok) {
         set({
           isApiKeyValid: null,
           availableModels: [],
@@ -1162,18 +1104,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // Check cache
-      let cacheKey: string;
-      if (provider === Provider.PALABRA_AI) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`;
-      } else if (provider === Provider.VOLCENGINE_ST) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineSTSettings).secretAccessKey}`;
-      } else if (provider === Provider.ZOOM_AI) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as ZoomAISettings).apiSecret}`;
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineAST2Settings).accessToken}`;
-      } else {
-        cacheKey = `${provider}:${apiKey}`;
-      }
+      const cacheKey = `${provider}:${creds.primary}:${creds.secret ?? ''}:${creds.endpoint ?? ''}`;
 
       const cached = state.validationCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
@@ -1194,23 +1125,12 @@ const useSettingsStore = create<SettingsStore>()(
 
       try {
         const service = ServiceFactory.getSettingsService();
-        // Get client secret for providers that need it
-        let clientSecret: string | undefined;
-        if (provider === Provider.PALABRA_AI) {
-          clientSecret = (currentSettings as PalabraAISettings).clientSecret;
-        } else if (provider === Provider.VOLCENGINE_ST) {
-          clientSecret = (currentSettings as VolcengineSTSettings).secretAccessKey;
-        } else if (provider === Provider.ZOOM_AI) {
-          clientSecret = (currentSettings as ZoomAISettings).apiSecret;
-        } else if (provider === Provider.VOLCENGINE_AST2) {
-          clientSecret = String((currentSettings as VolcengineAST2Settings).accessToken || '');
-        }
 
         const result = await service.validateApiKeyAndFetchModels(
-          apiKey,
+          creds.primary,
           provider,
-          clientSecret,
-          customEndpoint  // Pass custom endpoint for OpenAI Compatible
+          creds.secret,
+          creds.endpoint  // Pass custom endpoint for OpenAI Compatible
         );
 
         // Cache result

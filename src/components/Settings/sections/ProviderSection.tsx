@@ -5,11 +5,8 @@ import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
-  useOpenAISettings,
-  useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
@@ -31,7 +28,9 @@ import {
   useSetUIMode,
   useNavigateToSettings,
   useLocalInferenceSettings,
+  useSettingsStore,
 } from '../../../stores/settingsStore';
+import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -73,11 +72,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Settings store
   const provider = useProvider();
-  const openAISettings = useOpenAISettings();
-  const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
@@ -171,28 +167,18 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     return ProviderConfigFactory.getAllConfigs();
   }, []);
 
-  // Get current API key based on provider
-  const getCurrentApiKey = () => {
-    switch (provider) {
-      case Provider.OPENAI:
-        return openAISettings.apiKey;
-      case Provider.GEMINI:
-        return geminiSettings.apiKey;
-      case Provider.OPENAI_COMPATIBLE:
-        return openAICompatibleSettings.apiKey;
-      case Provider.PALABRA_AI:
-        return palabraAISettings.clientId;
-      case Provider.OPENAI_TRANSLATE:
-        return openAITranslateSettings.apiKey;
-      case Provider.VOLCENGINE_ST:
-        return volcengineSTSettings.accessKeyId;
-      case Provider.VOLCENGINE_AST2:
-        return volcengineAST2Settings.appId;
-      case Provider.ZOOM_AI:
-        return zoomAISettings.apiKey;
-      default:
-        return '';
-    }
+  // Get current API key based on provider — delegates to the descriptor's
+  // peekPrimaryCredential so the per-provider credential shape lives in one
+  // place instead of being hand-copied here (see also settingsStore.validateApiKey).
+  // Subscribes reactively to whichever settings slice the current provider maps
+  // to: a plain getState() snapshot wouldn't re-render this component as the
+  // user types (OpenAI/Gemini/OpenAI Translate no longer have their own
+  // dedicated settings hooks called here after the switch collapsed).
+  const currentProviderSettingsSlice = useSettingsStore(
+    (state) => state[ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore]
+  );
+  const getCurrentApiKey = (): string => {
+    return ProviderConfigFactory.getDescriptor(provider).peekPrimaryCredential(currentProviderSettingsSlice);
   };
 
   // Update API key based on provider

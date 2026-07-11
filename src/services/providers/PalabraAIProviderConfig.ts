@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { PalabraAIClient } from '../clients/PalabraAIClient';
@@ -40,6 +40,18 @@ export const defaultPalabraAISettings: PalabraAISettings = {
 export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'palabraai';
   readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as PalabraAISettings;
+    if (!s?.clientId || !s?.clientSecret) {
+      return { ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' };
+    }
+    return { ok: true, primary: s.clientId, secret: s.clientSecret };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return (slice as PalabraAISettings)?.clientId ?? '';
+  }
 
   // creds.secret is guaranteed by extractCredentials (Task 5).
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {

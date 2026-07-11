@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { ZoomAIClient } from '../clients/ZoomAIClient';
@@ -27,6 +27,14 @@ export const defaultZoomAISettings: ZoomAISettings = {
 export class ZoomAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'zoomAI';
   readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as ZoomAISettings;
+    if (!s?.apiKey || !s?.apiSecret) {
+      return { ok: false, missing: 'Both API Key and API Secret are required for Zoom AI Services' };
+    }
+    return { ok: true, primary: s.apiKey, secret: s.apiSecret };
+  }
 
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('API Secret is required for zoom_ai provider');

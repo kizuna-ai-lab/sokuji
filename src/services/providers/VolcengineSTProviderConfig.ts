@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineSTClient } from '../clients/VolcengineSTClient';
@@ -22,6 +22,18 @@ export const defaultVolcengineSTSettings: VolcengineSTSettings = {
 export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineST';
   readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as VolcengineSTSettings;
+    if (!s?.accessKeyId || !s?.secretAccessKey) {
+      return { ok: false, missing: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate' };
+    }
+    return { ok: true, primary: s.accessKeyId, secret: s.secretAccessKey };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return (slice as VolcengineSTSettings)?.accessKeyId ?? '';
+  }
 
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Secret Access Key is required for volcengine_st provider');

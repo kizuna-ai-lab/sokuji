@@ -1,6 +1,6 @@
 import { VolcengineAST2ProviderConfig, VolcengineAST2Settings, defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, ClientOptions } from './ProviderDescriptor';
+import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -16,6 +16,18 @@ export const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...
  */
 export class KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2ProviderConfig {
   readonly settingsSliceKey: string = 'kizunaVolcengineAst2';
+
+  // Backend-managed twin: credentials are a Better Auth session token fetched
+  // from ctx, not the parent's appId/accessToken settings-slice fields.
+  async extractCredentials(_slice: unknown, ctx: CredentialCtx): Promise<Credentials> {
+    const token = ctx.getAuthToken ? await ctx.getAuthToken() : null;
+    if (!token) return { ok: false, missing: 'Sign in is required for Kizuna relay providers' };
+    return { ok: true, primary: token };
+  }
+
+  peekPrimaryCredential(): string {
+    return '';
+  }
 
   // Override — routes through the relay using the backend-managed session token.
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {

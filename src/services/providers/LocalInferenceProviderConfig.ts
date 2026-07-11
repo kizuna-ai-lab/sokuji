@@ -1,6 +1,6 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
@@ -52,8 +52,17 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localInference';
   readonly supportsWebRTC = false;
 
-  // LocalInference has no credentials by design — its extractCredentials
-  // override (Task 5) skips the empty-key check entirely.
+  // LocalInference has no credentials by design — settingsStore's LOCAL_INFERENCE
+  // arm short-circuits validateApiKey before extractCredentials is ever called
+  // (gates on modelStore instead), so this always reports ok with an empty primary.
+  async extractCredentials(_slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    return { ok: true, primary: '' };
+  }
+
+  peekPrimaryCredential(): string {
+    return '';
+  }
+
   createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     return new LocalInferenceClient();
   }

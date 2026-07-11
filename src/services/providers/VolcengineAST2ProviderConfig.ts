@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -33,6 +33,20 @@ export const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
 export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineAST2';
   readonly supportsWebRTC = false;
+
+  // appId may be numeric in old persisted state — String() it, matching the
+  // legacy settingsStore.ts cast this replaces.
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as VolcengineAST2Settings;
+    if (!s?.appId || !s?.accessToken) {
+      return { ok: false, missing: 'Both APP ID and Access Token are required for Doubao AST 2.0' };
+    }
+    return { ok: true, primary: String(s.appId), secret: String(s.accessToken) };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return String((slice as VolcengineAST2Settings)?.appId ?? '');
+  }
 
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Access Token is required for volcengine_ast2 provider');

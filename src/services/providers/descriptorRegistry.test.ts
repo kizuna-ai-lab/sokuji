@@ -87,3 +87,39 @@ describe('descriptor.latestRealtimeModel', () => {
     expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_VOLCENGINE_AST2).latestRealtimeModel([])).toBe('ast-v2-s2s');
   });
 });
+
+describe('descriptor.extractCredentials', () => {
+  it('normalizes each provider credential shape', async () => {
+    const cases: Array<[Provider, object, { primary: string; secret?: string; endpoint?: string }]> = [
+      [Provider.OPENAI, { apiKey: 'sk-1' }, { primary: 'sk-1' }],
+      [Provider.OPENAI_COMPATIBLE, { apiKey: 'k', customEndpoint: 'https://e' }, { primary: 'k', endpoint: 'https://e' }],
+      [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
+      [Provider.VOLCENGINE_ST, { accessKeyId: 'ak', secretAccessKey: 'sk' }, { primary: 'ak', secret: 'sk' }],
+      [Provider.VOLCENGINE_AST2, { appId: 123, accessToken: 'tok' }, { primary: '123', secret: 'tok' }],
+      [Provider.ZOOM_AI, { apiKey: 'zk', apiSecret: 'zs' }, { primary: 'zk', secret: 'zs' }],
+    ];
+    for (const [id, slice, want] of cases) {
+      const got = await ProviderConfigFactory.getDescriptor(id).extractCredentials(slice, {});
+      expect(got).toEqual({ ok: true, ...want });
+    }
+  });
+
+  it('two-field providers report both-required when either is missing', async () => {
+    const r = await ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI)
+      .extractCredentials({ clientId: 'id', clientSecret: '' }, {});
+    expect(r).toEqual({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
+  });
+
+  it('kizuna twin resolves the auth token from ctx', async () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+    expect(await d.extractCredentials({}, { getAuthToken: async () => 'sess_T' }))
+      .toEqual({ ok: true, primary: 'sess_T' });
+    expect((await d.extractCredentials({}, {})).ok).toBe(false);
+    expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
+  });
+
+  it('local inference needs no credentials', async () => {
+    expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
+      .toEqual({ ok: true, primary: '' });
+  });
+});
