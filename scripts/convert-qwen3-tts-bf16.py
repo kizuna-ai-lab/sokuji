@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """fp32 -> bf16 converter for code_predictor.onnx (Qwen3-TTS code predictor).
 
 Logic adapted from onnxruntime.transformers.float16.convert_float_to_float16 but

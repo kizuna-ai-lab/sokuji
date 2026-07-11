@@ -311,7 +311,7 @@ class _SessionDecodeRunner:
             outputs = self._prefill.run({"inputs_embeds": self._inputs_np, "attention_mask": mask_np})
         else:
             feed = {"inputs_embeds": codec_sum, "attention_mask": mask_np}
-            for name, value in zip(self._past_names, self._past):
+            for name, value in zip(self._past_names, self._past, strict=True):
                 feed[name] = value
             outputs = self._decode.run(feed)
         self._past = list(outputs[2:]) if len(outputs) > 2 else None

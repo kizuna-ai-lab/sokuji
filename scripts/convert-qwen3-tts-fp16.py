@@ -135,17 +135,23 @@ def main() -> None:
     onnx_dir = os.path.join(root, "onnx")
     os.makedirs(onnx_dir, exist_ok=True)
 
+    def _copy_with_external_data(src_graph: str, dst_graph: str) -> None:
+        shutil.copyfile(os.path.realpath(src_graph), dst_graph)
+        data = src_graph + ".data"
+        if os.path.exists(data):  # >2GB graphs keep weights in a sidecar file
+            shutil.copyfile(os.path.realpath(data), dst_graph + ".data")
+
     for name in HOT_FP16 + ([] if args.keep_codec_fp32 else [CODEC_DECODE]):
         print(f"converting {name} → fp16", flush=True)
         src_graph = os.path.join(src, "onnx", name)
         dst_graph = os.path.join(onnx_dir, name)
         if not convert_one(src_graph, dst_graph):
-            shutil.copyfile(os.path.realpath(src_graph), dst_graph)
+            _copy_with_external_data(src_graph, dst_graph)
 
     for name in COPY_FP32 + ([CODEC_DECODE] if args.keep_codec_fp32 else []):
         dst = os.path.join(onnx_dir, name)
         if not os.path.exists(dst):
-            shutil.copyfile(os.path.realpath(os.path.join(src, "onnx", name)), dst)
+            _copy_with_external_data(os.path.join(src, "onnx", name), dst)
 
     for name in ROOT_FILES:
         shutil.copyfile(os.path.realpath(os.path.join(src, name)),

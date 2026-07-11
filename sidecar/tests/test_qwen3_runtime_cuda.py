@@ -498,7 +498,7 @@ def test_graphed_code_predictor_falls_back_on_run_error(monkeypatch, tmp_path):
     _graphed_env(monkeypatch)
     gcp = runtime_cuda.GraphedCodePredictor(
         str(tmp_path / "code_predictor.onnx"), hidden=H, sub_vocab=SUBVOCAB,
-        fallback=runtime.  _Session(_ValueCodePred()))
+        fallback=runtime._Session(_ValueCodePred()))
 
     def boom(iob, run_options=None):
         raise RuntimeError("capture failed")

@@ -87,7 +87,7 @@ class BindingDecodeRunner:
             for name, arr in cpu_past.items():
                 iob.bind_cpu_input(name, arr)
         if past_values is not None:
-            for name, value in zip(self._past_names, past_values):
+            for name, value in zip(self._past_names, past_values, strict=True):
                 iob.bind_ortvalue_input(name, value)
         for name in self._output_names[:2]:
             iob.bind_output(name, "cpu")
