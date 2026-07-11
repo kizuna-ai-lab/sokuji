@@ -1,5 +1,5 @@
 import { IClient } from '../interfaces/IClient';
-import { ProviderType } from '../../types/Provider';
+import { Provider, ProviderType } from '../../types/Provider';
 import { TransportType } from '../providers/ProviderDescriptor';
 import { ProviderConfigFactory } from '../providers/ProviderConfigFactory';
 
@@ -23,6 +23,11 @@ export class ClientFactory {
     transportType?: TransportType, webrtcOptions?: WebRTCClientOptions
   ): IClient {
     void model;
+    // Legacy callers skip extractCredentials — keep the old façade contract of
+    // rejecting an empty key up front (LOCAL_INFERENCE never had credentials).
+    if (!apiKey && provider !== Provider.LOCAL_INFERENCE) {
+      throw new Error(`API key is required for ${provider} provider`);
+    }
     return ProviderConfigFactory.getDescriptor(provider).createClient(
       { ok: true, primary: apiKey, secret: clientSecret, endpoint: customEndpoint },
       { transport: transportType ?? 'websocket', webrtcOptions }

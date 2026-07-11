@@ -59,7 +59,12 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    return VolcengineAST2Client.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both APP ID and Access Token are required for Doubao AST 2.0', validating: false }, models: [] };
+    }
+    return VolcengineAST2Client.validateApiKeyAndFetchModels(creds.primary, creds.secret);
   }
 
   // The kizuna doubao twin inherits this builder (reads its own slice).

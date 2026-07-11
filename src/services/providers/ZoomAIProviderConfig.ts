@@ -47,7 +47,12 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    return ZoomAIClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both API Key and API Secret are required for Zoom AI Services', validating: false }, models: [] };
+    }
+    return ZoomAIClient.validateApiKeyAndFetchModels(creds.primary, creds.secret);
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {

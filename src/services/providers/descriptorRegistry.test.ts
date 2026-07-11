@@ -284,3 +284,33 @@ describe('registry invariants', () => {
     }
   });
 });
+
+describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
+  // The production path runs extractCredentials first, but the @deprecated
+  // façades accept raw positional args — they must keep the old contract of
+  // rejecting incomplete credentials instead of reaching provider clients
+  // with `secret: undefined`.
+  it('two-field providers reject a filled primary with a missing secret', async () => {
+    const { ClientOperations } = await import('../ClientOperations');
+    const cases: Array<[Provider, RegExp]> = [
+      [Provider.PALABRA_AI, /Client ID and Client Secret/],
+      [Provider.VOLCENGINE_ST, /Access Key ID and Secret Access Key/],
+      [Provider.VOLCENGINE_AST2, /APP ID and Access Token/],
+      [Provider.ZOOM_AI, /API Key and API Secret/],
+    ];
+    for (const [id, msg] of cases) {
+      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', id);
+      expect(r.validation.valid, id).toBe(false);
+      expect(r.validation.message, id).toMatch(msg);
+      expect(r.models, id).toEqual([]);
+    }
+  });
+
+  it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
+    const { ClientFactory } = await import('../clients/ClientFactory');
+    expect(() => ClientFactory.createClient('m', Provider.OPENAI, ''))
+      .toThrow(/API key is required/);
+    // LOCAL_INFERENCE never had credentials — must keep working with ''
+    expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();
+  });
+});

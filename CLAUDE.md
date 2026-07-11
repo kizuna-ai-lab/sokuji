@@ -236,7 +236,9 @@ useSettingsStore.subscribe(
 1. Create the client class implementing `IClient` in `src/services/clients/`
 2. Create `XProviderConfig` in `src/services/providers/` extending `BaseProviderDescriptor`:
    settings interface + defaults, `settingsSliceKey`, `createClient`, `validateAndFetchModels`,
-   `extractCredentials`, `buildSessionConfig`, language overrides if restricted
+   `extractCredentials`, `buildSessionConfig`, language overrides if restricted;
+   set `supportsWebRTC = true` if the provider runs over WebRTC transport (it defaults
+   to `false`), and `i18nKey` if the locale key differs from the provider id
 3. Register it in `ProviderConfigFactory`'s static block (behind its feature flag)
 4. Add the enum value in `src/types/Provider.ts` and the settings slice + update action in `settingsStore.ts`
 5. Add `providers.<id>.name/.description` to locales

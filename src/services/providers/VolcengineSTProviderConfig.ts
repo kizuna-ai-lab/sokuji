@@ -46,7 +46,12 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    return VolcengineSTClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate', validating: false }, models: [] };
+    }
+    return VolcengineSTClient.validateApiKeyAndFetchModels(creds.primary, creds.secret);
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {

@@ -65,7 +65,12 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret!);
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both Client ID and Client Secret are required for Palabra AI', validating: false }, models: [] };
+    }
+    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret);
     return {
       validation,
       models: [{ id: 'realtime-translation', type: 'realtime', created: Date.now() / 1000 }],
