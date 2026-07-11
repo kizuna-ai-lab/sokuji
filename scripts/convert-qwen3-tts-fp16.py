@@ -38,12 +38,54 @@ REPOS = {"0.6b": "jiangzhuo9357/qwen3-tts-0.6b-onnx",
 EXTERNAL_DATA_THRESHOLD = 1_900_000_000
 
 
-def convert_one(src_path: str, dst_path: str) -> None:
+def trig_ancestor_block_list(src_path: str) -> list[str]:
+    """Node names that must stay fp32: every Sin/Cos node plus its ancestor
+    closure. Qwen3 uses rope_theta=1e6, so the RoPE inverse frequencies
+    (~1e-6) underflow fp16's 6e-5 normal range — converting the angle
+    computation garbles every position and the model degenerates to babble
+    with no EOS (observed on the first full-fp16 export). The closure is
+    shape/position math that runs once per step on tiny tensors; keeping it
+    fp32 costs nothing. Sin/Cos outputs are bounded [-1, 1] and are cast to
+    fp16 at the boundary by the converter."""
+    import onnx
+
+    model = onnx.load(src_path, load_external_data=False)
+    producers = {o: n for n in model.graph.node for o in n.output}
+    trig = [n for n in model.graph.node if n.op_type in ("Sin", "Cos")]
+    block = {n.name for n in trig}
+    seen: set[str] = set()
+    frontier = [i for n in trig for i in n.input]
+    while frontier:
+        tensor = frontier.pop()
+        if tensor in seen:
+            continue
+        seen.add(tensor)
+        node = producers.get(tensor)
+        if node is not None and node.name not in block:
+            block.add(node.name)
+            frontier.extend(node.input)
+    return sorted(block)
+
+
+def convert_one(src_path: str, dst_path: str) -> bool:
+    """Convert one graph to fp16; returns False (caller copies fp32) when the
+    trig-protection closure covers most of the graph — e.g. the codec vocoder,
+    whose harmonic-synthesis math IS a giant Sin/Cos chain: 'converting' it
+    would keep everything fp32 behind casts and only add overhead."""
     import onnx
     from onnxruntime.transformers.float16 import convert_float_to_float16
 
+    model_probe = onnx.load(src_path, load_external_data=False)
+    node_count = len(model_probe.graph.node)
+    block_list = trig_ancestor_block_list(src_path)
+    if node_count and len(block_list) > node_count // 3:
+        print(f"  {len(block_list)}/{node_count} nodes in Sin/Cos chains — keeping fp32", flush=True)
+        return False
+    if block_list:
+        print(f"  keeping {len(block_list)} Sin/Cos-chain nodes fp32", flush=True)
     # Path input → converter uses infer_shapes_path (safe for >2GB models).
-    model = convert_float_to_float16(src_path, keep_io_types=False)
+    model = convert_float_to_float16(src_path, keep_io_types=False,
+                                     node_block_list=block_list or None)
     fp16_bytes = sum(len(t.raw_data) for t in model.graph.initializer)
     if fp16_bytes > EXTERNAL_DATA_THRESHOLD:
         data_name = os.path.basename(dst_path) + ".data"
@@ -53,6 +95,7 @@ def convert_one(src_path: str, dst_path: str) -> None:
         onnx.save(model, dst_path)
     print(f"  {os.path.basename(src_path)}: {os.path.getsize(src_path):,} → "
           f"{os.path.getsize(dst_path):,} bytes", flush=True)
+    return True
 
 
 def main() -> None:
@@ -75,7 +118,10 @@ def main() -> None:
 
     for name in HOT_FP16 + ([] if args.keep_codec_fp32 else [CODEC_DECODE]):
         print(f"converting {name} → fp16", flush=True)
-        convert_one(os.path.join(src, "onnx", name), os.path.join(onnx_dir, name))
+        src_graph = os.path.join(src, "onnx", name)
+        dst_graph = os.path.join(onnx_dir, name)
+        if not convert_one(src_graph, dst_graph):
+            shutil.copyfile(os.path.realpath(src_graph), dst_graph)
 
     for name in COPY_FP32 + ([CODEC_DECODE] if args.keep_codec_fp32 else []):
         dst = os.path.join(onnx_dir, name)
