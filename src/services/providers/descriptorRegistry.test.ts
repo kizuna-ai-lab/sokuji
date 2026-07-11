@@ -26,6 +26,7 @@ import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
+import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
 // so buildSessionConfig can be exercised for every registered provider.
@@ -196,5 +197,17 @@ describe('descriptor language rules', () => {
   it('default providers pass their config languages through', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
     expect(d.resolveSourceLanguages()).toBe(d.getConfig().languages);
+  });
+});
+
+describe('descriptor i18n keys', () => {
+  it('every available provider has name+description in the en catalog', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const key = d.i18nKey ?? id;
+      const entry = (en as any).providers?.[key];
+      expect(entry?.name, `providers.${key}.name`).toBeTruthy();
+      expect(entry?.description, `providers.${key}.description`).toBeTruthy();
+    }
   });
 });

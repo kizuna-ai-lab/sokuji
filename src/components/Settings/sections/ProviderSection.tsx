@@ -45,6 +45,24 @@ import {
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
 
+// Icons are React components and stay in the UI layer — the descriptor only
+// carries the i18n key (see i18nKey on ProviderDescriptor). Keys omitted here
+// fall back to DefaultProviderIcon.
+const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: string | number }>>> = {
+  [Provider.OPENAI]: OpenAIIcon,
+  [Provider.GEMINI]: GeminiIcon,
+  [Provider.OPENAI_COMPATIBLE]: Zap,
+  [Provider.OPENAI_TRANSLATE]: OpenAIIcon,
+  [Provider.PALABRA_AI]: PalabraAIIcon,
+  [Provider.VOLCENGINE_ST]: VolcengineIcon,
+  [Provider.VOLCENGINE_AST2]: VolcengineIcon,
+  [Provider.ZOOM_AI]: ZoomIcon,
+  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
+  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
+  [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
+};
+const DefaultProviderIcon = HelpCircle;
+
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
   [Provider.GEMINI]: 'https://sokuji.kizuna.ai/docs/tutorials/gemini-setup',
@@ -256,84 +274,27 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     }
   }, [isProviderExpanded, handleClickOutside]);
 
-  // Get provider info by ID
+  // Get provider info by ID. Name/description resolve through the descriptor's
+  // i18n key (defaults to the provider id itself — see i18nKey on
+  // ProviderDescriptor); icons stay in the UI layer via PROVIDER_ICONS.
+  // Falls back to the 'unknown' catalog entry for a providerId that isn't
+  // currently registered (e.g. a persisted selection whose feature flag was
+  // since disabled) — mirrors the old switch's default arm.
   const getProviderInfoById = (providerId: ProviderType) => {
-    switch (providerId) {
-      case Provider.OPENAI:
-        return {
-          name: t('providers.openai.name'),
-          icon: OpenAIIcon,
-          description: t('providers.openai.description')
-        };
-      case Provider.GEMINI:
-        return {
-          name: t('providers.gemini.name'),
-          icon: GeminiIcon,
-          description: t('providers.gemini.description')
-        };
-      case Provider.OPENAI_COMPATIBLE:
-        return {
-          name: t('providers.openaiCompatible.name', 'OpenAI Compatible API'),
-          icon: Zap,
-          description: t('providers.openaiCompatible.description', 'Custom OpenAI-compatible endpoint')
-        };
-      case Provider.OPENAI_TRANSLATE:
-        return {
-          name: t('providers.openai_translate.name', 'OpenAI Translate'),
-          icon: OpenAIIcon,
-          description: t('providers.openai_translate.description', "OpenAI's dedicated real-time translation model")
-        };
-      case Provider.PALABRA_AI:
-        return {
-          name: t('providers.palabraai.name'),
-          icon: PalabraAIIcon,
-          description: t('providers.palabraai.description')
-        };
-      case Provider.VOLCENGINE_ST:
-        return {
-          name: t('providers.volcengine_st.name'),
-          icon: VolcengineIcon,
-          description: t('providers.volcengine_st.description')
-        };
-      case Provider.VOLCENGINE_AST2:
-        return {
-          name: t('providers.volcengine_ast2.name'),
-          icon: VolcengineIcon,
-          description: t('providers.volcengine_ast2.description')
-        };
-      case Provider.ZOOM_AI:
-        return {
-          name: t('providers.zoom_ai.name', 'Zoom AI Services'),
-          icon: ZoomIcon,
-          description: t('providers.zoom_ai.description', 'Zoom Scribe transcription + Translator (text only)')
-        };
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        // Relay-managed twin of OpenAI Translate. Locale strings not yet added;
-        // English fallbacks keep the dropdown label usable (follow-up: i18n).
-        return {
-          name: t('providers.kizunaai_openai_translate.name', 'KizunaAI Translate'),
-          icon: KizunaAIIcon,
-          description: t('providers.kizunaai_openai_translate.description', 'Real-time translation, authenticated via your account')
-        };
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-        return {
-          name: t('providers.kizunaai_volcengine_ast2.name', 'KizunaAI Doubao'),
-          icon: KizunaAIIcon,
-          description: t('providers.kizunaai_volcengine_ast2.description', 'Speech-to-speech translation, authenticated via your account')
-        };
-      case Provider.LOCAL_INFERENCE:
-        return {
-          name: t('providers.local_inference.name', 'Local (Offline)'),
-          icon: KizunaAIIcon,
-          description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
-        };
-      default:
-        return {
-          name: t('providers.unknown.name'),
-          icon: HelpCircle,
-          description: t('providers.unknown.description')
-        };
+    if (!ProviderConfigFactory.isProviderSupported(providerId)) {
+      return {
+        name: t('providers.unknown.name'),
+        icon: DefaultProviderIcon,
+        description: t('providers.unknown.description'),
+      };
     }
+    const descriptor = ProviderConfigFactory.getDescriptor(providerId);
+    const key = descriptor.i18nKey ?? providerId;
+    return {
+      name: t(`providers.${key}.name`),
+      icon: PROVIDER_ICONS[providerId] ?? DefaultProviderIcon,
+      description: t(`providers.${key}.description`),
+    };
   };
 
   const providerInfo = getProviderInfoById(provider);
