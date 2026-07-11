@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
 
@@ -56,9 +56,21 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     return GeminiClient.getLatestRealtimeModel(models);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as GeminiSettings;
+    return {
+      provider: 'gemini',
+      model: settings.model,
+      voice: settings.voice,
+      instructions: systemInstructions,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      turnDetectionMode: settings.turnDetectionMode,
+      vadStartSensitivity: settings.vadStartSensitivity,
+      vadEndSensitivity: settings.vadEndSensitivity,
+      vadSilenceDurationMs: settings.vadSilenceDurationMs,
+      vadPrefixPaddingMs: settings.vadPrefixPaddingMs,
+    } as GeminiSessionConfig;
   }
 
   private static readonly LANGUAGES: LanguageOption[] = [

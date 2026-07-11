@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, ZoomAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { ZoomAIClient } from '../clients/ZoomAIClient';
 
@@ -50,9 +50,16 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     return ZoomAIClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as ZoomAISettings;
+    return {
+      provider: 'zoom_ai',
+      model: 'zoom-scribe-translator-v1',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguages: [settings.targetLanguage],
+      textOnly: true,
+    } as ZoomAISessionConfig;
   }
 
   // ASR-recognizable sources (Zoom Scribe supported languages).

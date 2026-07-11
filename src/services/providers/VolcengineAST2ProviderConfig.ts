@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, VolcengineAST2SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 
@@ -62,9 +62,24 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     return VolcengineAST2Client.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  // The kizuna doubao twin inherits this builder (reads its own slice).
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as VolcengineAST2Settings;
+    const hotWordTableId = settings.hotWordTableId?.trim() || undefined;
+    const replacementTableId = settings.replacementTableId?.trim() || undefined;
+    const glossaryTableId = settings.glossaryTableId?.trim() || undefined;
+
+    return {
+      provider: 'volcengine_ast2',
+      model: 'ast-v2-s2s',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguage: settings.targetLanguage,
+      turnDetectionMode: settings.turnDetectionMode,
+      hotWordTableId,
+      replacementTableId,
+      glossaryTableId,
+    } as VolcengineAST2SessionConfig;
   }
 
   // AST 2.0 supported languages (s2s mode)

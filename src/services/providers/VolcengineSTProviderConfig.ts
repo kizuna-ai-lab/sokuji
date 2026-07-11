@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, VolcengineSTSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineSTClient } from '../clients/VolcengineSTClient';
 
@@ -49,9 +49,15 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     return VolcengineSTClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as VolcengineSTSettings;
+    return {
+      provider: 'volcengine_st',
+      model: 'speech-translate-v1',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguages: [settings.targetLanguage],
+    } as VolcengineSTSessionConfig;
   }
 
   // Volcengine Real-time Speech Translation supported source languages

@@ -5,15 +5,9 @@ import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useProvider,
-  useOpenAISettings,
-  useGeminiSettings,
-  useOpenAICompatibleSettings,
-  usePalabraAISettings,
-  useOpenAITranslateSettings,
-  useKizunaOpenaiTranslateSettings,
+  useSettingsStore,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
   useSetUILanguage,
@@ -35,6 +29,7 @@ import {
   useKeepReplayAudio,
   useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
+import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
@@ -71,15 +66,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // Settings store
   const provider = useProvider();
-  const openAISettings = useOpenAISettings();
-  const geminiSettings = useGeminiSettings();
-  const openAICompatibleSettings = useOpenAICompatibleSettings();
-  const palabraAISettings = usePalabraAISettings();
-  const openAITranslateSettings = useOpenAITranslateSettings();
-  const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
 
@@ -131,35 +119,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
   }, [provider]);
 
-  // Get current provider settings
-  const currentProviderSettings = useMemo(() => {
-    switch (provider) {
-      case Provider.OPENAI:
-        return openAISettings;
-      case Provider.GEMINI:
-        return geminiSettings;
-      case Provider.OPENAI_COMPATIBLE:
-        return openAICompatibleSettings;
-      case Provider.PALABRA_AI:
-        return palabraAISettings;
-      case Provider.OPENAI_TRANSLATE:
-        return openAITranslateSettings;
-      case Provider.VOLCENGINE_ST:
-        return volcengineSTSettings;
-      case Provider.VOLCENGINE_AST2:
-        return volcengineAST2Settings;
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        return kizunaOpenaiTranslateSettings;
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-        return kizunaVolcengineAst2Settings;
-      case Provider.LOCAL_INFERENCE:
-        return localInferenceSettings;
-      case Provider.ZOOM_AI:
-        return zoomAISettings;
-      default:
-        return openAISettings;
-    }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings, zoomAISettings]);
+  // Get current provider settings via the active descriptor's slice key. The
+  // selector returns the slice object itself — reference-stable under zustand,
+  // so this re-renders only when the slice or the provider changes.
+  const currentProviderSettings = useSettingsStore(
+    (s) => s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore]
+  ) as Record<string, any>;
 
   // Update source language
   const updateSourceLanguage = (value: string) => {

@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffort } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, OpenAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIGAClient } from '../clients/OpenAIGAClient';
@@ -52,6 +52,54 @@ export const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase =
 
 export const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
 
+/**
+ * Build the OpenAI realtime session config from an OpenAI(-compatible) slice.
+ * Shared module-level helper: both OpenAIProviderConfig and its subclass
+ * OpenAICompatibleProviderConfig emit the `openai` wire shape from this.
+ */
+export function buildOpenAISessionConfig(
+  settings: OpenAISettings,
+  systemInstructions: string
+): OpenAISessionConfig {
+  return {
+    provider: 'openai',
+    model: settings.model,
+    voice: settings.voice,
+    instructions: systemInstructions,
+    temperature: settings.temperature,
+    maxTokens: settings.maxTokens,
+    // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns
+    // manually via createResponse() on hold release. Falling through to semantic_vad here
+    // would let the OpenAI server auto-translate any utterance, defeating manual control.
+    turnDetection: (settings.turnDetectionMode === 'Disabled' || settings.turnDetectionMode === 'Push-to-Translate')
+      ? {type: 'none'}
+      : settings.turnDetectionMode === 'Normal'
+        ? {
+            type: 'server_vad',
+            createResponse: true,
+            interruptResponse: false,
+            prefixPadding: settings.prefixPadding,
+            silenceDuration: settings.silenceDuration,
+            threshold: settings.threshold
+          }
+        : {
+            type: 'semantic_vad',
+            createResponse: true,
+            interruptResponse: false,
+            eagerness: settings.semanticEagerness?.toLowerCase() as any,
+          },
+    inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+    } : undefined,
+    inputAudioTranscription: settings.transcriptModel ? {
+      model: settings.transcriptModel
+    } : undefined,
+    // Forward reasoning effort unconditionally; the client gates by model name
+    // before sending it to the API (older realtime models reject the field).
+    reasoningEffort: settings.reasoningEffort,
+  };
+}
+
 export class OpenAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openai';
   readonly supportsWebRTC = true;
@@ -80,9 +128,11 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     return OpenAIClient.getLatestRealtimeModel(models);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  // OpenAICompatibleProviderConfig inherits this method; both emit the `openai`
+  // wire shape via the shared buildOpenAISessionConfig helper.
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as OpenAISettings;
+    return buildOpenAISessionConfig(settings, systemInstructions);
   }
 
   private static readonly LANGUAGES: LanguageOption[] = [

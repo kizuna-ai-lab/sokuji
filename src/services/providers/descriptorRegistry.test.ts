@@ -15,6 +15,33 @@ import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
+import { defaultOpenAISettings } from './OpenAIProviderConfig';
+import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
+import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
+import { defaultGeminiSettings } from './GeminiProviderConfig';
+import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
+import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
+import { defaultZoomAISettings } from './ZoomAIProviderConfig';
+import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
+import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
+import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
+import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
+
+// Map each provider's settingsSliceKey to its per-module default settings slice,
+// so buildSessionConfig can be exercised for every registered provider.
+const DEFAULTS_BY_SLICE: Record<string, unknown> = {
+  openai: defaultOpenAISettings,
+  openaiCompatible: defaultOpenAICompatibleSettings,
+  openaiTranslate: defaultOpenAITranslateSettings,
+  gemini: defaultGeminiSettings,
+  palabraai: defaultPalabraAISettings,
+  volcengineST: defaultVolcengineSTSettings,
+  zoomAI: defaultZoomAISettings,
+  volcengineAST2: defaultVolcengineAST2Settings,
+  localInference: defaultLocalInferenceSettings,
+  kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
+  kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
+};
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
@@ -121,5 +148,34 @@ describe('descriptor.extractCredentials', () => {
   it('local inference needs no credentials', async () => {
     expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
       .toEqual({ ok: true, primary: '' });
+  });
+});
+
+describe('descriptor.buildSessionConfig', () => {
+  it('builds a config whose provider tag matches, for every provider, from defaults', () => {
+    // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
+    const wireTag: Record<string, string> = {
+      openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
+      gemini: 'gemini', palabraai: 'palabraai', volcengine_st: 'volcengine_st',
+      volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
+      kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
+    };
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const cfg = d.buildSessionConfig((DEFAULTS_BY_SLICE as any)[d.settingsSliceKey], 'instr');
+      expect(cfg.provider).toBe(wireTag[id]);
+    }
+  });
+
+  it('zoom session config is text-only with a single target', () => {
+    const cfg: any = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI)
+      .buildSessionConfig({ ...defaultZoomAISettings, sourceLanguage: 'ja-JP', targetLanguage: 'en-US' }, 'sys');
+    expect(cfg).toMatchObject({ provider: 'zoom_ai', textOnly: true, targetLanguages: ['en-US'] });
+  });
+
+  it('gemini config carries VAD tuning through', () => {
+    const cfg: any = ProviderConfigFactory.getDescriptor(Provider.GEMINI)
+      .buildSessionConfig({ ...defaultGeminiSettings, vadSilenceDurationMs: 900 }, 'sys');
+    expect(cfg.vadSilenceDurationMs).toBe(900);
   });
 });

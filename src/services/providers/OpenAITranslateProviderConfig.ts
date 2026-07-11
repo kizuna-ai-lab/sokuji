@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig, TranslateTargetLanguage } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
@@ -71,9 +71,24 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
     return models[0]?.id ?? 'gpt-realtime-translate';
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  // The kizuna translate twin inherits this builder (reads its own slice).
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as OpenAITranslateSettings;
+    void systemInstructions;
+    return {
+      provider: 'openai_translate',
+      model: 'gpt-realtime-translate',
+      targetLanguage: settings.targetLanguage,
+      sourceLanguage: settings.sourceLanguage,
+      inputAudioTranscription: settings.transcriptModel
+        ? { model: settings.transcriptModel }
+        : undefined,
+      inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
+        type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+      } : undefined,
+      userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
+      assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
+    } as OpenAITranslateSessionConfig;
   }
 
   // 13 target languages supported by gpt-realtime-translate.

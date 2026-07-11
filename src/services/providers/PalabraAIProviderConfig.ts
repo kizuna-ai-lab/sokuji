@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, PalabraAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { PalabraAIClient } from '../clients/PalabraAIClient';
 
@@ -72,9 +72,25 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     };
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as PalabraAISettings;
+    return {
+      provider: 'palabraai',
+      model: 'realtime-translation',
+      voice: settings.voiceId,
+      instructions: systemInstructions,
+      temperature: 0.8,
+      maxTokens: 'inf',
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguage: settings.targetLanguage,
+      voiceId: settings.voiceId,
+      segmentConfirmationSilenceThreshold: settings.segmentConfirmationSilenceThreshold,
+      sentenceSplitterEnabled: settings.sentenceSplitterEnabled,
+      translatePartialTranscriptions: settings.translatePartialTranscriptions,
+      desiredQueueLevelMs: settings.desiredQueueLevelMs,
+      maxQueueLevelMs: settings.maxQueueLevelMs,
+      autoTempo: settings.autoTempo,
+    } as PalabraAISessionConfig;
   }
 
   // PalabraAI supported source languages (for recognition) based on their documentation

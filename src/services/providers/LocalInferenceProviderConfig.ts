@@ -1,7 +1,8 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
-import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
+import { getTranslationSourceLanguages, getManifestEntry, getTtsModelsForLanguage, getTranslationModel } from '../../lib/local-inference/modelManifest';
+import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 
@@ -76,9 +77,41 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     return { validation: { valid: false, message: 'local inference readiness is model-based', validating: false }, models: [] };
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
-    throw new Error('not migrated yet: buildSessionConfig');
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as LocalInferenceSettings;
+    // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
+    const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
+    const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
+    const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
+
+    // wrapTranscript must match the instructions actually in use. The default prompt
+    // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
+    // came from it, the user message MUST be wrapped. This catches the Advanced-mode
+    // empty-field fallback case where the selector quietly returns the default prompt
+    // but settings.useTemplateMode is still false.
+    const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+    const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+    const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
+    const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+
+    return {
+      provider: 'local_inference',
+      model: 'local-asr-translate',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguage: settings.targetLanguage,
+      asrModelId: settings.asrModel,
+      translationModelId: settings.translationModel || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id,
+      ttsModelId,
+      ttsSpeakerId: settings.ttsSpeakerId,
+      ttsSpeed: settings.ttsSpeed,
+      edgeTtsVoice: settings.edgeTtsVoice || undefined,
+      vadThreshold: settings.vadThreshold,
+      vadMinSilenceDuration: settings.vadMinSilenceDuration,
+      vadMinSpeechDuration: settings.vadMinSpeechDuration,
+      turnDetectionMode: settings.turnDetectionMode,
+      wrapTranscript,
+    } as LocalInferenceSessionConfig;
   }
 
   private static readonly MODELS: ModelOption[] = [
