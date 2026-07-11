@@ -213,11 +213,8 @@ describe('descriptor i18n keys', () => {
 });
 
 describe('registry invariants', () => {
-  it('descriptor config id equals its registry key', () => {
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      expect(ProviderConfigFactory.getDescriptor(id).getConfig().id).toBe(id);
-    }
-  });
+  // (descriptor config id === registry key is already asserted by
+  // 'returns a descriptor for every available provider' above.)
 
   // Exact expected settingsSliceKey per provider. A typo'd slice key (e.g. a
   // provider silently falling back to a differently-cased or misspelled key)
@@ -240,6 +237,32 @@ describe('registry invariants', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const key = ProviderConfigFactory.getDescriptor(id).settingsSliceKey;
       expect(key, `settingsSliceKey for ${id}`).toBe(EXPECTED_SLICE_KEYS[id]);
+    }
+  });
+
+  // Exact expected supportsWebRTC per provider. Relay/twin and non-WebRTC
+  // providers must not silently inherit `true` from a base descriptor (e.g.
+  // the kizuna OpenAI-translate twin extends OpenAITranslateProviderConfig
+  // but always routes through the WebSocket relay, so it must report false —
+  // see KizunaAIOpenAITranslateProviderConfig for why).
+  const EXPECTED_SUPPORTS_WEBRTC: Record<Provider, boolean> = {
+    [Provider.OPENAI]: true,
+    [Provider.OPENAI_COMPATIBLE]: true,
+    [Provider.OPENAI_TRANSLATE]: true,
+    [Provider.GEMINI]: false,
+    [Provider.PALABRA_AI]: false,
+    [Provider.VOLCENGINE_ST]: false,
+    [Provider.VOLCENGINE_AST2]: false,
+    [Provider.ZOOM_AI]: false,
+    [Provider.LOCAL_INFERENCE]: false,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false,
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false,
+  };
+
+  it('supportsWebRTC matches the exact expected value per provider', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const supportsWebRTC = ProviderConfigFactory.getDescriptor(id).supportsWebRTC;
+      expect(supportsWebRTC, `supportsWebRTC for ${id}`).toBe(EXPECTED_SUPPORTS_WEBRTC[id]);
     }
   });
 

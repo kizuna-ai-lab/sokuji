@@ -17,6 +17,16 @@ export const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { .
 export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProviderConfig {
   readonly settingsSliceKey: string = 'kizunaOpenaiTranslate';
 
+  // Override — the base OpenAI Translate descriptor supports WebRTC, but this
+  // relay twin always connects through the WebSocket relay: createClient()
+  // below ignores the requested transport and returns the relay
+  // OpenAITranslateGAClient unconditionally. Advertising WebRTC support here
+  // would make MainPanel skip the recorder (assuming native capture), while
+  // the relay client needs appendInputAudio() fed — producing a silent,
+  // no-audio session. Pre-refactor, ClientFactory.supportsWebRTC's switch
+  // returned false for this provider; this restores that behavior.
+  readonly supportsWebRTC: boolean = false;
+
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not a persisted settings-slice field.
   async extractCredentials(_slice: unknown, ctx: CredentialCtx): Promise<Credentials> {

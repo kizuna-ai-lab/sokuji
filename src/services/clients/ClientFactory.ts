@@ -1,6 +1,6 @@
 import { IClient } from '../interfaces/IClient';
 import { ProviderType } from '../../types/Provider';
-import { TransportType } from '../../stores/settingsStore';
+import { TransportType } from '../providers/ProviderDescriptor';
 import { ProviderConfigFactory } from '../providers/ProviderConfigFactory';
 
 /**
@@ -12,8 +12,9 @@ export interface WebRTCClientOptions {
 }
 
 /**
- * @deprecated Thin façade kept for legacy tests. New code resolves the
- * descriptor via ProviderConfigFactory.getDescriptor(provider) directly.
+ * @deprecated Thin façade kept for legacy callers and tests. New code should
+ * resolve the descriptor via ProviderConfigFactory.getDescriptor(provider)
+ * directly instead of going through this class.
  */
 export class ClientFactory {
   static createClient(

@@ -44,7 +44,10 @@ export const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
  */
 export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openaiTranslate';
-  readonly supportsWebRTC = true;
+  // Explicitly typed as `boolean` (not inferred literal `true`) so the
+  // KizunaAI relay twin can narrow it to `false` — see
+  // KizunaAIOpenAITranslateProviderConfig.
+  readonly supportsWebRTC: boolean = true;
 
   createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     if (options.transport === 'webrtc') {

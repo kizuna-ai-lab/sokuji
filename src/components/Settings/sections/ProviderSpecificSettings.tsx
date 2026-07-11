@@ -1556,7 +1556,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const ast2Settings = activeVolcengineAST2Settings;
     const updateAst2Settings = updateActiveVolcengineAST2Settings;
 
-    const ast2Descriptor = ProviderConfigFactory.getDescriptor(effectiveProvider);
+    // Look up by `provider` (not `effectiveProvider`): the kizuna twin is
+    // registered whenever isKizunaAIEnabled() is true, but the base
+    // Provider.VOLCENGINE_AST2 is only registered when the separate AST2
+    // build/platform gates also pass. In builds where the twin is available
+    // but the base isn't, resolving effectiveProvider would throw here. The
+    // twin inherits identical language methods from the AST2 base, so the
+    // result is byte-identical either way.
+    const ast2Descriptor = ProviderConfigFactory.getDescriptor(provider);
     const sourceLanguages = ast2Descriptor.resolveSourceLanguages();
     const targetLanguages = ast2Descriptor.resolveTargetLanguages(ast2Settings.sourceLanguage);
 

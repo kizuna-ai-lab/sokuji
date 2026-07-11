@@ -4,8 +4,9 @@ import { ProviderType } from '../types/Provider';
 import { ProviderConfigFactory } from './providers/ProviderConfigFactory';
 
 /**
- * @deprecated Thin façade kept for legacy callers/tests. New code resolves the
- * descriptor via ProviderConfigFactory.getDescriptor(provider) directly.
+ * @deprecated Thin façade kept for legacy callers and tests. New code should
+ * resolve the descriptor via ProviderConfigFactory.getDescriptor(provider)
+ * directly instead of going through this class.
  */
 export class ClientOperations {
   static async validateApiKeyAndFetchModels(
