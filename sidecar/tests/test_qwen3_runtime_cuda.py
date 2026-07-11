@@ -357,3 +357,201 @@ def test_binding_path_fp16_feeds_and_fp32_results():
     # the fp16 pipeline must reproduce the fp32 reference codes bit-for-bit
     codes_ref, _ = _gen(_numpy_sessions())
     assert np.array_equal(codes[0], codes_ref[0])
+
+
+class _FakeGraphOrtValue:
+    """OrtValue with a fixed device buffer updated in place (CUDA-graph style)."""
+
+    def __init__(self, arr):
+        self.arr = np.array(arr)
+        self.update_calls = 0
+
+    def update_inplace(self, arr):
+        assert arr.shape == self.arr.shape and arr.dtype == self.arr.dtype, \
+            f"CUDA-graph buffers are fixed: {arr.shape}/{arr.dtype} vs {self.arr.shape}/{self.arr.dtype}"
+        self.arr = np.array(arr)
+        self.update_calls += 1
+
+    def numpy(self):
+        return self.arr
+
+
+class _FakeRunOptions:
+    def __init__(self):
+        self.entries = {}
+
+    def add_run_config_entry(self, k, v):
+        self.entries[k] = v
+
+
+class _FakeGraphedCpSession:
+    """Session double with enable_cuda_graph semantics: per gpu_graph_id the
+    bound addresses must never change after the capture run."""
+
+    def __init__(self, compute):
+        self._compute = compute
+        self.captured = {}          # graph_id -> iob identity
+        self.io_binding_calls = 0
+
+    def get_inputs(self):
+        return [_IO("inputs_embeds"), _IO("generation_step")]
+
+    def get_outputs(self):
+        return [_IO("logits")]
+
+    def io_binding(self):
+        self.io_binding_calls += 1
+        return _FakeIoBinding(self)
+
+    def run_with_iobinding(self, iob, run_options=None):
+        gid = run_options.entries.get("gpu_graph_id") if run_options else None
+        assert gid is not None, "graphed session must be run with a gpu_graph_id"
+        if gid in self.captured:
+            assert self.captured[gid] is iob, \
+                "replay must reuse the captured binding object (fixed addresses)"
+        else:
+            self.captured[gid] = iob
+        feeds = {k: v.arr for k, v in iob.ortvalue_inputs.items()}
+        logits = self._compute(feeds)
+        out_name, out_val = next(iter(iob.ortvalue_outputs.items()))
+        out_val.arr = logits
+
+
+def _graphed_env(monkeypatch):
+    """Fake onnxruntime module exposing what GraphedCodePredictor needs."""
+    import sys
+    import types
+
+    compute = _ValueCodePred()
+
+    def fake_infer_session(path, sess_options=None, providers=None):
+        assert any(isinstance(p, tuple) and p[1].get("enable_cuda_graph") == "1"
+                   for p in providers), "graphed session must enable cuda graphs"
+        return _FakeGraphedCpSession(lambda feeds: compute.run(["logits"], feeds)[0])
+
+    def fake_from_shape_and_type(shape, dtype, device, device_id=0):
+        return _FakeGraphOrtValue(np.zeros(shape, dtype))
+
+    fake_ort = types.SimpleNamespace(
+        InferenceSession=fake_infer_session,
+        SessionOptions=lambda: types.SimpleNamespace(
+            log_severity_level=0, add_session_config_entry=lambda *a: None),
+        RunOptions=_FakeRunOptions,
+        OrtValue=types.SimpleNamespace(
+            ortvalue_from_shape_and_type=fake_from_shape_and_type),
+    )
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+
+
+def _bind_ortvalue_output_shim():
+    # extend the fake binding with ortvalue outputs for the graphed path
+    if not hasattr(_FakeIoBinding, "bind_ortvalue_output"):
+        def bind_ortvalue_output(self, name, val):
+            if not hasattr(self, "ortvalue_outputs"):
+                self.ortvalue_outputs = {}
+            self.ortvalue_outputs[name] = val
+        _FakeIoBinding.bind_ortvalue_output = bind_ortvalue_output
+
+
+def test_graphed_code_predictor_matches_plain(monkeypatch, tmp_path):
+    from sokuji_sidecar.qwen3_tts import runtime_cuda
+
+    _bind_ortvalue_output_shim()
+    _graphed_env(monkeypatch)
+    gcp = runtime_cuda.GraphedCodePredictor(
+        str(tmp_path / "code_predictor.onnx"), hidden=H, sub_vocab=SUBVOCAB,
+        fallback=None)
+    plain = _ValueCodePred()
+    rng = np.random.default_rng(3)
+    for j, L in enumerate((2, 5, 16, 5, 2)):
+        x = rng.standard_normal((1, L, H)).astype(np.float32)
+        g = np.full((1,), j % 15, np.int64)
+        got = gcp.run({"inputs_embeds": x, "generation_step": g},
+                      output_names=["logits"])[0]
+        want = plain.run(["logits"], {"inputs_embeds": x, "generation_step": g})[0]
+        assert np.array_equal(got, want)
+
+
+def test_graphed_code_predictor_reuses_bindings_per_length(monkeypatch, tmp_path):
+    from sokuji_sidecar.qwen3_tts import runtime_cuda
+
+    _bind_ortvalue_output_shim()
+    _graphed_env(monkeypatch)
+    gcp = runtime_cuda.GraphedCodePredictor(
+        str(tmp_path / "code_predictor.onnx"), hidden=H, sub_vocab=SUBVOCAB,
+        fallback=None)
+    rng = np.random.default_rng(4)
+    for _ in range(3):
+        for L in (2, 9):
+            x = rng.standard_normal((1, L, H)).astype(np.float32)
+            gcp.run({"inputs_embeds": x, "generation_step": np.zeros((1,), np.int64)},
+                    output_names=["logits"])
+    sess = gcp.session
+    assert sess.io_binding_calls == 2            # one binding per distinct length
+    assert set(sess.captured.keys()) == {"2", "9"}
+
+
+def test_graphed_code_predictor_falls_back_on_run_error(monkeypatch, tmp_path):
+    from sokuji_sidecar.qwen3_tts import runtime_cuda
+
+    _bind_ortvalue_output_shim()
+    _graphed_env(monkeypatch)
+    gcp = runtime_cuda.GraphedCodePredictor(
+        str(tmp_path / "code_predictor.onnx"), hidden=H, sub_vocab=SUBVOCAB,
+        fallback=runtime.  _Session(_ValueCodePred()))
+
+    def boom(iob, run_options=None):
+        raise RuntimeError("capture failed")
+
+    gcp.session.run_with_iobinding = boom
+    x = np.zeros((1, 2, H), np.float32)
+    out = gcp.run({"inputs_embeds": x, "generation_step": np.zeros((1,), np.int64)},
+                  output_names=["logits"])[0]
+    plain = _ValueCodePred().run(["logits"], {"inputs_embeds": x,
+                                              "generation_step": np.zeros((1,), np.int64)})[0]
+    assert np.array_equal(out, plain)
+
+
+def test_build_sessions_records_onnx_dir(monkeypatch, tmp_path):
+    import sys
+    import types
+
+    class _Sess:
+        def __init__(self, path, sess_options=None, providers=None):
+            pass
+
+        def get_providers(self):
+            return ["CPUExecutionProvider"]
+
+    fake = types.SimpleNamespace(
+        get_available_providers=lambda: ["CPUExecutionProvider"],
+        InferenceSession=_Sess,
+        SessionOptions=lambda: types.SimpleNamespace(
+            graph_optimization_level=0, log_severity_level=0, intra_op_num_threads=0),
+        GraphOptimizationLevel=types.SimpleNamespace(ORT_ENABLE_ALL=1))
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
+    sessions = runtime.build_sessions(tmp_path, "cpu", 1)
+    assert sessions["_onnx_dir"] == str(tmp_path)
+
+
+def test_binding_path_uses_graphed_code_predictor_and_caches_it(monkeypatch, tmp_path):
+    _bind_ortvalue_output_shim()
+    _graphed_env(monkeypatch)
+    import sys
+    created = []
+    real_infer = sys.modules["onnxruntime"].InferenceSession
+
+    def counting_infer(*a, **k):
+        created.append(a)
+        return real_infer(*a, **k)
+
+    sys.modules["onnxruntime"].InferenceSession = counting_infer
+
+    sessions = _cuda_sessions()
+    sessions["_onnx_dir"] = str(tmp_path)
+    codes_graphed, _ = _gen(sessions)
+    codes_plain, _ = _gen(_numpy_sessions())
+    assert np.array_equal(codes_graphed[0], codes_plain[0])
+    assert len(created) == 1                     # graphed session built once...
+    _gen(sessions)
+    assert len(created) == 1                     # ...and cached across utterances

@@ -20,12 +20,20 @@ and DirectML sessions (and the test fakes) never reach this module.
 
 from __future__ import annotations
 
+import os
 import weakref
 from typing import Any
 
 import numpy as np
 
 from .runtime import _Session, _float_input_dtype, _zero_past_feeds
+
+
+def _sub_vocab(cfg_talker: Any) -> int:
+    pred_cfg = getattr(cfg_talker, "code_predictor_config", None)
+    if isinstance(pred_cfg, dict):
+        return int(pred_cfg.get("vocab_size", 2048))
+    return int(getattr(pred_cfg, "vocab_size", 2048))
 
 
 class BindingDecodeRunner:
@@ -114,11 +122,7 @@ class TableEmbeds:
         ids = np.arange(codec_vocab, dtype=np.int64)[None, :]
         codec_table = np.asarray(codec_sess.run({"input_ids": ids})[0], dtype=np.float32)[0]
 
-        pred_cfg = getattr(cfg_talker, "code_predictor_config", None)
-        if isinstance(pred_cfg, dict):
-            sub_vocab = int(pred_cfg.get("vocab_size", 2048))
-        else:
-            sub_vocab = int(getattr(pred_cfg, "vocab_size", 2048))
+        sub_vocab = _sub_vocab(cfg_talker)
         pred_sess = _Session(sessions["code_predictor_embed"])
         sub_ids = np.arange(sub_vocab, dtype=np.int64)[None, :]
         tables = []
@@ -135,6 +139,72 @@ class TableEmbeds:
         return self._predictor_tables[int(generation_step)][np.asarray(input_ids, dtype=np.int64)]
 
 
+class GraphedCodePredictor:
+    """code_predictor driven through CUDA Graph replays, one graph per input
+    length (the 15 substep lengths 2..16 are the only shapes that occur).
+
+    Requires a dedicated session created with `enable_cuda_graph`; per
+    `gpu_graph_id` the bound device addresses must stay fixed between the
+    capture run and every replay, so each length gets one IOBinding with
+    pre-allocated CUDA OrtValues refreshed via `update_inplace`. Replays were
+    verified bit-identical to plain session runs on GB10; the win is the
+    per-call launch overhead of the ~565-node optimized graph (~0.5ms of the
+    ~2.5ms call). Any failure (capture refused, kernel error) permanently
+    drops to `fallback` — the plain numpy-feed session."""
+
+    def __init__(self, onnx_path: str, *, hidden: int, sub_vocab: int, fallback: Any) -> None:
+        import onnxruntime as ort  # lazy: fakes inject a module double
+
+        options = ort.SessionOptions()
+        options.log_severity_level = 3
+        self.session = ort.InferenceSession(
+            str(onnx_path), sess_options=options,
+            providers=[("CUDAExecutionProvider", {"enable_cuda_graph": "1"}),
+                       "CPUExecutionProvider"])
+        self._ort = ort
+        self._hidden = int(hidden)
+        self._sub_vocab = int(sub_vocab)
+        self._fallback = fallback
+        self._bindings: dict[int, tuple] = {}
+        self._broken = False
+
+    def _binding_for(self, length: int, dtype: Any):
+        cached = self._bindings.get(length)
+        if cached is not None:
+            return cached
+        ort = self._ort
+        x_val = ort.OrtValue.ortvalue_from_shape_and_type(
+            (1, length, self._hidden), dtype, "cuda", 0)
+        g_val = ort.OrtValue.ortvalue_from_shape_and_type((1,), np.int64, "cuda", 0)
+        out_val = ort.OrtValue.ortvalue_from_shape_and_type(
+            (1, self._sub_vocab), dtype, "cuda", 0)
+        iob = self.session.io_binding()
+        iob.bind_ortvalue_input("inputs_embeds", x_val)
+        iob.bind_ortvalue_input("generation_step", g_val)
+        iob.bind_ortvalue_output("logits", out_val)
+        run_options = ort.RunOptions()
+        run_options.add_run_config_entry("gpu_graph_id", str(length))
+        entry = (iob, x_val, g_val, out_val, run_options)
+        self._bindings[length] = entry
+        return entry
+
+    def run(self, feeds: dict, output_names: list[str] | None = None) -> list:
+        x = feeds["inputs_embeds"]
+        if self._broken or x.shape[0] != 1:
+            return self._fallback.run(feeds, output_names)
+        try:
+            iob, x_val, g_val, out_val, run_options = self._binding_for(
+                int(x.shape[1]), x.dtype)
+            x_val.update_inplace(np.ascontiguousarray(x))
+            g_val.update_inplace(
+                np.ascontiguousarray(feeds["generation_step"], dtype=np.int64))
+            self.session.run_with_iobinding(iob, run_options)
+            return [out_val.numpy()]
+        except Exception:
+            self._broken = True
+            return self._fallback.run(feeds, output_names)
+
+
 # Extracted tables cached per loaded model, keyed on the codec_embed session
 # object (a new build_sessions() dict means new session objects → fresh cache).
 _TABLE_CACHE: "weakref.WeakKeyDictionary[Any, TableEmbeds]" = weakref.WeakKeyDictionary()
@@ -149,4 +219,34 @@ def table_embeds_for(sessions: dict[str, Any], cfg_talker: Any) -> TableEmbeds:
     return cached
 
 
-__all__ = ["BindingDecodeRunner", "TableEmbeds", "table_embeds_for"]
+# Graphed code_predictor cached per loaded model, keyed on the plain session.
+_GRAPHED_CP_CACHE: "weakref.WeakKeyDictionary[Any, Any]" = weakref.WeakKeyDictionary()
+
+
+def graphed_code_predictor_for(sessions: dict[str, Any], cfg_talker: Any, *, hidden: int) -> Any:
+    """The CUDA-graph code_predictor for this model, or the plain session
+    wrapper when no graph dir is recorded or session creation fails."""
+    plain = _Session(sessions["code_predictor"])
+    onnx_dir = sessions.get("_onnx_dir")
+    if not onnx_dir:
+        return plain
+    key = sessions["code_predictor"]
+    cached = _GRAPHED_CP_CACHE.get(key)
+    if cached is None:
+        try:
+            cached = GraphedCodePredictor(
+                os.path.join(onnx_dir, "code_predictor.onnx"),
+                hidden=hidden, sub_vocab=_sub_vocab(cfg_talker), fallback=plain)
+        except Exception:
+            cached = plain
+        _GRAPHED_CP_CACHE[key] = cached
+    return cached
+
+
+__all__ = [
+    "BindingDecodeRunner",
+    "GraphedCodePredictor",
+    "TableEmbeds",
+    "graphed_code_predictor_for",
+    "table_embeds_for",
+]

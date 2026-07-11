@@ -151,6 +151,10 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
                     f"DmlExecutionProvider was requested but the HOT graph {name!r} was "
                     f"created without it (providers: {sess.get_providers()})")
 
+    # The CUDA fast path lazily builds extra sessions (CUDA-graph
+    # code_predictor) from the graph files, so remember where they live.
+    sessions["_onnx_dir"] = str(onnx_dir)
+
     return sessions
 
 
@@ -349,16 +353,19 @@ def generate_codes(
 
         runner: Any = runtime_cuda.BindingDecodeRunner(sessions["talker_decode"])
         embeddings: Any = runtime_cuda.table_embeds_for(sessions, cfg_talker)
+        code_predictor: Any = runtime_cuda.graphed_code_predictor_for(
+            sessions, cfg_talker, hidden=int(inputs_embeds.shape[-1]))
     else:
         runner = _SessionDecodeRunner(sessions)
         embeddings = Embeddings(
             codec_embed_session=sessions["codec_embed"],
             code_predictor_embed_session=sessions["code_predictor_embed"],
         )
+        code_predictor = _Session(sessions["code_predictor"])
     return _ar_loop(
         runner,
         embeddings,
-        _Session(sessions["code_predictor"]),
+        code_predictor,
         cfg_talker,
         inputs_embeds,
         attention_mask,
