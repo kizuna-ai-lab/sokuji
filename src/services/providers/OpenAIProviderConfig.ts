@@ -2,6 +2,7 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffo
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIGAClient } from '../clients/OpenAIGAClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
 
@@ -20,11 +21,17 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     return new OpenAIGAClient(creds.primary);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return OpenAIClient.validateApiKeyAndFetchModels(creds.primary);
+  }
+
+  latestRealtimeModel(models: FilteredModel[]): string {
+    return OpenAIClient.getLatestRealtimeModel(models);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

@@ -26,11 +26,18 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
     return new OpenAITranslateGAClient(creds.primary);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return OpenAITranslateGAClient.validateApiKeyAndFetchModels(creds.primary);
+  }
+
+  latestRealtimeModel(models: FilteredModel[]): string {
+    // Translate has a single fixed model family; pick newest if multiple variants exist.
+    return models[0]?.id ?? 'gpt-realtime-translate';
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

@@ -18,11 +18,13 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     return new ZoomAIClient(creds.primary, creds.secret);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return ZoomAIClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

@@ -60,3 +60,30 @@ describe('descriptor.createClient', () => {
     expect(c).toBeInstanceOf(VolcengineAST2Client);
   });
 });
+
+describe('descriptor.validateAndFetchModels', () => {
+  it('rejects incomplete credentials with the provider-specific message', async () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
+    const r = await d.validateAndFetchModels({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
+    expect(r.validation.valid).toBe(false);
+    expect(r.validation.message).toMatch(/Client ID and Client Secret/);
+    expect(r.models).toEqual([]);
+  });
+
+  it('kizuna twins validate statically from a non-empty token', async () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+    const ok = await d.validateAndFetchModels({ ok: true, primary: 'sess_TOKEN' });
+    expect(ok.validation.valid).toBe(true);
+    expect(ok.models[0].id).toBe('gpt-realtime-translate');
+    const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna relay providers' });
+    expect(bad.validation.valid).toBe(false);
+  });
+});
+
+describe('descriptor.latestRealtimeModel', () => {
+  it('fixed-model providers return their identifier', () => {
+    expect(ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI).latestRealtimeModel([])).toBe('zoom-scribe-translator-v1');
+    expect(ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_AST2).latestRealtimeModel([])).toBe('ast-v2-s2s');
+    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_VOLCENGINE_AST2).latestRealtimeModel([])).toBe('ast-v2-s2s');
+  });
+});

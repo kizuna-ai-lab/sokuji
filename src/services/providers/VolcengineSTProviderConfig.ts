@@ -13,11 +13,13 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     return new VolcengineSTClient(creds.primary, creds.secret);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return VolcengineSTClient.validateApiKeyAndFetchModels(creds.primary, creds.secret!);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

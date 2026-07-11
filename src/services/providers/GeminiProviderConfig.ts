@@ -12,11 +12,17 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     return new GeminiClient(creds.primary);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return GeminiClient.validateApiKeyAndFetchModels(creds.primary);
+  }
+
+  latestRealtimeModel(models: FilteredModel[]): string {
+    return GeminiClient.getLatestRealtimeModel(models);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

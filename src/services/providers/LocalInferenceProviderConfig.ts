@@ -21,11 +21,13 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     return new LocalInferenceClient();
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  // Readiness for LOCAL_INFERENCE is model-based, not credential-based: settingsStore's
+  // LOCAL_INFERENCE arm short-circuits before ever calling this (it gates on modelStore,
+  // settingsStore.ts:1206-1271, untouched by this plan).
   async validateAndFetchModels(_creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    return { validation: { valid: false, message: 'local inference readiness is model-based', validating: false }, models: [] };
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

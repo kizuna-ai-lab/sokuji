@@ -2,7 +2,8 @@ import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { Provider } from '../../types/Provider';
 import { Credentials, ClientOptions } from './ProviderDescriptor';
-import { IClient } from '../interfaces/IClient';
+import { IClient, FilteredModel } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
 
@@ -26,6 +27,25 @@ export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
       });
     }
     return new OpenAIClient(creds.primary, creds.endpoint);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    if (!creds.endpoint) {
+      return {
+        validation: { valid: false, message: 'Custom API endpoint is required for OpenAI Compatible provider', validating: false },
+        models: [],
+      };
+    }
+    return OpenAIClient.validateApiKeyAndFetchModels(creds.primary, creds.endpoint);
+  }
+
+  latestRealtimeModel(models: FilteredModel[]): string {
+    return OpenAIClient.getLatestRealtimeModel(models);
   }
 
   getConfig(): ProviderConfig {

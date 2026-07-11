@@ -14,11 +14,17 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     return new PalabraAIClient(creds.primary, creds.secret);
   }
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  async validateAndFetchModels(_creds: Credentials): Promise<{
+  async validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
-    throw new Error('not migrated yet: validateAndFetchModels');
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret!);
+    return {
+      validation,
+      models: [{ id: 'realtime-translation', type: 'realtime', created: Date.now() / 1000 }],
+    };
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
