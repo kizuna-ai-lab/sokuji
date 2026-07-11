@@ -86,7 +86,9 @@ def default_providers(device: str | None = None) -> list[str]:
     return providers
 
 
-def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> dict[str, Any]:
+def build_sessions(
+    onnx_dir: str | Path, device: str | None, threads: int, variant_dir: str | None = None
+) -> dict[str, Any]:
     """Build the Qwen3-TTS talker ONNX sessions with per-graph device placement.
 
     COLD graphs (`speaker_encoder`, `tokenizer12hz_encode`, `text_project`)
@@ -95,12 +97,24 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
     in try/except with a CPU-only retry, mirroring the reference
     `_make_session` pattern.
 
+    `variant_dir` (e.g. the snapshot's `onnx-bf16/`) overrides individual
+    graph files when present there — a repo ships one fp32 set plus a few
+    device-specific rebuilds, and the caller decides per device which variant
+    applies (bf16 graphs have no CPU/DML kernels).
+
     `talker_prefill` is included only if `talker_prefill.onnx` exists in
     `onnx_dir` — its absence puts `generate_codes` into zero-past mode.
     """
     import onnxruntime as ort  # local import: fake-session tests never touch ORT
 
     onnx_dir = Path(onnx_dir)
+
+    def _graph_path(filename: str) -> Path:
+        if variant_dir is not None:
+            candidate = Path(variant_dir) / filename
+            if candidate.exists():
+                return candidate
+        return onnx_dir / filename
 
     options = ort.SessionOptions()
     options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -130,7 +144,7 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
     sessions: dict[str, Any] = {}
     for name, filename in graph_files.items():
         providers = cold_providers if name in _COLD_GRAPH_NAMES else hot_providers
-        sessions[name] = _make_session(onnx_dir / filename, providers)
+        sessions[name] = _make_session(_graph_path(filename), providers)
 
     prefill_path = onnx_dir / "talker_prefill.onnx"
     if prefill_path.exists():
@@ -152,8 +166,8 @@ def build_sessions(onnx_dir: str | Path, device: str | None, threads: int) -> di
                     f"created without it (providers: {sess.get_providers()})")
 
     # The CUDA fast path lazily builds extra sessions (CUDA-graph
-    # code_predictor) from the graph files, so remember where they live.
-    sessions["_onnx_dir"] = str(onnx_dir)
+    # code_predictor) from the graph files, so remember where each one lives.
+    sessions["_graph_paths"] = {name: str(_graph_path(f)) for name, f in graph_files.items()}
 
     return sessions
 

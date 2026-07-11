@@ -499,7 +499,14 @@ class Qwen3TtsOnnxBackend:
             from .qwen_tokenizer import load_qwen2_tokenizer
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
-            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
+            # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
+            # code_predictor) alongside the fp32 set; bf16 has no CPU or DML
+            # kernels, so only the cuda device picks them up.
+            variant_dir = None
+            if str(device).lower() == "cuda" and os.path.isdir(f"{d}/onnx-bf16"):
+                variant_dir = f"{d}/onnx-bf16"
+            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
+                                                  variant_dir=variant_dir)
             self._cfg = _q3_config.load_model_config(d)
             self._tok = load_qwen2_tokenizer(d)
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)

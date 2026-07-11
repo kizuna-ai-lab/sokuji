@@ -512,7 +512,7 @@ def test_graphed_code_predictor_falls_back_on_run_error(monkeypatch, tmp_path):
     assert np.array_equal(out, plain)
 
 
-def test_build_sessions_records_onnx_dir(monkeypatch, tmp_path):
+def test_build_sessions_records_graph_paths(monkeypatch, tmp_path):
     import sys
     import types
 
@@ -531,7 +531,7 @@ def test_build_sessions_records_onnx_dir(monkeypatch, tmp_path):
         GraphOptimizationLevel=types.SimpleNamespace(ORT_ENABLE_ALL=1))
     monkeypatch.setitem(sys.modules, "onnxruntime", fake)
     sessions = runtime.build_sessions(tmp_path, "cpu", 1)
-    assert sessions["_onnx_dir"] == str(tmp_path)
+    assert sessions["_graph_paths"]["code_predictor"] == str(tmp_path / "code_predictor.onnx")
 
 
 def test_binding_path_uses_graphed_code_predictor_and_caches_it(monkeypatch, tmp_path):
@@ -548,10 +548,74 @@ def test_binding_path_uses_graphed_code_predictor_and_caches_it(monkeypatch, tmp
     sys.modules["onnxruntime"].InferenceSession = counting_infer
 
     sessions = _cuda_sessions()
-    sessions["_onnx_dir"] = str(tmp_path)
+    sessions["_graph_paths"] = {"code_predictor": str(tmp_path / "code_predictor.onnx")}
     codes_graphed, _ = _gen(sessions)
     codes_plain, _ = _gen(_numpy_sessions())
     assert np.array_equal(codes_graphed[0], codes_plain[0])
     assert len(created) == 1                     # graphed session built once...
     _gen(sessions)
     assert len(created) == 1                     # ...and cached across utterances
+
+
+def test_build_sessions_variant_dir_overrides_graphs(monkeypatch, tmp_path):
+    import sys
+    import types
+
+    base = tmp_path / "onnx"
+    variant = tmp_path / "onnx-bf16"
+    base.mkdir()
+    variant.mkdir()
+    (variant / "code_predictor.onnx").write_bytes(b"x")   # only cp has a bf16 build
+
+    paths_seen = {}
+
+    class _Sess:
+        def __init__(self, path, sess_options=None, providers=None):
+            paths_seen.setdefault(str(path), 0)
+            paths_seen[str(path)] += 1
+
+        def get_providers(self):
+            return ["CPUExecutionProvider"]
+
+    fake = types.SimpleNamespace(
+        get_available_providers=lambda: ["CPUExecutionProvider"],
+        InferenceSession=_Sess,
+        SessionOptions=lambda: types.SimpleNamespace(
+            graph_optimization_level=0, log_severity_level=0, intra_op_num_threads=0),
+        GraphOptimizationLevel=types.SimpleNamespace(ORT_ENABLE_ALL=1))
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
+
+    sessions = runtime.build_sessions(base, "cpu", 1, variant_dir=str(variant))
+    assert str(variant / "code_predictor.onnx") in paths_seen
+    assert sessions["_graph_paths"]["code_predictor"] == str(variant / "code_predictor.onnx")
+    assert sessions["_graph_paths"]["talker_decode"] == str(base / "talker_decode.onnx")
+
+
+def test_backend_load_prefers_bf16_dir_on_cuda(monkeypatch, tmp_path):
+    from sokuji_sidecar.tts_backends import Qwen3TtsOnnxBackend
+
+    (tmp_path / "onnx").mkdir()
+    (tmp_path / "onnx-bf16").mkdir()
+    seen = {}
+
+    import huggingface_hub
+    monkeypatch.setattr(huggingface_hub, "snapshot_download",
+                        lambda repo_id, local_files_only=True: str(tmp_path))
+    monkeypatch.setattr("sokuji_sidecar.tts_backends._q3_runtime.build_sessions",
+                        lambda d, device, threads, variant_dir=None:
+                        seen.update(dir=d, variant=variant_dir) or
+                        {"tokenizer12hz_encode": None, "tokenizer12hz_decode": None})
+    monkeypatch.setattr("sokuji_sidecar.tts_backends._q3_config.load_model_config",
+                        lambda d: object())
+    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer",
+                        lambda d: object())
+    monkeypatch.setattr("sokuji_sidecar.tts_backends._q3_codec.Codec12Hz",
+                        lambda sessions: object())
+
+    b = Qwen3TtsOnnxBackend()
+    b.load("some/repo", "cuda", "fp32")
+    assert seen["variant"] == str(tmp_path / "onnx-bf16")
+
+    b2 = Qwen3TtsOnnxBackend()
+    b2.load("some/repo", "cpu", "fp32")
+    assert seen["variant"] is None                # CPU lane must stay on fp32

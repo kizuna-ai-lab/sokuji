@@ -20,7 +20,6 @@ and DirectML sessions (and the test fakes) never reach this module.
 
 from __future__ import annotations
 
-import os
 import weakref
 from typing import Any
 
@@ -227,15 +226,15 @@ def graphed_code_predictor_for(sessions: dict[str, Any], cfg_talker: Any, *, hid
     """The CUDA-graph code_predictor for this model, or the plain session
     wrapper when no graph dir is recorded or session creation fails."""
     plain = _Session(sessions["code_predictor"])
-    onnx_dir = sessions.get("_onnx_dir")
-    if not onnx_dir:
+    cp_path = (sessions.get("_graph_paths") or {}).get("code_predictor")
+    if not cp_path:
         return plain
     key = sessions["code_predictor"]
     cached = _GRAPHED_CP_CACHE.get(key)
     if cached is None:
         try:
             cached = GraphedCodePredictor(
-                os.path.join(onnx_dir, "code_predictor.onnx"),
+                cp_path,
                 hidden=hidden, sub_vocab=_sub_vocab(cfg_talker), fallback=plain)
         except Exception:
             cached = plain
