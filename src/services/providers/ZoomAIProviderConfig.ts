@@ -102,20 +102,20 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     { id: 'zoom-scribe-translator-v1', type: 'realtime' },
   ];
 
-  static getSourceLanguages(): LanguageOption[] {
+  resolveSourceLanguages(): LanguageOption[] {
     return ZoomAIProviderConfig.SOURCE_LANGUAGES;
   }
 
-  static getTargetLanguagesForSource(src: string): LanguageOption[] {
-    return ZoomAIProviderConfig.PAIRS[src] ?? ZoomAIProviderConfig.EN_ONLY;
+  resolveTargetLanguages(source: string): LanguageOption[] {
+    return ZoomAIProviderConfig.PAIRS[source] ?? ZoomAIProviderConfig.EN_ONLY;
   }
 
   /** Reconciles a target language against a (possibly new) source, falling back
    * to the first allowed target — or 'en-US' if none — when the current target
    * is no longer valid for the source. Shared by LanguageSection and
    * ProviderSpecificSettings so the fallback rule lives in one place. */
-  static reconcileTarget(sourceValue: string, currentTarget: string): string {
-    const allowed = this.getTargetLanguagesForSource(sourceValue).map(l => l.value);
+  reconcileTarget(source: string, currentTarget: string): string {
+    const allowed = this.resolveTargetLanguages(source).map(l => l.value);
     return allowed.includes(currentTarget) ? currentTarget : (allowed[0] || 'en-US');
   }
 

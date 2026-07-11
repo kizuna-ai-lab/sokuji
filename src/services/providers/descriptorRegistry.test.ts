@@ -179,3 +179,22 @@ describe('descriptor.buildSessionConfig', () => {
     expect(cfg.vadSilenceDurationMs).toBe(900);
   });
 });
+
+describe('descriptor language rules', () => {
+  it('zoom: non-English sources can only target English', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
+    expect(d.resolveTargetLanguages('ja-JP').map(l => l.value)).toEqual(['en-US']);
+    expect(d.reconcileTarget('ja-JP', 'fr-FR')).toBe('en-US');
+    expect(d.reconcileTarget('en-US', 'ja-JP')).toBe('ja-JP');
+  });
+
+  it('openai translate restricts targets to the fixed 13', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
+    expect(d.resolveTargetLanguages('any').length).toBe(13);
+  });
+
+  it('default providers pass their config languages through', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
+    expect(d.resolveSourceLanguages()).toBe(d.getConfig().languages);
+  });
+});

@@ -195,10 +195,9 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
     { id: 'gpt-realtime-translate', type: 'realtime' },
   ];
 
-  /** Public accessor for the target list — used by UI to test source membership. */
-  static getTargetLanguages(): readonly LanguageOption[] {
-    return OpenAITranslateProviderConfig.TARGET_LANGUAGES;
-  }
+  // resolveTargetLanguages() uses the BaseProviderDescriptor default, which
+  // reads getConfig().targetLanguages — always TARGET_LANGUAGES here regardless
+  // of source, matching this class's former static getTargetLanguages().
 
   getConfig(): ProviderConfig {
     return {

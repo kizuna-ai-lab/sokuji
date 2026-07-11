@@ -104,14 +104,12 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = VolcengineSTProviderConfig.SOURCE_LANGUAGES;
 
-  // Helper method to get target languages
-  static getTargetLanguages(): LanguageOption[] {
+  // Target languages (28) differ from the source list (3) and from getConfig().languages,
+  // so the BaseProviderDescriptor default (which falls back to getConfig().languages when
+  // targetLanguages isn't set) doesn't apply here — override explicitly.
+  // resolveSourceLanguages() uses the base default, which already matches SOURCE_LANGUAGES.
+  resolveTargetLanguages(_source: string): LanguageOption[] {
     return VolcengineSTProviderConfig.TARGET_LANGUAGES;
-  }
-
-  // Helper method to get source languages
-  static getSourceLanguages(): LanguageOption[] {
-    return VolcengineSTProviderConfig.SOURCE_LANGUAGES;
   }
 
   // Volcengine doesn't have voice selection for real-time translation (text output only)

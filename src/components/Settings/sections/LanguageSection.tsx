@@ -34,8 +34,6 @@ import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
-import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
-import { ZoomAIProviderConfig } from '../../../services/providers/ZoomAIProviderConfig';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
@@ -196,7 +194,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.ZOOM_AI: {
         updateZoomAISettings({
           sourceLanguage: value,
-          targetLanguage: ZoomAIProviderConfig.reconcileTarget(value, zoomAISettings.targetLanguage),
+          targetLanguage: ProviderConfigFactory.getDescriptor(provider).reconcileTarget(value, zoomAISettings.targetLanguage),
         });
         break;
       }
@@ -294,9 +292,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
       trackEvent('language_changed', { to_language: src, language_type: 'target' });
     } else if (provider === Provider.ZOOM_AI) {
-      const sources = ZoomAIProviderConfig.getSourceLanguages().map(l => l.value);
+      const descriptor = ProviderConfigFactory.getDescriptor(provider);
+      const sources = descriptor.resolveSourceLanguages().map(l => l.value);
       if (!sources.includes(tgt)) return; // target isn't a Scribe source; cannot become the new source
-      const allowed = ZoomAIProviderConfig.getTargetLanguagesForSource(tgt).map(l => l.value);
+      const allowed = descriptor.resolveTargetLanguages(tgt).map(l => l.value);
       const newTarget = allowed.includes(src) ? src : (allowed[0] || 'en-US');
       updateZoomAISettings({ sourceLanguage: tgt, targetLanguage: newTarget });
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
@@ -324,7 +323,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
     }
     if (provider === Provider.ZOOM_AI) {
-      return ZoomAIProviderConfig.getTargetLanguagesForSource(currentProviderSettings.sourceLanguage || 'ja-JP');
+      return ProviderConfigFactory.getDescriptor(provider).resolveTargetLanguages(currentProviderSettings.sourceLanguage || 'ja-JP');
     }
     return providerConfig.targetLanguages ?? providerConfig.languages;
   }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
@@ -337,7 +336,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const showTranslateParticipantWarning = useMemo(() => {
     if (effectiveProvider !== Provider.OPENAI_TRANSLATE) return false;
     if (!isParticipantChannelInScope) return false;
-    const supportedTargets = OpenAITranslateProviderConfig.getTargetLanguages();
+    const supportedTargets = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).resolveTargetLanguages(currentProviderSettings.sourceLanguage);
     return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
   }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
 
@@ -508,7 +507,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                   currentProviderSettings.sourceLanguage === 'auto' ||
                   currentProviderSettings.sourceLanguage === 'zhen' ||
                   (provider === Provider.ZOOM_AI &&
-                    !ZoomAIProviderConfig.getSourceLanguages().some(l => l.value === currentProviderSettings.targetLanguage))
+                    !ProviderConfigFactory.getDescriptor(provider).resolveSourceLanguages().some(l => l.value === currentProviderSettings.targetLanguage))
                 }
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"

@@ -199,9 +199,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = PalabraAIProviderConfig.SOURCE_LANGUAGES;
 
-  // Helper method to get target languages for a given source language
-  static getTargetLanguagesForSource(sourceLanguage: string): LanguageOption[] {
-    // Return all target languages - PalabraAI supports most language pairs
+  // PalabraAI supports most language pairs, so the target list doesn't depend
+  // on the source. getConfig() doesn't set `targetLanguages` (LANGUAGES/config
+  // reuses the source list for the shared dropdown), so the base default would
+  // incorrectly fall back to the source list here — override explicitly.
+  resolveTargetLanguages(_source: string): LanguageOption[] {
     return PalabraAIProviderConfig.TARGET_LANGUAGES;
   }
 

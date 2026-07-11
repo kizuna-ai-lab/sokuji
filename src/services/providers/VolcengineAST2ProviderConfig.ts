@@ -107,13 +107,9 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     { id: 'ast-v2-s2s', type: 'realtime' }
   ];
 
-  static getSourceLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
-  }
-
-  static getTargetLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
-  }
+  // resolveSourceLanguages/resolveTargetLanguages use the BaseProviderDescriptor
+  // defaults, which read getConfig().languages — equal to BIDIRECTIONAL_LANGUAGES
+  // for both, matching this class's former static behavior.
 
   getConfig(): ProviderConfig {
     return {
