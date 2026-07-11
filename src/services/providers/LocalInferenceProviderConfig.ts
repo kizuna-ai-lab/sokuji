@@ -3,6 +3,7 @@ import { getTranslationSourceLanguages } from '../../lib/local-inference/modelMa
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 
 /**
  * Provider configuration for Local (Offline) inference.
@@ -14,9 +15,10 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localInference';
   readonly supportsWebRTC = false;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  // LocalInference has no credentials by design — its extractCredentials
+  // override (Task 5) skips the empty-key check entirely.
   createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+    return new LocalInferenceClient();
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

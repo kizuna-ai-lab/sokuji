@@ -1,18 +1,7 @@
 import { IClient } from '../interfaces/IClient';
-import { OpenAIClient } from './OpenAIClient';
-import { OpenAIGAClient } from './OpenAIGAClient';
-import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
-import { OpenAITranslateGAClient } from './OpenAITranslateGAClient';
-import { OpenAITranslateWebRTCClient } from './OpenAITranslateWebRTCClient';
-import { GeminiClient } from './GeminiClient';
-import { PalabraAIClient } from './PalabraAIClient';
-import { VolcengineSTClient } from './VolcengineSTClient';
-import { VolcengineAST2Client } from './VolcengineAST2Client';
-import { ZoomAIClient } from './ZoomAIClient';
-import { LocalInferenceClient } from './LocalInferenceClient';
-import { Provider, ProviderType } from '../../types/Provider';
-import { getRelayWsUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled } from '../../utils/environment';
+import { ProviderType } from '../../types/Provider';
 import { TransportType } from '../../stores/settingsStore';
+import { ProviderConfigFactory } from '../providers/ProviderConfigFactory';
 
 /**
  * Options for WebRTC client creation
@@ -23,162 +12,27 @@ export interface WebRTCClientOptions {
 }
 
 /**
- * Factory for creating AI client instances
- * Determines the appropriate client based on model name and API keys
+ * @deprecated Thin façade kept for legacy tests. New code resolves the
+ * descriptor via ProviderConfigFactory.getDescriptor(provider) directly.
  */
 export class ClientFactory {
-  /**
-   * Create an AI client instance based on the provider and model
-   * @param model - The model name
-   * @param provider - The provider type
-   * @param apiKey - The API key for the specified provider
-   * @param clientSecret - The client secret for PalabraAI (optional)
-   * @param customEndpoint - The custom API endpoint for OpenAI Compatible provider (optional)
-   * @param transportType - The transport type for OpenAI (websocket or webrtc)
-   * @param webrtcOptions - Options for WebRTC client (device IDs)
-   * @returns IClient instance
-   */
   static createClient(
-    model: string,
-    provider: ProviderType,
-    apiKey: string,
-    clientSecret?: string,
-    customEndpoint?: string,
-    transportType?: TransportType,
-    webrtcOptions?: WebRTCClientOptions
+    model: string, provider: ProviderType, apiKey: string,
+    clientSecret?: string, customEndpoint?: string,
+    transportType?: TransportType, webrtcOptions?: WebRTCClientOptions
   ): IClient {
-    // Local inference doesn't require API key
-    if (provider === Provider.LOCAL_INFERENCE) {
-      return new LocalInferenceClient();
-    }
-
-    if (!apiKey) {
-      throw new Error(`API key is required for ${provider} provider`);
-    }
-
-    switch (provider) {
-      case Provider.OPENAI:
-        // Use WebRTC client if transport type is webrtc
-        if (transportType === 'webrtc') {
-          return new OpenAIWebRTCClient({
-            apiKey,
-            inputDeviceId: webrtcOptions?.inputDeviceId,
-            outputDeviceId: webrtcOptions?.outputDeviceId
-          });
-        }
-        // Use GA client for direct OpenAI WebSocket connections
-        // (official SDK, no beta header)
-        return new OpenAIGAClient(apiKey);
-
-      case Provider.OPENAI_TRANSLATE:
-        // Translate uses its own dedicated endpoint (/v1/realtime/translations)
-        // and a different session lifecycle (continuous, no turn detection),
-        // so it has its own pair of transport-specific client classes.
-        if (transportType === 'webrtc') {
-          return new OpenAITranslateWebRTCClient({
-            apiKey,
-            inputDeviceId: webrtcOptions?.inputDeviceId,
-            outputDeviceId: webrtcOptions?.outputDeviceId,
-          });
-        }
-        return new OpenAITranslateGAClient(apiKey);
-
-      case Provider.OPENAI_COMPATIBLE:
-        // OpenAI Compatible uses OpenAIClient with custom endpoint
-        if (!customEndpoint) {
-          throw new Error(`Custom endpoint is required for ${provider} provider`);
-        }
-        // WebRTC support for OpenAI Compatible
-        if (transportType === 'webrtc') {
-          return new OpenAIWebRTCClient({
-            apiKey,
-            apiHost: customEndpoint,
-            inputDeviceId: webrtcOptions?.inputDeviceId,
-            outputDeviceId: webrtcOptions?.outputDeviceId
-          });
-        }
-        return new OpenAIClient(apiKey, customEndpoint);
-
-      case Provider.GEMINI:
-        return new GeminiClient(apiKey);
-
-      case Provider.PALABRA_AI:
-        if (!clientSecret) {
-          throw new Error(`Client secret is required for ${provider} provider`);
-        }
-        // PalabraAI uses the original appendInputAudio pattern, not native audio capture
-        return new PalabraAIClient(apiKey, clientSecret);
-
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        if (!isKizunaAIEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        return new OpenAITranslateGAClient(apiKey, { wsUrl: `${getRelayWsUrl()}/realtime/translations` });
-
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-        if (!isKizunaAIEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        return new VolcengineAST2Client('', '', undefined, { wsUrl: `${getRelayWsUrl()}/ast/translate`, sessionToken: apiKey });
-
-      case Provider.VOLCENGINE_ST:
-        // Check if Volcengine ST is enabled before creating the client
-        if (!isVolcengineSTEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        if (!clientSecret) {
-          throw new Error(`Secret Access Key is required for ${provider} provider`);
-        }
-        // Volcengine ST uses its own WebSocket-based real-time speech translation API
-        // apiKey is the Access Key ID, clientSecret is the Secret Access Key
-        return new VolcengineSTClient(apiKey, clientSecret);
-
-      case Provider.VOLCENGINE_AST2:
-        // Check if Volcengine AST2 is enabled before creating the client
-        if (!isVolcengineAST2Enabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        if (!clientSecret) {
-          throw new Error(`Access Token is required for ${provider} provider`);
-        }
-        // Volcengine AST2 uses protobuf binary over WebSocket
-        // apiKey is the APP ID, clientSecret is the Access Token
-        return new VolcengineAST2Client(apiKey, clientSecret);
-
-      case Provider.ZOOM_AI:
-        if (!isZoomAIEnabled()) {
-          throw new Error(`Provider ${provider} is not available in this build`);
-        }
-        if (!clientSecret) {
-          throw new Error(`API Secret is required for ${provider} provider`);
-        }
-        // apiKey = Zoom API Key, clientSecret = Zoom API Secret
-        return new ZoomAIClient(apiKey, clientSecret);
-
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
+    void model;
+    return ProviderConfigFactory.getDescriptor(provider).createClient(
+      { ok: true, primary: apiKey, secret: clientSecret, endpoint: customEndpoint },
+      { transport: transportType ?? 'websocket', webrtcOptions }
+    );
   }
 
-  /**
-   * Check if a provider supports WebRTC transport
-   */
   static supportsWebRTC(provider: ProviderType): boolean {
-    return provider === Provider.OPENAI
-      || provider === Provider.OPENAI_COMPATIBLE
-      || provider === Provider.OPENAI_TRANSLATE;
+    return ProviderConfigFactory.getDescriptor(provider).supportsWebRTC;
   }
 
-  /**
-   * Check if a provider uses native audio capture via MediaStreamTrack
-   * This includes OpenAI WebRTC (but NOT PalabraAI which uses appendInputAudio pattern)
-   * @param provider - The provider type
-   * @param transportType - The transport type (optional, used to determine WebRTC mode)
-   * @returns true if the provider uses native audio capture
-   */
   static usesNativeAudioCapture(provider: ProviderType, transportType?: TransportType): boolean {
-    // PalabraAI uses appendInputAudio pattern, NOT native audio capture
-    // OpenAI/OpenAI Compatible use native audio capture only in WebRTC mode
     return transportType === 'webrtc' && this.supportsWebRTC(provider);
   }
-} 
+}

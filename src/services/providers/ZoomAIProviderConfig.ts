@@ -2,6 +2,7 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './Prov
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { ZoomAIClient } from '../clients/ZoomAIClient';
 
 /**
  * Zoom AI Services (Scribe + Translator) — text-only cascade provider.
@@ -12,9 +13,9 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'zoomAI';
   readonly supportsWebRTC = false;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('API Secret is required for zoom_ai provider');
+    return new ZoomAIClient(creds.primary, creds.secret);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

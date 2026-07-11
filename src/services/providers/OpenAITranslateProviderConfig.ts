@@ -2,6 +2,8 @@ import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
+import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
 
 /**
  * OpenAI Translate provider — dedicated speech-to-speech translation via
@@ -13,9 +15,15 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openaiTranslate';
   readonly supportsWebRTC = true;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    if (options.transport === 'webrtc') {
+      return new OpenAITranslateWebRTCClient({
+        apiKey: creds.primary,
+        inputDeviceId: options.webrtcOptions?.inputDeviceId,
+        outputDeviceId: options.webrtcOptions?.outputDeviceId,
+      });
+    }
+    return new OpenAITranslateGAClient(creds.primary);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

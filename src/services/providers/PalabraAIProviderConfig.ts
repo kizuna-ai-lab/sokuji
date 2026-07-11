@@ -2,14 +2,16 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './Prov
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { PalabraAIClient } from '../clients/PalabraAIClient';
 
 export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'palabraai';
   readonly supportsWebRTC = false;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  // creds.secret is guaranteed by extractCredentials (Task 5).
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('Client secret is required for palabraai provider');
+    return new PalabraAIClient(creds.primary, creds.secret);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

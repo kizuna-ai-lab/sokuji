@@ -2,14 +2,14 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './Prov
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { GeminiClient } from '../clients/GeminiClient';
 
 export class GeminiProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'gemini';
   readonly supportsWebRTC = false;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    return new GeminiClient(creds.primary);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

@@ -2,14 +2,22 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffo
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { OpenAIGAClient } from '../clients/OpenAIGAClient';
+import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
 
 export class OpenAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openai';
   readonly supportsWebRTC = true;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    if (options.transport === 'webrtc') {
+      return new OpenAIWebRTCClient({
+        apiKey: creds.primary,
+        inputDeviceId: options.webrtcOptions?.inputDeviceId,
+        outputDeviceId: options.webrtcOptions?.outputDeviceId,
+      });
+    }
+    return new OpenAIGAClient(creds.primary);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.

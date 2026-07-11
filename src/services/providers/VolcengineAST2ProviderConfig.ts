@@ -2,14 +2,15 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './Prov
 import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 
 export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineAST2';
   readonly supportsWebRTC = false;
 
-  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    throw new Error('not migrated yet: createClient');
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('Access Token is required for volcengine_ast2 provider');
+    return new VolcengineAST2Client(creds.primary, creds.secret);
   }
 
   // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
