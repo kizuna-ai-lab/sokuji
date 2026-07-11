@@ -105,3 +105,62 @@ def test_tts_backends_no_librosa_or_transformers_import():
                 for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))
                 for a in n.names}
     assert not any((x or "").split(".")[0] in ("librosa", "transformers") for x in imported)
+
+
+def _generate_with_stubs(monkeypatch, env=None):
+    """Run backend.generate() with template/runtime stubbed out; return the
+    kwargs generate_codes was called with."""
+    from types import SimpleNamespace
+
+    captured = {}
+    b = Qwen3TtsOnnxBackend()
+    b._sessions = {}
+    b._cfg = SimpleNamespace(talker=SimpleNamespace(
+        codec_eos_token_id=2150, vocab_size=3072, num_code_groups=16))
+    b._tokenize = lambda text: np.arange(4, dtype=np.int64)[None, :]
+    b._codec = type("C", (), {"decode": staticmethod(
+        lambda codes: np.zeros(1920, np.float32))})()
+
+    monkeypatch.setattr(
+        "sokuji_sidecar.tts_backends._q3_template.build_talker_inputs",
+        lambda *a, **k: (np.zeros((1, 3, 8), np.float32), np.ones((1, 3), np.int64),
+                         np.zeros((1, 1, 8), np.float32), np.zeros((1, 1, 8), np.float32)))
+
+    def fake_generate_codes(sessions, cfg_talker, *args, **kwargs):
+        captured.update(kwargs)
+        return [np.zeros((2, 16), np.int64)], [np.zeros((2, 8), np.float32)]
+
+    monkeypatch.setattr(
+        "sokuji_sidecar.tts_backends._q3_runtime.generate_codes", fake_generate_codes)
+    for k, v in (env or {}).items():
+        monkeypatch.setenv(k, v)
+    b.generate("hi")
+    return captured
+
+
+def test_generate_seed_env_makes_rng_deterministic(monkeypatch):
+    env = {"SOKUJI_QWEN3_TTS_SEED": "123"}
+    r1 = _generate_with_stubs(monkeypatch, env)["rng"].random(4)
+    r2 = _generate_with_stubs(monkeypatch, env)["rng"].random(4)
+    assert np.array_equal(r1, r2)
+
+
+def test_generate_rng_unseeded_by_default(monkeypatch):
+    r1 = _generate_with_stubs(monkeypatch)["rng"].random(4)
+    r2 = _generate_with_stubs(monkeypatch)["rng"].random(4)
+    assert not np.array_equal(r1, r2)
+
+
+def test_generate_greedy_env_disables_sampling(monkeypatch):
+    params = _generate_with_stubs(
+        monkeypatch, {"SOKUJI_QWEN3_TTS_GREEDY": "1"})["sampling_params"]
+    assert params["do_sample"] is False and params["subtalker_dosample"] is False
+
+
+def test_generate_default_sampling_params_unchanged(monkeypatch):
+    from sokuji_sidecar.tts_backends import _QWEN3_TTS_SAMPLING_PARAMS
+    params = _generate_with_stubs(monkeypatch)["sampling_params"]
+    assert params["do_sample"] is True and params["subtalker_dosample"] is True
+    # greedy runs must never mutate the module-level constant
+    _generate_with_stubs(monkeypatch, {"SOKUJI_QWEN3_TTS_GREEDY": "1"})
+    assert _QWEN3_TTS_SAMPLING_PARAMS["do_sample"] is True

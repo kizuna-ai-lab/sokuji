@@ -581,12 +581,20 @@ class Qwen3TtsOnnxBackend:
         suppress_tokens = [i for i in range(vocab_size - 1024, vocab_size) if i != eos_token_id]
         max_new_tokens = int(os.environ.get("SOKUJI_QWEN3_TTS_MAX_FRAMES", "600"))
 
+        # Verification hooks: a fixed seed and/or greedy decoding make runs
+        # reproducible so optimized code paths can be A/B-compared numerically.
+        seed = os.environ.get("SOKUJI_QWEN3_TTS_SEED")
+        rng = np.random.default_rng(int(seed)) if seed else np.random.default_rng()
+        sampling_params = _QWEN3_TTS_SAMPLING_PARAMS
+        if os.environ.get("SOKUJI_QWEN3_TTS_GREEDY"):
+            sampling_params = dict(sampling_params, do_sample=False, subtalker_dosample=False)
+
         codes_list, _hidden_list = _q3_runtime.generate_codes(
             self._sessions, self._cfg.talker,
             talker_embed, attention_mask, trailing_text_hidden, tts_pad_embed,
-            max_new_tokens=max_new_tokens, sampling_params=_QWEN3_TTS_SAMPLING_PARAMS,
+            max_new_tokens=max_new_tokens, sampling_params=sampling_params,
             eos_token_id=eos_token_id, suppress_tokens=suppress_tokens,
-            rng=np.random.default_rng())
+            rng=rng)
         codes = codes_list[0]
 
         ref_code = self._voice_prompt["ref_code"][0] if self._voice_prompt else None
