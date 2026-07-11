@@ -1,11 +1,21 @@
 import { ProviderConfig } from './ProviderConfig';
-import { OpenAIProviderConfig } from './OpenAIProviderConfig';
+import { OpenAIProviderConfig, OpenAICompatibleSettingsBase, defaultOpenAICompatibleSettingsBase } from './OpenAIProviderConfig';
 import { Provider } from '../../types/Provider';
 import { Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
+
+// OpenAI Compatible Settings (with custom endpoint support)
+export interface OpenAICompatibleSettings extends OpenAICompatibleSettingsBase {
+  customEndpoint: string;
+}
+
+export const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
+  ...defaultOpenAICompatibleSettingsBase,
+  customEndpoint: '',
+};
 
 /**
  * OpenAI Compatible Provider Configuration

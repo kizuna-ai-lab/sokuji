@@ -4,6 +4,21 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineSTClient } from '../clients/VolcengineSTClient';
 
+// Volcengine Speech Translate Settings
+export interface VolcengineSTSettings {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+export const defaultVolcengineSTSettings: VolcengineSTSettings = {
+  accessKeyId: '',
+  secretAccessKey: '',
+  sourceLanguage: 'zh',
+  targetLanguage: 'en',
+};
+
 export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineST';
   readonly supportsWebRTC = false;
@@ -121,22 +136,6 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'speech-translate-v1',
-        voice: '',
-        temperature: 0.8, // Not used by Volcengine
-        maxTokens: 4096, // Not used by Volcengine
-        sourceLanguage: 'zh', // Chinese for recognition
-        targetLanguage: 'en', // English for translation
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }

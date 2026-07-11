@@ -3,7 +3,6 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
-import type {TransportType} from '../services/providers/ProviderDescriptor';
 import {
   FilteredModel,
   SessionConfig,
@@ -15,7 +14,6 @@ import {
   ZoomAISessionConfig,
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig,
-  TranslateTargetLanguage
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
@@ -26,6 +24,41 @@ import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
+import {
+  OpenAISettings, defaultOpenAISettings, OpenAICompatibleSettingsBase,
+} from '../services/providers/OpenAIProviderConfig';
+import {
+  OpenAICompatibleSettings, defaultOpenAICompatibleSettings,
+} from '../services/providers/OpenAICompatibleProviderConfig';
+import {
+  OpenAITranslateSettings, defaultOpenAITranslateSettings,
+} from '../services/providers/OpenAITranslateProviderConfig';
+import {
+  GeminiSettings, defaultGeminiSettings,
+} from '../services/providers/GeminiProviderConfig';
+import {
+  PalabraAISettings, defaultPalabraAISettings,
+} from '../services/providers/PalabraAIProviderConfig';
+import {
+  VolcengineSTSettings, defaultVolcengineSTSettings,
+} from '../services/providers/VolcengineSTProviderConfig';
+import {
+  ZoomAISettings, defaultZoomAISettings,
+} from '../services/providers/ZoomAIProviderConfig';
+import {
+  VolcengineAST2Settings, defaultVolcengineAST2Settings,
+} from '../services/providers/VolcengineAST2ProviderConfig';
+import {
+  LocalInferenceSettings, defaultLocalInferenceSettings,
+} from '../services/providers/LocalInferenceProviderConfig';
+import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
+import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+
+export type {
+  OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
+  OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
+  VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
+};
 
 // ==================== Type Definitions ====================
 
@@ -49,139 +82,6 @@ export interface CommonSettings {
 
 // Transport type moved to the services layer; re-exported for existing importers.
 export type { TransportType } from '../services/providers/ProviderDescriptor';
-
-// OpenAI-compatible Settings (used by OpenAI and KizunaAI)
-export interface OpenAICompatibleSettingsBase {
-  apiKey: string;
-  model: string;
-  voice: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
-  threshold: number;
-  prefixPadding: number;
-  silenceDuration: number;
-  semanticEagerness: 'Auto' | 'Low' | 'Medium' | 'High';
-  temperature: number;
-  maxTokens: number | 'inf';
-  transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
-  noiseReduction: 'None' | 'Near field' | 'Far field';
-  transportType: TransportType;
-  // Persisted across model switches so the user's preference is preserved
-  // when toggling between gpt-realtime-2 and other models. Only forwarded
-  // to the API when the active model supports it.
-  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-}
-
-// OpenAI Compatible Settings (with custom endpoint support)
-export interface OpenAICompatibleSettings extends OpenAICompatibleSettingsBase {
-  customEndpoint: string;
-}
-
-export type OpenAISettings = OpenAICompatibleSettingsBase;
-
-// OpenAI Translate Settings (gpt-realtime-translate model family)
-export interface OpenAITranslateSettings {
-  apiKey: string;
-  // UI display only — not sent to API (auto-detected by model)
-  sourceLanguage: string;
-  // Sent to API as audio.output.language
-  targetLanguage: TranslateTargetLanguage;
-  // Currently the only valid value; UI dropdown shows it as a single option
-  transcriptModel: 'gpt-realtime-whisper';
-  noiseReduction: 'None' | 'Near field' | 'Far field';
-  transportType: TransportType;
-  // Client-side utterance segmentation thresholds in seconds. User (input)
-  // and assistant (output) run independent state machines, so each has its
-  // own threshold. Range 0.1–3.0s. Translate API has no server-side turn
-  // detection, so these only control UI message splitting. Stored as
-  // seconds; converted to ms when building the session config.
-  userSilenceDuration: number;
-  assistantSilenceDuration: number;
-}
-
-// Gemini Settings
-export interface GeminiSettings {
-  apiKey: string;
-  model: string;
-  voice: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  temperature: number;
-  maxTokens: number | 'inf';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadStartSensitivity: 'high' | 'low';
-  vadEndSensitivity: 'high' | 'low';
-  vadSilenceDurationMs: number;
-  vadPrefixPaddingMs: number;
-}
-
-// PalabraAI Settings
-export interface PalabraAISettings {
-  clientId: string;
-  clientSecret: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  voiceId: string;
-  subscriberCount: number;
-  publisherCanSubscribe: boolean;
-  segmentConfirmationSilenceThreshold: number;
-  sentenceSplitterEnabled: boolean;
-  translatePartialTranscriptions: boolean;
-  desiredQueueLevelMs: number;
-  maxQueueLevelMs: number;
-  autoTempo: boolean;
-}
-
-// Volcengine Speech Translate Settings
-export interface VolcengineSTSettings {
-  accessKeyId: string;
-  secretAccessKey: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}
-
-// Zoom AI Services Settings
-export interface ZoomAISettings {
-  apiKey: string;
-  apiSecret: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}
-
-// Volcengine AST 2.0 Settings
-export interface VolcengineAST2Settings {
-  appId: string;
-  accessToken: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
-  hotWordTableId: string;
-  /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
-  replacementTableId: string;
-  /** Library ID for Volcengine self-learning platform Glossary. Empty = disabled. */
-  glossaryTableId: string;
-}
-
-// Local Inference Settings
-export interface LocalInferenceSettings {
-  asrModel: string;
-  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
-  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
-  ttsSpeakerId: number;
-  ttsSpeed: number;
-  edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
-  vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
-  vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
-  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
-  systemPrompt: string;                // Advanced-mode speaker prompt (default '')
-  participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
-}
 
 // Cache Entry
 interface CacheEntry {
@@ -252,121 +152,6 @@ const defaultCommonSettings: CommonSettings = {
   participantSystemInstructions: '',
   speakerDisplayMode: 'both',
   participantDisplayMode: 'both',
-};
-
-const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
-  apiKey: '',
-  model: 'gpt-realtime-mini',
-  voice: 'alloy',
-  sourceLanguage: 'en',
-  targetLanguage: 'zh_CN',
-  turnDetectionMode: 'Normal',
-  threshold: 0.49,
-  prefixPadding: 0.5,
-  silenceDuration: 0.5,
-  semanticEagerness: 'Auto',
-  temperature: 0.8,
-  maxTokens: 'inf',
-  transcriptModel: 'gpt-4o-mini-transcribe',
-  noiseReduction: 'None',
-  transportType: 'websocket',
-  reasoningEffort: 'low',
-};
-
-const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
-
-const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
-  ...defaultOpenAICompatibleSettingsBase,
-  customEndpoint: '',
-};
-
-const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
-  apiKey: '',
-  sourceLanguage: 'en',
-  targetLanguage: 'zh',
-  transcriptModel: 'gpt-realtime-whisper',
-  noiseReduction: 'None',
-  transportType: 'websocket',
-  userSilenceDuration: 1.0,
-  assistantSilenceDuration: 0.5,
-};
-
-const defaultGeminiSettings: GeminiSettings = {
-  apiKey: '',
-  model: '',
-  voice: 'Aoede',
-  sourceLanguage: 'en-US',
-  targetLanguage: 'ja-JP',
-  temperature: 0.8,
-  maxTokens: 'inf',
-  turnDetectionMode: 'Auto',
-  vadStartSensitivity: 'low',
-  vadEndSensitivity: 'high',
-  vadSilenceDurationMs: 500,
-  vadPrefixPaddingMs: 300,
-};
-
-const defaultPalabraAISettings: PalabraAISettings = {
-  clientId: '',
-  clientSecret: '',
-  sourceLanguage: 'en',
-  targetLanguage: 'es',
-  voiceId: 'default_low',
-  subscriberCount: 0,
-  publisherCanSubscribe: true,
-  segmentConfirmationSilenceThreshold: 0.7,
-  sentenceSplitterEnabled: true,
-  translatePartialTranscriptions: false,
-  desiredQueueLevelMs: 8000,
-  maxQueueLevelMs: 24000,
-  autoTempo: false,
-};
-
-const defaultVolcengineSTSettings: VolcengineSTSettings = {
-  accessKeyId: '',
-  secretAccessKey: '',
-  sourceLanguage: 'zh',
-  targetLanguage: 'en',
-};
-
-const defaultZoomAISettings: ZoomAISettings = {
-  apiKey: '',
-  apiSecret: '',
-  sourceLanguage: 'ja-JP',
-  targetLanguage: 'en-US',
-};
-
-const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
-  appId: '',
-  accessToken: '',
-  sourceLanguage: 'zh',
-  targetLanguage: 'en',
-  turnDetectionMode: 'Auto',
-  hotWordTableId: '',
-  replacementTableId: '',
-  glossaryTableId: '',
-};
-
-// Relay-managed KizunaAI twins reuse the existing OpenAI-translate / Volcengine-AST2 slices.
-const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
-const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...defaultVolcengineAST2Settings };
-
-const defaultLocalInferenceSettings: LocalInferenceSettings = {
-  asrModel: 'sensevoice-int8',
-  translationModel: '',  // Auto-select based on language pair
-  ttsModel: '',  // Auto-select based on target language
-  ttsSpeakerId: 0,
-  ttsSpeed: 1.0,
-  edgeTtsVoice: '',  // Auto-select based on target language
-  sourceLanguage: 'ja',
-  targetLanguage: 'en',
-  turnDetectionMode: 'Auto',
-  vadThreshold: 0.3,
-  vadMinSilenceDuration: 1.4,
-  vadMinSpeechDuration: 0.4,
-  useTemplateMode: true,
-  systemPrompt: '',
-  participantSystemPrompt: '',
 };
 
 // ==================== Store Definition ====================

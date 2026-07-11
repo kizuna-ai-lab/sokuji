@@ -1,10 +1,56 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffort } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIGAClient } from '../clients/OpenAIGAClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
+
+// OpenAI-compatible Settings (used by OpenAI and KizunaAI)
+export interface OpenAICompatibleSettingsBase {
+  apiKey: string;
+  model: string;
+  voice: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
+  threshold: number;
+  prefixPadding: number;
+  silenceDuration: number;
+  semanticEagerness: 'Auto' | 'Low' | 'Medium' | 'High';
+  temperature: number;
+  maxTokens: number | 'inf';
+  transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
+  noiseReduction: 'None' | 'Near field' | 'Far field';
+  transportType: TransportType;
+  // Persisted across model switches so the user's preference is preserved
+  // when toggling between gpt-realtime-2 and other models. Only forwarded
+  // to the API when the active model supports it.
+  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+}
+
+export type OpenAISettings = OpenAICompatibleSettingsBase;
+
+export const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
+  apiKey: '',
+  model: 'gpt-realtime-mini',
+  voice: 'alloy',
+  sourceLanguage: 'en',
+  targetLanguage: 'zh_CN',
+  turnDetectionMode: 'Normal',
+  threshold: 0.49,
+  prefixPadding: 0.5,
+  silenceDuration: 0.5,
+  semanticEagerness: 'Auto',
+  temperature: 0.8,
+  maxTokens: 'inf',
+  transcriptModel: 'gpt-4o-mini-transcribe',
+  noiseReduction: 'None',
+  transportType: 'websocket',
+  reasoningEffort: 'low',
+};
+
+export const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
 
 export class OpenAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openai';
@@ -162,23 +208,6 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
         temperatureRange: { min: 0.6, max: 1.2, step: 0.01 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
       },
-      
-      defaults: {
-        model: 'gpt-realtime-mini',
-        voice: 'alloy',
-        temperature: 0.6,
-        maxTokens: 'inf' as any,
-        sourceLanguage: 'en',
-        targetLanguage: 'zh_CN',
-        turnDetectionMode: 'Normal',
-        threshold: 0.5,
-        prefixPadding: 0.3,
-        silenceDuration: 0.8,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'whisper-1',
-        reasoningEffort: 'low',
-      },
     };
   }
-} 
+}

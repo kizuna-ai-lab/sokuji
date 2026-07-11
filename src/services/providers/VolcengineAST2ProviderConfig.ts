@@ -4,6 +4,32 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 
+// Volcengine AST 2.0 Settings
+export interface VolcengineAST2Settings {
+  appId: string;
+  accessToken: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
+  hotWordTableId: string;
+  /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
+  replacementTableId: string;
+  /** Library ID for Volcengine self-learning platform Glossary. Empty = disabled. */
+  glossaryTableId: string;
+}
+
+export const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
+  appId: '',
+  accessToken: '',
+  sourceLanguage: 'zh',
+  targetLanguage: 'en',
+  turnDetectionMode: 'Auto',
+  hotWordTableId: '',
+  replacementTableId: '',
+  glossaryTableId: '',
+};
+
 export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineAST2';
   readonly supportsWebRTC = false;
@@ -92,22 +118,6 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'ast-v2-s2s',
-        voice: '',
-        temperature: 0.8,
-        maxTokens: 4096,
-        sourceLanguage: 'zh',
-        targetLanguage: 'en',
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }

@@ -1,10 +1,13 @@
-import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
+import { OpenAITranslateProviderConfig, OpenAITranslateSettings, defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
 import { Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { getRelayWsUrl } from '../../utils/environment';
+
+// Relay-managed KizunaAI twin reuses the existing OpenAI-translate slice.
+export const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
 
 /**
  * KizunaAI Translate — the relay-managed twin of OpenAI Translate. Same

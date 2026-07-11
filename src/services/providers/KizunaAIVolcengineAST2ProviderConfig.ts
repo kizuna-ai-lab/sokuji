@@ -1,10 +1,13 @@
-import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
+import { VolcengineAST2ProviderConfig, VolcengineAST2Settings, defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
 import { Credentials, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 import { getRelayWsUrl } from '../../utils/environment';
+
+// Relay-managed KizunaAI twin reuses the existing Volcengine-AST2 slice.
+export const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...defaultVolcengineAST2Settings };
 
 /**
  * KizunaAI Doubao — the relay-managed twin of Volcengine AST 2.0. Same

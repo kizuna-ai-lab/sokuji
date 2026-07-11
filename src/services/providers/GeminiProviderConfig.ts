@@ -4,6 +4,37 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
 
+// Gemini Settings
+export interface GeminiSettings {
+  apiKey: string;
+  model: string;
+  voice: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  temperature: number;
+  maxTokens: number | 'inf';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  vadStartSensitivity: 'high' | 'low';
+  vadEndSensitivity: 'high' | 'low';
+  vadSilenceDurationMs: number;
+  vadPrefixPaddingMs: number;
+}
+
+export const defaultGeminiSettings: GeminiSettings = {
+  apiKey: '',
+  model: '',
+  voice: 'Aoede',
+  sourceLanguage: 'en-US',
+  targetLanguage: 'ja-JP',
+  temperature: 0.8,
+  maxTokens: 'inf',
+  turnDetectionMode: 'Auto',
+  vadStartSensitivity: 'low',
+  vadEndSensitivity: 'high',
+  vadSilenceDurationMs: 500,
+  vadPrefixPaddingMs: 300,
+};
+
 export class GeminiProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'gemini';
   readonly supportsWebRTC = false;
@@ -137,22 +168,6 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
         temperatureRange: { min: 0.0, max: 2.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 8192, step: 1 },
       },
-      
-      defaults: {
-        model: '',
-        voice: 'Aoede',
-        temperature: 1.0,
-        maxTokens: 'inf' as any,
-        sourceLanguage: 'en-US',
-        targetLanguage: 'ja-JP',
-        turnDetectionMode: 'Auto', // Gemini handles automatically
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto', // Gemini uses built-in transcription
-      },
     };
   }
-} 
+}

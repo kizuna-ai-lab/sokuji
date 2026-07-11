@@ -5,6 +5,43 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 
+// Local Inference Settings
+export interface LocalInferenceSettings {
+  asrModel: string;
+  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
+  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
+  ttsSpeakerId: number;
+  ttsSpeed: number;
+  edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
+  vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
+  vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
+  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
+  systemPrompt: string;                // Advanced-mode speaker prompt (default '')
+  participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
+}
+
+export const defaultLocalInferenceSettings: LocalInferenceSettings = {
+  asrModel: 'sensevoice-int8',
+  translationModel: '',  // Auto-select based on language pair
+  ttsModel: '',  // Auto-select based on target language
+  ttsSpeakerId: 0,
+  ttsSpeed: 1.0,
+  edgeTtsVoice: '',  // Auto-select based on target language
+  sourceLanguage: 'ja',
+  targetLanguage: 'en',
+  turnDetectionMode: 'Auto',
+  vadThreshold: 0.3,
+  vadMinSilenceDuration: 1.4,
+  vadMinSpeechDuration: 0.4,
+  useTemplateMode: true,
+  systemPrompt: '',
+  participantSystemPrompt: '',
+};
+
 /**
  * Provider configuration for Local (Offline) inference.
  * Uses sherpa-onnx ASR + Opus-MT translation + Piper TTS.
@@ -71,22 +108,6 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'local-asr-translate',
-        voice: '',
-        temperature: 0.8,
-        maxTokens: 4096,
-        sourceLanguage: 'ja',
-        targetLanguage: 'en',
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: '',
       },
     };
   }

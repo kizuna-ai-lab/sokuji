@@ -4,6 +4,21 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { ZoomAIClient } from '../clients/ZoomAIClient';
 
+// Zoom AI Services Settings
+export interface ZoomAISettings {
+  apiKey: string;
+  apiSecret: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+export const defaultZoomAISettings: ZoomAISettings = {
+  apiKey: '',
+  apiSecret: '',
+  sourceLanguage: 'ja-JP',
+  targetLanguage: 'en-US',
+};
+
 /**
  * Zoom AI Services (Scribe + Translator) — text-only cascade provider.
  * Asymmetric language matrix: sources are the 5 Scribe-recognizable languages;
@@ -119,22 +134,6 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
         },
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'zoom-scribe-translator-v1',
-        voice: '',
-        temperature: 0.8,
-        maxTokens: 4096,
-        sourceLanguage: 'ja-JP',
-        targetLanguage: 'en-US',
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }

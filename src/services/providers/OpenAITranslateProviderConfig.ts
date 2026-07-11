@@ -1,9 +1,40 @@
 import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
-import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, TranslateTargetLanguage } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
+
+// OpenAI Translate Settings (gpt-realtime-translate model family)
+export interface OpenAITranslateSettings {
+  apiKey: string;
+  // UI display only — not sent to API (auto-detected by model)
+  sourceLanguage: string;
+  // Sent to API as audio.output.language
+  targetLanguage: TranslateTargetLanguage;
+  // Currently the only valid value; UI dropdown shows it as a single option
+  transcriptModel: 'gpt-realtime-whisper';
+  noiseReduction: 'None' | 'Near field' | 'Far field';
+  transportType: TransportType;
+  // Client-side utterance segmentation thresholds in seconds. User (input)
+  // and assistant (output) run independent state machines, so each has its
+  // own threshold. Range 0.1–3.0s. Translate API has no server-side turn
+  // detection, so these only control UI message splitting. Stored as
+  // seconds; converted to ms when building the session config.
+  userSilenceDuration: number;
+  assistantSilenceDuration: number;
+}
+
+export const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
+  apiKey: '',
+  sourceLanguage: 'en',
+  targetLanguage: 'zh',
+  transcriptModel: 'gpt-realtime-whisper',
+  noiseReduction: 'None',
+  transportType: 'websocket',
+  userSilenceDuration: 1.0,
+  assistantSilenceDuration: 0.5,
+};
 
 /**
  * OpenAI Translate provider — dedicated speech-to-speech translation via
@@ -198,22 +229,6 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         // but the fields are required by the type.
         temperatureRange: { min: 0, max: 0, step: 0 },
         maxTokensRange: { min: 0, max: 0, step: 0 },
-      },
-
-      defaults: {
-        model: 'gpt-realtime-translate',
-        voice: '',
-        temperature: 0,
-        maxTokens: 0,
-        sourceLanguage: 'en',
-        targetLanguage: 'zh',
-        turnDetectionMode: '',
-        threshold: 0,
-        prefixPadding: 0,
-        silenceDuration: 1500,
-        semanticEagerness: '',
-        noiseReduction: 'None',
-        transcriptModel: 'gpt-realtime-whisper',
       },
     };
   }

@@ -4,6 +4,39 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { PalabraAIClient } from '../clients/PalabraAIClient';
 
+// PalabraAI Settings
+export interface PalabraAISettings {
+  clientId: string;
+  clientSecret: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  voiceId: string;
+  subscriberCount: number;
+  publisherCanSubscribe: boolean;
+  segmentConfirmationSilenceThreshold: number;
+  sentenceSplitterEnabled: boolean;
+  translatePartialTranscriptions: boolean;
+  desiredQueueLevelMs: number;
+  maxQueueLevelMs: number;
+  autoTempo: boolean;
+}
+
+export const defaultPalabraAISettings: PalabraAISettings = {
+  clientId: '',
+  clientSecret: '',
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+  voiceId: 'default_low',
+  subscriberCount: 0,
+  publisherCanSubscribe: true,
+  segmentConfirmationSilenceThreshold: 0.7,
+  sentenceSplitterEnabled: true,
+  translatePartialTranscriptions: false,
+  desiredQueueLevelMs: 8000,
+  maxQueueLevelMs: 24000,
+  autoTempo: false,
+};
+
 export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'palabraai';
   readonly supportsWebRTC = false;
@@ -188,22 +221,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
       },
-      
-      defaults: {
-        model: '', // PalabraAI doesn't use model selection
-        voice: 'default_low',
-        temperature: 0.8, // Not used by PalabraAI
-        maxTokens: 4096, // Not used by PalabraAI
-        sourceLanguage: 'en', // English for recognition
-        targetLanguage: 'es', // Spanish for translation
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
-      },
     };
   }
-} 
+}

@@ -41,9 +41,8 @@ export interface ProviderCapabilities {
   maxTokensRange: { min: number; max: number; step: number };
 
   // Reasoning effort (only applies to specific models, e.g. gpt-realtime-2).
-  // When true, the provider config must also list `reasoningEfforts` and
-  // `defaults.reasoningEffort`. UI gates rendering on this flag plus the
-  // currently-selected model.
+  // When true, the provider config must also list `reasoningEfforts`. UI
+  // gates rendering on this flag plus the currently-selected model.
   hasReasoningEffort?: boolean;
 }
 
@@ -74,24 +73,6 @@ export interface ProviderConfig {
 
   // Capabilities
   capabilities: ProviderCapabilities;
-
-  // Default values
-  defaults: {
-    model: string;
-    voice: string;
-    temperature: number;
-    maxTokens: number;
-    sourceLanguage: string;
-    targetLanguage: string;
-    turnDetectionMode: string;
-    threshold: number;
-    prefixPadding: number;
-    silenceDuration: number;
-    semanticEagerness: string;
-    noiseReduction: string;
-    transcriptModel: string;
-    reasoningEffort?: ReasoningEffort;
-  };
 }
 
  
