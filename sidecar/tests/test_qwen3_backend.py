@@ -202,10 +202,23 @@ def _generate_with_ref(monkeypatch, ref_frames=10, env=None):
     return seen["frames"], len(wav), 5
 
 
-def test_generate_decodes_full_ref_prefix_by_default(monkeypatch):
+def test_generate_defaults_to_twelve_ref_decode_frames(monkeypatch):
+    frames, wav_len, gen = _generate_with_ref(monkeypatch, ref_frames=90)
+    assert frames == 12 + gen             # default: 12-frame vocoder warm-up tail
+    assert wav_len == gen * 1920
+
+
+def test_generate_short_ref_decoded_fully_by_default(monkeypatch):
     frames, wav_len, gen = _generate_with_ref(monkeypatch, ref_frames=10)
-    assert frames == 10 + gen
-    assert wav_len == gen * 1920          # proportional ref cut removes the prefix
+    assert frames == 10 + gen             # refs shorter than the cap are untouched
+    assert wav_len == gen * 1920
+
+
+def test_generate_ref_decode_frames_env_disables_cap(monkeypatch):
+    frames, wav_len, gen = _generate_with_ref(
+        monkeypatch, ref_frames=90, env={"SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES": "-1"})
+    assert frames == 90 + gen
+    assert wav_len == gen * 1920
 
 
 def test_generate_ref_decode_frames_env_limits_prefix(monkeypatch):
