@@ -67,6 +67,22 @@ def trig_ancestor_block_list(src_path: str) -> list[str]:
     return sorted(block)
 
 
+def swiglu_block_list(src_path: str) -> list[str]:
+    """MLP gate*up products and the down-projections that consume them must
+    stay fp32: Qwen3 hidden states carry outlier channels (|x| ~ 90 observed
+    at the talker output) whose SwiGLU products overflow fp16's 65504 — a
+    single inf then washes every downstream tensor to NaN (observed in
+    code_predictor layer 2 on real inputs; synthetic gaussians never trip it).
+    The down_proj must be blocked together with the Mul because casting the
+    fp32 product back to fp16 at its input would overflow identically."""
+    import onnx
+    import re
+
+    model = onnx.load(src_path, load_external_data=False)
+    pat = re.compile(r"/mlp/(Mul|down_proj/MatMul)$")
+    return sorted(n.name for n in model.graph.node if pat.search(n.name or ""))
+
+
 def convert_one(src_path: str, dst_path: str) -> bool:
     """Convert one graph to fp16; returns False (caller copies fp32) when the
     trig-protection closure covers most of the graph — e.g. the codec vocoder,
@@ -81,8 +97,11 @@ def convert_one(src_path: str, dst_path: str) -> bool:
     if node_count and len(block_list) > node_count // 3:
         print(f"  {len(block_list)}/{node_count} nodes in Sin/Cos chains — keeping fp32", flush=True)
         return False
-    if block_list:
-        print(f"  keeping {len(block_list)} Sin/Cos-chain nodes fp32", flush=True)
+    swiglu = swiglu_block_list(src_path)
+    if block_list or swiglu:
+        print(f"  keeping {len(block_list)} Sin/Cos-chain and {len(swiglu)} "
+              f"SwiGLU-product nodes fp32", flush=True)
+    block_list = sorted(set(block_list) | set(swiglu))
     # Path input → converter uses infer_shapes_path (safe for >2GB models).
     model = convert_float_to_float16(src_path, keep_io_types=False,
                                      node_block_list=block_list or None)

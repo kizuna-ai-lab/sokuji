@@ -270,15 +270,18 @@ def main():
     src = ort_pre_optimize(args.src) if args.pre_optimize else args.src
     model = onnx.load(src)
     model, stats = convert(model, args.op_block_list, args.node_block_prefixes)
-    try:
-        onnx.checker.check_model(model)
-    except onnx.checker.ValidationError as e:
-        # ORT-fused ops (e.g. SimplifiedLayerNormalization) are ORT-internal and
-        # unknown to the onnx checker; that is expected with --pre-optimize.
-        if "No Op registered" not in str(e):
-            raise
-        print(f"checker: skipped ORT-internal op ({str(e).splitlines()[0]})")
     total = sum(len(t.raw_data) for t in model.graph.initializer)
+    if total > 1_900_000_000:
+        print("checker: skipped (>2GB proto cannot be serialized in memory)")
+    else:
+        try:
+            onnx.checker.check_model(model)
+        except onnx.checker.ValidationError as e:
+            # ORT-fused ops (e.g. SimplifiedLayerNormalization) are ORT-internal
+            # and unknown to the onnx checker; expected with --pre-optimize.
+            if "No Op registered" not in str(e):
+                raise
+            print(f"checker: skipped ORT-internal op ({str(e).splitlines()[0]})")
     if total > 1_900_000_000:
         onnx.save(model, args.dst, save_as_external_data=True,
                   all_tensors_to_one_file=True,
