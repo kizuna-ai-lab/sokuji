@@ -211,3 +211,53 @@ describe('descriptor i18n keys', () => {
     }
   });
 });
+
+describe('registry invariants', () => {
+  it('descriptor config id equals its registry key', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      expect(ProviderConfigFactory.getDescriptor(id).getConfig().id).toBe(id);
+    }
+  });
+
+  // Exact expected settingsSliceKey per provider. A typo'd slice key (e.g. a
+  // provider silently falling back to a differently-cased or misspelled key)
+  // must fail this table lookup loudly, not just pass a generic typeof check.
+  const EXPECTED_SLICE_KEYS: Record<Provider, string> = {
+    [Provider.OPENAI]: 'openai',
+    [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
+    [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
+    [Provider.GEMINI]: 'gemini',
+    [Provider.PALABRA_AI]: 'palabraai',
+    [Provider.VOLCENGINE_ST]: 'volcengineST',
+    [Provider.VOLCENGINE_AST2]: 'volcengineAST2',
+    [Provider.ZOOM_AI]: 'zoomAI',
+    [Provider.LOCAL_INFERENCE]: 'localInference',
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
+  };
+
+  it('settingsSliceKey matches the exact expected value per provider', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const key = ProviderConfigFactory.getDescriptor(id).settingsSliceKey;
+      expect(key, `settingsSliceKey for ${id}`).toBe(EXPECTED_SLICE_KEYS[id]);
+    }
+  });
+
+  it('every settingsSliceKey exists in the settings store defaults', async () => {
+    const { default: useSettingsStore } = await import('../../stores/settingsStore');
+    const state = useSettingsStore.getState() as unknown as Record<string, unknown>;
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const key = ProviderConfigFactory.getDescriptor(id).settingsSliceKey;
+      expect(state[key], `slice '${key}' for ${id}`).toBeTypeOf('object');
+    }
+  });
+
+  it('extractCredentials on an empty slice never returns ok (except credential-free providers)', async () => {
+    const credentialFree = new Set([Provider.LOCAL_INFERENCE]);
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      if (credentialFree.has(id) || id.startsWith('kizunaai')) continue;
+      const r = await ProviderConfigFactory.getDescriptor(id).extractCredentials({}, {});
+      expect(r.ok, id).toBe(false);
+    }
+  });
+});

@@ -106,19 +106,6 @@ export class ProviderConfigFactory {
   }
 
   /**
-   * Get provider configuration instance (for advanced usage)
-   * @param providerId - The provider identifier
-   * @returns ProviderDescriptor instance
-   */
-  static getConfigInstance(providerId: ProviderType): ProviderDescriptor {
-    const configInstance = this.configs.get(providerId);
-    if (!configInstance) {
-      throw new Error(`Unsupported provider: ${providerId}`);
-    }
-    return configInstance;
-  }
-
-  /**
    * Get the full provider descriptor — the deep module for one provider's
    * behavior. Callers should prefer this over getConfig() when they need
    * more than static config data.
