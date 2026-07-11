@@ -164,3 +164,59 @@ def test_generate_default_sampling_params_unchanged(monkeypatch):
     # greedy runs must never mutate the module-level constant
     _generate_with_stubs(monkeypatch, {"SOKUJI_QWEN3_TTS_GREEDY": "1"})
     assert _QWEN3_TTS_SAMPLING_PARAMS["do_sample"] is True
+
+
+def _generate_with_ref(monkeypatch, ref_frames=10, env=None):
+    """Run generate() with an ICL voice prompt and a decode-capturing codec.
+    Returns (decode_input_frames, wav_len, gen_frames)."""
+    from types import SimpleNamespace
+
+    seen = {}
+    b = Qwen3TtsOnnxBackend()
+    b._sessions = {}
+    b._cfg = SimpleNamespace(talker=SimpleNamespace(
+        codec_eos_token_id=2150, vocab_size=3072, num_code_groups=16))
+    b._tokenize = lambda text: np.arange(4, dtype=np.int64)[None, :]
+    b._voice_prompt = {
+        "ref_code": [np.ones((ref_frames, 16), np.int64)],
+        "ref_spk_embedding": [np.zeros(8, np.float32)],
+        "x_vector_only_mode": [False], "icl_mode": [True],
+    }
+
+    def fake_decode(codes):
+        seen["frames"] = int(codes.shape[0])
+        return np.zeros(int(codes.shape[0]) * 1920, np.float32)
+
+    b._codec = type("C", (), {"decode": staticmethod(fake_decode)})()
+
+    monkeypatch.setattr(
+        "sokuji_sidecar.tts_backends._q3_template.build_talker_inputs",
+        lambda *a, **k: (np.zeros((1, 3, 8), np.float32), np.ones((1, 3), np.int64),
+                         np.zeros((1, 1, 8), np.float32), np.zeros((1, 1, 8), np.float32)))
+    monkeypatch.setattr(
+        "sokuji_sidecar.tts_backends._q3_runtime.generate_codes",
+        lambda *a, **k: ([np.zeros((5, 16), np.int64)], [np.zeros((5, 8), np.float32)]))
+    for k, v in (env or {}).items():
+        monkeypatch.setenv(k, v)
+    wav, _ = b.generate("hi")
+    return seen["frames"], len(wav), 5
+
+
+def test_generate_decodes_full_ref_prefix_by_default(monkeypatch):
+    frames, wav_len, gen = _generate_with_ref(monkeypatch, ref_frames=10)
+    assert frames == 10 + gen
+    assert wav_len == gen * 1920          # proportional ref cut removes the prefix
+
+
+def test_generate_ref_decode_frames_env_limits_prefix(monkeypatch):
+    frames, wav_len, gen = _generate_with_ref(
+        monkeypatch, ref_frames=10, env={"SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES": "4"})
+    assert frames == 4 + gen              # only a 4-frame vocoder warm-up tail
+    assert wav_len == gen * 1920          # cut must use the truncated ref length
+
+
+def test_generate_ref_decode_frames_env_larger_than_ref_is_noop(monkeypatch):
+    frames, wav_len, gen = _generate_with_ref(
+        monkeypatch, ref_frames=10, env={"SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES": "64"})
+    assert frames == 10 + gen
+    assert wav_len == gen * 1920

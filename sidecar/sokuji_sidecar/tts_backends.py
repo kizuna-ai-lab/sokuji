@@ -599,6 +599,13 @@ class Qwen3TtsOnnxBackend:
 
         ref_code = self._voice_prompt["ref_code"][0] if self._voice_prompt else None
         if ref_code is not None:
+            # The ref prefix exists only to warm up the vocoder's receptive
+            # field before the generated frames; decoding all ~100 frames of
+            # the reference clip costs more codec time than the utterance
+            # itself. This cap keeps just the tail as context.
+            max_ref = int(os.environ.get("SOKUJI_QWEN3_TTS_REF_DECODE_FRAMES", "-1"))
+            if 0 <= max_ref < int(ref_code.shape[0]):
+                ref_code = ref_code[int(ref_code.shape[0]) - max_ref:]
             codes_for_decode = np.concatenate([ref_code, codes], axis=0)
         else:
             codes_for_decode = codes
