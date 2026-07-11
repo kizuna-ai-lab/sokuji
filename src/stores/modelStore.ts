@@ -52,6 +52,9 @@ interface ModelStoreState {
   storageUsedMb: number;
   /** Whether the store has been initialized */
   initialized: boolean;
+  /** Why initialization failed (null = no failure). Shown by the Models UI
+   *  instead of silently rendering nothing; cleared on retry. */
+  initError: string | null;
   /** Whether WebGPU is available on this device */
   webgpuAvailable: boolean;
   /** GPU features supported by this device (e.g. ['shader-f16']) */
@@ -116,6 +119,7 @@ export const useModelStore = create<ModelStoreState>()(
     downloadErrors: {},
     storageUsedMb: 0,
     initialized: false,
+    initError: null,
     webgpuAvailable: false,
     deviceFeatures: [],
     modelVariants: {},
@@ -123,7 +127,9 @@ export const useModelStore = create<ModelStoreState>()(
 
     initialize: async () => {
       if (get().initialized) return;
+      set({ initError: null });
 
+      try {
       const manager = ModelManager.getInstance();
 
       // Check WebGPU FIRST so getDeviceFeatures() cache is populated for isModelReady()
@@ -167,6 +173,15 @@ export const useModelStore = create<ModelStoreState>()(
         deviceFeatures: capabilities.features,
         modelVariants,
       });
+      } catch (err) {
+        // Never fail silently: the Models UI renders initError with a Retry
+        // button instead of an empty section. Every await above can reject
+        // (IndexedDB VersionError from a newer-schema profile, storage
+        // estimate failures, corrupt model metadata).
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[Sokuji] [ModelStore] initialize failed:', err);
+        set({ initError: message });
+      }
     },
 
     downloadModel: async (modelId: string) => {
@@ -564,6 +579,7 @@ export const useModelDownloads = () => useModelStore(s => s.downloads);
 export const useDownloadErrors = () => useModelStore(s => s.downloadErrors);
 export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
+export const useModelInitError = () => useModelStore(s => s.initError);
 export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
 export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
 export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);

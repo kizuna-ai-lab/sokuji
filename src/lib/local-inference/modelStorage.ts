@@ -47,9 +47,12 @@ const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<SokujiModelsDB>> | null = null;
 
-export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
-  if (!dbPromise) {
-    dbPromise = openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
+/** Object stores this build reads/writes. Used to validate a newer-version DB. */
+const REQUIRED_STORES = ['files', 'metadata', 'voice_styles'] as const;
+
+async function openModelsDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+  try {
+    return await openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('files')) {
           db.createObjectStore('files');
@@ -65,6 +68,35 @@ export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
           store.createIndex('engine', 'engine', { unique: false });
         }
       },
+    });
+  } catch (err) {
+    // The DB may have been upgraded past DB_VERSION by a newer build sharing
+    // this profile (e.g. another branch's Electron dev run). IndexedDB forbids
+    // a versioned open below the existing version (VersionError), but newer
+    // schemas are supersets of ours — retry unversioned (opens at the existing
+    // version) and verify every store we need is present.
+    if ((err as DOMException)?.name !== 'VersionError') throw err;
+    const db = await openDB<SokujiModelsDB>(DB_NAME);
+    const missing = REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
+    if (missing.length > 0) {
+      db.close();
+      throw err;
+    }
+    console.warn(
+      `[Sokuji] [ModelStorage] '${DB_NAME}' is at newer version ${db.version} ` +
+      `(this build expects ${DB_VERSION}); opened unversioned since all required stores exist`
+    );
+    return db;
+  }
+}
+
+export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+  if (!dbPromise) {
+    dbPromise = openModelsDb().catch(err => {
+      // Don't poison the cache: allow later calls (e.g. a Retry button) to
+      // attempt a fresh open instead of replaying this rejection forever.
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;

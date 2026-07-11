@@ -480,3 +480,33 @@
     }
   }
 }
+
+.model-management-section__init-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(vars.$color-error, 0.3);
+  border-radius: 6px;
+
+  p {
+    margin: 0;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  button {
+    align-self: flex-start;
+    padding: 4px 14px;
+    border: 1px solid rgba(vars.$color-error, 0.5);
+    border-radius: 4px;
+    background: none;
+    color: vars.$color-error;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+
+    &:hover { background: rgba(vars.$color-error, 0.1); }
+  }
+}
