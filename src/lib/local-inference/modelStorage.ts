@@ -1,11 +1,16 @@
 /**
  * Model Storage — IndexedDB wrapper for persisting model files as Blobs.
  *
- * Database: 'sokuji-models', version 3
- *   Store 'files':         key = '{modelId}/{filename}' → Blob
- *   Store 'metadata':      key = modelId → ModelMetadata
- *   Store 'voice_styles':  key = auto-increment id → StoredVoice (Task 17)
- *   Store 'native_voices': key = auto-increment id → StoredNativeVoice (Task 8)
+ * Database: 'sokuji-models', version 2
+ *   Store 'files':        key = '{modelId}/{filename}' → Blob
+ *   Store 'metadata':     key = modelId → ModelMetadata
+ *   Store 'voice_styles': key = auto-increment id → StoredVoice (Task 17)
+ *
+ * Native voice clips live in their OWN database ('sokuji-native-voices', see
+ * nativeVoiceStorage.ts). Do NOT add stores here by bumping DB_VERSION: the
+ * profile is shared with other branches' builds, and a versioned open below
+ * the existing version throws VersionError (this blanked the Models UI on
+ * main when this DB was briefly at v3).
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
@@ -39,24 +44,21 @@ interface SokujiModelsDB {
     value: unknown;
     indexes: { engine: string };
   };
-  native_voices: {
-    // Auto-increment primary key. Voice records are owned by nativeVoiceStorage.ts;
-    // schema kept loose here so modelStorage stays agnostic.
-    key: number;
-    value: unknown;
-  };
 }
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
 const DB_NAME = 'sokuji-models';
-const DB_VERSION = 3;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<SokujiModelsDB>> | null = null;
 
-export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
-  if (!dbPromise) {
-    dbPromise = openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
+/** Object stores this build reads/writes. Used to validate a newer-version DB. */
+const REQUIRED_STORES = ['files', 'metadata', 'voice_styles'] as const;
+
+async function openModelsDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+  try {
+    return await openDB<SokujiModelsDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('files')) {
           db.createObjectStore('files');
@@ -71,10 +73,37 @@ export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
           });
           store.createIndex('engine', 'engine', { unique: false });
         }
-        if (!db.objectStoreNames.contains('native_voices')) {
-          db.createObjectStore('native_voices', { keyPath: 'id', autoIncrement: true });
-        }
       },
+    });
+  } catch (err) {
+    // The DB may have been upgraded past DB_VERSION by a newer build sharing
+    // this profile (e.g. another branch's Electron dev run — including this
+    // branch's own short-lived v3). IndexedDB forbids a versioned open below
+    // the existing version (VersionError), but newer schemas are supersets of
+    // ours — retry unversioned (opens at the existing version) and verify
+    // every store we need is present.
+    if ((err as DOMException)?.name !== 'VersionError') throw err;
+    const db = await openDB<SokujiModelsDB>(DB_NAME);
+    const missing = REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
+    if (missing.length > 0) {
+      db.close();
+      throw err;
+    }
+    console.warn(
+      `[Sokuji] [ModelStorage] '${DB_NAME}' is at newer version ${db.version} ` +
+      `(this build expects ${DB_VERSION}); opened unversioned since all required stores exist`
+    );
+    return db;
+  }
+}
+
+export function getDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
+  if (!dbPromise) {
+    dbPromise = openModelsDb().catch(err => {
+      // Don't poison the cache: allow later calls (e.g. a Retry button) to
+      // attempt a fresh open instead of replaying this rejection forever.
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;
@@ -173,11 +202,12 @@ export async function deleteModel(modelId: string): Promise<void> {
 /** Clear all data from all stores */
 export async function clearAll(): Promise<void> {
   const db = await getDb();
-  const tx = db.transaction(['files', 'metadata', 'voice_styles', 'native_voices'], 'readwrite');
+  // Note: native voice clips ('sokuji-native-voices' DB) are deliberately NOT
+  // cleared — they are user recordings, not re-downloadable model cache.
+  const tx = db.transaction(['files', 'metadata', 'voice_styles'], 'readwrite');
   await tx.objectStore('files').clear();
   await tx.objectStore('metadata').clear();
   await tx.objectStore('voice_styles').clear();
-  await tx.objectStore('native_voices').clear();
   await tx.done;
 }
 
