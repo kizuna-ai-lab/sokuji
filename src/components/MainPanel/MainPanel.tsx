@@ -5,14 +5,6 @@ import '../../styles/karaoke.scss';
 import {
   useProvider,
   useUIMode,
-  useOpenAISettings,
-  useGeminiSettings,
-  useOpenAICompatibleSettings,
-  usePalabraAISettings,
-  useOpenAITranslateSettings,
-  useVolcengineSTSettings,
-  useVolcengineAST2Settings,
-  useZoomAISettings,
   useLocalInferenceSettings,
   useIsApiKeyValid,
   useAvailableModels,
@@ -32,6 +24,8 @@ import {
   useKeepReplayAudio,
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
+import type { SettingsStore } from '../../stores/settingsStore';
+import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -255,14 +249,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const participantDisplayMode = useParticipantDisplayMode();
   const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
   const setParticipantDisplayMode = useSetParticipantDisplayMode();
-  const openAISettings = useOpenAISettings();
-  const openAICompatibleSettings = useOpenAICompatibleSettings();
-  const geminiSettings = useGeminiSettings();
-  const palabraAISettings = usePalabraAISettings();
-  const openAITranslateSettings = useOpenAITranslateSettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
-  const volcengineAST2Settings = useVolcengineAST2Settings();
-  const zoomAISettings = useZoomAISettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
@@ -498,52 +484,56 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [provider, getProcessedLocalPrompt, getProcessedSystemInstructions, createSessionConfig]);
 
   /**
-   * Helper to create AI client with appropriate parameters based on provider
+   * Better Auth session-token accessor for the relay-managed (kizuna) twins.
+   * Mirrors the pre-descriptor behavior exactly: fetch a fresh token
+   * (skipCache) only when a live, loaded, signed-in session exists; return
+   * null otherwise so the descriptor's extractCredentials reports "sign in
+   * required" instead of connecting with an empty token.
    */
-  const createAIClient = useCallback((modelName: string, apiKey: string, useWebRTC: boolean = false): IClient => {
-    const customEndpoint = provider === Provider.OPENAI_COMPATIBLE
-      ? openAICompatibleSettings.customEndpoint
-      : undefined;
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    if (getToken && isLoaded && isSignedIn === true) {
+      try {
+        return (await getToken({ skipCache: true })) || null;
+      } catch (error) {
+        console.error('[MainPanel] Failed to get fresh auth session for Kizuna AI:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [getToken, isLoaded, isSignedIn]);
 
-    // Determine transport type based on provider and useWebRTC flag
-    // For PalabraAI (LiveKit), treat as 'webrtc' mode for unified handling
+  /**
+   * Create the AI client for the current provider via its descriptor.
+   * Credential shapes live in each provider's descriptor — MainPanel no longer
+   * names provider-specific fields (apiKey / clientSecret / endpoint).
+   */
+  const createAIClient = useCallback(async (useWebRTC: boolean = false): Promise<IClient> => {
+    const descriptor = ProviderConfigFactory.getDescriptor(provider);
+    const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
+    const creds = await descriptor.extractCredentials(slice, { getAuthToken });
+    if (!creds.ok) throw new Error(creds.missing);
+
+    // Determine transport type based on provider and useWebRTC flag.
+    // For PalabraAI (LiveKit), treat as 'webrtc' mode for unified handling.
     const effectiveTransportType = (useWebRTC || provider === Provider.PALABRA_AI) ? 'webrtc' : 'websocket';
 
-    // Check if this provider uses native audio capture (WebRTC or PalabraAI/LiveKit)
-    // Both need device IDs for MediaStreamTrack configuration
-    const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, effectiveTransportType);
+    // Native audio capture (MediaStreamTrack) applies only to descriptors that
+    // truly run over WebRTC. PalabraAI is 'webrtc' transport but uses
+    // appendInputAudio (not in supportsWebRTC), so it is NOT native capture —
+    // this reproduces ClientFactory.usesNativeAudioCapture exactly.
+    const usesNativeCapture = effectiveTransportType === 'webrtc' && descriptor.supportsWebRTC;
 
-    // WebRTC options for native audio capture (OpenAI WebRTC and PalabraAI/LiveKit)
+    // WebRTC options for native audio capture (OpenAI WebRTC).
     // The outputDeviceId enables direct audio playback through HTMLAudioElement, allowing
-    // the browser's AEC to see the remote audio and cancel it from microphone input
-    // When mic is muted (input device "off"), don't pass inputDeviceId to prevent audio capture
+    // the browser's AEC to see the remote audio and cancel it from microphone input.
+    // When mic is muted (input device "off"), don't pass inputDeviceId to prevent audio capture.
     const webrtcOptions = usesNativeCapture ? {
       inputDeviceId: !isMicMuted ? selectedInputDevice?.deviceId : undefined,
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
-    // Get client secret for providers that need it
-    let clientSecret: string | undefined;
-    if (provider === Provider.PALABRA_AI) {
-      clientSecret = palabraAISettings.clientSecret;
-    } else if (provider === Provider.VOLCENGINE_ST) {
-      clientSecret = volcengineSTSettings.secretAccessKey;
-    } else if (provider === Provider.VOLCENGINE_AST2) {
-      clientSecret = volcengineAST2Settings.accessToken;
-    } else if (provider === Provider.ZOOM_AI) {
-      clientSecret = zoomAISettings.apiSecret;
-    }
-
-    return ClientFactory.createClient(
-      modelName,
-      provider,
-      apiKey,
-      clientSecret,
-      customEndpoint,
-      effectiveTransportType,
-      webrtcOptions
-    );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, zoomAISettings.apiSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
+    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions });
+  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -1448,73 +1438,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await audioServiceRef.current.initialize();
       }
 
-      // Create a new AI client instance
-      const currentProviderSettings = getCurrentProviderSettings();
-      
-      // Get the appropriate API key/credentials based on the current provider
-      let apiKey: string;
-      switch (provider) {
-        case Provider.OPENAI:
-          apiKey = openAISettings.apiKey;
-          break;
-        case Provider.OPENAI_COMPATIBLE:
-          apiKey = openAICompatibleSettings.apiKey;
-          break;
-        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-          // For relay-managed providers, fetch a fresh session token from Better Auth
-          if (getToken && isLoaded && isSignedIn === true) {
-            console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
-            try {
-              const freshToken = await getToken({ skipCache: true });
-              apiKey = freshToken || '';
-              console.log('[MainPanel] Successfully got fresh auth session for Kizuna AI');
-            } catch (error) {
-              console.error('[MainPanel] Failed to get fresh auth session:', error);
-              apiKey = '';
-            }
-          } else {
-            // No stored token fallback — relay providers require a live auth session
-            apiKey = '';
-          }
-          break;
-        case Provider.GEMINI:
-          apiKey = geminiSettings.apiKey;
-          break;
-        case Provider.PALABRA_AI:
-          // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
-          apiKey = palabraAISettings.clientId;
-          break;
-        case Provider.OPENAI_TRANSLATE:
-          apiKey = openAITranslateSettings.apiKey;
-          break;
-        case Provider.VOLCENGINE_ST:
-          // Volcengine ST uses accessKeyId as the "apiKey" parameter for ClientFactory
-          apiKey = volcengineSTSettings.accessKeyId;
-          break;
-        case Provider.VOLCENGINE_AST2:
-          // Volcengine AST2 uses appId as the "apiKey" parameter for ClientFactory
-          apiKey = volcengineAST2Settings.appId;
-          break;
-        case Provider.ZOOM_AI:
-          apiKey = zoomAISettings.apiKey;
-          break;
-        case Provider.LOCAL_INFERENCE:
-          // Local inference doesn't need an API key; placeholder for ClientFactory
-          apiKey = 'local';
-          break;
-        default:
-          throw new Error(`Unsupported provider: ${provider}`);
-      }
-
-      // Get model name based on provider
-      const modelName = provider === Provider.PALABRA_AI
-        ? 'realtime-translation'
-        : provider === Provider.LOCAL_INFERENCE
-        ? 'local-asr-translate'
-        : provider === Provider.OPENAI_TRANSLATE
-        ? 'gpt-realtime-translate'
-        : (currentProviderSettings as any).model;
+      // Credentials (apiKey / clientSecret / relay token) are now resolved
+      // inside createAIClient via the active provider's descriptor, so the old
+      // per-provider apiKey switch and modelName lookup that lived here are gone.
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
@@ -1524,7 +1450,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
 
         // Create speaker client using helper
-        speakerClientRef.current = createAIClient(modelName, apiKey, useWebRTC);
+        speakerClientRef.current = await createAIClient(useWebRTC);
 
         // Setup listeners for the new client instance
         await setupClientListeners();
@@ -1586,7 +1512,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             // Create a new client with WebSocket transport
             useWebRTC = false;
-            speakerClientRef.current = createAIClient(modelName, apiKey, false);
+            speakerClientRef.current = await createAIClient(false);
 
             // Re-setup listeners for the new client instance
             await setupClientListeners();
@@ -1766,7 +1692,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           if (electronAcquireOk) {
             // Create participant client using helper
-            participantClientRef.current = createAIClient(modelName, apiKey);
+            participantClientRef.current = await createAIClient();
 
             // Setup event handlers using helper
             const participantClient = participantClientRef.current;
@@ -1900,22 +1826,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(false);
     }
   }, [
-    openAISettings,
-    geminiSettings,
-    openAICompatibleSettings,
-    palabraAISettings,
-    openAITranslateSettings,
-    volcengineSTSettings,
-    volcengineAST2Settings,
-    zoomAISettings,
-    localInferenceSettings,
+    // Per-provider settings, auth accessors, and getCurrentProviderSettings are
+    // no longer read here — createAIClient resolves credentials via the active
+    // provider's descriptor (which closes over getAuthToken).
     noiseSuppressionMode,
     provider,
     transportType,
-    isLoaded,
-    isSignedIn,
-    getToken,
-    getCurrentProviderSettings,
     getSessionConfig,
     setupClientListeners,
     createAIClient,
