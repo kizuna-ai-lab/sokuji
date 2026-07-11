@@ -143,6 +143,7 @@ contextBridge.exposeInMainWorld(
         'update-download',
         'update-install',
         'get-app-version',
+        'get-audio-status',
         // Window control IPC for custom title bar
         'window:minimize',
         'window:maximize-toggle',

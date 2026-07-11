@@ -233,13 +233,16 @@ useSettingsStore.subscribe(
 ## Common Development Tasks
 
 ### Adding a New AI Provider
-1. Create client class implementing `IClient` in `src/services/clients/`
-2. Add provider config extending `ProviderConfig` in `src/services/providers/`
-3. Update `ClientFactory` to handle new provider
-4. Add provider to `Provider` enum in `src/types/Provider.ts`
-5. Add provider settings interface and defaults in `src/stores/settingsStore.ts`
-6. Update `ProviderConfigFactory` to register the new provider
-7. Update UI controls in SimpleConfigPanel
+1. Create the client class implementing `IClient` in `src/services/clients/`
+2. Create `XProviderConfig` in `src/services/providers/` extending `BaseProviderDescriptor`:
+   settings interface + defaults, `settingsSliceKey`, `createClient`, `validateAndFetchModels`,
+   `extractCredentials`, `buildSessionConfig`, language overrides if restricted;
+   set `supportsWebRTC = true` if the provider runs over WebRTC transport (it defaults
+   to `false`), and `i18nKey` if the locale key differs from the provider id
+3. Register it in `ProviderConfigFactory`'s static block (behind its feature flag)
+4. Add the enum value in `src/types/Provider.ts` and the settings slice + update action in `settingsStore.ts`
+5. Add `providers.<id>.name/.description` to locales
+The registry invariant test (`descriptorRegistry.test.ts`) fails loudly on anything missed.
 
 ### Modifying Audio Pipeline
 1. Audio processing modules in `src/lib/modern-audio/` (JavaScript files)

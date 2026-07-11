@@ -868,6 +868,13 @@
     "linuxMigrateTitle": "Nouvelle version v{{version}} disponible",
     "linuxMigrateBody": "Les mises à jour automatiques sont disponibles avec AppImage. Choisissez un format pour télécharger v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (outils en ligne de commande PulseAudio) est introuvable, Sokuji n'a donc pas pu configurer son microphone/haut-parleur virtuel. Installez-le, puis réessayez :",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji n'a pas pu configurer son microphone/haut-parleur virtuel. Assurez-vous que PulseAudio ou PipeWire est en cours d'exécution.",
+    "retry": "Réessayer",
+    "retrying": "Nouvel essai..."
+  },
   "subtitle": {
     "sessionEnded": "Session terminée",
     "backToMain": "Retour à la fenêtre principale",

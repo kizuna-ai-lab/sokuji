@@ -16,10 +16,15 @@ vi.mock('../lib/local-inference/modelManifest', () => ({
   isTranslationModelCompatible: vi.fn(() => true),
 }));
 
+const mockEstimateStorageUsedBytes = vi.fn();
+const mockGetMetadata = vi.fn();
+
 vi.mock('../lib/local-inference/modelStorage', () => ({
   init: vi.fn(),
   getModelStatus: vi.fn(),
   clearAll: vi.fn(),
+  estimateStorageUsedBytes: (...args: any[]) => mockEstimateStorageUsedBytes(...args),
+  getMetadata: (...args: any[]) => mockGetMetadata(...args),
 }));
 
 vi.mock('../lib/local-inference/ModelManager', () => ({
@@ -225,5 +230,33 @@ describe('rememberModels / recallModels', () => {
     expect(recalled!.asrModel).toBe('');
     expect(recalled!.translationModel).toBe('');
     expect(recalled!.ttsModel).toBe('');
+  });
+});
+
+describe('initialize resilience', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useModelStore.setState({ initialized: false, initError: null });
+  });
+
+  it('records initError and stays uninitialized when storage open fails', async () => {
+    mockEstimateStorageUsedBytes.mockRejectedValue(
+      new DOMException('The requested version (2) is less than the existing version (3).', 'VersionError'),
+    );
+    await useModelStore.getState().initialize();
+    expect(useModelStore.getState().initialized).toBe(false);
+    expect(useModelStore.getState().initError).toMatch(/version/i);
+  });
+
+  it('retry succeeds once the failure cause is gone', async () => {
+    mockEstimateStorageUsedBytes.mockRejectedValueOnce(new Error('boom'));
+    await useModelStore.getState().initialize();
+    expect(useModelStore.getState().initError).toBe('boom');
+    expect(useModelStore.getState().initialized).toBe(false);
+
+    mockEstimateStorageUsedBytes.mockResolvedValue(0);
+    await useModelStore.getState().initialize();
+    expect(useModelStore.getState().initialized).toBe(true);
+    expect(useModelStore.getState().initError).toBeNull();
   });
 });

@@ -825,6 +825,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio komut satırı araçları) bulunamadığı için Sokuji sanal mikrofonunu/hoparlörünü kuramadı. Kurun ve ardından yeniden deneyin:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji sanal mikrofonunu/hoparlörünü kuramadı. PulseAudio veya PipeWire'ın çalıştığından emin olun.",
+    "retry": "Yeniden dene",
+    "retrying": "Yeniden deneniyor..."
+  },
   "subtitle": {
     "sessionEnded": "Oturum sona erdi",
     "backToMain": "Ana pencereye dön",

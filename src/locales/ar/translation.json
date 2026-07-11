@@ -869,6 +869,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "لم يتم العثور على pactl (أدوات سطر أوامر PulseAudio)، لذا لم يتمكن Sokuji من إعداد الميكروفون/مكبر الصوت الافتراضي. قم بتثبيته ثم أعد المحاولة:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "لم يتمكن Sokuji من إعداد الميكروفون/مكبر الصوت الافتراضي. تأكد من تشغيل PulseAudio أو PipeWire.",
+    "retry": "إعادة المحاولة",
+    "retrying": "جارٍ إعادة المحاولة..."
+  },
   "subtitle": {
     "sessionEnded": "انتهت الجلسة",
     "backToMain": "العودة إلى النافذة الرئيسية",

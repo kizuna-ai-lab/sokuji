@@ -283,6 +283,22 @@ async function supportsSystemAudioCapture() { return true; }
 // ============================================================================
 
 /**
+ * Check if the `pactl` CLI binary is on PATH.
+ * On Linux, PipeWire/PulseAudio can be running fine while `pactl` itself
+ * (shipped in the separate `pulseaudio-utils` package) is missing, which is
+ * exactly the case that makes createVirtualAudioDevices() fail with ENOENT.
+ * @returns {Promise<boolean>}
+ */
+async function isPactlInstalled() {
+  try {
+    await execPromise('command -v pactl');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Check if PulseAudio is available
  * @returns {Promise<boolean>}
  */
@@ -352,5 +368,6 @@ module.exports = {
   supportsSystemAudioCapture,
   // Utilities
   isPulseAudioAvailable,
+  isPactlInstalled,
   cleanupOrphanedDevices
 };

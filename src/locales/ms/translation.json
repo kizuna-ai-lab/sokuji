@@ -866,6 +866,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (alat baris arahan PulseAudio) tidak dijumpai, jadi Sokuji tidak dapat menyediakan mikrofon/pembesar suara maya. Pasang, kemudian cuba semula:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji tidak dapat menyediakan mikrofon/pembesar suara maya. Pastikan PulseAudio atau PipeWire sedang berjalan.",
+    "retry": "Cuba semula",
+    "retrying": "Mencuba semula..."
+  },
   "subtitle": {
     "sessionEnded": "Sesi berakhir",
     "backToMain": "Kembali ke tetingkap utama",

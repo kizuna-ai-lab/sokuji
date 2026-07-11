@@ -825,6 +825,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "Hindi nahanap ang pactl (mga command-line tool ng PulseAudio), kaya hindi ma-set up ng Sokuji ang virtual na mikropono/speaker nito. I-install ito, pagkatapos ay subukang muli:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Hindi ma-set up ng Sokuji ang virtual na mikropono/speaker nito. Tiyaking tumatakbo ang PulseAudio o PipeWire.",
+    "retry": "Subukang muli",
+    "retrying": "Sinusubukang muli..."
+  },
   "subtitle": {
     "sessionEnded": "Tapos na ang session",
     "backToMain": "Bumalik sa pangunahing window",

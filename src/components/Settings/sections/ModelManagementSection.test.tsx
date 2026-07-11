@@ -43,6 +43,7 @@ vi.mock('../../../stores/modelStore', () => ({
   useDownloadErrors: () => ({}),
   useStorageUsedMb: () => 0,
   useModelInitialized: () => true,
+  useModelInitError: () => null,
   useWebGPUAvailable: () => true,
   useDeviceFeatures: () => [],
   useModelVariants: () => ({}),

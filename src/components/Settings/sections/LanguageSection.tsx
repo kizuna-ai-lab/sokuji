@@ -5,17 +5,12 @@ import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useProvider,
-  useOpenAISettings,
-  useGeminiSettings,
-  useOpenAICompatibleSettings,
-  usePalabraAISettings,
-  useOpenAITranslateSettings,
-  useKizunaOpenaiTranslateSettings,
+  useSettingsStore,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
   useLocalNativeSettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
@@ -28,6 +23,7 @@ import {
   useUpdateLocalNative,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useNavigateToSettings,
   useSetUIMode,
   useTextOnly,
@@ -35,11 +31,11 @@ import {
   useKeepReplayAudio,
   useSetKeepReplayAudio
 } from '../../../stores/settingsStore';
+import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
-import { OpenAITranslateProviderConfig } from '../../../services/providers/OpenAITranslateProviderConfig';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
@@ -70,17 +66,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   // Settings store
   const provider = useProvider();
-  const openAISettings = useOpenAISettings();
-  const geminiSettings = useGeminiSettings();
-  const openAICompatibleSettings = useOpenAICompatibleSettings();
-  const palabraAISettings = usePalabraAISettings();
-  const openAITranslateSettings = useOpenAITranslateSettings();
-  const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   const modelStatuses = useModelStatuses();
@@ -106,6 +96,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
+  const updateZoomAISettings = useUpdateZoomAI();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
   // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
@@ -130,35 +121,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
   }, [provider]);
 
-  // Get current provider settings
-  const currentProviderSettings = useMemo(() => {
-    switch (provider) {
-      case Provider.OPENAI:
-        return openAISettings;
-      case Provider.GEMINI:
-        return geminiSettings;
-      case Provider.OPENAI_COMPATIBLE:
-        return openAICompatibleSettings;
-      case Provider.PALABRA_AI:
-        return palabraAISettings;
-      case Provider.OPENAI_TRANSLATE:
-        return openAITranslateSettings;
-      case Provider.VOLCENGINE_ST:
-        return volcengineSTSettings;
-      case Provider.VOLCENGINE_AST2:
-        return volcengineAST2Settings;
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        return kizunaOpenaiTranslateSettings;
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-        return kizunaVolcengineAst2Settings;
-      case Provider.LOCAL_INFERENCE:
-        return localInferenceSettings;
-      case Provider.LOCAL_NATIVE:
-        return localNativeSettings;
-      default:
-        return openAISettings;
-    }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, openAITranslateSettings, volcengineSTSettings, volcengineAST2Settings, kizunaOpenaiTranslateSettings, kizunaVolcengineAst2Settings, localInferenceSettings, localNativeSettings]);
+  // Get current provider settings via the active descriptor's slice key. The
+  // selector returns the slice object itself — reference-stable under zustand,
+  // so this re-renders only when the slice or the provider changes.
+  const currentProviderSettings = useSettingsStore(
+    (s) => s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore]
+  ) as Record<string, any>;
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -240,6 +208,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         updateLocalNativeSettings(updates);
         break;
       }
+      case Provider.ZOOM_AI: {
+        updateZoomAISettings({
+          sourceLanguage: value,
+          targetLanguage: ProviderConfigFactory.getDescriptor(provider).reconcileTarget(value, zoomAISettings.targetLanguage),
+        });
+        break;
+      }
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -307,6 +282,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         // NativeModelManagementSection's auto-select effect (parity with LOCAL_INFERENCE).
         updateLocalNativeSettings({ targetLanguage: value });
         break;
+      case Provider.ZOOM_AI:
+        updateZoomAISettings({ targetLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -335,6 +313,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       updateActiveVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
       trackEvent('language_changed', { to_language: src, language_type: 'target' });
+    } else if (provider === Provider.ZOOM_AI) {
+      const descriptor = ProviderConfigFactory.getDescriptor(provider);
+      const sources = descriptor.resolveSourceLanguages().map(l => l.value);
+      if (!sources.includes(tgt)) return; // target isn't a Scribe source; cannot become the new source
+      const allowed = descriptor.resolveTargetLanguages(tgt).map(l => l.value);
+      const newTarget = allowed.includes(src) ? src : (allowed[0] || 'en-US');
+      updateZoomAISettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
+      trackEvent('language_changed', { to_language: newTarget, language_type: 'target' });
     } else {
       updateSourceLanguage(tgt);
       // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
@@ -348,7 +335,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, trackEvent]);
+  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, updateZoomAISettings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -356,6 +343,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const targetLanguages = useMemo(() => {
     if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
+    }
+    if (provider === Provider.ZOOM_AI) {
+      return ProviderConfigFactory.getDescriptor(provider).resolveTargetLanguages(currentProviderSettings.sourceLanguage || 'ja-JP');
     }
     return providerConfig.targetLanguages ?? providerConfig.languages;
   }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
@@ -368,7 +358,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const showTranslateParticipantWarning = useMemo(() => {
     if (effectiveProvider !== Provider.OPENAI_TRANSLATE) return false;
     if (!isParticipantChannelInScope) return false;
-    const supportedTargets = OpenAITranslateProviderConfig.getTargetLanguages();
+    const supportedTargets = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).resolveTargetLanguages(currentProviderSettings.sourceLanguage);
     return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
   }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
 
@@ -519,7 +509,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
+                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && provider !== Provider.ZOOM_AI && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (
@@ -534,7 +524,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               <button
                 className="language-swap-btn"
                 onClick={handleSwapLanguages}
-                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto' || currentProviderSettings.sourceLanguage === 'zhen'}
+                disabled={
+                  isSessionActive ||
+                  currentProviderSettings.sourceLanguage === 'auto' ||
+                  currentProviderSettings.sourceLanguage === 'zhen' ||
+                  (provider === Provider.ZOOM_AI &&
+                    !ProviderConfigFactory.getDescriptor(provider).resolveSourceLanguages().some(l => l.value === currentProviderSettings.targetLanguage))
+                }
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"
               >
@@ -572,6 +568,19 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               onChange={() => setTextOnly(!textOnly)}
               label={t('simpleConfig.textOnly', 'Text Only')}
               disabled={isSessionActive}
+              tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+            />
+          )}
+
+          {/* Inherently text-only providers (e.g. Zoom AI, Volcengine ST) show a
+              permanently-on, non-interactive switch so users can see at a glance
+              that the provider produces text only and never synthesizes audio. */}
+          {providerConfig.capabilities.textOnlyCapability === 'always' && (
+            <ToggleSwitch
+              checked={true}
+              onChange={() => {}}
+              label={t('simpleConfig.textOnly', 'Text Only')}
+              disabled
               tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
             />
           )}

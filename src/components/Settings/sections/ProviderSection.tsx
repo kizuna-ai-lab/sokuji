@@ -1,17 +1,15 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
-import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
-  useOpenAISettings,
-  useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useIsApiKeyValid,
   useSetProvider,
   useUpdateOpenAI,
@@ -21,6 +19,7 @@ import {
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -30,7 +29,9 @@ import {
   useNavigateToSettings,
   useLocalInferenceSettings,
   useLocalNativeSettings,
+  useSettingsStore,
 } from '../../../stores/settingsStore';
+import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -55,6 +56,25 @@ import {
   actualNativeMemoryByDevice,
   formatMemMb,
 } from '../../../lib/local-inference/native/nativeCatalog';
+
+// Icons are React components and stay in the UI layer — the descriptor only
+// carries the i18n key (see i18nKey on ProviderDescriptor). Keys omitted here
+// fall back to DefaultProviderIcon.
+const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: string | number }>>> = {
+  [Provider.OPENAI]: OpenAIIcon,
+  [Provider.GEMINI]: GeminiIcon,
+  [Provider.OPENAI_COMPATIBLE]: Zap,
+  [Provider.OPENAI_TRANSLATE]: OpenAIIcon,
+  [Provider.PALABRA_AI]: PalabraAIIcon,
+  [Provider.VOLCENGINE_ST]: VolcengineIcon,
+  [Provider.VOLCENGINE_AST2]: VolcengineIcon,
+  [Provider.ZOOM_AI]: ZoomIcon,
+  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
+  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
+  [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
+  [Provider.LOCAL_NATIVE]: KizunaAIIcon,
+};
+const DefaultProviderIcon = HelpCircle;
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
@@ -84,13 +104,11 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Settings store
   const provider = useProvider();
-  const openAISettings = useOpenAISettings();
-  const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
   const isApiKeyValid = useIsApiKeyValid();
 
   const setProvider = useSetProvider();
@@ -101,6 +119,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateZoomAISettings = useUpdateZoomAI();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -251,26 +270,18 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     return ProviderConfigFactory.getAllConfigs();
   }, []);
 
-  // Get current API key based on provider
-  const getCurrentApiKey = () => {
-    switch (provider) {
-      case Provider.OPENAI:
-        return openAISettings.apiKey;
-      case Provider.GEMINI:
-        return geminiSettings.apiKey;
-      case Provider.OPENAI_COMPATIBLE:
-        return openAICompatibleSettings.apiKey;
-      case Provider.PALABRA_AI:
-        return palabraAISettings.clientId;
-      case Provider.OPENAI_TRANSLATE:
-        return openAITranslateSettings.apiKey;
-      case Provider.VOLCENGINE_ST:
-        return volcengineSTSettings.accessKeyId;
-      case Provider.VOLCENGINE_AST2:
-        return volcengineAST2Settings.appId;
-      default:
-        return '';
-    }
+  // Get current API key based on provider — delegates to the descriptor's
+  // peekPrimaryCredential so the per-provider credential shape lives in one
+  // place instead of being hand-copied here (see also settingsStore.validateApiKey).
+  // Subscribes reactively to whichever settings slice the current provider maps
+  // to: a plain getState() snapshot wouldn't re-render this component as the
+  // user types (OpenAI/Gemini/OpenAI Translate no longer have their own
+  // dedicated settings hooks called here after the switch collapsed).
+  const currentProviderSettingsSlice = useSettingsStore(
+    (state) => state[ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore]
+  );
+  const getCurrentApiKey = (): string => {
+    return ProviderConfigFactory.getDescriptor(provider).peekPrimaryCredential(currentProviderSettingsSlice);
   };
 
   // Update API key based on provider
@@ -296,6 +307,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.VOLCENGINE_AST2:
         updateVolcengineAST2Settings({ appId: value });
+        break;
+      case Provider.ZOOM_AI:
+        updateZoomAISettings({ apiKey: value });
         break;
     }
   };
@@ -345,86 +359,27 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     }
   }, [isProviderExpanded, handleClickOutside]);
 
-  // Get provider info by ID
+  // Get provider info by ID. Name/description resolve through the descriptor's
+  // i18n key (defaults to the provider id itself — see i18nKey on
+  // ProviderDescriptor); icons stay in the UI layer via PROVIDER_ICONS.
+  // Falls back to the 'unknown' catalog entry for a providerId that isn't
+  // currently registered (e.g. a persisted selection whose feature flag was
+  // since disabled) — mirrors the old switch's default arm.
   const getProviderInfoById = (providerId: ProviderType) => {
-    switch (providerId) {
-      case Provider.OPENAI:
-        return {
-          name: t('providers.openai.name'),
-          icon: OpenAIIcon,
-          description: t('providers.openai.description')
-        };
-      case Provider.GEMINI:
-        return {
-          name: t('providers.gemini.name'),
-          icon: GeminiIcon,
-          description: t('providers.gemini.description')
-        };
-      case Provider.OPENAI_COMPATIBLE:
-        return {
-          name: t('providers.openaiCompatible.name', 'OpenAI Compatible API'),
-          icon: Zap,
-          description: t('providers.openaiCompatible.description', 'Custom OpenAI-compatible endpoint')
-        };
-      case Provider.OPENAI_TRANSLATE:
-        return {
-          name: t('providers.openai_translate.name', 'OpenAI Translate'),
-          icon: OpenAIIcon,
-          description: t('providers.openai_translate.description', "OpenAI's dedicated real-time translation model")
-        };
-      case Provider.PALABRA_AI:
-        return {
-          name: t('providers.palabraai.name'),
-          icon: PalabraAIIcon,
-          description: t('providers.palabraai.description')
-        };
-      case Provider.VOLCENGINE_ST:
-        return {
-          name: t('providers.volcengine_st.name'),
-          icon: VolcengineIcon,
-          description: t('providers.volcengine_st.description')
-        };
-      case Provider.VOLCENGINE_AST2:
-        return {
-          name: t('providers.volcengine_ast2.name'),
-          icon: VolcengineIcon,
-          description: t('providers.volcengine_ast2.description')
-        };
-      case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-        // Relay-managed twin of OpenAI Translate. Locale strings not yet added;
-        // English fallbacks keep the dropdown label usable (follow-up: i18n).
-        return {
-          name: t('providers.kizunaai_openai_translate.name', 'KizunaAI Translate'),
-          icon: KizunaAIIcon,
-          description: t('providers.kizunaai_openai_translate.description', 'Real-time translation, authenticated via your account')
-        };
-      case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-        return {
-          name: t('providers.kizunaai_volcengine_ast2.name', 'KizunaAI Doubao'),
-          icon: KizunaAIIcon,
-          description: t('providers.kizunaai_volcengine_ast2.description', 'Speech-to-speech translation, authenticated via your account')
-        };
-      case Provider.LOCAL_INFERENCE:
-        return {
-          name: t('providers.local_inference.name', 'Local (Offline)'),
-          icon: KizunaAIIcon,
-          description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
-        };
-      case Provider.LOCAL_NATIVE:
-        return {
-          // LOCAL_NATIVE is the high-performance native-hardware variant of
-          // LOCAL_INFERENCE — same capabilities, so the copy mirrors it (+ TTS).
-          name: t('providers.local_native.name', 'Free (Native)'),
-          icon: KizunaAIIcon,
-          description: t('providers.local_native.description', 'Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)')
-        };
-      default:
-        return {
-          name: t('providers.unknown.name'),
-          icon: HelpCircle,
-          description: t('providers.unknown.description')
-        };
+    if (!ProviderConfigFactory.isProviderSupported(providerId)) {
+      return {
+        name: t('providers.unknown.name'),
+        icon: DefaultProviderIcon,
+        description: t('providers.unknown.description'),
+      };
     }
+    const descriptor = ProviderConfigFactory.getDescriptor(providerId);
+    const key = descriptor.i18nKey ?? providerId;
+    return {
+      name: t(`providers.${key}.name`),
+      icon: PROVIDER_ICONS[providerId] ?? DefaultProviderIcon,
+      description: t(`providers.${key}.description`),
+    };
   };
 
   const providerInfo = getProviderInfoById(provider);
@@ -757,6 +712,38 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 ) : (
                   t('simpleSettings.validate')
                 )}
+              </button>
+            </div>
+          </div>
+        ) : provider === Provider.ZOOM_AI ? (
+          // Zoom AI requires both an API Key and an API Secret (Build Platform)
+          <div className="volcengine-st-credentials-group">
+            <div className="api-key-input-group">
+              <input
+                type="text"
+                value={zoomAISettings.apiKey}
+                onChange={(e) => updateZoomAISettings({ apiKey: e.target.value })}
+                placeholder={t('providers.zoom_ai.apiKeyPlaceholder', 'API Key')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+            </div>
+            <div className="api-key-input-group">
+              <input
+                type="password"
+                value={zoomAISettings.apiSecret}
+                onChange={(e) => updateZoomAISettings({ apiSecret: e.target.value })}
+                placeholder={t('providers.zoom_ai.apiSecretPlaceholder', 'API Secret')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+              <button
+                className="validate-button"
+                onClick={handleValidateApiKey}
+                disabled={!zoomAISettings.apiKey || !zoomAISettings.apiSecret || isValidating || isSessionActive}
+                title={t('simpleSettings.validate')}
+              >
+                {isValidating ? <span className="spinner" /> : isApiKeyValid ? <CheckCircle size={16} /> : t('simpleSettings.validate')}
               </button>
             </div>
           </div>

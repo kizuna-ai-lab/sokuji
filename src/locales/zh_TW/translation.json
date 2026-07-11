@@ -871,6 +871,13 @@
     "linuxMigrateTitle": "有新版本 v{{version}}",
     "linuxMigrateBody": "AppImage 格式支援自動更新。選擇一種格式下載 v{{version}}。"
   },
+  "audioSystem": {
+    "pactlMissingBody": "未偵測到 pactl（PulseAudio 命令列工具），Sokuji 無法建立虛擬麥克風/喇叭。請安裝後重試：",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji 無法建立虛擬麥克風/喇叭，請確認 PulseAudio 或 PipeWire 正在執行。",
+    "retry": "重試",
+    "retrying": "重試中..."
+  },
   "subtitle": {
     "sessionEnded": "對話已結束",
     "backToMain": "返回主視窗",

@@ -1,6 +1,103 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, PalabraAISessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { PalabraAIClient } from '../clients/PalabraAIClient';
 
-export class PalabraAIProviderConfig {
+// PalabraAI Settings
+export interface PalabraAISettings {
+  clientId: string;
+  clientSecret: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  voiceId: string;
+  subscriberCount: number;
+  publisherCanSubscribe: boolean;
+  segmentConfirmationSilenceThreshold: number;
+  sentenceSplitterEnabled: boolean;
+  translatePartialTranscriptions: boolean;
+  desiredQueueLevelMs: number;
+  maxQueueLevelMs: number;
+  autoTempo: boolean;
+}
+
+export const defaultPalabraAISettings: PalabraAISettings = {
+  clientId: '',
+  clientSecret: '',
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+  voiceId: 'default_low',
+  subscriberCount: 0,
+  publisherCanSubscribe: true,
+  segmentConfirmationSilenceThreshold: 0.7,
+  sentenceSplitterEnabled: true,
+  translatePartialTranscriptions: false,
+  desiredQueueLevelMs: 8000,
+  maxQueueLevelMs: 24000,
+  autoTempo: false,
+};
+
+export class PalabraAIProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'palabraai';
+  readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as PalabraAISettings;
+    if (!s?.clientId || !s?.clientSecret) {
+      return { ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' };
+    }
+    return { ok: true, primary: s.clientId, secret: s.clientSecret };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return (slice as PalabraAISettings)?.clientId ?? '';
+  }
+
+  // creds.secret is guaranteed by extractCredentials (Task 5).
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('Client secret is required for palabraai provider');
+    return new PalabraAIClient(creds.primary, creds.secret);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both Client ID and Client Secret are required for Palabra AI', validating: false }, models: [] };
+    }
+    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret);
+    return {
+      validation,
+      models: [{ id: 'realtime-translation', type: 'realtime', created: Date.now() / 1000 }],
+    };
+  }
+
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as PalabraAISettings;
+    return {
+      provider: 'palabraai',
+      model: 'realtime-translation',
+      voice: settings.voiceId,
+      instructions: systemInstructions,
+      temperature: 0.8,
+      maxTokens: 'inf',
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguage: settings.targetLanguage,
+      voiceId: settings.voiceId,
+      segmentConfirmationSilenceThreshold: settings.segmentConfirmationSilenceThreshold,
+      sentenceSplitterEnabled: settings.sentenceSplitterEnabled,
+      translatePartialTranscriptions: settings.translatePartialTranscriptions,
+      desiredQueueLevelMs: settings.desiredQueueLevelMs,
+      maxQueueLevelMs: settings.maxQueueLevelMs,
+      autoTempo: settings.autoTempo,
+    } as PalabraAISessionConfig;
+  }
+
   // PalabraAI supported source languages (for recognition) based on their documentation
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar', englishName: 'Arabic' },
@@ -107,9 +204,11 @@ export class PalabraAIProviderConfig {
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = PalabraAIProviderConfig.SOURCE_LANGUAGES;
 
-  // Helper method to get target languages for a given source language
-  static getTargetLanguagesForSource(sourceLanguage: string): LanguageOption[] {
-    // Return all target languages - PalabraAI supports most language pairs
+  // PalabraAI supports most language pairs, so the target list doesn't depend
+  // on the source. getConfig() doesn't set `targetLanguages` (LANGUAGES/config
+  // reuses the source list for the shared dropdown), so the base default would
+  // incorrectly fall back to the source list here — override explicitly.
+  resolveTargetLanguages(_source: string): LanguageOption[] {
     return PalabraAIProviderConfig.TARGET_LANGUAGES;
   }
 
@@ -157,22 +256,6 @@ export class PalabraAIProviderConfig {
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
       },
-      
-      defaults: {
-        model: '', // PalabraAI doesn't use model selection
-        voice: 'default_low',
-        temperature: 0.8, // Not used by PalabraAI
-        maxTokens: 4096, // Not used by PalabraAI
-        sourceLanguage: 'en', // English for recognition
-        targetLanguage: 'es', // Spanish for translation
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
-      },
     };
   }
-} 
+}

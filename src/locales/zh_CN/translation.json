@@ -910,6 +910,13 @@
     "linuxMigrateTitle": "有新版本 v{{version}}",
     "linuxMigrateBody": "AppImage 格式支持自动更新。选择一种格式下载 v{{version}}。"
   },
+  "audioSystem": {
+    "pactlMissingBody": "未检测到 pactl（PulseAudio 命令行工具），Sokuji 无法创建虚拟麦克风/扬声器。请安装后重试：",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji 无法创建虚拟麦克风/扬声器，请确认 PulseAudio 或 PipeWire 正在运行。",
+    "retry": "重试",
+    "retrying": "重试中..."
+  },
   "connectionStatus": {
     "reconnecting": "重新连接中..."
   },

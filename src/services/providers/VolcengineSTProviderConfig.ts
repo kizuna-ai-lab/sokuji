@@ -1,6 +1,70 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, VolcengineSTSessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { VolcengineSTClient } from '../clients/VolcengineSTClient';
 
-export class VolcengineSTProviderConfig {
+// Volcengine Speech Translate Settings
+export interface VolcengineSTSettings {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+export const defaultVolcengineSTSettings: VolcengineSTSettings = {
+  accessKeyId: '',
+  secretAccessKey: '',
+  sourceLanguage: 'zh',
+  targetLanguage: 'en',
+};
+
+export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'volcengineST';
+  readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as VolcengineSTSettings;
+    if (!s?.accessKeyId || !s?.secretAccessKey) {
+      return { ok: false, missing: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate' };
+    }
+    return { ok: true, primary: s.accessKeyId, secret: s.secretAccessKey };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return (slice as VolcengineSTSettings)?.accessKeyId ?? '';
+  }
+
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('Secret Access Key is required for volcengine_st provider');
+    return new VolcengineSTClient(creds.primary, creds.secret);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate', validating: false }, models: [] };
+    }
+    return VolcengineSTClient.validateApiKeyAndFetchModels(creds.primary, creds.secret);
+  }
+
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as VolcengineSTSettings;
+    return {
+      provider: 'volcengine_st',
+      model: 'speech-translate-v1',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguages: [settings.targetLanguage],
+    } as VolcengineSTSessionConfig;
+  }
+
   // Volcengine Real-time Speech Translation supported source languages
   // Based on API documentation: zh, ja, en
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
@@ -45,14 +109,12 @@ export class VolcengineSTProviderConfig {
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = VolcengineSTProviderConfig.SOURCE_LANGUAGES;
 
-  // Helper method to get target languages
-  static getTargetLanguages(): LanguageOption[] {
+  // Target languages (28) differ from the source list (3) and from getConfig().languages,
+  // so the BaseProviderDescriptor default (which falls back to getConfig().languages when
+  // targetLanguages isn't set) doesn't apply here — override explicitly.
+  // resolveSourceLanguages() uses the base default, which already matches SOURCE_LANGUAGES.
+  resolveTargetLanguages(_source: string): LanguageOption[] {
     return VolcengineSTProviderConfig.TARGET_LANGUAGES;
-  }
-
-  // Helper method to get source languages
-  static getSourceLanguages(): LanguageOption[] {
-    return VolcengineSTProviderConfig.SOURCE_LANGUAGES;
   }
 
   // Volcengine doesn't have voice selection for real-time translation (text output only)
@@ -95,22 +157,6 @@ export class VolcengineSTProviderConfig {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'speech-translate-v1',
-        voice: '',
-        temperature: 0.8, // Not used by Volcengine
-        maxTokens: 4096, // Not used by Volcengine
-        sourceLanguage: 'zh', // Chinese for recognition
-        targetLanguage: 'en', // English for translation
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }

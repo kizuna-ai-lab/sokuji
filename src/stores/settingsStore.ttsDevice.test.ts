@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Provider } from '../types/Provider';
 
+// LOCAL_NATIVE is registered in ProviderConfigFactory only under Electron;
+// createSessionConfig dispatches through the registry, so the descriptor must
+// be present for these session-config assertions.
+vi.mock('../utils/environment', async (orig) => {
+  const actual = await orig() as Record<string, unknown>;
+  return { ...actual, isElectron: () => true };
+});
+
 // Mock ServiceFactory (required — settingsStore calls it during updateLocalNative)
 const mockSetSetting = vi.fn().mockResolvedValue(undefined);
 vi.mock('../services/ServiceFactory', () => ({

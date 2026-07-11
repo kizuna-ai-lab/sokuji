@@ -132,3 +132,24 @@ export const VolcengineIcon: React.FC<IconProps> = ({ size = 24, className, styl
     <path d="M10.278 7.741L6.685 21.736a.214.214 0 00.214.264h7.17a.215.215 0 00.214-.264L10.688 7.741a.214.214 0 00-.41 0z" fill="#00E5E5" />
   </svg>
 );
+
+/**
+ * Zoom brand mark: Zoom-blue rounded square with a white video-camera glyph.
+ * @see https://brand.zoom.us
+ */
+export const ZoomIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    style={style}
+  >
+    <rect width="24" height="24" rx="5" fill="#0B5CFF" />
+    <path
+      d="M6.2 8h6.1c.663 0 1.2.537 1.2 1.2v5.6c0 .663-.537 1.2-1.2 1.2H6.2c-.663 0-1.2-.537-1.2-1.2V9.2C5 8.537 5.537 8 6.2 8zm8.5 2.26l3.2-2.33c.278-.203.66-.006.66.331v7.478c0 .337-.382.534-.66.331l-3.2-2.33v-3.48z"
+      fill="#fff"
+    />
+  </svg>
+);
