@@ -7,6 +7,8 @@ import { ProviderConfig } from './ProviderConfig';
  * routed through the Kizuna relay (handled in ClientFactory).
  */
 export class KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2ProviderConfig {
+  readonly settingsSliceKey: string = 'kizunaVolcengineAst2';
+
   getConfig(): ProviderConfig {
     const base = super.getConfig();
     return {

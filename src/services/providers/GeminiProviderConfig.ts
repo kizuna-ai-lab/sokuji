@@ -1,6 +1,29 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 
-export class GeminiProviderConfig {
+export class GeminiProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'gemini';
+  readonly supportsWebRTC = false;
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    throw new Error('not migrated yet: createClient');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  async validateAndFetchModels(_creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    throw new Error('not migrated yet: validateAndFetchModels');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
+    throw new Error('not migrated yet: buildSessionConfig');
+  }
+
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'English (United States)', value: 'en-US', englishName: 'English (United States)' },
     { name: 'English (Australia)', value: 'en-AU', englishName: 'English (Australia)' },

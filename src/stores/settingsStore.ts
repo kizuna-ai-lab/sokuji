@@ -3,6 +3,7 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
+import type {TransportType} from '../services/providers/ProviderDescriptor';
 import {
   FilteredModel,
   SessionConfig,
@@ -46,8 +47,8 @@ export interface CommonSettings {
   participantDisplayMode: DisplayMode;
 }
 
-// Transport type for OpenAI Realtime API
-export type TransportType = 'websocket' | 'webrtc';
+// Transport type moved to the services layer; re-exported for existing importers.
+export type { TransportType } from '../services/providers/ProviderDescriptor';
 
 // OpenAI-compatible Settings (used by OpenAI and KizunaAI)
 export interface OpenAICompatibleSettingsBase {

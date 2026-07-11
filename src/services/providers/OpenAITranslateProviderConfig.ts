@@ -1,4 +1,7 @@
 import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 
 /**
  * OpenAI Translate provider — dedicated speech-to-speech translation via
@@ -6,7 +9,27 @@ import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
  * the model; the value here is used for transcript display + as the
  * participant client's translate target) and 13 target output languages.
  */
-export class OpenAITranslateProviderConfig {
+export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'openaiTranslate';
+  readonly supportsWebRTC = true;
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    throw new Error('not migrated yet: createClient');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  async validateAndFetchModels(_creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    throw new Error('not migrated yet: validateAndFetchModels');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
+    throw new Error('not migrated yet: buildSessionConfig');
+  }
+
   // 13 target languages supported by gpt-realtime-translate.
   // Codes are coarse (zh, pt — not zh_CN, pt_BR) per API requirement.
   private static readonly TARGET_LANGUAGES: LanguageOption[] = [

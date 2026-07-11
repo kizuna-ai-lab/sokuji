@@ -7,6 +7,8 @@ import { ProviderConfig } from './ProviderConfig';
  * routed through the Kizuna relay (handled in ClientFactory).
  */
 export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProviderConfig {
+  readonly settingsSliceKey: string = 'kizunaOpenaiTranslate';
+
   getConfig(): ProviderConfig {
     const base = super.getConfig();
     return {

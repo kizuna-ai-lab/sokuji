@@ -1,5 +1,8 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
+import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 
 /**
  * Provider configuration for Local (Offline) inference.
@@ -7,7 +10,27 @@ import { getTranslationSourceLanguages } from '../../lib/local-inference/modelMa
  *
  * Languages are derived dynamically from the model manifest.
  */
-export class LocalInferenceProviderConfig {
+export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'localInference';
+  readonly supportsWebRTC = false;
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    throw new Error('not migrated yet: createClient');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  async validateAndFetchModels(_creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    throw new Error('not migrated yet: validateAndFetchModels');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
+    throw new Error('not migrated yet: buildSessionConfig');
+  }
+
   private static readonly MODELS: ModelOption[] = [
     { id: 'local-asr-translate', type: 'realtime' },
   ];

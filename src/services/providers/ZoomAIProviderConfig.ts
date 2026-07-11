@@ -1,11 +1,34 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 
 /**
  * Zoom AI Services (Scribe + Translator) — text-only cascade provider.
  * Asymmetric language matrix: sources are the 5 Scribe-recognizable languages;
  * a translation pair must have English on one side.
  */
-export class ZoomAIProviderConfig {
+export class ZoomAIProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'zoomAI';
+  readonly supportsWebRTC = false;
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    throw new Error('not migrated yet: createClient');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  async validateAndFetchModels(_creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    throw new Error('not migrated yet: validateAndFetchModels');
+  }
+
+  // TODO(Task 2/3/6): replace with real implementation, migrated from ClientFactory/ClientOperations.
+  buildSessionConfig(_slice: unknown, _systemInstructions: string): SessionConfig {
+    throw new Error('not migrated yet: buildSessionConfig');
+  }
+
   // ASR-recognizable sources (Zoom Scribe supported languages).
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
     { name: 'English', value: 'en-US', englishName: 'English' },

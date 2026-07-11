@@ -1,4 +1,5 @@
 import { ProviderConfig } from './ProviderConfig';
+import { ProviderDescriptor } from './ProviderDescriptor';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
@@ -13,12 +14,8 @@ import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled, isElectron, isExtension } from '../../utils/environment';
 
-interface ProviderConfigInstance {
-  getConfig(): ProviderConfig;
-}
-
 export class ProviderConfigFactory {
-  private static configs: Map<ProviderType, ProviderConfigInstance> = new Map();
+  private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
 
   static {
     // Initialize configurations
@@ -102,22 +99,35 @@ export class ProviderConfigFactory {
   /**
    * Register a new provider configuration
    * @param providerId - The provider identifier
-   * @param config - The provider configuration instance
+   * @param config - The provider descriptor instance
    */
-  static registerProvider(providerId: ProviderType, config: ProviderConfigInstance): void {
+  static registerProvider(providerId: ProviderType, config: ProviderDescriptor): void {
     this.configs.set(providerId, config);
   }
 
   /**
    * Get provider configuration instance (for advanced usage)
    * @param providerId - The provider identifier
-   * @returns ProviderConfigInstance instance
+   * @returns ProviderDescriptor instance
    */
-  static getConfigInstance(providerId: ProviderType): ProviderConfigInstance {
+  static getConfigInstance(providerId: ProviderType): ProviderDescriptor {
     const configInstance = this.configs.get(providerId);
     if (!configInstance) {
       throw new Error(`Unsupported provider: ${providerId}`);
     }
     return configInstance;
   }
-} 
+
+  /**
+   * Get the full provider descriptor — the deep module for one provider's
+   * behavior. Callers should prefer this over getConfig() when they need
+   * more than static config data.
+   * @param providerId - The provider identifier
+   * @returns ProviderDescriptor instance
+   */
+  static getDescriptor(providerId: ProviderType): ProviderDescriptor {
+    const d = this.configs.get(providerId);
+    if (!d) throw new Error(`Unsupported provider: ${providerId}`);
+    return d;
+  }
+}

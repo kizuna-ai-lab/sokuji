@@ -7,6 +7,10 @@ import { Provider } from '../../types/Provider';
  * Allows users to specify custom API endpoints that are OpenAI-compatible
  */
 export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
+  readonly settingsSliceKey = 'openaiCompatible';
+  readonly i18nKey = 'openaiCompatible';
+  readonly supportsWebRTC = true;
+
   getConfig(): ProviderConfig {
     // Get the base OpenAI configuration
     const baseConfig = super.getConfig();
