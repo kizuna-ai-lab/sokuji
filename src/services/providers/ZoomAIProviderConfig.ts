@@ -1,11 +1,72 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, ZoomAISessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { ZoomAIClient } from '../clients/ZoomAIClient';
+
+// Zoom AI Services Settings
+export interface ZoomAISettings {
+  apiKey: string;
+  apiSecret: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+export const defaultZoomAISettings: ZoomAISettings = {
+  apiKey: '',
+  apiSecret: '',
+  sourceLanguage: 'ja-JP',
+  targetLanguage: 'en-US',
+};
 
 /**
  * Zoom AI Services (Scribe + Translator) — text-only cascade provider.
  * Asymmetric language matrix: sources are the 5 Scribe-recognizable languages;
  * a translation pair must have English on one side.
  */
-export class ZoomAIProviderConfig {
+export class ZoomAIProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'zoomAI';
+  readonly supportsWebRTC = false;
+
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as ZoomAISettings;
+    if (!s?.apiKey || !s?.apiSecret) {
+      return { ok: false, missing: 'Both API Key and API Secret are required for Zoom AI Services' };
+    }
+    return { ok: true, primary: s.apiKey, secret: s.apiSecret };
+  }
+
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('API Secret is required for zoom_ai provider');
+    return new ZoomAIClient(creds.primary, creds.secret);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both API Key and API Secret are required for Zoom AI Services', validating: false }, models: [] };
+    }
+    return ZoomAIClient.validateApiKeyAndFetchModels(creds.primary, creds.secret);
+  }
+
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as ZoomAISettings;
+    return {
+      provider: 'zoom_ai',
+      model: 'zoom-scribe-translator-v1',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguages: [settings.targetLanguage],
+      textOnly: true,
+    } as ZoomAISessionConfig;
+  }
+
   // ASR-recognizable sources (Zoom Scribe supported languages).
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
     { name: 'English', value: 'en-US', englishName: 'English' },
@@ -46,20 +107,20 @@ export class ZoomAIProviderConfig {
     { id: 'zoom-scribe-translator-v1', type: 'realtime' },
   ];
 
-  static getSourceLanguages(): LanguageOption[] {
+  resolveSourceLanguages(): LanguageOption[] {
     return ZoomAIProviderConfig.SOURCE_LANGUAGES;
   }
 
-  static getTargetLanguagesForSource(src: string): LanguageOption[] {
-    return ZoomAIProviderConfig.PAIRS[src] ?? ZoomAIProviderConfig.EN_ONLY;
+  resolveTargetLanguages(source: string): LanguageOption[] {
+    return ZoomAIProviderConfig.PAIRS[source] ?? ZoomAIProviderConfig.EN_ONLY;
   }
 
   /** Reconciles a target language against a (possibly new) source, falling back
    * to the first allowed target — or 'en-US' if none — when the current target
    * is no longer valid for the source. Shared by LanguageSection and
    * ProviderSpecificSettings so the fallback rule lives in one place. */
-  static reconcileTarget(sourceValue: string, currentTarget: string): string {
-    const allowed = this.getTargetLanguagesForSource(sourceValue).map(l => l.value);
+  reconcileTarget(source: string, currentTarget: string): string {
+    const allowed = this.resolveTargetLanguages(source).map(l => l.value);
     return allowed.includes(currentTarget) ? currentTarget : (allowed[0] || 'en-US');
   }
 
@@ -93,22 +154,6 @@ export class ZoomAIProviderConfig {
         },
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'zoom-scribe-translator-v1',
-        voice: '',
-        temperature: 0.8,
-        maxTokens: 4096,
-        sourceLanguage: 'ja-JP',
-        targetLanguage: 'en-US',
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }

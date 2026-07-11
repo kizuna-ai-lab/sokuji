@@ -6,17 +6,9 @@ import {ProviderConfig} from '../services/providers/ProviderConfig';
 import {
   FilteredModel,
   SessionConfig,
-  OpenAISessionConfig,
-  OpenAITranslateSessionConfig,
-  GeminiSessionConfig,
-  PalabraAISessionConfig,
-  VolcengineSTSessionConfig,
-  ZoomAISessionConfig,
-  VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig,
-  TranslateTargetLanguage
 } from '../services/interfaces/IClient';
-import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
+import { getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
@@ -25,6 +17,48 @@ import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
+import {
+  OpenAISettings, defaultOpenAISettings, OpenAICompatibleSettingsBase,
+} from '../services/providers/OpenAIProviderConfig';
+import {
+  OpenAICompatibleSettings, defaultOpenAICompatibleSettings,
+} from '../services/providers/OpenAICompatibleProviderConfig';
+import {
+  OpenAITranslateSettings, defaultOpenAITranslateSettings,
+} from '../services/providers/OpenAITranslateProviderConfig';
+import {
+  GeminiSettings, defaultGeminiSettings,
+} from '../services/providers/GeminiProviderConfig';
+import {
+  PalabraAISettings, defaultPalabraAISettings,
+} from '../services/providers/PalabraAIProviderConfig';
+import {
+  VolcengineSTSettings, defaultVolcengineSTSettings,
+} from '../services/providers/VolcengineSTProviderConfig';
+import {
+  ZoomAISettings, defaultZoomAISettings,
+} from '../services/providers/ZoomAIProviderConfig';
+import {
+  VolcengineAST2Settings, defaultVolcengineAST2Settings,
+} from '../services/providers/VolcengineAST2ProviderConfig';
+import {
+  LocalInferenceSettings, defaultLocalInferenceSettings,
+} from '../services/providers/LocalInferenceProviderConfig';
+import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
+import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+
+export type {
+  OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
+  OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
+  VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
+};
+
+// Union of every provider's settings slice — the return type of
+// getCurrentProviderSettings, resolved dynamically via the active descriptor.
+export type ProviderSettingsUnion =
+  | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
+  | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings
+  | VolcengineAST2Settings | LocalInferenceSettings;
 
 // ==================== Type Definitions ====================
 
@@ -46,141 +80,8 @@ export interface CommonSettings {
   participantDisplayMode: DisplayMode;
 }
 
-// Transport type for OpenAI Realtime API
-export type TransportType = 'websocket' | 'webrtc';
-
-// OpenAI-compatible Settings (used by OpenAI and KizunaAI)
-export interface OpenAICompatibleSettingsBase {
-  apiKey: string;
-  model: string;
-  voice: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled' | 'Push-to-Translate';
-  threshold: number;
-  prefixPadding: number;
-  silenceDuration: number;
-  semanticEagerness: 'Auto' | 'Low' | 'Medium' | 'High';
-  temperature: number;
-  maxTokens: number | 'inf';
-  transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
-  noiseReduction: 'None' | 'Near field' | 'Far field';
-  transportType: TransportType;
-  // Persisted across model switches so the user's preference is preserved
-  // when toggling between gpt-realtime-2 and other models. Only forwarded
-  // to the API when the active model supports it.
-  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-}
-
-// OpenAI Compatible Settings (with custom endpoint support)
-export interface OpenAICompatibleSettings extends OpenAICompatibleSettingsBase {
-  customEndpoint: string;
-}
-
-export type OpenAISettings = OpenAICompatibleSettingsBase;
-
-// OpenAI Translate Settings (gpt-realtime-translate model family)
-export interface OpenAITranslateSettings {
-  apiKey: string;
-  // UI display only — not sent to API (auto-detected by model)
-  sourceLanguage: string;
-  // Sent to API as audio.output.language
-  targetLanguage: TranslateTargetLanguage;
-  // Currently the only valid value; UI dropdown shows it as a single option
-  transcriptModel: 'gpt-realtime-whisper';
-  noiseReduction: 'None' | 'Near field' | 'Far field';
-  transportType: TransportType;
-  // Client-side utterance segmentation thresholds in seconds. User (input)
-  // and assistant (output) run independent state machines, so each has its
-  // own threshold. Range 0.1–3.0s. Translate API has no server-side turn
-  // detection, so these only control UI message splitting. Stored as
-  // seconds; converted to ms when building the session config.
-  userSilenceDuration: number;
-  assistantSilenceDuration: number;
-}
-
-// Gemini Settings
-export interface GeminiSettings {
-  apiKey: string;
-  model: string;
-  voice: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  temperature: number;
-  maxTokens: number | 'inf';
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadStartSensitivity: 'high' | 'low';
-  vadEndSensitivity: 'high' | 'low';
-  vadSilenceDurationMs: number;
-  vadPrefixPaddingMs: number;
-}
-
-// PalabraAI Settings
-export interface PalabraAISettings {
-  clientId: string;
-  clientSecret: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  voiceId: string;
-  subscriberCount: number;
-  publisherCanSubscribe: boolean;
-  segmentConfirmationSilenceThreshold: number;
-  sentenceSplitterEnabled: boolean;
-  translatePartialTranscriptions: boolean;
-  desiredQueueLevelMs: number;
-  maxQueueLevelMs: number;
-  autoTempo: boolean;
-}
-
-// Volcengine Speech Translate Settings
-export interface VolcengineSTSettings {
-  accessKeyId: string;
-  secretAccessKey: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}
-
-// Zoom AI Services Settings
-export interface ZoomAISettings {
-  apiKey: string;
-  apiSecret: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}
-
-// Volcengine AST 2.0 Settings
-export interface VolcengineAST2Settings {
-  appId: string;
-  accessToken: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
-  hotWordTableId: string;
-  /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
-  replacementTableId: string;
-  /** Library ID for Volcengine self-learning platform Glossary. Empty = disabled. */
-  glossaryTableId: string;
-}
-
-// Local Inference Settings
-export interface LocalInferenceSettings {
-  asrModel: string;
-  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
-  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
-  ttsSpeakerId: number;
-  ttsSpeed: number;
-  edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
-  vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
-  vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
-  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
-  systemPrompt: string;                // Advanced-mode speaker prompt (default '')
-  participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
-}
+// Transport type moved to the services layer; re-exported for existing importers.
+export type { TransportType } from '../services/providers/ProviderDescriptor';
 
 // Cache Entry
 interface CacheEntry {
@@ -253,124 +154,9 @@ const defaultCommonSettings: CommonSettings = {
   participantDisplayMode: 'both',
 };
 
-const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
-  apiKey: '',
-  model: 'gpt-realtime-mini',
-  voice: 'alloy',
-  sourceLanguage: 'en',
-  targetLanguage: 'zh_CN',
-  turnDetectionMode: 'Normal',
-  threshold: 0.49,
-  prefixPadding: 0.5,
-  silenceDuration: 0.5,
-  semanticEagerness: 'Auto',
-  temperature: 0.8,
-  maxTokens: 'inf',
-  transcriptModel: 'gpt-4o-mini-transcribe',
-  noiseReduction: 'None',
-  transportType: 'websocket',
-  reasoningEffort: 'low',
-};
-
-const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
-
-const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
-  ...defaultOpenAICompatibleSettingsBase,
-  customEndpoint: '',
-};
-
-const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
-  apiKey: '',
-  sourceLanguage: 'en',
-  targetLanguage: 'zh',
-  transcriptModel: 'gpt-realtime-whisper',
-  noiseReduction: 'None',
-  transportType: 'websocket',
-  userSilenceDuration: 1.0,
-  assistantSilenceDuration: 0.5,
-};
-
-const defaultGeminiSettings: GeminiSettings = {
-  apiKey: '',
-  model: '',
-  voice: 'Aoede',
-  sourceLanguage: 'en-US',
-  targetLanguage: 'ja-JP',
-  temperature: 0.8,
-  maxTokens: 'inf',
-  turnDetectionMode: 'Auto',
-  vadStartSensitivity: 'low',
-  vadEndSensitivity: 'high',
-  vadSilenceDurationMs: 500,
-  vadPrefixPaddingMs: 300,
-};
-
-const defaultPalabraAISettings: PalabraAISettings = {
-  clientId: '',
-  clientSecret: '',
-  sourceLanguage: 'en',
-  targetLanguage: 'es',
-  voiceId: 'default_low',
-  subscriberCount: 0,
-  publisherCanSubscribe: true,
-  segmentConfirmationSilenceThreshold: 0.7,
-  sentenceSplitterEnabled: true,
-  translatePartialTranscriptions: false,
-  desiredQueueLevelMs: 8000,
-  maxQueueLevelMs: 24000,
-  autoTempo: false,
-};
-
-const defaultVolcengineSTSettings: VolcengineSTSettings = {
-  accessKeyId: '',
-  secretAccessKey: '',
-  sourceLanguage: 'zh',
-  targetLanguage: 'en',
-};
-
-const defaultZoomAISettings: ZoomAISettings = {
-  apiKey: '',
-  apiSecret: '',
-  sourceLanguage: 'ja-JP',
-  targetLanguage: 'en-US',
-};
-
-const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
-  appId: '',
-  accessToken: '',
-  sourceLanguage: 'zh',
-  targetLanguage: 'en',
-  turnDetectionMode: 'Auto',
-  hotWordTableId: '',
-  replacementTableId: '',
-  glossaryTableId: '',
-};
-
-// Relay-managed KizunaAI twins reuse the existing OpenAI-translate / Volcengine-AST2 slices.
-const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
-const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...defaultVolcengineAST2Settings };
-
-const defaultLocalInferenceSettings: LocalInferenceSettings = {
-  asrModel: 'sensevoice-int8',
-  translationModel: '',  // Auto-select based on language pair
-  ttsModel: '',  // Auto-select based on target language
-  ttsSpeakerId: 0,
-  ttsSpeed: 1.0,
-  edgeTtsVoice: '',  // Auto-select based on target language
-  sourceLanguage: 'ja',
-  targetLanguage: 'en',
-  turnDetectionMode: 'Auto',
-  vadThreshold: 0.3,
-  vadMinSilenceDuration: 1.4,
-  vadMinSpeechDuration: 0.4,
-  useTemplateMode: true,
-  systemPrompt: '',
-  participantSystemPrompt: '',
-};
-
 // ==================== Store Definition ====================
 
-interface SettingsStore {
+export interface SettingsStore {
   // === State ===
   // Common settings
   provider: ProviderType;
@@ -485,7 +271,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings | VolcengineAST2Settings | LocalInferenceSettings;
+  getCurrentProviderSettings: () => ProviderSettingsUnion;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
@@ -494,199 +280,6 @@ interface SettingsStore {
 }
 
 // ==================== Helper Functions ====================
-
-function createOpenAISessionConfig(
-  settings: OpenAISettings,
-  systemInstructions: string
-): OpenAISessionConfig {
-  return {
-    provider: 'openai',
-    model: settings.model,
-    voice: settings.voice,
-    instructions: systemInstructions,
-    temperature: settings.temperature,
-    maxTokens: settings.maxTokens,
-    // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns
-    // manually via createResponse() on hold release. Falling through to semantic_vad here
-    // would let the OpenAI server auto-translate any utterance, defeating manual control.
-    turnDetection: (settings.turnDetectionMode === 'Disabled' || settings.turnDetectionMode === 'Push-to-Translate')
-      ? {type: 'none'}
-      : settings.turnDetectionMode === 'Normal'
-        ? {
-            type: 'server_vad',
-            createResponse: true,
-            interruptResponse: false,
-            prefixPadding: settings.prefixPadding,
-            silenceDuration: settings.silenceDuration,
-            threshold: settings.threshold
-          }
-        : {
-            type: 'semantic_vad',
-            createResponse: true,
-            interruptResponse: false,
-            eagerness: settings.semanticEagerness?.toLowerCase() as any,
-          },
-    inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
-      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
-    } : undefined,
-    inputAudioTranscription: settings.transcriptModel ? {
-      model: settings.transcriptModel
-    } : undefined,
-    // Forward reasoning effort unconditionally; the client gates by model name
-    // before sending it to the API (older realtime models reject the field).
-    reasoningEffort: settings.reasoningEffort,
-  };
-}
-
-function createOpenAITranslateSessionConfig(
-  settings: OpenAITranslateSettings,
-  systemInstructions: string  // ignored — translate doesn't accept instructions
-): OpenAITranslateSessionConfig {
-  void systemInstructions;
-  return {
-    provider: 'openai_translate',
-    model: 'gpt-realtime-translate',
-    targetLanguage: settings.targetLanguage,
-    sourceLanguage: settings.sourceLanguage,
-    inputAudioTranscription: settings.transcriptModel
-      ? { model: settings.transcriptModel }
-      : undefined,
-    inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
-      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
-    } : undefined,
-    userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
-    assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
-  };
-}
-
-function createGeminiSessionConfig(
-  settings: GeminiSettings,
-  systemInstructions: string
-): GeminiSessionConfig {
-  return {
-    provider: 'gemini',
-    model: settings.model,
-    voice: settings.voice,
-    instructions: systemInstructions,
-    temperature: settings.temperature,
-    maxTokens: settings.maxTokens,
-    turnDetectionMode: settings.turnDetectionMode,
-    vadStartSensitivity: settings.vadStartSensitivity,
-    vadEndSensitivity: settings.vadEndSensitivity,
-    vadSilenceDurationMs: settings.vadSilenceDurationMs,
-    vadPrefixPaddingMs: settings.vadPrefixPaddingMs,
-  };
-}
-
-function createPalabraAISessionConfig(
-  settings: PalabraAISettings,
-  systemInstructions: string
-): PalabraAISessionConfig {
-  return {
-    provider: 'palabraai',
-    model: 'realtime-translation',
-    voice: settings.voiceId,
-    instructions: systemInstructions,
-    temperature: 0.8,
-    maxTokens: 'inf',
-    sourceLanguage: settings.sourceLanguage,
-    targetLanguage: settings.targetLanguage,
-    voiceId: settings.voiceId,
-    segmentConfirmationSilenceThreshold: settings.segmentConfirmationSilenceThreshold,
-    sentenceSplitterEnabled: settings.sentenceSplitterEnabled,
-    translatePartialTranscriptions: settings.translatePartialTranscriptions,
-    desiredQueueLevelMs: settings.desiredQueueLevelMs,
-    maxQueueLevelMs: settings.maxQueueLevelMs,
-    autoTempo: settings.autoTempo,
-  };
-}
-
-function createVolcengineSTSessionConfig(
-  settings: VolcengineSTSettings,
-  systemInstructions: string
-): VolcengineSTSessionConfig {
-  return {
-    provider: 'volcengine_st',
-    model: 'speech-translate-v1',
-    instructions: systemInstructions,
-    sourceLanguage: settings.sourceLanguage,
-    targetLanguages: [settings.targetLanguage],
-  };
-}
-
-function createZoomAISessionConfig(
-  settings: ZoomAISettings,
-  systemInstructions: string,
-): ZoomAISessionConfig {
-  return {
-    provider: 'zoom_ai',
-    model: 'zoom-scribe-translator-v1',
-    instructions: systemInstructions,
-    sourceLanguage: settings.sourceLanguage,
-    targetLanguages: [settings.targetLanguage],
-    textOnly: true,
-  };
-}
-
-function createVolcengineAST2SessionConfig(
-  settings: VolcengineAST2Settings,
-  systemInstructions: string
-): VolcengineAST2SessionConfig {
-  const hotWordTableId = settings.hotWordTableId?.trim() || undefined;
-  const replacementTableId = settings.replacementTableId?.trim() || undefined;
-  const glossaryTableId = settings.glossaryTableId?.trim() || undefined;
-
-  return {
-    provider: 'volcengine_ast2',
-    model: 'ast-v2-s2s',
-    instructions: systemInstructions,
-    sourceLanguage: settings.sourceLanguage,
-    targetLanguage: settings.targetLanguage,
-    turnDetectionMode: settings.turnDetectionMode,
-    hotWordTableId,
-    replacementTableId,
-    glossaryTableId,
-  };
-}
-
-function createLocalInferenceSessionConfig(
-  settings: LocalInferenceSettings,
-  systemInstructions: string
-): LocalInferenceSessionConfig {
-  // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
-  const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
-  const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
-  const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
-
-  // wrapTranscript must match the instructions actually in use. The default prompt
-  // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
-  // came from it, the user message MUST be wrapped. This catches the Advanced-mode
-  // empty-field fallback case where the selector quietly returns the default prompt
-  // but settings.useTemplateMode is still false.
-  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
-  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
-  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
-  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
-
-  return {
-    provider: 'local_inference',
-    model: 'local-asr-translate',
-    instructions: systemInstructions,
-    sourceLanguage: settings.sourceLanguage,
-    targetLanguage: settings.targetLanguage,
-    asrModelId: settings.asrModel,
-    translationModelId: settings.translationModel || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id,
-    ttsModelId,
-    ttsSpeakerId: settings.ttsSpeakerId,
-    ttsSpeed: settings.ttsSpeed,
-    edgeTtsVoice: settings.edgeTtsVoice || undefined,
-    vadThreshold: settings.vadThreshold,
-    vadMinSilenceDuration: settings.vadMinSilenceDuration,
-    vadMinSpeechDuration: settings.vadMinSpeechDuration,
-    turnDetectionMode: settings.turnDetectionMode,
-    wrapTranscript,
-  };
-}
 
 /** Migrate a persisted legacy 'kizunaai' provider value to the relay twin.
  *  The realtime KizunaAI provider was replaced by two relay-managed providers;
@@ -1295,75 +888,17 @@ const useSettingsStore = create<SettingsStore>()(
         }
       }
 
-      // Get current API key and custom endpoint (if applicable)
+      // Get normalized credentials from the provider's descriptor — replaces
+      // the four hand-copied per-provider extraction chains that used to live
+      // here (see git history for the pre-descriptor shape).
+      const descriptor = ProviderConfigFactory.getDescriptor(provider);
       const currentSettings = state.getCurrentProviderSettings();
-      let apiKey = '';
-      let customEndpoint: string | undefined = undefined;
+      const creds = await descriptor.extractCredentials(currentSettings, { getAuthToken });
 
-      if (provider === Provider.PALABRA_AI) {
-        const palabraSettings = currentSettings as PalabraAISettings;
-        apiKey = palabraSettings.clientId;
-
-        // Check if both clientId and clientSecret are present for PalabraAI
-        if (!palabraSettings.clientId || !palabraSettings.clientSecret) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-            isValidated: false,
-            validationError: null
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else if (provider === Provider.OPENAI_COMPATIBLE) {
-        // OpenAI Compatible provider requires both API key and custom endpoint
-        const compatSettings = currentSettings as OpenAICompatibleSettings;
-        apiKey = compatSettings.apiKey || '';
-        customEndpoint = compatSettings.customEndpoint;
-      } else if (isKizunaManagedProvider(provider) && getAuthToken) {
-        apiKey = await getAuthToken() || '';
-      } else if (provider === Provider.VOLCENGINE_ST) {
-        // Volcengine ST uses accessKeyId as apiKey and secretAccessKey as clientSecret
-        const volcSettings = currentSettings as VolcengineSTSettings;
-        apiKey = volcSettings.accessKeyId || '';
-
-        // Check if both accessKeyId and secretAccessKey are present
-        if (!volcSettings.accessKeyId || !volcSettings.secretAccessKey) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else if (provider === Provider.ZOOM_AI) {
-        const zoomSettings = currentSettings as ZoomAISettings;
-        apiKey = zoomSettings.apiKey || '';
-        if (!zoomSettings.apiKey || !zoomSettings.apiSecret) {
-          set({ isApiKeyValid: null, availableModels: [], validationMessage: '', isValidating: false });
-          return { valid: false, message: '', validating: false };
-        }
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        const ast2Settings = currentSettings as VolcengineAST2Settings;
-        apiKey = String(ast2Settings.appId || '');
-
-        if (!ast2Settings.appId || !ast2Settings.accessToken) {
-          set({
-            isApiKeyValid: null,
-            availableModels: [],
-            validationMessage: '',
-            isValidating: false,
-          });
-          return {valid: false, message: '', validating: false};
-        }
-      } else {
-        apiKey = (currentSettings as any).apiKey || '';
-      }
-
-      // Check if API key is empty for non-PalabraAI providers
-      if (!apiKey && provider !== Provider.PALABRA_AI) {
+      // Empty/incomplete credentials: silent reset, same as before (no error
+      // banner while typing). Two-field providers (Palabra, Volcengine, Zoom)
+      // already reject incomplete pairs inside their extractCredentials override.
+      if (!creds.ok) {
         set({
           isApiKeyValid: null,
           availableModels: [],
@@ -1376,18 +911,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // Check cache
-      let cacheKey: string;
-      if (provider === Provider.PALABRA_AI) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`;
-      } else if (provider === Provider.VOLCENGINE_ST) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineSTSettings).secretAccessKey}`;
-      } else if (provider === Provider.ZOOM_AI) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as ZoomAISettings).apiSecret}`;
-      } else if (provider === Provider.VOLCENGINE_AST2) {
-        cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineAST2Settings).accessToken}`;
-      } else {
-        cacheKey = `${provider}:${apiKey}`;
-      }
+      const cacheKey = `${provider}:${creds.primary}:${creds.secret ?? ''}:${creds.endpoint ?? ''}`;
 
       const cached = state.validationCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
@@ -1408,23 +932,12 @@ const useSettingsStore = create<SettingsStore>()(
 
       try {
         const service = ServiceFactory.getSettingsService();
-        // Get client secret for providers that need it
-        let clientSecret: string | undefined;
-        if (provider === Provider.PALABRA_AI) {
-          clientSecret = (currentSettings as PalabraAISettings).clientSecret;
-        } else if (provider === Provider.VOLCENGINE_ST) {
-          clientSecret = (currentSettings as VolcengineSTSettings).secretAccessKey;
-        } else if (provider === Provider.ZOOM_AI) {
-          clientSecret = (currentSettings as ZoomAISettings).apiSecret;
-        } else if (provider === Provider.VOLCENGINE_AST2) {
-          clientSecret = String((currentSettings as VolcengineAST2Settings).accessToken || '');
-        }
 
         const result = await service.validateApiKeyAndFetchModels(
-          apiKey,
+          creds.primary,
           provider,
-          clientSecret,
-          customEndpoint  // Pass custom endpoint for OpenAI Compatible
+          creds.secret,
+          creds.endpoint  // Pass custom endpoint for OpenAI Compatible
         );
 
         // Cache result
@@ -1627,32 +1140,8 @@ const useSettingsStore = create<SettingsStore>()(
     // === Helper Methods ===
     getCurrentProviderSettings: () => {
       const state = get();
-      switch (state.provider) {
-        case Provider.OPENAI:
-          return state.openai;
-        case Provider.OPENAI_COMPATIBLE:
-          return state.openaiCompatible;
-        case Provider.GEMINI:
-          return state.gemini;
-        case Provider.PALABRA_AI:
-          return state.palabraai;
-        case Provider.OPENAI_TRANSLATE:
-          return state.openaiTranslate;
-        case Provider.VOLCENGINE_ST:
-          return state.volcengineST;
-        case Provider.ZOOM_AI:
-          return state.zoomAI;
-        case Provider.VOLCENGINE_AST2:
-          return state.volcengineAST2;
-        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-          return state.kizunaOpenaiTranslate;
-        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-          return state.kizunaVolcengineAst2;
-        case Provider.LOCAL_INFERENCE:
-          return state.localInference;
-        default:
-          return state.openai;
-      }
+      const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
+      return state[descriptor.settingsSliceKey as keyof SettingsStore] as ProviderSettingsUnion;
     },
 
     getCurrentProviderConfig: () => {
@@ -1714,44 +1203,10 @@ const useSettingsStore = create<SettingsStore>()(
 
     createSessionConfig: (systemInstructions) => {
       const state = get();
-      let config: SessionConfig;
-      switch (state.provider) {
-        case Provider.OPENAI:
-          config = createOpenAISessionConfig(state.openai, systemInstructions);
-          break;
-        case Provider.OPENAI_COMPATIBLE:
-          config = createOpenAISessionConfig(state.openaiCompatible, systemInstructions);
-          break;
-        case Provider.GEMINI:
-          config = createGeminiSessionConfig(state.gemini, systemInstructions);
-          break;
-        case Provider.PALABRA_AI:
-          config = createPalabraAISessionConfig(state.palabraai, systemInstructions);
-          break;
-        case Provider.OPENAI_TRANSLATE:
-          config = createOpenAITranslateSessionConfig(state.openaiTranslate, systemInstructions);
-          break;
-        case Provider.VOLCENGINE_ST:
-          config = createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
-          break;
-        case Provider.ZOOM_AI:
-          config = createZoomAISessionConfig(state.zoomAI, systemInstructions);
-          break;
-        case Provider.VOLCENGINE_AST2:
-          config = createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
-          break;
-        case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
-          config = createOpenAITranslateSessionConfig(state.kizunaOpenaiTranslate, systemInstructions);
-          break;
-        case Provider.KIZUNA_AI_VOLCENGINE_AST2:
-          config = createVolcengineAST2SessionConfig(state.kizunaVolcengineAst2, systemInstructions);
-          break;
-        case Provider.LOCAL_INFERENCE:
-          config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
-          break;
-        default:
-          config = createOpenAISessionConfig(state.openai, systemInstructions);
-      }
+      const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
+      const slice = state[descriptor.settingsSliceKey as keyof SettingsStore];
+      const config = descriptor.buildSessionConfig(slice, systemInstructions);
+      // Cross-provider fields stay in the shell — every provider honors them.
       config.textOnly = state.textOnly;
       config.keepReplayAudio = state.keepReplayAudio;
       return config;
@@ -1875,19 +1330,13 @@ export const useLocalSystemPrompt = () => useSettingsStore((state) => state.loca
 export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
 export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
 
-// Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
+// Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers
+// whose settings slice has no turnDetectionMode field (e.g. OpenAI Translate,
+// Palabra, Volcengine ST, Zoom). Resolved via the active descriptor's slice key.
 export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
-  switch (state.provider) {
-    case Provider.OPENAI: return state.openai.turnDetectionMode;
-    case Provider.OPENAI_COMPATIBLE: return state.openaiCompatible.turnDetectionMode;
-    case Provider.GEMINI: return state.gemini.turnDetectionMode;
-    case Provider.VOLCENGINE_AST2: return state.volcengineAST2.turnDetectionMode;
-    case Provider.KIZUNA_AI_VOLCENGINE_AST2: return state.kizunaVolcengineAst2.turnDetectionMode;
-    // KIZUNA_AI_OPENAI_TRANSLATE has no turn detection (translate), like
-    // OPENAI_TRANSLATE — both fall through to the default 'Auto'.
-    case Provider.LOCAL_INFERENCE: return state.localInference.turnDetectionMode;
-    default: return 'Auto';
-  }
+  const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
+  const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { turnDetectionMode?: string };
+  return slice?.turnDetectionMode ?? 'Auto';
 });
 
 export { useSettingsStore };

@@ -150,9 +150,18 @@ export function getRelayWsUrl(): string {
 /**
  * Check if running in development mode
  * @returns true if in development mode
+ *
+ * Uses Vite's `DEV` flag (true whenever the build is not a production
+ * build/serve) rather than comparing `MODE` to the literal string
+ * 'development' — vitest runs with MODE === 'test', which must count as
+ * "development" here or every feature-flagged provider silently vanishes
+ * from ProviderConfigFactory's registry in any unmocked test.
+ * Extension builds rely on `extension/vite.config.ts` explicitly defining
+ * `import.meta.env.DEV` as `mode === 'development'`, so `DEV` stays
+ * equivalent to the old MODE check there too.
  */
 export function isDevelopmentMode(): boolean {
-  return import.meta.env.MODE === 'development';
+  return import.meta.env.DEV;
 }
 
 /**

@@ -1,8 +1,6 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
-import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
-import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
-import { ZoomAIProviderConfig } from '../../../services/providers/ZoomAIProviderConfig';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
   useProvider,
@@ -1558,8 +1556,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const ast2Settings = activeVolcengineAST2Settings;
     const updateAst2Settings = updateActiveVolcengineAST2Settings;
 
-    const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
-    const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
+    // Look up by `provider` (not `effectiveProvider`): the kizuna twin is
+    // registered whenever isKizunaAIEnabled() is true, but the base
+    // Provider.VOLCENGINE_AST2 is only registered when the separate AST2
+    // build/platform gates also pass. In builds where the twin is available
+    // but the base isn't, resolving effectiveProvider would throw here. The
+    // twin inherits identical language methods from the AST2 base, so the
+    // result is byte-identical either way.
+    const ast2Descriptor = ProviderConfigFactory.getDescriptor(provider);
+    const sourceLanguages = ast2Descriptor.resolveSourceLanguages();
+    const targetLanguages = ast2Descriptor.resolveTargetLanguages(ast2Settings.sourceLanguage);
 
     // Electron: delegate to main-process shell.openExternal (launches system browser).
     // Extension/web: window.open opens a new tab; noopener/noreferrer prevents
@@ -1849,8 +1855,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     // Get target and source languages from the provider config
-    const targetLanguages = VolcengineSTProviderConfig.getTargetLanguages();
-    const sourceLanguages = VolcengineSTProviderConfig.getSourceLanguages();
+    const stDescriptor = ProviderConfigFactory.getDescriptor(provider);
+    const targetLanguages = stDescriptor.resolveTargetLanguages(volcengineSTSettings.sourceLanguage);
+    const sourceLanguages = stDescriptor.resolveSourceLanguages();
 
     return (
       <>
@@ -1931,8 +1938,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const renderZoomAISettings = () => {
     if (provider !== Provider.ZOOM_AI) return null;
 
-    const sourceLanguages = ZoomAIProviderConfig.getSourceLanguages();
-    const targetLanguages = ZoomAIProviderConfig.getTargetLanguagesForSource(zoomAISettings.sourceLanguage);
+    const zoomDescriptor = ProviderConfigFactory.getDescriptor(provider);
+    const sourceLanguages = zoomDescriptor.resolveSourceLanguages();
+    const targetLanguages = zoomDescriptor.resolveTargetLanguages(zoomAISettings.sourceLanguage);
 
     return (
       <>
@@ -1947,7 +1955,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 const newSource = e.target.value;
                 updateZoomAISettings({
                   sourceLanguage: newSource,
-                  targetLanguage: ZoomAIProviderConfig.reconcileTarget(newSource, zoomAISettings.targetLanguage),
+                  targetLanguage: zoomDescriptor.reconcileTarget(newSource, zoomAISettings.targetLanguage),
                 });
               }}
               disabled={isSessionActive}

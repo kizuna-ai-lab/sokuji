@@ -1,6 +1,92 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, VolcengineAST2SessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 
-export class VolcengineAST2ProviderConfig {
+// Volcengine AST 2.0 Settings
+export interface VolcengineAST2Settings {
+  appId: string;
+  accessToken: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
+  hotWordTableId: string;
+  /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
+  replacementTableId: string;
+  /** Library ID for Volcengine self-learning platform Glossary. Empty = disabled. */
+  glossaryTableId: string;
+}
+
+export const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
+  appId: '',
+  accessToken: '',
+  sourceLanguage: 'zh',
+  targetLanguage: 'en',
+  turnDetectionMode: 'Auto',
+  hotWordTableId: '',
+  replacementTableId: '',
+  glossaryTableId: '',
+};
+
+export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'volcengineAST2';
+  readonly supportsWebRTC = false;
+
+  // appId may be numeric in old persisted state — String() it, matching the
+  // legacy settingsStore.ts cast this replaces.
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const s = slice as VolcengineAST2Settings;
+    if (!s?.appId || !s?.accessToken) {
+      return { ok: false, missing: 'Both APP ID and Access Token are required for Doubao AST 2.0' };
+    }
+    return { ok: true, primary: String(s.appId), secret: String(s.accessToken) };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    return String((slice as VolcengineAST2Settings)?.appId ?? '');
+  }
+
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    if (!creds.secret) throw new Error('Access Token is required for volcengine_ast2 provider');
+    return new VolcengineAST2Client(creds.primary, creds.secret);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    if (!creds.secret) {
+      // Legacy façade callers pass raw positional args and skip
+      // extractCredentials — keep the old required-field contract here.
+      return { validation: { valid: false, message: 'Both APP ID and Access Token are required for Doubao AST 2.0', validating: false }, models: [] };
+    }
+    return VolcengineAST2Client.validateApiKeyAndFetchModels(creds.primary, creds.secret);
+  }
+
+  // The kizuna doubao twin inherits this builder (reads its own slice).
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as VolcengineAST2Settings;
+    const hotWordTableId = settings.hotWordTableId?.trim() || undefined;
+    const replacementTableId = settings.replacementTableId?.trim() || undefined;
+    const glossaryTableId = settings.glossaryTableId?.trim() || undefined;
+
+    return {
+      provider: 'volcengine_ast2',
+      model: 'ast-v2-s2s',
+      instructions: systemInstructions,
+      sourceLanguage: settings.sourceLanguage,
+      targetLanguage: settings.targetLanguage,
+      turnDetectionMode: settings.turnDetectionMode,
+      hotWordTableId,
+      replacementTableId,
+      glossaryTableId,
+    } as VolcengineAST2SessionConfig;
+  }
+
   // AST 2.0 supported languages (s2s mode)
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: '中文', value: 'zh', englishName: 'Chinese' },
@@ -26,13 +112,9 @@ export class VolcengineAST2ProviderConfig {
     { id: 'ast-v2-s2s', type: 'realtime' }
   ];
 
-  static getSourceLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
-  }
-
-  static getTargetLanguages(): LanguageOption[] {
-    return VolcengineAST2ProviderConfig.BIDIRECTIONAL_LANGUAGES;
-  }
+  // resolveSourceLanguages/resolveTargetLanguages use the BaseProviderDescriptor
+  // defaults, which read getConfig().languages — equal to BIDIRECTIONAL_LANGUAGES
+  // for both, matching this class's former static behavior.
 
   getConfig(): ProviderConfig {
     return {
@@ -66,22 +148,6 @@ export class VolcengineAST2ProviderConfig {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
-      },
-
-      defaults: {
-        model: 'ast-v2-s2s',
-        voice: '',
-        temperature: 0.8,
-        maxTokens: 4096,
-        sourceLanguage: 'zh',
-        targetLanguage: 'en',
-        turnDetectionMode: 'Auto',
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto',
       },
     };
   }
