@@ -206,7 +206,9 @@ class Embeddings:
         )
 
 
-def _zero_past_feeds(decode_session: Any, past_names: list[str], batch: int) -> dict[str, np.ndarray]:
+def _zero_past_feeds(
+    decode_session: Any, past_names: list[str], batch: int, dtype: Any = np.float32
+) -> dict[str, np.ndarray]:
     """Build zero-length past-KV feeds for `talker_decode`'s past inputs.
 
     Reads concrete (heads, head_dim) dims from the decode graph's declared
@@ -222,8 +224,18 @@ def _zero_past_feeds(decode_session: Any, past_names: list[str], batch: int) -> 
         head_dim = (
             shape[3] if shape is not None and len(shape) > 3 and isinstance(shape[3], int) else _DEFAULT_PAST_HEAD_DIM
         )
-        feeds[name] = np.zeros((batch, heads, 0, head_dim), dtype=np.float32)
+        feeds[name] = np.zeros((batch, heads, 0, head_dim), dtype=dtype)
     return feeds
+
+
+def _float_input_dtype(sess: Any) -> Any:
+    """The dtype of a session's first (float) input: fp16 for fp16-converted
+    graphs, else fp32. Test doubles without `.type` metadata default to fp32."""
+    try:
+        type_str = sess.get_inputs()[0].type
+    except Exception:
+        return np.float32
+    return np.float16 if type_str == "tensor(float16)" else np.float32
 
 
 def _is_binding_capable(sess: Any) -> bool:
@@ -412,9 +424,15 @@ def _ar_loop(
 
     finished = np.zeros((batch,), dtype=bool)
 
+    # fp16-converted graphs expose fp16 float I/O; sampling and host-side
+    # accumulation stay fp32 (np.asarray is a no-op for fp32 graphs/fakes).
+    cp_dtype = _float_input_dtype(code_predictor.session)
+
     logits, last_hidden = runner.prefill(inputs_np, mask_np)
 
     for step in range(max_new_tokens):
+        logits = np.asarray(logits, dtype=np.float32)
+        last_hidden = np.asarray(last_hidden, dtype=np.float32)
         step_logits = logits[:, -1, :]
         step_logits = apply_suppress_tokens(step_logits, suppress_tokens)
 
@@ -447,9 +465,10 @@ def _ar_loop(
             inputs_embed = np.concatenate(embed_seq, axis=1)
             gen_step = np.full((batch,), j, dtype=np.int64)
             sub_logits = code_predictor.run(
-                {"inputs_embeds": inputs_embed.astype(np.float32), "generation_step": gen_step},
+                {"inputs_embeds": inputs_embed.astype(cp_dtype), "generation_step": gen_step},
                 output_names=["logits"],
             )[0]
+            sub_logits = np.asarray(sub_logits, dtype=np.float32)
             sub_next = sample_next_token(
                 sub_logits,
                 rng=rng,

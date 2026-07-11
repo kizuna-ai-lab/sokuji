@@ -25,7 +25,7 @@ from typing import Any
 
 import numpy as np
 
-from .runtime import _Session, _zero_past_feeds
+from .runtime import _Session, _float_input_dtype, _zero_past_feeds
 
 
 class BindingDecodeRunner:
@@ -50,10 +50,11 @@ class BindingDecodeRunner:
         # step N+1 has produced replacements on the other binding.
         self._iobs = [decode_session.io_binding(), decode_session.io_binding()]
         self._turn = 0
+        self._dtype = _float_input_dtype(decode_session)
         self._present: list | None = None
 
     def prefill(self, inputs_np: np.ndarray, mask_np: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        zero_past = _zero_past_feeds(self._sess, self._past_names, inputs_np.shape[0])
+        zero_past = _zero_past_feeds(self._sess, self._past_names, inputs_np.shape[0], self._dtype)
         return self._run(inputs_np, mask_np, cpu_past=zero_past)
 
     def step(self, codec_sum: np.ndarray, mask_np: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -73,7 +74,7 @@ class BindingDecodeRunner:
         self._turn = 1 - self._turn
         iob.clear_binding_inputs()
         iob.clear_binding_outputs()
-        iob.bind_cpu_input(self._input_names[0], np.ascontiguousarray(embeds_np, dtype=np.float32))
+        iob.bind_cpu_input(self._input_names[0], np.ascontiguousarray(embeds_np, dtype=self._dtype))
         iob.bind_cpu_input(self._input_names[1], np.ascontiguousarray(mask_np, dtype=np.int64))
         if cpu_past is not None:
             for name, arr in cpu_past.items():

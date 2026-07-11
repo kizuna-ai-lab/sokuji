@@ -305,3 +305,55 @@ def test_binding_path_without_kv_outputs_raises():
     sessions["talker_decode"] = _NoKvDecode()
     with pytest.raises(RuntimeError, match="no KV cache"):
         _gen(sessions)
+
+
+class _IO16:
+    def __init__(self, name):
+        self.name = name
+        self.type = "tensor(float16)"
+
+
+class _Fp16CudaDecode(_CudaScriptedDecode):
+    """fp16-exported talker_decode: float inputs/outputs are all fp16."""
+
+    def get_inputs(self):
+        return [_IO16("inputs_embeds"), _IO("attention_mask"),
+                _IO16("past_key_0"), _IO16("past_value_0")]
+
+    def _compute(self, feeds):
+        assert feeds["inputs_embeds"].dtype == np.float16
+        assert feeds["past_key_0"].dtype == np.float16
+        outs = super()._compute({k: np.asarray(v, np.float32) for k, v in feeds.items()})
+        return [o.astype(np.float16) for o in outs]
+
+
+class _Fp16CodePred(_ValueCodePred):
+    def get_inputs(self):
+        return [_IO16("inputs_embeds"), _IO("generation_step")]
+
+    def run(self, names, feeds):
+        assert feeds["inputs_embeds"].dtype == np.float16
+        outs = super().run(names, {k: np.asarray(v, np.float32) for k, v in feeds.items()})
+        return [o.astype(np.float16) for o in outs]
+
+
+class _Fp16Embed(_ValueCodecEmbed):
+    def run(self, names, feeds):
+        return [o.astype(np.float16) for o in super().run(names, feeds)]
+
+
+class _Fp16PredEmbed(_ValuePredEmbed):
+    def run(self, names, feeds):
+        return [o.astype(np.float16) for o in super().run(names, feeds)]
+
+
+def test_binding_path_fp16_feeds_and_fp32_results():
+    sessions = {"talker_decode": _Fp16CudaDecode(), "code_predictor": _Fp16CodePred(),
+                "codec_embed": _Fp16Embed(), "code_predictor_embed": _Fp16PredEmbed()}
+    codes, hidden = _gen(sessions)
+    assert codes[0].shape == (2, GROUPS)
+    assert hidden[0].dtype == np.float32          # public contract stays fp32
+    # fp16 rounding of the value-fakes is exact for these small integers, so
+    # the fp16 pipeline must reproduce the fp32 reference codes bit-for-bit
+    codes_ref, _ = _gen(_numpy_sessions())
+    assert np.array_equal(codes[0], codes_ref[0])
