@@ -544,6 +544,10 @@
       "noAsrModel": "No model available",
       "noTranslationModel": "No model — transcription only"
     },
+    "local_native": {
+      "name": "Free (Native)",
+      "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)"
+    },
     "unknown": {
       "name": "Unknown",
       "description": "Unknown provider"
@@ -897,6 +901,29 @@
     "remainingCount": "You have {{remaining}} of {{limit}} feedback messages remaining today",
     "limitReached": "Daily limit reached. You can send more feedback tomorrow."
   },
+  "engine": {
+    "title": "Inference Engine",
+    "detected": "Detected: {{gpu}}",
+    "package": "Engine package: {{sku}} · {{size}}",
+    "sizeUnknown": "size unavailable offline",
+    "download": "Download engine",
+    "update": "Update engine",
+    "updateRequired": "Engine update required ({{from}} → {{to}})",
+    "downloading": "{{done}} / {{total}} · {{pct}}%",
+    "verifying": "Verifying…",
+    "extracting": "Extracting…",
+    "paused": "Paused · {{done}} downloaded",
+    "resume": "Resume download",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "ready": "Engine {{version}}",
+    "onDisk": "{{size}} on disk",
+    "remove": "Remove engine",
+    "removeConfirm": "Remove the engine and free disk space?",
+    "unsupported": "Local inference is not supported on this device",
+    "devMode": "Development mode · local venv",
+    "installHint": "Install the engine to browse and download models"
+  },
   "models": {
     "management": "Models",
     "storageUsed": "Storage: {{size}} MB used",
@@ -920,7 +947,18 @@
     "confirmNo": "No",
     "recommended": "Recommended",
     "recommendedGroup": "Recommended",
-    "online": "Online"
+    "online": "Online",
+    "variantWontFit": "Needs ~{{need}} of GPU memory — this machine has {{have}}",
+    "variantWontFitNoMem": "Needs ~{{need}} of GPU memory",
+    "wontFit": "Won't fit on this machine",
+    "hwFramework": "Engine",
+    "hwDevice": "Device",
+    "hwApi": "Acceleration",
+    "hwPrecision": "Precision",
+    "hwSpeed": "Speed",
+    "hwMemory": "Memory",
+    "hwSize": "Size",
+    "hwRepo": "Repo"
   },
   "update": {
     "available": "New version v{{version}} available",

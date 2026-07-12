@@ -1,0 +1,25 @@
+# onnxruntime is installed by setup.sh (CPU 'onnxruntime' vs 'onnxruntime-gpu')
+# so it can track the torch CUDA build — see the ONNXRUNTIME_PACKAGE block there.
+numpy==2.1.3
+websockets==13.1
+sentencepiece==0.2.0
+# Platform-split pin: mlx-audio (darwin/arm64, below) requires >=1.0, while
+# linux/windows keep the field-tested 0.26.2. The sidecar only calls
+# snapshot_download/hf_hub_download with repo_id/allow_patterns - stable in 1.x.
+huggingface_hub==0.26.2 ; sys_platform != "darwin" or platform_machine != "arm64"
+huggingface_hub>=1.0,<2 ; sys_platform == "darwin" and platform_machine == "arm64"
+psutil
+zstandard==0.23.0
+tokenizers>=0.20
+# Opus-MT translation runtime (CPU int8; ~11x the old ORT numpy loop)
+ctranslate2==4.8.1
+# torch-free audio io / resample (2026-07-04 torch-free spec). GPU probing is
+# NVML-free since 2026-07-06 (D7): device truth = the transcribe.cpp probe.
+soundfile>=0.13
+soxr>=0.5
+# ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
+transcribe-cpp==0.1.1
+# macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
+# environment marker keeps it out of the Linux/Windows venvs (mlx_tts.py
+# lazy-imports mlx_audio, so those platforms stay importable). Metal-only.
+mlx-audio==0.4.4 ; sys_platform == "darwin" and platform_machine == "arm64"

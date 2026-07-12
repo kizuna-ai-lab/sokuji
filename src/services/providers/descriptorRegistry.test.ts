@@ -23,6 +23,7 @@ import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
 import { defaultZoomAISettings } from './ZoomAIProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
+import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
@@ -40,6 +41,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   zoomAI: defaultZoomAISettings,
   volcengineAST2: defaultVolcengineAST2Settings,
   localInference: defaultLocalInferenceSettings,
+  localNative: defaultLocalNativeSettings,
   kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
   kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
 };
@@ -47,7 +49,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(11);
+    expect(ids.length).toBe(12);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -159,6 +161,7 @@ describe('descriptor.buildSessionConfig', () => {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
       gemini: 'gemini', palabraai: 'palabraai', volcengine_st: 'volcengine_st',
       volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
+      local_native: 'local_native',
       kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
@@ -229,6 +232,10 @@ describe('registry invariants', () => {
     [Provider.VOLCENGINE_AST2]: 'volcengineAST2',
     [Provider.ZOOM_AI]: 'zoomAI',
     [Provider.LOCAL_INFERENCE]: 'localInference',
+    // Registered only under Electron (isElectron() gate), so the availability
+    // loops below never see it in jsdom — the row satisfies Record<Provider,…>
+    // completeness and documents the expected key.
+    [Provider.LOCAL_NATIVE]: 'localNative',
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
   };
@@ -255,6 +262,7 @@ describe('registry invariants', () => {
     [Provider.VOLCENGINE_AST2]: false,
     [Provider.ZOOM_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
+    [Provider.LOCAL_NATIVE]: false,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false,
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false,
   };
@@ -276,7 +284,7 @@ describe('registry invariants', () => {
   });
 
   it('extractCredentials on an empty slice never returns ok (except credential-free providers)', async () => {
-    const credentialFree = new Set([Provider.LOCAL_INFERENCE]);
+    const credentialFree = new Set([Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]);
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       if (credentialFree.has(id) || id.startsWith('kizunaai')) continue;
       const r = await ProviderConfigFactory.getDescriptor(id).extractCredentials({}, {});

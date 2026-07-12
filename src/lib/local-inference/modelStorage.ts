@@ -5,6 +5,12 @@
  *   Store 'files':        key = '{modelId}/{filename}' → Blob
  *   Store 'metadata':     key = modelId → ModelMetadata
  *   Store 'voice_styles': key = auto-increment id → StoredVoice (Task 17)
+ *
+ * Native voice clips live in their OWN database ('sokuji-native-voices', see
+ * nativeVoiceStorage.ts). Do NOT add stores here by bumping DB_VERSION: the
+ * profile is shared with other branches' builds, and a versioned open below
+ * the existing version throws VersionError (this blanked the Models UI on
+ * main when this DB was briefly at v3).
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
@@ -71,10 +77,11 @@ async function openModelsDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
     });
   } catch (err) {
     // The DB may have been upgraded past DB_VERSION by a newer build sharing
-    // this profile (e.g. another branch's Electron dev run). IndexedDB forbids
-    // a versioned open below the existing version (VersionError), but newer
-    // schemas are supersets of ours — retry unversioned (opens at the existing
-    // version) and verify every store we need is present.
+    // this profile (e.g. another branch's Electron dev run — including this
+    // branch's own short-lived v3). IndexedDB forbids a versioned open below
+    // the existing version (VersionError), but newer schemas are supersets of
+    // ours — retry unversioned (opens at the existing version) and verify
+    // every store we need is present.
     if ((err as DOMException)?.name !== 'VersionError') throw err;
     const db = await openDB<SokujiModelsDB>(DB_NAME);
     const missing = REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
@@ -192,9 +199,11 @@ export async function deleteModel(modelId: string): Promise<void> {
   await deleteMetadata(modelId);
 }
 
-/** Clear all data from both files and metadata stores */
+/** Clear all data from all stores */
 export async function clearAll(): Promise<void> {
   const db = await getDb();
+  // Note: native voice clips ('sokuji-native-voices' DB) are deliberately NOT
+  // cleared — they are user recordings, not re-downloadable model cache.
   const tx = db.transaction(['files', 'metadata', 'voice_styles'], 'readwrite');
   await tx.objectStore('files').clear();
   await tx.objectStore('metadata').clear();

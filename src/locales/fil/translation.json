@@ -403,6 +403,10 @@
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
       "noKeyRequired": "Hindi kailangan ng API key"
     },
+    "local_native": {
+      "name": "Libre (Native)",
+      "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "Dedicated real-time translation model ng OpenAI"

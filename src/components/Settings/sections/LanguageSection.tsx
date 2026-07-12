@@ -8,6 +8,7 @@ import {
   useSettingsStore,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
   useSetUILanguage,
@@ -19,6 +20,7 @@ import {
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
+  useUpdateLocalNative,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
@@ -66,6 +68,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const provider = useProvider();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
+  const localNativeSettings = useLocalNativeSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
 
@@ -92,6 +95,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
+  const updateLocalNativeSettings = useUpdateLocalNative();
   const updateZoomAISettings = useUpdateZoomAI();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
@@ -191,6 +195,19 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         updateLocalInferenceSettings(updates);
         break;
       }
+      case Provider.LOCAL_NATIVE: {
+        const availableTargets = getTranslationTargetLanguages(value);
+        const currentTarget = localNativeSettings.targetLanguage;
+        const updates: Record<string, string> = { sourceLanguage: value };
+        if (!availableTargets.some(t => t.value === currentTarget)) {
+          updates.targetLanguage = availableTargets[0]?.value || 'en';
+        }
+        // Model reconciliation (compatible ASR, directional translation, stale TTS)
+        // is handled by NativeModelManagementSection's auto-select effect, which
+        // also applies per-direction remembered history — mirroring LOCAL_INFERENCE.
+        updateLocalNativeSettings(updates);
+        break;
+      }
       case Provider.ZOOM_AI: {
         updateZoomAISettings({
           sourceLanguage: value,
@@ -260,6 +277,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
+      case Provider.LOCAL_NATIVE:
+        // Stale-TTS reset + directional translation reconciliation is handled by
+        // NativeModelManagementSection's auto-select effect (parity with LOCAL_INFERENCE).
+        updateLocalNativeSettings({ targetLanguage: value });
+        break;
       case Provider.ZOOM_AI:
         updateZoomAISettings({ targetLanguage: value });
         break;
@@ -319,7 +341,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
   // shared `languages` list otherwise.
   const targetLanguages = useMemo(() => {
-    if (provider === Provider.LOCAL_INFERENCE) {
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
     }
     if (provider === Provider.ZOOM_AI) {
@@ -487,7 +509,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.ZOOM_AI && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
+                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && provider !== Provider.ZOOM_AI && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (

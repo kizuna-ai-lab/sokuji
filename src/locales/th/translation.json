@@ -119,6 +119,10 @@
       "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",
       "noKeyRequired": "ไม่ต้องใช้คีย์ API"
     },
+    "local_native": {
+      "name": "ฟรี (Native)",
+      "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "โมเดลการแปลแบบเรียลไทม์เฉพาะของ OpenAI"

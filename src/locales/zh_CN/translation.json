@@ -447,6 +447,10 @@
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
       "noKeyRequired": "无需 API 密钥"
     },
+    "local_native": {
+      "name": "免费 (Native)",
+      "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI 专用的实时翻译模型"
@@ -825,6 +829,29 @@
     "remainingCount": "今日剩余 {{remaining}} / {{limit}} 条反馈",
     "limitReached": "今日反馈已达上限，明天再来吧。"
   },
+  "engine": {
+    "title": "推理引擎",
+    "detected": "检测到:{{gpu}}",
+    "package": "引擎包:{{sku}} · {{size}}",
+    "sizeUnknown": "离线,无法获取体积",
+    "download": "下载引擎",
+    "update": "更新引擎",
+    "updateRequired": "引擎需要更新({{from}} → {{to}})",
+    "downloading": "{{done}} / {{total}} · {{pct}}%",
+    "verifying": "校验中…",
+    "extracting": "解压中…",
+    "paused": "已暂停 · 已下载 {{done}}",
+    "resume": "继续下载",
+    "cancel": "取消",
+    "retry": "重试",
+    "ready": "引擎 {{version}}",
+    "onDisk": "占用磁盘 {{size}}",
+    "remove": "删除引擎",
+    "removeConfirm": "删除引擎并释放磁盘空间?",
+    "unsupported": "此设备不支持本地推理",
+    "devMode": "开发模式 · 本地 venv",
+    "installHint": "安装引擎后可浏览和下载模型"
+  },
   "models": {
     "management": "模型",
     "storageUsed": "存储：已使用 {{size}} MB",
@@ -848,7 +875,18 @@
     "confirmNo": "否",
     "recommended": "推荐",
     "recommendedGroup": "推荐",
-    "online": "在线"
+    "online": "在线",
+    "variantWontFit": "需要约 {{need}} 显存 — 本机为 {{have}}",
+    "variantWontFitNoMem": "需要约 {{need}} 显存",
+    "wontFit": "本机无法运行",
+    "hwFramework": "推理引擎",
+    "hwDevice": "设备",
+    "hwApi": "加速 API",
+    "hwPrecision": "精度",
+    "hwSpeed": "速度",
+    "hwMemory": "内存",
+    "hwSize": "模型大小",
+    "hwRepo": "仓库"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

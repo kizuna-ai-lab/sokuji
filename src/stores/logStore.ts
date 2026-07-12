@@ -113,7 +113,29 @@ export interface EventData {
     | 'local.init.translation.error'
     | 'local.init.tts.start'
     | 'local.init.tts.ready'
-    | 'local.init.tts.error';
+    | 'local.init.tts.error'
+    // LocalNative (Electron sidecar) pipeline event types
+    | 'local.native.session.closed'
+    | 'local.native.hardware'
+    | 'local.native.error'
+    | 'local.native.asr.partial'
+    | 'local.native.asr.end'
+    | 'local.native.translation.start'
+    | 'local.native.translation.end'
+    | 'local.native.tts.start'
+    | 'local.native.tts.sentence.start'
+    | 'local.native.tts.sentence.end'
+    | 'local.native.tts.end'
+    | 'local.native.tts.error'
+    // LocalNative init progress event types
+    | 'local.native.init.start'
+    | 'local.native.init.ready'
+    | 'local.native.init.asr.ready'
+    | 'local.native.init.asr.fallback'
+    | 'local.native.init.translation.ready'
+    | 'local.native.init.translation.fallback'
+    | 'local.native.init.tts.ready'
+    | 'local.native.init.tts.fallback';
   data: any;
   // Support additional properties for flexible event handling (e.g., OpenAI properties)
   [key: string]: any;

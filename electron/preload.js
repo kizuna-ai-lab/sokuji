@@ -63,6 +63,8 @@ const validReceiveChannels = [
   // Subtitle window bounds change events
   'subtitle:window-bounds-changed',
   'subtitle:fullscreen-changed',
+  // Native sidecar bundle install progress (main → renderer)
+  'sidecar-bundle-progress',
 ];
 
 // Expose protected methods that allow the renderer process to use
@@ -126,6 +128,16 @@ contextBridge.exposeInMainWorld(
         // WebSocket header injection (renderer → main)
         'ws-headers-set',
         'ws-headers-clear',
+        // Native local-inference sidecar lifecycle (renderer → main)
+        'native-host:start',
+        'native-host:stop',
+        'native-host:status',
+        // Self-contained sidecar bundle install/status (renderer → main)
+        'sidecar-bundle:status',
+        'sidecar-bundle:install',
+        'sidecar-bundle:cancel',
+        'sidecar-bundle:manifest',
+        'sidecar-bundle:remove',
         // Auto-update channels (renderer → main)
         'update-check',
         'update-download',

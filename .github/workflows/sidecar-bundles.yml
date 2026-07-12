@@ -1,0 +1,183 @@
+# .github/workflows/sidecar-bundles.yml
+# Build the self-contained sidecar bundles per SKU (spec D10 + the distribution
+# spec). Two lanes (spec S11):
+#   - workflow_dispatch: dry run — Actions artifacts only (size measurement, smoke).
+#   - sidecar-vX.Y.Z tag push: build all SKUs and publish a PRERELEASE GitHub
+#     Release with the archives + merged manifest.json. Always prerelease:
+#     electron-updater resolves the repo's "latest release" to find latest*.yml
+#     for app auto-update — a sidecar release must never win that lookup.
+# Signing/notarization stays an operator follow-up; artifacts are unsigned.
+name: sidecar-bundles
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version override (defaults to package.json sidecarVersion)
+        required: false
+        default: ''
+  push:
+    tags: ['sidecar-v*']
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build linux-nvidia bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          # Authenticates the python-build-standalone release lookup: hosted
+          # runners share egress IPs whose anonymous API quota is exhausted.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "$VERSION" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-linux-nvidia
+          path: out/bundles/sidecar-linux-nvidia-v*
+
+  build-linux-arm:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build linux-arm64 bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku linux-arm64 --version "$VERSION" --archive --out out/bundles
+      - name: Boot smoke the packed bundle
+        # This runner IS the target arch (unlike the cross-hosted x64 lanes), so
+        # unpack the archive we just built and boot the bundled interpreter to
+        # the {"port": n} handshake — catches exec-format, symlink and perm
+        # regressions before release. `cat` concatenates split .001/.002 parts
+        # transparently (single archives match the same glob).
+        run: |
+          mkdir smoke
+          cat out/bundles/sidecar-linux-arm64-v*.tar.zst* > smoke-joined.tar.zst
+          python - <<'EOF'
+          import tarfile, zstandard
+          with open("smoke-joined.tar.zst", "rb") as f, \
+               zstandard.ZstdDecompressor().stream_reader(f) as z:
+              with tarfile.open(fileobj=z, mode="r|") as t:
+                  t.extractall("smoke", filter="data")
+          EOF
+          cd smoke
+          timeout 120 python - <<'EOF'
+          import json, pathlib, subprocess
+          py = str(pathlib.Path("python/bin/python3").resolve())
+          p = subprocess.Popen([py, "-m", "sokuji_sidecar"], cwd="app",
+                               stdout=subprocess.PIPE, text=True)
+          line = p.stdout.readline()
+          port = json.loads(line)["port"]
+          assert isinstance(port, int), line
+          print("boot smoke OK, port", port)
+          p.terminate()
+          p.wait(timeout=10)
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-linux-arm64
+          path: out/bundles/sidecar-linux-arm64-v*
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        sku: [win-nvidia, win-directml]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        shell: bash
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build ${{ matrix.sku }} bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "$env:VERSION" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.sku }}
+          path: out/bundles/sidecar-${{ matrix.sku }}-v*
+
+  build-mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build mac bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku mac --version "$VERSION" --archive --out out/bundles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-mac
+          path: out/bundles/sidecar-mac-v*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/sidecar-v')
+    needs: [build-linux, build-linux-arm, build-windows, build-mac]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          path: out/bundles
+          merge-multiple: true
+      - name: Merge per-SKU manifest fragments
+        run: python scripts/build-sidecar-bundle.py --merge-fragments out/bundles/sidecar-*.json --merged-out out/bundles/manifest.json
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: |
+            out/bundles/sidecar-*.tar.zst*
+            out/bundles/manifest.json

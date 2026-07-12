@@ -1,0 +1,7 @@
+# Sidecar bundle SKU: DirectML - non-NVIDIA Windows (spec D1/D2/D10).
+# Requires Python >= 3.11; the bundle ships CPython 3.12 (spec D12).
+-r requirements.txt
+# ORT DirectML build - mutually exclusive with onnxruntime-gpu / onnxruntime (D1).
+# All graphs (incl. autoregressive) run on DML; no pre-emptive AR->CPU routing (D2).
+onnxruntime-directml==1.24.4
+sherpa-onnx==1.13.3

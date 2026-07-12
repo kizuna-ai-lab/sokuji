@@ -72,6 +72,11 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   // GTCRN worker-based noise suppression
   private gtcrnWorker: Worker | null = null;
   private gtcrnReady: boolean = false;
+  // GTCRN (enhanced) needs onnxruntime-web loaded inside an ES module worker. That
+  // import fails in `vite dev` (the packaged/release build bundles it via Rollup and
+  // works fine), so once the worker fails to load we remember it and quietly stick
+  // to RNNoise instead of re-attempting — and re-logging — on every start / mode change.
+  private gtcrnUnavailable: boolean = false;
   private _noiseSuppressionMode: 'off' | 'standard' | 'enhanced' = 'off';
   private _originalOnMessage: ((event: MessageEvent) => void) | null = null;
 
@@ -757,6 +762,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   private async _connectGtcrnWorker(opId?: number): Promise<void> {
     if (!this.audioWorkletNode) return;
 
+    // Known unavailable (e.g. vite dev) — go straight to RNNoise, no re-attempt/log.
+    if (this.gtcrnUnavailable) {
+      if (opId !== undefined && opId !== this._noiseSuppressOpId) return;
+      this._noiseSuppressionMode = 'standard';
+      this._noiseSuppressEnabled = true;
+      try { await this._insertRnnoiseNode(); } catch { /* RNNoise best effort */ }
+      return;
+    }
+
     try {
       if (!this.gtcrnWorker) {
         this.gtcrnWorker = new Worker(
@@ -769,12 +783,23 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
           this.gtcrnWorker!.onmessage = (event) => {
             if (event.data.type === 'ready') {
               clearTimeout(timeout);
+              this.gtcrnWorker!.onerror = null; // init done — let runtime errors log normally
               this.gtcrnReady = true;
               resolve();
             } else if (event.data.type === 'error') {
               clearTimeout(timeout);
               reject(new Error(event.data.message));
             }
+          };
+          // A worker *load* failure fires `error`, not `message`, and the in-worker
+          // try/catch can't see it — without this it would wait out the full 10s
+          // timeout. Module-worker load errors are opaque (all ErrorEvent fields are
+          // undefined), so there's nothing useful to log; mark unavailable and fail
+          // fast. This is the expected path in `vite dev` (ORT ESM import can't load
+          // in an ES module worker); the packaged/release build bundles it and works.
+          this.gtcrnWorker!.onerror = () => {
+            clearTimeout(timeout);
+            reject(new Error('GTCRN worker failed to load'));
           };
           this.gtcrnWorker!.postMessage({
             type: 'init',
@@ -812,7 +837,10 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
       console.info(`${this.getLogPrefix()} GTCRN worker connected`);
     } catch (error) {
-      console.error(`${this.getLogPrefix()} Failed to connect GTCRN worker:`, error);
+      // Mark unavailable so we don't re-attempt (and re-log) on every start/mode
+      // change — the load failure is environmental (vite dev), not transient.
+      this.gtcrnUnavailable = true;
+      console.warn(`${this.getLogPrefix()} GTCRN (enhanced) unavailable — using RNNoise. This is expected in 'vite dev'; the packaged build supports enhanced noise suppression.`);
       this.gtcrnReady = false;
       this._disposeGtcrnWorker();
 

@@ -1,133 +1,468 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Plus, Upload } from 'lucide-react';
-import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
-import { isElectron } from '../../../utils/environment';
+import { Mic, Plus, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 
-interface SupertonicVoice {
-  sid: number;
-  name: string;
-  source: 'preset' | 'imported';
-  gender?: 'M' | 'F';
+/**
+ * A single voice as presented to the user. `id` is OPAQUE — each provider
+ * adapter defines its own scheme (e.g. Supertonic encodes sids as
+ * `preset:<sid>` / `custom:<sid>`). The component never parses it.
+ */
+export interface VoiceEntry {
+  id: string;
+  label: string;
+  group: 'builtin' | 'custom';
+  /** Whether the entry can be renamed / deleted (i.e. user-owned). */
+  removable: boolean;
+  meta?: {
+    gender?: 'M' | 'F';
+    /** Curated builtins are always visible; non-curated ones hide behind the
+     *  "show all" expander when `capability.curation` is on. */
+    curated?: boolean;
+    /** Flagged in the UI so users know the voice may be lower quality. */
+    unstable?: boolean;
+    language?: string;
+  };
 }
 
-interface VoiceLibrarySectionProps {
-  /** All voices currently reported by the engine (presets + imported). */
-  voices: SupertonicVoice[];
-  /** Currently selected sid (from settings store). */
-  selectedSid: number;
-  /** Callback when the user picks a different voice. */
-  onSelect: (sid: number) => void;
-  /** Called after a valid voice file has been picked. Implementation
-   *  in the parent calls `voiceStorage.addVoice`. The change applies on the
-   *  next session start (we don't hot-swap voices mid-session); the parent
-   *  shows a "restart session" hint.
-   *  Should throw on validation errors so the UI can surface them via toast. */
-  onImport: (file: File) => Promise<void>;
-  /** True while a worker reload is in flight (disables interaction). Unused
-   *  in the current build (no hot reload) but kept for future use. */
-  isReloading: boolean;
-  /** True while a session is active. Disables the voice picker so users
-   *  can't try to switch voices mid-session (the worker is already
-   *  initialized with the previously-selected voice — changes won't take
-   *  effect until the next session). Import / rename / delete remain
-   *  available so users can stage voices for their next session. */
+export interface VoiceLibraryCapability {
+  /** Which import affordances to render. `upload` → file picker + drop zone;
+   *  `record` → microphone Record button. */
+  importModes: ('upload' | 'record')[];
+  /** When true, only curated builtins are shown by default with a "show all"
+   *  expander revealing the rest. When false, all builtins are shown. */
+  curation: boolean;
+  /** `accept` filter for the upload file input. Defaults to the JSON voice-card
+   *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
+  accept?: string;
+  /** How voice SELECTION is presented. `'list'` (default) renders a clickable
+   *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
+   *  original Supertonic affordance). Curation does not apply in dropdown mode. */
+  presentation?: 'list' | 'dropdown';
+  /** When true, captured clips must carry a reference transcript (native
+   *  zero-shot cloning models that require ICL text). Renders a labeled
+   *  transcript input in the manage toolbar and disables Import/Record until
+   *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
+  transcriptRequired?: boolean;
+}
+
+export interface VoiceLibrarySectionProps {
+  /** All voices, normalized across providers. */
+  voices: VoiceEntry[];
+  /** Currently selected voice id (opaque). */
+  selectedId: string;
+  /** Called when the user picks a different voice. */
+  onSelect: (id: string) => void;
+  /** Called after a valid voice file is picked/dropped. Should throw on
+   *  validation errors so the parent can surface them. Required when
+   *  `importModes` includes `upload`. `transcript` is only ever passed when
+   *  `capability.transcriptRequired` is set. */
+  onImport?: (file: File, transcript?: string) => Promise<void>;
+  /** Called after a microphone clip is captured. Required when `importModes`
+   *  includes `record`. `transcript` is only ever passed when
+   *  `capability.transcriptRequired` is set. */
+  onRecord?: (clip: Float32Array, sampleRate: number, transcript?: string) => Promise<void>;
+  /** Called when the user renames a removable voice. */
+  onRename: (id: string, name: string) => Promise<void>;
+  /** Called when the user confirms deletion of a removable voice. */
+  onDelete: (id: string) => Promise<void>;
+  /** Provider-declared capabilities driving which controls render. */
+  capability: VoiceLibraryCapability;
+  /** True while a session is active. Disables voice selection (the worker is
+   *  already initialized) but leaves import / rename / delete available so
+   *  users can stage voices for their next session. */
   isSessionActive?: boolean;
-  /** Called when the user renames an imported voice. */
-  onRename: (sid: number, newName: string) => Promise<void>;
-  /** Called when the user confirms deletion of an imported voice. */
-  onDelete: (sid: number) => Promise<void>;
 }
-
-const openExternalUrl = (url: string) => {
-  if (isElectron() && (window as any).electron?.invoke) {
-    (window as any).electron.invoke('open-external', url);
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-};
 
 const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   voices,
-  selectedSid,
+  selectedId,
   onSelect,
   onImport,
-  isReloading,
-  isSessionActive = false,
+  onRecord,
   onRename,
   onDelete,
+  capability,
+  isSessionActive = false,
 }) => {
   const { t } = useTranslation();
-  const entry = getManifestEntry('supertonic-3');
 
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [editingSid, setEditingSid] = React.useState<number | null>(null);
-  const [editName, setEditName] = React.useState('');
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const transcriptInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recRef = useRef<{
+    ctx: AudioContext;
+    stream: MediaStream;
+    source: MediaStreamAudioSourceNode;
+    processor: ScriptProcessorNode;
+    chunks: Float32Array[];
+  } | null>(null);
 
-  const presets = useMemo(
-    () => voices.filter((v) => v.source === 'preset').sort((a, b) => a.sid - b.sid),
-    [voices],
+  const canUpload = capability.importModes.includes('upload');
+  const canRecord = capability.importModes.includes('record');
+  const isDropdown = capability.presentation === 'dropdown';
+  // Capture (import/record) is gated behind a non-empty reference transcript
+  // for models that require in-context-learning text (Task 12). Absent/false
+  // → no gating, matching pre-Task-12 behavior exactly.
+  const transcriptMissing = !!capability.transcriptRequired && transcript.trim().length === 0;
+
+  const builtins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
+  const customs = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
+  // Manage list (dropdown mode) shows user-owned voices that can be renamed/deleted.
+  const removableVoices = useMemo(() => voices.filter((v) => v.removable), [voices]);
+
+  // Curation: when on, non-curated builtins hide behind the "show all" expander.
+  const curatedBuiltins = useMemo(
+    () => (capability.curation ? builtins.filter((v) => v.meta?.curated) : builtins),
+    [builtins, capability.curation],
   );
-  const imported = useMemo(
-    () => voices.filter((v) => v.source === 'imported').sort((a, b) => a.sid - b.sid),
-    [voices],
+  const hiddenBuiltins = useMemo(
+    () => (capability.curation ? builtins.filter((v) => !v.meta?.curated) : []),
+    [builtins, capability.curation],
   );
 
-  const handleFiles = React.useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleFiles = useCallback(async (files: FileList | null) => {
+    if (!onImport || !files || files.length === 0) return;
+    // Drop-zone gating mirrors the disabled Import button: while a required
+    // transcript is empty, dropped files are ignored outright (no partial
+    // import, no error surfaced — the user just hasn't filled in the field).
+    if (transcriptMissing) return;
+    let anySucceeded = false;
     for (const file of Array.from(files)) {
       try {
-        await onImport(file);
+        // Only pass a second argument when the capability actually requires
+        // one, so the non-gated path's call signature is byte-identical to
+        // pre-Task-12 behavior (`onImport(file)`, not `onImport(file, undefined)`).
+        if (capability.transcriptRequired) {
+          await onImport(file, transcript.trim());
+        } else {
+          await onImport(file);
+        }
+        anySucceeded = true;
       } catch (err) {
-        // Parent component surfaces error via toast. Logging here keeps a
-        // breadcrumb in the console for debugging without polluting UI.
+        // Parent surfaces the error (e.g. toast). Console breadcrumb only.
         console.warn('Voice import failed:', err);
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [onImport]);
+    if (anySucceeded && capability.transcriptRequired) setTranscript('');
+  }, [onImport, transcriptMissing, capability.transcriptRequired, transcript]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
     setIsDragging(false);
     void handleFiles(e.dataTransfer.files);
   };
-
   const onDragOver: React.DragEventHandler = (e) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const onDragLeave: React.DragEventHandler = (e) => {
     e.preventDefault();
     setIsDragging(false);
   };
 
-  const startEdit = (sid: number, currentName: string) => {
-    setEditingSid(sid);
+  const startEdit = (id: string, currentName: string) => {
+    setEditingId(id);
     setEditName(currentName);
   };
 
-  const commitEdit = React.useCallback(async (sid: number) => {
+  const commitEdit = useCallback(async (id: string) => {
     const name = editName.trim();
-    setEditingSid(null);
-    const currentRow = imported.find((v) => v.sid === sid);
-    if (name && currentRow && name !== currentRow.name) {
-      try { await onRename(sid, name); }
+    setEditingId(null);
+    const row = customs.find((v) => v.id === id);
+    if (name && row && name !== row.label) {
+      try { await onRename(id, name); }
       catch (err) { console.warn('Rename failed:', err); }
     }
-  }, [editName, imported, onRename]);
+  }, [editName, customs, onRename]);
 
-  const confirmAndDelete = React.useCallback(async (sid: number, name: string) => {
+  const confirmAndDelete = useCallback(async (id: string, name: string) => {
     const prompt = t('voiceLibrary.deleteConfirm', `Delete voice "${name}"?`).replace('{name}', name);
     if (!window.confirm(prompt)) return;
-    try { await onDelete(sid); }
+    try { await onDelete(id); }
     catch (err) { console.warn('Delete failed:', err); }
   }, [onDelete, t]);
 
-  if (!entry) return null;
+  const startRecording = useCallback(async () => {
+    if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const processor = ctx.createScriptProcessor(4096, 1, 1);
+      const chunks: Float32Array[] = [];
+      processor.onaudioprocess = (e) => {
+        chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      };
+      source.connect(processor);
+      processor.connect(ctx.destination);
+      recRef.current = { ctx, stream, source, processor, chunks };
+      setIsRecording(true);
+    } catch (err) {
+      console.warn('Recording failed to start:', err);
+    }
+  }, [onRecord, transcriptMissing]);
+
+  const stopRecording = useCallback(async () => {
+    const rec = recRef.current;
+    recRef.current = null;
+    setIsRecording(false);
+    if (!rec) return;
+    const { ctx, stream, source, processor, chunks } = rec;
+    processor.disconnect();
+    source.disconnect();
+    stream.getTracks().forEach((track) => track.stop());
+    const sampleRate = ctx.sampleRate;
+    await ctx.close();
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    if (!onRecord || total === 0) return;
+    const clip = new Float32Array(total);
+    let offset = 0;
+    for (const c of chunks) { clip.set(c, offset); offset += c.length; }
+    try {
+      // Same call-signature rule as handleFiles: only widen to the 3-arg form
+      // when the capability requires a transcript.
+      if (capability.transcriptRequired) {
+        await onRecord(clip, sampleRate, transcript.trim());
+        setTranscript('');
+      } else {
+        await onRecord(clip, sampleRate);
+      }
+    } catch (err) { console.warn('Recording handler failed:', err); }
+  }, [onRecord, capability.transcriptRequired, transcript]);
+
+  const renderRow = (v: VoiceEntry) => {
+    const isSelected = v.id === selectedId;
+    const isEditing = editingId === v.id;
+    return (
+      <li key={v.id} className={`voice-manage-row${isSelected ? ' selected' : ''}`}>
+        {isEditing ? (
+          <input
+            autoFocus
+            className="voice-name-edit"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={() => void commitEdit(v.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void commitEdit(v.id);
+              if (e.key === 'Escape') setEditingId(null);
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            className="voice-select-btn"
+            aria-pressed={isSelected}
+            disabled={isSessionActive}
+            onClick={() => onSelect(v.id)}
+          >
+            <span className="voice-name">
+              {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
+            </span>
+            {v.meta?.unstable && (
+              <span className="voice-unstable-tag">{t('voiceLibrary.unstable', 'unstable')}</span>
+            )}
+          </button>
+        )}
+        {v.removable && !isEditing && (
+          <>
+            <button
+              type="button"
+              className="voice-row-btn"
+              onClick={() => startEdit(v.id, v.label)}
+            >
+              {t('voiceLibrary.rename', 'Rename')}
+            </button>
+            <button
+              type="button"
+              className="voice-row-btn voice-row-btn-danger"
+              onClick={() => void confirmAndDelete(v.id, v.label)}
+            >
+              {t('voiceLibrary.delete', 'Delete')}
+            </button>
+          </>
+        )}
+      </li>
+    );
+  };
+
+  // Manage-list row for dropdown mode: name + rename/delete only (selection
+  // happens through the <select>, not these rows). Mirrors the original
+  // Supertonic "Manage imported voices" rows.
+  const renderManageRow = (v: VoiceEntry) => {
+    const isEditing = editingId === v.id;
+    return (
+      <li key={v.id} className="voice-manage-row">
+        {isEditing ? (
+          <input
+            autoFocus
+            className="voice-name-edit"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={() => void commitEdit(v.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void commitEdit(v.id);
+              if (e.key === 'Escape') setEditingId(null);
+            }}
+          />
+        ) : (
+          <span className="voice-name">{v.label}</span>
+        )}
+        <button
+          type="button"
+          className="voice-row-btn"
+          disabled={isEditing}
+          onClick={() => startEdit(v.id, v.label)}
+        >
+          {t('voiceLibrary.rename', 'Rename')}
+        </button>
+        <button
+          type="button"
+          className="voice-row-btn voice-row-btn-danger"
+          onClick={() => void confirmAndDelete(v.id, v.label)}
+        >
+          {t('voiceLibrary.delete', 'Delete')}
+        </button>
+      </li>
+    );
+  };
+
+  // Shared import toolbar (upload / record affordances), reused by both
+  // presentations so the dropdown path stays in sync with the list path.
+  const importToolbar = (
+    <div className="voice-library-manage-toolbar">
+      {capability.transcriptRequired && (
+        <div className="voice-transcript-field">
+          <label htmlFor={transcriptInputId} className="voice-transcript-label">
+            {t('voiceLibrary.transcript', 'Transcript')}
+          </label>
+          <input
+            id={transcriptInputId}
+            type="text"
+            className="voice-transcript-input"
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder={t('voiceLibrary.transcriptPlaceholder', 'Type exactly what the clip says…')}
+          />
+          <span className="voice-transcript-hint">
+            {t('voiceLibrary.transcriptHint', 'Must match the words spoken in the clip.')}
+          </span>
+        </div>
+      )}
+      {canUpload && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          disabled={transcriptMissing}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Plus size={14} />
+          {t('voiceLibrary.importVoice', 'Import voice…')}
+        </button>
+      )}
+      {canRecord && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          // Never disable while a recording is in progress — the button also
+          // serves as "Stop recording" and clearing the transcript field
+          // mid-capture must not trap the user in an unstoppable recording.
+          disabled={!isRecording && transcriptMissing}
+          onClick={() => (isRecording ? void stopRecording() : void startRecording())}
+        >
+          <Mic size={14} />
+          {isRecording
+            ? t('voiceLibrary.stopRecording', 'Stop recording')
+            : t('voiceLibrary.recordVoice', 'Record voice…')}
+        </button>
+      )}
+      {canUpload && (
+        <span className="voice-library-drop-hint">
+          <Upload size={12} />
+          {t('voiceLibrary.dropHint', 'or drop a voice file here')}
+        </span>
+      )}
+      {canUpload && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={capability.accept ?? 'application/json,.json'}
+          style={{ display: 'none' }}
+          multiple
+          onChange={(e) => void handleFiles(e.target.files)}
+        />
+      )}
+    </div>
+  );
+
+  // Dropdown presentation: restore the original Supertonic <select> + optgroups
+  // for selection and a collapsible "manage" list for imported voices.
+  if (isDropdown) {
+    return (
+      <div className="voice-library-section">
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>{t('voiceLibrary.voice', 'Voice')}</span>
+          </div>
+          <select
+            className="select-dropdown"
+            value={selectedId}
+            onChange={(e) => onSelect(e.target.value)}
+            disabled={isSessionActive}
+          >
+            <optgroup label={t('voiceLibrary.presets', 'Presets')}>
+              {builtins.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
+                </option>
+              ))}
+            </optgroup>
+            {customs.length > 0 && (
+              <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
+                {customs.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
+
+        {(canUpload || canRecord) && (
+          <details className="voice-library-manage">
+            <summary>
+              {t('voiceLibrary.manageImported', 'Manage imported voices')}
+              {removableVoices.length > 0 && (
+                <span className="voice-library-manage-count"> ({removableVoices.length})</span>
+              )}
+            </summary>
+            <div
+              className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
+              onDrop={canUpload ? onDrop : undefined}
+              onDragOver={canUpload ? onDragOver : undefined}
+              onDragLeave={canUpload ? onDragLeave : undefined}
+            >
+              {importToolbar}
+              {removableVoices.length === 0 ? (
+                <div className="voice-library-empty">
+                  {t('voiceLibrary.emptyHint', 'No imported voices yet.')}
+                </div>
+              ) : (
+                <ul className="voice-manage-list">{removableVoices.map(renderManageRow)}</ul>
+              )}
+            </div>
+          </details>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="voice-library-section">
@@ -135,134 +470,49 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         <div className="setting-label">
           <span>{t('voiceLibrary.voice', 'Voice')}</span>
         </div>
-        <select
-          className="select-dropdown"
-          value={selectedSid}
-          onChange={(e) => onSelect(Number(e.target.value))}
-          disabled={isReloading || isSessionActive}
-        >
-          <optgroup label={t('voiceLibrary.presets', 'Presets')}>
-            {presets.map((v) => (
-              <option key={v.sid} value={v.sid}>
-                {v.gender ? `${v.name} (${v.gender})` : v.name}
-              </option>
-            ))}
-          </optgroup>
-          {imported.length > 0 && (
-            <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
-              {imported.map((v) => (
-                <option key={v.sid} value={v.sid}>
-                  {v.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
       </div>
 
-      <div className="voice-library-info">
-        {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
-        <a
-          href="https://supertonic.supertone.ai/voice-builder"
-          onClick={(e) => {
-            e.preventDefault();
-            openExternalUrl('https://supertonic.supertone.ai/voice-builder');
-          }}
-        >
-          {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
-          <ExternalLink size={14} />
-        </a>
-        <div className="voice-library-info-sub">
-          {t(
-            'voiceLibrary.voiceBuilderDisclaimer',
-            'Paid Supertone service. Sokuji is not involved in that transaction.',
-          )}
-        </div>
-      </div>
-
-      <details className="voice-library-manage">
-        <summary>
-          {t('voiceLibrary.manageImported', 'Manage imported voices')}
-          {imported.length > 0 && (
-            <span className="voice-library-manage-count"> ({imported.length})</span>
-          )}
-        </summary>
-
-        <div
-          className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-        >
-          <div className="voice-library-manage-toolbar">
+      {/* Built-in group */}
+      {(curatedBuiltins.length > 0 || hiddenBuiltins.length > 0) && (
+        <div className="voice-library-group">
+          <div className="voice-library-group-label">{t('voiceLibrary.presets', 'Presets')}</div>
+          <ul className="voice-manage-list">
+            {curatedBuiltins.map(renderRow)}
+            {capability.curation && showAll && hiddenBuiltins.map(renderRow)}
+          </ul>
+          {capability.curation && hiddenBuiltins.length > 0 && (
             <button
               type="button"
-              className="voice-import-btn"
-              disabled={isReloading}
-              onClick={() => fileInputRef.current?.click()}
+              className="voice-show-all-btn"
+              onClick={() => setShowAll((s) => !s)}
             >
-              <Plus size={14} />
-              {t('voiceLibrary.importVoice', 'Import voice…')}
+              {showAll
+                ? t('voiceLibrary.showFewer', 'Show fewer voices')
+                : t('voiceLibrary.showAll', 'Show all voices')}
             </button>
-            <span className="voice-library-drop-hint">
-              <Upload size={12} />
-              {t('voiceLibrary.dropHint', 'or drop a voice_style.json here')}
-            </span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json,.json"
-              style={{ display: 'none' }}
-              multiple
-              onChange={(e) => void handleFiles(e.target.files)}
-            />
-          </div>
-
-          {imported.length === 0 ? (
-            <div className="voice-library-empty">
-              {t('voiceLibrary.emptyHint', 'No imported voices yet.')}
-            </div>
-          ) : (
-            <ul className="voice-manage-list">
-              {imported.map((v) => (
-                <li key={v.sid} className="voice-manage-row">
-                  {editingSid === v.sid ? (
-                    <input
-                      autoFocus
-                      className="voice-name-edit"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onBlur={() => void commitEdit(v.sid)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') void commitEdit(v.sid);
-                        if (e.key === 'Escape') setEditingSid(null);
-                      }}
-                    />
-                  ) : (
-                    <span className="voice-name">{v.name}</span>
-                  )}
-                  <button
-                    type="button"
-                    className="voice-row-btn"
-                    disabled={isReloading || editingSid === v.sid}
-                    onClick={() => startEdit(v.sid, v.name)}
-                  >
-                    {t('voiceLibrary.rename', 'Rename')}
-                  </button>
-                  <button
-                    type="button"
-                    className="voice-row-btn voice-row-btn-danger"
-                    disabled={isReloading}
-                    onClick={() => void confirmAndDelete(v.sid, v.name)}
-                  >
-                    {t('voiceLibrary.delete', 'Delete')}
-                  </button>
-                </li>
-              ))}
-            </ul>
           )}
         </div>
-      </details>
+      )}
+
+      {/* Custom group */}
+      {customs.length > 0 && (
+        <div className="voice-library-group">
+          <div className="voice-library-group-label">{t('voiceLibrary.myVoices', 'My Voices')}</div>
+          <ul className="voice-manage-list">{customs.map(renderRow)}</ul>
+        </div>
+      )}
+
+      {/* Import controls */}
+      {(canUpload || canRecord) && (
+        <div
+          className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
+          onDrop={canUpload ? onDrop : undefined}
+          onDragOver={canUpload ? onDragOver : undefined}
+          onDragLeave={canUpload ? onDragLeave : undefined}
+        >
+          {importToolbar}
+        </div>
+      )}
     </div>
   );
 };

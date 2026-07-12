@@ -403,6 +403,10 @@
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
       "noKeyRequired": "API-avainta ei tarvita"
     },
+    "local_native": {
+      "name": "Ilmainen (Native)",
+      "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI:n erityinen reaaliaikainen käännösmalli"

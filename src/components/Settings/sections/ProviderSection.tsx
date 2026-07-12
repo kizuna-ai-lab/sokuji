@@ -28,6 +28,7 @@ import {
   useSetUIMode,
   useNavigateToSettings,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
   useSettingsStore,
 } from '../../../stores/settingsStore';
 import type { SettingsStore } from '../../../stores/settingsStore';
@@ -44,6 +45,17 @@ import {
   getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
+import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved, useNativeSidecarStatus } from '../../../stores/nativeModelStore';
+import {
+  nativeAsrCards,
+  nativeAsrIncompatibleCards,
+  nativeTranslationCards,
+  nativeTtsModels,
+  resolveNativeTts,
+  estimateNativeMemoryByDevice,
+  actualNativeMemoryByDevice,
+  formatMemMb,
+} from '../../../lib/local-inference/native/nativeCatalog';
 
 // Icons are React components and stay in the UI layer — the descriptor only
 // carries the i18n key (see i18nKey on ProviderDescriptor). Keys omitted here
@@ -60,6 +72,7 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
   [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
   [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
+  [Provider.LOCAL_NATIVE]: KizunaAIIcon,
 };
 const DefaultProviderIcon = HelpCircle;
 
@@ -70,6 +83,7 @@ const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
   [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
   [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
+  [Provider.LOCAL_NATIVE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
 };
 
 const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
@@ -116,6 +130,77 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
+  // Local native (sidecar) model info — separate settings slice + model store.
+  const localNativeSettings = useLocalNativeSettings();
+  const nativeModelStatuses = useNativeModelStatuses();
+  const nativeModelSizes = useNativeModelSizes();
+  const nativeCatalog = useNativeCatalog();
+  const nativeRefresh = useNativeModelStore(s => s.refresh);
+  const nativeRefreshCatalog = useNativeModelStore(s => s.refreshCatalog);
+  const nativeStatus = useNativeSidecarStatus();
+
+  // The sidecar download ids the current native selection maps to (ASR id is its
+  // own download id; translation/TTS resolve through the catalog). Shared by the
+  // status refresh + the memory estimate so both stay in sync with the chips.
+  const nativeActiveDownloadIds = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return [];
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+    return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
+  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
+    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog]);
+
+  // Pull cache status + sizes from the sidecar so the chips and estimate work even
+  // when the model-management section isn't mounted (e.g. before opening Advanced).
+  const nativeIdsKey = nativeActiveDownloadIds.join('|');
+  useEffect(() => {
+    if (provider !== Provider.LOCAL_NATIVE || nativeActiveDownloadIds.length === 0) return;
+    nativeRefresh(nativeActiveDownloadIds);
+    nativeRefreshCatalog(nativeActiveDownloadIds);  // tiers + sizes drive the cards + VRAM/RAM split below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, nativeIdsKey]);
+
+  // Memory estimate for native — same "footprint ≈ on-disk model size" heuristic
+  // as LOCAL_INFERENCE, but split into VRAM vs RAM per stage: a model lands in
+  // VRAM when its device is forced to cuda, or left on auto AND the sidecar
+  // reports an available GPU tier for it (so the resolver would run it on the
+  // GPU). Each stage (ASR/translation/TTS) carries its own device override.
+  const nativeMemoryEstimate = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+    return estimateNativeMemoryByDevice([
+      { id: localNativeSettings.asrModel, device: localNativeSettings.asrDevice },
+      { id: trCard?.downloadId, device: localNativeSettings.translationDevice },
+      { id: ttsId, device: localNativeSettings.ttsDevice },
+    ], nativeModelSizes, nativeCatalog);
+  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
+    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    localNativeSettings.asrDevice, localNativeSettings.translationDevice, localNativeSettings.ttsDevice,
+    nativeModelSizes, nativeCatalog]);
+
+  const asrResolved = useNativeAsrResolved();
+  const translationResolved = useNativeTranslationResolved();
+  // Once a session resolves, replace the pre-session estimate with what's REALLY
+  // in use — but only when the resolved stages still match the current selection
+  // (else a prior session's numbers would mislead). Resolution carries the real
+  // device, so a VRAM-degraded translation correctly shows up under RAM.
+  const nativeActual = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
+    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+    const asrMatch = !!asrResolved && asrResolved.model === localNativeSettings.asrModel;
+    const trMatch = !!translationResolved && translationResolved.model === trCard?.downloadId;
+    if (!asrMatch || !trMatch) return null;
+    const mem = actualNativeMemoryByDevice(asrResolved, translationResolved);
+    const degraded = [asrResolved, translationResolved].some(r => r?.device === 'cpu' && r?.fallbackReason);
+    return { ...mem, degraded };
+  }, [provider, asrResolved, translationResolved, localNativeSettings.asrModel,
+    localNativeSettings.translationModel, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    nativeCatalog]);
+
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
@@ -387,7 +472,82 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       )}
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
-      {provider === Provider.LOCAL_INFERENCE ? (
+      {provider === Provider.LOCAL_NATIVE ? (
+        <div className="local-inference-info">
+          {(nativeStatus === 'starting' || nativeStatus === 'idle') ? (
+            <div className="model-info local-native-status is-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>
+          ) : nativeStatus === 'unavailable' ? (
+            <div className="model-info local-native-status is-error">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
+          ) : (
+            <div className="model-info">
+              <div className="model-inline">
+                {(() => {
+                  const asrId = localNativeSettings.asrModel;
+                  const asrCard = asrId
+                    ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
+                        .find(c => c.selectId === asrId)
+                    : undefined;
+                  const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                      <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
+                        {asrReady ? (asrCard?.name || asrId) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+                {(() => {
+                  const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
+                  const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
+                  const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+                      <span className={`model-chip-value ${trReady ? 'model-ok' : 'model-warn'}`}>
+                        {trReady ? (trCard?.name) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+                {(() => {
+                  const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+                  const ttsVoice = voiceId
+                    ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
+                    : undefined;
+                  const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
+                  return (
+                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                      <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                      <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
+                        {ttsReady ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
+                      </span>
+                    </button>
+                  );
+                })()}
+              </div>
+              {nativeActual ? (
+                <div className="memory-estimate">
+                  <Cpu size={11} />
+                  <span className="memory-estimate__label">In use</span>
+                  {nativeActual.vramMb > 0 && <span>VRAM {formatMemMb(nativeActual.vramMb)}</span>}
+                  {nativeActual.ramMb > 0 && <span>RAM {formatMemMb(nativeActual.ramMb)}</span>}
+                  {nativeActual.degraded && (
+                    <span className="memory-estimate__warn">Translation on CPU — not enough VRAM</span>
+                  )}
+                </div>
+              ) : nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
+                <div className="memory-estimate">
+                  <Cpu size={11} />
+                  <span className="memory-estimate__label">Estimated</span>
+                  {nativeMemoryEstimate.vramMb > 0 && <span>VRAM ~{formatMemMb(nativeMemoryEstimate.vramMb)}</span>}
+                  {nativeMemoryEstimate.ramMb > 0 && <span>RAM ~{formatMemMb(nativeMemoryEstimate.ramMb)}</span>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
           <div className="model-info">
             <div className="model-inline">

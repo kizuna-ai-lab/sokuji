@@ -26,6 +26,8 @@ interface TooltipProps {
   trigger?: 'hover' | 'click';
   icon?: 'help' | 'info' | 'none';
   maxWidth?: number;
+  /** Hover open delay in ms (default 100). Pass 0 for an instant tooltip. */
+  openDelay?: number;
 }
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -34,7 +36,8 @@ const Tooltip: React.FC<TooltipProps> = ({
   position = 'top',
   trigger = 'hover',
   icon = 'help',
-  maxWidth = 250
+  maxWidth = 250,
+  openDelay = 100
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const arrowRef = React.useRef(null);
@@ -64,7 +67,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   // Interaction hooks based on trigger type
   const hover = useHover(context, {
     enabled: trigger === 'hover',
-    delay: { open: 100, close: 0 },
+    delay: { open: openDelay, close: 0 },
     handleClose: safePolygon(),
   });
   

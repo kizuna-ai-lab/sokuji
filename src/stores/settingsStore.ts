@@ -7,9 +7,13 @@ import {
   FilteredModel,
   SessionConfig,
   LocalInferenceSessionConfig,
+  LocalNativeSessionConfig,
 } from '../services/interfaces/IClient';
 import { getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
+import { requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards, nativeAsrCards, nativeTtsCards, autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { useNativeModelStore } from './nativeModelStore';
+import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
@@ -44,6 +48,9 @@ import {
 import {
   LocalInferenceSettings, defaultLocalInferenceSettings,
 } from '../services/providers/LocalInferenceProviderConfig';
+import {
+  LocalNativeProviderConfig, LocalNativeSettings, defaultLocalNativeSettings,
+} from '../services/providers/LocalNativeProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
 
@@ -51,6 +58,7 @@ export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
   VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
+  LocalNativeSettings,
 };
 
 // Union of every provider's settings slice — the return type of
@@ -58,7 +66,7 @@ export type {
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings
-  | VolcengineAST2Settings | LocalInferenceSettings;
+  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings;
 
 // ==================== Type Definitions ====================
 
@@ -179,6 +187,7 @@ export interface SettingsStore {
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
+  localNative: LocalNativeSettings;
 
   // Validation state
   isApiKeyValid: boolean | null;
@@ -262,6 +271,7 @@ export interface SettingsStore {
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
+  updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -412,6 +422,94 @@ export function createParticipantLocalInferenceConfig(
   };
 }
 
+/**
+ * Back-compat wrapper: the canonical builder now lives on the descriptor
+ * (LocalNativeProviderConfig.buildSessionConfig), which reads the native
+ * catalog from nativeModelStore itself. Kept as a named export so tests can
+ * exercise the variant-pin plumbing without going through the registry
+ * (which only registers LOCAL_NATIVE inside Electron).
+ */
+export function createLocalNativeSessionConfig(
+  settings: LocalNativeSettings,
+  systemInstructions: string,
+): LocalNativeSessionConfig {
+  return new LocalNativeProviderConfig()
+    .buildSessionConfig(settings, systemInstructions) as LocalNativeSessionConfig;
+}
+
+export type ParticipantLocalNativeResult =
+  | { success: true; config: LocalNativeSessionConfig; translationAvailable: boolean }
+  | { success: false; reason: 'no_asr'; detail: string };
+
+/**
+ * Build a participant (other-speaker) session config for the native provider.
+ *
+ * The participant channel translates the OTHER speaker — who speaks the user's
+ * TARGET language — so the direction is reversed. Reversing must re-resolve the
+ * ASR and translation models, not just swap the language fields, because:
+ *   - the native ASR model is language-conditioned; a source-specific ASR can't
+ *     transcribe the reversed source language, and
+ *   - directional Opus-MT translation models bake the direction into the model
+ *     and ignore src/tgt (translate_backends.py), so the speaker-direction model
+ *     would translate the wrong way.
+ * Multilingual models (qwen*) handle both directions, so for them the
+ * re-resolution is a no-op and the same model is reused (no extra memory).
+ *
+ * Model re-resolution reuses `autoSelectNative` — the same download-/hardware-
+ * aware logic the settings UI uses — so an un-downloaded reverse model is never
+ * selected; it falls back to a downloaded multilingual model, else to
+ * transcription-only. TTS is dropped (participant channel is text-only).
+ *
+ * Returns `{ success: false, reason: 'no_asr' }` when no ASR model can serve the
+ * reversed source language, so the caller can skip the participant channel.
+ */
+export function createParticipantLocalNativeConfig(
+  baseConfig: LocalNativeSessionConfig
+): ParticipantLocalNativeResult {
+  const store = useNativeModelStore.getState();
+  const catalog = store.catalog;
+  const statuses = store.statuses;
+  const isDownloaded = (id: string | null) => id === null || statuses[id] === 'ready';
+  const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
+
+  // Reversed direction: the participant speaks the user's target language.
+  const revSrc = baseConfig.targetLanguage;
+  const revTgt = baseConfig.sourceLanguage;
+
+  const current: NativeSelection = {
+    asrModel: baseConfig.asrModelId,
+    translationModel: baseConfig.translationModelId ?? '',
+    ttsModel: '',
+  };
+  const updates = autoSelectNative(
+    revSrc, revTgt, current, isDownloaded, store.recallModels(revSrc, revTgt), isHardwareGated, catalog,
+  );
+  const asrModel = updates?.asrModel ?? current.asrModel;
+  const translationModel = updates?.translationModel ?? current.translationModel;
+
+  if (!asrModel) {
+    return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };
+  }
+
+  return {
+    success: true,
+    translationAvailable: !!translationModel,
+    config: {
+      ...baseConfig,
+      sourceLanguage: revSrc,
+      targetLanguage: revTgt,
+      asrModelId: asrModel,
+      translationModelId: translationModel || undefined,
+      // Variant pins are keyed by model id: keep the pin only when the reversed
+      // direction reuses the same model, else let the sidecar auto-select.
+      asrVariant: asrModel === baseConfig.asrModelId ? baseConfig.asrVariant : undefined,
+      translationVariant: translationModel === (baseConfig.translationModelId ?? '')
+        ? baseConfig.translationVariant : undefined,
+      ttsModelId: undefined,
+    },
+  };
+}
+
 // ==================== Store Implementation ====================
 
 const useSettingsStore = create<SettingsStore>()(
@@ -429,6 +527,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
+    localNative: defaultLocalNativeSettings,
 
     isApiKeyValid: null,
     isValidating: false,
@@ -795,10 +894,126 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateLocalNative: async (settings) => {
+      set((state) => ({localNative: {...state.localNative, ...settings}}));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.localNative.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Local Native settings:', error);
+      }
+    },
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
       const provider = state.provider;
+
+      // Native (Electron sidecar) inference: no API key. Readiness = the sidecar
+      // catalog is loaded and the reconciled selection passes compat + download
+      // checks. ensureCatalog warms the sidecar; never mutate the selection when
+      // the sidecar is still starting or unavailable.
+      if (provider === Provider.LOCAL_NATIVE) {
+        const { useNativeModelStore } = await import('./nativeModelStore');
+        const nstore = useNativeModelStore.getState();
+        if (!isElectron()) {
+          set({ isApiKeyValid: false, availableModels: [], isValidating: false,
+            validationMessage: 'Native sidecar unavailable (desktop app + installed sidecar required)' });
+          return { valid: false, message: 'Native sidecar unavailable (desktop app + installed sidecar required)', validating: false };
+        }
+        // Warm the sidecar + load the full model catalog. Gate on the lifecycle;
+        // never run auto-select on an incomplete/empty catalog.
+        await nstore.ensureCatalog();
+        const status = useNativeModelStore.getState().sidecarStatus;
+        if (status !== 'ready') {
+          // When the ENGINE (bundle) is the reason, say so precisely — the
+          // engine card in provider settings carries the matching CTA (spec S10).
+          const bundle = useNativeModelStore.getState().bundleStatus;
+          const message = bundle === 'mismatch'
+            ? i18n.t('settings.localNativeEngineUpdateRequired',
+                'The inference engine needs an update — open provider settings to update it')
+            : (bundle === 'absent' || bundle === 'paused')
+              ? i18n.t('settings.localNativeEngineRequired',
+                  'Download the inference engine in provider settings')
+              : status === 'unavailable'
+                ? i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')
+                : i18n.t('settings.localNativeStarting', 'Starting the local engine…');
+          set({ isApiKeyValid: false, availableModels: [], validationMessage: message, isValidating: false });
+          return { valid: false, message, validating: false };
+        }
+        const catalog = useNativeModelStore.getState().catalog;
+        const s0 = get().localNative;
+        // Refresh download statuses for THIS pair's candidate models BEFORE
+        // auto-select. Statuses start empty on a cold start, and auto-select reads
+        // them to pick the best *downloaded* model — without this it would see
+        // nothing downloaded and fail to select a model the user already has.
+        const candidateIds = Array.from(new Set([
+          ...nativeAsrCards(s0.sourceLanguage, catalog),
+          ...nativeTranslationCards(s0.sourceLanguage, s0.targetLanguage, catalog),
+          ...nativeTtsCards(s0.targetLanguage, catalog),
+        ].map((c) => c.downloadId).filter((id): id is string => !!id)));
+        // This FIRST refresh must be variant-aware too: on a cold start the
+        // Settings panel (which normally publishes statusRepos) has never
+        // mounted, so checking the catalog DEFAULT repos here marks a card
+        // whose user-downloaded quant is the recommended/pinned one (e.g.
+        // Fun-ASR: default Q6_K, downloaded Q4_K_M) as absent — and the
+        // auto-select below then wipes the persisted selection to '' on
+        // every app restart (the "ASR shows None after reopening" bug).
+        const resolveVariantRepos = (ids: string[]): Record<string, string> => {
+          const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+          for (const mid of ids) {
+            const vs = catalog[mid]?.variants;
+            if (!vs || vs.length < 2) continue;
+            vd[mid] = {
+              variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
+              recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+            };
+          }
+          return statusReposFor(Object.keys(vd), vd, s0.translationVariantByModel);
+        };
+        const candidateRepos = resolveVariantRepos(candidateIds);
+        await useNativeModelStore.getState().refresh(
+          candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
+        // Global auto-select: reconcile the stale selection for this pair against
+        // the catalog + live download statuses, and persist it (fixes both the
+        // Start button and the model-info "None" on a language reversal).
+        const updates = nstore.autoSelect(s0.sourceLanguage, s0.targetLanguage, {
+          asrModel: s0.asrModel, translationModel: s0.translationModel, ttsModel: s0.ttsModel,
+        });
+        if (updates) get().updateLocalNative(updates);
+        const s = get().localNative;
+        const asrOpt = catalog[s.asrModel];
+        const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, s.sourceLanguage);
+        // The selected translation must be a valid card for THIS language pair.
+        const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage, catalog)
+          .some((c) => c.selectId === s.translationModel);
+        // Gate on the selected stage models being downloaded into the sidecar cache.
+        // TTS is dropped from the requirement when text-only is on.
+        const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, catalog, get().textOnly);
+        // Resolve the selected models' CHOSEN variant repos (pin ?? the
+        // catalog's precomputed recommendation) so the gate checks the right
+        // quant even on cold start — no list_variants round-trip needed: the
+        // models_catalog feed carries the full ladder per card.
+        let statusRepos: Record<string, string> | undefined;
+        const resolved = resolveVariantRepos([s.asrModel, s.translationModel]);
+        // Only override when resolution actually produced a repo; an empty
+        // map ({}) would defeat refresh's `repos ?? cache` fallback.
+        if (Object.keys(resolved).length > 0) statusRepos = resolved;
+        await useNativeModelStore.getState().refresh(models, statusRepos);
+        const ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
+        const message = ready ? ''
+          : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
+          : !trCompatible ? i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair')
+          : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+        set({
+          isApiKeyValid: ready,
+          availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
+          validationMessage: message, isValidating: false,
+        });
+        return { valid: ready, message, validating: false };
+      }
 
       // Local inference: check model readiness instead of API key.
       // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
@@ -1083,7 +1298,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, volcengineST, zoomAI, volcengineAST2, localInference, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, volcengineST, zoomAI, volcengineAST2, localInference, localNative, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -1092,6 +1307,7 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.zoomAI', defaultZoomAISettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
           loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
+          loadProviderSettings('settings.localNative', defaultLocalNativeSettings),
           loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
           loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings),
           loadProviderSettings('settings.kizunaVolcengineAst2', defaultKizunaVolcengineAst2Settings),
@@ -1117,6 +1333,7 @@ const useSettingsStore = create<SettingsStore>()(
           zoomAI,
           volcengineAST2,
           localInference,
+          localNative,
           openaiTranslate,
           kizunaOpenaiTranslate,
           kizunaVolcengineAst2,
@@ -1185,7 +1402,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     getProcessedLocalPrompt: (forParticipant = false) => {
-      const s = get().localInference;
+      // Both local providers share this path; read the active slice. LOCAL_NATIVE
+      // has no participant prompt, so its participant case falls back to speaker.
+      const st = get();
+      const s = st.provider === Provider.LOCAL_NATIVE ? st.localNative : st.localInference;
       const [srcLang, tgtLang] = forParticipant
         ? [s.targetLanguage, s.sourceLanguage]
         : [s.sourceLanguage, s.targetLanguage];
@@ -1197,7 +1417,7 @@ const useSettingsStore = create<SettingsStore>()(
       const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
       if (!forParticipant) return speakerResolved;
       // Participant falls back to resolved speaker if empty
-      const participant = s.participantSystemPrompt.trim();
+      const participant = 'participantSystemPrompt' in s ? s.participantSystemPrompt.trim() : '';
       return participant || speakerResolved;
     },
 
@@ -1252,6 +1472,7 @@ export const useVolcengineAST2Settings = () => useSettingsStore((state) => state
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
+export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
 // Transport type selector (for OpenAI provider)
 export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
@@ -1302,6 +1523,7 @@ export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.u
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
+export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);

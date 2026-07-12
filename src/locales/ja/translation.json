@@ -671,6 +671,10 @@
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
       "noKeyRequired": "APIキー不要"
     },
+    "local_native": {
+      "name": "無料 (Native)",
+      "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "OpenAI 専用のリアルタイム翻訳モデル"
@@ -828,6 +832,29 @@
     "remainingCount": "本日あと {{remaining}} / {{limit}} 件のフィードバックを送信できます",
     "limitReached": "本日の送信上限に達しました。明日また送信できます。"
   },
+  "engine": {
+    "title": "推論エンジン",
+    "detected": "検出: {{gpu}}",
+    "package": "エンジン: {{sku}} · {{size}}",
+    "sizeUnknown": "オフラインのためサイズ不明",
+    "download": "エンジンをダウンロード",
+    "update": "エンジンを更新",
+    "updateRequired": "エンジンの更新が必要です({{from}} → {{to}})",
+    "downloading": "{{done}} / {{total}} · {{pct}}%",
+    "verifying": "検証中…",
+    "extracting": "展開中…",
+    "paused": "一時停止中 · {{done}} ダウンロード済み",
+    "resume": "ダウンロードを再開",
+    "cancel": "キャンセル",
+    "retry": "再試行",
+    "ready": "エンジン {{version}}",
+    "onDisk": "ディスク使用量 {{size}}",
+    "remove": "エンジンを削除",
+    "removeConfirm": "エンジンを削除してディスク容量を解放しますか?",
+    "unsupported": "このデバイスはローカル推論に対応していません",
+    "devMode": "開発モード · ローカル venv",
+    "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます"
+  },
   "models": {
     "management": "モデル",
     "storageUsed": "ストレージ: {{size}} MB 使用中",
@@ -851,7 +878,10 @@
     "confirmNo": "いいえ",
     "recommended": "おすすめ",
     "recommendedGroup": "おすすめ",
-    "online": "オンライン"
+    "online": "オンライン",
+    "variantWontFit": "約 {{need}} のGPUメモリが必要 — このマシンは {{have}}",
+    "variantWontFitNoMem": "約 {{need}} のGPUメモリが必要",
+    "wontFit": "このマシンでは実行できません"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",

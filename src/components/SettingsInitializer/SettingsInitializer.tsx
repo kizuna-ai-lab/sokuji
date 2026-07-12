@@ -11,6 +11,7 @@ import {
   useVolcengineAST2Settings,
   useSettingsLoaded,
   useLocalInferenceSettings,
+  useLocalNativeSettings,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
 import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
@@ -47,6 +48,7 @@ export function SettingsInitializer() {
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const localInferenceSettings = useLocalInferenceSettings();
+  const localNativeSettings = useLocalNativeSettings();
 
   // ── Ensure model store is initialized when LOCAL_INFERENCE is selected ──
   useEffect(() => {
@@ -95,9 +97,9 @@ export function SettingsInitializer() {
   // ── API providers: validate when provider changes or credentials change ──
   useEffect(() => {
     if (!settingsLoaded) return;
-    // Skip LOCAL_INFERENCE (handled by the next effect) and Kizuna-managed
-    // providers (handled above)
-    if (provider === Provider.LOCAL_INFERENCE || isKizunaManagedProvider(provider)) return;
+    // Skip LOCAL_INFERENCE and LOCAL_NATIVE (each handled by its own reactive
+    // effect below) and Kizuna-managed providers (handled above)
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE || isKizunaManagedProvider(provider)) return;
 
     prevProviderRef.current = provider;
 
@@ -173,6 +175,33 @@ export function SettingsInitializer() {
         });
     }
   }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings,
+      validateApiKey]);
+
+  // ── LOCAL_NATIVE: warm sidecar then validate when language pair or models change ──
+  // The native readiness gate (validateApiKey) is the single authority for the
+  // Start button, but native settings changes (e.g. reversing the language pair,
+  // which can leave the translation model incompatible) don't otherwise re-run
+  // it — unlike LOCAL_INFERENCE. Without this, the button keeps a stale enabled
+  // state after a swap that has no usable translation model. Scoped to the
+  // readiness-relevant fields so device/voice/VAD tweaks don't re-hit the sidecar.
+  // ensureCatalog() is called first so the sidecar leaves `idle` on provider
+  // selection / settings load without waiting for a Start click.
+  useEffect(() => {
+    if (!settingsLoaded || provider !== Provider.LOCAL_NATIVE) return;
+    prevProviderRef.current = provider;
+    let cancelled = false;
+    (async () => {
+      const { useNativeModelStore } = await import('../../stores/nativeModelStore');
+      await useNativeModelStore.getState().ensureCatalog();
+      if (!cancelled) await validateApiKey();
+    })().catch((error) => {
+      console.error('[SettingsInitializer] Failed to warm/validate LOCAL_NATIVE provider:', error);
+    });
+    return () => { cancelled = true; };
+  }, [settingsLoaded, provider,
+      localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+      localNativeSettings.asrModel, localNativeSettings.translationModel,
+      localNativeSettings.ttsModel,
       validateApiKey]);
 
   // This component doesn't render anything

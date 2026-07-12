@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, HardDrive, ChevronDown, ChevronRight, AlertTriangle, Zap, Star } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, ExternalLink } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -27,14 +27,22 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
+import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
+import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
+import LocalInferenceVoiceSection from './LocalInferenceVoiceSection';
+import { type VoiceEntry } from './VoiceLibrarySection';
+import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
+import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
+import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
+import type { Voice } from '../../../lib/edge-tts/edgeTts';
+import useLogStore from '../../../stores/logStore';
+import { isElectron } from '../../../utils/environment';
 import './ModelManagementSection.scss';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
 interface ModelManagementSectionProps {
   isSessionActive: boolean;
-  localInferenceSettings: LocalInferenceSettings;
-  onUpdateSettings: (updates: Partial<LocalInferenceSettings>) => void;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -55,6 +63,7 @@ function ModelCard({
   onDownload,
   onCancel,
   onDelete,
+  children,
 }: {
   entry: ModelManifestEntry | null; // null = "None" card
   status: ModelStatus;
@@ -71,6 +80,7 @@ function ModelCard({
   onDownload: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  children?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const isNone = entry === null;
@@ -112,7 +122,7 @@ function ModelCard({
   }
 
   return (
-    <div className={classNames} onClick={handleClick}>
+    <div className={classNames} data-testid={`model-card-${entry.id}`} onClick={handleClick}>
       <div className="model-card__top-row">
         {showRadio && <div className="model-card__radio" />}
         <div className="model-card__content">
@@ -224,38 +234,10 @@ function ModelCard({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── ModelGroup ────────────────────────────────────────────────────────────
-
-function ModelGroup({
-  id,
-  title,
-  subtitle,
-  defaultExpanded = true,
-  children,
-}: {
-  id?: string;
-  title: string;
-  subtitle?: string;
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-}) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
-  return (
-    <div id={id ? `${id}-section` : undefined} className="model-group">
-      <div className="model-group__header" onClick={() => setExpanded(!expanded)}>
-        <span className="model-group__chevron">
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        <h3 className="model-group__title">{title}</h3>
-        {subtitle && <span className="model-group__subtitle">{subtitle}</span>}
-      </div>
-      {expanded && (
-        <div className="model-group__list">
+      {isSelected && children && (
+        // stopPropagation so interacting with the body (e.g. the voice picker's
+        // dropdown/buttons) does not bubble to the card root's onClick and re-select.
+        <div className="model-card__body" onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
       )}
@@ -295,10 +277,10 @@ const sortTtsModels = createModelSorter((a, b) =>
 
 export function ModelManagementSection({
   isSessionActive,
-  localInferenceSettings,
-  onUpdateSettings,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
+  const settings = useLocalInferenceSettings();
+  const updateLocalInference = useUpdateLocalInference();
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
   const downloadErrors = useDownloadErrors();
@@ -309,7 +291,6 @@ export function ModelManagementSection({
   const deviceFeatures = useDeviceFeatures();
   const modelVariants = useModelVariants();
   const { initialize, downloadModel, cancelDownload, deleteModel, deleteAllModels } = useModelStore();
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   /** Compute variant upgrade/incompatibility hint for a model */
   const getVariantHint = (entry: ModelManifestEntry): { hint?: string; incompatible?: boolean } => {
@@ -343,7 +324,7 @@ export function ModelManagementSection({
     initialize();
   }, [initialize]);
 
-  const { sourceLanguage, targetLanguage, asrModel, ttsModel, translationModel } = localInferenceSettings;
+  const { sourceLanguage, targetLanguage, asrModel, ttsModel, translationModel } = settings;
 
   // Auto-select models: fix incompatible or missing selections after language change / model download
   useEffect(() => {
@@ -397,7 +378,7 @@ export function ModelManagementSection({
     }
 
     if (Object.keys(updates).length > 0) {
-      onUpdateSettings(updates);
+      updateLocalInference(updates);
     }
 
     // Remember the final model selection for this language pair
@@ -407,7 +388,7 @@ export function ModelManagementSection({
     if (finalAsr) {
       useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, finalAsr, finalTranslation, finalTts);
     }
-  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, onUpdateSettings]);
+  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, updateLocalInference]);
 
   // ── Memoized model lists ──────────────────────────────────────────────
 
@@ -478,6 +459,156 @@ export function ModelManagementSection({
     [ttsModels, targetLanguage],
   );
 
+  // ── Voice / speaker state (embedded in the selected TTS card) ──────────
+  // Relocated verbatim from ProviderSpecificSettings so the WASM voice control
+  // lives inside the selected TTS card (mirrors NativeModelManagementSection).
+
+  // Edge TTS voice picker state
+  const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
+  const [edgeTtsVoiceStatus, setEdgeTtsVoiceStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const isEdgeTtsSelected = settings.ttsModel === 'edge-tts';
+
+  useEffect(() => {
+    if (!isEdgeTtsSelected) return;
+    let cancelled = false;
+    setEdgeTtsVoiceStatus('loading');
+    getEdgeTtsVoices()
+      .then(voices => {
+        if (cancelled) return;
+        setEdgeTtsVoices(voices);
+        setEdgeTtsVoiceStatus('loaded');
+      })
+      .catch(err => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn('[EdgeTTS] Failed to fetch voice list:', err);
+        useLogStore.getState().addLog(
+          `Failed to fetch Edge TTS voice list: ${message}`,
+          'error',
+        );
+        setEdgeTtsVoiceStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, [isEdgeTtsSelected]);
+
+  const filteredVoices = useMemo(
+    () => filterVoicesByLanguage(edgeTtsVoices, settings.targetLanguage),
+    [edgeTtsVoices, settings.targetLanguage],
+  );
+
+  // edge voice list shape consumed by LocalInferenceVoiceSection
+  const edgeVoices = useMemo(
+    () => filteredVoices.map((v) => ({ ShortName: v.ShortName, label: getVoiceDisplayName(v) })),
+    [filteredVoices],
+  );
+
+  // Supertonic imported voice state
+  const [importedVoices, setImportedVoices] = useState<voiceStorage.StoredVoice[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  const isSupertonicTts = getManifestEntry(settings.ttsModel)?.engine === 'supertonic';
+
+  const refreshImportedVoices = useCallback(async () => {
+    if (!isSupertonicTts) return;
+    try {
+      const list = await voiceStorage.listVoices('supertonic-3');
+      setImportedVoices(list);
+    } catch (err) {
+      console.warn('Failed to list imported voices:', err);
+    }
+  }, [isSupertonicTts]);
+
+  useEffect(() => {
+    void refreshImportedVoices();
+  }, [refreshImportedVoices]);
+
+  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(settings.ttsModel) : undefined;
+
+  const supertonicVoices = useMemo(() => {
+    if (!isSupertonicTts || !supertonicTtsEntry) return [];
+    const presets = supertonicTtsEntry.ttsConfig?.presetVoices ?? [];
+    const presetVoices = presets.map(p => ({
+      sid: p.sid,
+      name: p.name,
+      source: 'preset' as const,
+      gender: p.gender as 'M' | 'F',
+    }));
+    const importedAsVoices = importedVoices.map(v => ({
+      sid: importedSidFromDbKey(v.id),
+      name: v.name,
+      source: 'imported' as const,
+      gender: undefined,
+    }));
+    return [...presetVoices, ...importedAsVoices];
+  }, [isSupertonicTts, supertonicTtsEntry, importedVoices]);
+
+  // Adapter: map the sid-based Supertonic voice model onto the normalized,
+  // capability-driven VoiceLibrarySection props. Ids encode the sid so the
+  // sid-based callbacks recover it; the component treats them as opaque.
+  const supertonicVoiceEntries = useMemo<VoiceEntry[]>(
+    () => supertonicVoices.map((v) => ({
+      id: `${v.source === 'preset' ? 'preset' : 'custom'}:${v.sid}`,
+      label: v.name,
+      group: v.source === 'preset' ? 'builtin' : 'custom',
+      removable: v.source === 'imported',
+      meta: v.gender ? { gender: v.gender } : undefined,
+    })),
+    [supertonicVoices],
+  );
+
+  const supertonicSelectedId = useMemo(() => {
+    const match = supertonicVoices.find((v) => v.sid === settings.ttsSpeakerId);
+    const source = match?.source === 'imported' ? 'custom' : 'preset';
+    return `${source}:${settings.ttsSpeakerId}`;
+  }, [supertonicVoices, settings.ttsSpeakerId]);
+
+  const handleImportVoice = useCallback(async (file: File) => {
+    try {
+      const fallbackName = file.name.replace(/\.json$/i, '');
+      await voiceStorage.addVoice('supertonic-3', fallbackName, file);
+      setImportError(null);
+      await refreshImportedVoices();
+      setHasPendingChanges(true);
+    } catch (err) {
+      const msg = err instanceof voiceStorage.VoiceImportError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error ? err.message : String(err);
+      setImportError(msg);
+      throw err;
+    }
+  }, [refreshImportedVoices]);
+
+  const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
+    await voiceStorage.renameVoice(dbKey, newName);
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [refreshImportedVoices]);
+
+  const handleDeleteVoice = useCallback(async (sid: number) => {
+    const dbKey = dbKeyFromImportedSid(sid);
+    if (dbKey === null) return;
+    await voiceStorage.deleteVoice(dbKey);
+    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
+    if (settings.ttsSpeakerId === sid) {
+      updateLocalInference({ ttsSpeakerId: defaultSid });
+    }
+    await refreshImportedVoices();
+    setHasPendingChanges(true);
+  }, [supertonicTtsEntry, settings.ttsSpeakerId, updateLocalInference, refreshImportedVoices]);
+
+  // Auto-select first voice when target language changes or no voice selected
+  useEffect(() => {
+    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
+    const currentVoice = settings.edgeTtsVoice;
+    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
+    if (!isCurrentValid) {
+      updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
+    }
+  }, [isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error
   // instead of a silently missing section. `!initialized && !initError` is the
@@ -513,69 +644,50 @@ export function ModelManagementSection({
 
   // ── Helpers ────────────────────────────────────────────────────────
 
-  /** Render a list of compatible model cards with variant hints */
-  const renderCompatibleCards = (
-    models: ModelManifestEntry[],
+  /** Render a single compatible model card with its variant hint. */
+  const renderCard = (
+    entry: ModelManifestEntry,
     selectedId: string | undefined,
     onSelect: (id: string) => void,
-  ) =>
-    models.map(entry => {
-      const { hint, incompatible } = getVariantHint(entry);
-      return (
-        <ModelCard
-          key={entry.id}
-          entry={entry}
-          status={statuses[entry.id] || 'not_downloaded'}
-          download={downloads[entry.id]}
-          errorMessage={downloadErrors[entry.id]}
-          isSessionActive={isSessionActive}
-          isSelected={selectedId === entry.id}
-          isCompatible={!incompatible}
-          showRadio={true}
-          compatibilityHint={hint}
-          deviceFeatures={deviceFeatures}
-          onSelect={() => onSelect(entry.id)}
-          onDownload={() => handleDownload(entry.id)}
-          onCancel={() => cancelDownload(entry.id)}
-          onDelete={() => deleteModel(entry.id)}
-        />
-      );
-    });
+    renderBody?: (entry: ModelManifestEntry) => React.ReactNode,
+  ) => {
+    const { hint, incompatible } = getVariantHint(entry);
+    return (
+      <ModelCard
+        key={entry.id}
+        entry={entry}
+        status={statuses[entry.id] || 'not_downloaded'}
+        download={downloads[entry.id]}
+        errorMessage={downloadErrors[entry.id]}
+        isSessionActive={isSessionActive}
+        isSelected={selectedId === entry.id}
+        isCompatible={!incompatible}
+        showRadio={true}
+        compatibilityHint={hint}
+        deviceFeatures={deviceFeatures}
+        onSelect={() => onSelect(entry.id)}
+        onDownload={() => handleDownload(entry.id)}
+        onCancel={() => cancelDownload(entry.id)}
+        onDelete={() => deleteModel(entry.id)}
+      >
+        {renderBody?.(entry)}
+      </ModelCard>
+    );
+  };
 
   /** Render recommended / others sub-groups for a compatible model list */
   const renderSubGroups = (
     models: ModelManifestEntry[],
     selectedId: string | undefined,
     onSelect: (id: string) => void,
-  ) => {
-    const recommended = models.filter(m => m.recommended);
-    const others = models.filter(m => !m.recommended);
-
-    if (recommended.length === 0) {
-      // No recommended models — render flat list as before
-      return renderCompatibleCards(models, selectedId, onSelect);
-    }
-
-    return (
-      <>
-        <div className="model-subgroup">
-          <div className="model-subgroup__label">
-            <Star size={11} />
-            {t('models.recommendedGroup', 'Recommended')}
-          </div>
-          {renderCompatibleCards(recommended, selectedId, onSelect)}
-        </div>
-        {others.length > 0 && (
-          <div className="model-subgroup">
-            <div className="model-subgroup__label">
-              {t('models.othersGroup', 'Others')}
-            </div>
-            {renderCompatibleCards(others, selectedId, onSelect)}
-          </div>
-        )}
-      </>
-    );
-  };
+    renderBody?: (entry: ModelManifestEntry) => React.ReactNode,
+  ) => (
+    <RecommendedOthers
+      items={models}
+      isRecommended={(m) => !!m.recommended}
+      renderItem={(m) => renderCard(m, selectedId, onSelect, renderBody)}
+    />
+  );
 
   // ── ASR Section ───────────────────────────────────────────────────────
 
@@ -587,7 +699,7 @@ export function ModelManagementSection({
             compatibleAsrModels,
             asrModel,
             (id) => {
-              onUpdateSettings({ asrModel: id });
+              updateLocalInference({ asrModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, id, translationModel, ttsModel);
             },
           )
@@ -624,7 +736,7 @@ export function ModelManagementSection({
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
                 onSelect={() => {
-                  onUpdateSettings({ asrModel: entry.id });
+                  updateLocalInference({ asrModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);
                 }}
                 onDownload={() => handleDownload(entry.id)}
@@ -648,7 +760,7 @@ export function ModelManagementSection({
             compatibleTranslationModels,
             translationModel,
             (id) => {
-              onUpdateSettings({ translationModel: id });
+              updateLocalInference({ translationModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, id, ttsModel);
             },
           )
@@ -692,7 +804,7 @@ export function ModelManagementSection({
                     : t('settings.langMismatch', 'language mismatch')
                 }
                 onSelect={() => {
-                  onUpdateSettings({ translationModel: entry.id });
+                  updateLocalInference({ translationModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, entry.id, ttsModel);
                 }}
                 onDownload={() => handleDownload(entry.id)}
@@ -719,9 +831,69 @@ export function ModelManagementSection({
             compatibleTtsModels,
             ttsModel,
             (id) => {
-              onUpdateSettings({ ttsModel: id });
+              updateLocalInference({ ttsModel: id });
               useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, id);
             },
+            // Voice control embedded in the selected TTS card only. The card's
+            // `isSelected && children` gate is the real guard; the id check just
+            // avoids building the body for non-selected cards.
+            (entry) => entry.id === ttsModel ? (
+              <>
+                <LocalInferenceVoiceSection
+                  ttsModel={ttsModel}
+                  isSessionActive={isSessionActive}
+                  edgeVoices={edgeVoices}
+                  edgeVoiceStatus={edgeTtsVoiceStatus}
+                  edgeTtsVoice={settings.edgeTtsVoice}
+                  supertonicVoices={supertonicVoiceEntries}
+                  supertonicSelectedId={supertonicSelectedId}
+                  onImportVoice={handleImportVoice}
+                  onRenameVoice={handleRenameVoice}
+                  onDeleteVoice={handleDeleteVoice}
+                  ttsSpeakerId={settings.ttsSpeakerId}
+                  numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(ttsModel)?.numSpeakers ?? 1}
+                  onUpdate={(patch) => updateLocalInference(patch)}
+                />
+                {isSupertonicTts && (
+                  <>
+                    <div className="voice-library-info">
+                      {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
+                      <a
+                        href="https://supertonic.supertone.ai/voice-builder"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const url = 'https://supertonic.supertone.ai/voice-builder';
+                          if (isElectron() && (window as any).electron?.invoke) {
+                            (window as any).electron.invoke('open-external', url);
+                          } else {
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
+                      >
+                        {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
+                        <ExternalLink size={14} />
+                      </a>
+                      <div className="voice-library-info-sub">
+                        {t(
+                          'voiceLibrary.voiceBuilderDisclaimer',
+                          'Paid Supertone service. Sokuji is not involved in that transaction.',
+                        )}
+                      </div>
+                    </div>
+                    {importError && (
+                      <div className="setting-item error">
+                        {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
+                      </div>
+                    )}
+                    {hasPendingChanges && (
+                      <div className="setting-item info">
+                        {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : null,
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -756,7 +928,7 @@ export function ModelManagementSection({
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
                 onSelect={() => {
-                  onUpdateSettings({ ttsModel: entry.id });
+                  updateLocalInference({ ttsModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, entry.id);
                 }}
                 onDownload={() => handleDownload(entry.id)}
@@ -780,47 +952,12 @@ export function ModelManagementSection({
       {renderTranslationGroup()}
       {renderTtsGroup()}
 
-      <div className="model-management__storage">
-        <HardDrive size={14} />
-        <span>
-          {t('models.storageUsed', 'Storage: {{size}} MB used', { size: storageUsedMb })}
-        </span>
-        {storageUsedMb > 0 && (
-          confirmClearAll ? (
-            <div className="model-management__clear-confirm">
-              <span className="model-management__clear-confirm-text">
-                {t('models.confirmClearAll', 'Delete all models?')}
-              </span>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--yes"
-                onClick={async () => {
-                  setConfirmClearAll(false);
-                  await deleteAllModels();
-                }}
-                disabled={isSessionActive}
-              >
-                {t('models.confirmYes', 'Yes')}
-              </button>
-              <button
-                className="model-management__clear-btn model-management__clear-btn--no"
-                onClick={() => setConfirmClearAll(false)}
-              >
-                {t('models.confirmNo', 'No')}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="model-management__clear-all"
-              onClick={() => setConfirmClearAll(true)}
-              disabled={isSessionActive}
-              title={t('models.clearAll', 'Clear all models')}
-            >
-              <Trash2 size={12} />
-              {t('models.clearAll', 'Clear all')}
-            </button>
-          )
-        )}
-      </div>
+      <ModelStorageFooter
+        usedMb={storageUsedMb}
+        hasModels={storageUsedMb > 0}
+        onClearAll={deleteAllModels}
+        disabled={isSessionActive}
+      />
     </div>
   );
 }

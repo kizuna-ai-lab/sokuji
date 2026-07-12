@@ -1,0 +1,65 @@
+# .github/workflows/sidecar-metal-smoke.yml
+# Manual smoke test of the llama.cpp Metal path on a real M-series runner:
+# unit suite + binary download + one real translation through llama-server.
+#
+# NOTE: The smoke step's inline python uses catalog._gguf_artifact("qwen2.5-0.5b", "q8_0"),
+# an upstream "org/repo/file.gguf" artifact (Task 14b: sourced directly from the upstream
+# Qwen/Qwen2.5-0.5B-Instruct-GGUF repo, mirroring deferred) — split via catalog.split_artifact
+# and fetched with hf_hub_download, not snapshot_download.
+name: sidecar-metal-smoke
+on: workflow_dispatch
+
+jobs:
+  metal-smoke:
+    runs-on: macos-14   # M-series, Metal-capable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install sidecar deps (CPU onnxruntime)
+        run: |
+          python -m pip install -r sidecar/requirements.txt onnxruntime pytest
+      - name: Unit suite
+        # Light-dep translate-domain suite: this job only installs
+        # sidecar/requirements.txt + onnxruntime + pytest, so `pytest tests/`
+        # would hit import-time failures in the TTS/ASR test modules that need
+        # librosa/torch/transformers/funasr/faster_whisper/sherpa (those come
+        # from setup.sh's heavy deps, not requirements.txt). The files below
+        # were verified (module-level import trace) to only reach numpy,
+        # websockets, zstandard, etc. — all in requirements.txt.
+        run: |
+          cd sidecar && python -m pytest \
+            tests/test_llama_runtime.py \
+            tests/test_llama_server_proc.py \
+            tests/test_marian_onnx.py \
+            tests/test_translate_backends.py \
+            tests/test_catalog.py \
+            tests/test_accel.py \
+            tests/test_native_models.py \
+            tests/test_translate_engine.py \
+            -v
+      - name: Cache GGUF + llama binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.config/Sokuji/llama-bin
+          key: metal-smoke-${{ hashFiles('sidecar/sokuji_sidecar/llama_runtime.py') }}
+      - name: Real Metal translation smoke
+        run: |
+          cd sidecar && python - <<'EOF'
+          from huggingface_hub import hf_hub_download
+          from sokuji_sidecar import llama_runtime as rt, catalog
+          from sokuji_sidecar.backends import make_backend
+          import sokuji_sidecar.translate_backends  # noqa: F401 — registers llamacpp_*
+          artifact = catalog._gguf_artifact("qwen2.5-0.5b", "q8_0")
+          repo, fname = catalog.split_artifact(artifact)
+          hf_hub_download(repo, fname)
+          rt.ensure_binary("metal")
+          b = make_backend("llamacpp_qwen")
+          b.load(artifact, "metal", "q8_0")
+          text, n = b.translate("Hello, how are you today?", "", "English", "Chinese", False)
+          print("translated:", text, "| tokens:", n)
+          assert text.strip() and n > 0
+          b.unload()
+          EOF

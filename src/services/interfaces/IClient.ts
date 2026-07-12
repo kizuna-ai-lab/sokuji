@@ -197,9 +197,37 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Native (Electron sidecar) local inference: ASR → translation (→ optional TTS),
+ * served by the Python sidecar over localhost WebSocket. Separate from the WASM
+ * LOCAL_INFERENCE provider.
+ */
+export interface LocalNativeSessionConfig extends BaseSessionConfig {
+  provider: 'local_native';
+  sourceLanguage: string;
+  targetLanguage: string;
+  asrModelId: string;
+  translationModelId?: string;
+  ttsModelId?: string;
+  ttsSpeed?: number;
+  vadThreshold?: number;
+  vadMinSilenceDuration?: number;
+  vadMinSpeechDuration?: number;
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  wrapTranscript?: boolean;
+  asrDevice?: string;
+  translationDevice?: string;
+  ttsDevice?: string;
+  ttsVoice?: string;
+  /** Pinned quant variant for the translation model (e.g. 'fp8'). Undefined → sidecar auto-selects. */
+  translationVariant?: string;
+  /** User-pinned ASR quant (variant picker) — load must match the download. */
+  asrVariant?: string;
+}
+
+/**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -234,6 +262,10 @@ export function isVolcengineAST2SessionConfig(config: SessionConfig): config is 
 
 export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
   return config.provider === 'local_inference';
+}
+
+export function isLocalNativeSessionConfig(config: SessionConfig): config is LocalNativeSessionConfig {
+  return config.provider === 'local_native';
 }
 
 /**

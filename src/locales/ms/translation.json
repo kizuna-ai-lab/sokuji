@@ -403,6 +403,10 @@
       "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)",
       "noKeyRequired": "Kunci API tidak diperlukan"
     },
+    "local_native": {
+      "name": "Percuma (Native)",
+      "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)"
+    },
     "openai_translate": {
       "name": "OpenAI Translate",
       "description": "Model terjemahan masa nyata khusus daripada OpenAI"

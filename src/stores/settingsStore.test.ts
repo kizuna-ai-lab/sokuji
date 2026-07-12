@@ -492,6 +492,20 @@ describe('createParticipantLocalInferenceConfig', () => {
   });
 });
 
+describe('local_native asrDevice setting', () => {
+  it('local_native session config carries the asrDevice override', () => {
+    useSettingsStore.setState({
+      provider: Provider.LOCAL_NATIVE,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        asrDevice: 'cpu',
+      },
+    } as any);
+    const config = useSettingsStore.getState().createSessionConfig('sys');
+    expect((config as any).asrDevice).toBe('cpu');
+  });
+});
+
 describe('getProcessedLocalPrompt', () => {
   beforeEach(() => {
     useSettingsStore.setState({

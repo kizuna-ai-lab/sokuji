@@ -1,0 +1,98 @@
+# GPU Vendor Badges on Native Model Cards — Design
+
+**Status:** PLANNED.
+**Branch:** `feat/gpu-vendor-badges` (to be cut from `native-sidecar`).
+**Date:** 2026-06-25.
+
+## 1. Goal
+
+On the native (local-inference) model cards, replace the generic lucide `Zap` glyph in the per-model
+capability tag with a **vendor/API brand mark** — so a CUDA model shows the NVIDIA logo, Metal shows Apple,
+etc. The mapping is small and extensible (AMD, MLX later). Renderer-only; no sidecar change.
+
+## 2. Context
+
+The capability tag renders at `src/components/Settings/sections/NativeModelManagementSection.tsx:107-109`:
+
+```tsx
+<span className="model-card__lang-tag">
+  {tl.accel && <Zap size={10} />}{tl.label}{rtf}
+</span>
+```
+
+`tl` comes from `tierLabel(tier)` in `src/lib/local-inference/native/nativeCatalog.ts:181`, which maps the
+sidecar tier string to `{ label, accel }`: `cpu` → `{ "CPU", false }`, `gpu-cuda` → `{ "GPU · CUDA", true }`,
+`gpu-metal` → `{ "GPU · Metal", true }`, `gpu-vulkan` → `{ "GPU · Vulkan", true }`, `gpu-dml` →
+`{ "GPU · DirectML", true }`. The badge is a small muted-gray pill (`model-card__lang-tag`,
+`ModelManagementSection.scss:288`: `color: $text-muted`, `display: inline-block`). The only icon library today
+is `lucide-react` (no brand logos); `react-icons` is **not** yet a dependency.
+
+## 3. Decisions
+
+1. **Icon source:** add `react-icons` and use its simple-icons set (`react-icons/si`) for brand/API marks.
+2. **Real brand marks**, **monochrome** — icons inherit the tag's muted-gray `currentColor` (recognizable by
+   shape, consistent with the other tags; no brand colors).
+3. **Mapping by API exclusivity** — vendor logo only where the acceleration API is vendor-exclusive; a neutral
+   glyph for vendor-agnostic APIs:
+
+   | tier | icon | source |
+   |---|---|---|
+   | `gpu-cuda` | NVIDIA | `SiNvidia` |
+   | `gpu-metal` | Apple (Metal + future MLX) | `SiApple` |
+   | `gpu-vulkan` | Vulkan API | `SiVulkan` |
+   | `gpu-dml` | neutral chip | lucide `Cpu` |
+   | any other `gpu-*` | neutral chip (fallback) | lucide `Cpu` |
+   | `cpu` | none (unchanged) | — |
+
+4. **Scope:** the per-model tier tag only (not the device-selector buttons). Renderer-only, no sidecar change.
+5. **`tierLabel()` text is unchanged** — `nativeCatalog.ts` stays pure logic; the icon/JSX concern lives in a
+   new presentational component.
+
+## 4. Architecture
+
+### 4.1 `TierIcon` component (new)
+
+`src/components/Settings/sections/TierIcon.tsx` — a small presentational component:
+
+- Props: `{ tier: string; size?: number }` (`size` default 10).
+- Returns the mapped icon for `gpu-*` tiers, or `null` for `cpu` / non-`gpu-*` tiers.
+- Each icon carries an accessible `title` + `aria-label` (e.g. `"NVIDIA CUDA"`, `"Apple Metal"`,
+  `"Vulkan"`, `"DirectML"`) — for a11y and testability.
+- Monochrome: no `color` prop, so the icon inherits the tag's `currentColor`.
+- The mapping is a small `tier → { Icon, label }` lookup local to this component; the fallback (`gpu-*` not in
+  the map) is the lucide `Cpu` chip with label `"GPU"`.
+
+### 4.2 Wiring
+
+At `NativeModelManagementSection.tsx:107-109`, replace `{tl.accel && <Zap size={10} />}` with
+`<TierIcon tier={tier} size={10} />`. `tl.label` + `rtf` are unchanged, so the badge reads
+`[NVIDIA] GPU · CUDA`. The `tl.accel` gate is no longer needed (TierIcon returns `null` for `cpu`). Remove the
+now-unused `Zap` import from that file if nothing else uses it.
+
+### 4.3 Dependency + styling
+
+- Add `react-icons` to `package.json` dependencies. Tree-shakeable: `import { SiNvidia } from 'react-icons/si'`
+  bundles only the referenced glyphs.
+- `model-card__lang-tag` (`ModelManagementSection.scss`): change `display: inline-block` →
+  `display: inline-flex; align-items: center; gap: 3px` so the icon aligns cleanly next to the text (the same
+  treatment `model-card__recommended-badge` already uses). No other style change.
+
+## 5. Testing
+
+- **Unit (`TierIcon.test.tsx`, vitest + jsdom):** `gpu-cuda` renders an element labeled "NVIDIA CUDA";
+  `gpu-metal` → "Apple Metal"; `gpu-vulkan` → "Vulkan"; `gpu-dml` → "DirectML"; an unknown `gpu-foo` → the
+  fallback chip (labeled "GPU"); `cpu` renders nothing (`container` empty).
+- The existing renderer suite stays green; `npm run build` succeeds (confirms the `react-icons` import + tree
+  shaking resolve).
+
+## 6. Out of scope (YAGNI)
+
+- No brand colors; no device-selector badges; no sidecar/tier-string changes; no new tier types; no AMD/ROCm
+  icon yet (the map makes it a one-line addition when a `gpu-rocm` tier appears).
+
+## 7. Files touched
+
+- Create: `src/components/Settings/sections/TierIcon.tsx`, `src/components/Settings/sections/TierIcon.test.tsx`.
+- Modify: `src/components/Settings/sections/NativeModelManagementSection.tsx` (use `TierIcon`, drop `Zap`),
+  `src/components/Settings/sections/ModelManagementSection.scss` (`lang-tag` flex alignment),
+  `package.json` (+ `react-icons`), `package-lock.json` (regenerated by `npm install`).
