@@ -19,9 +19,13 @@ export const EXTERNAL_INVOKE_CHANNELS = [
   'disable-loopback-audio',
 ];
 
-// Channels that HAVE an `ipcMain.handle` but are reached through a dedicated
-// preload bridge (the Better Auth cookieAPI), not the generic invoke — so the
-// reverse guard exempts them from requiring a generic-allowlist entry.
+// Channels that HAVE an `ipcMain.handle` but are intentionally NOT on the
+// generic renderer invoke allowlist — the reverse guard exempts them so an
+// unallowlisted handler here isn't flagged as accidentally dropped. The Better
+// Auth cookieAPI bridge exposes get/getAll/set (which use the allowlisted
+// get-cookies/set-cookie); 'clear-cookies' has a handler but no renderer path
+// today (no cookieAPI.clear, no invoke('clear-cookies')) — dead until wired,
+// and kept off the generic allowlist meanwhile.
 export const BRIDGE_ONLY_CHANNELS = [
   'clear-cookies',
 ];
