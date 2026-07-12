@@ -1,14 +1,13 @@
 // Single source of truth for meeting platforms supported by the Sokuji browser extension.
 //
-// This registry drives (or will drive, per the extension-platform-registry refactor):
-//   - extension/manifest.json content_scripts / web_accessible_resources match lists
-//   - extension/background.js ENABLED_SITES
-//   - extension/popup.js SITE_INFO / SITE_GROUPS
-//   - extension/subtitle-overlay-content.js SUPPORTED_HOSTS
-//   - extension/content/content.js guidance-message hostname chain
-//   - extension/content/site-plugins.js sitePluginsRegistry
+// This registry drives every platform-list surface:
+//   - src/components/Subtitle/surfaces/ExtensionContentScriptSubtitleSurface.ts SUPPORTED_HOSTS (bundled import)
+//   - extension/popup.js SITE_INFO / SITE_GROUPS / ENABLED_SITES (bundled import)
+//   - extension/manifest.json content_scripts / web_accessible matches (guarded by manifest.consistency.test.ts, not generated)
+//   - extension/background.js ENABLED_SITES + content.js guidance chain (via the build-emitted platforms.generated.js global)
+//   - extension/content/site-plugins.js HOST_TO_PLUGIN_KEY (inline — runs in the page MAIN world, can't read the global; guarded by platforms.consistency.test.ts)
 //
-// Icons, display names, and short names are copied verbatim from popup.js's
+// Icons, display names, and short names were copied verbatim from popup.js's
 // SITE_INFO object (the source of truth at the time this registry was created).
 // guidanceKey / pluginKey correspond to the hostname-keyed lookups in
 // content.js and site-plugins.js respectively; undefined means the platform
