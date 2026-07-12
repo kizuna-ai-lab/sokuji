@@ -10,6 +10,7 @@ class NoopSubtitleSurface implements SubtitleSurface {
   }
   async exit(): Promise<void> { /* no-op */ }
   async setFullscreen(_flag: boolean): Promise<void> { /* no-op */ }
+  async setAlwaysOnTop(_flag: boolean): Promise<void> { /* no-op */ }
 }
 
 let cached: SubtitleSurface | null = null;
