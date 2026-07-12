@@ -3,6 +3,12 @@
 
 /* global chrome */
 
+// Load the build-generated platform table. This is a `type: module` service
+// worker, so this side-effecting import runs at load and assigns
+// globalThis.SOKUJI_PLATFORMS before any of our handlers fire. The generated
+// file is emitted to the build root next to background.js (see vite.config.ts).
+import './platforms.generated.js';
+
 // Uninstall feedback URL - hosted on backend
 const UNINSTALL_FEEDBACK_BASE_URL = 'https://sokuji.kizuna.ai/uninstall-feedback';
 
@@ -23,21 +29,10 @@ const DEFAULT_CONFIG = {
   transcriptModel: 'whisper-1'
 };
 
-// Define sites where the side panel should be enabled
-// You can modify this array to include any domains you want
-const ENABLED_SITES = [
-  'meet.google.com',
-  'teams.live.com',
-  'teams.microsoft.com',
-  'teams.cloud.microsoft',
-  'app.zoom.us',
-  'app.gather.town',
-  'app.v2.gather.town',
-  'whereby.com',
-  'discord.com',
-  'slack.com',
-  'meet.jit.si'
-];
+// Sites where the side panel should be enabled, derived from the generated
+// platform table (single source of truth: extension/platforms.ts). To add a
+// site, edit platforms.ts — do not hand-edit this list.
+const ENABLED_SITES = globalThis.SOKUJI_PLATFORMS.map(p => p.hostname);
 
 // Track which tabs have the side panel open
 const tabsWithSidePanelOpen = new Set();

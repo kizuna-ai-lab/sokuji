@@ -45,6 +45,24 @@ export const PLATFORMS: readonly PlatformEntry[] = [
 
 export const PLATFORM_HOSTNAMES: readonly string[] = PLATFORMS.map(p => p.hostname);
 
+// --- vanilla-script codegen -------------------------------------------------
+// Serializes the registry to a tiny JS file consumed by the vanilla extension
+// scripts (background.js, content.js) at build time. A Vite plugin emits the
+// output of this function as `platforms.generated.js`; the same function backs
+// extension/platforms.generated.test.ts so the emitted shape stays pinned.
+// Icons are intentionally dropped — the vanilla scripts only need hostname,
+// contentProfile, and the guidance/plugin lookup keys.
+export function serializePlatformsForVanilla(): string {
+  const data = PLATFORMS.map(p => ({
+    hostname: p.hostname,
+    contentProfile: p.contentProfile,
+    ...(p.guidanceKey ? { guidanceKey: p.guidanceKey } : {}),
+    ...(p.pluginKey ? { pluginKey: p.pluginKey } : {}),
+  }));
+  return `// AUTO-GENERATED from extension/platforms.ts — do not edit.\n` +
+    `globalThis.SOKUJI_PLATFORMS = ${JSON.stringify(data, null, 2)};\n`;
+}
+
 export function platformsByProfile(profile: ContentProfile): PlatformEntry[] {
   return PLATFORMS.filter(p => p.contentProfile === profile);
 }
@@ -59,9 +77,12 @@ export function deriveContentScripts(): Array<{ matches: string[]; js: string[];
   const standard = patterns('standard');
   const zoom = patterns('zoom');
   const jitsi = patterns('jitsi');
+  // 'platforms.generated.js' is a build-emitted content script that assigns
+  // globalThis.SOKUJI_PLATFORMS; it must run before content.js (same isolated
+  // world) so content.js can read the platform table for its guidance lookup.
   return [
-    { matches: [...standard], js: ['content.js', 'subtitle-overlay-content.js'], run_at: 'document_start' },
-    { matches: [...jitsi], js: ['content.js'], run_at: 'document_start', all_frames: true },
+    { matches: [...standard], js: ['platforms.generated.js', 'content.js', 'subtitle-overlay-content.js'], run_at: 'document_start' },
+    { matches: [...jitsi], js: ['platforms.generated.js', 'content.js'], run_at: 'document_start', all_frames: true },
     { matches: [...jitsi], js: ['subtitle-overlay-content.js'], run_at: 'document_start' },
     { matches: [...zoom], js: ['zoom-content.js'], run_at: 'document_start', all_frames: true },
     { matches: [...zoom], js: ['subtitle-overlay-content.js'], run_at: 'document_idle' },
