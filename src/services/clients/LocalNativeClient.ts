@@ -55,6 +55,7 @@ export class LocalNativeClient implements IClient {
     this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
+    this.tts.onError = (e: string) => this.handlers.onError?.(e);
     this.emitEvent('local.native.init.start', 'client', {
       asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
       sourceLanguage: config.sourceLanguage, targetLanguage: config.targetLanguage,
@@ -75,6 +76,10 @@ export class LocalNativeClient implements IClient {
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     const store = useNativeModelStore.getState();
     const initTranslate = async () => {
+      // Transcription-only session: no model selected. Skip init entirely —
+      // the sidecar would otherwise substitute its default translation model
+      // and silently translate in a session the UI declared ASR-only.
+      if (!config.translationModelId) return;
       const tr = await this.translate.init(
         config.sourceLanguage, config.targetLanguage, config.translationModelId, config.translationDevice,
         config.asrModelId, config.ttsModelId, config.translationVariant,
@@ -287,6 +292,11 @@ export class LocalNativeClient implements IClient {
   }
 
   private async runJob(text: string): Promise<void> {
+    if (!this.cfg?.translationModelId) {
+      // Transcription-only: the user item already carries the transcript;
+      // there is no assistant stage to run.
+      return;
+    }
     this.emitEvent('local.native.translation.start', 'client', {
       sourceText: text, modelId: this.cfg?.translationModelId,
       systemPrompt: this.cfg?.instructions ?? '', wrapTranscript: !!this.cfg?.wrapTranscript,

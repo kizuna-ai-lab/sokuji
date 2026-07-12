@@ -349,6 +349,29 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     });
   });
 
+
+  it('removeBundle resets sidecar lifecycle state so the engine gate re-derives', async () => {
+    useNativeModelStore.setState({
+      sidecarStatus: 'ready',
+      catalog: { 'sense-voice': { id: 'sense-voice' } as any },
+      statuses: { 'sense-voice': 'downloaded' as any },
+    });
+    const invoke = vi.fn(async (channel: string) => {
+      if (channel === 'sidecar-bundle:remove') return { ok: true };
+      return statusReply({ state: 'absent', installed: false, installedVersion: null });
+    });
+    (globalThis as any).window.electron = { invoke };
+    await useNativeModelStore.getState().removeBundle();
+    const s = useNativeModelStore.getState();
+    // The remove handler killed the sidecar and deleted the bundle: a stale
+    // 'ready' would let ensureCatalog early-return and keep Start unlocked
+    // against a nonexistent engine.
+    expect(s.sidecarStatus).toBe('idle');
+    expect(s.catalog).toEqual({});
+    expect(s.statuses).toEqual({});
+    expect(s.bundleStatus).toBe('absent');
+  });
+
   it('refreshBundle maps ready + carries gpu/dev metadata', async () => {
     (globalThis as any).window.electron = {
       invoke: vi.fn().mockResolvedValue(statusReply()),

@@ -266,7 +266,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   removeBundle: async () => {
     try {
       const r = await bundleInvoke('sidecar-bundle:remove');
-      if (r?.ok) await get().refreshBundle();
+      if (r?.ok) {
+        // The remove handler stops the sidecar process and deletes the install
+        // tree. A stale 'ready' would let ensureCatalog early-return and keep
+        // the Start gate open against a nonexistent engine, so force the
+        // lifecycle back to a state the next validation re-derives from.
+        set({ sidecarStatus: 'idle', catalog: {}, statuses: {} });
+        await get().refreshBundle();
+        void revalidateNativeProvider();
+      }
     } catch { /* best-effort */ }
   },
 

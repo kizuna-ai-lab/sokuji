@@ -7,6 +7,7 @@ class FakeWS {
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: any }) => void) | null = null;
   onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
   binaryType = 'arraybuffer';
   sent: any[] = [];
   // when true, tts_generate replies with a 3-chunk stream + tts_done; else one-shot result
@@ -86,6 +87,26 @@ beforeEach(() => {
 });
 
 describe('NativeTtsClient', () => {
+  it('rejects pending requests when the socket closes (sidecar died mid-TTS)', async () => {
+    FakeWS.deferResponse = true;
+    const c = new NativeTtsClient();
+    await c.init('moss', 'en');
+    const p = c.generate('hello');
+    FakeWS.last.onclose?.();
+    await expect(p).rejects.toThrow('native host disconnected');
+    FakeWS.deferResponse = false;
+  });
+
+  it('dispose rejects pending requests instead of leaving them hanging', async () => {
+    FakeWS.deferResponse = true;
+    const c = new NativeTtsClient();
+    await c.init('moss', 'en');
+    const p = c.generate('hello');
+    c.dispose();
+    await expect(p).rejects.toThrow('native host disconnected');
+    FakeWS.deferResponse = false;
+  });
+
   it('inits via tts_init and returns the full ready fields', async () => {
     const c = new NativeTtsClient();
     const r = await c.init('moss-tts-nano');

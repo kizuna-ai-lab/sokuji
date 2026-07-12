@@ -22,6 +22,37 @@ function mocks() {
 }
 
 describe('LocalNativeClient', () => {
+  it('wires tts.onError to the session error handler', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const errors: string[] = [];
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e)) });
+    await c.connect({ ...LOCAL_NATIVE_CONFIG } as any);
+    expect(typeof m.tts.onError).toBe('function');
+    m.tts.onError('tts exploded');
+    expect(errors).toContain('tts exploded');
+  });
+
+  it('skips the translation stage entirely when no translation model is selected', async () => {
+    const m = mocks();
+    const c = new LocalNativeClient(m);
+    const roles: string[] = [];
+    c.setEventHandlers({ onConversationUpdated: ({ item }: any) => roles.push(item.role) });
+    await c.connect({
+      provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
+      asrModelId: 'sense-voice',
+    } as any);
+    // No model: init must not run (the sidecar would substitute its default
+    // model, silently translating in a session the UI declared
+    // transcription-only), and per-utterance jobs must not translate.
+    expect(m.translate.init).not.toHaveBeenCalled();
+    await m.asr.onResult({ text: 'hola', durationMs: 100, recognitionTimeMs: 5 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(m.translate.translate).not.toHaveBeenCalled();
+    expect(roles).toContain('user');
+    expect(roles).not.toContain('assistant');
+  });
+
   it('connects and runs ASR→translation, emitting user + assistant items', async () => {
     const m = mocks();
     const c = new LocalNativeClient(m);
@@ -55,7 +86,7 @@ describe('LocalNativeClient', () => {
     c.setEventHandlers({ onConversationUpdated: ({ item, delta }) => { if (delta?.audio) deltas.push({ role: item.role, len: delta.audio.length }); } });
     await c.connect({
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
-      asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy',
+      asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b', ttsModelId: 'piper-en-amy',
     } as any);
     expect(m.tts.init).toHaveBeenCalledWith('piper-en-amy', undefined);
     await m.asr.onResult({ text: 'hi', durationMs: 10, recognitionTimeMs: 1 });
@@ -79,7 +110,7 @@ describe('LocalNativeClient', () => {
   it('returns a fresh array from getConversationItems (so setItems re-renders)', async () => {
     const m = mocks();
     const c = new LocalNativeClient(m);
-    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice' } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
     await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
     expect(c.getConversationItems()).not.toBe(c.getConversationItems()); // different reference each call
   });
@@ -89,7 +120,7 @@ describe('LocalNativeClient', () => {
     const c = new LocalNativeClient(m);
     const types: string[] = [];
     c.setEventHandlers({ onRealtimeEvent: (e: any) => types.push(e.event.type) });
-    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice' } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en', asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' } as any);
     await m.asr.onResult({ text: 'hola', durationMs: 1, recognitionTimeMs: 1 });
     await new Promise((r) => setTimeout(r, 0));
     expect(types).toContain('local.native.init.start');
@@ -155,7 +186,7 @@ const fakeTts = () => ({ init: async () => {}, generate: async () => ({ samples:
 const cfg: any = {
   provider: 'local_native', model: 'native-asr-translate', instructions: '',
   sourceLanguage: 'en', targetLanguage: 'ja', asrModelId: 'granite-speech-4.1-2b',
-  asrDevice: 'cuda', textOnly: true,
+  translationModelId: 'qwen2.5-0.5b', asrDevice: 'cuda', textOnly: true,
 };
 
 describe('LocalNativeClient session channel', () => {

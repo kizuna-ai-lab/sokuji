@@ -46,6 +46,11 @@ export class NativeTtsClient {
       ws.binaryType = 'arraybuffer';
       ws.onopen = () => { this.ws = ws; resolve(); };
       ws.onerror = () => { this.onError?.('native host WS error'); reject(new Error('WS error')); };
+      // Sibling clients (NativeAsrClient/NativeTranslateClient) reject their
+      // pending work on close; without this, a sidecar death mid-generate
+      // leaves runJob's await unsettled forever and the serialized session
+      // queue stalls permanently.
+      ws.onclose = () => { this.ws = null; this.rejectAllPending('native host disconnected'); };
       ws.onmessage = (e) => this.onMessage(e.data);
     });
   }
@@ -163,7 +168,18 @@ export class NativeTtsClient {
   }
 
   dispose(): void {
+    this.rejectAllPending('native host disconnected');
     try { this.ws?.close(); } catch (_) {}
-    this.ws = null; this.pendingJson.clear(); this.pendingBinary.clear(); this.streamHandlers.clear();
+    this.ws = null;
+  }
+
+  private rejectAllPending(message: string): void {
+    // pendingJson callbacks reject on error-type messages (see send()), so a
+    // synthetic error settles every awaiting caller.
+    const err = { type: 'error', message } as ServerMsg;
+    for (const cb of Array.from(this.pendingJson.values())) cb(err);
+    this.pendingJson.clear();
+    this.pendingBinary.clear();
+    this.streamHandlers.clear();
   }
 }
