@@ -18,6 +18,7 @@ import {
   type AutomaticSpeechRecognitionPipeline,
 } from './_shared/transformers-all';
 import {InferenceSession, Tensor, env as ortEnv} from './_shared/onnxruntime-all';
+import {initTransformersEnv} from './_shared/transformers-env';
 import {FrameProcessor, Message} from '@ricky0123/vad-web';
 import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
 
@@ -32,9 +33,6 @@ import type {
 
 // Disable WASM proxy (we're already in a worker).
 // wasmPaths is set in the init handler from the main thread's resolved URL.
-if (env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = false;
-}
 
 // Workaround: HF CDN redirects /resolve/main/ → /api/resolve-cache/...
 // Range: bytes=0-0 metadata requests get cached as 206 partial responses,
@@ -202,28 +200,6 @@ function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Flo
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
 let processingVad = false;
-
-/**
- * Create customCache bridge for IndexedDB blob URLs → Transformers.js.
- * Same pattern as translation.worker.ts.
- */
-function createBlobUrlCache(fileUrls: Record<string, string>) {
-  return {
-    async match(request: string | Request | undefined): Promise<Response | undefined> {
-      if (!request) return undefined;
-      const url = typeof request === 'string' ? request : request.url;
-      const marker = '/resolve/main/';
-      const idx = url.indexOf(marker);
-      if (idx === -1) return undefined;
-      const filename = url.slice(idx + marker.length);
-      const blobUrl = fileUrls[filename];
-      if (!blobUrl) return undefined;
-      return fetch(blobUrl);
-    },
-    async put(_request: string | Request, _response: Response): Promise<void> {
-    },
-  };
-}
 
 /**
  * Patch config.json and generation_config.json blobs for non-standard Whisper
@@ -416,16 +392,10 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // Set ORT WASM paths from main thread's resolved URL.
-    // Must set on BOTH env objects: transformers.js env (onnxruntime-web/webgpu)
-    // and plain onnxruntime-web env (used by VAD InferenceSession).
-    if (msg.ortWasmBaseUrl) {
-      if (env.backends?.onnx?.wasm) {
-        env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
-      if (ortEnv?.wasm) {
-        ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
+    // ortEnv wasmPaths must be set before the VAD/whisper InferenceSession; the
+    // transformers env is configured later (after patchWhisperConfigs).
+    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
     // 1. Check WebGPU
@@ -447,11 +417,7 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
     await patchWhisperConfigs(msg.fileUrls, msg.language);
 
     // 4. Configure Transformers.js for IndexedDB blob URL cache
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+    initTransformersEnv(env, msg);
 
     // 5. Create ASR pipeline
     post({type: 'status', message: `Loading Whisper model on ${device}...`});
