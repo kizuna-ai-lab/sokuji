@@ -6,15 +6,23 @@ const mockGetAsrModelsForLanguage = vi.fn();
 const mockGetTranslationModel = vi.fn();
 const mockGetManifestByType = vi.fn();
 
-vi.mock('../lib/local-inference/modelManifest', () => ({
-  MODEL_MANIFEST: [],
-  getManifestEntry: (...args: any[]) => mockGetManifestEntry(...args),
-  getManifestByType: (...args: any[]) => mockGetManifestByType(...args),
-  getAsrModelsForLanguage: (...args: any[]) => mockGetAsrModelsForLanguage(...args),
-  getTranslationModel: (...args: any[]) => mockGetTranslationModel(...args),
-  getTtsModelsForLanguage: vi.fn(() => []),
-  isTranslationModelCompatible: vi.fn(() => true),
-}));
+vi.mock('../lib/local-inference/modelManifest', async () => {
+  // Pull the pure readiness/compat predicates from the real module so the store
+  // exercises real logic; keep the data-lookup functions mocked.
+  const actual = await vi.importActual<any>('../lib/local-inference/modelManifest');
+  return {
+    MODEL_MANIFEST: [],
+    getManifestEntry: (...args: any[]) => mockGetManifestEntry(...args),
+    getManifestByType: (...args: any[]) => mockGetManifestByType(...args),
+    getAsrModelsForLanguage: (...args: any[]) => mockGetAsrModelsForLanguage(...args),
+    getTranslationModel: (...args: any[]) => mockGetTranslationModel(...args),
+    getTtsModelsForLanguage: vi.fn(() => []),
+    isTranslationModelCompatible: vi.fn(() => true),
+    modelUsable: actual.modelUsable,
+    isAstCompatible: actual.isAstCompatible,
+    pickBestModel: actual.pickBestModel,
+  };
+});
 
 const mockEstimateStorageUsedBytes = vi.fn();
 const mockGetMetadata = vi.fn();
@@ -130,6 +138,11 @@ describe('rememberModels / recallModels', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useModelStore.setState({ modelPreferences: {} });
+    // Manifest entries persist even when a download is deleted, so recall's
+    // readiness check (modelUsable) can resolve every remembered id. These
+    // fixtures are plain local models (no cloud/webgpu), so usability reduces
+    // to the modelStatuses download state the individual tests drive.
+    mockGetManifestEntry.mockImplementation((id: string) => ({ id, type: 'asr', languages: [] }));
   });
 
   it('remembers and recalls models for a language pair', () => {
@@ -230,6 +243,48 @@ describe('rememberModels / recallModels', () => {
     expect(recalled!.asrModel).toBe('');
     expect(recalled!.translationModel).toBe('');
     expect(recalled!.ttsModel).toBe('');
+  });
+});
+
+describe('autoSelectModels device gating', () => {
+  // A downloaded webgpu ASR model must NOT be auto-selected when webgpu is
+  // unavailable — otherwise autoSelect hands the session a model isProviderReady
+  // then rejects (dead-end selection). This gate now flows through modelUsable,
+  // matching isProviderReady / getParticipantModelStatus.
+  const webgpuAsr = { id: 'voxtral-webgpu', type: 'asr', languages: ['en'], multilingual: true, requiredDevice: 'webgpu' };
+  const plainAsr = { id: 'sensevoice-int8', type: 'asr', languages: ['en'], multilingual: true };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useModelStore.setState({ modelPreferences: {}, webgpuAvailable: false });
+    mockGetManifestEntry.mockImplementation((id: string) =>
+      [webgpuAsr, plainAsr].find(m => m.id === id),
+    );
+    mockGetManifestByType.mockImplementation((type: string) =>
+      [webgpuAsr, plainAsr].filter(m => m.type === type),
+    );
+  });
+
+  it('skips a downloaded webgpu ASR model when webgpu is unavailable', () => {
+    useModelStore.setState({
+      modelStatuses: { 'voxtral-webgpu': 'downloaded', 'sensevoice-int8': 'downloaded' },
+    });
+
+    const updates = useModelStore.getState().autoSelectModels('en', 'ja', 'voxtral-webgpu', '', '');
+
+    expect(updates?.asrModel).toBe('sensevoice-int8');
+  });
+
+  it('keeps a webgpu ASR model when webgpu is available', () => {
+    useModelStore.setState({
+      webgpuAvailable: true,
+      modelStatuses: { 'voxtral-webgpu': 'downloaded', 'sensevoice-int8': 'downloaded' },
+    });
+
+    const updates = useModelStore.getState().autoSelectModels('en', 'ja', 'voxtral-webgpu', '', '');
+
+    // Current model is usable → no ASR correction emitted.
+    expect(updates?.asrModel).toBeUndefined();
   });
 });
 
