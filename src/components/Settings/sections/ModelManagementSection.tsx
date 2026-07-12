@@ -735,7 +735,11 @@ export function ModelManagementSection({
                 isSelected={asrModel === entry.id}
                 isCompatible={false}
                 showRadio={true}
-                compatibilityHint={t('settings.langMismatch', 'language mismatch')}
+                compatibilityHint={
+                  !deviceReady(entry, webgpuAvailable)
+                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
+                    : t('settings.langMismatch', 'language mismatch')
+                }
                 onSelect={() => {
                   updateLocalInference({ asrModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);

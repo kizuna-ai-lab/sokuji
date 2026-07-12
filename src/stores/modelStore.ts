@@ -352,7 +352,10 @@ export const useModelStore = create<ModelStoreState>()(
       if (selectedTtsModel) {
         const ttsEntry = getManifestEntry(selectedTtsModel);
         if (!modelUsable(ttsEntry, ctx)) return false;
-        if (ttsEntry && !ttsEntry.isCloudModel && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
+        // Language compatibility is orthogonal to cloud/local (a cloud model
+        // still can't produce a language it doesn't support). The one current
+        // cloud TTS is multilingual, so this is behavior-identical today.
+        if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
       } else {
         const hasTts = getTtsModelsForLanguage(targetLang).some(m => modelUsable(m, ctx));
         if (!hasTts) return false;
