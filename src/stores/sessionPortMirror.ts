@@ -1,51 +1,19 @@
 import useSessionStore from './sessionStore';
 import useSettingsStore from './settingsStore';
 import { usePlaybackStore } from './playbackStore';
+import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
+import type { ProviderType } from '../types/Provider';
+import type { PlaybackWire, SubtitleWireMessage, SubtitleControlMessage } from '../types/subtitleWire';
 
 declare const chrome: any;
 
 let port: any = null;
 let exitHandlerInstalled = false;
 
-interface InboundStateInit {
-  type: 'state-init';
-  payload: {
-    items?: any[];
-    participantItems?: any[];
-    isSessionActive?: boolean;
-    sessionStartTime?: number | null;
-    provider?: string;
-    sourceLanguage?: string;
-    targetLanguage?: string;
-    turnDetectionMode?: string;
-    playback?: { i: string | null; c?: number | null; d?: number; b?: number } | null;
-  };
+function post(msg: SubtitleControlMessage): void {
+  port?.postMessage(msg);
 }
-interface InboundItems {
-  type: 'items';
-  items: any[];
-  participantItems?: any[];
-}
-interface InboundSession {
-  type: 'session';
-  isSessionActive: boolean;
-  sessionStartTime?: number | null;
-}
-interface InboundConfig {
-  type: 'config';
-  provider: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  turnDetectionMode?: string;
-}
-interface InboundPlayback {
-  type: 'playback';
-  i: string | null;
-  c?: number | null;
-  d?: number;
-  b?: number;
-}
-type Inbound = InboundStateInit | InboundItems | InboundSession | InboundConfig | InboundPlayback;
+
 
 /**
  * Installs the iframe-side mirror that forwards sessionStore state from the
@@ -76,7 +44,7 @@ export function installSessionPortMirror(): void {
     // items[] push to reflect the cleared state locally.
     useSessionStore.setState({
       requestClearConversation: () => {
-        port?.postMessage({ type: 'subtitle:request-clear' });
+        post({ type: 'subtitle:request-clear' });
       },
     } as any);
     exitHandlerInstalled = true;
@@ -89,28 +57,22 @@ export function installSessionPortMirror(): void {
  * panel will then call `exitSubtitleMode()` on its own settings store.
  */
 export function postUserExit(): void {
-  port?.postMessage({ type: 'subtitle:user-exit' });
+  post({ type: 'subtitle:user-exit' });
 }
 
-// Provider enum values travel over the port as snake_case strings, but the
-// settingsStore stores provider sub-objects under camelCase keys. Without
-// this mapping, snake_case providers (openai_compatible / openai_translate /
-// volcengine_st / volcengine_ast2 / local_inference) would be written to a
-// junk top-level key while `getCurrentProviderSettings()` continued to read
-// the *real* key — pinning SubtitleApp's language pair to the provider's
-// hardcoded defaults (e.g., local_inference → JA → EN).
-const PROVIDER_STATE_KEY: Record<string, string> = {
-  openai: 'openai',
-  gemini: 'gemini',
-  palabraai: 'palabraai',
-  kizunaai_openai_translate: 'kizunaOpenaiTranslate',
-  kizunaai_volcengine_ast2: 'kizunaVolcengineAst2',
-  openai_compatible: 'openaiCompatible',
-  openai_translate: 'openaiTranslate',
-  volcengine_st: 'volcengineST',
-  volcengine_ast2: 'volcengineAST2',
-  local_inference: 'localInference',
-};
+// Provider enum values travel over the port as snake_case identifiers, but
+// settingsStore keeps provider sub-objects under each descriptor's
+// settingsSliceKey (which may differ, e.g. openai_compatible ->
+// openaiCompatible). Resolve through the provider registry — this used to be
+// a hand-copied table that had to be extended for every new provider; a
+// missed entry silently pinned SubtitleApp's language pair to the provider's
+// defaults. Unknown/unregistered providers keep the old degradation of
+// writing under the raw identifier.
+function providerSliceKey(provider: string): string {
+  return ProviderConfigFactory.isProviderSupported(provider as ProviderType)
+    ? ProviderConfigFactory.getDescriptor(provider as ProviderType).settingsSliceKey
+    : provider;
+}
 
 /**
  * Apply provider + language pair + turn detection mode into the iframe-side
@@ -122,7 +84,7 @@ const PROVIDER_STATE_KEY: Record<string, string> = {
  */
 function applyConfig(provider: string, sourceLanguage: string, targetLanguage: string, turnDetectionMode?: string): void {
   useSettingsStore.setState((s: any) => {
-    const providerKey = PROVIDER_STATE_KEY[provider] ?? provider;
+    const providerKey = providerSliceKey(provider);
     const currentProviderSettings = s[providerKey] ?? {};
     return {
       provider,
@@ -137,7 +99,7 @@ function applyConfig(provider: string, sourceLanguage: string, targetLanguage: s
   });
 }
 
-function applyPlayback(msg: { i: string | null; c?: number | null; d?: number; b?: number }): void {
+function applyPlayback(msg: PlaybackWire): void {
   const playback = usePlaybackStore.getState();
   if (msg.i === null) {
     playback.setPlayingItem(null);
@@ -155,7 +117,7 @@ function applyPlayback(msg: { i: string | null; c?: number | null; d?: number; b
   });
 }
 
-function handle(msg: Inbound): void {
+function handle(msg: SubtitleWireMessage): void {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'state-init') {
     useSessionStore.setState({

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PlaybackWire } from '../types/subtitleWire';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
 import { getHighlightedChars } from '../lib/playback/highlight';
@@ -146,7 +147,9 @@ export function getWirePlaybackSnapshot(): PlaybackWire | null {
   return encodePlaybackForWire(state);
 }
 
-export type PlaybackWire = { i: string | null; c?: number | null; d?: number; b?: number };
+// PlaybackWire is part of the subtitle wire contract; canonical home is
+// src/types/subtitleWire.ts (re-exported here for existing importers).
+export type { PlaybackWire } from '../types/subtitleWire';
 
 export function subscribePlaybackForPort(callback: (encoded: PlaybackWire) => void): () => void {
   return usePlaybackStore.subscribe(

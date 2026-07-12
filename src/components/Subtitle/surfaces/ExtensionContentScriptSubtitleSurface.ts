@@ -1,4 +1,5 @@
 import type { SubtitleSurface } from './SubtitleSurface';
+import type { SubtitleWireMessage, SubtitleControlMessage } from '../../../types/subtitleWire';
 import useSettingsStore from '../../../stores/settingsStore';
 
 declare const chrome: any;
@@ -118,7 +119,13 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     void this.installStoreSubscriptions();
   };
 
-  private handlePortMessage = (msg: { type?: string }) => {
+  /** Single typed egress for the wire — every downstream message shape is
+   *  checked against the shared contract in src/types/subtitleWire.ts. */
+  private postWire(msg: SubtitleWireMessage): void {
+    this.port?.postMessage(msg);
+  }
+
+  private handlePortMessage = (msg: SubtitleControlMessage | { type?: string }) => {
     if (msg?.type === 'subtitle:user-exit') {
       void useSettingsStore.getState().exitSubtitleMode();
     } else if (msg?.type === 'subtitle:request-clear') {
@@ -265,7 +272,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
 
     const playbackSnapshot = getWirePlaybackSnapshot();
 
-    this.port.postMessage({
+    this.postWire({
       type: 'state-init',
       payload: {
         items: stripHeavyItemFields(recentItems(session.items)),
@@ -296,7 +303,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
           const p = this.pendingItems;
           this.pendingItems = null;
           if (!p || !this.port) return;
-          this.port.postMessage({
+          this.postWire({
             type: 'items',
             items: stripHeavyItemFields(recentItems(p.items)),
             participantItems: stripHeavyItemFields(recentItems(p.participantItems)),
@@ -311,7 +318,7 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     subs.push(useSessionStore.subscribe(
       (s) => ({ isSessionActive: s.isSessionActive, sessionStartTime: s.sessionStartTime }),
       (next) => {
-        this.port?.postMessage({
+        this.postWire({
           type: 'session',
           isSessionActive: next.isSessionActive,
           sessionStartTime: next.sessionStartTime,
@@ -352,12 +359,12 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
         return;
       }
       lastConfig = next;
-      this.port.postMessage({ type: 'config', ...next });
+      this.postWire({ type: 'config', ...next });
     };
     subs.push(useSettingsStore.subscribe(pushConfigIfChanged));
 
     subs.push(subscribePlaybackForPort((encoded) => {
-      this.port?.postMessage({ type: 'playback', ...encoded });
+      this.postWire({ type: 'playback', ...encoded });
     }));
 
     this.subscriptions = subs;
