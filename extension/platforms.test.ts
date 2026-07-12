@@ -13,11 +13,10 @@ describe('platform registry', () => {
     }
   });
 
-  it('every entry has a non-empty display name, short name, and icon', () => {
+  it('every entry has a non-empty display name and short name', () => {
     for (const p of PLATFORMS) {
       expect(p.displayName, p.hostname).toBeTruthy();
       expect(p.shortName, p.hostname).toBeTruthy();
-      expect(p.icon.startsWith('data:image/'), p.hostname).toBe(true);
     }
   });
 

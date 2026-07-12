@@ -2,7 +2,8 @@
 
 // Import PostHog from installed package
 import PostHog from 'posthog-js-lite';
-import { deriveEnabledSites, deriveSiteInfo, deriveSiteGroups } from './platforms';
+import { deriveEnabledSites } from './platforms';
+import { deriveSiteInfo, deriveSiteGroups } from './platformIcons';
 
 // Analytics configuration - uses environment variables
 // Fork projects can disable analytics by not setting POSTHOG_KEY

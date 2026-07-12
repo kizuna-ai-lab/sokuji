@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { deriveEnabledSites, deriveSiteInfo, deriveSiteGroups, PLATFORM_HOSTNAMES } from './platforms';
+import { deriveEnabledSites, PLATFORM_HOSTNAMES } from './platforms';
+import { deriveSiteInfo, deriveSiteGroups } from './platformIcons';
 
 describe('derived popup structures match the pre-registry hand-written values', () => {
   it('ENABLED_SITES = all canonical hostnames', () => {
