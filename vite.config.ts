@@ -167,7 +167,10 @@ export default defineConfig(({ command, mode }) => {
           }
         },
         preload: {
-          // Entry point for the preload script
+          // Entry point for the preload script. It ESM-imports ipc-channels.js,
+          // which the single-file preload build inlines into the shipped
+          // preload.js (so the invoke allowlist stays an auditable literal in
+          // the built artifact).
           input: 'electron/preload.js',
           vite: {
             build: {
