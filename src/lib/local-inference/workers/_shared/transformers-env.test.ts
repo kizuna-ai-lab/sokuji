@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { initTransformersEnv } from './transformers-env';
 
 function fakeEnv(withWasm = true) {
@@ -13,9 +13,6 @@ function fakeEnv(withWasm = true) {
 }
 
 describe('initTransformersEnv', () => {
-  beforeEach(() => vi.stubGlobal('fetch', vi.fn()));
-  afterEach(() => vi.unstubAllGlobals());
-
   it('sets the four transformers.js flags and a customCache bridge', () => {
     const env = fakeEnv();
     initTransformersEnv(env, { fileUrls: { 'config.json': 'blob:x' } });

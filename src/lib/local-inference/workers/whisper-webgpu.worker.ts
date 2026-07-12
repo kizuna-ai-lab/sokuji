@@ -31,9 +31,6 @@ import type {
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
-// Disable WASM proxy (we're already in a worker).
-// wasmPaths is set in the init handler from the main thread's resolved URL.
-
 // Workaround: HF CDN redirects /resolve/main/ → /api/resolve-cache/...
 // Range: bytes=0-0 metadata requests get cached as 206 partial responses,
 // then pollute subsequent full downloads. Fix: no-store for Range requests.

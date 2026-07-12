@@ -35,3 +35,21 @@ describe('worker harness consolidation', () => {
     expect(src, `${name} does not call initTransformersEnv`).toMatch(/initTransformersEnv\(/);
   });
 });
+
+// The shared harness (initTransformersEnv) does not manage ortEnv.wasm.wasmPaths
+// for the VAD InferenceSession — each ASR worker must keep setting it directly.
+// A future edit could drop this silently since the guard above wouldn't catch it.
+const ASR_WORKERS = [
+  'whisper-webgpu.worker.ts',
+  'cohere-transcribe-webgpu.worker.ts',
+  'voxtral-3b-webgpu.worker.ts',
+  'voxtral-webgpu.worker.ts',
+  'granite-speech-webgpu.worker.ts',
+];
+
+describe('ASR worker ortEnv wasmPaths', () => {
+  it.each(ASR_WORKERS)('%s still sets ortEnv.wasm.wasmPaths', (name) => {
+    const src = read(name);
+    expect(src, `${name} no longer assigns ortEnv.wasm.wasmPaths`).toMatch(/ortEnv\.wasm\.wasmPaths\s*=/);
+  });
+});
