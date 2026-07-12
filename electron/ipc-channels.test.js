@@ -8,9 +8,9 @@ import { INVOKE_CHANNELS, EXTERNAL_INVOKE_CHANNELS, BRIDGE_ONLY_CHANNELS } from 
 function registeredHandlerChannels() {
   const dir = __dirname;
   const channels = new Set();
-  for (const file of readdirSync(dir)) {
-    if (!file.endsWith('.js') || file.endsWith('.test.js')) continue;
-    const src = readFileSync(join(dir, file), 'utf8');
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.js') || entry.name.endsWith('.test.js')) continue;
+    const src = readFileSync(join(dir, entry.name), 'utf8');
     for (const m of src.matchAll(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/g)) {
       channels.add(m[1]);
     }
