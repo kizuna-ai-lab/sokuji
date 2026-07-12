@@ -8,12 +8,7 @@
  */
 
 import { pipeline, env, type TranslationPipeline } from './_shared/transformers-all';
-
-// Disable WASM proxy (we're already in a worker).
-// wasmPaths is set in the init handler from the main thread's resolved URL.
-if (env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = false;
-}
+import { initTransformersEnv } from './_shared/transformers-env';
 
 /** Detect WebGPU availability in this worker context */
 async function hasWebGPU(): Promise<boolean> {
@@ -54,59 +49,13 @@ let translator: TranslationPipeline | null = null;
 let currentModelId: string | null = null;
 void currentModelId; // Used for tracking, suppress unused warning
 
-/**
- * Create a custom cache object that serves pre-downloaded blob URLs
- * to Transformers.js, avoiding any HuggingFace Hub network requests.
- *
- * Transformers.js requests files via URLs like:
- *   https://huggingface.co/Xenova/opus-mt-ja-en/resolve/main/config.json
- *   https://huggingface.co/Xenova/opus-mt-ja-en/resolve/main/onnx/encoder_model_quantized.onnx
- *
- * We extract the path after /resolve/main/ and look it up in our fileUrls map.
- */
-function createBlobUrlCache(fileUrls: Record<string, string>) {
-  return {
-    async match(request: string | Request | undefined): Promise<Response | undefined> {
-      if (!request) return undefined;
-
-      const url = typeof request === 'string' ? request : request.url;
-
-      // Extract filename from HuggingFace URL pattern:
-      // https://huggingface.co/{org}/{model}/resolve/main/{path}
-      const resolveMainMarker = '/resolve/main/';
-      const idx = url.indexOf(resolveMainMarker);
-      if (idx === -1) return undefined;
-
-      const filename = url.slice(idx + resolveMainMarker.length);
-      const blobUrl = fileUrls[filename];
-      if (!blobUrl) return undefined;
-
-      // Fetch the blob URL to get a proper Response object
-      const response = await fetch(blobUrl);
-      return response;
-    },
-
-    // No-op: files are already stored in IndexedDB
-    async put(_request: string | Request, _response: Response): Promise<void> {},
-  };
-}
-
 async function handleInit(msg: InitMessage) {
   try {
     const startTime = performance.now();
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId });
 
-    // Set ORT WASM paths from main thread's resolved URL (handles relative base paths)
-    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
-      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
-    }
-
     // Configure Transformers.js to use our blob URL cache instead of network
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+    initTransformersEnv(env, msg);
 
     // Suppress known "MarianTokenizer is not yet supported by fast tokenizers" warning
     // from @huggingface/transformers — all Opus-MT models trigger this; it's informational only

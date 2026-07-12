@@ -7,13 +7,8 @@
  */
 
 import { pipeline, env } from './_shared/transformers-all';
+import { initTransformersEnv } from './_shared/transformers-env';
 import { buildDefaultLocalPrompt } from '../prompts';
-
-// Disable WASM proxy (we're already in a worker).
-// wasmPaths is set in the init handler from the main thread's resolved URL.
-if (env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = false;
-}
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -46,39 +41,12 @@ type WorkerMessage = InitMessage | TranslateMessage | DisposeMessage;
 let generator: any = null;
 let currentModelId: string = '';
 
-// ─── Blob URL cache (same pattern as translation.worker.ts) ────────────────
-
-function createBlobUrlCache(fileUrls: Record<string, string>) {
-  return {
-    async match(request: string | Request | undefined): Promise<Response | undefined> {
-      if (!request) return undefined;
-      const url = typeof request === 'string' ? request : request.url;
-
-      const resolveMainMarker = '/resolve/main/';
-      const idx = url.indexOf(resolveMainMarker);
-      if (idx === -1) return undefined;
-
-      const filename = url.slice(idx + resolveMainMarker.length);
-      const blobUrl = fileUrls[filename];
-      if (!blobUrl) return undefined;
-
-      return fetch(blobUrl);
-    },
-    async put(_request: string | Request, _response: Response): Promise<void> {},
-  };
-}
-
 // ─── Init handler ──────────────────────────────────────────────────────────
 
 async function handleInit(msg: InitMessage) {
   try {
     const startTime = performance.now();
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId });
-
-    // Set ORT WASM paths from main thread's resolved URL
-    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
-      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
-    }
 
     // WebGPU check
     const gpu = (self as any).navigator?.gpu;
@@ -93,11 +61,7 @@ async function handleInit(msg: InitMessage) {
     }
 
     // Configure Transformers.js to use blob URL cache
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+    initTransformersEnv(env, msg);
 
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device: 'webgpu' });
 
