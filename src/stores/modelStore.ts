@@ -42,6 +42,22 @@ export interface ParticipantModelStatus {
   translationModelId: string | null;
 }
 
+/**
+ * The subset of LOCAL_INFERENCE settings that determine session readiness:
+ * the language pair plus the three selected model IDs. Structurally matches
+ * `LocalInferenceSettings` so the settings slice can be passed directly.
+ */
+export interface LocalSelection {
+  sourceLanguage: string;
+  targetLanguage: string;
+  asrModel: string;
+  translationModel: string;
+  ttsModel: string;
+}
+
+/** Result of {@link ModelStoreState.autoSelectModels}: corrected model IDs, or null. */
+export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
+
 interface ModelStoreState {
   /** Status of each model by ID */
   modelStatuses: Record<string, ModelStatus>;
@@ -104,7 +120,15 @@ interface ModelStoreState {
   autoSelectModels: (
     sourceLang: string, targetLang: string,
     currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
-  ) => { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
+  ) => ModelCorrections;
+  /**
+   * Full LOCAL_INFERENCE session-readiness check for a selection. Initializes
+   * the store if needed, auto-corrects stale selections, and reports readiness
+   * against the corrected selection — WITHOUT persisting. The caller applies the
+   * returned `corrections` to its own settings slice. This is the single
+   * readiness entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
+   */
+  ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
   /** Save model selection for a language pair */
   rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
   /** Recall saved model selection — per-field degradation if models deleted */
@@ -546,6 +570,32 @@ export const useModelStore = create<ModelStoreState>()(
         translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
         ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
       };
+    },
+
+    ensureSelectionReady: async (selection) => {
+      // Scan IndexedDB for downloaded models before judging readiness.
+      if (!get().initialized) {
+        await get().initialize();
+      }
+      // Auto-correct stale selections (e.g. a TTS model for the wrong language
+      // after a language change); readiness is judged against the corrected
+      // selection so a valid setup isn't rejected for a stale stored ID.
+      const corrections = get().autoSelectModels(
+        selection.sourceLanguage,
+        selection.targetLanguage,
+        selection.asrModel,
+        selection.translationModel,
+        selection.ttsModel,
+      );
+      const effective = corrections ? { ...selection, ...corrections } : selection;
+      const ready = get().isProviderReady(
+        effective.sourceLanguage,
+        effective.targetLanguage,
+        effective.asrModel || undefined,
+        effective.translationModel || undefined,
+        effective.ttsModel || undefined,
+      );
+      return { ready, corrections };
     },
   })),
 );

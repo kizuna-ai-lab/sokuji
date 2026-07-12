@@ -288,6 +288,51 @@ describe('autoSelectModels device gating', () => {
   });
 });
 
+describe('ensureSelectionReady', () => {
+  const sensevoice = { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en'], multilingual: true };
+  const opusEnJa = { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'] };
+  const piperJa = { id: 'piper-ja', type: 'tts', languages: ['ja'], multilingual: false };
+  const piperEn = { id: 'piper-en', type: 'tts', languages: ['en'], multilingual: false };
+  const all = [sensevoice, opusEnJa, piperJa, piperEn];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Skip the IndexedDB scan — readiness logic is what we're exercising here.
+    useModelStore.setState({ initialized: true, modelPreferences: {}, webgpuAvailable: false });
+    mockGetManifestEntry.mockImplementation((id: string) => all.find(m => m.id === id));
+    mockGetManifestByType.mockImplementation((type: string) => all.filter(m => m.type === type));
+  });
+
+  it('reports ready with no corrections when the selection is already valid', async () => {
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
+    });
+
+    const result = await useModelStore.getState().ensureSelectionReady({
+      sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-ja',
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.corrections).toBeNull();
+  });
+
+  it('corrects a stale TTS selection and judges readiness against the correction', async () => {
+    useModelStore.setState({
+      // piper-en is downloaded but wrong language; piper-ja is the valid one.
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded', 'piper-en': 'downloaded' },
+    });
+
+    const result = await useModelStore.getState().ensureSelectionReady({
+      sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-en',
+    });
+
+    expect(result.corrections?.ttsModel).toBe('piper-ja');
+    expect(result.ready).toBe(true);
+  });
+});
+
 describe('initialize resilience', () => {
   beforeEach(() => {
     vi.clearAllMocks();
