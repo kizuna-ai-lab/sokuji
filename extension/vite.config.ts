@@ -166,6 +166,9 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENABLE_VOLCENGINE_AST2': JSON.stringify(
         envVal('VITE_ENABLE_VOLCENGINE_AST2', 'false', 'true')
       ),
+      'import.meta.env.VITE_ENABLE_ZOOM_AI': JSON.stringify(
+        envVal('VITE_ENABLE_ZOOM_AI', 'false', 'true')
+      ),
       'import.meta.env.VITE_POSTHOG_KEY': JSON.stringify(
         envVal('POSTHOG_KEY', '')
       ),

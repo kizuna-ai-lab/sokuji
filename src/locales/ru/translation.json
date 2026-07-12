@@ -874,6 +874,13 @@
     "linuxMigrateTitle": "Доступна новая версия v{{version}}",
     "linuxMigrateBody": "Автоматические обновления доступны в формате AppImage. Выберите формат для скачивания v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "Не найден pactl (инструменты командной строки PulseAudio), поэтому Sokuji не удалось настроить виртуальный микрофон/динамик. Установите его и повторите попытку:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji не удалось настроить виртуальный микрофон/динамик. Убедитесь, что PulseAudio или PipeWire запущены.",
+    "retry": "Повторить",
+    "retrying": "Повтор..."
+  },
   "subtitle": {
     "sessionEnded": "Сессия завершена",
     "backToMain": "Вернуться в главное окно",

@@ -1,7 +1,6 @@
 import React, { Fragment, useEffect, useMemo } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
-import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
-import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
   useProvider,
@@ -16,6 +15,7 @@ import {
   useOpenAITranslateSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useZoomAISettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
@@ -32,6 +32,7 @@ import {
   useUpdateOpenAITranslate,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateZoomAI,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
@@ -107,6 +108,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const openAITranslateSettings = useOpenAITranslateSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const zoomAISettings = useZoomAISettings();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -132,6 +134,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateZoomAISettings = useUpdateZoomAI();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -275,6 +278,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
+    } else if (provider === Provider.ZOOM_AI) {
+      updateZoomAISettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
@@ -1387,8 +1392,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const ast2Settings = activeVolcengineAST2Settings;
     const updateAst2Settings = updateActiveVolcengineAST2Settings;
 
-    const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
-    const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
+    // Look up by `provider` (not `effectiveProvider`): the kizuna twin is
+    // registered whenever isKizunaAIEnabled() is true, but the base
+    // Provider.VOLCENGINE_AST2 is only registered when the separate AST2
+    // build/platform gates also pass. In builds where the twin is available
+    // but the base isn't, resolving effectiveProvider would throw here. The
+    // twin inherits identical language methods from the AST2 base, so the
+    // result is byte-identical either way.
+    const ast2Descriptor = ProviderConfigFactory.getDescriptor(provider);
+    const sourceLanguages = ast2Descriptor.resolveSourceLanguages();
+    const targetLanguages = ast2Descriptor.resolveTargetLanguages(ast2Settings.sourceLanguage);
 
     // Electron: delegate to main-process shell.openExternal (launches system browser).
     // Extension/web: window.open opens a new tab; noopener/noreferrer prevents
@@ -1625,8 +1638,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     // Get target and source languages from the provider config
-    const targetLanguages = VolcengineSTProviderConfig.getTargetLanguages();
-    const sourceLanguages = VolcengineSTProviderConfig.getSourceLanguages();
+    const stDescriptor = ProviderConfigFactory.getDescriptor(provider);
+    const targetLanguages = stDescriptor.resolveTargetLanguages(volcengineSTSettings.sourceLanguage);
+    const sourceLanguages = stDescriptor.resolveSourceLanguages();
 
     return (
       <>
@@ -1767,6 +1781,64 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             disabled={isSessionActive}
           />
         )}
+      </>
+    );
+  };
+
+  const renderZoomAISettings = () => {
+    if (provider !== Provider.ZOOM_AI) return null;
+
+    const zoomDescriptor = ProviderConfigFactory.getDescriptor(provider);
+    const sourceLanguages = zoomDescriptor.resolveSourceLanguages();
+    const targetLanguages = zoomDescriptor.resolveTargetLanguages(zoomAISettings.sourceLanguage);
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label"><span>{t('settings.sourceLanguage')}</span></div>
+            <select
+              className="select-dropdown"
+              value={zoomAISettings.sourceLanguage}
+              onChange={(e) => {
+                const newSource = e.target.value;
+                updateZoomAISettings({
+                  sourceLanguage: newSource,
+                  targetLanguage: zoomDescriptor.reconcileTarget(newSource, zoomAISettings.targetLanguage),
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {sourceLanguages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label"><span>{t('settings.targetLanguage')}</span></div>
+            <select
+              className="select-dropdown"
+              value={zoomAISettings.targetLanguage}
+              onChange={(e) => updateZoomAISettings({ targetLanguage: e.target.value })}
+              disabled={isSessionActive}
+            >
+              {targetLanguages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.zoomAIInfo', 'Zoom AI Services Info')}</h2>
+          <div className="setting-item">
+            <div className="volcengine-st-info-notice" style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}>
+              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
+              {t('settings.zoomAIInfoText', 'Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.')}
+            </div>
+          </div>
+        </div>
       </>
     );
   };
@@ -1942,6 +2014,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
+      {renderZoomAISettings()}
       {renderLocalInferenceSettings()}
       {renderLocalNativeSettings()}
     </Fragment>

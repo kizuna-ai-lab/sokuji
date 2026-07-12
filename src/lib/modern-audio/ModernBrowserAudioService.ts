@@ -7,6 +7,7 @@ import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
+import { isVirtualMic, isVirtualSpeaker } from '../../utils/audioDevices';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
@@ -129,7 +130,12 @@ export class ModernBrowserAudioService implements IAudioService {
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Microphone ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: device.label ? device.label.includes('CABLE') : false
+          // Use the same detector as the Settings device pickers (hooks.ts) so a
+          // device flagged virtual there is also excluded from default-selection
+          // fallbacks here — e.g. Sokuji's own "Sokuji_Virtual_Mic" (the monitor of
+          // its own virtual speaker, meant for other apps to consume, not for
+          // Sokuji to listen to itself).
+          isVirtual: device.label ? isVirtualMic(device) : false
         }));
 
       const outputs = devices
@@ -139,7 +145,7 @@ export class ModernBrowserAudioService implements IAudioService {
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: device.label ? device.label.includes('CABLE') : false
+          isVirtual: device.label ? isVirtualSpeaker(device) : false
         }));
       
       return { inputs, outputs };

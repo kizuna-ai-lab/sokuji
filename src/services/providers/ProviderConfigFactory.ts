@@ -1,4 +1,5 @@
 import { ProviderConfig } from './ProviderConfig';
+import { ProviderDescriptor } from './ProviderDescriptor';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
@@ -10,15 +11,12 @@ import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
+import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
-
-interface ProviderConfigInstance {
-  getConfig(): ProviderConfig;
-}
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
-  private static configs: Map<ProviderType, ProviderConfigInstance> = new Map();
+  private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
 
   static {
     // Initialize configurations
@@ -55,6 +53,11 @@ export class ProviderConfigFactory {
     // Register Volcengine AST 2.0 in Electron (IPC proxy) and Extension (declarativeNetRequest header injection)
     if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
+    }
+
+    // Only register Zoom AI Services if the feature flag is enabled
+    if (isZoomAIEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
     }
   }
 
@@ -99,22 +102,22 @@ export class ProviderConfigFactory {
   /**
    * Register a new provider configuration
    * @param providerId - The provider identifier
-   * @param config - The provider configuration instance
+   * @param config - The provider descriptor instance
    */
-  static registerProvider(providerId: ProviderType, config: ProviderConfigInstance): void {
+  static registerProvider(providerId: ProviderType, config: ProviderDescriptor): void {
     this.configs.set(providerId, config);
   }
 
   /**
-   * Get provider configuration instance (for advanced usage)
+   * Get the full provider descriptor — the deep module for one provider's
+   * behavior. Callers should prefer this over getConfig() when they need
+   * more than static config data.
    * @param providerId - The provider identifier
-   * @returns ProviderConfigInstance instance
+   * @returns ProviderDescriptor instance
    */
-  static getConfigInstance(providerId: ProviderType): ProviderConfigInstance {
-    const configInstance = this.configs.get(providerId);
-    if (!configInstance) {
-      throw new Error(`Unsupported provider: ${providerId}`);
-    }
-    return configInstance;
+  static getDescriptor(providerId: ProviderType): ProviderDescriptor {
+    const d = this.configs.get(providerId);
+    if (!d) throw new Error(`Unsupported provider: ${providerId}`);
+    return d;
   }
-} 
+}

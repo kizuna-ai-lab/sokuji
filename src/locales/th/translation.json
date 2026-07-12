@@ -789,6 +789,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "ไม่พบ pactl (เครื่องมือบรรทัดคำสั่งของ PulseAudio) ทำให้ Sokuji ไม่สามารถตั้งค่าไมโครโฟน/ลำโพงเสมือนได้ โปรดติดตั้งแล้วลองใหม่:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji ไม่สามารถตั้งค่าไมโครโฟน/ลำโพงเสมือนได้ โปรดตรวจสอบว่า PulseAudio หรือ PipeWire กำลังทำงานอยู่",
+    "retry": "ลองใหม่",
+    "retrying": "กำลังลองใหม่..."
+  },
   "subtitle": {
     "sessionEnded": "เซสชันสิ้นสุดแล้ว",
     "backToMain": "กลับสู่หน้าต่างหลัก",

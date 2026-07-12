@@ -1,6 +1,160 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import useAudioStore from './audioStore';
-import type { AudioMode } from './audioStore';
+import useAudioStore, { pickDefaultInputDevice } from './audioStore';
+import type { AudioMode, AudioDevice } from './audioStore';
+
+// Regression test: on a machine with no physical microphone, the only
+// enumerated "audioinput" device can be a virtual/loopback one — notably
+// Sokuji's own "Sokuji_Virtual_Mic", the monitor of Sokuji's own virtual
+// speaker (electron/pulseaudio-utils.js). Auto-selecting it as the mic feeds
+// Sokuji's own TTS output back into ASR as "user speech", producing an
+// infinite transcribe -> translate -> speak loop. The fallback must never
+// pick a virtual device, even when it's the only one available.
+describe('pickDefaultInputDevice', () => {
+  it('picks the first non-virtual device when a real mic is present', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+      { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
+    ];
+    expect(pickDefaultInputDevice(inputs)?.deviceId).toBe('real-1');
+  });
+
+  it('returns null when every available input is virtual (no physical mic)', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+    ];
+    expect(pickDefaultInputDevice(inputs)).toBeNull();
+  });
+
+  it('returns null for an empty device list', () => {
+    expect(pickDefaultInputDevice([])).toBeNull();
+  });
+});
+
+// Integration-level regression test for the actual UI-visible fix: when
+// refreshDevices() finds no real microphone, it must turn the mic off
+// (isMicMuted: true), not just leave selectedInputDevice unset. The device
+// picker's "Off" option (DeviceList.tsx) only renders as selected when
+// isMicMuted is true — an unset device with isMicMuted still false shows
+// nothing selected at all, which is what prompted this follow-up.
+describe('audioStore — refreshDevices with no real microphone', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({
+      selectedInputDevice: null,
+      selectedMonitorDevice: null,
+      isMicMuted: false,
+      mode: 'speaker' as AudioMode,
+    } as any);
+  });
+
+  it('turns the mic off when only virtual/loopback input devices are enumerated', async () => {
+    useAudioStore.setState({
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
+
+  it('turns the mic off when no input devices are enumerated at all', async () => {
+    useAudioStore.setState({
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({ inputs: [], outputs: [] }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
+
+  it('still auto-selects a real microphone when one is present', async () => {
+    useAudioStore.setState({
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [
+            { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+            { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
+          ],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice?.deviceId).toBe('real-1');
+    expect(s.isMicMuted).toBe(false);
+  });
+
+  // Regression for code review finding: canStartSession (MainPanel.tsx) gates
+  // purely on !!selectedInputDevice and "mute state does not block start" by
+  // design, so a stale device object left in place after it's unplugged would
+  // still satisfy the start gate — and unmuting mid-session would reconnect
+  // straight to it.
+  it('clears a stale selectedInputDevice (now disconnected) when no real mic remains', async () => {
+    useAudioStore.setState({
+      selectedInputDevice: { deviceId: 'unplugged-real-mic', label: 'USB Microphone', isVirtual: false },
+      isMicMuted: false,
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
+
+  // Regression for code review finding: a user who hit the original bug may
+  // already have SELECTED_INPUT_DEVICE_ID persisted as the virtual mic's id.
+  // The saved-device restore path must reject it rather than blindly trusting
+  // whatever's on disk — otherwise the fix does nothing for exactly the users
+  // it's meant to protect.
+  it('does not restore a persisted device id that resolves to a virtual device', async () => {
+    localStorage.setItem('audio.selectedInputDeviceId', 'virtual-1');
+    useAudioStore.setState({
+      audioService: {
+        initialize: async () => {},
+        getDevices: async () => ({
+          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+          outputs: [],
+        }),
+        setMonitorVolume: () => {},
+      },
+    } as any);
+
+    await useAudioStore.getState().refreshDevices();
+
+    const s = useAudioStore.getState();
+    expect(s.selectedInputDevice).toBeNull();
+    expect(s.isMicMuted).toBe(true);
+  });
+});
 
 describe('audioStore — mode + mute flags', () => {
   beforeEach(() => {

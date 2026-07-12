@@ -1,6 +1,78 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
+import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { GeminiClient } from '../clients/GeminiClient';
 
-export class GeminiProviderConfig {
+// Gemini Settings
+export interface GeminiSettings {
+  apiKey: string;
+  model: string;
+  voice: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  temperature: number;
+  maxTokens: number | 'inf';
+  turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
+  vadStartSensitivity: 'high' | 'low';
+  vadEndSensitivity: 'high' | 'low';
+  vadSilenceDurationMs: number;
+  vadPrefixPaddingMs: number;
+}
+
+export const defaultGeminiSettings: GeminiSettings = {
+  apiKey: '',
+  model: '',
+  voice: 'Aoede',
+  sourceLanguage: 'en-US',
+  targetLanguage: 'ja-JP',
+  temperature: 0.8,
+  maxTokens: 'inf',
+  turnDetectionMode: 'Auto',
+  vadStartSensitivity: 'low',
+  vadEndSensitivity: 'high',
+  vadSilenceDurationMs: 500,
+  vadPrefixPaddingMs: 300,
+};
+
+export class GeminiProviderConfig extends BaseProviderDescriptor {
+  readonly settingsSliceKey: string = 'gemini';
+  readonly supportsWebRTC = false;
+
+  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+    return new GeminiClient(creds.primary);
+  }
+
+  async validateAndFetchModels(creds: Credentials): Promise<{
+    validation: ApiKeyValidationResult; models: FilteredModel[];
+  }> {
+    if (!creds.ok) {
+      return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
+    }
+    return GeminiClient.validateApiKeyAndFetchModels(creds.primary);
+  }
+
+  latestRealtimeModel(models: FilteredModel[]): string {
+    return GeminiClient.getLatestRealtimeModel(models);
+  }
+
+  buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
+    const settings = slice as GeminiSettings;
+    return {
+      provider: 'gemini',
+      model: settings.model,
+      voice: settings.voice,
+      instructions: systemInstructions,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      turnDetectionMode: settings.turnDetectionMode,
+      vadStartSensitivity: settings.vadStartSensitivity,
+      vadEndSensitivity: settings.vadEndSensitivity,
+      vadSilenceDurationMs: settings.vadSilenceDurationMs,
+      vadPrefixPaddingMs: settings.vadPrefixPaddingMs,
+    } as GeminiSessionConfig;
+  }
+
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'English (United States)', value: 'en-US', englishName: 'English (United States)' },
     { name: 'English (Australia)', value: 'en-AU', englishName: 'English (Australia)' },
@@ -108,22 +180,6 @@ export class GeminiProviderConfig {
         temperatureRange: { min: 0.0, max: 2.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 8192, step: 1 },
       },
-      
-      defaults: {
-        model: '',
-        voice: 'Aoede',
-        temperature: 1.0,
-        maxTokens: 'inf' as any,
-        sourceLanguage: 'en-US',
-        targetLanguage: 'ja-JP',
-        turnDetectionMode: 'Auto', // Gemini handles automatically
-        threshold: 0.5,
-        prefixPadding: 0.0,
-        silenceDuration: 0.0,
-        semanticEagerness: 'Auto',
-        noiseReduction: 'None',
-        transcriptModel: 'auto', // Gemini uses built-in transcription
-      },
     };
   }
-} 
+}

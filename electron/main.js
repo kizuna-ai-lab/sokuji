@@ -86,6 +86,49 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
+// Most recently computed virtual-audio-device status, forwarded to the
+// renderer over the 'audio-status' channel once it's ready to receive it.
+let lastAudioStatus = null;
+
+/**
+ * Figure out *why* virtual audio device setup failed so the renderer can show
+ * an actionable message instead of a generic failure.
+ * @returns {Promise<{ok: boolean, platform: string, reason: string | null, message: string | null}>}
+ */
+async function buildAudioStatus(devicesCreated) {
+  if (devicesCreated) {
+    return { ok: true, platform: process.platform, reason: null, message: null };
+  }
+
+  if (process.platform === 'linux') {
+    const { isPactlInstalled } = audioUtils;
+    const pactlInstalled = isPactlInstalled ? await isPactlInstalled() : true;
+    if (!pactlInstalled) {
+      return {
+        ok: false,
+        platform: 'linux',
+        reason: 'pactl-missing',
+        message: 'pactl (PulseAudio command-line tools) not found. Install it with: sudo apt install pulseaudio-utils'
+      };
+    }
+    return {
+      ok: false,
+      platform: 'linux',
+      reason: 'pulseaudio-unavailable',
+      message: 'Could not create virtual audio devices. Make sure PulseAudio or PipeWire is running.'
+    };
+  }
+
+  return { ok: false, platform: process.platform, reason: 'other', message: 'Failed to create virtual audio devices' };
+}
+
+function sendAudioStatus(status) {
+  lastAudioStatus = status;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('audio-status', status);
+  }
+}
+
 // Create application menu
 function createApplicationMenu() {
   const isMac = process.platform === 'darwin';
@@ -295,6 +338,12 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     const loadEndTime = Date.now();
     console.log(`[Sokuji] [Main] Page loaded in ${loadEndTime - loadStartTime}ms`);
+
+    // Forward the virtual-audio-device status computed during startup, now
+    // that the renderer is actually able to receive it.
+    if (lastAudioStatus) {
+      sendAudioStatus(lastAudioStatus);
+    }
   });
   
   mainWindow.webContents.on('dom-ready', () => {
@@ -365,6 +414,10 @@ app.whenReady().then(async () => {
   // Start virtual audio devices before creating the window
   try {
     const devicesCreated = await createVirtualAudioDevices();
+    lastAudioStatus = await buildAudioStatus(devicesCreated);
+    if (!devicesCreated) {
+      console.error('[Sokuji] [Main] Virtual audio device status:', lastAudioStatus.reason, '-', lastAudioStatus.message);
+    }
     if (devicesCreated) {
       console.log('[Sokuji] [Main] Virtual audio devices created successfully');
       
@@ -391,6 +444,7 @@ app.whenReady().then(async () => {
     }
   } catch (error) {
     console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
+    lastAudioStatus = { ok: false, platform: process.platform, reason: 'other', message: error?.message || 'Failed to create virtual audio devices' };
   }
 
   // Create the application menu
@@ -574,6 +628,13 @@ ipcMain.handle('sidecar-bundle:remove', () => {
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+// IPC handler for the renderer to pull the current virtual-audio-device status.
+// The renderer's listener for the 'audio-status' push isn't guaranteed to be
+// registered yet when 'did-finish-load' fires (React mounts asynchronously),
+// so relying on the push alone can silently drop the event. The renderer
+// pulls this once right after it subscribes, to cover that race.
+ipcMain.handle('get-audio-status', () => lastAudioStatus);
+
 // ---- Window controls for the custom title bar ----
 ipcMain.handle('window:minimize', () => {
   if (mainWindow) mainWindow.minimize();
@@ -738,19 +799,22 @@ ipcMain.handle('open-external', async (event, url) => {
 
 
 
-// Handler to create virtual audio devices
+// Handler to create virtual audio devices (used for manual retry from the renderer)
 ipcMain.handle('create-virtual-speaker', async () => {
   try {
     const result = await createVirtualAudioDevices();
+    const status = await buildAudioStatus(result);
+    sendAudioStatus(status);
     return {
       success: result,
-      message: result ? 'Virtual audio devices created successfully' : 'Failed to create virtual audio devices'
+      message: result ? 'Virtual audio devices created successfully' : status.message
     };
   } catch (error) {
     console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
+    sendAudioStatus({ ok: false, platform: process.platform, reason: 'other', message: error?.message || 'Failed to create virtual audio devices' });
     return {
       success: false,
-      error: error.message || 'Failed to create virtual audio devices'
+      error: error?.message || 'Failed to create virtual audio devices'
     };
   }
 });

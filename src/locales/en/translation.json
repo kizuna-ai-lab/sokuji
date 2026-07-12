@@ -181,6 +181,8 @@
     "volcengineAST2GlossaryLibraryTooltip": "Source→target bilingual term pairs.",
     "volcengineAST2GlossaryManage": "Manage glossary",
     "volcengineAST2CustomVocabularyFooter": "Invalid or empty library IDs are silently ignored — the session runs as if the field weren't set. Library changes made in the Volcengine console can take a few minutes to take effect.",
+    "zoomAIInfo": "Zoom AI Services Info",
+    "zoomAIInfoText": "Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Help",
     "helpEmailSupport": "Email Support",
@@ -523,6 +525,12 @@
       "description": "Doubao simultaneous interpretation",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
+    },
+    "zoom_ai": {
+      "name": "Zoom AI Services",
+      "description": "Zoom Scribe transcription + Translator (text only)",
+      "apiKeyPlaceholder": "Zoom Build Platform API Key",
+      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Free",
@@ -973,6 +981,13 @@
     "downloadDeb": "Download .deb",
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
+  },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio command-line tools) was not found, so Sokuji couldn't set up its virtual microphone/speaker. Install it, then retry:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji couldn't set up its virtual microphone/speaker. Make sure PulseAudio or PipeWire is running.",
+    "retry": "Retry",
+    "retrying": "Retrying..."
   },
   "subtitle": {
     "sessionEnded": "Session ended",

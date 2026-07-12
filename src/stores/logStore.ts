@@ -98,6 +98,7 @@ export interface EventData {
     | 'local.translation.end'
     | 'local.tts.start'
     | 'local.tts.end'
+    | 'zoom.speech_start'
     | 'local.tts.sentence.start'
     | 'local.tts.sentence.end'
     | 'local.tts.error'

@@ -867,6 +867,13 @@
     "linuxMigrateTitle": "New version v{{version}} available",
     "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   },
+  "audioSystem": {
+    "pactlMissingBody": "pactl (PulseAudio-opdrachtregelprogramma's) is niet gevonden, waardoor Sokuji de virtuele microfoon/luidspreker niet kon instellen. Installeer het en probeer het opnieuw:",
+    "installCommand": "sudo apt install pulseaudio-utils",
+    "unavailableBody": "Sokuji kon de virtuele microfoon/luidspreker niet instellen. Zorg dat PulseAudio of PipeWire actief is.",
+    "retry": "Opnieuw proberen",
+    "retrying": "Opnieuw proberen..."
+  },
   "subtitle": {
     "sessionEnded": "Sessie beëindigd",
     "backToMain": "Terug naar hoofdvenster",

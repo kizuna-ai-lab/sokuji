@@ -8,6 +8,7 @@ import {
   useDownloadErrors,
   useStorageUsedMb,
   useModelInitialized,
+  useModelInitError,
   useWebGPUAvailable,
   useDeviceFeatures,
   useModelVariants,
@@ -285,6 +286,7 @@ export function ModelManagementSection({
   const downloadErrors = useDownloadErrors();
   const storageUsedMb = useStorageUsedMb();
   const initialized = useModelInitialized();
+  const initError = useModelInitError();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
   const modelVariants = useModelVariants();
@@ -607,7 +609,26 @@ export function ModelManagementSection({
     }
   }, [isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
 
-  if (!initialized) return null;
+  // A failed initialize() (e.g. IndexedDB VersionError when another build
+  // upgraded the shared DB in this profile) must surface an actionable error
+  // instead of a silently missing section. `!initialized && !initError` is the
+  // brief loading window — render nothing there, as before.
+  if (!initialized) {
+    if (initError) {
+      return (
+        <div id="model-management-section" className="settings-section model-management-section">
+          <h2>{t('models.management', 'Models')}</h2>
+          <div className="model-management-section__init-error">
+            <p>{t('models.initFailed', 'Model storage failed to initialize: {{message}}', { message: initError })}</p>
+            <button type="button" onClick={() => initialize()}>
+              {t('common.retry', 'Retry')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   // ── Handlers ──────────────────────────────────────────────────────────
 

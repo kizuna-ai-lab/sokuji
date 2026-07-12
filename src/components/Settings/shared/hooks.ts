@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { isVirtualDevice, isVirtualMic, isVirtualSpeaker } from '../../../utils/audioDevices';
 
 /**
  * Shared types for audio devices
@@ -9,38 +10,10 @@ export interface AudioDevice {
   isDefault?: boolean;
 }
 
-/**
- * Check if a device is a virtual device that should be filtered or warned about
- */
-export const isVirtualDevice = (device: AudioDevice): boolean => {
-  const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_mic') ||
-         label.includes('sokuji_virtual_speaker') ||
-         label.includes('sokuji virtual output') || // Windows display name
-         label.includes('sokujivirtualaudio') || // Mac virtual device
-         label.includes('cable');
-};
-
-/**
- * Check if a device is a virtual microphone
- */
-export const isVirtualMic = (device: AudioDevice): boolean => {
-  const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_mic') ||
-         label.includes('sokujivirtualaudio') ||
-         label.includes('cable');
-};
-
-/**
- * Check if a device is a virtual speaker
- */
-export const isVirtualSpeaker = (device: AudioDevice): boolean => {
-  const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_speaker') ||
-         label.includes('sokuji virtual output') || // Windows display name
-         label.includes('sokujivirtualaudio') ||
-         label.includes('cable');
-};
+// Re-exported for backward compatibility — the actual (React-free) predicates
+// now live in utils/audioDevices.ts so non-UI modules (e.g.
+// ModernBrowserAudioService) can use them without pulling in React.
+export { isVirtualDevice, isVirtualMic, isVirtualSpeaker };
 
 /**
  * Hook to filter virtual devices from a device list
