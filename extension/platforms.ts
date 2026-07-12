@@ -49,6 +49,29 @@ export function platformsByProfile(profile: ContentProfile): PlatformEntry[] {
   return PLATFORMS.filter(p => p.contentProfile === profile);
 }
 
+// --- manifest.json-shaped derivations ---------------------------------------
+// These reproduce the hand-written extension/manifest.json content_scripts /
+// web_accessible_resources match lists exactly (see
+// extension/manifest.consistency.test.ts for the golden-equality guard).
+
+export function deriveContentScripts(): Array<{ matches: string[]; js: string[]; run_at: string; all_frames?: boolean }> {
+  const patterns = (profile: ContentProfile) => platformsByProfile(profile).map(p => p.matchPattern);
+  const standard = patterns('standard');
+  const zoom = patterns('zoom');
+  const jitsi = patterns('jitsi');
+  return [
+    { matches: [...standard], js: ['content.js', 'subtitle-overlay-content.js'], run_at: 'document_start' },
+    { matches: [...jitsi], js: ['content.js'], run_at: 'document_start', all_frames: true },
+    { matches: [...jitsi], js: ['subtitle-overlay-content.js'], run_at: 'document_start' },
+    { matches: [...zoom], js: ['zoom-content.js'], run_at: 'document_start', all_frames: true },
+    { matches: [...zoom], js: ['subtitle-overlay-content.js'], run_at: 'document_idle' },
+  ];
+}
+
+export function deriveSubtitleWebAccessibleMatches(): string[] {
+  return PLATFORMS.map(p => p.matchPattern);
+}
+
 // --- popup.js-shaped derivations -------------------------------------------
 // These reproduce the pre-registry hand-written popup.js literals exactly
 // (see extension/platforms.derived.test.ts for the golden-equality pin).
