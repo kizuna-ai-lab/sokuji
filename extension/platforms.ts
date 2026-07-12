@@ -48,3 +48,29 @@ export const PLATFORM_HOSTNAMES: readonly string[] = PLATFORMS.map(p => p.hostna
 export function platformsByProfile(profile: ContentProfile): PlatformEntry[] {
   return PLATFORMS.filter(p => p.contentProfile === profile);
 }
+
+// --- popup.js-shaped derivations -------------------------------------------
+// These reproduce the pre-registry hand-written popup.js literals exactly
+// (see extension/platforms.derived.test.ts for the golden-equality pin).
+
+export function deriveEnabledSites(): string[] {
+  return PLATFORMS.map(p => p.hostname);
+}
+
+export function deriveSiteInfo(): Record<string, { name: string; shortName: string; icon: string; group?: string }> {
+  const out: Record<string, { name: string; shortName: string; icon: string; group?: string }> = {};
+  for (const p of PLATFORMS) {
+    out[p.hostname] = { name: p.displayName, shortName: p.shortName, icon: p.icon, ...(p.group ? { group: p.group } : {}) };
+  }
+  return out;
+}
+
+export function deriveSiteGroups(): Record<string, { shortName: string; icon: string; sites: { domain: string; label: string }[] }> {
+  const out: Record<string, { shortName: string; icon: string; sites: { domain: string; label: string }[] }> = {};
+  for (const p of PLATFORMS) {
+    if (!p.group) continue;
+    if (!out[p.group]) out[p.group] = { shortName: p.shortName, icon: p.icon, sites: [] };
+    out[p.group].sites.push({ domain: p.hostname, label: p.groupLabel! });
+  }
+  return out;
+}
