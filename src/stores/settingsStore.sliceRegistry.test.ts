@@ -65,6 +65,24 @@ describe('provider settings update actions (behavior lock)', () => {
     }
   });
 
+  it('webrtc forcing is conditional: already-Disabled stays Disabled; a non-webrtc patch never forces it', async () => {
+    for (const [action, sliceKey] of [['updateOpenAI', 'openai'], ['updateOpenAICompatible', 'openaiCompatible']] as const) {
+      // Already Disabled before the update → still Disabled, still persisted.
+      setSetting.mockClear();
+      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Disabled' } });
+      await (useSettingsStore.getState() as any)[action]({ transportType: 'webrtc' });
+      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Disabled');
+      expect(setSetting, action).toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, 'Disabled');
+
+      // Negative case: a websocket patch must NOT force or persist turnDetectionMode.
+      setSetting.mockClear();
+      (useSettingsStore.setState as any)({ [sliceKey]: { ...(useSettingsStore.getState() as any)[sliceKey], turnDetectionMode: 'Normal' } });
+      await (useSettingsStore.getState() as any)[action]({ transportType: 'websocket' });
+      expect((useSettingsStore.getState() as any)[sliceKey].turnDetectionMode, action).toBe('Normal');
+      expect(setSetting, action).not.toHaveBeenCalledWith(`settings.${sliceKey}.turnDetectionMode`, expect.anything());
+    }
+  });
+
   it('kizuna twins: credentials update in-memory state but are never persisted', async () => {
     await useSettingsStore.getState().updateKizunaOpenaiTranslate({ apiKey: 'secret', sourceLanguage: 'ja' } as any);
     expect((useSettingsStore.getState() as any).kizunaOpenaiTranslate.apiKey).toBe('secret');
@@ -73,17 +91,61 @@ describe('provider settings update actions (behavior lock)', () => {
 
     setSetting.mockClear();
     await useSettingsStore.getState().updateKizunaVolcengineAst2({ appId: 'a', accessToken: 't', sourceLanguage: 'zh' } as any);
+    // Credentials land in state...
+    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.appId).toBe('a');
+    expect((useSettingsStore.getState() as any).kizunaVolcengineAst2.accessToken).toBe('t');
+    // ...but are never persisted.
     expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.appId', expect.anything());
     expect(setSetting).not.toHaveBeenCalledWith('settings.kizunaVolcengineAst2.accessToken', expect.anything());
     expect(setSetting).toHaveBeenCalledWith('settings.kizunaVolcengineAst2.sourceLanguage', 'zh');
   });
 
-  it('persistence-error policy: zoomAI swallows, gemini propagates (legacy 6/6 split)', async () => {
-    setSetting.mockRejectedValue(new Error('disk full'));
-    // swallow family: resolves, state still applied
-    await expect(useSettingsStore.getState().updateZoomAI({ apiKey: 'zz' } as any)).resolves.toBeUndefined();
-    expect((useSettingsStore.getState() as any).zoomAI.apiKey).toBe('zz');
-    // throw family: rejects
-    await expect(useSettingsStore.getState().updateGemini({ apiKey: 'gg' } as any)).rejects.toThrow('disk full');
+  // Every registry row's error policy, pinned individually: a single flipped
+  // `persistErrors` value (the easy typo when adding a provider) fails here.
+  const THROW_SLICES: Array<[string, Record<string, unknown>]> = [
+    ['updateOpenAI', { apiKey: 'x' }], ['updateGemini', { apiKey: 'x' }],
+    ['updateOpenAICompatible', { apiKey: 'x' }], ['updatePalabraAI', { clientId: 'x' }],
+    ['updateOpenAITranslate', { apiKey: 'x' }], ['updateKizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
+  ];
+  const SWALLOW_SLICES: Array<[string, string, Record<string, unknown>]> = [
+    ['updateVolcengineST', 'volcengineST', { accessKeyId: 'x' }],
+    ['updateZoomAI', 'zoomAI', { apiKey: 'x' }],
+    ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
+    ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
+    ['updateLocalInference', 'localInference', { asrModel: 'x' }],
+    ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
+  ];
+
+  it('all 6 throw-policy slices propagate a persistence error', async () => {
+    for (const [action, patch] of THROW_SLICES) {
+      setSetting.mockRejectedValue(new Error('disk full'));
+      await expect((useSettingsStore.getState() as any)[action](patch), action).rejects.toThrow('disk full');
+    }
+  });
+
+  it('all 6 swallow-policy slices resolve on a persistence error but still apply state', async () => {
+    for (const [action, sliceKey, patch] of SWALLOW_SLICES) {
+      setSetting.mockRejectedValue(new Error('disk full'));
+      await expect((useSettingsStore.getState() as any)[action](patch), action).resolves.toBeUndefined();
+      const [k, v] = Object.entries(patch)[0];
+      expect((useSettingsStore.getState() as any)[sliceKey][k], action).toBe(v);
+    }
+  });
+
+  it('loadSettings hydrates every slice from settings.<sliceKey>.<field> with its default', async () => {
+    // Persisted store returns the default for every key (the mock's getSetting
+    // echoes the default), so a wrong prefix or missing registry row surfaces
+    // as an unhydrated slice.
+    await useSettingsStore.getState().loadSettings();
+    const s = useSettingsStore.getState() as any;
+    // Spot every slice key is a populated object after load.
+    for (const sliceKey of [
+      'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
+      'volcengineST', 'zoomAI', 'volcengineAST2', 'kizunaOpenaiTranslate',
+      'kizunaVolcengineAst2', 'localInference', 'localNative',
+    ]) {
+      expect(s[sliceKey], sliceKey).toBeTypeOf('object');
+      expect(Object.keys(s[sliceKey]).length, sliceKey).toBeGreaterThan(0);
+    }
   });
 });
