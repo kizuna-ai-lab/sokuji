@@ -149,8 +149,18 @@ export const useSubtitleStore = create<SubtitleState>()(
       const previous = get().alwaysOnTop;
       const next = !previous;
       set({ alwaysOnTop: next });
+      // Apply to the live window (always-on-top is a native window property
+      // only the main process can set); persistence keeps it for the next
+      // window creation. Dynamic import so this lightweight store doesn't
+      // statically pull the Electron/Extension surface graph. Roll back on
+      // persistence failure.
+      const { getSubtitleSurface } = await import('../components/Subtitle/surfaces/getSubtitleSurface');
+      await getSubtitleSurface().setAlwaysOnTop(next);
       const { ok } = await persist('alwaysOnTop', next, 'alwaysOnTop');
-      if (!ok) set({ alwaysOnTop: previous });
+      if (!ok) {
+        set({ alwaysOnTop: previous });
+        await getSubtitleSurface().setAlwaysOnTop(previous);
+      }
     },
     togglePositionLocked: async () => {
       const previous = get().positionLocked;

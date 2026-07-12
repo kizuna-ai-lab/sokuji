@@ -11,6 +11,14 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
+const setAlwaysOnTopSpy = vi.fn(async () => {});
+vi.mock('../components/Subtitle/surfaces/getSubtitleSurface', () => ({
+  getSubtitleSurface: () => ({
+    enter: vi.fn(), exit: vi.fn(), setFullscreen: vi.fn(),
+    setAlwaysOnTop: (flag: boolean) => setAlwaysOnTopSpy(flag),
+  }),
+}));
+
 describe('subtitleStore', () => {
   beforeEach(() => {
     useSubtitleStore.setState({
@@ -80,5 +88,17 @@ describe('subtitleStore', () => {
     expect(useSubtitleStore.getState().fontSize).toBe(30);
     expect(typeof useSubtitleFontSize).toBe('function');
     expect(typeof useSubtitlePositionLocked).toBe('function');
+  });
+  it('toggleAlwaysOnTop applies the change to the live window (not just persistence)', async () => {
+    // always-on-top is a native window property: toggling while the subtitle
+    // window is open must invoke the surface so the main process re-applies it,
+    // not merely persist the value for the next window creation.
+    setAlwaysOnTopSpy.mockClear();
+    expect(useSubtitleStore.getState().alwaysOnTop).toBe(false);
+    await useSubtitleStore.getState().toggleAlwaysOnTop();
+    expect(useSubtitleStore.getState().alwaysOnTop).toBe(true);
+    expect(setAlwaysOnTopSpy).toHaveBeenCalledWith(true);
+    await useSubtitleStore.getState().toggleAlwaysOnTop();
+    expect(setAlwaysOnTopSpy).toHaveBeenCalledWith(false);
   });
 });

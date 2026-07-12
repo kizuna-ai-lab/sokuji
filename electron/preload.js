@@ -1,4 +1,9 @@
-const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron';
+// Renderer→main invoke allowlist. Single source of truth in ipc-channels.js
+// (guarded against handler drift by ipc-channels.test.js). The bundler inlines
+// this array into the built preload.js, so the shipped artifact stays an
+// auditable literal list.
+import { INVOKE_CHANNELS } from './ipc-channels.js';
 
 // Cookie API for Better Auth adapter
 const cookieAPI = {
@@ -102,63 +107,14 @@ contextBridge.exposeInMainWorld(
       }
     },
     invoke: (channel, data) => {
-      const validChannels = [
-        'invoke-channel',
-        'check-audio-system',
-        'open-directory',
-        'open-external',
-        'create-virtual-speaker',
-        'get-cookies',
-        'set-cookie',
-        'check-vbcable',
-        'install-vbcable',
-        'check-sokuji-audio',
-        // System audio capture channels
-        'supports-system-audio-capture',
-        'list-system-audio-sources',
-        'connect-system-audio-source',
-        'disconnect-system-audio-source',
-        // Screen recording permission check (macOS)
-        'check-screen-recording-permission',
-        // electron-audio-loopback channels (auto-registered by initMain())
-        'enable-loopback-audio',
-        'disable-loopback-audio',
-        // Linux: fix PipeWire monitor source volume after loopback capture starts
-        'fix-monitor-volume',
-        // WebSocket header injection (renderer → main)
-        'ws-headers-set',
-        'ws-headers-clear',
-        // Native local-inference sidecar lifecycle (renderer → main)
-        'native-host:start',
-        'native-host:stop',
-        'native-host:status',
-        // Self-contained sidecar bundle install/status (renderer → main)
-        'sidecar-bundle:status',
-        'sidecar-bundle:install',
-        'sidecar-bundle:cancel',
-        'sidecar-bundle:manifest',
-        'sidecar-bundle:remove',
-        // Auto-update channels (renderer → main)
-        'update-check',
-        'update-download',
-        'update-install',
-        'get-app-version',
-        'get-audio-status',
-        // Window control IPC for custom title bar
-        'window:minimize',
-        'window:maximize-toggle',
-        'window:close',
-        // Subtitle mode IPC
-        'subtitle:enter',
-        'subtitle:exit',
-        'subtitle:set-always-on-top',
-        'subtitle:set-locked',
-        'subtitle:set-fullscreen',
-        'subtitle:get-screen-bounds',
-      ];
-      if (validChannels.includes(channel)) {
+      if (INVOKE_CHANNELS.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
       }
+      // Fail loud on the security boundary: a channel outside the allowlist is
+      // a bug (all real channels are registered), not a graceful-degradation
+      // path. Reject + warn instead of silently resolving to undefined.
+      console.warn(`[Sokuji] [Preload] Blocked unauthorized invoke for channel: ${channel}`);
+      return Promise.reject(new Error(`Blocked unauthorized invoke for channel: ${channel}`));
     }
   }
 );

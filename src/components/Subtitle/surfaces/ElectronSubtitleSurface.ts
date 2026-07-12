@@ -24,4 +24,8 @@ export class ElectronSubtitleSurface implements SubtitleSurface {
   async setFullscreen(flag: boolean): Promise<void> {
     await window.electron?.invoke('subtitle:set-fullscreen', flag);
   }
+
+  async setAlwaysOnTop(flag: boolean): Promise<void> {
+    await window.electron?.invoke('subtitle:set-always-on-top', flag);
+  }
 }

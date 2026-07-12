@@ -194,6 +194,10 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     /* no-op */
   }
 
+  async setAlwaysOnTop(_flag: boolean): Promise<void> {
+    /* no-op — the extension overlay has no OS window to pin */
+  }
+
   private tearDown() {
     chrome.runtime.onConnect.removeListener(this.handleConnect);
     chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
