@@ -512,6 +512,82 @@ export function createParticipantLocalNativeConfig(
 
 // ==================== Store Implementation ====================
 
+// ─── Provider settings slice registry ────────────────────────────────────────
+// One row per persisted provider slice. This table is the single home for the
+// knowledge the twelve hand-written update actions used to re-encode: the
+// slice's defaults (for loading), its patch transform, its never-persist
+// keys, and its persistence-error policy. Persist keys are always
+// `settings.<sliceKey>.<field>` — the sliceKey doubles as the storage prefix.
+
+type SliceUpdateSpec = {
+  defaults: Record<string, unknown>;
+  /** Transform an incoming patch before it is merged AND persisted. */
+  transformPatch?: (patch: Record<string, unknown>) => Record<string, unknown>;
+  /** Fields applied to in-memory state but never written to settings storage. */
+  neverPersist?: readonly string[];
+  /** 'throw' propagates persistence errors to the caller; 'swallow' logs and
+   *  keeps the in-memory update. The 6/6 split below preserves each action's
+   *  pre-registry behavior exactly — flip a row deliberately, not by accident. */
+  persistErrors: 'throw' | 'swallow';
+};
+
+// WebRTC transport: the server truncates audio on user speech (API design),
+// so server VAD must be off to prevent translation interruption. Forcing the
+// field unconditionally is equivalent to the old merged-state check: after
+// the old code ran, turnDetectionMode was always 'Disabled' under webrtc.
+const forceWebrtcTurnDetectionOff = (patch: Record<string, unknown>): Record<string, unknown> =>
+  patch.transportType === 'webrtc' ? { ...patch, turnDetectionMode: 'Disabled' } : patch;
+
+const PROVIDER_SLICE_REGISTRY = {
+  openai: { defaults: defaultOpenAISettings, transformPatch: forceWebrtcTurnDetectionOff, persistErrors: 'throw' },
+  gemini: { defaults: defaultGeminiSettings, persistErrors: 'throw' },
+  openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff, persistErrors: 'throw' },
+  palabraai: { defaults: defaultPalabraAISettings, persistErrors: 'throw' },
+  openaiTranslate: { defaults: defaultOpenAITranslateSettings, persistErrors: 'throw' },
+  volcengineST: { defaults: defaultVolcengineSTSettings, persistErrors: 'swallow' },
+  zoomAI: { defaults: defaultZoomAISettings, persistErrors: 'swallow' },
+  volcengineAST2: { defaults: defaultVolcengineAST2Settings, persistErrors: 'swallow' },
+  // Relay twins authenticate through the relay with a short-lived Better Auth
+  // session token; the user-managed credential fields must never be persisted
+  // (stale/sensitive values). See each descriptor's extractCredentials.
+  kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'], persistErrors: 'throw' },
+  kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'], persistErrors: 'swallow' },
+  localInference: { defaults: defaultLocalInferenceSettings, persistErrors: 'swallow' },
+  localNative: { defaults: defaultLocalNativeSettings, persistErrors: 'swallow' },
+} satisfies Record<string, SliceUpdateSpec>;
+
+export type ProviderSliceKey = keyof typeof PROVIDER_SLICE_REGISTRY;
+
+/** Shared implementation behind every updateXxx action: merge the (possibly
+ *  transformed) patch into the slice, then persist each field under
+ *  `settings.<sliceKey>.<field>` per the slice's error policy. */
+async function updateProviderSlice(
+  set: (fn: (state: SettingsStore) => Partial<SettingsStore>) => void,
+  sliceKey: ProviderSliceKey,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const spec: SliceUpdateSpec = PROVIDER_SLICE_REGISTRY[sliceKey];
+  const effective = spec.transformPatch ? spec.transformPatch(patch) : patch;
+  set((state) => ({ [sliceKey]: { ...(state as any)[sliceKey], ...effective } }) as Partial<SettingsStore>);
+
+  const persist = async () => {
+    const service = ServiceFactory.getSettingsService();
+    for (const [key, value] of Object.entries(effective)) {
+      if (spec.neverPersist?.includes(key)) continue;
+      await service.setSetting(`settings.${sliceKey}.${key}`, value);
+    }
+  };
+  if (spec.persistErrors === 'swallow') {
+    try {
+      await persist();
+    } catch (error) {
+      console.error(`[SettingsStore] Error persisting ${sliceKey} settings:`, error);
+    }
+  } else {
+    await persist();
+  }
+}
+
 const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set, get) => ({
     // === Initial State ===
@@ -738,173 +814,18 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Provider Settings Actions ===
-    updateOpenAI: async (settings) => {
-      set((state) => {
-        const updatedSettings = { ...state.openai, ...settings };
-
-        // WebRTC mode: Server automatically truncates audio on user speech (API design)
-        // Force disable server VAD to prevent translation interruption
-        if (settings.transportType === 'webrtc' && updatedSettings.turnDetectionMode !== 'Disabled') {
-          updatedSettings.turnDetectionMode = 'Disabled';
-        }
-
-        return { openai: updatedSettings };
-      });
-
-      const service = ServiceFactory.getSettingsService();
-      const state = get();
-      // Save all updated settings including auto-changed turnDetectionMode
-      const settingsToSave = settings.transportType === 'webrtc' && state.openai.turnDetectionMode === 'Disabled'
-        ? { ...settings, turnDetectionMode: 'Disabled' }
-        : settings;
-      for (const [key, value] of Object.entries(settingsToSave)) {
-        await service.setSetting(`settings.openai.${key}`, value);
-      }
-    },
-
-    updateGemini: async (settings) => {
-      set((state) => ({gemini: {...state.gemini, ...settings}}));
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.gemini.${key}`, value);
-      }
-    },
-
-    updateOpenAICompatible: async (settings) => {
-      set((state) => {
-        const updatedSettings = { ...state.openaiCompatible, ...settings };
-
-        // WebRTC mode: Server automatically truncates audio on user speech (API design)
-        // Force disable server VAD to prevent translation interruption
-        if (settings.transportType === 'webrtc' && updatedSettings.turnDetectionMode !== 'Disabled') {
-          updatedSettings.turnDetectionMode = 'Disabled';
-        }
-
-        return { openaiCompatible: updatedSettings };
-      });
-
-      const service = ServiceFactory.getSettingsService();
-      const state = get();
-      // Save all updated settings including auto-changed turnDetectionMode
-      const settingsToSave = settings.transportType === 'webrtc' && state.openaiCompatible.turnDetectionMode === 'Disabled'
-        ? { ...settings, turnDetectionMode: 'Disabled' }
-        : settings;
-      for (const [key, value] of Object.entries(settingsToSave)) {
-        await service.setSetting(`settings.openaiCompatible.${key}`, value);
-      }
-    },
-
-    updatePalabraAI: async (settings) => {
-      set((state) => ({palabraai: {...state.palabraai, ...settings}}));
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.palabraai.${key}`, value);
-      }
-    },
-
-    updateOpenAITranslate: async (settings) => {
-      set((state) => {
-        const updatedSettings = { ...state.openaiTranslate, ...settings };
-        return { openaiTranslate: updatedSettings };
-      });
-
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.openaiTranslate.${key}`, value);
-      }
-    },
-
-    updateVolcengineST: async (settings) => {
-      set((state) => ({volcengineST: {...state.volcengineST, ...settings}}));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          await service.setSetting(`settings.volcengineST.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Volcengine ST settings:', error);
-      }
-    },
-
-    updateZoomAI: async (settings) => {
-      set((state) => ({ zoomAI: { ...state.zoomAI, ...settings } }));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          await service.setSetting(`settings.zoomAI.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Zoom AI settings:', error);
-      }
-    },
-
-    updateVolcengineAST2: async (settings) => {
-      set((state) => ({volcengineAST2: {...state.volcengineAST2, ...settings}}));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          await service.setSetting(`settings.volcengineAST2.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Volcengine AST2 settings:', error);
-      }
-    },
-
-    updateKizunaOpenaiTranslate: async (settings) => {
-      set((state) => {
-        const updatedSettings = { ...state.kizunaOpenaiTranslate, ...settings };
-        return { kizunaOpenaiTranslate: updatedSettings };
-      });
-
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        // The relay twin authenticates with a short-lived Better Auth session token,
-        // injected at validate/connect time — never the user-managed `apiKey`. Never
-        // persist `apiKey` to settings storage, even if one is set programmatically.
-        if (key === 'apiKey') continue;
-        await service.setSetting(`settings.kizunaOpenaiTranslate.${key}`, value);
-      }
-    },
-
-    updateKizunaVolcengineAst2: async (settings) => {
-      set((state) => ({kizunaVolcengineAst2: {...state.kizunaVolcengineAst2, ...settings}}));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          // The relay supplies the real Doubao credentials server-side; `appId` /
-          // `accessToken` are user-managed fields that must never be persisted for
-          // the relay twin (avoids storing stale or sensitive credential values).
-          if (key === 'appId' || key === 'accessToken') continue;
-          await service.setSetting(`settings.kizunaVolcengineAst2.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Kizuna Volcengine AST2 settings:', error);
-      }
-    },
-
-    updateLocalInference: async (settings) => {
-      set((state) => ({localInference: {...state.localInference, ...settings}}));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          await service.setSetting(`settings.localInference.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Local Inference settings:', error);
-      }
-    },
-
-    updateLocalNative: async (settings) => {
-      set((state) => ({localNative: {...state.localNative, ...settings}}));
-      try {
-        const service = ServiceFactory.getSettingsService();
-        for (const [key, value] of Object.entries(settings)) {
-          await service.setSetting(`settings.localNative.${key}`, value);
-        }
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting Local Native settings:', error);
-      }
-    },
+    updateOpenAI: (settings) => updateProviderSlice(set, 'openai', settings),
+    updateGemini: (settings) => updateProviderSlice(set, 'gemini', settings),
+    updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
+    updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
+    updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
+    updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
+    updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
+    updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
+    updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
+    updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
+    updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
+    updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
 
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
@@ -1298,20 +1219,13 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, volcengineST, zoomAI, volcengineAST2, localInference, localNative, openaiTranslate, kizunaOpenaiTranslate, kizunaVolcengineAst2] = await Promise.all([
-          loadProviderSettings('settings.openai', defaultOpenAISettings),
-          loadProviderSettings('settings.gemini', defaultGeminiSettings),
-          loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
-          loadProviderSettings('settings.palabraai', defaultPalabraAISettings),
-          loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
-          loadProviderSettings('settings.zoomAI', defaultZoomAISettings),
-          loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
-          loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
-          loadProviderSettings('settings.localNative', defaultLocalNativeSettings),
-          loadProviderSettings('settings.openaiTranslate', defaultOpenAITranslateSettings),
-          loadProviderSettings('settings.kizunaOpenaiTranslate', defaultKizunaOpenaiTranslateSettings),
-          loadProviderSettings('settings.kizunaVolcengineAst2', defaultKizunaVolcengineAst2Settings),
-        ]);
+        // One load per registry row; the sliceKey doubles as the storage prefix.
+        const loadedSlices = Object.fromEntries(await Promise.all(
+          (Object.keys(PROVIDER_SLICE_REGISTRY) as ProviderSliceKey[]).map(async (sliceKey) => [
+            sliceKey,
+            await loadProviderSettings(`settings.${sliceKey}`, PROVIDER_SLICE_REGISTRY[sliceKey].defaults),
+          ] as const),
+        )) as Partial<SettingsStore>;
 
         set({
           provider: validProvider,
@@ -1325,18 +1239,7 @@ const useSettingsStore = create<SettingsStore>()(
           keepReplayAudio,
           speakerDisplayMode,
           participantDisplayMode,
-          openai,
-          gemini,
-          openaiCompatible,
-          palabraai,
-          volcengineST,
-          zoomAI,
-          volcengineAST2,
-          localInference,
-          localNative,
-          openaiTranslate,
-          kizunaOpenaiTranslate,
-          kizunaVolcengineAst2,
+          ...loadedSlices,
           settingsLoaded: true,
         });
 
