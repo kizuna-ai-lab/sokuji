@@ -302,6 +302,25 @@ The registry invariant test (`descriptorRegistry.test.ts`) fails loudly on anyth
 - Virtual microphone injection for seamless integration
 - Separate content scripts for different platforms (zoom-content.js for Zoom)
 
+### Adding a Supported Meeting Platform
+1. Add one row to `extension/platforms.ts` (`PLATFORMS`): hostname, matchPattern
+   `https://<host>/*`, contentProfile (`standard` | `jitsi` | `zoom`), displayName,
+   shortName, icon (base64), and — if applicable — group/groupLabel, guidanceKey, pluginKey.
+2. If the platform needs a site plugin, add its plugin object to `site-plugins.js`
+   and register the key in that file's `PLUGIN_BY_KEY` **and** `HOST_TO_PLUGIN_KEY`
+   (this one map can't be generated — `site-plugins.js` runs in the page's MAIN
+   world and can't see the isolated-world registry global; a consistency test
+   parses the file and fails loudly if it drifts from the registry).
+3. Add `<guidanceKey>Title` / `<guidanceKey>Guidance` to `_locales/*/messages.json`.
+4. `manifest.json` stays hand-authored but is pinned by `extension/manifest.consistency.test.ts`
+   against `deriveContentScripts()` / `deriveSubtitleWebAccessibleMatches()` — update its
+   content_scripts and subtitle web_accessible_resources matches to match, or the test fails.
+
+popup, the subtitle overlay surface, background.js, and content.js's guidance lookup all
+derive from the registry automatically (via direct import for bundled surfaces, via the
+build-emitted `platforms.generated.js` for vanilla copied scripts). Only steps 2-4 above
+are still manual.
+
 ### Web Accessible Resources
 - Worklets for audio processing
 - Device emulator for virtual devices

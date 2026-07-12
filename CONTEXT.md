@@ -16,3 +16,7 @@ Domain terms used across Sokuji. Use these names exactly in code, docs, and desi
 
 - **Client** — an `IClient` adapter speaking one provider's realtime protocol (11 adapters behind the `IClient` seam). Constructed only by its provider's descriptor.
 - **ConversationItem** — the unified transcript unit (user/assistant message with text/transcript/audio) that every client reduces provider events into.
+
+## Extension domain
+
+- **Platform registry** — `extension/platforms.ts`: one row per supported meeting platform (hostname, match pattern, content-script profile, names, icon, optional group, guidance i18n key, site-plugin key). The single source of truth. Bundled consumers (popup, subtitle surface) import it; vanilla copied scripts (background.js, content.js) read a build-emitted `platforms.generated.js`. `site-plugins.js` is the one exception: it runs in the page's MAIN world (not the isolated world the generated global lives in), so it keeps its own inline `HOST_TO_PLUGIN_KEY` map, guarded by a consistency test that parses the file and diffs it against the registry. `manifest.json` stays hand-authored but is guarded by consistency tests. `app.slack.com` is the canonical Slack host (never `slack.com`).
