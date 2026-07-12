@@ -3275,6 +3275,38 @@ export function isAstCompatible(
     && entry.astLanguages.translate.includes(targetLang);
 }
 
+/**
+ * Whether a model's required device is available right now: a `webgpu` model
+ * needs WebGPU; everything else always qualifies. This is orthogonal to whether
+ * the model is downloaded — model *lists* (which offer not-yet-downloaded models
+ * for download) gate on this alone, while readiness code combines it with the
+ * download check via {@link modelUsable}.
+ */
+export function deviceReady(
+  entry: ModelManifestEntry | null | undefined,
+  webgpuAvailable: boolean,
+): boolean {
+  return !(entry?.requiredDevice === 'webgpu' && !webgpuAvailable);
+}
+
+/**
+ * Whether a model can run right now, independent of language: it must be
+ * downloaded (or a cloud model, which needs no download) AND its required
+ * device must be available. This is the "downloaded ∧ device-ready" check that
+ * readiness code (modelStore, ModelManagementSection) used to re-derive inline
+ * at ~18 sites. Language compatibility is orthogonal and stays with the per-type
+ * helpers (multilingual/languages.includes for ASR/TTS,
+ * isTranslationModelCompatible / isAstCompatible for translation).
+ */
+export function modelUsable(
+  entry: ModelManifestEntry | null | undefined,
+  ctx: { modelStatuses: Record<string, ModelStatus>; webgpuAvailable: boolean },
+): boolean {
+  if (!entry) return false;
+  const downloaded = entry.isCloudModel || ctx.modelStatuses[entry.id] === 'downloaded';
+  return Boolean(downloaded) && deviceReady(entry, ctx.webgpuAvailable);
+}
+
 /** Get TTS models that support a given language */
 export function getTtsModelsForLanguage(lang: string): ModelManifestEntry[] {
   return MODEL_MANIFEST.filter(m =>

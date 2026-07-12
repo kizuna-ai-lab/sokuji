@@ -19,6 +19,8 @@ import {
   getModelSizeMb,
   isTranslationModelCompatible,
   isAstCompatible,
+  modelUsable,
+  deviceReady,
   pickBestModel,
   selectVariant,
   getBaselineVariant,
@@ -330,48 +332,47 @@ export function ModelManagementSection({
   useEffect(() => {
     if (!initialized) return;
     const updates: Partial<LocalInferenceSettings> = {};
+    const ctx = { modelStatuses: statuses, webgpuAvailable };
 
-    // ASR: must support sourceLanguage and be downloaded (includes streaming models)
+    // ASR: must support sourceLanguage and be usable (includes streaming models)
     const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
     const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
-    const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && statuses[asrModel] === 'downloaded';
+    const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && modelUsable(currentAsr, ctx);
     if (!asrOk) {
       const match = pickBestModel(allAsrModels.filter(m =>
-        (m.multilingual || m.languages.includes(sourceLanguage)) && statuses[m.id] === 'downloaded'
+        (m.multilingual || m.languages.includes(sourceLanguage)) && modelUsable(m, ctx)
       ));
       const newId = match?.id || '';
       if (newId !== asrModel) updates.asrModel = newId;
     }
 
-    // Translation: must be compatible with source→target pair, downloaded, and device-ready
+    // Translation: must be compatible with source→target pair and usable
     // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
     const asrEntryForAst = translationModel && translationModel === asrModel
       ? getManifestEntry(translationModel) : null;
     const isAstValid = asrEntryForAst
       && isAstCompatible(asrEntryForAst, sourceLanguage, targetLanguage)
-      && statuses[translationModel] === 'downloaded';
+      && modelUsable(asrEntryForAst, ctx);
 
     const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
     const transOk = isAstValid || (currentTrans
       && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
-      && (currentTrans.isCloudModel || statuses[translationModel] === 'downloaded')
-      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
+      && modelUsable(currentTrans, ctx));
     if (!transOk) {
       const match = pickBestModel(getManifestByType('translation').filter(m =>
         isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-        && (m.isCloudModel || statuses[m.id] === 'downloaded')
-        && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        && modelUsable(m, ctx)
       ));
       const newId = match?.id || '';
       if (newId !== translationModel) updates.translationModel = newId;
     }
 
-    // TTS: must support targetLanguage and be downloaded (or be a cloud model)
+    // TTS: must support targetLanguage and be usable (or be a cloud model)
     const currentTts = ttsModel ? getManifestByType('tts').find(m => m.id === ttsModel) : null;
-    const ttsOk = currentTts && (currentTts.multilingual || currentTts.languages.includes(targetLanguage)) && (currentTts.isCloudModel || statuses[ttsModel] === 'downloaded');
+    const ttsOk = currentTts && (currentTts.multilingual || currentTts.languages.includes(targetLanguage)) && modelUsable(currentTts, ctx);
     if (!ttsOk) {
       const match = pickBestModel(getManifestByType('tts').filter(m =>
-        (m.multilingual || m.languages.includes(targetLanguage)) && (m.isCloudModel || statuses[m.id] === 'downloaded')
+        (m.multilingual || m.languages.includes(targetLanguage)) && modelUsable(m, ctx)
       ));
       const newId = match?.id || '';
       if (newId !== ttsModel) updates.ttsModel = newId;
@@ -417,7 +418,7 @@ export function ModelManagementSection({
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
       isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+      && deviceReady(m, webgpuAvailable)
     ),
     [translationModels, sourceLanguage, targetLanguage, webgpuAvailable],
   );
@@ -425,7 +426,7 @@ export function ModelManagementSection({
   const incompatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
       !isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-      || (m.requiredDevice === 'webgpu' && !webgpuAvailable)
+      || !deviceReady(m, webgpuAvailable)
     ),
     [translationModels, sourceLanguage, targetLanguage, webgpuAvailable],
   );
@@ -438,14 +439,14 @@ export function ModelManagementSection({
   const compatibleAsrModels = useMemo(
     () => asrModels.filter(m =>
       (m.multilingual || m.languages.includes(sourceLanguage))
-      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+      && deviceReady(m, webgpuAvailable)
     ),
     [asrModels, sourceLanguage, webgpuAvailable],
   );
   const incompatibleAsrModels = useMemo(
     () => asrModels.filter(m =>
       (!m.multilingual && !m.languages.includes(sourceLanguage))
-      || (m.requiredDevice === 'webgpu' && !webgpuAvailable)
+      || !deviceReady(m, webgpuAvailable)
     ),
     [asrModels, sourceLanguage, webgpuAvailable],
   );
@@ -734,7 +735,11 @@ export function ModelManagementSection({
                 isSelected={asrModel === entry.id}
                 isCompatible={false}
                 showRadio={true}
-                compatibilityHint={t('settings.langMismatch', 'language mismatch')}
+                compatibilityHint={
+                  !deviceReady(entry, webgpuAvailable)
+                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
+                    : t('settings.langMismatch', 'language mismatch')
+                }
                 onSelect={() => {
                   updateLocalInference({ asrModel: entry.id });
                   useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);
@@ -799,7 +804,7 @@ export function ModelManagementSection({
                 isCompatible={false}
                 showRadio={true}
                 compatibilityHint={
-                  entry.requiredDevice === 'webgpu' && !webgpuAvailable
+                  !deviceReady(entry, webgpuAvailable)
                     ? t('settings.webgpuNotSupported', 'Not available in current environment')
                     : t('settings.langMismatch', 'language mismatch')
                 }

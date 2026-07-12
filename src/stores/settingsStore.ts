@@ -941,62 +941,25 @@ const useSettingsStore = create<SettingsStore>()(
       if (provider === Provider.LOCAL_INFERENCE) {
         const localSettings = get().localInference;
         const { useModelStore } = await import('./modelStore');
-        const modelState = useModelStore.getState();
 
-        // Initialize model store if not yet done (scans IndexedDB for downloaded models)
-        if (!modelState.initialized) {
-          await modelState.initialize();
-        }
-
-        // Auto-correct stale model selections (e.g. TTS for wrong language after lang change).
-        // Without this, isProviderReady would reject a valid setup because the stored model
-        // IDs haven't been updated to match the current language pair.
-        const corrections = modelState.autoSelectModels(
-          localSettings.sourceLanguage,
-          localSettings.targetLanguage,
-          localSettings.asrModel,
-          localSettings.translationModel,
-          localSettings.ttsModel,
-        );
+        // modelStore owns readiness: it initializes, auto-corrects stale
+        // selections, and judges isProviderReady against the corrected IDs.
+        const { ready, corrections } = await useModelStore.getState().ensureSelectionReady(localSettings);
         if (corrections) {
           console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
           get().updateLocalInference(corrections);
-          // Re-read settings after correction
-          const updated = get().localInference;
-          const ready = modelState.isProviderReady(
-            updated.sourceLanguage,
-            updated.targetLanguage,
-            updated.asrModel || undefined,
-            updated.translationModel || undefined,
-            updated.ttsModel || undefined,
-          );
-          set({
-            isApiKeyValid: ready,
-            availableModels: ready
-              ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
-              : [],
-            validationMessage: ready ? '' : i18n.t('settings.localInferenceModelsRequired'),
-            isValidating: false,
-          });
-          return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
         }
 
-        const ready = modelState.isProviderReady(
-          localSettings.sourceLanguage,
-          localSettings.targetLanguage,
-          localSettings.asrModel || undefined,
-          localSettings.translationModel || undefined,
-          localSettings.ttsModel || undefined,
-        );
+        const message = ready ? '' : i18n.t('settings.localInferenceModelsRequired');
         set({
           isApiKeyValid: ready,
           availableModels: ready
             ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
             : [],
-          validationMessage: ready ? '' : i18n.t('settings.localInferenceModelsRequired'),
+          validationMessage: message,
           isValidating: false,
         });
-        return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
+        return { valid: ready, message, validating: false };
       }
 
       // For KizunaAI, ensure we have an API key first

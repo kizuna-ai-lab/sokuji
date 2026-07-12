@@ -17,6 +17,7 @@ import {
   getTtsModelsForLanguage,
   isTranslationModelCompatible,
   isAstCompatible,
+  modelUsable,
   pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
@@ -40,6 +41,22 @@ export interface ParticipantModelStatus {
   translationAvailable: boolean;
   translationModelId: string | null;
 }
+
+/**
+ * The subset of LOCAL_INFERENCE settings that determine session readiness:
+ * the language pair plus the three selected model IDs. Structurally matches
+ * `LocalInferenceSettings` so the settings slice can be passed directly.
+ */
+export interface LocalSelection {
+  sourceLanguage: string;
+  targetLanguage: string;
+  asrModel: string;
+  translationModel: string;
+  ttsModel: string;
+}
+
+/** Result of {@link ModelStoreState.autoSelectModels}: corrected model IDs, or null. */
+export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
 
 interface ModelStoreState {
   /** Status of each model by ID */
@@ -103,7 +120,15 @@ interface ModelStoreState {
   autoSelectModels: (
     sourceLang: string, targetLang: string,
     currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
-  ) => { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
+  ) => ModelCorrections;
+  /**
+   * Full LOCAL_INFERENCE session-readiness check for a selection. Initializes
+   * the store if needed, auto-corrects stale selections, and reports readiness
+   * against the corrected selection — WITHOUT persisting. The caller applies the
+   * returned `corrections` to its own settings slice. This is the single
+   * readiness entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
+   */
+  ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
   /** Save model selection for a language pair */
   rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
   /** Recall saved model selection — per-field degradation if models deleted */
@@ -295,19 +320,17 @@ export const useModelStore = create<ModelStoreState>()(
 
     isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
       const { modelStatuses, webgpuAvailable } = get();
+      const ctx = { modelStatuses, webgpuAvailable };
 
-      // 1. ASR: if a specific model is selected, it must be downloaded;
-      //    otherwise at least 1 ASR model for sourceLang must be downloaded
+      // 1. ASR: if a specific model is selected, it must be usable (downloaded +
+      //    device-ready) and support sourceLang; otherwise at least 1 ASR model
+      //    for sourceLang must be usable.
       if (selectedAsrModel) {
-        if (modelStatuses[selectedAsrModel] !== 'downloaded') return false;
         const asrEntry = getManifestEntry(selectedAsrModel);
-        if (asrEntry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (!modelUsable(asrEntry, ctx)) return false;
         if (asrEntry && !asrEntry.multilingual && !asrEntry.languages.includes(sourceLang)) return false;
       } else {
-        const asrModels = getAsrModelsForLanguage(sourceLang);
-        const hasAsr = asrModels.some(
-          model => modelStatuses[model.id] === 'downloaded'
-        );
+        const hasAsr = getAsrModelsForLanguage(sourceLang).some(m => modelUsable(m, ctx));
         if (!hasAsr) return false;
       }
 
@@ -317,31 +340,24 @@ export const useModelStore = create<ModelStoreState>()(
         if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
       } else if (selectedTranslationModel) {
         const entry = getManifestEntry(selectedTranslationModel);
-        if (!entry?.isCloudModel && modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
-        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (!modelUsable(entry, ctx)) return false;
         if (entry && !isTranslationModelCompatible(entry, sourceLang, targetLang)) return false;
       } else {
         const translationEntry = getTranslationModel(sourceLang, targetLang);
-        if (!translationEntry) return false;
-        if (!translationEntry.isCloudModel && modelStatuses[translationEntry.id] !== 'downloaded') return false;
-        if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (!modelUsable(translationEntry, ctx)) return false;
       }
 
-      // 3. TTS: if a specific model is selected, it must be downloaded (unless cloud);
-      //    otherwise at least 1 TTS model for targetLang must be downloaded
+      // 3. TTS: if a specific model is selected, it must be usable and support
+      //    targetLang; otherwise at least 1 TTS model for targetLang must be usable.
       if (selectedTtsModel) {
         const ttsEntry = getManifestEntry(selectedTtsModel);
-        if (ttsEntry?.isCloudModel) {
-          // Cloud models (e.g. Edge TTS) don't need download — always ready
-        } else {
-          if (modelStatuses[selectedTtsModel] !== 'downloaded') return false;
-          if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
-        }
+        if (!modelUsable(ttsEntry, ctx)) return false;
+        // Language compatibility is orthogonal to cloud/local (a cloud model
+        // still can't produce a language it doesn't support). The one current
+        // cloud TTS is multilingual, so this is behavior-identical today.
+        if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
       } else {
-        const ttsModels = getTtsModelsForLanguage(targetLang);
-        const hasTts = ttsModels.some(
-          model => model.isCloudModel || modelStatuses[model.id] === 'downloaded'
-        );
+        const hasTts = getTtsModelsForLanguage(targetLang).some(m => modelUsable(m, ctx));
         if (!hasTts) return false;
       }
 
@@ -350,6 +366,7 @@ export const useModelStore = create<ModelStoreState>()(
 
     getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
       const { modelStatuses, webgpuAvailable } = get();
+      const ctx = { modelStatuses, webgpuAvailable };
 
       // Participant reverses direction: participant source = user's target
       const participantSourceLang = targetLang;
@@ -369,8 +386,7 @@ export const useModelStore = create<ModelStoreState>()(
         const recalledAsr = allAsrModels.find(m => m.id === recalled.asrModel);
         if (recalledAsr
           && (recalledAsr.multilingual || recalledAsr.languages.includes(participantSourceLang))
-          && modelStatuses[recalled.asrModel] === 'downloaded'
-          && !(recalledAsr.requiredDevice === 'webgpu' && !webgpuAvailable)) {
+          && modelUsable(recalledAsr, ctx)) {
           asrModelId = recalled.asrModel;
           asrFallback = recalled.asrModel !== currentAsrModelId;
         }
@@ -381,16 +397,14 @@ export const useModelStore = create<ModelStoreState>()(
         const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
         const currentAsrOk = currentAsr
           && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
-          && modelStatuses[currentAsrModelId] === 'downloaded'
-          && !(currentAsr.requiredDevice === 'webgpu' && !webgpuAvailable);
+          && modelUsable(currentAsr, ctx);
 
         if (currentAsrOk) {
           asrModelId = currentAsrModelId;
         } else {
           const match = allAsrModels.find(m =>
             (m.multilingual || m.languages.includes(participantSourceLang))
-            && modelStatuses[m.id] === 'downloaded'
-            && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+            && modelUsable(m, ctx)
           );
           if (match) {
             asrModelId = match.id;
@@ -407,9 +421,7 @@ export const useModelStore = create<ModelStoreState>()(
       const isValidTranslation = (modelId: string, forAsrId: string | null) => {
         if (!modelId) return false;
         const entry = getManifestEntry(modelId);
-        if (!entry) return false;
-        if (!entry.isCloudModel && modelStatuses[modelId] !== 'downloaded') return false;
-        if (entry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (!modelUsable(entry, ctx)) return false;
         // AST: translation model === ASR model with AST support
         if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
         // Standard translation model
@@ -430,8 +442,7 @@ export const useModelStore = create<ModelStoreState>()(
       if (!translationModelId) {
         const match = getManifestByType('translation').find(m =>
           isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
-          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+          && modelUsable(m, ctx)
         );
         if (match) {
           translationModelId = match.id;
@@ -450,6 +461,7 @@ export const useModelStore = create<ModelStoreState>()(
 
     autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
       const { modelStatuses, webgpuAvailable } = get();
+      const ctx = { modelStatuses, webgpuAvailable };
       const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
 
       // Save original input to detect recall overrides later
@@ -476,10 +488,10 @@ export const useModelStore = create<ModelStoreState>()(
       const currentAsr = currentAsrModel ? allAsrModels.find(m => m.id === currentAsrModel) : null;
       const asrOk = currentAsr
         && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
-        && modelStatuses[currentAsrModel] === 'downloaded';
+        && modelUsable(currentAsr, ctx);
       if (!asrOk) {
         const match = pickBestModel(allAsrModels.filter(m =>
-          (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
+          (m.multilingual || m.languages.includes(sourceLang)) && modelUsable(m, ctx)
         ));
         const newId = match?.id || '';
         if (newId !== currentAsrModel) updates.asrModel = newId;
@@ -491,18 +503,16 @@ export const useModelStore = create<ModelStoreState>()(
         ? getManifestEntry(currentTranslationModel) : null;
       const isAstValid = asrEntryForAst
         && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
-        && modelStatuses[currentTranslationModel] === 'downloaded';
+        && modelUsable(asrEntryForAst, ctx);
 
       const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
       const transOk = isAstValid || (currentTrans
         && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
-        && (currentTrans.isCloudModel || modelStatuses[currentTranslationModel] === 'downloaded')
-        && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
+        && modelUsable(currentTrans, ctx));
       if (!transOk) {
         const match = pickBestModel(getManifestByType('translation').filter(m =>
           isTranslationModelCompatible(m, sourceLang, targetLang)
-          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+          && modelUsable(m, ctx)
         ));
         const newId = match?.id || '';
         if (newId !== currentTranslationModel) updates.translationModel = newId;
@@ -512,11 +522,11 @@ export const useModelStore = create<ModelStoreState>()(
       const currentTts = currentTtsModel ? getManifestByType('tts').find(m => m.id === currentTtsModel) : null;
       const ttsOk = currentTts
         && (currentTts.multilingual || currentTts.languages.includes(targetLang))
-        && (currentTts.isCloudModel || modelStatuses[currentTtsModel] === 'downloaded');
+        && modelUsable(currentTts, ctx);
       if (!ttsOk) {
         const match = pickBestModel(getManifestByType('tts').filter(m =>
           (m.multilingual || m.languages.includes(targetLang))
-          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
+          && modelUsable(m, ctx)
         ));
         const newId = match?.id || '';
         if (newId !== currentTtsModel) updates.ttsModel = newId;
@@ -550,24 +560,45 @@ export const useModelStore = create<ModelStoreState>()(
 
     recallModels: (src, tgt) => {
       const { modelPreferences, modelStatuses, webgpuAvailable } = get();
+      const ctx = { modelStatuses, webgpuAvailable };
       const key = `${src}→${tgt}`;
       const pref = modelPreferences[key];
       if (!pref) return null;
 
       // Check downloaded + device compatibility (cloud models skip the download check)
-      const isUsable = (id: string) => {
-        if (!id) return false;
-        const entry = getManifestEntry(id);
-        if (!entry?.isCloudModel && modelStatuses[id] !== 'downloaded') return false;
-        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
-        return true;
-      };
+      const isUsable = (id: string) => Boolean(id) && modelUsable(getManifestEntry(id), ctx);
 
       return {
         asrModel: isUsable(pref.asrModel) ? pref.asrModel : '',
         translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
         ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
       };
+    },
+
+    ensureSelectionReady: async (selection) => {
+      // Scan IndexedDB for downloaded models before judging readiness.
+      if (!get().initialized) {
+        await get().initialize();
+      }
+      // Auto-correct stale selections (e.g. a TTS model for the wrong language
+      // after a language change); readiness is judged against the corrected
+      // selection so a valid setup isn't rejected for a stale stored ID.
+      const corrections = get().autoSelectModels(
+        selection.sourceLanguage,
+        selection.targetLanguage,
+        selection.asrModel,
+        selection.translationModel,
+        selection.ttsModel,
+      );
+      const effective = corrections ? { ...selection, ...corrections } : selection;
+      const ready = get().isProviderReady(
+        effective.sourceLanguage,
+        effective.targetLanguage,
+        effective.asrModel || undefined,
+        effective.translationModel || undefined,
+        effective.ttsModel || undefined,
+      );
+      return { ready, corrections };
     },
   })),
 );
