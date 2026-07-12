@@ -1,0 +1,40 @@
+import { describe, it, expect } from 'vitest';
+import { PLATFORMS, PLATFORM_HOSTNAMES, platformsByProfile } from './platforms';
+
+describe('platform registry', () => {
+  it('has the 11 canonical platforms with unique hostnames', () => {
+    expect(PLATFORMS).toHaveLength(11);
+    expect(new Set(PLATFORM_HOSTNAMES).size).toBe(11);
+  });
+
+  it('every match pattern is https://<hostname>/*', () => {
+    for (const p of PLATFORMS) {
+      expect(p.matchPattern, p.hostname).toBe(`https://${p.hostname}/*`);
+    }
+  });
+
+  it('every entry has a non-empty display name and short name', () => {
+    for (const p of PLATFORMS) {
+      expect(p.displayName, p.hostname).toBeTruthy();
+      expect(p.shortName, p.hostname).toBeTruthy();
+    }
+  });
+
+  it('grouped entries share a groupLabel and a consistent group key', () => {
+    const grouped = PLATFORMS.filter(p => p.group);
+    for (const p of grouped) expect(p.groupLabel, p.hostname).toBeTruthy();
+    // teams is the only group today: 3 members
+    expect(grouped.filter(p => p.group === 'teams')).toHaveLength(3);
+  });
+
+  it('uses app.slack.com (not slack.com) as the canonical Slack host', () => {
+    expect(PLATFORM_HOSTNAMES).toContain('app.slack.com');
+    expect(PLATFORM_HOSTNAMES).not.toContain('slack.com');
+  });
+
+  it('partitions cleanly by content profile', () => {
+    expect(platformsByProfile('zoom').map(p => p.hostname)).toEqual(['app.zoom.us']);
+    expect(platformsByProfile('jitsi').map(p => p.hostname)).toEqual(['meet.jit.si']);
+    expect(platformsByProfile('standard')).toHaveLength(9);
+  });
+});

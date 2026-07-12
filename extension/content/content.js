@@ -82,33 +82,16 @@ function injectVirtualMicrophoneScript() {
 
 // Inject site plugins script (includes plugin initialization)
 function injectSitePluginsScript() {
-  // Determine which messages to use based on current site
+  // Determine which messages to use based on current site. The guidance key is
+  // looked up from the generated platform table (globalThis.SOKUJI_PLATFORMS,
+  // set by platforms.generated.js which runs before this content script in the
+  // same isolated world). No guidanceKey (or unknown host) falls back to the
+  // default message — identical to the previous hand-written host chain.
   const hostname = window.location.hostname;
-  let title, guidance;
-  
-  if (hostname === 'app.gather.town' || hostname === 'app.v2.gather.town') {
-    title = chrome.i18n.getMessage('gatherTownTitle');
-    guidance = chrome.i18n.getMessage('gatherTownGuidance');
-  } else if (hostname === 'whereby.com') {
-    title = chrome.i18n.getMessage('wherebyTitle');
-    guidance = chrome.i18n.getMessage('wherebyGuidance');
-  } else if (hostname === 'discord.com') {
-    title = chrome.i18n.getMessage('discordTitle');
-    guidance = chrome.i18n.getMessage('discordGuidance');
-  } else if (hostname === 'app.slack.com') {
-    title = chrome.i18n.getMessage('slackTitle');
-    guidance = chrome.i18n.getMessage('slackGuidance');
-  } else if (hostname === 'teams.live.com' || hostname === 'teams.microsoft.com' || hostname === 'teams.cloud.microsoft') {
-    title = chrome.i18n.getMessage('teamsTitle');
-    guidance = chrome.i18n.getMessage('teamsGuidance');
-  } else if (hostname === 'meet.jit.si') {
-    title = chrome.i18n.getMessage('jitsiTitle');
-    guidance = chrome.i18n.getMessage('jitsiGuidance');
-  } else {
-    // Default fallback
-    title = chrome.i18n.getMessage('defaultTitle');
-    guidance = chrome.i18n.getMessage('defaultGuidance');
-  }
+  const platformEntry = (globalThis.SOKUJI_PLATFORMS || []).find(p => p.hostname === hostname);
+  const guidanceKey = platformEntry && platformEntry.guidanceKey;
+  const title = chrome.i18n.getMessage(guidanceKey ? `${guidanceKey}Title` : 'defaultTitle');
+  const guidance = chrome.i18n.getMessage(guidanceKey ? `${guidanceKey}Guidance` : 'defaultGuidance');
   
   // Get unified i18n messages for plugins
   const i18nMessages = {
