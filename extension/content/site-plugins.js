@@ -463,27 +463,45 @@ const jitsiPlugin = {
   }
 };
 
-// Site plugins registry - maps hostname to plugin
-const sitePluginsRegistry = {
-  'app.gather.town': gatherTownPlugin,
-  'app.v2.gather.town': gatherTownPlugin,
-  'whereby.com': wherebyPlugin,
-  'discord.com': discordPlugin,
-  'app.slack.com': slackPlugin,
-  'teams.live.com': teamsPlugin,
-  'teams.microsoft.com': teamsPlugin,
-  'teams.cloud.microsoft': teamsPlugin,
-  'meet.jit.si': jitsiPlugin
-  // Add more site plugins here as needed
-  // 'meet.google.com': googleMeetPlugin,
-  // etc.
+// Maps a plugin key (from extension/platforms.ts pluginKey) to its plugin
+// object. The plugin objects above are the source of truth for behavior; only
+// the hostname -> pluginKey routing is generated from the platform registry.
+const PLUGIN_BY_KEY = {
+  gatherTown: gatherTownPlugin,
+  whereby: wherebyPlugin,
+  discord: discordPlugin,
+  slack: slackPlugin,
+  teams: teamsPlugin,
+  jitsi: jitsiPlugin
 };
+
+// Hostname -> pluginKey routing, mirrored inline from extension/platforms.ts.
+// NOTE: this script is injected into the PAGE's main world via a <script> tag
+// (see content.js injectSitePluginsScript), so it CANNOT read the content
+// script's globalThis.SOKUJI_PLATFORMS (isolated world). This small map is the
+// brief-sanctioned fallback; keep it in sync with the registry's pluginKey.
+const HOST_TO_PLUGIN_KEY = {
+  'app.gather.town': 'gatherTown',
+  'app.v2.gather.town': 'gatherTown',
+  'whereby.com': 'whereby',
+  'discord.com': 'discord',
+  'app.slack.com': 'slack',
+  'teams.live.com': 'teams',
+  'teams.microsoft.com': 'teams',
+  'teams.cloud.microsoft': 'teams',
+  'meet.jit.si': 'jitsi'
+};
+
+function pluginForHost(hostname) {
+  const key = HOST_TO_PLUGIN_KEY[hostname];
+  return key ? PLUGIN_BY_KEY[key] : undefined;
+}
 
 // Load only the plugin for current site
 function loadCurrentSitePlugin() {
   const currentHostname = window.location.hostname;
-  const plugin = sitePluginsRegistry[currentHostname];
-  
+  const plugin = pluginForHost(currentHostname);
+
   if (plugin) {
     window.sokujiSitePlugin = plugin;
     console.info('[Sokuji] [Plugins] Loaded plugin for current site:', plugin.name, '(' + currentHostname + ')');

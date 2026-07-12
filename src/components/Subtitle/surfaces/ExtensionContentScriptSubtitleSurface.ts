@@ -1,19 +1,11 @@
 import type { SubtitleSurface } from './SubtitleSurface';
 import type { SubtitleWireMessage, SubtitleControlMessage } from '../../../types/subtitleWire';
 import useSettingsStore from '../../../stores/settingsStore';
+import { PLATFORM_HOSTNAMES } from '../../../../extension/platforms';
 
 declare const chrome: any;
 
-const SUPPORTED_HOSTS = new Set([
-  'meet.google.com',
-  'teams.live.com', 'teams.microsoft.com', 'teams.cloud.microsoft',
-  'app.zoom.us',
-  'app.gather.town', 'app.v2.gather.town',
-  'whereby.com',
-  'discord.com',
-  'app.slack.com',
-  'meet.jit.si',
-]);
+const SUPPORTED_HOSTS = new Set<string>(PLATFORM_HOSTNAMES);
 
 function isSupportedUrl(url: string | undefined): boolean {
   if (!url) return false;

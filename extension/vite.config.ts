@@ -5,6 +5,27 @@ import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
 import { workerManualChunks } from '../vite.worker-chunks'
+import { serializePlatformsForVanilla } from './platforms'
+
+/**
+ * Emits `platforms.generated.js` into the build output root (next to the
+ * copied background.js / content.js) so the vanilla scripts consume a single
+ * generated platform table derived from extension/platforms.ts. background.js
+ * imports it as a module (module SW), and content.js reads the global it sets
+ * as a same-world content-script loaded ahead of content.js.
+ */
+function emitGeneratedPlatforms(): Plugin {
+  return {
+    name: 'sokuji-emit-platforms',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'platforms.generated.js',
+        source: serializePlatformsForVanilla(),
+      })
+    },
+  }
+}
 
 /**
  * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
@@ -53,6 +74,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       dropDuplicateOrtWasm(),
+      emitGeneratedPlatforms(),
       viteStaticCopy({
         targets: [
           // Content scripts and background (vanilla JS, no bundling needed)
