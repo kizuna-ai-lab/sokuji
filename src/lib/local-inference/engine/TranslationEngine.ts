@@ -8,6 +8,8 @@
 import { getTranslationModel, getManifestEntry, getManifestByType } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
 import { isExtension } from '../../../utils/environment';
+import { WorkerSession } from './WorkerSession';
+import { RequestRegistry } from './RequestRegistry';
 
 export interface TranslationResult {
   sourceText: string;
@@ -19,15 +21,11 @@ export interface TranslationResult {
 type ErrorCallback = (error: string) => void;
 
 export class TranslationEngine {
-  private worker: Worker | null = null;
-  private isReady = false;
+  private session: WorkerSession | null = null;
   private currentModelId: string | null = null;
   private sourceLang = '';
   private targetLang = '';
-  private pendingRequests = new Map<string, {
-    resolve: (result: TranslationResult) => void;
-    reject: (error: Error) => void;
-  }>();
+  private readonly reqs = new RequestRegistry<TranslationResult>();
   private requestCounter = 0;
   private bingDnrActive = false;
 
@@ -57,13 +55,13 @@ export class TranslationEngine {
     const modelCacheKey = entry.hfModelId ?? entry.id;
 
     // If already loaded with same model and same language pair, skip
-    if (this.isReady && this.currentModelId === modelCacheKey
+    if (this.session?.ready && this.currentModelId === modelCacheKey
       && this.sourceLang === sourceLang && this.targetLang === targetLang) {
       return { loadTimeMs: 0, device: entry.isCloudModel ? 'cloud' : (entry.requiredDevice || 'wasm') };
     }
 
     // Dispose previous worker if switching models
-    if (this.worker) {
+    if (this.session) {
       this.dispose();
     }
 
@@ -96,106 +94,91 @@ export class TranslationEngine {
       this.bingDnrActive = true;
     }
 
-    return new Promise((resolve, reject) => {
+    const makeWorker = (): Worker => {
       switch (workerType) {
         case 'bing':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/bing-translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
         case 'qwen35':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/qwen35-translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
         case 'qwen':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/qwen-translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
         case 'translategemma':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/translategemma-translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
         case 'hy-mt':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/hy-mt-translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
         default: // opus-mt
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/translation.worker.ts', import.meta.url),
             { type: 'module' }
           );
-          break;
       }
+    };
 
-      this.worker.onmessage = (event) => {
-        const msg = event.data;
-        switch (msg.type) {
-          case 'ready':
-            this.isReady = true;
-            this.currentModelId = modelCacheKey;
-            // Revoke blob URLs after worker has loaded (frees memory; no-op for cloud models)
-            manager.revokeBlobUrls(fileUrls);
-            resolve({ loadTimeMs: msg.loadTimeMs, device: msg.device || 'wasm' });
-            break;
-
-          case 'result': {
-            const pending = this.pendingRequests.get(msg.id);
-            if (pending) {
-              this.pendingRequests.delete(msg.id);
-              pending.resolve({
-                sourceText: msg.sourceText,
-                translatedText: msg.translatedText,
-                inferenceTimeMs: msg.inferenceTimeMs,
-                systemPrompt: msg.systemPrompt,
-              });
-            }
-            break;
-          }
-
-          case 'error': {
-            if (msg.id) {
-              const pending = this.pendingRequests.get(msg.id);
-              if (pending) {
-                this.pendingRequests.delete(msg.id);
-                pending.reject(new Error(msg.error));
-              }
-            } else {
-              this.onError?.(msg.error);
-              if (!this.isReady) {
-                manager.revokeBlobUrls(fileUrls);
-                reject(new Error(msg.error));
-              }
-            }
-            break;
-          }
-
-          case 'disposed':
-            break;
-        }
-      };
-
-      this.worker.onerror = (error) => {
-        const message = error.message || 'Worker error';
-        this.onError?.(message);
-        if (!this.isReady) {
-          manager.revokeBlobUrls(fileUrls);
-          reject(new Error(message));
-        }
-      };
-
-      // Send init message with blob URLs + language info + dtype from variant.
-      // hfModelId / fileUrls / dtype are empty/undefined for cloud models (e.g. bing); those workers only read sourceLang/targetLang.
-      this.worker.postMessage({ type: 'init', hfModelId: entry.hfModelId, fileUrls, sourceLang, targetLang, dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
+    const session = new WorkerSession({
+      makeWorker,
+      revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
+      onFatalError: (message) => this.onError?.(message),
+      onMessage: (msg) => this.route(msg),
     });
+    this.session = session;
+
+    // Send init message with blob URLs + language info + dtype from variant.
+    // hfModelId / fileUrls / dtype are empty/undefined for cloud models (e.g. bing); those workers only read sourceLang/targetLang.
+    const ready = await session.start({
+      type: 'init',
+      hfModelId: entry.hfModelId,
+      fileUrls,
+      sourceLang,
+      targetLang,
+      dtype,
+      ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+    });
+    this.currentModelId = modelCacheKey;
+    return { loadTimeMs: ready.loadTimeMs, device: ready.device || 'wasm' };
+  }
+
+  /**
+   * Route non-handshake worker messages to the appropriate handler.
+   * The init handshake ('ready' / pre-ready 'error') is handled by WorkerSession.
+   */
+  private route(msg: any): void {
+    switch (msg.type) {
+      case 'result':
+        this.reqs.resolve(msg.id, {
+          sourceText: msg.sourceText,
+          translatedText: msg.translatedText,
+          inferenceTimeMs: msg.inferenceTimeMs,
+          systemPrompt: msg.systemPrompt,
+        });
+        break;
+
+      case 'error':
+        if (msg.id) {
+          this.reqs.reject(msg.id, new Error(msg.error));
+        } else {
+          // Post-ready fatal error; pre-ready fatal error is handled by WorkerSession.
+          this.onError?.(msg.error);
+        }
+        break;
+
+      case 'disposed':
+        break;
+    }
   }
 
   /**
@@ -206,24 +189,22 @@ export class TranslationEngine {
    * @param wrapTranscript    If true, wrap user message in <transcript> tags. Ignored by non-LLM workers.
    */
   async translate(text: string, systemPrompt: string, wrapTranscript: boolean): Promise<TranslationResult> {
-    if (!this.worker || !this.isReady) {
+    if (!this.session?.ready) {
       throw new Error('TranslationEngine not initialized. Call init() first.');
     }
 
     const id = `tr_${++this.requestCounter}`;
-
-    return new Promise((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject });
-      this.worker!.postMessage({
-        type: 'translate',
-        id,
-        text,
-        sourceLang: this.sourceLang,
-        targetLang: this.targetLang,
-        systemPrompt,
-        wrapTranscript,
-      });
+    const p = this.reqs.create(id);
+    this.session!.post({
+      type: 'translate',
+      id,
+      text,
+      sourceLang: this.sourceLang,
+      targetLang: this.targetLang,
+      systemPrompt,
+      wrapTranscript,
     });
+    return p;
   }
 
   /**
@@ -249,7 +230,7 @@ export class TranslationEngine {
   }
 
   get ready(): boolean {
-    return this.isReady;
+    return this.session?.ready ?? false;
   }
 
   get modelId(): string | null {
@@ -257,25 +238,18 @@ export class TranslationEngine {
   }
 
   dispose(): void {
-    if (this.worker) {
-      this.worker.postMessage({ type: 'dispose' });
-      this.worker.terminate();
-      this.worker = null;
-    }
+    this.session?.dispose();
+    this.session = null;
     if (this.bingDnrActive) {
       setBingTranslatorDNR(false);
       this.bingDnrActive = false;
     }
-    this.isReady = false;
     this.currentModelId = null;
     this.sourceLang = '';
     this.targetLang = '';
 
     // Reject all pending requests
-    for (const [, pending] of this.pendingRequests) {
-      pending.reject(new Error('TranslationEngine disposed'));
-    }
-    this.pendingRequests.clear();
+    this.reqs.rejectAll(new Error('TranslationEngine disposed'));
   }
 }
 

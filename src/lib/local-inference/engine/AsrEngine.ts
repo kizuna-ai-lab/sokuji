@@ -18,6 +18,7 @@ import {
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { WorkerSession } from './WorkerSession';
 
 export interface AsrResult {
   text: string;
@@ -32,8 +33,7 @@ type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
 
 export class AsrEngine {
-  private worker: Worker | null = null;
-  private isReady = false;
+  private session: WorkerSession | null = null;
   private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
@@ -57,12 +57,12 @@ export class AsrEngine {
     }
 
     // If already loaded with same model, skip
-    if (this.isReady && this.currentModel?.id === modelId) {
+    if (this.session?.ready && this.currentModel?.id === modelId) {
       return { loadTimeMs: 0 };
     }
 
     // Dispose previous worker if switching models
-    if (this.worker) {
+    if (this.session) {
       this.dispose();
     }
 
@@ -81,51 +81,75 @@ export class AsrEngine {
       throw new Error('Cohere Transcribe requires a source language');
     }
 
-    return new Promise((resolve, reject) => {
-      // Create worker based on type
+    // sherpa-onnx: extract metadata and pass .data blob URL. This runs BEFORE
+    // `new WorkerSession(...)` (below) so the metadata fetch — which can fail
+    // or overlap with a worker error — completes before the session's
+    // resolve/reject handlers exist; those are only bound inside
+    // `session.start()`. If the worker were constructed first and this fetch
+    // awaited afterward, a worker onerror/pre-ready 'error' firing during the
+    // fetch would settle the session with no reject handler attached yet,
+    // and the eventual `session.start(...)` call would hang forever.
+    let dataFileUrls: Record<string, string> | undefined;
+    let dataPackageMetadata: Record<string, unknown> | undefined;
+    if (workerType === 'sherpa-onnx') {
+      const metadataBlobUrl = fileUrls['package-metadata.json'];
+      if (!metadataBlobUrl) {
+        manager.revokeBlobUrls(fileUrls);
+        throw new Error(`Missing package-metadata.json for ASR model "${modelId}"`);
+      }
+
+      try {
+        const response = await fetch(metadataBlobUrl);
+        dataPackageMetadata = await response.json();
+      } catch (err: any) {
+        manager.revokeBlobUrls(fileUrls);
+        throw new Error(`Failed to read package metadata: ${err.message}`);
+      }
+
+      dataFileUrls = {};
+      for (const [name, url] of Object.entries(fileUrls)) {
+        if (name !== 'package-metadata.json') {
+          dataFileUrls[name] = url;
+        }
+      }
+    }
+
+    // Create worker based on type
+    const makeWorker = (): Worker => {
       switch (workerType) {
         case 'whisper-webgpu':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/whisper-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
-          break;
         case 'cohere-transcribe-webgpu':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/cohere-transcribe-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
-          break;
         case 'voxtral-3b-webgpu':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/voxtral-3b-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
-          break;
         case 'granite-speech-webgpu':
-          this.worker = new Worker(
+          return new Worker(
             new URL('../workers/granite-speech-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
-          break;
         default: // sherpa-onnx
-          this.worker = new Worker('./workers/sherpa-onnx-asr.worker.js');
-          break;
+          return new Worker('./workers/sherpa-onnx-asr.worker.js');
       }
+    };
 
-      // Cohere and Voxtral 3B workers emit StreamingAsrWorkerOutMessage
-      // (includes 'partial'); other workers emit AsrWorkerOutMessage. Handle the union.
-      this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage | StreamingAsrWorkerOutMessage>) => {
-        const msg = event.data;
+    // Cohere and Voxtral 3B workers emit StreamingAsrWorkerOutMessage
+    // (includes 'partial'); other workers emit AsrWorkerOutMessage. Handle the union.
+    const session = new WorkerSession({
+      makeWorker,
+      revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
+      onFatalError: (message) => this.onError?.(message),
+      onMessage: (msg: AsrWorkerOutMessage | StreamingAsrWorkerOutMessage) => {
         switch (msg.type) {
-          case 'ready':
-            this.isReady = true;
-            this.currentModel = model;
-            // Revoke blob URLs after worker has loaded (frees memory, worker has its own copies)
-            manager.revokeBlobUrls(fileUrls);
-            resolve({ loadTimeMs: msg.loadTimeMs });
-            break;
-
           case 'status':
             this.onStatus?.(msg.message);
             break;
@@ -148,85 +172,57 @@ export class AsrEngine {
             break;
 
           case 'error':
+            // Post-ready error; pre-ready 'error' is handled by WorkerSession.
             this.onError?.(msg.error);
-            if (!this.isReady) {
-              manager.revokeBlobUrls(fileUrls);
-              reject(new Error(msg.error));
-            }
-            break;
-
-          case 'disposed':
             break;
         }
-      };
-
-      this.worker.onerror = (error) => {
-        const message = error.message || 'ASR Worker error';
-        this.onError?.(message);
-        if (!this.isReady) {
-          manager.revokeBlobUrls(fileUrls);
-          reject(new Error(message));
-        }
-      };
-
-      // Send init message — format depends on worker type
-      if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu') {
-        this.worker.postMessage({
-          type: 'init',
-          fileUrls,
-          hfModelId: model.hfModelId,
-          language,
-          vadConfig,
-          dtype,
-          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-        });
-      } else if (workerType === 'granite-speech-webgpu') {
-        this.worker.postMessage({
-          type: 'init',
-          fileUrls,
-          hfModelId: model.hfModelId,
-          language,
-          vadConfig,
-          task: taskConfig?.task ?? 'transcribe',
-          targetLanguage: taskConfig?.targetLanguage,
-          dtype,
-          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-        });
-      } else {
-        // sherpa-onnx: extract metadata and pass .data blob URL
-        const metadataBlobUrl = fileUrls['package-metadata.json'];
-        if (!metadataBlobUrl) {
-          manager.revokeBlobUrls(fileUrls);
-          reject(new Error(`Missing package-metadata.json for ASR model "${modelId}"`));
-          return;
-        }
-
-        fetch(metadataBlobUrl)
-          .then(r => r.json())
-          .then(dataPackageMetadata => {
-            const dataFileUrls: Record<string, string> = {};
-            for (const [name, url] of Object.entries(fileUrls)) {
-              if (name !== 'package-metadata.json') {
-                dataFileUrls[name] = url;
-              }
-            }
-            this.worker!.postMessage({
-              type: 'init',
-              fileUrls: dataFileUrls,
-              asrEngine: model.asrEngine,
-              vadConfig,
-              runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
-              dataPackageMetadata,
-            });
-          })
-          .catch(err => {
-            manager.revokeBlobUrls(fileUrls);
-            reject(new Error(`Failed to read package metadata: ${err.message}`));
-          });
-      }
+      },
     });
+    this.session = session;
+
+    // Send init message — format depends on worker type. No `await` sits
+    // between `new WorkerSession(...)` above and any `session.start(...)`
+    // call below, on any path.
+    let ready: { loadTimeMs: number };
+    if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu') {
+      ready = await session.start({
+        type: 'init',
+        fileUrls,
+        hfModelId: model.hfModelId,
+        language,
+        vadConfig,
+        dtype,
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+      });
+    } else if (workerType === 'granite-speech-webgpu') {
+      ready = await session.start({
+        type: 'init',
+        fileUrls,
+        hfModelId: model.hfModelId,
+        language,
+        vadConfig,
+        task: taskConfig?.task ?? 'transcribe',
+        targetLanguage: taskConfig?.targetLanguage,
+        dtype,
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+      });
+    } else {
+      // sherpa-onnx: dataFileUrls/dataPackageMetadata were loaded above,
+      // before the WorkerSession was constructed.
+      ready = await session.start({
+        type: 'init',
+        fileUrls: dataFileUrls,
+        asrEngine: model.asrEngine,
+        vadConfig,
+        runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
+        dataPackageMetadata,
+      });
+    }
+
+    this.currentModel = model;
+    return { loadTimeMs: ready.loadTimeMs };
   }
 
   /**
@@ -238,10 +234,10 @@ export class AsrEngine {
    * @param sampleRate - Sample rate of the input audio (e.g. 24000)
    */
   feedAudio(samples: Int16Array, sampleRate: number): void {
-    if (!this.worker || !this.isReady) return;
+    if (!this.session?.ready) return;
 
     // Transfer the buffer for zero-copy performance
-    this.worker.postMessage(
+    this.session.post(
       { type: 'audio', samples, sampleRate },
       [samples.buffer]
     );
@@ -252,8 +248,8 @@ export class AsrEngine {
    * Used on PTT release to force recognition without waiting for silence detection.
    */
   flush(): void {
-    if (!this.worker || !this.isReady) return;
-    this.worker.postMessage({ type: 'flush' });
+    if (!this.session?.ready) return;
+    this.session.post({ type: 'flush' });
   }
 
   /**
@@ -264,7 +260,7 @@ export class AsrEngine {
   }
 
   get ready(): boolean {
-    return this.isReady;
+    return this.session?.ready ?? false;
   }
 
   get model(): ModelManifestEntry | null {
@@ -272,12 +268,8 @@ export class AsrEngine {
   }
 
   dispose(): void {
-    if (this.worker) {
-      this.worker.postMessage({ type: 'dispose' });
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isReady = false;
+    this.session?.dispose();
+    this.session = null;
     this.currentModel = null;
   }
 }

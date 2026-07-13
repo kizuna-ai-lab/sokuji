@@ -160,7 +160,7 @@ Message handling (preserves current behavior exactly):
   - otherwise → `route(msg)` — this is where `status`/`speech_start`/`partial`/`result`/`disposed` and *post-ready* errors go; the engine decides id-correlation vs fatal.
 - internal `onerror(e)`: `onFatalError?.(message)`; if not settled → `revokeBlobs()` once, reject.
 
-**`RequestRegistry.ts`** — id-keyed correlation for the request/response engines:
+**`RequestRegistry.ts`** — id-keyed correlation, used **only by `TranslationEngine`** (the one engine with a `Map<id, {resolve,reject}>` + `tr_N` counter + reject-all-on-dispose):
 
 ```ts
 class RequestRegistry<T> {
@@ -171,16 +171,18 @@ class RequestRegistry<T> {
 }
 ```
 
+`TtsEngine` is deliberately NOT on `RequestRegistry`: its request model is **single-slot** (`pendingGenerate` + a `pendingStream` that carries an `onChunk`), not id-keyed — plus a non-worker edge-TTS side path. It composes `WorkerSession` for lifecycle only and keeps its bespoke pending fields as-is.
+
 Per-engine responsibilities after extraction (each keeps its own `workerType` switch, init-payload building, and domain `route`):
 
-| Engine | WorkerSession | RequestRegistry | Extra dispose cleanup wrapping `session.dispose()` |
-|---|---|---|---|
-| `AsrEngine` | ✅ | — (callbacks) | — |
-| `StreamingAsrEngine` | ✅ | — (callbacks) | — |
-| `TranslationEngine` | ✅ | ✅ | `setBingTranslatorDNR(false)` |
-| `TtsEngine` | ✅ (worker paths) | ✅ | `edgeTtsConnection.dispose()` (edge-TTS is a non-worker path it keeps separate) |
+| Engine | WorkerSession | RequestRegistry | Domain state kept in the engine | Extra dispose cleanup wrapping `session.dispose()` |
+|---|---|---|---|---|
+| `AsrEngine` | ✅ | — | callbacks (onResult/onPartialResult/…) | — |
+| `StreamingAsrEngine` | ✅ | — | callbacks | — |
+| `TranslationEngine` | ✅ | ✅ | — (registry holds pending) | `setBingTranslatorDNR(false)` + `reqs.rejectAll(...)` |
+| `TtsEngine` | ✅ (worker paths) | — | single-slot `pendingGenerate`/`pendingStream` + `edgeTtsConnection` | reject both pending + `edgeTtsConnection.dispose()` |
 
-The sherpa-onnx classic-ASR path (which fetches `package-metadata.json` to build its init payload) fits: the engine does `new WorkerSession(...)` (worker created), `await fetchMetadata()`, then `session.start(payload)`. The metadata await is *after* worker creation, so no path regresses.
+**Init-ordering heterogeneity.** 3 of 4 engines load blobs (`await getModelBlobUrls`) *before* creating the worker, then create it and post init. `StreamingAsrEngine` is the outlier: it creates the worker *first*, then loads blobs *inside* an `async` Promise executor, wrapping `onmessage` to revoke on ready/error. To fit `WorkerSession`'s synchronous-constructor model, `StreamingAsrEngine` is reordered to load-blobs-first (like the others), then `new WorkerSession(...)`. This is a minor, must-document timing change (the worker is created slightly later, after the blob await), safe because the worker stays idle until `init`. The sherpa-onnx classic path (fetch `package-metadata.json` to build the payload) does its metadata `await` *after* `new WorkerSession(...)`, so no path regresses there.
 
 ## Testing (characterization-first)
 
