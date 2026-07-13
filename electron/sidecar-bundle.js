@@ -110,7 +110,16 @@ function extractTarZst(archivePath, destDir) {
     // through (traversal guard, corrupt zstd frame, disk error) left the tar
     // `extract` transform and/or the archive read stream open — a file descriptor
     // leak on every failed install attempt.
-    const fail = (err) => { try { rs.destroy(); } catch {} try { extract.destroy(); } catch {} reject(err); };
+    let failed = false;
+    let activeWriteStream = null;
+    const fail = (err) => {
+      if (failed) return;
+      failed = true;
+      try { rs.destroy(); } catch {}
+      try { extract.destroy(); } catch {}
+      try { activeWriteStream?.destroy(); } catch {}
+      reject(err);
+    };
 
     extract.on('entry', (header, stream, next) => {
       const target = path.resolve(destDir, header.name);
@@ -131,9 +140,13 @@ function extractTarZst(archivePath, destDir) {
       }
       fs.mkdirSync(path.dirname(target), { recursive: true });
       const ws = fs.createWriteStream(target, { mode: header.mode || 0o644 });
+      activeWriteStream = ws;
       stream.on('error', fail);
       ws.on('error', fail);
-      ws.on('finish', next);
+      ws.once('close', () => {
+        if (activeWriteStream === ws) activeWriteStream = null;
+        if (!failed) next();
+      });
       stream.pipe(ws);
     });
     extract.on('finish', resolve);
