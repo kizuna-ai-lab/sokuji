@@ -2,18 +2,15 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 
-// Force provider registration flags on so environment-gated providers
-// (notably Volcengine AST 2.0, which requires Electron/Extension) are present
-// in the descriptor registry. createSessionConfig now dispatches through
+// Force platform detection so environment-gated providers (notably Volcengine
+// AST 2.0, which requires Electron/Extension) are present in the descriptor
+// registry. createSessionConfig now dispatches through
 // ProviderConfigFactory.getDescriptor, which throws for unregistered providers;
 // these tests exercise VOLCENGINE_AST2 directly. Mirrors descriptorRegistry.test.ts.
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   isPalabraAIEnabled: () => true,
-  isVolcengineSTEnabled: () => true,
-  isVolcengineAST2Enabled: () => true,
-  isZoomAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
 }));
