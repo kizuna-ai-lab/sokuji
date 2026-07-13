@@ -30,6 +30,8 @@ export interface PlatformEntry {
 
 export const PLATFORMS: readonly PlatformEntry[] = [
   { hostname: 'meet.google.com', matchPattern: 'https://meet.google.com/*', contentProfile: 'standard', displayName: 'Google Meet', shortName: 'Meet' },
+  { hostname: 'telemost.yandex.ru', matchPattern: 'https://telemost.yandex.ru/*', contentProfile: 'standard', displayName: 'Yandex Telemost', shortName: 'Telemost' },
+  { hostname: 'telemost.yandex.com', matchPattern: 'https://telemost.yandex.com/*', contentProfile: 'standard', displayName: 'Yandex Telemost (International)', shortName: 'Telemost' },
   { hostname: 'teams.live.com', matchPattern: 'https://teams.live.com/*', contentProfile: 'standard', displayName: 'Microsoft Teams Free', shortName: 'Teams', group: 'teams', groupLabel: 'Free', guidanceKey: 'teams', pluginKey: 'teams' },
   { hostname: 'teams.microsoft.com', matchPattern: 'https://teams.microsoft.com/*', contentProfile: 'standard', displayName: 'Microsoft Teams (work or school)', shortName: 'Teams', group: 'teams', groupLabel: 'Work', guidanceKey: 'teams', pluginKey: 'teams' },
   { hostname: 'teams.cloud.microsoft', matchPattern: 'https://teams.cloud.microsoft/*', contentProfile: 'standard', displayName: 'Microsoft Teams M365', shortName: 'Teams', group: 'teams', groupLabel: 'M365', guidanceKey: 'teams', pluginKey: 'teams' },

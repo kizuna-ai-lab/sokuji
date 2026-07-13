@@ -78,7 +78,7 @@ Sokuji 提供**桌面应用**和**浏览器扩展**两种形式 — 功能完全
 | | 桌面应用 | 浏览器扩展 |
 |---|---|---|
 | **功能** | 完全相同 | 完全相同 |
-| **适用场景** | 支持麦克风输入的任何应用 — Zoom、Teams、Discord、Slack、游戏、OBS 等 | 网页端会议平台 — Google Meet、Teams、Zoom、Discord、Slack、Gather.town、Whereby、Jitsi Meet |
+| **适用场景** | 支持麦克风输入的任何应用 — Zoom、Teams、Discord、Slack、游戏、OBS 等 | 网页端会议平台 — Google Meet、Teams、Zoom、Yandex Telemost、Discord、Slack、Gather.town、Whereby、Jitsi Meet |
 | **安装** | 下载安装 | 免安装 — 从商店添加 |
 | **平台** | Windows · macOS · Linux | Chrome · Edge |
 

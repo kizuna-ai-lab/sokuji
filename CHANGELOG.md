@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Yandex Telemost**: Add browser extension support for meetings on telemost.yandex.ru.
+
 ### Fixed
 
 - **Windows Sidecar Installation**: Wait for extracted files to close before promoting a downloaded sidecar bundle, avoiding `EPERM` rename failures.

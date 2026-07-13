@@ -78,7 +78,7 @@ Sokujiは**デスクトップアプリ**と**ブラウザ拡張機能**の両方
 | | デスクトップアプリ | ブラウザ拡張機能 |
 |---|---|---|
 | **機能** | すべて同一 | すべて同一 |
-| **使用先** | マイク入力に対応するあらゆるアプリ — Zoom、Teams、Discord、Slack、ゲーム、OBSなど | ウェブベースの会議プラットフォーム — Google Meet、Teams、Zoom、Discord、Slack、Gather.town、Whereby、Jitsi Meet |
+| **使用先** | マイク入力に対応するあらゆるアプリ — Zoom、Teams、Discord、Slack、ゲーム、OBSなど | ウェブベースの会議プラットフォーム — Google Meet、Teams、Zoom、Yandex Telemost、Discord、Slack、Gather.town、Whereby、Jitsi Meet |
 | **インストール** | ダウンロード＆インストール | インストール不要 — ストアから追加 |
 | **プラットフォーム** | Windows · macOS · Linux | Chrome · Edge |
 
