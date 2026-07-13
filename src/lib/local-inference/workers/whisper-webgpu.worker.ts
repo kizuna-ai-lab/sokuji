@@ -532,5 +532,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     case 'dispose':
       await handleDispose();
       break;
+    default:
+      // This bug was a silently-dropped 'flush' message. Surface any future
+      // unhandled message type instead of ignoring it, so the same failure
+      // mode (a message the router forgot to handle) is loud, not silent.
+      console.warn('[whisper-worker] Unhandled message type:', (msg as { type?: string }).type);
   }
 };

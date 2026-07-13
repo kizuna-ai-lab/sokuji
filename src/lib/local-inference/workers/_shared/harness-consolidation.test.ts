@@ -68,20 +68,27 @@ describe('ASR worker ortEnv wasmPaths', () => {
   });
 });
 
-// PTT / Push-to-Translate release finalizes the current VAD segment by posting
+// PTT / Push-to-Translate release finalizes the current utterance by posting
 // {type:'flush'} (MainPanel.createResponse → AsrEngine.flush → session.post).
 // The trailing silence tail fed on release (~700ms) is shorter than the default
 // VAD redemption window (vadMinSilenceDuration 1.4s → 1400ms), so silence alone
-// can NEVER close the segment — the worker MUST honor the flush message and force
-// frameProcessor.endSegment(). A worker that silently drops 'flush' leaks the
-// pending utterance into the next press, surfacing it one utterance late.
-// (Regression guard: whisper-webgpu.worker.ts originally had no 'flush' case.)
+// can NEVER close the segment — the worker MUST honor the flush message. A worker
+// that silently drops 'flush' leaks the pending utterance into the next press,
+// surfacing it one utterance late (the original whisper-webgpu regression: no
+// 'flush' case at all).
+//
+// Guard the ROUTING chain — 'flush' must reach a defined handleFlush() — rather
+// than any specific finalization mechanism: workers finalize differently
+// (frameProcessor.endSegment for VAD-segmented ASR, stopGenerate for the streaming
+// generate-loop voxtral worker), so asserting `endSegment` in the flush path would
+// wrongly fail voxtral-webgpu. `endSegment` also appears in every worker's dispose
+// path, so an "endSegment appears somewhere" assertion is a false positive.
 describe('ASR worker flush handling (PTT finalization)', () => {
-  it.each(ASR_WORKERS)('%s routes the flush message to endSegment', (name) => {
+  it.each(ASR_WORKERS)('%s routes the flush message to a defined handleFlush()', (name) => {
     const src = read(name);
-    expect(src, `${name}: message router has no case 'flush' (PTT release is a no-op)`)
-      .toMatch(/case\s+['"]flush['"]\s*:/);
-    expect(src, `${name}: flush path never force-finalizes via frameProcessor.endSegment`)
-      .toMatch(/endSegment\(/);
+    expect(src, `${name}: message router drops 'flush' instead of routing it to handleFlush()`)
+      .toMatch(/case\s+['"]flush['"]\s*:\s*(?:await\s+)?handleFlush\(/);
+    expect(src, `${name}: router calls handleFlush() but the function is never defined`)
+      .toMatch(/(?:async\s+)?function\s+handleFlush\b/);
   });
 });
