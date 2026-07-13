@@ -192,7 +192,8 @@ describe('resolveSidecarLaunch launch order', () => {
       platform: 'win32', envOverride: undefined, bundleRoot: 'C:\\u\\sidecar\\directml',
       devVenvPython: devVenv, devCwd, existsSync: () => true,
     });
-    expect(l.python.endsWith(path.join('python', 'python.exe'))).toBe(true);
+    expect(l.python).toBe(path.win32.join('C:\\u\\sidecar\\directml', 'python', 'python.exe'));
+    expect(l.cwd).toBe(path.win32.join('C:\\u\\sidecar\\directml', 'app'));
     expect(l.source).toBe('bundle');
   });
 
