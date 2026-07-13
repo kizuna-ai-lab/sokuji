@@ -18,6 +18,7 @@ import { ModelManager } from '../ModelManager';
 import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
 import { listVoices } from '../voiceStorage';
 import { importedSidFromDbKey } from '../sidMapping';
+import { WorkerSession } from './WorkerSession';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -31,8 +32,7 @@ type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
 
 export class TtsEngine {
-  private worker: Worker | null = null;
-  private isReady = false;
+  private session: WorkerSession | null = null;
   private currentModel: ModelManifestEntry | null = null;
   private _numSpeakers = 0;
   private _sampleRate = 0;
@@ -72,12 +72,12 @@ export class TtsEngine {
     }
 
     // If already loaded with same model, skip
-    if (this.isReady && this.currentModel?.id === modelId) {
+    if (this.session?.ready && this.currentModel?.id === modelId) {
       return { loadTimeMs: 0, numSpeakers: this._numSpeakers, sampleRate: this._sampleRate };
     }
 
     // Dispose previous worker if switching models
-    if (this.worker) {
+    if (this.session) {
       this.dispose();
     }
 
@@ -146,107 +146,31 @@ export class TtsEngine {
       }
     }
 
-    return new Promise((resolve, reject) => {
-      // Select worker based on engine type. Supertonic uses Vite's bundled
-      // module-worker pattern (TypeScript source, ORT compiled into bundle).
-      // The other workers are hand-written JS served from public/.
+    // Select worker based on engine type. Supertonic uses Vite's bundled
+    // module-worker pattern (TypeScript source, ORT compiled into bundle).
+    // The other workers are hand-written JS served from public/.
+    const makeWorker = (): Worker => {
       if (isSupertonic) {
-        this.worker = new Worker(
+        return new Worker(
           new URL('../workers/supertonic-tts.worker.ts', import.meta.url),
           { type: 'module' },
         );
-      } else {
-        const workerUrl = isEdgeTts
-          ? './workers/edge-tts.worker.js'
-          : isPiperPlus
-            ? './workers/piper-plus-tts.worker.js'
-            : './workers/sherpa-onnx-tts.worker.js';
-        this.worker = new Worker(workerUrl);
       }
+      const workerUrl = isEdgeTts
+        ? './workers/edge-tts.worker.js'
+        : isPiperPlus
+          ? './workers/piper-plus-tts.worker.js'
+          : './workers/sherpa-onnx-tts.worker.js';
+      return new Worker(workerUrl);
+    };
 
-      this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
-        const msg = event.data;
-        switch (msg.type) {
-          case 'ready':
-            this.isReady = true;
-            this.currentModel = model;
-            this._numSpeakers = msg.numSpeakers;
-            this._sampleRate = msg.sampleRate;
-            if (!isEdgeTts) {
-              const manager = ModelManager.getInstance();
-              manager.revokeBlobUrls(fileUrls);
-            }
-            resolve({
-              loadTimeMs: msg.loadTimeMs,
-              numSpeakers: msg.numSpeakers,
-              sampleRate: msg.sampleRate,
-              voices: msg.voices,
-              backend: msg.backend,
-            });
-            break;
-
-          case 'status':
-            this.onStatus?.(msg.message);
-            break;
-
-          case 'result':
-            if (this.pendingGenerate) {
-              this.pendingGenerate.resolve({
-                samples: msg.samples,
-                sampleRate: msg.sampleRate,
-                generationTimeMs: msg.generationTimeMs,
-              });
-              this.pendingGenerate = null;
-            }
-            break;
-
-          case 'audio-chunk':
-            if (this.pendingStream) {
-              this.pendingStream.onChunk(msg.samples, msg.sampleRate);
-            }
-            break;
-
-          case 'audio-done':
-            if (this.pendingStream) {
-              this.pendingStream.resolve({ generationTimeMs: msg.generationTimeMs });
-              this.pendingStream = null;
-            }
-            break;
-
-          case 'error':
-            this.onError?.(msg.error);
-            if (!this.isReady) {
-              if (!isEdgeTts) {
-                const manager = ModelManager.getInstance();
-                manager.revokeBlobUrls(fileUrls);
-              }
-              reject(new Error(msg.error));
-            }
-            if (this.pendingGenerate) {
-              this.pendingGenerate.reject(new Error(msg.error));
-              this.pendingGenerate = null;
-            }
-            if (this.pendingStream) {
-              this.pendingStream.reject(new Error(msg.error));
-              this.pendingStream = null;
-            }
-            break;
-
-          case 'disposed':
-            break;
-        }
-      };
-
-      this.worker.onerror = (error) => {
-        const message = error.message || 'TTS Worker error';
+    const session = new WorkerSession({
+      makeWorker,
+      onMessage: (msg: TtsWorkerOutMessage) => this.route(msg),
+      // Edge TTS has nothing to revoke — it uses the network directly, not IndexedDB blobs.
+      revokeBlobs: isEdgeTts ? undefined : () => ModelManager.getInstance().revokeBlobUrls(fileUrls),
+      onFatalError: (message) => {
         this.onError?.(message);
-        if (!this.isReady) {
-          if (!isEdgeTts) {
-            const manager = ModelManager.getInstance();
-            manager.revokeBlobUrls(fileUrls);
-          }
-          reject(new Error(message));
-        }
         if (this.pendingGenerate) {
           this.pendingGenerate.reject(new Error(message));
           this.pendingGenerate = null;
@@ -255,54 +179,124 @@ export class TtsEngine {
           this.pendingStream.reject(new Error(message));
           this.pendingStream = null;
         }
-      };
-
-      // Send engine-specific init message
-      if (isEdgeTts) {
-        this.worker.postMessage({ type: 'init' });
-      } else if (isPiperPlus) {
-        this.worker.postMessage({
-          type: 'init',
-          fileUrls,
-          runtimeBaseUrl: new URL(PIPER_PLUS_BUNDLED_RUNTIME_PATH, window.location.href).href,
-          ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
-          engine: 'piper-plus',
-          ttsConfig: model.ttsConfig || {},
-        });
-      } else if (isSupertonic) {
-        const presets = model.ttsConfig?.presetVoices ?? [];
-        const presetEntries = presets.map(p => ({
-          sid: p.sid,
-          name: p.name,
-          source: 'preset' as const,
-          gender: p.gender,
-          blobUrl: fileUrls[p.file],
-        })).filter(v => v.blobUrl);
-
-        // Merge preset + imported voices (imported loaded before Promise, sid = dbKey + 10)
-        const voiceList = [...presetEntries, ...supertonicImportedEntries];
-
-        this.worker.postMessage({
-          type: 'init',
-          fileUrls: dataFileUrls,
-          voiceList,
-          // Trailing slash matches whisper-webgpu / voxtral-webgpu workers;
-          // ORT uses this as `ort.env.wasm.wasmPaths` to find jsep wasm files.
-          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          ttsConfig: model.ttsConfig || {},
-        });
-      } else {
-        this.worker.postMessage({
-          type: 'init',
-          modelFile: model.modelFile || '',
-          engine: model.engine || '',
-          ttsConfig: model.ttsConfig || {},
-          runtimeBaseUrl: new URL(TTS_BUNDLED_RUNTIME_PATH, window.location.href).href,
-          dataPackageMetadata,
-          fileUrls: dataFileUrls,
-        });
-      }
+      },
     });
+    this.session = session;
+
+    // Build the engine-specific init message
+    let initMessage: Record<string, unknown>;
+    if (isEdgeTts) {
+      initMessage = { type: 'init' };
+    } else if (isPiperPlus) {
+      initMessage = {
+        type: 'init',
+        fileUrls,
+        runtimeBaseUrl: new URL(PIPER_PLUS_BUNDLED_RUNTIME_PATH, window.location.href).href,
+        ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
+        engine: 'piper-plus',
+        ttsConfig: model.ttsConfig || {},
+      };
+    } else if (isSupertonic) {
+      const presets = model.ttsConfig?.presetVoices ?? [];
+      const presetEntries = presets.map(p => ({
+        sid: p.sid,
+        name: p.name,
+        source: 'preset' as const,
+        gender: p.gender,
+        blobUrl: fileUrls[p.file],
+      })).filter(v => v.blobUrl);
+
+      // Merge preset + imported voices (imported loaded before the worker was created, sid = dbKey + 10)
+      const voiceList = [...presetEntries, ...supertonicImportedEntries];
+
+      initMessage = {
+        type: 'init',
+        fileUrls: dataFileUrls,
+        voiceList,
+        // Trailing slash matches whisper-webgpu / voxtral-webgpu workers;
+        // ORT uses this as `ort.env.wasm.wasmPaths` to find jsep wasm files.
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        ttsConfig: model.ttsConfig || {},
+      };
+    } else {
+      initMessage = {
+        type: 'init',
+        modelFile: model.modelFile || '',
+        engine: model.engine || '',
+        ttsConfig: model.ttsConfig || {},
+        runtimeBaseUrl: new URL(TTS_BUNDLED_RUNTIME_PATH, window.location.href).href,
+        dataPackageMetadata,
+        fileUrls: dataFileUrls,
+      };
+    }
+
+    const ready = await session.start(initMessage);
+    this.currentModel = model;
+    this._numSpeakers = ready.numSpeakers ?? 0;
+    this._sampleRate = ready.sampleRate ?? 0;
+    return {
+      loadTimeMs: ready.loadTimeMs,
+      numSpeakers: ready.numSpeakers,
+      sampleRate: ready.sampleRate,
+      voices: ready.voices,
+      backend: ready.backend,
+    };
+  }
+
+  /**
+   * Route non-handshake worker messages to the appropriate handler.
+   * The init handshake ('ready' / pre-ready 'error') is handled by WorkerSession.
+   * 'decode-ready' is consumed by the ad-hoc listener registered in
+   * generateStream() via WorkerSession#addMessageListener, not here.
+   */
+  private route(msg: TtsWorkerOutMessage): void {
+    switch (msg.type) {
+      case 'status':
+        this.onStatus?.(msg.message);
+        break;
+
+      case 'result':
+        if (this.pendingGenerate) {
+          this.pendingGenerate.resolve({
+            samples: msg.samples,
+            sampleRate: msg.sampleRate,
+            generationTimeMs: msg.generationTimeMs,
+          });
+          this.pendingGenerate = null;
+        }
+        break;
+
+      case 'audio-chunk':
+        if (this.pendingStream) {
+          this.pendingStream.onChunk(msg.samples, msg.sampleRate);
+        }
+        break;
+
+      case 'audio-done':
+        if (this.pendingStream) {
+          this.pendingStream.resolve({ generationTimeMs: msg.generationTimeMs });
+          this.pendingStream = null;
+        }
+        break;
+
+      case 'error':
+        // Post-ready error; pre-ready 'error' is handled by WorkerSession (onFatalError).
+        this.onError?.(msg.error);
+        if (this.pendingGenerate) {
+          this.pendingGenerate.reject(new Error(msg.error));
+          this.pendingGenerate = null;
+        }
+        if (this.pendingStream) {
+          this.pendingStream.reject(new Error(msg.error));
+          this.pendingStream = null;
+        }
+        break;
+
+      case 'disposed':
+      case 'ready':
+      case 'decode-ready':
+        break;
+    }
   }
 
   /**
@@ -315,7 +309,7 @@ export class TtsEngine {
    * @param lang - Language code for multilingual models (e.g. 'ja', 'en')
    */
   async generate(text: string, sid = 0, speed = 1.0, lang?: string): Promise<TtsResult> {
-    if (!this.worker || !this.isReady) {
+    if (!this.session?.ready) {
       throw new Error('TTS engine not initialized');
     }
 
@@ -341,7 +335,7 @@ export class TtsEngine {
 
     return new Promise((resolve, reject) => {
       this.pendingGenerate = { resolve, reject };
-      this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed, lang });
+      this.session!.post({ type: 'generate', text: sanitizedText, sid, speed, lang });
     });
   }
 
@@ -359,7 +353,7 @@ export class TtsEngine {
     onChunk?: AudioChunkCallback,
     voice?: string,
   ): Promise<{ generationTimeMs: number }> {
-    if (!this.worker || !this.isReady) {
+    if (!this.session?.ready) {
       throw new Error('TTS engine not initialized');
     }
     if (this.pendingGenerate || this.pendingStream) {
@@ -376,20 +370,20 @@ export class TtsEngine {
     // Wait for worker decoder to be ready (reset is async).
     // The handler rejects on 'error' to avoid hanging the pipeline if reset fails,
     // and is always removed once it settles.
-    const worker = this.worker;
+    const session = this.session;
     await new Promise<void>((resolve, reject) => {
       const handler = (event: MessageEvent<TtsWorkerOutMessage>) => {
         const data = event.data;
         if (data.type === 'decode-ready') {
-          worker.removeEventListener('message', handler);
+          remove();
           resolve();
         } else if (data.type === 'error') {
-          worker.removeEventListener('message', handler);
+          remove();
           reject(new Error(data.error));
         }
       };
-      worker.addEventListener('message', handler);
-      worker.postMessage({ type: 'decode-start' });
+      const remove = session.addMessageListener(handler);
+      session.post({ type: 'decode-start' });
     });
 
     // Set up worker to receive decoded PCM chunks
@@ -416,11 +410,11 @@ export class TtsEngine {
         // Guard against this by copying to a tight buffer whenever the sizes
         // disagree.
         (mp3Data: Uint8Array) => {
-          if (!this.worker) return;
+          if (!this.session) return;
           const tight = (mp3Data.byteOffset === 0 && mp3Data.byteLength === mp3Data.buffer.byteLength)
             ? mp3Data
             : new Uint8Array(mp3Data); // copies only mp3Data's bytes into a new exact-sized buffer
-          this.worker.postMessage(
+          this.session.post(
             { type: 'decode-chunk', mp3Data: tight.buffer },
             [tight.buffer],
           );
@@ -428,8 +422,8 @@ export class TtsEngine {
         // onDone — tell worker decoding is complete
         () => {
           const generationTimeMs = Math.round(performance.now() - startTime);
-          if (this.worker) {
-            this.worker.postMessage({ type: 'decode-end', generationTimeMs });
+          if (this.session) {
+            this.session.post({ type: 'decode-end', generationTimeMs });
           }
         },
         // onError
@@ -457,7 +451,7 @@ export class TtsEngine {
   }
 
   get ready(): boolean {
-    return this.isReady;
+    return this.session?.ready ?? false;
   }
 
   get model(): ModelManifestEntry | null {
@@ -514,12 +508,8 @@ export class TtsEngine {
       this.pendingGenerate.reject(new Error('TTS engine disposed'));
       this.pendingGenerate = null;
     }
-    if (this.worker) {
-      this.worker.postMessage({ type: 'dispose' });
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isReady = false;
+    this.session?.dispose();
+    this.session = null;
     this.currentModel = null;
     this._numSpeakers = 0;
     this._sampleRate = 0;

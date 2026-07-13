@@ -53,6 +53,13 @@ export class WorkerSession {
     else this.worker.postMessage(msg);
   }
 
+  /** Register a raw 'message' listener on the worker (for per-request sub-protocols
+   *  like TTS decode-ready). Returns a remover. The handler receives the raw MessageEvent. */
+  addMessageListener(handler: (e: MessageEvent) => void): () => void {
+    this.worker.addEventListener('message', handler);
+    return () => this.worker.removeEventListener('message', handler);
+  }
+
   get ready(): boolean {
     return this._ready;
   }

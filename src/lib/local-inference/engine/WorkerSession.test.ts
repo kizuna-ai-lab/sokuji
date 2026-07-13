@@ -95,6 +95,16 @@ describe('WorkerSession', () => {
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'flush' });
   });
 
+  it('addMessageListener() registers a raw message listener and returns a remover', () => {
+    const { worker, session } = makeSession();
+    const handler = vi.fn();
+    const remove = session.addMessageListener(handler);
+    expect(worker.addEventListener).toHaveBeenCalledWith('message', handler);
+    expect(worker.removeEventListener).not.toHaveBeenCalled();
+    remove();
+    expect(worker.removeEventListener).toHaveBeenCalledWith('message', handler);
+  });
+
   it('dispose() posts dispose, terminates, and clears ready', async () => {
     const { worker, session } = makeSession();
     const p = session.start({ type: 'init' });
