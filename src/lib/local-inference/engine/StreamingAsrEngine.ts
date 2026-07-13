@@ -81,21 +81,32 @@ export class StreamingAsrEngine {
       if (!await manager.isModelReady(modelId)) {
         throw new Error(`Model "${modelId}" is not downloaded.`);
       }
-      fileUrls = await manager.getModelBlobUrls(modelId);
+      // Variant info before blob URLs: if it throws, no object URLs exist yet
+      // to leak (matches AsrEngine's ordering).
       ({ dtype } = await manager.getModelVariantInfo(modelId));
+      fileUrls = await manager.getModelBlobUrls(modelId);
     } else {
-      // sherpa-onnx streaming path (unchanged logic)
+      // sherpa-onnx streaming path
       if (!await manager.isModelReady(modelId)) {
         throw new Error(`Streaming ASR model "${modelId}" is not downloaded.`);
       }
       fileUrls = await manager.getModelBlobUrls(modelId);
 
+      // `revokeBlobs` isn't wired up until the WorkerSession is constructed
+      // below, so any throw here must revoke the raw map itself, or the model's
+      // object URLs leak on init failure (matches AsrEngine's sherpa path).
       const metadataBlobUrl = fileUrls['package-metadata.json'];
       if (!metadataBlobUrl) {
+        manager.revokeBlobUrls(fileUrls);
         throw new Error(`Missing package-metadata.json for streaming ASR model "${modelId}"`);
       }
-      const metadataResponse = await fetch(metadataBlobUrl);
-      dataPackageMetadata = await metadataResponse.json();
+      try {
+        const metadataResponse = await fetch(metadataBlobUrl);
+        dataPackageMetadata = await metadataResponse.json();
+      } catch (err: any) {
+        manager.revokeBlobUrls(fileUrls);
+        throw new Error(`Failed to read package metadata: ${err.message}`);
+      }
 
       dataFileUrls = {};
       for (const [name, url] of Object.entries(fileUrls)) {

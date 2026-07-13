@@ -28,6 +28,7 @@ export class WorkerSession {
   private readonly worker: Worker;
   private settled = false;
   private revoked = false;
+  private torn = false;
   private _ready = false;
   private resolveReady: ((msg: any) => void) | null = null;
   private rejectReady: ((err: Error) => void) | null = null;
@@ -65,6 +66,16 @@ export class WorkerSession {
   }
 
   dispose(): void {
+    if (this.torn) return;
+    // Disposed mid-handshake (e.g. a model switch aborts a still-loading init):
+    // settle the pending start() so init() rejects instead of hanging forever —
+    // terminating a Worker does not guarantee an onerror event.
+    if (!this.settled) {
+      this.settled = true;
+      this.revokeOnce();
+      this.rejectReady?.(new Error('WorkerSession disposed'));
+    }
+    this.torn = true;
     this.worker.postMessage({ type: 'dispose' });
     this.worker.terminate();
     this._ready = false;
@@ -83,6 +94,7 @@ export class WorkerSession {
       this.revokeOnce();
       this.opts.onFatalError?.(msg.error);
       this.rejectReady?.(new Error(msg.error));
+      this.tearDownDeadWorker();
       return;
     }
     this.opts.onMessage(msg);
@@ -94,7 +106,18 @@ export class WorkerSession {
       this.settled = true;
       this.revokeOnce();
       this.rejectReady?.(new Error(message));
+      this.tearDownDeadWorker();
     }
+  }
+
+  /** The init handshake failed — the worker will never become ready, so
+   *  terminate it now rather than leaving it (and its thread) dangling until
+   *  the engine's next init()/dispose(). Idempotent with dispose() via `torn`. */
+  private tearDownDeadWorker(): void {
+    if (this.torn) return;
+    this.torn = true;
+    this.worker.terminate();
+    this._ready = false;
   }
 
   private revokeOnce(): void {

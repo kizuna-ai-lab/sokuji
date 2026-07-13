@@ -117,4 +117,39 @@ describe('WorkerSession', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
     expect(session.ready).toBe(false);
   });
+
+  it('dispose() during a pending start() rejects init() instead of hanging', async () => {
+    const revokeBlobs = vi.fn();
+    const { worker, session } = makeSession({ revokeBlobs });
+    const p = session.start({ type: 'init' }); // never emit 'ready'
+    session.dispose();
+    await expect(p).rejects.toThrow(/disposed/i);
+    expect(revokeBlobs).toHaveBeenCalledTimes(1); // clean up the aborted load
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('terminates the worker when the init handshake fails (pre-ready error)', async () => {
+    const { worker, session } = makeSession();
+    const p = session.start({ type: 'init' });
+    worker.emit({ type: 'error', error: 'load failed' });
+    await expect(p).rejects.toThrow('load failed');
+    expect(worker.terminate).toHaveBeenCalledTimes(1); // dead worker freed, not left dangling
+  });
+
+  it('terminates the worker when a pre-ready onerror fails the handshake', async () => {
+    const { worker, session } = makeSession();
+    const p = session.start({ type: 'init' });
+    worker.emitError('worker crashed');
+    await expect(p).rejects.toThrow('worker crashed');
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not double-terminate when dispose() follows a failed handshake', async () => {
+    const { worker, session } = makeSession();
+    const p = session.start({ type: 'init' });
+    worker.emit({ type: 'error', error: 'load failed' });
+    await expect(p).rejects.toThrow('load failed');
+    session.dispose(); // torn already → no-op
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
 });

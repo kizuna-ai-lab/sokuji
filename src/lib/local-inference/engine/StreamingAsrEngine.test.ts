@@ -135,5 +135,21 @@ describe('StreamingAsrEngine (characterization)', () => {
         expect.objectContaining({ 'package-metadata.json': 'blob:meta', 'model.onnx': 'blob:m' }),
       );
     });
+
+    it('revokes the raw blob map when the metadata fetch fails (no leak on init failure)', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+      const engine = new StreamingAsrEngine();
+      await expect(engine.init('stream-en-kroko')).rejects.toThrow(/package metadata/i);
+      expect(revokeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ 'package-metadata.json': 'blob:meta', 'model.onnx': 'blob:m' }),
+      );
+    });
+
+    it('revokes the raw blob map when package-metadata.json is missing', async () => {
+      vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({ 'model.onnx': 'blob:m' });
+      const engine = new StreamingAsrEngine();
+      await expect(engine.init('stream-en-kroko')).rejects.toThrow(/Missing package-metadata/i);
+      expect(revokeSpy).toHaveBeenCalledWith(expect.objectContaining({ 'model.onnx': 'blob:m' }));
+    });
   });
 });
