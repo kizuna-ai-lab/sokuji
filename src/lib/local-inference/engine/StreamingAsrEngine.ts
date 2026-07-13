@@ -19,6 +19,7 @@ import {
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { WorkerSession } from './WorkerSession';
 
 
 export interface StreamingAsrResult {
@@ -33,8 +34,7 @@ type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
 
 export class StreamingAsrEngine {
-  private worker: Worker | null = null;
-  private isReady = false;
+  private session: WorkerSession | null = null;
   private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
@@ -51,155 +51,124 @@ export class StreamingAsrEngine {
     }
 
     // If already loaded with same model, skip
-    if (this.isReady && this.currentModel?.id === modelId) {
+    if (this.session?.ready && this.currentModel?.id === modelId) {
       return { loadTimeMs: 0 };
     }
 
     // Dispose previous worker if switching models
-    if (this.worker) {
+    if (this.session) {
       this.dispose();
     }
 
     const manager = ModelManager.getInstance();
     const workerType = model.asrWorkerType || 'sherpa-onnx';
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Create worker based on type
-        switch (workerType) {
-          case 'voxtral-webgpu':
-            this.worker = new Worker(
-              new URL('../workers/voxtral-webgpu.worker.ts', import.meta.url),
-              { type: 'module' },
-            );
-            break;
-          default: // sherpa-onnx streaming
-            this.worker = new Worker('./workers/sherpa-onnx-streaming-asr.worker.js');
-            break;
-        }
+    // Load model file blob URLs (and any worker-specific metadata) before
+    // creating the worker, so the WorkerSession can be constructed
+    // synchronously once everything it needs is in hand.
+    let fileUrls: Record<string, string>;
+    let dtype: string | Record<string, string> | undefined;
+    let dataPackageMetadata: Record<string, unknown> | undefined;
 
-        this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {
-          const msg = event.data;
-          switch (msg.type) {
-            case 'ready':
-              this.isReady = true;
-              this.currentModel = model;
-              resolve({ loadTimeMs: msg.loadTimeMs });
-              break;
-
-            case 'status':
-              this.onStatus?.(msg.message);
-              break;
-
-            case 'speech_start':
-              this.onSpeechStart?.();
-              break;
-
-            case 'partial':
-              this.onPartialResult?.(msg.text);
-              break;
-
-            case 'result':
-              this.onResult?.({
-                text: msg.text,
-                durationMs: msg.durationMs,
-                recognitionTimeMs: msg.recognitionTimeMs,
-              });
-              break;
-
-            case 'error':
-              this.onError?.(msg.error);
-              if (!this.isReady) {
-                reject(new Error(msg.error));
-              }
-              break;
-
-            case 'disposed':
-              break;
-          }
-        };
-
-        this.worker.onerror = (error) => {
-          const message = error.message || 'Streaming ASR Worker error';
-          this.onError?.(message);
-          if (!this.isReady) {
-            reject(new Error(message));
-          }
-        };
-
-        // Send init message based on worker type
-        if (workerType === 'voxtral-webgpu') {
-          if (!await manager.isModelReady(modelId)) {
-            throw new Error(`Model "${modelId}" is not downloaded.`);
-          }
-          const fileUrls = await manager.getModelBlobUrls(modelId);
-          const { dtype } = await manager.getModelVariantInfo(modelId);
-
-          // Cleanup blob URLs on ready or init error
-          const cleanup = () => manager.revokeBlobUrls(fileUrls);
-          const origOnMessage = this.worker.onmessage;
-          this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {
-            const msg = event.data;
-            if (msg.type === 'ready' || (msg.type === 'error' && !this.isReady)) {
-              cleanup();
-            }
-            origOnMessage?.call(this.worker, event);
-          };
-
-          this.worker.postMessage({
-            type: 'init',
-            fileUrls,
-            hfModelId: model.hfModelId,
-            language: options?.language,
-            vadConfig: options?.vadConfig,
-            dtype,
-            vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-            ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          });
-        } else {
-          // sherpa-onnx streaming path (unchanged logic)
-          if (!await manager.isModelReady(modelId)) {
-            throw new Error(`Streaming ASR model "${modelId}" is not downloaded.`);
-          }
-          const fileUrls = await manager.getModelBlobUrls(modelId);
-
-          const metadataBlobUrl = fileUrls['package-metadata.json'];
-          if (!metadataBlobUrl) {
-            throw new Error(`Missing package-metadata.json for streaming ASR model "${modelId}"`);
-          }
-          const metadataResponse = await fetch(metadataBlobUrl);
-          const dataPackageMetadata = await metadataResponse.json();
-
-          const dataFileUrls: Record<string, string> = {};
-          for (const [name, url] of Object.entries(fileUrls)) {
-            if (name !== 'package-metadata.json') {
-              dataFileUrls[name] = url;
-            }
-          }
-
-          // Store fileUrls reference for cleanup on ready/error
-          const cleanup = () => manager.revokeBlobUrls(fileUrls);
-          const origOnMessage = this.worker.onmessage;
-          this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {
-            const msg = event.data;
-            if (msg.type === 'ready' || (msg.type === 'error' && !this.isReady)) {
-              cleanup();
-            }
-            origOnMessage?.call(this.worker, event);
-          };
-
-          this.worker.postMessage({
-            type: 'init',
-            fileUrls: dataFileUrls,
-            asrEngine: model.asrEngine,
-            runtimeBaseUrl: new URL(ASR_STREAM_BUNDLED_RUNTIME_PATH, window.location.href).href,
-            dataPackageMetadata,
-          });
-        }
-      } catch (err) {
-        reject(err);
+    if (workerType === 'voxtral-webgpu') {
+      if (!await manager.isModelReady(modelId)) {
+        throw new Error(`Model "${modelId}" is not downloaded.`);
       }
+      fileUrls = await manager.getModelBlobUrls(modelId);
+      ({ dtype } = await manager.getModelVariantInfo(modelId));
+    } else {
+      // sherpa-onnx streaming path (unchanged logic)
+      if (!await manager.isModelReady(modelId)) {
+        throw new Error(`Streaming ASR model "${modelId}" is not downloaded.`);
+      }
+      const rawFileUrls = await manager.getModelBlobUrls(modelId);
+
+      const metadataBlobUrl = rawFileUrls['package-metadata.json'];
+      if (!metadataBlobUrl) {
+        throw new Error(`Missing package-metadata.json for streaming ASR model "${modelId}"`);
+      }
+      const metadataResponse = await fetch(metadataBlobUrl);
+      dataPackageMetadata = await metadataResponse.json();
+
+      const dataFileUrls: Record<string, string> = {};
+      for (const [name, url] of Object.entries(rawFileUrls)) {
+        if (name !== 'package-metadata.json') {
+          dataFileUrls[name] = url;
+        }
+      }
+      fileUrls = dataFileUrls;
+    }
+
+    // Create worker based on type
+    const makeWorker = (): Worker => {
+      switch (workerType) {
+        case 'voxtral-webgpu':
+          return new Worker(
+            new URL('../workers/voxtral-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+        default: // sherpa-onnx streaming
+          return new Worker('./workers/sherpa-onnx-streaming-asr.worker.js');
+      }
+    };
+
+    const session = new WorkerSession({
+      makeWorker,
+      revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
+      onFatalError: (message) => this.onError?.(message),
+      onMessage: (msg: StreamingAsrWorkerOutMessage) => {
+        switch (msg.type) {
+          case 'status':
+            this.onStatus?.(msg.message);
+            break;
+
+          case 'speech_start':
+            this.onSpeechStart?.();
+            break;
+
+          case 'partial':
+            this.onPartialResult?.(msg.text);
+            break;
+
+          case 'result':
+            this.onResult?.({
+              text: msg.text,
+              durationMs: msg.durationMs,
+              recognitionTimeMs: msg.recognitionTimeMs,
+            });
+            break;
+
+          case 'error':
+            // Post-ready error; pre-ready 'error' is handled by WorkerSession.
+            this.onError?.(msg.error);
+            break;
+        }
+      },
     });
+    this.session = session;
+
+    // Send init message based on worker type
+    const ready = workerType === 'voxtral-webgpu'
+      ? await session.start({
+          type: 'init',
+          fileUrls,
+          hfModelId: model.hfModelId,
+          language: options?.language,
+          vadConfig: options?.vadConfig,
+          dtype,
+          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        })
+      : await session.start({
+          type: 'init',
+          fileUrls,
+          asrEngine: model.asrEngine,
+          runtimeBaseUrl: new URL(ASR_STREAM_BUNDLED_RUNTIME_PATH, window.location.href).href,
+          dataPackageMetadata,
+        });
+
+    this.currentModel = model;
+    return { loadTimeMs: ready.loadTimeMs };
   }
 
   /**
@@ -212,10 +181,10 @@ export class StreamingAsrEngine {
    * @param sampleRate - Sample rate of the input audio (e.g. 24000)
    */
   feedAudio(samples: Int16Array, sampleRate: number): void {
-    if (!this.worker || !this.isReady) return;
+    if (!this.session?.ready) return;
 
     // Transfer the buffer for zero-copy performance
-    this.worker.postMessage(
+    this.session.post(
       { type: 'audio', samples, sampleRate },
       [samples.buffer]
     );
@@ -227,8 +196,8 @@ export class StreamingAsrEngine {
    * as a final result when the user releases the PTT key.
    */
   flush(): void {
-    if (!this.worker || !this.isReady) return;
-    this.worker.postMessage({ type: 'flush' });
+    if (!this.session?.ready) return;
+    this.session.post({ type: 'flush' });
   }
 
   /**
@@ -239,7 +208,7 @@ export class StreamingAsrEngine {
   }
 
   get ready(): boolean {
-    return this.isReady;
+    return this.session?.ready ?? false;
   }
 
   get model(): ModelManifestEntry | null {
@@ -247,12 +216,8 @@ export class StreamingAsrEngine {
   }
 
   dispose(): void {
-    if (this.worker) {
-      this.worker.postMessage({ type: 'dispose' });
-      this.worker.terminate();
-      this.worker = null;
-    }
-    this.isReady = false;
+    this.session?.dispose();
+    this.session = null;
     this.currentModel = null;
   }
 }
