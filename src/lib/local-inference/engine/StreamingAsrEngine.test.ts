@@ -99,4 +99,41 @@ describe('StreamingAsrEngine (characterization)', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
     expect(engine.ready).toBe(false);
   });
+
+  describe('sherpa-onnx streaming path (stream-en-kroko)', () => {
+    // Regression guard: the sherpa worker payload must be filtered (no
+    // package-metadata.json), but revokeBlobUrls must be called with the RAW
+    // map so package-metadata.json's object URL is not leaked. This is
+    // distinct from the voxtral-webgpu suite above, where raw == payload and
+    // this filtering distinction can't be observed.
+    beforeEach(() => {
+      vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({
+        'package-metadata.json': 'blob:meta',
+        'model.onnx': 'blob:m',
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ json: async () => ({}) }));
+    });
+    afterEach(() => { vi.unstubAllGlobals(); });
+
+    it('revokes the raw blob map, including package-metadata.json, on ready', async () => {
+      const engine = new StreamingAsrEngine();
+      const initP = engine.init('stream-en-kroko');
+      await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+      const worker = MockWorker.last();
+      await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+
+      // The worker payload must be filtered: no package-metadata.json.
+      const [initMessage] = worker.postMessage.mock.calls[0];
+      expect(initMessage.fileUrls).toEqual({ 'model.onnx': 'blob:m' });
+
+      worker.emit({ type: 'ready', loadTimeMs: 5 });
+      await expect(initP).resolves.toEqual({ loadTimeMs: 5 });
+
+      // revokeBlobUrls must receive the RAW map (package-metadata.json included).
+      expect(revokeSpy).toHaveBeenCalledTimes(1);
+      expect(revokeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ 'package-metadata.json': 'blob:meta', 'model.onnx': 'blob:m' }),
+      );
+    });
+  });
 });

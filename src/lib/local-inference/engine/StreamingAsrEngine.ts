@@ -66,7 +66,14 @@ export class StreamingAsrEngine {
     // Load model file blob URLs (and any worker-specific metadata) before
     // creating the worker, so the WorkerSession can be constructed
     // synchronously once everything it needs is in hand.
+    // `fileUrls` always holds the RAW/unfiltered blob-URL map for the model —
+    // it's what `revokeBlobs` below revokes, so every object URL we created
+    // must stay reachable through it (including package-metadata.json on the
+    // sherpa path, which is filtered OUT of the worker payload but must still
+    // be revoked). `dataFileUrls` (sherpa-only) holds the filtered payload
+    // actually sent to the worker.
     let fileUrls: Record<string, string>;
+    let dataFileUrls: Record<string, string> | undefined;
     let dtype: string | Record<string, string> | undefined;
     let dataPackageMetadata: Record<string, unknown> | undefined;
 
@@ -81,22 +88,21 @@ export class StreamingAsrEngine {
       if (!await manager.isModelReady(modelId)) {
         throw new Error(`Streaming ASR model "${modelId}" is not downloaded.`);
       }
-      const rawFileUrls = await manager.getModelBlobUrls(modelId);
+      fileUrls = await manager.getModelBlobUrls(modelId);
 
-      const metadataBlobUrl = rawFileUrls['package-metadata.json'];
+      const metadataBlobUrl = fileUrls['package-metadata.json'];
       if (!metadataBlobUrl) {
         throw new Error(`Missing package-metadata.json for streaming ASR model "${modelId}"`);
       }
       const metadataResponse = await fetch(metadataBlobUrl);
       dataPackageMetadata = await metadataResponse.json();
 
-      const dataFileUrls: Record<string, string> = {};
-      for (const [name, url] of Object.entries(rawFileUrls)) {
+      dataFileUrls = {};
+      for (const [name, url] of Object.entries(fileUrls)) {
         if (name !== 'package-metadata.json') {
           dataFileUrls[name] = url;
         }
       }
-      fileUrls = dataFileUrls;
     }
 
     // Create worker based on type
@@ -161,7 +167,7 @@ export class StreamingAsrEngine {
         })
       : await session.start({
           type: 'init',
-          fileUrls,
+          fileUrls: dataFileUrls,
           asrEngine: model.asrEngine,
           runtimeBaseUrl: new URL(ASR_STREAM_BUNDLED_RUNTIME_PATH, window.location.href).href,
           dataPackageMetadata,
