@@ -1,12 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-// Force every feature flag on so ALL descriptors register regardless of build env.
+// Force the remaining provider gates on — Kizuna/Palabra feature flags plus
+// Electron/Extension platform detection — so ALL descriptors register regardless
+// of build env. (Volcengine ST/AST2 and Zoom AI are now always-on, no flag.)
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
   isPalabraAIEnabled: () => true,
-  isVolcengineSTEnabled: () => true,
-  isVolcengineAST2Enabled: () => true,
-  isZoomAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
   getRelayWsUrl: () => 'wss://r.example/v1',

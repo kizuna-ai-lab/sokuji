@@ -13,7 +13,7 @@ import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isZoomAIEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -45,20 +45,17 @@ export class ProviderConfigFactory {
       ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
     }
 
-    // Only register Volcengine Speech Translate if the feature flag is enabled
-    if (isVolcengineSTEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
-    }
+    // Volcengine Speech Translate — always available (stable)
+    ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
 
-    // Register Volcengine AST 2.0 in Electron (IPC proxy) and Extension (declarativeNetRequest header injection)
-    if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
+    // Volcengine AST 2.0 — always available, but only in Electron (IPC proxy) and
+    // Extension (declarativeNetRequest header injection), which it technically requires
+    if (isElectron() || isExtension()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
 
-    // Only register Zoom AI Services if the feature flag is enabled
-    if (isZoomAIEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
-    }
+    // Zoom AI Services — always available (stable)
+    ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
   }
 
   /**
