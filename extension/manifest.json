@@ -46,7 +46,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://telemost.yandex.ru/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://teams.cloud.microsoft/*", "https://app.gather.town/*", "https://app.v2.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
+      "matches": ["https://meet.google.com/*", "https://telemost.yandex.ru/*", "https://telemost.yandex.com/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://teams.cloud.microsoft/*", "https://app.gather.town/*", "https://app.v2.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
       "js": ["platforms.generated.js", "content.js", "subtitle-overlay-content.js"],
       "run_at": "document_start"
     },
@@ -98,6 +98,7 @@
       "matches": [
         "https://meet.google.com/*",
         "https://telemost.yandex.ru/*",
+        "https://telemost.yandex.com/*",
         "https://teams.live.com/*",
         "https://teams.microsoft.com/*",
         "https://teams.cloud.microsoft/*",

@@ -13,7 +13,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 ## Supported Platforms
 
 - **Google Meet** (meet.google.com)
-- **Yandex Telemost** (telemost.yandex.ru)
+- **Yandex Telemost** (telemost.yandex.ru, telemost.yandex.com)
 - **Microsoft Teams** (teams.microsoft.com, teams.cloud.microsoft)
 - **Microsoft Teams Live** (teams.live.com)
 - **Zoom** (app.zoom.us)

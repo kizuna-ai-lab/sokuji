@@ -17,4 +17,8 @@ describe('platform icons', () => {
       expect(PLATFORM_HOSTNAMES, host).toContain(host);
     }
   });
+
+  it('reuses the Telemost icon across its regional domains', () => {
+    expect(PLATFORM_ICONS['telemost.yandex.ru']).toBe(PLATFORM_ICONS['telemost.yandex.com']);
+  });
 });
