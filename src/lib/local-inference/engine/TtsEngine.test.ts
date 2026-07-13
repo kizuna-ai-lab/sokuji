@@ -112,4 +112,46 @@ describe('TtsEngine (characterization)', () => {
     expect(onError).toHaveBeenCalledWith('tts load failed');
     expect(revokeSpy).toHaveBeenCalledTimes(1);
   });
+
+  // TtsEngine holds only one in-flight slot: `pendingGenerate`/`pendingStream`
+  // are single-entry fields, not queues. `generate()` and `generateStream()`
+  // both guard on them at the very top of the (async) method body — before
+  // any `await` — with `throw new Error('A generation request is already in
+  // progress')`. Because the method is `async`, that synchronous throw is
+  // wrapped into a rejected Promise rather than thrown to the caller
+  // directly, so callers observe it as a rejection. This is exactly the
+  // single-slot behavior the Task 10 refactor must preserve.
+  it('generate() rejects a second concurrent call while one is already pending', async () => {
+    const engine = new TtsEngine();
+    const worker = await initReady(engine);
+    worker.postMessage.mockClear();
+
+    const firstP = engine.generate('first', 0, 1.0); // left unsettled on purpose
+    await expect(engine.generate('second', 0, 1.0))
+      .rejects.toThrow('A generation request is already in progress');
+
+    // Only the first call reached the worker — the second was rejected
+    // before ever posting a message.
+    expect(worker.postMessage).toHaveBeenCalledTimes(1);
+
+    // Settle the still-pending first request so it doesn't leak into other tests.
+    worker.emit({ type: 'result', samples: new Float32Array(), sampleRate: 24000, generationTimeMs: 1 });
+    await expect(firstP).resolves.toEqual(expect.objectContaining({ sampleRate: 24000 }));
+  });
+
+  it('generateStream() rejects while a generate() call is already pending', async () => {
+    const engine = new TtsEngine();
+    const worker = await initReady(engine);
+
+    const pendingGenerateP = engine.generate('hi', 0, 1.0); // left unsettled on purpose
+    await expect(engine.generateStream('hi', 0, 1.0))
+      .rejects.toThrow('A generation request is already in progress');
+
+    // The guard fires before the decode-start handshake, so generateStream()
+    // never touches the worker or EdgeTtsConnection.
+    expect(worker.postMessage).not.toHaveBeenCalledWith({ type: 'decode-start' });
+
+    worker.emit({ type: 'result', samples: new Float32Array(), sampleRate: 24000, generationTimeMs: 1 });
+    await pendingGenerateP;
+  });
 });
