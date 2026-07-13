@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ModelManager } from '../lib/local-inference/ModelManager';
+import { ModelImportError } from '../lib/local-inference/modelImport';
 
 // Mock modelManifest functions
 const mockGetManifestEntry = vi.fn();
@@ -330,6 +332,61 @@ describe('ensureSelectionReady', () => {
 
     expect(result.corrections?.ttsModel).toBe('piper-ja');
     expect(result.ready).toBe(true);
+  });
+});
+
+describe('importModel', () => {
+  const mockImportModelFiles = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useModelStore.setState({ modelStatuses: {}, downloads: {}, downloadErrors: {}, modelVariants: {} });
+    vi.mocked(ModelManager.getInstance).mockReturnValue({
+      importModelFiles: mockImportModelFiles,
+    } as any);
+    mockEstimateStorageUsedBytes.mockResolvedValue(0);
+  });
+
+  const oneFile = () => [new File([new Uint8Array([1, 2, 3])], 'config.json')];
+
+  it('marks the model downloaded and records its variant on a successful import', async () => {
+    mockImportModelFiles.mockResolvedValue('q4f16');
+
+    await useModelStore.getState().importModel('voxtral-mini-4b-webgpu', oneFile());
+
+    const s = useModelStore.getState();
+    expect(s.modelStatuses['voxtral-mini-4b-webgpu']).toBe('downloaded');
+    expect(s.modelVariants['voxtral-mini-4b-webgpu']).toBe('q4f16');
+    expect(s.downloads['voxtral-mini-4b-webgpu']).toBeUndefined();
+    expect(s.downloadErrors['voxtral-mini-4b-webgpu']).toBeUndefined();
+  });
+
+  it('records an error with the missing-file list when the import is incomplete', async () => {
+    mockImportModelFiles.mockRejectedValue(new ModelImportError(['onnx/decoder.onnx_data']));
+
+    await expect(
+      useModelStore.getState().importModel('voxtral-mini-4b-webgpu', oneFile()),
+    ).rejects.toBeInstanceOf(ModelImportError);
+
+    const s = useModelStore.getState();
+    expect(s.modelStatuses['voxtral-mini-4b-webgpu']).toBe('error');
+    expect(s.downloadErrors['voxtral-mini-4b-webgpu']).toMatch(/onnx\/decoder\.onnx_data/);
+    expect(s.downloads['voxtral-mini-4b-webgpu']).toBeUndefined();
+  });
+
+  it('keeps the model downloaded even if the storage estimate fails afterward', async () => {
+    // The import itself succeeded and the files are persisted; a cosmetic
+    // storage-estimate failure must NOT flip the model into an error state.
+    mockImportModelFiles.mockResolvedValue('q4');
+    mockEstimateStorageUsedBytes.mockRejectedValue(new Error('estimate boom'));
+
+    await useModelStore.getState().importModel('voxtral-mini-4b-webgpu', oneFile());
+
+    const s = useModelStore.getState();
+    expect(s.modelStatuses['voxtral-mini-4b-webgpu']).toBe('downloaded');
+    expect(s.modelVariants['voxtral-mini-4b-webgpu']).toBe('q4');
+    expect(s.downloadErrors['voxtral-mini-4b-webgpu']).toBeUndefined();
+    expect(s.downloads['voxtral-mini-4b-webgpu']).toBeUndefined();
   });
 });
 

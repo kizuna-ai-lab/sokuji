@@ -1,0 +1,327 @@
+@use '../shared/variables' as vars;
+
+// Local semantic aliases so inline styles can reference them too.
+.import-modal-overlay {
+  --import-accent: #{vars.$color-primary};
+  --import-danger: #{vars.$color-error};
+
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+
+.import-modal {
+  width: 100%;
+  max-width: 580px;
+  background: vars.$bg-page;
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-lg;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  color: vars.$text-primary;
+  overflow: hidden;
+  animation: import-modal-in 0.16s ease-out;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 14px 16px;
+    border-bottom: 1px solid vars.$border-subtle;
+
+    &-icon { color: var(--import-accent); flex: none; }
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: vars.$weight-semibold;
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__sub { color: vars.$text-muted; font-weight: vars.$weight-normal; font-size: 12px; }
+
+  &__x {
+    background: none;
+    border: 0;
+    color: vars.$text-muted;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: vars.$radius-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+  }
+
+  &__body { padding: 2px 16px; max-height: 62vh; overflow-y: auto; }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &__msg {
+    flex: 1;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    min-width: 0;
+
+    &--err {
+      color: vars.$color-error;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+  }
+}
+
+@keyframes import-modal-in {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .import-modal { animation: none; } }
+
+// ── Steps ──────────────────────────────────────────────────
+.import-step {
+  padding: 15px 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &:last-child { border-bottom: 0; }
+
+  &__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+  &__n {
+    flex: none;
+    width: 19px;
+    height: 19px;
+    border: 1.5px solid var(--import-accent);
+    border-radius: 50%;
+    color: var(--import-accent);
+    font-size: 11px;
+    font-weight: vars.$weight-semibold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__title { font-size: vars.$font-body; font-weight: vars.$weight-semibold; }
+
+  &__count {
+    margin-left: auto;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    font-weight: vars.$weight-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    margin: -2px 0 10px 27px;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    line-height: 1.5;
+  }
+}
+
+// ── Command block ──────────────────────────────────────────
+.import-cmd {
+  margin-left: 27px;
+
+  &__repo {
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    margin-bottom: 8px;
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; color: vars.$text-secondary; }
+  }
+
+  &__tabs { display: flex; gap: 4px; }
+
+  &__tab {
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 5px 11px;
+    border-radius: vars.$radius-sm vars.$radius-sm 0 0;
+    background: transparent;
+    color: vars.$text-muted;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    &.is-active { background: #0f1113; color: vars.$text-primary; border-color: #2a2e34; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__term {
+    position: relative;
+    background: #0f1113;
+    border: 1px solid #2a2e34;
+    border-radius: 0 vars.$radius-md vars.$radius-md vars.$radius-md;
+    padding: 11px 12px;
+    overflow-x: auto;
+
+    pre {
+      margin: 0;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: #cdd3da;
+      white-space: pre;
+    }
+  }
+
+  &__copy {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    background: #1a1f26;
+    color: #aeb6c0;
+    border: 1px solid #2f353d;
+    border-radius: vars.$radius-sm;
+    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    &:hover { color: #fff; border-color: var(--import-accent); }
+  }
+}
+
+// ── Drop zone ──────────────────────────────────────────────
+.import-drop {
+  margin-left: 27px;
+  border: 1.5px dashed vars.$border-strong;
+  border-radius: vars.$radius-lg;
+  padding: 18px 16px;
+  text-align: center;
+  background: vars.$bg-surface;
+  transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+  &.is-over { border-color: var(--import-accent); background: rgba(vars.$color-primary, 0.1); }
+
+  &__icon { color: vars.$text-disabled; margin-bottom: 4px; }
+  &__lead { font-size: vars.$font-body; margin-bottom: 3px; font-weight: vars.$weight-medium; }
+  &__sub { font-size: 11.5px; color: vars.$text-disabled; margin-bottom: 12px; }
+  &__btns { display: flex; gap: 8px; justify-content: center; }
+}
+
+// ── Buttons ────────────────────────────────────────────────
+.import-btn {
+  font: inherit;
+  font-size: vars.$font-caption;
+  font-weight: vars.$weight-semibold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: vars.$radius-md;
+  border: 1px solid vars.$border-strong;
+  background: vars.$bg-control;
+  color: vars.$text-primary;
+  white-space: nowrap;
+  transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+  &:hover:not(:disabled) { border-color: var(--import-accent); }
+  &:focus-visible { @include vars.focus-ring; }
+  &:disabled { @include vars.disabled-state; }
+
+  &--sm { padding: 5px 9px; font-size: 11.5px; }
+
+  &--primary {
+    background: var(--import-accent);
+    border-color: var(--import-accent);
+    color: #fff;
+    &:hover:not(:disabled) { background: vars.$color-primary-hover; border-color: vars.$color-primary-hover; }
+    &:disabled { opacity: 0.45; }
+  }
+}
+
+.import-spin { animation: import-spin 0.8s linear infinite; }
+@keyframes import-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .import-spin { animation: none; } }
+
+// ── Progress meter + file list ─────────────────────────────
+.import-meter {
+  margin: 4px 0 12px 27px;
+  height: 6px;
+  background: vars.$bg-control;
+  border-radius: 999px;
+  overflow: hidden;
+
+  &__fill { height: 100%; border-radius: 999px; transition: width vars.$transition-normal; }
+}
+
+.import-files {
+  list-style: none;
+  margin: 0 0 0 27px;
+  padding: 0;
+
+  &__group + &__group { margin-top: 4px; }
+
+  &__grouphdr {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: vars.$text-disabled;
+    margin: 10px 0 5px 27px;
+  }
+}
+
+.import-file {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: vars.$radius-sm;
+  font-size: 12px;
+
+  & + & { margin-top: 1px; }
+
+  &__st { flex: none; width: 15px; display: inline-flex; align-items: center; justify-content: center; }
+
+  &__name {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__why { font-size: 10.5px; color: vars.$color-error; flex: none; }
+  &__tag { font-size: 10px; color: vars.$text-disabled; flex: none; }
+
+  &__size {
+    font-size: 10.5px;
+    color: vars.$text-disabled;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &--ok, &--stored { .import-file__st { color: var(--import-accent); } }
+  &--ok { background: rgba(vars.$color-primary, 0.12); }
+  &--missing .import-file__st { color: vars.$color-warning; }
+  &--invalid {
+    background: rgba(vars.$color-error, 0.12);
+    .import-file__st { color: vars.$color-error; }
+  }
+}
+
+@media (max-width: 560px) {
+  .import-cmd, .import-drop, .import-meter, .import-files { margin-left: 0; }
+  .import-step__hint, .import-files__grouphdr { margin-left: 0; }
+}
