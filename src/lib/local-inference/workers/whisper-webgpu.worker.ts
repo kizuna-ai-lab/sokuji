@@ -8,7 +8,7 @@
  * dual-threshold hysteresis, pre-speech padding, redemption grace period,
  * and minimum speech duration checks.
  *
- * Input messages:  WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage
+ * Input messages:  WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' }
  * Output messages: AsrWorkerOutMessage (ready, status, result, error, disposed)
  */
 
@@ -51,7 +51,7 @@ env.fetch = (input: any, init?: any) => {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type WorkerMessage = WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
+type WorkerMessage = WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' };
 
 function post(msg: AsrWorkerOutMessage) {
   self.postMessage(msg);
@@ -458,6 +458,27 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   }
 }
 
+/**
+ * Force-finalize any pending VAD speech segment (PTT / Push-to-Translate release).
+ * The trailing silence tail fed on release (~700ms) is shorter than the VAD
+ * redemption window (vadMinSilenceDuration, default 1.4s), so silence alone can't
+ * close the segment. Without this the current utterance stays buffered in the
+ * FrameProcessor until the next press feeds enough leading silence to complete
+ * the redemption window, surfacing the transcription one utterance late.
+ */
+async function handleFlush(): Promise<void> {
+  if (!frameProcessor?.speaking) return;
+  vadLog('FLUSH finalizing pending speech');
+  const endEvents: FrameProcessorEvent[] = [];
+  frameProcessor.endSegment((ev) => endEvents.push(ev));
+  for (const ev of endEvents) {
+    if (ev.msg === Message.SpeechEnd) {
+      await runWhisper(ev.audio, speechStartSample);
+    }
+  }
+  speechFramesSinceStart = 0;
+}
+
 async function handleDispose(): Promise<void> {
   // Flush any remaining speech via FrameProcessor
   if (frameProcessor?.speaking) {
@@ -504,6 +525,9 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       break;
     case 'audio':
       await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
+      break;
+    case 'flush':
+      await handleFlush();
       break;
     case 'dispose':
       await handleDispose();
