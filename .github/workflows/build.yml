@@ -70,6 +70,7 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
           # Additional variables only for releases
           VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
@@ -90,6 +91,7 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
 
       # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
       # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
@@ -126,6 +128,7 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
 
       - name: Build macOS PKG (electron-builder)
         if: runner.os == 'macOS'
@@ -147,6 +150,7 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
@@ -176,6 +180,7 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
 
       # Release-specific steps
       - name: Generate changelog

@@ -207,6 +207,17 @@ export function isPalabraAIEnabled(): boolean {
   return import.meta.env.VITE_ENABLE_PALABRA_AI === 'true';
 }
 
+/**
+ * Check if Local Native (Electron sidecar) provider should be enabled.
+ * Development: always true. Production: requires VITE_ENABLE_LOCAL_NATIVE === 'true'.
+ */
+export function isLocalNativeEnabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+  return import.meta.env.VITE_ENABLE_LOCAL_NATIVE === 'true';
+}
+
 // ============================================================================
 // Operating System Detection
 // ============================================================================
