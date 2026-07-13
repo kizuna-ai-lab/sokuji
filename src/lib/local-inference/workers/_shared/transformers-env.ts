@@ -19,10 +19,11 @@ export interface TransformersEnvInit {
 
 export interface TransformersEnvLike {
   backends?: { onnx?: { wasm?: { proxy?: boolean; wasmPaths?: string } } };
-  allowRemoteModels?: unknown;
-  allowLocalModels?: unknown;
-  useBrowserCache?: unknown;
-  useCustomCache?: unknown;
+  allowRemoteModels?: boolean;
+  allowLocalModels?: boolean;
+  useBrowserCache?: boolean;
+  useCustomCache?: boolean;
+  // The blob-URL cache object; left untyped to avoid coupling to transformers.js.
   customCache?: unknown;
 }
 

@@ -31,7 +31,7 @@ describe('worker harness consolidation', () => {
     const src = read(name);
     expect(src, `${name} still defines a local createBlobUrlCache`).not.toMatch(/function\s+createBlobUrlCache/);
     expect(src, `${name} still hand-sets env.customCache`).not.toMatch(/env\.customCache\s*=\s*createBlobUrlCache/);
-    expect(src, `${name} does not import initTransformersEnv`).toContain("from './_shared/transformers-env'");
+    expect(src, `${name} does not import initTransformersEnv`).toMatch(/from\s+['"]\.\/_shared\/transformers-env['"]/);
     expect(src, `${name} does not call initTransformersEnv`).toMatch(/initTransformersEnv\(/);
   });
 });
@@ -51,5 +51,19 @@ describe('ASR worker ortEnv wasmPaths', () => {
   it.each(ASR_WORKERS)('%s still sets ortEnv.wasm.wasmPaths', (name) => {
     const src = read(name);
     expect(src, `${name} no longer assigns ortEnv.wasm.wasmPaths`).toMatch(/ortEnv\.wasm\.wasmPaths\s*=/);
+  });
+
+  // The assignment must run BEFORE the VAD InferenceSession is created — that
+  // ordering is the whole reason it's kept out of initTransformersEnv. Presence
+  // alone wouldn't catch a regression that moves it after the initVad() call.
+  // Anchor on the call site (`await initVad(`), not the top-level `async function
+  // initVad(` definition.
+  it.each(ASR_WORKERS)('%s sets ortEnv.wasm.wasmPaths before the initVad() call', (name) => {
+    const src = read(name);
+    const assignIdx = src.search(/ortEnv\.wasm\.wasmPaths\s*=/);
+    const vadCallIdx = src.indexOf('await initVad(');
+    expect(assignIdx, `${name}: ortEnv.wasm.wasmPaths assignment not found`).toBeGreaterThanOrEqual(0);
+    expect(vadCallIdx, `${name}: 'await initVad(' call anchor not found`).toBeGreaterThanOrEqual(0);
+    expect(assignIdx, `${name}: ortEnv.wasm.wasmPaths must be set before the initVad() call`).toBeLessThan(vadCallIdx);
   });
 });

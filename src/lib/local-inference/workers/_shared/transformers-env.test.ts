@@ -4,10 +4,10 @@ import { initTransformersEnv } from './transformers-env';
 function fakeEnv(withWasm = true) {
   return {
     backends: withWasm ? { onnx: { wasm: {} as Record<string, unknown> } } : {},
-    allowRemoteModels: undefined as unknown,
-    allowLocalModels: undefined as unknown,
-    useBrowserCache: undefined as unknown,
-    useCustomCache: undefined as unknown,
+    allowRemoteModels: undefined as boolean | undefined,
+    allowLocalModels: undefined as boolean | undefined,
+    useBrowserCache: undefined as boolean | undefined,
+    useCustomCache: undefined as boolean | undefined,
     customCache: undefined as unknown,
   };
 }
