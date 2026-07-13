@@ -20,6 +20,7 @@ import {
   type ProgressInfo,
 } from './_shared/transformers-all';
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
+import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 
@@ -31,10 +32,6 @@ import type {
 } from '../types';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
-
-if (env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = false;
-}
 
 // Workaround: HF CDN Range request cache pollution
 const _origFetch = env.fetch;
@@ -150,28 +147,6 @@ let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
 let processingVad = false;
 let currentTranscriptionPromise: Promise<void> | null = null;
-
-/**
- * Create customCache bridge for IndexedDB blob URLs → Transformers.js.
- * Maps HF Hub resolve URLs to local blob URLs from IndexedDB.
- */
-function createBlobUrlCache(fileUrls: Record<string, string>) {
-  return {
-    async match(request: string | Request | undefined): Promise<Response | undefined> {
-      if (!request) return undefined;
-      const url = typeof request === 'string' ? request : request.url;
-      const marker = '/resolve/main/';
-      const idx = url.indexOf(marker);
-      if (idx === -1) return undefined;
-      const filename = url.slice(idx + marker.length);
-      const blobUrl = fileUrls[filename];
-      if (!blobUrl) return undefined;
-      return fetch(blobUrl);
-    },
-    async put(_request: string | Request, _response: Response): Promise<void> {
-    },
-  };
-}
 
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
@@ -304,14 +279,10 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
 
     const startTime = performance.now();
 
-    // Set ORT WASM paths
-    if (msg.ortWasmBaseUrl) {
-      if (env.backends?.onnx?.wasm) {
-        env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
-      if (ortEnv?.wasm) {
-        ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
+    // ortEnv wasmPaths must be set before initVad's InferenceSession; the
+    // transformers env is configured later via initTransformersEnv.
+    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
     // 1. Init VAD
@@ -319,11 +290,7 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
     await initVad(msg.vadConfig, msg.vadModelUrl);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+    initTransformersEnv(env, msg);
 
     // 3. Load Cohere Transcribe pipeline
     post({ type: 'status', message: 'Loading Cohere Transcribe model (WebGPU)...' });

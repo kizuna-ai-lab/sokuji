@@ -25,6 +25,7 @@ import {
   type ProgressInfo,
 } from './_shared/transformers-all';
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
+import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 
@@ -36,10 +37,6 @@ import type {
 } from '../types';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
-
-if (env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = false;
-}
 
 // Workaround: HF CDN Range request cache pollution (same as Voxtral 4B / Cohere workers)
 const _origFetch = env.fetch;
@@ -164,29 +161,6 @@ function normalizeToIso639_1(lang: string | undefined): string {
   if (!lang) return '';
   // Strip region suffix: 'en-US' → 'en', 'zh_Hans' → 'zh'
   return lang.trim().toLowerCase().split(/[-_]/)[0];
-}
-
-/**
- * Create customCache bridge for IndexedDB blob URLs → Transformers.js.
- * Maps HF Hub resolve URLs to local blob URLs from IndexedDB.
- * Same pattern as whisper-webgpu, voxtral-webgpu, and cohere-transcribe-webgpu workers.
- */
-function createBlobUrlCache(fileUrls: Record<string, string>) {
-  return {
-    async match(request: string | Request | undefined): Promise<Response | undefined> {
-      if (!request) return undefined;
-      const url = typeof request === 'string' ? request : request.url;
-      const marker = '/resolve/main/';
-      const idx = url.indexOf(marker);
-      if (idx === -1) return undefined;
-      const filename = url.slice(idx + marker.length);
-      const blobUrl = fileUrls[filename];
-      if (!blobUrl) return undefined;
-      return fetch(blobUrl);
-    },
-    async put(_request: string | Request, _response: Response): Promise<void> {
-    },
-  };
 }
 
 // ─── Batch Speech Segment Processing ────────────────────────────────────────
@@ -357,14 +331,10 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // Set ORT WASM paths
-    if (msg.ortWasmBaseUrl) {
-      if (env.backends?.onnx?.wasm) {
-        env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
-      if (ortEnv?.wasm) {
-        ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      }
+    // ortEnv wasmPaths must be set before initVad's InferenceSession; the
+    // transformers env is configured later via initTransformersEnv.
+    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
     // 1. Init VAD
@@ -372,11 +342,7 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
     await initVad(msg.vadConfig, msg.vadModelUrl);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+    initTransformersEnv(env, msg);
 
     // 3. Load processor
     post({ type: 'status', message: 'Loading Voxtral 3B processor...' });
