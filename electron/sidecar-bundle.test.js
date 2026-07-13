@@ -320,6 +320,51 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
     expect(stagedBytes(u, 'mac', '9.9.9')).toBe(0);          // staging cleaned
   });
 
+  it('waits for extracted files to close before promoting the bundle', async () => {
+    const fsMod = req('fs');
+    const realCreateWriteStream = fsMod.createWriteStream;
+    const realRenameSync = fsMod.renameSync;
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
+    const sku = 'mac';
+    const version = '9.9.9';
+    const name = archiveName(sku, version);
+    const dest = path.join(u, 'sidecar', sku);
+    const tmpDir = `${dest}.tmp`;
+    const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }]);
+    let openExtractedFiles = 0;
+
+    fsMod.createWriteStream = (file, options) => {
+      const ws = realCreateWriteStream(file, options);
+      if (path.resolve(file).startsWith(`${path.resolve(tmpDir)}${path.sep}`)) {
+        ws.once('finish', () => { openExtractedFiles += 1; });
+        ws.once('close', () => { openExtractedFiles -= 1; });
+      }
+      return ws;
+    };
+    fsMod.renameSync = (from, to) => {
+      if (path.resolve(from) === path.resolve(tmpDir) &&
+          path.resolve(to) === path.resolve(dest) && openExtractedFiles > 0) {
+        const error = new Error('simulated Windows EPERM: extracted file handle still open');
+        error.code = 'EPERM';
+        throw error;
+      }
+      return realRenameSync(from, to);
+    };
+
+    try {
+      await expect(installBundle({
+        sku, version, userDataDir: u,
+        fetchImpl: fetchFor(manifest, { [name]: fixture }),
+        statfs: bigStatfs, env: {},
+      })).resolves.toEqual({ version });
+    } finally {
+      fsMod.createWriteStream = realCreateWriteStream;
+      fsMod.renameSync = realRenameSync;
+    }
+
+    expect(readFileSync(path.join(dest, 'app', 'hi.txt'), 'utf8')).toBe('hi');
+  });
+
   it('multi part: reassembles, verifies the whole archive, installs', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
     const name = archiveName('mac', '9.9.9');
