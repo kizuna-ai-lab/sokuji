@@ -13,7 +13,7 @@ import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -41,8 +41,10 @@ export class ProviderConfigFactory {
     // Only register OpenAI Compatible provider in Electron environment
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
-      // Native (Electron sidecar) local inference — Electron only
-      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
+      // Native (Electron sidecar) local inference — Electron only, behind feature flag
+      if (isLocalNativeEnabled()) {
+        ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
+      }
     }
 
     // Volcengine Speech Translate — always available (stable)
