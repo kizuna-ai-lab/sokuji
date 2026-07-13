@@ -111,11 +111,13 @@ function extractTarZst(archivePath, destDir) {
     // `extract` transform and/or the archive read stream open — a file descriptor
     // leak on every failed install attempt.
     let failed = false;
+    let activeWriteStream = null;
     const fail = (err) => {
       if (failed) return;
       failed = true;
       try { rs.destroy(); } catch {}
       try { extract.destroy(); } catch {}
+      try { activeWriteStream?.destroy(); } catch {}
       reject(err);
     };
 
@@ -138,9 +140,11 @@ function extractTarZst(archivePath, destDir) {
       }
       fs.mkdirSync(path.dirname(target), { recursive: true });
       const ws = fs.createWriteStream(target, { mode: header.mode || 0o644 });
+      activeWriteStream = ws;
       stream.on('error', fail);
       ws.on('error', fail);
       ws.once('close', () => {
+        if (activeWriteStream === ws) activeWriteStream = null;
         if (!failed) next();
       });
       stream.pipe(ws);

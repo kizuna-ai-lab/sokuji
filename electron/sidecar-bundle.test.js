@@ -69,6 +69,29 @@ describe('extractTarZst', () => {
     const fixture = path.join(__dirname, '__fixtures__', 'bundle-symlink.tar.zst');
     await expect(extractTarZst(fixture, out)).rejects.toThrow(/link member/);
   });
+
+  it('destroys the active output stream when extraction fails', async () => {
+    const fsMod = req('fs');
+    const realCreateWriteStream = fsMod.createWriteStream;
+    let destroySpy;
+
+    fsMod.createWriteStream = (file, options) => {
+      const ws = realCreateWriteStream(file, options);
+      destroySpy = vi.spyOn(ws, 'destroy');
+      queueMicrotask(() => ws.emit('error', new Error('simulated write failure')));
+      return ws;
+    };
+
+    try {
+      const out = mkdtempSync(path.join(tmpdir(), 'sb-write-error-'));
+      const fixture = path.join(__dirname, '__fixtures__', 'bundle-sample.tar.zst');
+      await expect(extractTarZst(fixture, out)).rejects.toThrow('simulated write failure');
+    } finally {
+      fsMod.createWriteStream = realCreateWriteStream;
+    }
+
+    expect(destroySpy).toHaveBeenCalled();
+  });
 });
 
 describe('installBundle rollback', () => {
