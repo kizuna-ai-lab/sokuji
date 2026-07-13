@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { PLATFORMS, PLATFORM_HOSTNAMES, platformsByProfile } from './platforms';
 
 describe('platform registry', () => {
-  it('has the 11 canonical platforms with unique hostnames', () => {
-    expect(PLATFORMS).toHaveLength(11);
-    expect(new Set(PLATFORM_HOSTNAMES).size).toBe(11);
+  it('has the 12 canonical platforms with unique hostnames', () => {
+    expect(PLATFORMS).toHaveLength(12);
+    expect(new Set(PLATFORM_HOSTNAMES).size).toBe(12);
   });
 
   it('every match pattern is https://<hostname>/*', () => {
@@ -32,9 +32,16 @@ describe('platform registry', () => {
     expect(PLATFORM_HOSTNAMES).not.toContain('slack.com');
   });
 
+  it('registers Yandex Telemost with the standard content profile', () => {
+    expect(PLATFORMS).toContainEqual(expect.objectContaining({
+      hostname: 'telemost.yandex.ru',
+      contentProfile: 'standard',
+    }));
+  });
+
   it('partitions cleanly by content profile', () => {
     expect(platformsByProfile('zoom').map(p => p.hostname)).toEqual(['app.zoom.us']);
     expect(platformsByProfile('jitsi').map(p => p.hostname)).toEqual(['meet.jit.si']);
-    expect(platformsByProfile('standard')).toHaveLength(9);
+    expect(platformsByProfile('standard')).toHaveLength(10);
   });
 });

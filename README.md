@@ -78,7 +78,7 @@ Sokuji is available as a **Desktop App** and a **Browser Extension** — same fe
 | | Desktop App | Browser Extension |
 |---|---|---|
 | **Features** | All features identical | All features identical |
-| **Use with** | Any app with mic input — Zoom, Teams, Discord, Slack, games, OBS, and more | Web-based meeting platforms — Google Meet, Teams, Zoom, Discord, Slack, Gather.town, Whereby, Jitsi Meet |
+| **Use with** | Any app with mic input — Zoom, Teams, Discord, Slack, games, OBS, and more | Web-based meeting platforms — Google Meet, Teams, Zoom, Yandex Telemost, Discord, Slack, Gather.town, Whereby, Jitsi Meet |
 | **Install** | Download & install | Zero install — add from store |
 | **Platforms** | Windows · macOS · Linux | Chrome · Edge · Brave (coming soon) |
 
