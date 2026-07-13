@@ -383,7 +383,7 @@ function generateSitesList() {
       if (renderedGroups.has(info.group)) return '';
       renderedGroups.add(info.group);
       const group = SITE_GROUPS[info.group];
-      const tooltipText = `Microsoft Teams\n${group.sites.map(s => s.domain).join('\n')}`;
+      const tooltipText = `${group.shortName}\n${group.sites.map(s => s.domain).join('\n')}`;
       const pills = group.sites.map(s =>
         `<span class="site-group-pill" data-url="${s.domain}" title="${s.domain}">${s.label}</span>`
       ).join('');

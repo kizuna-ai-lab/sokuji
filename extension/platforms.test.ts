@@ -23,8 +23,9 @@ describe('platform registry', () => {
   it('grouped entries share a groupLabel and a consistent group key', () => {
     const grouped = PLATFORMS.filter(p => p.group);
     for (const p of grouped) expect(p.groupLabel, p.hostname).toBeTruthy();
-    // teams is the only group today: 3 members
+    // two groups today: teams (3 members) and telemost (2 members)
     expect(grouped.filter(p => p.group === 'teams')).toHaveLength(3);
+    expect(grouped.filter(p => p.group === 'telemost')).toHaveLength(2);
   });
 
   it('uses app.slack.com (not slack.com) as the canonical Slack host', () => {
@@ -32,11 +33,12 @@ describe('platform registry', () => {
     expect(PLATFORM_HOSTNAMES).not.toContain('slack.com');
   });
 
-  it('registers both Yandex Telemost domains with the standard content profile', () => {
+  it('groups both Yandex Telemost domains under the telemost group (standard profile)', () => {
     for (const hostname of ['telemost.yandex.ru', 'telemost.yandex.com']) {
       expect(PLATFORMS).toContainEqual(expect.objectContaining({
         hostname,
         contentProfile: 'standard',
+        group: 'telemost',
       }));
     }
   });

@@ -15,14 +15,19 @@ describe('derived popup structures match the pre-registry hand-written values', 
     expect(info['teams.live.com'].group).toBe('teams');
   });
 
-  it('SITE_GROUPS builds the teams card with Free/Work/M365 sub-labels', () => {
+  it('SITE_GROUPS builds the teams and telemost cards with sub-labels', () => {
     const groups = deriveSiteGroups();
-    expect(Object.keys(groups)).toEqual(['teams']);
+    expect(Object.keys(groups)).toEqual(['teams', 'telemost']);
     expect(groups.teams.shortName).toBe('Teams');
     expect(groups.teams.sites).toEqual([
       { domain: 'teams.live.com', label: 'Free' },
       { domain: 'teams.microsoft.com', label: 'Work' },
       { domain: 'teams.cloud.microsoft', label: 'M365' },
+    ]);
+    expect(groups.telemost.shortName).toBe('Telemost');
+    expect(groups.telemost.sites).toEqual([
+      { domain: 'telemost.yandex.ru', label: 'Russia' },
+      { domain: 'telemost.yandex.com', label: 'International' },
     ]);
   });
 });
