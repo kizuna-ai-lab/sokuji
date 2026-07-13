@@ -61,7 +61,8 @@ describe('WorkerSession', () => {
   it('routes non-handshake messages to onMessage (including post-ready errors), no re-revoke', async () => {
     const onMessage = vi.fn();
     const revokeBlobs = vi.fn();
-    const { worker, session } = makeSession({ onMessage, revokeBlobs });
+    const onFatalError = vi.fn();
+    const { worker, session } = makeSession({ onMessage, revokeBlobs, onFatalError });
     const p = session.start({ type: 'init' });
     worker.emit({ type: 'status', message: 'loading' });   // pre-ready status → routed
     worker.emit({ type: 'ready', loadTimeMs: 1 });
@@ -72,6 +73,7 @@ describe('WorkerSession', () => {
     expect(onMessage).toHaveBeenCalledWith({ type: 'result', text: 'hi' });
     expect(onMessage).toHaveBeenCalledWith({ type: 'error', id: 'r1', error: 'req failed' });
     expect(revokeBlobs).toHaveBeenCalledTimes(1); // only the ready settle revoked
+    expect(onFatalError).not.toHaveBeenCalled(); // post-ready 'error' messages route to onMessage, not onFatalError
   });
 
   it('post-ready onerror fires onFatalError but does not reject/re-revoke', async () => {

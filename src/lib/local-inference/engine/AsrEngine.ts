@@ -81,6 +81,39 @@ export class AsrEngine {
       throw new Error('Cohere Transcribe requires a source language');
     }
 
+    // sherpa-onnx: extract metadata and pass .data blob URL. This runs BEFORE
+    // `new WorkerSession(...)` (below) so the metadata fetch — which can fail
+    // or overlap with a worker error — completes before the session's
+    // resolve/reject handlers exist; those are only bound inside
+    // `session.start()`. If the worker were constructed first and this fetch
+    // awaited afterward, a worker onerror/pre-ready 'error' firing during the
+    // fetch would settle the session with no reject handler attached yet,
+    // and the eventual `session.start(...)` call would hang forever.
+    let dataFileUrls: Record<string, string> | undefined;
+    let dataPackageMetadata: Record<string, unknown> | undefined;
+    if (workerType === 'sherpa-onnx') {
+      const metadataBlobUrl = fileUrls['package-metadata.json'];
+      if (!metadataBlobUrl) {
+        manager.revokeBlobUrls(fileUrls);
+        throw new Error(`Missing package-metadata.json for ASR model "${modelId}"`);
+      }
+
+      try {
+        const response = await fetch(metadataBlobUrl);
+        dataPackageMetadata = await response.json();
+      } catch (err: any) {
+        manager.revokeBlobUrls(fileUrls);
+        throw new Error(`Failed to read package metadata: ${err.message}`);
+      }
+
+      dataFileUrls = {};
+      for (const [name, url] of Object.entries(fileUrls)) {
+        if (name !== 'package-metadata.json') {
+          dataFileUrls[name] = url;
+        }
+      }
+    }
+
     // Create worker based on type
     const makeWorker = (): Worker => {
       switch (workerType) {
@@ -147,7 +180,9 @@ export class AsrEngine {
     });
     this.session = session;
 
-    // Send init message — format depends on worker type
+    // Send init message — format depends on worker type. No `await` sits
+    // between `new WorkerSession(...)` above and any `session.start(...)`
+    // call below, on any path.
     let ready: { loadTimeMs: number };
     if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu') {
       ready = await session.start({
@@ -174,29 +209,8 @@ export class AsrEngine {
         vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
       });
     } else {
-      // sherpa-onnx: extract metadata and pass .data blob URL
-      const metadataBlobUrl = fileUrls['package-metadata.json'];
-      if (!metadataBlobUrl) {
-        manager.revokeBlobUrls(fileUrls);
-        throw new Error(`Missing package-metadata.json for ASR model "${modelId}"`);
-      }
-
-      let dataPackageMetadata: Record<string, unknown>;
-      try {
-        const response = await fetch(metadataBlobUrl);
-        dataPackageMetadata = await response.json();
-      } catch (err: any) {
-        manager.revokeBlobUrls(fileUrls);
-        throw new Error(`Failed to read package metadata: ${err.message}`);
-      }
-
-      const dataFileUrls: Record<string, string> = {};
-      for (const [name, url] of Object.entries(fileUrls)) {
-        if (name !== 'package-metadata.json') {
-          dataFileUrls[name] = url;
-        }
-      }
-
+      // sherpa-onnx: dataFileUrls/dataPackageMetadata were loaded above,
+      // before the WorkerSession was constructed.
       ready = await session.start({
         type: 'init',
         fileUrls: dataFileUrls,
