@@ -14,6 +14,13 @@ import {
 } from './modelManifest';
 import * as storage from './modelStorage';
 import { getDeviceFeatures } from '../../utils/webgpu';
+import {
+  DownloadTimeoutError,
+  fetchWithConnectTimeout,
+  readStreamToBlob,
+  retryWithBackoff,
+} from './downloadRetry';
+import { validateModelFile, ModelFileValidationError } from './modelFileValidation';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,6 +33,32 @@ export interface DownloadProgress {
 }
 
 type ProgressCallback = (progress: DownloadProgress) => void;
+/** Timeout/retry tuning for a download. Defaults below; overridable (mainly for tests). */
+export interface DownloadTuning {
+  /** Abort a file's fetch if response headers don't arrive within this many ms. */
+  connectTimeoutMs: number;
+  /** Abort a file's stream if no chunk arrives for this many ms. */
+  stallTimeoutMs: number;
+  /** Total attempts per file (first try + retries). */
+  attempts: number;
+  /** Backoff before each retry; last value repeats. */
+  backoffsMs: number[];
+}
+
+const DEFAULT_DOWNLOAD_TUNING: DownloadTuning = {
+  connectTimeoutMs: 30_000,
+  stallTimeoutMs: 60_000,
+  attempts: 3,
+  backoffsMs: [2_000, 5_000],
+};
+
+/** User-facing message when a download times out after retries (the CDN is unreachable). */
+const DOWNLOAD_TIMEOUT_MESSAGE =
+  'Network timeout reaching the model download server (it may be blocked on your network). '
+  + 'You can retry, or import the model manually.';
+
+const percent = (done: number, total: number): number =>
+  total > 0 ? Math.round((done / total) * 100) : 0;
 
 // ─── Singleton ───────────────────────────────────────────────────────────────
 
@@ -54,7 +87,9 @@ export class ModelManager {
   async downloadModel(
     modelId: string,
     onProgress?: ProgressCallback,
+    tuning?: Partial<DownloadTuning>,
   ): Promise<string> {
+    const cfg: DownloadTuning = { ...DEFAULT_DOWNLOAD_TUNING, ...tuning };
     const entry = getManifestEntry(modelId);
     if (!entry) throw new Error(`Unknown model: ${modelId}`);
 
@@ -99,78 +134,35 @@ export class ModelManager {
             downloadedBytes,
             totalBytes,
             currentFile: file.filename,
-            percent: Math.round((downloadedBytes / totalBytes) * 100),
+            percent: percent(downloadedBytes, totalBytes),
           });
           continue;
         }
 
-        // Fetch with streaming progress
+        // Fetch + stream + validate, retried per file. Connect and stall
+        // timeouts turn a black-holed CDN into a typed error instead of an
+        // infinite hang; the retry rides out transient network failures.
         const url = getModelDownloadUrl(entry, file.filename);
-        const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ${file.filename}: ${response.status}`);
-        }
-
-        const blob = await this.streamResponseToBlob(
-          response,
-          file.sizeBytes,
-          controller.signal,
-          (fileDownloaded) => {
+        const blob = await retryWithBackoff(
+          () => this.fetchFileBlob(url, file, controller.signal, cfg, (fileDownloaded) => {
             onProgress?.({
               modelId,
               downloadedBytes: downloadedBytes + fileDownloaded,
               totalBytes,
               currentFile: file.filename,
-              percent: Math.round(((downloadedBytes + fileDownloaded) / totalBytes) * 100),
+              percent: percent(downloadedBytes + fileDownloaded, totalBytes),
             });
+          }),
+          {
+            attempts: cfg.attempts,
+            backoffsMs: cfg.backoffsMs,
+            // Retry network/timeout failures, but not user cancels or content
+            // validation errors (those won't fix themselves on retry).
+            shouldRetry: (err) =>
+              (err as { name?: string })?.name !== 'AbortError'
+              && !(err instanceof ModelFileValidationError),
           },
         );
-
-        // Validate downloaded content before storing
-        const ext = file.filename.split('.').pop()?.toLowerCase();
-        const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-
-        // 1. HTML check — any file type could get a 404/error HTML page from CDN
-        if (header[0] === 0x3C) { // '<' = HTML
-          throw new Error(
-            `Invalid file ${file.filename}: received HTML instead of expected content (likely 404 or CDN error)`
-          );
-        }
-
-        // 2. Size check for files with known sizes (sizeBytes > 0 in manifest)
-        if (file.sizeBytes > 0
-            && Math.abs(blob.size - file.sizeBytes) / file.sizeBytes > 0.2) {
-          throw new Error(
-            `Size mismatch for ${file.filename}: expected ~${file.sizeBytes} bytes, got ${blob.size} bytes`
-          );
-        }
-
-        // 3. WASM magic number check
-        if (ext === 'wasm'
-            && !(header[0] === 0x00 && header[1] === 0x61 && header[2] === 0x73 && header[3] === 0x6D)) {
-          throw new Error(
-            `Invalid WASM file ${file.filename}: missing WASM magic number`
-          );
-        }
-
-        // 4. ONNX magic check — protobuf field 1 begins with 0x08
-        if (ext === 'onnx' && header[0] !== 0x08) {
-          throw new Error(
-            `Invalid ONNX file ${file.filename}: missing protobuf prefix`
-          );
-        }
-
-        // 5. JSON structure check — must be parseable JSON
-        if (ext === 'json') {
-          try {
-            const text = await blob.text();
-            JSON.parse(text);
-          } catch {
-            throw new Error(
-              `Invalid JSON file ${file.filename}: content is not valid JSON`
-            );
-          }
-        }
 
         await storage.storeFile(modelId, file.filename, blob);
         downloadedBytes += file.sizeBytes;
@@ -188,8 +180,8 @@ export class ModelManager {
 
       return variantKey;
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        // Cancelled — leave partial files for resume
+      if (err?.name === 'AbortError') {
+        // Cancelled — leave partial files for resume, don't mark errored.
         throw err;
       }
       // Mark error
@@ -201,10 +193,53 @@ export class ModelManager {
         version: '1',
         variant: variantKey,
       });
+      // Surface a friendly, actionable message for the unreachable-CDN case.
+      if (err instanceof DownloadTimeoutError) {
+        throw new Error(DOWNLOAD_TIMEOUT_MESSAGE);
+      }
       throw err;
     } finally {
       this.activeDownloads.delete(modelId);
     }
+  }
+
+  /**
+   * Fetch one file into a validated Blob: connect-timeout guarded fetch,
+   * stall-guarded streaming, then content validation. Thrown as a unit so
+   * {@link retryWithBackoff} can retry the whole fetch→stream→validate step.
+   */
+  private async fetchFileBlob(
+    url: string,
+    file: ModelFileEntry,
+    signal: AbortSignal,
+    cfg: DownloadTuning,
+    onFileProgress: (downloaded: number) => void,
+  ): Promise<Blob> {
+    const response = await fetchWithConnectTimeout(url, {
+      timeoutMs: cfg.connectTimeoutMs,
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${file.filename}: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    let blob: Blob;
+    if (!reader) {
+      // Fallback: no streaming support
+      blob = await response.blob();
+      onFileProgress(blob.size);
+    } else {
+      blob = await readStreamToBlob(reader, {
+        stallTimeoutMs: cfg.stallTimeoutMs,
+        signal,
+        onProgress: onFileProgress,
+      });
+    }
+
+    // Validate downloaded content before storing (shared with the import path).
+    await validateModelFile(file.filename, blob, file.sizeBytes);
+    return blob;
   }
 
   /** Cancel an in-progress download */
@@ -304,42 +339,5 @@ export class ModelManager {
     if (filename.endsWith('.wasm')) return 'application/wasm';
     if (filename.endsWith('.json')) return 'application/json';
     return 'application/octet-stream';
-  }
-
-  /**
-   * Stream a fetch response into a Blob with byte-level progress.
-   */
-  private async streamResponseToBlob(
-    response: Response,
-    _expectedSize: number,
-    signal: AbortSignal,
-    onFileProgress: (downloaded: number) => void,
-  ): Promise<Blob> {
-    const reader = response.body?.getReader();
-    if (!reader) {
-      // Fallback: no streaming support
-      const blob = await response.blob();
-      onFileProgress(blob.size);
-      return blob;
-    }
-
-    const chunks: BlobPart[] = [];
-    let downloaded = 0;
-
-    while (true) {
-      if (signal.aborted) {
-        reader.cancel();
-        throw new DOMException('Download cancelled', 'AbortError');
-      }
-
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      chunks.push(value);
-      downloaded += value.byteLength;
-      onFileProgress(downloaded);
-    }
-
-    return new Blob(chunks);
   }
 }
