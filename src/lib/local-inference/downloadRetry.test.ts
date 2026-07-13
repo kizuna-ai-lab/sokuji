@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   DownloadTimeoutError,
   retryWithBackoff,
@@ -161,5 +161,25 @@ describe('readStreamToBlob', () => {
     await expect(
       readStreamToBlob(reader, { stallTimeoutMs: 1000, signal: controller.signal }),
     ).rejects.toHaveProperty('name', 'AbortError');
+  });
+
+  it('registers at most one abort listener regardless of chunk count', async () => {
+    // A large download reads thousands of chunks; the abort listener must be
+    // registered ONCE for the whole stream and cleaned up on completion — not
+    // once per chunk (a {once:true} listener is only auto-removed if it fires,
+    // so per-chunk registration leaks a listener per chunk).
+    const reader = fakeReader(Array.from({ length: 6 }, (_, k) => new Uint8Array([k])));
+    let added = 0;
+    let removed = 0;
+    const signal = {
+      aborted: false,
+      addEventListener: (type: string) => { if (type === 'abort') added++; },
+      removeEventListener: (type: string) => { if (type === 'abort') removed++; },
+    } as unknown as AbortSignal;
+
+    await readStreamToBlob(reader, { stallTimeoutMs: 1000, signal });
+
+    expect(added).toBeLessThanOrEqual(1);
+    expect(added - removed).toBe(0);
   });
 });

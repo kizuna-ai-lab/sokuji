@@ -356,6 +356,7 @@
   &__actions {
     display: flex;
     align-items: center;
+    gap: 6px;
   }
 
   &__btn {
@@ -380,6 +381,17 @@
 
       &:hover:not(:disabled) {
         background: vars.$color-primary-hover;
+      }
+    }
+
+    &--import {
+      background: transparent;
+      color: vars.$text-secondary;
+      border: 1px solid vars.$border-strong;
+
+      &:hover:not(:disabled) {
+        border-color: vars.$color-primary;
+        color: vars.$text-primary;
       }
     }
 

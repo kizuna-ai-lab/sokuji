@@ -21,6 +21,7 @@ import {
   retryWithBackoff,
 } from './downloadRetry';
 import { validateModelFile, ModelFileValidationError } from './modelFileValidation';
+import { matchImportedFiles, ModelImportError } from './modelImport';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,23 @@ export interface DownloadProgress {
 }
 
 type ProgressCallback = (progress: DownloadProgress) => void;
+
+/** Progress for a manual import (files written so far). */
+export interface ImportProgress {
+  currentFile: string;
+  storedCount: number;
+  totalCount: number;
+}
+
+type ImportProgressCallback = (progress: ImportProgress) => void;
+
+/** One expected file plus where to fetch it — used by the import UI's download list. */
+export interface ModelFileTarget {
+  filename: string;
+  url: string;
+  sizeBytes: number;
+}
+
 /** Timeout/retry tuning for a download. Defaults below; overridable (mainly for tests). */
 export interface DownloadTuning {
   /** Abort a file's fetch if response headers don't arrive within this many ms. */
@@ -249,6 +267,127 @@ export class ModelManager {
       controller.abort();
       this.activeDownloads.delete(modelId);
     }
+  }
+
+  // ─── Manual Import ───────────────────────────────────────────────────────
+
+  /**
+   * Import model files the user obtained out-of-band (bypassing the in-app
+   * network path entirely — the escape hatch for blocked CDNs, issue #308).
+   *
+   * Files are matched to the device-selected variant's expected list, validated
+   * with the same checks as the download path, and written into IndexedDB so
+   * every downstream consumer works unchanged. Files already stored by a prior
+   * import count as satisfied, so an import can be completed incrementally.
+   *
+   * On success the model is marked `downloaded`. If any required file is still
+   * missing, the provided files are written (so the rest can be dropped in later)
+   * and a {@link ModelImportError} is thrown listing what remains.
+   */
+  async importModelFiles(
+    modelId: string,
+    provided: Map<string, Blob>,
+    onProgress?: ImportProgressCallback,
+  ): Promise<string> {
+    const entry = getManifestEntry(modelId);
+    if (!entry) throw new Error(`Unknown model: ${modelId}`);
+
+    const variantKey = selectVariant(entry, getDeviceFeatures());
+    const variant = entry.variants[variantKey];
+    if (!variant) throw new Error(`Unknown variant "${variantKey}" for model ${modelId}`);
+
+    const expected = variant.files;
+    const totalBytes = expected.reduce((sum, f) => sum + f.sizeBytes, 0);
+    const match = matchImportedFiles(expected.map(f => f.filename), [...provided.keys()]);
+
+    // Validate + store each provided file under its expected (subpath) filename.
+    // If a store/validate fails mid-way (e.g. IndexedDB quota) AFTER some files
+    // were written, persist the incomplete state as `error` so those bytes stay
+    // reclaimable via the card's delete button rather than stranded untracked.
+    let stored = 0;
+    try {
+      for (const file of expected) {
+        const key = match.matched[file.filename];
+        if (key === undefined) continue;
+        const blob = provided.get(key)!;
+        await validateModelFile(file.filename, blob, file.sizeBytes);
+        await storage.storeFile(modelId, file.filename, blob);
+        stored++;
+        onProgress?.({ currentFile: file.filename, storedCount: stored, totalCount: expected.length });
+      }
+    } catch (err) {
+      if (stored > 0) {
+        await storage.setMetadata(modelId, {
+          modelId,
+          status: 'error',
+          downloadedAt: null,
+          totalSizeBytes: totalBytes,
+          version: '1',
+          variant: variantKey,
+        });
+      }
+      throw err;
+    }
+
+    // A file not provided this round may already be in storage from a prior import.
+    const stillMissing: string[] = [];
+    for (const file of expected) {
+      if (match.matched[file.filename] !== undefined) continue;
+      if (await storage.hasFile(modelId, file.filename)) continue;
+      stillMissing.push(file.filename);
+    }
+    if (stillMissing.length > 0) {
+      // Persist the incomplete state so it survives a restart as `error` (not
+      // silently `not_downloaded`): the already-written files stay reclaimable
+      // via the card's delete button, and re-importing the rest completes it.
+      await storage.setMetadata(modelId, {
+        modelId,
+        status: 'error',
+        downloadedAt: null,
+        totalSizeBytes: totalBytes,
+        version: '1',
+        variant: variantKey,
+      });
+      throw new ModelImportError(stillMissing, match.unexpected);
+    }
+
+    await storage.setMetadata(modelId, {
+      modelId,
+      status: 'downloaded',
+      downloadedAt: Date.now(),
+      totalSizeBytes: totalBytes,
+      version: '1',
+      variant: variantKey,
+    });
+
+    return variantKey;
+  }
+
+  /**
+   * The device-selected variant's expected files, each with its download URL and
+   * source repo — powers the import dialog's "get the files" guidance.
+   */
+  getModelFileTargets(modelId: string): {
+    repo?: string;
+    cdnPath?: string;
+    variant: string;
+    files: ModelFileTarget[];
+  } {
+    const entry = getManifestEntry(modelId);
+    if (!entry) throw new Error(`Unknown model: ${modelId}`);
+    const variantKey = selectVariant(entry, getDeviceFeatures());
+    const variant = entry.variants[variantKey];
+    if (!variant) throw new Error(`Unknown variant "${variantKey}" for model ${modelId}`);
+    return {
+      repo: entry.hfModelId,
+      cdnPath: entry.cdnPath,
+      variant: variantKey,
+      files: variant.files.map(f => ({
+        filename: f.filename,
+        url: getModelDownloadUrl(entry, f.filename),
+        sizeBytes: f.sizeBytes,
+      })),
+    };
   }
 
   // ─── Blob URL Management ─────────────────────────────────────────────────

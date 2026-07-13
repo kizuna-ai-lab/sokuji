@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, ExternalLink } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, ExternalLink, FolderInput } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -31,6 +31,7 @@ import {
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
+import { ModelImportModal } from './ModelImportModal';
 import LocalInferenceVoiceSection from './LocalInferenceVoiceSection';
 import { type VoiceEntry } from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
@@ -65,11 +66,12 @@ function ModelCard({
   onDownload,
   onCancel,
   onDelete,
+  onImport,
   children,
 }: {
   entry: ModelManifestEntry | null; // null = "None" card
   status: ModelStatus;
-  download?: { downloadedBytes: number; totalBytes: number; currentFile: string; percent: number };
+  download?: { downloadedBytes: number; totalBytes: number; currentFile: string; percent: number; isImport?: boolean };
   errorMessage?: string;
   isSessionActive: boolean;
   isSelected: boolean;
@@ -82,6 +84,7 @@ function ModelCard({
   onDownload: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onImport?: () => void;
   children?: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -169,15 +172,28 @@ function ModelCard({
             )}
 
             {!isCloud && status === 'not_downloaded' && (
-              <button
-                className="model-card__btn model-card__btn--download"
-                onClick={(e) => { e.stopPropagation(); onDownload(); }}
-                disabled={isSessionActive}
-                title={t('models.download', 'Download')}
-              >
-                <Download size={14} />
-                <span>{t('models.download', 'Download')}</span>
-              </button>
+              <>
+                <button
+                  className="model-card__btn model-card__btn--download"
+                  onClick={(e) => { e.stopPropagation(); onDownload(); }}
+                  disabled={isSessionActive}
+                  title={t('models.download', 'Download')}
+                >
+                  <Download size={14} />
+                  <span>{t('models.download', 'Download')}</span>
+                </button>
+                {onImport && (
+                  <button
+                    className="model-card__btn model-card__btn--import"
+                    onClick={(e) => { e.stopPropagation(); onImport(); }}
+                    disabled={isSessionActive}
+                    title={t('models.importTitle', 'Import model')}
+                  >
+                    <FolderInput size={14} />
+                    <span>{t('models.import', 'Import')}</span>
+                  </button>
+                )}
+              </>
             )}
 
             {!isCloud && status === 'downloading' && download && (
@@ -190,13 +206,16 @@ function ModelCard({
                 </div>
                 <div className="model-card__progress-info">
                   <span className="model-card__progress-percent">{download.percent}%</span>
-                  <button
-                    className="model-card__btn model-card__btn--cancel"
-                    onClick={(e) => { e.stopPropagation(); onCancel(); }}
-                    title={t('models.cancel', 'Cancel')}
-                  >
-                    <X size={12} />
-                  </button>
+                  {/* Imports write straight to IndexedDB and can't be cancelled. */}
+                  {!download.isImport && (
+                    <button
+                      className="model-card__btn model-card__btn--cancel"
+                      onClick={(e) => { e.stopPropagation(); onCancel(); }}
+                      title={t('models.cancel', 'Cancel')}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -218,8 +237,6 @@ function ModelCard({
 
             {!isCloud && status === 'error' && (
               <div className="model-card__error">
-                <span className="model-card__status-icon"><AlertCircle size={14} /></span>
-                <span title={errorMessage}>{t('models.error', 'Error')}</span>
                 <button
                   className="model-card__btn model-card__btn--download"
                   onClick={(e) => { e.stopPropagation(); onDownload(); }}
@@ -228,6 +245,27 @@ function ModelCard({
                 >
                   <Download size={14} />
                 </button>
+                {onImport && (
+                  <button
+                    className="model-card__btn model-card__btn--import"
+                    onClick={(e) => { e.stopPropagation(); onImport(); }}
+                    disabled={isSessionActive}
+                    title={t('models.importTitle', 'Import model')}
+                  >
+                    <FolderInput size={14} />
+                    <span>{t('models.import', 'Import')}</span>
+                  </button>
+                )}
+                <button
+                  className="model-card__btn model-card__btn--delete"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  disabled={isSessionActive}
+                  title={t('models.deletePartial', 'Delete partial files')}
+                >
+                  <Trash2 size={12} />
+                </button>
+                <span className="model-card__status-icon"><AlertCircle size={14} /></span>
+                <span title={errorMessage}>{t('models.error', 'Error')}</span>
                 {errorMessage && (
                   <div className="model-card__error-message">{errorMessage}</div>
                 )}
@@ -321,6 +359,7 @@ export function ModelManagementSection({
   const [showAllTranslation, setShowAllTranslation] = useState(false);
   const [showAllAsr, setShowAllAsr] = useState(false);
   const [showAllTts, setShowAllTts] = useState(false);
+  const [importFor, setImportFor] = useState<ModelManifestEntry | null>(null);
 
   useEffect(() => {
     initialize();
@@ -670,6 +709,7 @@ export function ModelManagementSection({
         onDownload={() => handleDownload(entry.id)}
         onCancel={() => cancelDownload(entry.id)}
         onDelete={() => deleteModel(entry.id)}
+        onImport={() => setImportFor(entry)}
       >
         {renderBody?.(entry)}
       </ModelCard>
@@ -747,6 +787,7 @@ export function ModelManagementSection({
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
+                onImport={() => setImportFor(entry)}
               />
             ))}
           </>
@@ -815,6 +856,7 @@ export function ModelManagementSection({
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
+                onImport={() => setImportFor(entry)}
               />
             ))}
           </>
@@ -939,6 +981,7 @@ export function ModelManagementSection({
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
+                onImport={() => setImportFor(entry)}
               />
             ))}
           </>
@@ -963,6 +1006,15 @@ export function ModelManagementSection({
         onClearAll={deleteAllModels}
         disabled={isSessionActive}
       />
+
+      {importFor && (
+        <ModelImportModal
+          isOpen
+          modelId={importFor.id}
+          modelName={importFor.name}
+          onClose={() => setImportFor(null)}
+        />
+      )}
     </div>
   );
 }

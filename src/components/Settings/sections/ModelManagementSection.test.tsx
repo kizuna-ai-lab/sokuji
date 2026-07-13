@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { ModelManagementSection } from './ModelManagementSection';
 
 const defaultSettings = {
@@ -29,6 +29,7 @@ vi.mock('../../../lib/local-inference/voiceStorage', () => ({
 
 // modelStore surface used by the component — all no-ops/empty so it renders.
 const mockStatuses: Record<string, string> = {};
+const mockDownloads: Record<string, any> = {};
 const mockStoreState = {
   initialize: vi.fn(),
   downloadModel: vi.fn(),
@@ -39,7 +40,7 @@ const mockStoreState = {
 };
 vi.mock('../../../stores/modelStore', () => ({
   useModelStatuses: () => mockStatuses,
-  useModelDownloads: () => ({}),
+  useModelDownloads: () => mockDownloads,
   useDownloadErrors: () => ({}),
   useStorageUsedMb: () => 0,
   useModelInitialized: () => true,
@@ -58,6 +59,7 @@ beforeEach(() => {
   mockUpdate.mockReset();
   Object.assign(mockSettings, defaultSettings);
   for (const k of Object.keys(mockStatuses)) delete mockStatuses[k];
+  for (const k of Object.keys(mockDownloads)) delete mockDownloads[k];
 });
 
 describe('ModelManagementSection (self-reads store)', () => {
@@ -66,6 +68,37 @@ describe('ModelManagementSection (self-reads store)', () => {
     await waitFor(() =>
       expect(screen.getByText('ASR (Speech Recognition)')).toBeInTheDocument(),
     );
+  });
+});
+
+describe('ModelManagementSection — import affordance', () => {
+  it('offers Import on incompatible model cards too (blocked-CDN workaround)', async () => {
+    // moonshine-tiny-ja-quant supports only 'ja', so it's incompatible with an
+    // 'en' source and lives in the "show all" list. It still allows Download, so
+    // it must also allow Import — else censored-network users can't import it.
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+
+    render(<ModelManagementSection isSessionActive={false} />);
+    const showAll = await screen.findByText(/Show all ASR models/);
+    fireEvent.click(showAll);
+
+    const card = await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
+    expect(within(card).getByTitle('Import model')).toBeInTheDocument();
+  });
+
+  it('hides the cancel button while a model is importing (import is not cancelable)', async () => {
+    // A network download shows Cancel; an import cannot be cancelled, so its
+    // progress row must not render a dead Cancel button.
+    mockStatuses['sensevoice-int8'] = 'downloading';
+    mockDownloads['sensevoice-int8'] = {
+      downloadedBytes: 1, totalBytes: 2, currentFile: 'config.json', percent: 50, isImport: true,
+    };
+
+    render(<ModelManagementSection isSessionActive={false} />);
+
+    const card = await screen.findByTestId('model-card-sensevoice-int8');
+    expect(within(card).queryByTitle('Cancel')).toBeNull();
   });
 });
 

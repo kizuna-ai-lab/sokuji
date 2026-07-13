@@ -145,44 +145,54 @@ export async function readStreamToBlob(
 
   const abortError = () => new DOMException('Download cancelled', 'AbortError');
 
-  while (true) {
-    if (signal?.aborted) {
-      await reader.cancel(abortError());
-      throw abortError();
+  if (signal?.aborted) {
+    await Promise.resolve(reader.cancel(abortError())).catch(() => {});
+    throw abortError();
+  }
+
+  // Register the abort listener ONCE for the whole stream (not once per chunk —
+  // a {once:true} listener is only auto-removed if it fires, so per-chunk
+  // registration leaks a listener per chunk on large downloads). A single
+  // shared promise rejects on cancel; the listener is removed in `finally`.
+  let onAbort: (() => void) | undefined;
+  const signalPromise = signal
+    ? new Promise<never>((_resolve, reject) => {
+        onAbort = () => reject(abortError());
+        signal.addEventListener('abort', onAbort, { once: true });
+      })
+    : undefined;
+
+  try {
+    while (true) {
+      let stallTimer: ReturnType<typeof setTimeout> | undefined;
+      const stall = new Promise<never>((_resolve, reject) => {
+        stallTimer = setTimeout(
+          () => reject(new DownloadTimeoutError(`Stream stalled: no data for ${stallTimeoutMs}ms`)),
+          stallTimeoutMs,
+        );
+      });
+
+      const races: Promise<{ done: boolean; value?: Uint8Array }>[] = [reader.read(), stall];
+      if (signalPromise) races.push(signalPromise);
+
+      let result: { done: boolean; value?: Uint8Array };
+      try {
+        result = await Promise.race(races);
+      } finally {
+        clearTimeout(stallTimer);
+      }
+
+      if (result.done) break;
+      const value = result.value!;
+      chunks.push(value);
+      downloaded += value.byteLength;
+      onProgress?.(downloaded);
     }
-
-    let stallTimer: ReturnType<typeof setTimeout> | undefined;
-    const stall = new Promise<never>((_resolve, reject) => {
-      stallTimer = setTimeout(
-        () => reject(new DownloadTimeoutError(`Stream stalled: no data for ${stallTimeoutMs}ms`)),
-        stallTimeoutMs,
-      );
-    });
-
-    const races: Promise<{ done: boolean; value?: Uint8Array }>[] = [reader.read(), stall];
-    if (signal) {
-      races.push(
-        new Promise<never>((_resolve, reject) => {
-          signal.addEventListener('abort', () => reject(abortError()), { once: true });
-        }),
-      );
-    }
-
-    let result: { done: boolean; value?: Uint8Array };
-    try {
-      result = await Promise.race(races);
-    } catch (err) {
-      clearTimeout(stallTimer);
-      await Promise.resolve(reader.cancel(err)).catch(() => {});
-      throw err;
-    }
-    clearTimeout(stallTimer);
-
-    if (result.done) break;
-    const value = result.value!;
-    chunks.push(value);
-    downloaded += value.byteLength;
-    onProgress?.(downloaded);
+  } catch (err) {
+    await Promise.resolve(reader.cancel(err)).catch(() => {});
+    throw err;
+  } finally {
+    if (signal && onAbort) signal.removeEventListener('abort', onAbort);
   }
 
   return new Blob(chunks);

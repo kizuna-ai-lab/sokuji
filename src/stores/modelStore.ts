@@ -22,6 +22,7 @@ import {
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
+import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelImport';
 import { checkWebGPU } from '../utils/webgpu';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ export interface DownloadState {
   totalBytes: number;
   currentFile: string;
   percent: number;
+  /** True while a manual import writes files — imports are not cancelable. */
+  isImport?: boolean;
 }
 
 export interface ParticipantModelStatus {
@@ -85,6 +88,12 @@ interface ModelStoreState {
   initialize: () => Promise<void>;
   /** Start downloading a model */
   downloadModel: (modelId: string) => Promise<void>;
+  /**
+   * Import model files the user obtained out-of-band (bypasses the network path).
+   * Marks the model `downloaded` on success; on an incomplete import, records an
+   * error listing the still-missing files and rethrows.
+   */
+  importModel: (modelId: string, files: ArrayLike<NamedBlob>) => Promise<void>;
   /** Cancel an in-progress download */
   cancelDownload: (modelId: string) => void;
   /** Delete a downloaded model */
@@ -275,6 +284,74 @@ export const useModelStore = create<ModelStoreState>()(
             };
           });
         }
+        throw err;
+      }
+    },
+
+    importModel: async (modelId: string, files: ArrayLike<NamedBlob>) => {
+      const manager = ModelManager.getInstance();
+      const provided = filesToImportMap(files);
+
+      set(state => {
+        const newErrors = { ...state.downloadErrors };
+        delete newErrors[modelId];
+        return {
+          modelStatuses: { ...state.modelStatuses, [modelId]: 'downloading' },
+          downloads: {
+            ...state.downloads,
+            [modelId]: { downloadedBytes: 0, totalBytes: 0, currentFile: '', percent: 0, isImport: true },
+          },
+          downloadErrors: newErrors,
+        };
+      });
+
+      try {
+        const variantKey = await manager.importModelFiles(modelId, provided, (progress) => {
+          set(state => ({
+            downloads: {
+              ...state.downloads,
+              [modelId]: {
+                downloadedBytes: progress.storedCount,
+                totalBytes: progress.totalCount,
+                currentFile: progress.currentFile,
+                percent: progress.totalCount > 0
+                  ? Math.round((progress.storedCount / progress.totalCount) * 100)
+                  : 0,
+                isImport: true,
+              },
+            },
+          }));
+        });
+
+        // The import has fully persisted at this point. Mark it downloaded
+        // FIRST, independent of the cosmetic storage estimate below — a failing
+        // estimate must not flip a completed import into an error state.
+        set(state => {
+          const newDownloads = { ...state.downloads };
+          delete newDownloads[modelId];
+          return {
+            modelStatuses: { ...state.modelStatuses, [modelId]: 'downloaded' },
+            downloads: newDownloads,
+            modelVariants: { ...state.modelVariants, [modelId]: variantKey },
+          };
+        });
+
+        // Best-effort storage figure; never fail a completed import over it.
+        try {
+          const usedBytes = await modelStorage.estimateStorageUsedBytes();
+          set({ storageUsedMb: Math.round(usedBytes / (1024 * 1024)) });
+        } catch { /* estimate is cosmetic */ }
+      } catch (err: any) {
+        // Includes ModelImportError (incomplete) — its message lists the missing files.
+        set(state => {
+          const newDownloads = { ...state.downloads };
+          delete newDownloads[modelId];
+          return {
+            modelStatuses: { ...state.modelStatuses, [modelId]: 'error' },
+            downloads: newDownloads,
+            downloadErrors: { ...state.downloadErrors, [modelId]: err.message || String(err) },
+          };
+        });
         throw err;
       }
     },
