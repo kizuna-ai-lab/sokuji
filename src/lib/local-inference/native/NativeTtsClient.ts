@@ -1,5 +1,9 @@
 import type { TtsResult } from '../engine/TtsEngine';
 import type { ServerMsg } from './nativeProtocol';
+import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError, type ISidecarConnection } from './SidecarConnection';
+
+/** Reject a streaming generate if no chunk/done arrives for this long (inactivity). */
+const TTS_STREAM_INACTIVITY_MS = 30_000;
 
 /**
  * The sidecar emits binary PCM as Int16 mono @ 24 kHz.
@@ -12,99 +16,66 @@ function int16ToFloat32(buf: ArrayBuffer): Float32Array {
   return f32;
 }
 
-interface ElectronInvoke { invoke(channel: string, data?: unknown): Promise<any>; }
-function electron(): ElectronInvoke {
-  const e = (window as unknown as { electron?: ElectronInvoke }).electron;
-  if (!e) throw new Error('window.electron is unavailable (not running in Electron)');
-  return e;
-}
-
 export interface TtsReady {
   sampleRate: number; loadTimeMs: number;
   backend?: string; device?: string; computeType?: string; rtf?: number;
   streaming: boolean; clones: boolean; memoryBytes?: number; fallbackReason?: string;
 }
 
+interface StreamDone { resolve: (m: ServerMsg) => void; reject: (e: Error) => void; bump: () => void; }
+
 export class NativeTtsClient {
   onStatus: ((m: string) => void) | null = null;
   onError: ((e: string) => void) | null = null;
-  private ws: WebSocket | null = null;
-  private nextId = 1;
-  private pendingJson = new Map<number, (m: ServerMsg) => void>();
-  private pendingBinary = new Map<number, (b: ArrayBuffer) => void>();
-  private streamHandlers = new Map<number, (pcm: Float32Array, seq: number) => void>();
+  private conn: ISidecarConnection;
   private lastBinary: ArrayBuffer | null = null;
+  private streamHandlers = new Map<number, (pcm: Float32Array, seq: number) => void>();
+  private streamDone = new Map<number, StreamDone>();
   private streaming = false;          // cached from the last init()
   private inFlightId = 0;             // id of the current generate (for cancel())
 
-  private async connect(): Promise<void> {
-    if (this.ws) return;
-    const r = await electron().invoke('native-host:start');
-    if (!r?.ok) throw new Error(r?.error || 'failed to start native host');
-    await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(`ws://127.0.0.1:${r.port}`);
-      ws.binaryType = 'arraybuffer';
-      ws.onopen = () => { this.ws = ws; resolve(); };
-      ws.onerror = () => { this.onError?.('native host WS error'); reject(new Error('WS error')); };
-      // Sibling clients (NativeAsrClient/NativeTranslateClient) reject their
-      // pending work on close; without this, a sidecar death mid-generate
-      // leaves runJob's await unsettled forever and the serialized session
-      // queue stalls permanently.
-      ws.onclose = () => { this.ws = null; this.rejectAllPending('native host disconnected'); };
-      ws.onmessage = (e) => this.onMessage(e.data);
-    });
+  constructor(conn: ISidecarConnection = new SidecarConnection()) {
+    this.conn = conn;
+    this.conn.onBinary((buf) => { this.lastBinary = buf; });
+    this.conn.onMessage((msg) => this.onPush(msg));
+    // Streaming generate is client-owned correlation state (uses send(), not
+    // request()), so the connection can't reject it — do it here on disconnect.
+    this.conn.onClose((err) => this.rejectStreams(err));
   }
 
-  private onMessage(data: any) {
-    if (data instanceof ArrayBuffer) { this.lastBinary = data; return; }
-    const msg = JSON.parse(data) as ServerMsg;
-    if (msg.type === 'error') {
-      this.onError?.(msg.message);
-      const eid = (msg as any).id as number | undefined;
-      if (eid !== undefined) {
-        this.pendingJson.get(eid)?.(msg);
-        this.pendingJson.delete(eid);
-        this.pendingBinary.delete(eid);
-        this.streamHandlers.delete(eid);
-      }
-      return;
-    }
-    const id = (msg as any).id as number;
-    if (msg.type === 'tts_chunk') {                       // binary frame precedes this chunk meta
-      const onChunk = this.streamHandlers.get(id);
+  private onPush(msg: ServerMsg): void {
+    const id = (msg as { id?: number }).id;
+    if (msg.type === 'tts_chunk') {
+      this.streamDone.get(id as number)?.bump();
+      const onChunk = this.streamHandlers.get(id as number);
       if (onChunk && this.lastBinary) { onChunk(int16ToFloat32(this.lastBinary), msg.seq); this.lastBinary = null; }
-      return;                                             // do NOT resolve pendingJson; wait for tts_done
+      return;
     }
     if (msg.type === 'tts_done') {
-      this.streamHandlers.delete(id);
-      this.pendingJson.get(id)?.(msg); this.pendingJson.delete(id);
+      this.streamHandlers.delete(id as number);
+      const d = this.streamDone.get(id as number);
+      this.streamDone.delete(id as number);
+      d?.resolve(msg);
       return;
     }
-    if (msg.type === 'result') {                          // one-shot: pair the buffered binary
-      const binResolve = this.pendingBinary.get(id);
-      if (binResolve && this.lastBinary) { binResolve(this.lastBinary); this.lastBinary = null; this.pendingBinary.delete(id); }
+    if (msg.type === 'error') {
+      this.onError?.(msg.message);
+      if (typeof id === 'number' && this.streamDone.has(id)) {
+        const d = this.streamDone.get(id)!;
+        this.streamDone.delete(id); this.streamHandlers.delete(id);
+        d.reject(new Error(msg.message));
+      }
     }
-    this.pendingJson.get(id)?.(msg);
-    this.pendingJson.delete(id);
   }
 
-  private send(payload: object, expectBinary = false): Promise<{ msg: ServerMsg; binary?: ArrayBuffer; id: number }> {
-    const id = this.nextId++;
-    return new Promise((resolve, reject) => {
-      let binary: ArrayBuffer | undefined;
-      if (expectBinary) this.pendingBinary.set(id, (b) => { binary = b; });
-      this.pendingJson.set(id, (msg) => {
-        if (msg.type === 'error') return reject(new Error(msg.message));
-        resolve({ msg, binary, id });
-      });
-      this.ws!.send(JSON.stringify({ ...payload, id }));
-    });
+  private rejectStreams(err: Error): void {
+    for (const d of this.streamDone.values()) d.reject(err);
+    this.streamDone.clear(); this.streamHandlers.clear(); this.lastBinary = null;
   }
 
   async init(model?: string, device?: string): Promise<TtsReady> {
-    await this.connect();
     this.onStatus?.('[native-tts] init…');
-    const { msg } = await this.send({ type: 'tts_init', model, device });
+    const msg = await this.conn.request({ type: 'tts_init', model, device }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
     return {
@@ -115,18 +86,14 @@ export class NativeTtsClient {
   }
 
   /** Select a built-in voice by name (applies to subsequent generate calls). */
-  async setVoice(name: string): Promise<void> {
-    await this.send({ type: 'set_voice', voice: name });
-  }
+  async setVoice(name: string): Promise<void> { await this.conn.request({ type: 'set_voice', voice: name }); }
 
   /** Select a numeric speaker id (range models). */
-  async setSpeaker(sid: number): Promise<void> {
-    await this.send({ type: 'set_voice', sid });
-  }
+  async setSpeaker(sid: number): Promise<void> { await this.conn.request({ type: 'set_voice', sid }); }
 
   async setReferenceVoice(audio: Float32Array, sampleRate: number, refText?: string): Promise<void> {
-    this.ws!.send(audio.buffer);                          // binary frame precedes the control message
-    await this.send({ type: 'set_voice', sampleRate, ...(refText ? { refText } : {}) });
+    this.conn.sendBinary(audio.buffer);                  // binary frame precedes the control message
+    await this.conn.request({ type: 'set_voice', sampleRate, ...(refText ? { refText } : {}) });
   }
 
   /** Select a style-cloned voice (e.g. Supertonic) from precomputed style-conditioning vectors. */
@@ -139,47 +106,51 @@ export class NativeTtsClient {
     const ttl = f32(styleTtl.data), dp = f32(styleDp.data);
     const buf = new Float32Array(ttl.length + dp.length);
     buf.set(ttl, 0); buf.set(dp, ttl.length);
-    this.ws!.send(buf.buffer);                            // binary frame precedes the control message
-    await this.send({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
+    this.conn.sendBinary(buf.buffer);                    // binary frame precedes the control message
+    await this.conn.request({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
   }
 
   async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<TtsResult> {
     if (this.streaming && onChunk) {
-      const id = this.nextId++;
+      const id = this.conn.nextId();
       this.inFlightId = id;
       this.streamHandlers.set(id, onChunk);
       const done = await new Promise<ServerMsg>((resolve, reject) => {
-        this.pendingJson.set(id, (m) => { if (m.type === 'error') return reject(new Error(m.message)); resolve(m); });
-        this.ws!.send(JSON.stringify({ type: 'tts_generate', text, speed, id }));
+        // Inactivity timeout: reset on each chunk (bump), so a long-but-progressing
+        // stream isn't killed but a silent hang is bounded. Arrow fns keep `this`.
+        let timer: ReturnType<typeof setTimeout>;
+        const clear = () => clearTimeout(timer);
+        const arm = () => { timer = setTimeout(() => {
+          this.streamDone.delete(id); this.streamHandlers.delete(id);
+          reject(new SidecarTimeoutError('tts_generate', TTS_STREAM_INACTIVITY_MS));
+        }, TTS_STREAM_INACTIVITY_MS); };
+        arm();
+        this.streamDone.set(id, {
+          resolve: (m) => { clear(); resolve(m); },
+          reject: (e) => { clear(); reject(e); },
+          bump: () => { clear(); arm(); },
+        });
+        this.conn.send({ type: 'tts_generate', text, speed, id });
       });
       const d = done as Extract<ServerMsg, { type: 'tts_done' }>;
       return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: d.generationTimeMs };
     }
-    this.inFlightId = this.nextId;
-    const { msg, binary } = await this.send({ type: 'tts_generate', text, speed }, true);
+    // One-shot: the sidecar sends the PCM binary frame, then the result meta.
+    const id = this.conn.nextId();
+    this.inFlightId = id;
+    this.lastBinary = null;
+    const msg = await this.conn.request({ type: 'tts_generate', text, speed }, { id });
     const r = msg as Extract<ServerMsg, { type: 'result' }>;
+    const binary = this.lastBinary; this.lastBinary = null;
     return { samples: int16ToFloat32(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
   }
 
   cancel(): void {
-    if (this.inFlightId && this.ws) {
-      try { this.ws.send(JSON.stringify({ type: 'tts_cancel', id: this.inFlightId })); } catch (_) {}
-    }
+    if (this.inFlightId) this.conn.send({ type: 'tts_cancel', id: this.inFlightId });
   }
 
   dispose(): void {
-    this.rejectAllPending('native host disconnected');
-    try { this.ws?.close(); } catch (_) {}
-    this.ws = null;
-  }
-
-  private rejectAllPending(message: string): void {
-    // pendingJson callbacks reject on error-type messages (see send()), so a
-    // synthetic error settles every awaiting caller.
-    const err = { type: 'error', message } as ServerMsg;
-    for (const cb of Array.from(this.pendingJson.values())) cb(err);
-    this.pendingJson.clear();
-    this.pendingBinary.clear();
-    this.streamHandlers.clear();
+    this.rejectStreams(new Error('native host disconnected'));
+    this.conn.dispose();
   }
 }
