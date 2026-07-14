@@ -390,7 +390,7 @@ git commit -m "feat(local-native): add SidecarConnection WS transport seam"
 **Interfaces:**
 - Consumes: `ISidecarConnection`, `INIT_REQUEST_TIMEOUT_MS` from `./SidecarConnection`; `ServerMsg` from `./nativeProtocol`.
 - Produces:
-  - `class FakeSidecarConnection implements ISidecarConnection` with test drivers: `emit(msg: ServerMsg): void`, `emitBinary(buf: ArrayBuffer): void`, `emitClose(): void`, and inspectors `sent: any[]`, `binarySent: ArrayBuffer[]`, `autoReady: ServerMsg | null`.
+  - `class FakeSidecarConnection implements ISidecarConnection` with test drivers: `emit(msg: ServerMsg): void`, `emitBinary(buf: ArrayBuffer): void`, `emitClose(): void`, and inspectors `sent: any[]`, `binarySent: ArrayBuffer[]`.
   - `NativeTranslateClient` constructor: `new NativeTranslateClient(conn?: ISidecarConnection)`; public methods `init(...)` and `translate(...)` and `dispose()` keep their existing signatures.
 
 - [ ] **Step 1: Write the failing test**
