@@ -85,6 +85,12 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); });
 
+// connect() awaits electron().invoke() (a microtask) BEFORE constructing the socket,
+// so FakeWS's onopen timer is registered after a bare test-side setTimeout(0). Tests
+// that drive replies must `await c.connect()` first (socket open), then `await tick()`
+// to flush request()'s own .then() before inspecting the socket.
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
 describe('SidecarConnection', () => {
   it('connect() opens one socket to the port from native-host:start', async () => {
     const c = new SidecarConnection();
@@ -101,8 +107,9 @@ describe('SidecarConnection', () => {
 
   it('request() injects an id and resolves with the matching reply', async () => {
     const c = new SidecarConnection();
+    await c.connect();
     const p = c.request({ type: 'translate', text: 'hi' });
-    await new Promise((r) => setTimeout(r, 0));       // let connect() + send flush
+    await tick();                                     // flush request()'s .then() → send
     const ws = FakeWS.instances[0];
     const sent = JSON.parse(ws.sent[0]);
     expect(sent).toMatchObject({ type: 'translate', text: 'hi' });
@@ -113,8 +120,9 @@ describe('SidecarConnection', () => {
 
   it('request() rejects on an error reply carrying the id', async () => {
     const c = new SidecarConnection();
+    await c.connect();
     const p = c.request({ type: 'translate', text: 'x' });
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     const ws = FakeWS.instances[0];
     const id = JSON.parse(ws.sent[0]).id;
     ws.reply({ type: 'error', id, message: 'boom' });
@@ -163,8 +171,9 @@ describe('SidecarConnection', () => {
     const c = new SidecarConnection();
     let closeErr: Error | null = null;
     c.onClose((e) => { closeErr = e; });
+    await c.connect();
     const p = c.request({ type: 'translate', text: 'x' });
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     FakeWS.instances[0].close();
     await expect(p).rejects.toThrow('native host disconnected');
     expect(closeErr).toBeInstanceOf(Error);
@@ -175,8 +184,9 @@ describe('SidecarConnection', () => {
     const c = new SidecarConnection();
     let closeFired = false;
     c.onClose(() => { closeFired = true; });
+    await c.connect();
     const p = c.request({ type: 'translate', text: 'x' });
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     c.dispose();
     await expect(p).rejects.toThrow('native host disconnected');
     expect(closeFired).toBe(false);
@@ -184,8 +194,9 @@ describe('SidecarConnection', () => {
 
   it('honors a caller-provided id (for out-of-band cancel correlation)', async () => {
     const c = new SidecarConnection();
+    await c.connect();
     const p = c.request({ type: 'tts_generate', text: 'x' }, { id: 4242 });
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     const ws = FakeWS.instances[0];
     expect(JSON.parse(ws.sent[0]).id).toBe(4242);
     ws.reply({ type: 'result', id: 4242, sampleRate: 24000, generationTimeMs: 5, samples: 0 });
