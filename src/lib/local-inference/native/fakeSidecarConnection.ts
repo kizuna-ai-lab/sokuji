@@ -10,6 +10,7 @@ import type { ServerMsg } from './nativeProtocol';
 export class FakeSidecarConnection implements ISidecarConnection {
   sent: any[] = [];
   binarySent: ArrayBuffer[] = [];
+  requestOpts: Array<{ timeoutMs?: number; id?: number } | undefined> = [];
   disposed = false;
   private counter = 0;
   private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
@@ -26,6 +27,7 @@ export class FakeSidecarConnection implements ISidecarConnection {
   request(payload: { type: string; [k: string]: unknown }, opts?: { timeoutMs?: number; id?: number }): Promise<ServerMsg> {
     const id = opts?.id ?? this.nextId();
     this.sent.push({ ...payload, id });
+    this.requestOpts.push(opts);
     return new Promise<ServerMsg>((resolve, reject) => { this.pending.set(id, { resolve, reject }); });
   }
 

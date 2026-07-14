@@ -85,7 +85,6 @@ export class NativeModelClient {
   /** Remove a model from the sidecar's cache; resolves to the bytes freed. */
   async delete(model: string, repo?: string): Promise<number> {
     const msg = await this.conn.request({ type: 'model_delete', model, repo });
-    if (msg.type === 'error') throw new Error(msg.message);
     return (msg as Extract<ServerMsg, { type: 'model_delete_result' }>).freed;
   }
 

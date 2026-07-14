@@ -69,4 +69,19 @@ describe('NativeTtsClient voice selection', () => {
     conn.emit({ type: 'ok', id: setSent.id });
     await expect(p).resolves.toBeUndefined();
   });
+
+  it('setStyleVoice() flattens nested style vectors and sends them before the control message', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = await initClient(conn, true);
+    const p = c.setStyleVoice(
+      { dims: [2, 2], data: [[1, 2], [3, 4]] as unknown as number[] },
+      { dims: [1, 2], data: [[5, 6]] as unknown as number[] },
+    );
+    expect(conn.binarySent).toHaveLength(1);
+    expect(Array.from(new Float32Array(conn.binarySent[0]))).toEqual([1, 2, 3, 4, 5, 6]);
+    const setSent = conn.sent.find((m) => m.type === 'set_voice');
+    expect(setSent).toMatchObject({ type: 'set_voice', styleVoice: { ttlDims: [2, 2], dpDims: [1, 2] } });
+    conn.emit({ type: 'ok', id: setSent.id });
+    await expect(p).resolves.toBeUndefined();
+  });
 });

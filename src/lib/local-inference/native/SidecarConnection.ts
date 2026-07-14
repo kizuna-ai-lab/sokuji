@@ -120,11 +120,12 @@ export class SidecarConnection implements ISidecarConnection {
     const timeoutMs = opts?.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     return this.connect().then(() => new Promise<ServerMsg>((resolve, reject) => {
       const id = opts?.id ?? this.nextId();
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) { reject(new Error('native host disconnected')); return; }
       const timer = timeoutMs > 0
         ? setTimeout(() => { if (this.pending.delete(id)) reject(new SidecarTimeoutError(payload.type, timeoutMs)); }, timeoutMs)
         : null;
       this.pending.set(id, { resolve, reject, timer });
-      this.ws!.send(JSON.stringify({ ...payload, id }));
+      this.ws.send(JSON.stringify({ ...payload, id }));
     }));
   }
 
