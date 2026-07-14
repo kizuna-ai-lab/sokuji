@@ -1,63 +1,23 @@
 import type { TranslationResult } from '../engine/TranslationEngine';
 import type { ServerMsg } from './nativeProtocol';
-
-interface ElectronInvoke { invoke(channel: string, data?: unknown): Promise<any>; }
-function electron(): ElectronInvoke {
-  const e = (window as unknown as { electron?: ElectronInvoke }).electron;
-  if (!e) throw new Error('window.electron is unavailable (not running in Electron)');
-  return e;
-}
+import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, type ISidecarConnection } from './SidecarConnection';
 
 export class NativeTranslateClient {
   onStatus: ((m: string) => void) | null = null;
   onError: ((e: string) => void) | null = null;
-  private ws: WebSocket | null = null;
-  private nextId = 1;
-  private pending = new Map<number, { resolve: (m: ServerMsg) => void; reject: (e: Error) => void }>();
+  private conn: ISidecarConnection;
 
-  private rejectAllPending(err: Error): void {
-    for (const { reject } of this.pending.values()) reject(err);
-    this.pending.clear();
-  }
-
-  private async connect(): Promise<void> {
-    if (this.ws) return;
-    const r = await electron().invoke('native-host:start');
-    if (!r?.ok) throw new Error(r?.error || 'failed to start native host');
-    await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(`ws://127.0.0.1:${r.port}`);
-      ws.binaryType = 'arraybuffer';
-      ws.onopen = () => { this.ws = ws; resolve(); };
-      ws.onerror = () => { this.onError?.('native host WS error'); reject(new Error('WS error')); };
-      ws.onclose = () => this.rejectAllPending(new Error('native host disconnected'));
-      ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data) as ServerMsg;
-        if (msg.type === 'error') {
-          this.onError?.(msg.message);
-          const id = typeof (msg as any).id === 'number' ? (msg as any).id as number : undefined;
-          if (id !== undefined) {
-            this.pending.get(id)?.reject(new Error(msg.message));
-            this.pending.delete(id);
-          }
-          return;
-        }
-        const id = (msg as any).id as number;
-        this.pending.get(id)?.resolve(msg);
-        this.pending.delete(id);
-      };
-    });
-  }
-
-  private send(payload: object): Promise<ServerMsg> {
-    const id = this.nextId++;
-    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject }); this.ws!.send(JSON.stringify({ ...payload, id })); });
+  constructor(conn: ISidecarConnection = new SidecarConnection()) {
+    this.conn = conn;
+    // Only id-less errors reach here (id-carrying errors reject the request()); this
+    // is defensive — translate RPCs all carry ids, so callers see failures via reject.
+    this.conn.onMessage((msg) => { if (msg.type === 'error') this.onError?.(msg.message); });
   }
 
   async init(
     sourceLang: string, targetLang: string, modelId?: string, device?: string,
     asrModel?: string | null, ttsModel?: string | null, variant?: string,
   ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string }> {
-    await this.connect();
     this.onStatus?.('[native-translate] init…');
     const payload: Record<string, unknown> = { type: 'translate_init', sourceLang, targetLang, model: modelId, device };
     // Pass co-loaded stage IDs and the chosen variant so the sidecar can account
@@ -65,15 +25,15 @@ export class NativeTranslateClient {
     if (asrModel) payload.asrModel = asrModel;
     if (ttsModel) payload.ttsModel = ttsModel;
     if (variant) payload.variant = variant;
-    const msg = await this.send(payload);
+    const msg = await this.conn.request(payload as { type: string; [k: string]: unknown }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }
 
   async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<TranslationResult> {
-    const msg = await this.send({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translation' }>;
+    const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translation' }>;
     return { sourceText: msg.sourceText, translatedText: msg.translatedText, inferenceTimeMs: msg.inferenceTimeMs };
   }
 
-  dispose(): void { this.rejectAllPending(new Error('native host disconnected')); try { this.ws?.close(); } catch (_) {} this.ws = null; }
+  dispose(): void { this.conn.dispose(); }
 }
