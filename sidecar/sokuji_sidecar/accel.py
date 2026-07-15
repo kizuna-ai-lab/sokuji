@@ -522,6 +522,25 @@ def bench_save(cache: dict) -> None:
         pass
 
 
+def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, force: bool = False):
+    """Cache-by-bench-key benchmark skeleton. `ns` namespaces the key
+    (""/"tps:"/"tts:"); `run(backend)` performs the driver + metric and
+    returns a float, or None to skip caching. Never raises (returns None)."""
+    try:
+        key = ns + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        cache = bench_load()
+        if not force and key in cache:
+            return cache[key]
+        val = run(backend)
+        if val is None:
+            return None
+        cache[key] = val
+        bench_save(cache)
+        return val
+    except Exception:
+        return None
+
+
 BENCH_SECONDS = 3.0
 
 
@@ -529,23 +548,15 @@ def measure_rtf(backend, plan, model_id: str, machine: Machine, *, force: bool =
     """Best-effort: run a fixed synthetic clip through backend.transcribe, return
     RTF (elapsed / audio_seconds), cache by (fingerprint, model, backend, device,
     compute_type). One-time per key unless force. Never raises (returns None)."""
-    try:
-        key = _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
-        cache = bench_load()
-        if not force and key in cache:
-            return cache[key]
+    def run(backend):
         sr = 16000
         n = int(BENCH_SECONDS * sr)
         t = np.arange(n, dtype=np.float32) / sr
         clip = (0.05 * np.sin(2.0 * np.pi * 220.0 * t)).astype(np.float32)
         t0 = time.time()
         backend.transcribe(clip, None)
-        rtf = (time.time() - t0) / BENCH_SECONDS
-        cache[key] = rtf
-        bench_save(cache)
-        return rtf
-    except Exception:
-        return None
+        return (time.time() - t0) / BENCH_SECONDS
+    return _measure(backend, plan, model_id, machine, ns="", run=run, force=force)
 
 
 # A fixed sentence for the translation throughput benchmark — long enough that decode
@@ -564,23 +575,15 @@ def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool =
 
     The warmup matters: the first generation pays one-time CUDA kernel/graph
     compilation, so timing it would badly understate steady-state throughput."""
-    try:
-        key = "tps:" + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
-        cache = bench_load()
-        if not force and key in cache:
-            return cache[key]
+    def run(backend):
         backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)  # warmup
         t0 = time.time()
         _text, n_new = backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)
         dt = time.time() - t0
         if dt <= 0 or n_new <= 0:
             return None
-        tps = n_new / dt
-        cache[key] = tps
-        bench_save(cache)
-        return tps
-    except Exception:
-        return None
+        return n_new / dt
+    return _measure(backend, plan, model_id, machine, ns="tps:", run=run, force=force)
 
 
 BENCH_TTS_TEXT = "The weather is lovely today, so I will go for a walk in the park."
@@ -589,22 +592,13 @@ BENCH_TTS_TEXT = "The weather is lovely today, so I will go for a walk in the pa
 def measure_rtf_tts(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
     """Best-effort: synth a fixed sentence, return RTF (gen_seconds / audio_seconds),
     cached under a 'tts:'-namespaced key. Never raises (returns None)."""
-    try:
-        key = "tts:" + _bench_key(machine.fingerprint, model_id, plan.backend,
-                                  plan.device, plan.compute_type)
-        cache = bench_load()
-        if not force and key in cache:
-            return cache[key]
+    def run(backend):
         samples, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
         audio_s = len(samples) / float(getattr(backend, "sample_rate", 24000))
         if audio_s <= 0:
             return None
-        rtf = (gen_ms / 1000.0) / audio_s
-        cache[key] = rtf
-        bench_save(cache)
-        return rtf
-    except Exception:
-        return None
+        return (gen_ms / 1000.0) / audio_s
+    return _measure(backend, plan, model_id, machine, ns="tts:", run=run, force=force)
 
 
 # Extra runtime/library a compute_type needs beyond its backend NAME being installed.
