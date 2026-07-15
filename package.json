@@ -192,7 +192,8 @@
     "eval:validate": "tsx evals/runner/index.ts validate",
     "eval:list": "tsx evals/runner/index.ts list",
     "extension:build": "cd extension && npx vite build",
-    "extension:dev": "cd extension && npx vite build --watch --mode development"
+    "extension:dev": "cd extension && npx vite build --watch --mode development",
+    "sidecar:setup": "bash sidecar/setup.sh"
   },
   "eslintConfig": {
     "extends": [
