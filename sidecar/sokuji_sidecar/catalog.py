@@ -509,3 +509,26 @@ def tts_models() -> list[TtsModel]:
 
 def tts_model(model_id: str) -> TtsModel | None:
     return next((m for m in TTS_MODELS if m.id == model_id), None)
+
+
+# Sherpa-onnx TTS covers a large family of community repos (piper VITS, icefall
+# VITS, matcha, kokoro) that the renderer exposes as per-voice cards keyed by
+# their full HF repo path. SherpaTtsBackend downloads/loads any such repo, so we
+# synthesize an ad-hoc model for repo ids that the short catalog doesn't list
+# rather than forcing every voice into the catalog.
+_SHERPA_TTS_HINTS = ("piper", "vits", "matcha", "kokoro", "icefall")
+
+
+def resolve_tts_card(model_id: str) -> "TtsModel | None":
+    """The static TTS card for `model_id`, or a synthesised ad-hoc card for an
+    uncatalogued sherpa-onnx community voice (piper/vits/matcha/kokoro/icefall),
+    or None for an unknown non-sherpa id."""
+    model = tts_model(model_id)
+    if model is not None:
+        return model
+    if any(h in model_id.lower() for h in _SHERPA_TTS_HINTS):
+        return TtsModel(
+            id=model_id, name=model_id, languages=("multi",),
+            deployments=(Deployment("sherpa_tts", "cpu", "fp32", model_id, 1.0),),
+            repos=(model_id,), sample_rate=16000)
+    return None

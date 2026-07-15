@@ -363,27 +363,11 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
-# Sherpa-onnx TTS covers a large family of community repos (piper VITS, icefall
-# VITS, matcha, kokoro) that the renderer exposes as per-voice cards keyed by
-# their full HF repo path. SherpaTtsBackend downloads/loads any such repo, so we
-# synthesize an ad-hoc model for repo ids that the short catalog doesn't list
-# rather than forcing every voice into the catalog.
-_SHERPA_TTS_HINTS = ("piper", "vits", "matcha", "kokoro", "icefall")
-
-
 def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
                 cache: dict) -> list[Plan]:
-    model = catalog.tts_model(model_id)
+    model = catalog.resolve_tts_card(model_id)
     if model is None:
-        if any(h in model_id.lower() for h in _SHERPA_TTS_HINTS):
-            model = catalog.TtsModel(
-                id=model_id, name=model_id, languages=("multi",),
-                deployments=(
-                    catalog.Deployment("sherpa_tts", "cpu", "fp32", model_id, 1.0),
-                ),
-                repos=(model_id,), sample_rate=16000)
-        else:
-            raise ValueError(f"unknown tts model: {model_id}")
+        raise ValueError(f"unknown tts model: {model_id}")
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
