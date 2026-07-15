@@ -24,13 +24,23 @@ never imports accel."""
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from . import catalog
 
 if TYPE_CHECKING:
     from .accel import Machine
+
+
+@dataclass(frozen=True)
+class PlanConfig:
+    """Declarative per-load hints, read from the resolved catalog card (Tasks
+    6-8 will make backends actually read these; this task only populates
+    them). All-inert defaults so a bare `PlanConfig()` changes no behavior."""
+    variant_subdir: str | None = None
+    disable_thinking: bool = False
+    append_no_think: bool = False
 
 
 @dataclass(frozen=True)
@@ -41,11 +51,25 @@ class Plan:
     compute_type: str
     artifact: str
     rank: float
+    config: PlanConfig = field(default_factory=PlanConfig)
 
 
 class NoUsablePlan(Exception):
     """A known model has no deployment runnable on this machine (e.g. a GPU-only
     model on a CPU-only box)."""
+
+
+def _plan_config(model) -> PlanConfig:
+    """Build a Plan's PlanConfig from its resolved catalog card. Card types
+    differ (an AsrModel has neither thinking flags nor a variant subdir, a
+    TtsModel has no thinking flags, a TranslateModel has no variant subdir),
+    so every field is read defensively via getattr with an inert default —
+    this stays correct for any current or future card shape."""
+    return PlanConfig(
+        variant_subdir=getattr(model, "cuda_variant_subdir", None),
+        disable_thinking=getattr(model, "disable_thinking", False),
+        append_no_think=getattr(model, "append_no_think", False),
+    )
 
 
 def has_nvidia(machine: Machine) -> bool:
@@ -145,7 +169,8 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
         pinned = [d for d in usable if _pinned(d)]
         rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest
-    plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+    config = _plan_config(model)
+    plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
              for d in usable]
     # Cache-based demotion is an AUTO-mode refinement; an explicit override is the
     # user's will and is never second-guessed by the benchmark.
@@ -310,7 +335,8 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
         picks = [d for d in picks if d is not None and d.backend in machine.installed]
         if not picks:
             raise NoUsablePlan(model_id)
-        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank)
+        config = _plan_config(model)
+        plans = [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
                  for d in picks]
         # Bench correction (E6): when BOTH the GPU pick and its CPU floor have
         # measured decode throughput, and the GPU is not actually faster,

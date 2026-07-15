@@ -32,7 +32,7 @@ class TranscribeCppBackend:
         self._model = None
         self._session = None
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
         try:
             import transcribe_cpp as tc
@@ -158,8 +158,8 @@ class TranscribeCppStreamBackend(TranscribeCppBackend):
     NAME = "transcribe_cpp_stream"
     STREAMING = True
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
-        super().load(model_ref, device, compute_type)
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
+        super().load(model_ref, device, compute_type, config)
         caps = getattr(self._model, "capabilities", None)
         if not (caps and getattr(caps, "supports_streaming", False)):
             self.unload()

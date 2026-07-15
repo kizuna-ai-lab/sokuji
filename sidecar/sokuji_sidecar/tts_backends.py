@@ -42,7 +42,7 @@ class SherpaTtsBackend:
         self.sample_rate = 16000
         self._sid = 0
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._tts = None
         try:
             import sherpa_onnx
@@ -124,7 +124,7 @@ class MossOnnxTtsBackend:
         self.preset_voice = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Ava")
 
     # ---- loading -----------------------------------------------------------
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._rt = None
         self._sp = None
         self._voice_rows = None
@@ -350,7 +350,7 @@ class SupertonicBackend:
         self._presets = None; self._voice = None
         self.sample_rate = 44100; self._total_step = 16; self._default_sid = 7; self._lang = ""
 
-    def load(self, model_ref, device, compute_type):
+    def load(self, model_ref, device, compute_type, config=None):
         self._sess = None
         try:
             import onnxruntime as ort
@@ -487,7 +487,7 @@ class Qwen3TtsOnnxBackend:
         self.sample_rate = 24000
 
     # ---- loading -----------------------------------------------------------
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._sessions = None
         self._cfg = None
         self._emb = None

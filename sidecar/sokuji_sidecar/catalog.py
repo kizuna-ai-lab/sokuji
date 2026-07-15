@@ -37,6 +37,8 @@ class _ModelBase:
     recommended: bool = False
     sort_order: int = 99
     size_bytes: int = 0          # total download size; 0 = unknown
+    download_ignore: tuple[str, ...] = ()  # fnmatch patterns skipped by the downloader
+                                            # (mirrors native_models._base_specs' spec["ignore"])
 
 
 @dataclass(frozen=True)
@@ -203,7 +205,13 @@ def asr_model(model_id: str) -> AsrModel | None:
 
 @dataclass(frozen=True)
 class TranslateModel(_ModelBase):
-    pass
+    # Qwen3/Qwen3.5 chat-template thinking-mode kill switch (mirrors the
+    # substring checks in translate_backends.LlamaCppQwenBackend._payload):
+    # disable_thinking sends chat_template_kwargs.enable_thinking=false,
+    # append_no_think additionally appends the "/no_think" soft switch to the
+    # system prompt (plain Qwen3 only, belt-and-braces per Qwen3's own docs).
+    disable_thinking: bool = False
+    append_no_think: bool = False
 
 
 def split_artifact(artifact: str) -> tuple[str, str | None]:
@@ -252,7 +260,8 @@ def _opus_repo(mid: str) -> str:
 
 
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
-                       alt_quant, alt_bytes, recommended=False):
+                       alt_quant, alt_bytes, recommended=False,
+                       disable_thinking=False, append_no_think=False):
     """An LLM card: one llamacpp backend, two GGUF quant variants, four tiers
     each (gpu-cuda / gpu-metal / gpu-vulkan / cpu). The same GGUF serves every
     tier; rank 2.0 marks the default quant. Plan ORDER across tiers is decided
@@ -267,7 +276,8 @@ def _llm_translate_row(mid, name, family, sort_order, default_quant, default_byt
                  for tier in ("gpu-cuda", "gpu-metal", "gpu-vulkan", "cpu")]
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
-                          size_bytes=default_bytes)
+                          size_bytes=default_bytes, disable_thinking=disable_thinking,
+                          append_no_think=append_no_think)
 
 
 def _opus_row(src, tgt, sort_order, size_bytes=115_000_000):
@@ -296,11 +306,14 @@ TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
                        "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
     _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B", "qwen", 2,
-                       "q8_0", 639446688, "q4_k_m", 396705472, recommended=True),
+                       "q8_0", 639446688, "q4_k_m", 396705472, recommended=True,
+                       disable_thinking=True, append_no_think=True),
     _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B", "qwen", 3,
-                       "q4_k_m", 532517120, "q8_0", 811843840),
+                       "q4_k_m", 532517120, "q8_0", 811843840,
+                       disable_thinking=True),
     _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B", "qwen", 4,
-                       "q4_k_m", 1280835840, "q8_0", 2012012800),
+                       "q4_k_m", 1280835840, "q8_0", 2012012800,
+                       disable_thinking=True),
     _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 5,
                        "q4_k_m", 2489909760, "q8_0", 4130417920),
     _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 6,
@@ -340,17 +353,19 @@ class TtsModel(_ModelBase):
     named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
     style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
     transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
+    cuda_variant_subdir: str | None = None  # bf16-graph subdir picked on cuda
+                                             # (mirrors Qwen3TtsOnnxBackend.load's onnx-bf16 check)
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
-                     num_speakers=1, size_bytes=0):
+                     num_speakers=1, size_bytes=0, download_ignore=()):
     # CPU-only by reality: the stock sherpa-onnx wheel bundles a CPU-only ORT
     # (runtime-verified, D11) — no GPU tier row.
     return TtsModel(mid, name, langs, (
         Deployment("sherpa_tts", "cpu", "fp32", repo, 1.0),
     ), repos=(repo,), urls=tuple(urls), sample_rate=sr,
        recommended=recommended, sort_order=sort_order, num_speakers=num_speakers,
-       size_bytes=size_bytes)
+       size_bytes=size_bytes, download_ignore=download_ignore)
 
 
 def voice_capability(model: "TtsModel") -> dict:
@@ -408,7 +423,8 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("supertonic", "cpu", "fp32", "Supertone/supertonic-3", 1.0)),
              repos=("Supertone/supertonic-3",), clones=False, streaming=False,
              named_voices=True, style_voices=True, sample_rate=44100, num_speakers=10,
-             recommended=True, sort_order=1, size_bytes=400_600_000),
+             recommended=True, sort_order=1, size_bytes=400_600_000,
+             download_ignore=("audio_samples/*", "img/*")),
     TtsModel("qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
              (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_06B_MLX_REPO, 1.0,
@@ -419,7 +435,8 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_REPO, 1.0)),
              repos=(_QWEN3_TTS_06B_REPO,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=True, sort_order=2, size_bytes=5426257741),
+             recommended=True, sort_order=2, size_bytes=5426257741,
+             cuda_variant_subdir="onnx-bf16"),
     TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
              (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_17B_MLX_REPO, 1.0,
@@ -430,7 +447,8 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_REPO, 1.0)),
              repos=(_QWEN3_TTS_17B_REPO,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=False, sort_order=3, size_bytes=11431100174),
+             recommended=False, sort_order=3, size_bytes=11431100174,
+             cuda_variant_subdir="onnx-bf16"),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,
@@ -480,7 +498,8 @@ TTS_MODELS: list[TtsModel] = [
     # size is the kept subset (download ignores the torch ckpt/rule.far/int8).
     _sherpa_tts_row("csukuangfj/vits-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
                     "csukuangfj/vits-zh-aishell3", 30, 16000, num_speakers=174,
-                    size_bytes=123663994),
+                    size_bytes=123663994,
+                    download_ignore=("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx")),
 ]
 
 

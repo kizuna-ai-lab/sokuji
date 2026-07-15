@@ -59,7 +59,7 @@ class _LlamaCppBase:
         self._last_reply = None   # kept for tests/diagnostics
         self._dead_reason = None  # set when the server crashed twice in a row
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         from . import llama_runtime as rt
         self.unload()
         try:
@@ -254,7 +254,7 @@ class Ct2OpusTranslateBackend:
     def __init__(self):
         self._session = None
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._session = None
         try:
             path = model_ref

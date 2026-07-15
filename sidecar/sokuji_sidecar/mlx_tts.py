@@ -56,7 +56,7 @@ class MlxAudioTtsBackend:
         self.sample_rate = 24000
 
     # ---- loading -----------------------------------------------------------
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._model = None
         try:
             from mlx_audio.tts.utils import load_model

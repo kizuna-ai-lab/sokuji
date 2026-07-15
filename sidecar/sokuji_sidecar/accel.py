@@ -206,7 +206,7 @@ def probe(force: bool = False) -> Machine:
 # functions (right below) that fetch those facts and delegate.
 from . import planner  # noqa: E402
 from .planner import (  # noqa: E402
-    Plan, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
+    Plan, PlanConfig, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
     _tier_available, _platform_ok, _bench_key,
     _resolve_model, _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
     _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp, _llamacpp_quant,
@@ -476,7 +476,7 @@ def load_with_fallback(plans: list):
                 continue
         try:
             backend = make_backend(plan.backend)
-            backend.load(plan.artifact, plan.device, plan.compute_type)
+            backend.load(plan.artifact, plan.device, plan.compute_type, plan.config)
             return backend, plan, notice
         except BackendLoadError as e:
             notice = f"{plan.device} unavailable ({e.reason}); falling back"

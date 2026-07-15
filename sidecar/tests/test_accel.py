@@ -151,7 +151,7 @@ def _plan(device):
 def test_fallback_steps_to_cpu_and_sets_notice(monkeypatch):
     class FakeBackend:
         def __init__(self, ok): self.ok = ok; self.loaded = False
-        def load(self, a, device, ct):
+        def load(self, a, device, ct, config=None):
             if not self.ok:
                 raise backends.BackendLoadError("OOM")
             self.loaded = True
@@ -164,7 +164,7 @@ def test_fallback_steps_to_cpu_and_sets_notice(monkeypatch):
 
 def test_fallback_first_plan_wins_no_notice(monkeypatch):
     class FakeBackend:
-        def load(self, a, device, ct): self.loaded = True
+        def load(self, a, device, ct, config=None): self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     backend, plan, notice = accel.load_with_fallback([_plan("cpu")])
     assert plan.device == "cpu" and notice is None
@@ -172,7 +172,7 @@ def test_fallback_first_plan_wins_no_notice(monkeypatch):
 
 def test_fallback_all_fail_raises(monkeypatch):
     class FakeBackend:
-        def load(self, a, device, ct): raise backends.BackendLoadError("nope")
+        def load(self, a, device, ct, config=None): raise backends.BackendLoadError("nope")
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     import pytest
     with pytest.raises(accel.AllPlansFailed):
@@ -189,7 +189,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
-        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+        def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
     assert plan.device == "cpu" and attempted == ["cpu"]
@@ -200,7 +200,7 @@ def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
     class FakeBackend:
-        def load(self, a, device, ct): self.device = device; self.loaded = True
+        def load(self, a, device, ct, config=None): self.device = device; self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
     assert plan.device == "cuda" and notice is None
@@ -213,7 +213,7 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     class FakeBackend:
         def __init__(self, ok): self.ok = ok
-        def load(self, a, device, ct):
+        def load(self, a, device, ct, config=None):
             if not self.ok: raise backends.BackendLoadError("CUDA out of memory")
             self.loaded = True
     seq = iter([FakeBackend(False), FakeBackend(True)])
@@ -228,7 +228,7 @@ def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
-        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+        def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     _b, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
     assert plan.device == "cpu" and attempted == ["cpu"]
@@ -240,7 +240,7 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     # back" — there is nowhere to fall back to. Surface an honest VRAM message.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 * _GIB)
     class FakeBackend:
-        def load(self, a, device, ct):
+        def load(self, a, device, ct, config=None):
             raise backends.BackendLoadError("CUDA out of memory. Tried to allocate 54.00 MiB")
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     import pytest
@@ -941,7 +941,7 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     cpu_pl = _plan("cpu")
     attempted = []
     class FakeBackend:
-        def load(self, a, device, ct): attempted.append(device); self.loaded = True
+        def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     backend, plan, notice = accel.load_with_fallback([fp8_plan, cpu_pl])
     assert plan.device == "cpu" and attempted == ["cpu"]
@@ -1170,7 +1170,7 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
     loaded = []
 
     class FakeBackend:
-        def load(self, ref, device, ct):
+        def load(self, ref, device, ct, config=None):
             loaded.append(device)
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     plans = [accel.Plan("llamacpp_gemma", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
@@ -1568,7 +1568,7 @@ def test_load_measured_claims_into_ledger(monkeypatch):
     monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
 
     class _B:
-        def load(self, a, d, c): pass
+        def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
     plans = [accel.Plan("transcribe_cpp", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
     _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
@@ -1582,7 +1582,7 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
     monkeypatch.setattr(accel, "_rss_bytes", lambda: 1 << 30)
 
     class _B:
-        def load(self, a, d, c): pass
+        def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
     plans = [accel.Plan("transcribe_cpp", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
     accel.load_measured(plans, stage="asr")
