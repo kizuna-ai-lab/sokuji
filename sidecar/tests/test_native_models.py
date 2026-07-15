@@ -551,6 +551,28 @@ def test_supertonic_download_ignores_samples_and_images():
     assert "audio_samples/*" in spec.get("ignore", []) and "img/*" in spec.get("ignore", [])
 
 
+def test_base_specs_ignore_is_read_from_the_card():
+    # _base_specs derives spec["ignore"] from the TtsModel card's download_ignore
+    # field (populated in catalog.py), not from model-id string branches. Assert
+    # the exact list value + order for both cards that carry ignore patterns.
+    assert native_models._base_specs("supertonic-3")["ignore"] == [
+        "audio_samples/*", "img/*"]
+    assert native_models._base_specs("csukuangfj/vits-zh-aishell3")["ignore"] == [
+        "G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
+
+
+def test_base_specs_omits_ignore_key_when_card_has_none():
+    # A TTS card with an empty download_ignore (the default) must not gain an
+    # "ignore" key — consumers use .get("ignore", []), so a stray empty list
+    # would be harmless, but the key's mere presence is still worth pinning.
+    spec = native_models._base_specs("csukuangfj/vits-piper-en_US-amy-low")
+    assert "ignore" not in spec
+    # Non-TTS ids (ASR/translate) must not raise (tts_model() returns None for
+    # them) and also get no ignore key.
+    assert "ignore" not in native_models._base_specs("cohere-transcribe-03-2026")
+    assert "ignore" not in native_models._base_specs("hy-mt2-1.8b")
+
+
 def test_model_size_hardcoded_returns_without_network(monkeypatch):
     """Catalog model sizes are hardcoded — model_size must return them instantly
     without ever constructing HfApi / hitting the network."""

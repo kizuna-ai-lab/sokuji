@@ -154,6 +154,26 @@ def test_tts_model_unknown_returns_none():
     assert catalog.tts_model("does-not-exist") is None
 
 
+def test_resolve_tts_card_static_id_returns_catalog_row():
+    assert catalog.resolve_tts_card("moss-tts-nano") is catalog.tts_model("moss-tts-nano")
+
+
+def test_resolve_tts_card_uncatalogued_sherpa_id_synthesises_card():
+    mid = "csukuangfj/vits-piper-xx-yy"
+    m = catalog.resolve_tts_card(mid)
+    assert m is not None
+    assert m.id == mid
+    assert m.name == mid
+    assert m.languages == ("multi",)
+    assert m.deployments == (catalog.Deployment("sherpa_tts", "cpu", "fp32", mid, 1.0),)
+    assert m.repos == (mid,)
+    assert m.sample_rate == 16000
+
+
+def test_resolve_tts_card_unknown_non_sherpa_id_returns_none():
+    assert catalog.resolve_tts_card("totally-unknown-xyz") is None
+
+
 def test_llm_translate_rows_shape():
     m = catalog.translate_model("translategemma-4b")
     assert m is not None

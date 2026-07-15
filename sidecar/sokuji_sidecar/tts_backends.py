@@ -42,7 +42,7 @@ class SherpaTtsBackend:
         self.sample_rate = 16000
         self._sid = 0
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._tts = None
         try:
             import sherpa_onnx
@@ -124,7 +124,7 @@ class MossOnnxTtsBackend:
         self.preset_voice = os.environ.get("SOKUJI_MOSS_PRESET_VOICE", "Ava")
 
     # ---- loading -----------------------------------------------------------
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._rt = None
         self._sp = None
         self._voice_rows = None
@@ -350,7 +350,7 @@ class SupertonicBackend:
         self._presets = None; self._voice = None
         self.sample_rate = 44100; self._total_step = 16; self._default_sid = 7; self._lang = ""
 
-    def load(self, model_ref, device, compute_type):
+    def load(self, model_ref, device, compute_type, config=None):
         self._sess = None
         try:
             import onnxruntime as ort
@@ -487,7 +487,7 @@ class Qwen3TtsOnnxBackend:
         self.sample_rate = 24000
 
     # ---- loading -----------------------------------------------------------
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._sessions = None
         self._cfg = None
         self._emb = None
@@ -500,11 +500,15 @@ class Qwen3TtsOnnxBackend:
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
-            # code_predictor) alongside the fp32 set; bf16 has no CPU or DML
-            # kernels, so only the cuda device picks them up.
+            # code_predictor) alongside the fp32 set, in a subdir named by the
+            # card (config.variant_subdir, e.g. "onnx-bf16" for the qwen3-tts
+            # cards — see catalog.py's cuda_variant_subdir); bf16 has no CPU or
+            # DML kernels, so only the cuda device picks it up, and only when the
+            # subdir actually exists in this snapshot.
             variant_dir = None
-            if str(device).lower() == "cuda" and os.path.isdir(f"{d}/onnx-bf16"):
-                variant_dir = f"{d}/onnx-bf16"
+            subdir = config.variant_subdir if config is not None else None
+            if str(device).lower() == "cuda" and subdir and os.path.isdir(f"{d}/{subdir}"):
+                variant_dir = f"{d}/{subdir}"
             sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
                                                   variant_dir=variant_dir)
             self._cfg = _q3_config.load_model_config(d)

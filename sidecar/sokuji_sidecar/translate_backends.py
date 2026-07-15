@@ -20,6 +20,7 @@ import re
 
 from .backends import register_backend, BackendLoadError
 from .ct2_opus import Ct2OpusSession
+from .planner import PlanConfig
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
 
@@ -55,11 +56,11 @@ class _LlamaCppBase:
 
     def __init__(self):
         self._proc = None
-        self._ref = ""
+        self._config = PlanConfig()  # inert default; load() overwrites it
         self._last_reply = None   # kept for tests/diagnostics
         self._dead_reason = None  # set when the server crashed twice in a row
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         from . import llama_runtime as rt
         self.unload()
         try:
@@ -76,7 +77,7 @@ class _LlamaCppBase:
                                        extra_args=self.EXTRA_ARGS)
             proc.start()
             self._proc = proc
-            self._ref = model_ref
+            self._config = config or PlanConfig()
             self._dead_reason = None
         except BackendLoadError:
             raise
@@ -145,22 +146,23 @@ class LlamaCppQwenBackend(_LlamaCppBase):
     def _payload(self, text, system_prompt, src, tgt, wrap):
         sys_p = system_prompt or _default_prompt(src, tgt)
         # Whole Qwen3 family (Qwen3 and Qwen3.5) ships a chat template with
-        # thinking mode on by default; artifacts are named .../Qwen3-0.6B-*.gguf
-        # vs .../Qwen3.5-0.8B-*.gguf, so "qwen3-" only matches plain Qwen3 (the
-        # ".5" in "qwen3.5-" means it never matches that substring).
-        # Verified live against the GGUFs: the `/no_think` soft switch in the
-        # system prompt does NOT work on Qwen3.5 — it still burns all 512
-        # max_tokens on <think> reasoning and returns empty content. The
-        # request-level `chat_template_kwargs: {enable_thinking: false}` DOES
-        # work for both Qwen3 and Qwen3.5 (verified: correct short output in a
-        # handful of tokens), so it's the canonical kill-switch applied to
-        # both. `/no_think` is kept for Qwen3 only as belt-and-braces per
-        # Qwen3's own docs — it's a no-op string for templates that ignore it.
-        ref = self._ref.lower()
+        # thinking mode on by default. Verified live against the GGUFs: the
+        # `/no_think` soft switch in the system prompt does NOT work on
+        # Qwen3.5 — it still burns all 512 max_tokens on <think> reasoning
+        # and returns empty content. The request-level
+        # `chat_template_kwargs: {enable_thinking: false}` DOES work for both
+        # Qwen3 and Qwen3.5 (verified: correct short output in a handful of
+        # tokens), so it's the canonical kill-switch applied to both.
+        # `/no_think` is kept for Qwen3 only as belt-and-braces per Qwen3's
+        # own docs — it's a no-op string for templates that ignore it.
+        # Which family a loaded model belongs to is a catalog-card fact
+        # (Plan.config.disable_thinking / .append_no_think, populated by
+        # planner._plan_config from the resolved TranslateModel), injected at
+        # load() — not re-derived from the model path here.
         payload: dict = {}
-        if "qwen3.5" in ref or "qwen3-" in ref:
+        if self._config.disable_thinking:
             payload["chat_template_kwargs"] = {"enable_thinking": False}
-        if "qwen3-" in ref:
+        if self._config.append_no_think:
             sys_p = f"{sys_p} /no_think"
         user = f"<transcript>{text}</transcript>" if wrap else text
         payload.update({"messages": [{"role": "system", "content": sys_p},
@@ -254,7 +256,7 @@ class Ct2OpusTranslateBackend:
     def __init__(self):
         self._session = None
 
-    def load(self, model_ref: str, device: str, compute_type: str) -> None:
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self._session = None
         try:
             path = model_ref
