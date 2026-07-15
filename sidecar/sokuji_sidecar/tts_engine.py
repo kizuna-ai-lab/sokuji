@@ -41,11 +41,11 @@ class TtsEngine:
         self.resolved = None
 
     def init(self, model_id=None, device="auto", language=""):
-        from . import accel, catalog
+        from . import accel, catalog, planner
         t0 = time.time()
         self.close()                        # VRAM hygiene: free any prior model first
         mid = model_id or "moss-tts-nano"
-        plans = accel.resolve_tts(mid, override=device or "auto")
+        plans = planner.resolve_tts(mid, override=device or "auto")
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="tts")
         if hasattr(self._backend, "set_language"):
             self._backend.set_language(language or "")

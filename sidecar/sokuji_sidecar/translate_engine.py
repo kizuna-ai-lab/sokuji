@@ -16,9 +16,9 @@ class TranslateEngine:
         t0 = time.time()
         self.close()                       # VRAM hygiene: free any prior model first
         self._src, self._tgt = source_lang, target_lang
-        from . import accel
-        plans = accel.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto",
-                                        reserved_bytes=reserved_bytes, pin=pin)
+        from . import accel, planner
+        plans = planner.resolve_translate(model_id or "qwen2.5-0.5b", override=device or "auto",
+                                          reserved_bytes=reserved_bytes, pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="translate")
         tps = accel.measure_tps(self._backend, plan, model_id or "qwen2.5-0.5b", accel.probe())
         self.resolved = {"backend": plan.backend, "device": plan.device,

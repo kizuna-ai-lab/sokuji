@@ -122,12 +122,12 @@ class _FakeBackend:
 
 
 def test_engine_init_uses_resolver(monkeypatch):
-    from sokuji_sidecar import asr_engine as ae, accel
+    from sokuji_sidecar import asr_engine as ae, accel, planner
     eng = ae.AsrEngine()
     # Stub VAD so no model/native lib is needed.
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(planner, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     ms = eng.init(model_id="whisper-base", language="en", device="auto")
@@ -199,11 +199,11 @@ def test_ready_unchanged_when_engine_has_no_resolved():
 
 
 def test_engine_init_measures_and_stores_rtf(monkeypatch):
-    from sokuji_sidecar import asr_engine as ae, accel
+    from sokuji_sidecar import asr_engine as ae, accel, planner
     eng = ae.AsrEngine()
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(planner, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
     eng.init(model_id="whisper-base", language="en", device="auto")
@@ -212,11 +212,11 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
 
 
 def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
-    from sokuji_sidecar import asr_engine as ae, accel
+    from sokuji_sidecar import asr_engine as ae, accel, planner
     eng = ae.AsrEngine()
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(planner, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)  # benchmark failed
     eng.init(model_id="whisper-base", device="auto")
@@ -259,7 +259,7 @@ class _UnloadBackend:
 def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     # VRAM-leak regression: the singleton engine must unload the previous backend before
     # loading the next (no pileup), and close() must free the current one.
-    from sokuji_sidecar import asr_engine as ae, accel
+    from sokuji_sidecar import asr_engine as ae, accel, planner
     eng = ae.AsrEngine()
     monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
@@ -270,7 +270,7 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
         backends.append(b)
         return b, fake_plan, None, None
 
-    monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
+    monkeypatch.setattr(planner, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", fake_load)
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
 
@@ -285,9 +285,9 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
 
 
 def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
-    from sokuji_sidecar import accel, asr_engine
+    from sokuji_sidecar import accel, asr_engine, planner
     fake_plan = type("P", (), {"backend": "ctranslate2", "device": "cpu", "compute_type": "int8"})()
-    monkeypatch.setattr(accel, "resolve", lambda mid, override=None, **kw: ["plan"])
+    monkeypatch.setattr(planner, "resolve", lambda mid, override=None, **kw: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
                         lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
@@ -567,7 +567,7 @@ def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
     `pin`; the swallowed NameError made EVERY streaming card silently take the
     offline path. The pin must reach accel.resolve so the pre-check resolves
     the same plan init_streaming will load."""
-    from sokuji_sidecar import asr_engine as ae, accel
+    from sokuji_sidecar import asr_engine as ae, planner
 
     seen = {}
 
@@ -575,7 +575,7 @@ def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
         seen["model"], seen["pin"] = model_id, pin
         return [type("P", (), {"backend": "transcribe_cpp_stream"})()]
 
-    monkeypatch.setattr(accel, "resolve", fake_resolve)
+    monkeypatch.setattr(planner, "resolve", fake_resolve)
     eng = ae.AsrEngine()
     assert eng.resolves_to_streaming("voxtral-mini-4b-realtime", "auto", pin="q8_0") is True
     assert seen == {"model": "voxtral-mini-4b-realtime", "pin": "q8_0"}
