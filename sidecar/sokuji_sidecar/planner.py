@@ -172,6 +172,29 @@ def _resolve_model(model, model_id: str, override: str, machine: Machine, *,
     return plans
 
 
+def _fit_walk(sized: dict[str, int], *, budget: int, downloaded: set | None) -> str | None:
+    """The size-descending fit-walk nucleus shared by _tc_pick_quant and
+    _llamacpp_variant_row: `sized` maps compute_type -> a size that already
+    has the caller's own resident factor baked in (so this function only ever
+    compares `size <= budget`). When `downloaded` is non-empty, restrict to
+    the entries whose key is in it -- but ONLY when that restriction leaves at
+    least one candidate; an empty overlap falls back to the full `sized` map,
+    matching each caller's own "only narrow when a cached rung actually
+    exists" rule. Walk the (possibly-restricted) candidates size-descending
+    and return the key of the largest one that fits within `budget`. Returns
+    None when nothing fits (including an empty `sized`) -- the caller applies
+    its own fallback (tc: smallest quant / rank-default; llama: Apple-Silicon
+    stay-on-GPU / _LLAMA_MIN_FIT_FRACTION tail)."""
+    if downloaded:
+        restricted = {q: sz for q, sz in sized.items() if q in downloaded}
+        if restricted:
+            sized = restricted
+    for quant, size in sorted(sized.items(), key=lambda kv: -kv[1]):
+        if size <= budget:
+            return quant
+    return None
+
+
 _TC_RESIDENT_FACTOR = 1.15
 
 
@@ -227,10 +250,11 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
         return min(sizes, key=sizes.get) if sizes else default
     if budget is None or not sizes:
         return default
-    for quant, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
-        if size * _TC_RESIDENT_FACTOR <= budget:
-            return quant
-    return default
+    # `sizes` is already the final (downloaded-restricted, if applicable)
+    # candidate set, so no further downloaded restriction is needed here.
+    picked = _fit_walk({q: sz * _TC_RESIDENT_FACTOR for q, sz in sizes.items()},
+                       budget=budget, downloaded=None)
+    return picked if picked is not None else default
 
 
 def resolve(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
@@ -434,10 +458,13 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
                 default_quant = max(quants, key=lambda q: quants[q])
     if not quants:
         return _row(default_quant)
-    # largest fully-resident quant wins
-    for quant, size in sorted(quants.items(), key=lambda kv: -kv[1]):
-        if size * _LLAMA_RESIDENT_FACTOR <= budget:
-            return _row(quant)
+    # largest fully-resident quant wins. `quants` is already the final
+    # (downloaded-restricted, if applicable) candidate set, so no further
+    # downloaded restriction is needed here.
+    picked = _fit_walk({q: sz * _LLAMA_RESIDENT_FACTOR for q, sz in quants.items()},
+                       budget=budget, downloaded=None)
+    if picked is not None:
+        return _row(picked)
     # Nothing fully fits. On UNIFIED memory (Apple Silicon) the CPU shares the
     # same pool — moving there frees nothing and loses Metal throughput, so
     # stay on the GPU tier and let --fit manage pressure. On discrete GPUs,
