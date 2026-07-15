@@ -177,6 +177,33 @@ describe('SidecarConnection', () => {
     await expect(c.request({ type: 'translate', text: 'x' })).rejects.toThrow('send kaboom');
   });
 
+  it('dispose() during the connect IPC does not construct an orphan socket', async () => {
+    let releaseInvoke!: (v: any) => void;
+    (globalThis as any).window.electron.invoke = vi.fn(() => new Promise((res) => { releaseInvoke = res; }));
+    const c = new SidecarConnection();
+    const caught = c.connect().catch((e) => e);
+    await Promise.resolve();            // _connect() is now awaiting invoke
+    c.dispose();                        // dispose lands mid-connect
+    releaseInvoke({ ok: true, port: 9 });
+    const err = await caught;
+    expect((err as Error).message).toBe('native host disconnected');
+    expect(FakeWS.instances).toHaveLength(0);   // socket was never constructed
+  });
+
+  it('dispose() between socket construction and open closes the socket instead of adopting it', async () => {
+    vi.useFakeTimers();
+    const c = new SidecarConnection();
+    const caught = c.connect().catch((e) => e);
+    await Promise.resolve();
+    await Promise.resolve();            // socket constructed, onopen timer still pending
+    const ws = FakeWS.instances[0];
+    c.dispose();                        // dispose before onopen fires
+    ws.onopen?.();                      // the delayed open now arrives
+    expect(ws.readyState).toBe(3);      // closed, not adopted
+    const err = await caught;
+    expect((err as Error).message).toBe('native host disconnected');
+  });
+
   it('honors a caller-provided id (for out-of-band cancel correlation)', async () => {
     const c = new SidecarConnection();
     await c.connect();

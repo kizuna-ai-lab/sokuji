@@ -61,6 +61,7 @@ interface Pending {
 export class SidecarConnection implements ISidecarConnection {
   private ws: WebSocket | null = null;
   private connecting: Promise<void> | null = null;
+  private disposed = false;
   private counter = 0;
   private pending = new Map<number, Pending>();
   private messageCb: ((msg: ServerMsg) => void) | null = null;
@@ -73,6 +74,7 @@ export class SidecarConnection implements ISidecarConnection {
   onClose(cb: (err: Error) => void): void { this.closeCb = cb; }
 
   async connect(): Promise<void> {
+    if (this.disposed) throw new Error('native host disconnected');
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
     // Single-flight: the sidecar can take seconds to boot on first use; concurrent
     // callers must await the SAME attempt, else the duplicate sockets race and an
@@ -85,10 +87,18 @@ export class SidecarConnection implements ISidecarConnection {
   private async _connect(): Promise<void> {
     const r = await electron().invoke('native-host:start');
     if (!r?.ok) throw new Error(r?.error || 'failed to start native host');
+    // dispose() may have run while we awaited the IPC; don't open an orphan socket.
+    if (this.disposed) throw new Error('native host disconnected');
     await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(`ws://127.0.0.1:${r.port}`);
       ws.binaryType = 'arraybuffer';
-      ws.onopen = () => { this.ws = ws; resolve(); };
+      ws.onopen = () => {
+        // A dispose() that landed between construction and open must not leave this
+        // socket live; close it and fail the attempt rather than adopting it.
+        if (this.disposed) { try { ws.close(); } catch (_) { /* already closing */ } reject(new Error('native host disconnected')); return; }
+        this.ws = ws;
+        resolve();
+      };
       ws.onerror = () => reject(new Error('native host WS error'));
       ws.onclose = () => {
         // A close before this socket ever opened settles the connect() promise
@@ -160,6 +170,7 @@ export class SidecarConnection implements ISidecarConnection {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.rejectAllPending(new Error('native host disconnected'));
     if (this.ws) { this.ws.onclose = null; this.ws.onmessage = null; try { this.ws.close(); } catch (_) { /* already closing */ } }
     this.ws = null;
