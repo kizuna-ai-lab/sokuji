@@ -16,6 +16,7 @@ Domain terms used across Sokuji. Use these names exactly in code, docs, and desi
 ## Session domain
 
 - **Client** — an `IClient` adapter speaking one provider's realtime protocol (11 adapters behind the `IClient` seam). Constructed only by its provider's descriptor.
+- **SidecarConnection** — the WS-RPC transport seam behind the Local Native clients (`ISidecarConnection` is the interface the clients depend on and tests substitute). Owns one socket to the Python sidecar and the mechanics every native client shared: connect, id-correlated request/reply, fire-and-forget send, outbound binary, and routing of un-correlated push messages. The *connection* is the unit, not a shared socket — each native stage client (ASR / translate / TTS / model) holds its own, because the sidecar routes binary frames and frees VRAM per-connection. Native-only: the browser (WASM) side of Local Inference talks to workers, not a sidecar, so it has no equivalent — do not generalize this into a cross-provider transport.
 - **ConversationItem** — the unified transcript unit (user/assistant message with text/transcript/audio) that every client reduces provider events into.
 
 ## Extension domain
