@@ -14,7 +14,7 @@
 - **No wire-protocol / renderer changes.** This is entirely `sidecar/sokuji_sidecar/*.py`. Do not touch `src/` or the RPC envelope.
 - **Local Inference (WASM) and Local Native (sidecar) are PEER providers** — do not introduce any cross-provider abstraction (see CONTEXT.md).
 - **Preserve the deep islands verbatim:** the `load_with_fallback` proactive VRAM gate + honest-OOM policy (`accel.py:678-730`) stays in the Loader unchanged; `LlamaServerProc`, `asr_engine.run_stream`, `load_with_fallback` are not restructured.
-- **Public planner API stays stable:** `resolve` / `resolve_translate` / `resolve_tts` keep their names and return types; callers switch from `accel.resolve*` to `planner.resolve*` but signatures are unchanged.
+- **Public planner API stays stable:** `resolve` / `resolve_translate` / `resolve_tts` keep their names and return types across the move to `planner.py` (superseded by Design-A, chosen during execution: engines stay on `accel.resolve*` — thin Loader wrappers of the same name — and the pure `planner.resolve*` are called only via those wrappers; callers were NOT switched to `planner.resolve*` directly).
 - **Test layout & runner:** sidecar tests live in `sidecar/tests/test_*.py` and import the package by name (`from sokuji_sidecar import accel`). Run from the `sidecar/` dir with the sidecar venv (`.venv`, created by `sidecar/setup.sh`; override via `SOKUJI_VENV`): `cd sidecar && .venv/bin/python -m pytest tests/test_accel.py -q` (adjust the file per task; whole suite = `.venv/bin/python -m pytest tests -q`). If `.venv` is absent, run `sidecar/setup.sh` first. There is no `pytest.ini`/`conftest.py`; pytest picks up `tests/` from the `sidecar/` CWD. New test files (`test_characterization.py`, `test_planner.py`) go in `sidecar/tests/`.
 
 ---
@@ -82,7 +82,7 @@ git commit -m "test(sidecar): characterisation snapshot of accel planner outputs
 **Files:**
 - Create: `sidecar/sokuji_sidecar/planner.py`
 - Modify: `sidecar/sokuji_sidecar/accel.py` (remove the moved functions; import them back for its own internal use / re-expose is NOT needed — see below)
-- Modify: `sidecar/sokuji_sidecar/asr_engine.py`, `translate_engine.py`, `tts_engine.py` (update `accel.resolve*` → `planner.resolve*`)
+- Modify: `sidecar/sokuji_sidecar/asr_engine.py`, `translate_engine.py`, `tts_engine.py` (update `accel.resolve*` → `planner.resolve*`) (Design-A: reverted — engines call `accel.resolve*`)
 
 **Interfaces:**
 - Produces: `planner.resolve(model_id, override, machine=None)`, `planner.resolve_translate(...)`, `planner.resolve_tts(model_id, override, machine=None)` (identical signatures/returns to today's `accel.*`), plus the pure helpers.
@@ -92,7 +92,7 @@ git commit -m "test(sidecar): characterisation snapshot of accel planner outputs
 
 - [ ] **Step 2: Resolve the I/O seams.** Any moved function that still calls a Loader-only effectful helper must instead receive that value as an argument. `resolve`/`resolve_translate` already accept `bench`/`downloaded`; verify `resolve_tts` and `_resolve_model` do too, and lift any lingering `bench_load()` / `_downloaded_quants()` / `_model_weight_bytes()` call up to the Loader caller. (`resolve_tts`'s sherpa synthesis is handled in Task 9 — leave it calling `catalog` for now.)
 
-- [ ] **Step 3: Rewire imports.** `accel.py`: `from .planner import Plan, resolve, resolve_translate, resolve_tts` where the Loader (`load_measured`, `_h_*`) still needs them internally. Update the three engines' `accel.resolve*(...)` call sites to `planner.resolve*(...)` (add `from . import planner`). Grep to confirm: `grep -rn "accel\.resolve" sidecar/sokuji_sidecar` returns only intended re-exports.
+- [ ] **Step 3: Rewire imports.** `accel.py`: `from .planner import Plan, resolve, resolve_translate, resolve_tts` where the Loader (`load_measured`, `_h_*`) still needs them internally. Update the three engines' `accel.resolve*(...)` call sites to `planner.resolve*(...)` (add `from . import planner`). Grep to confirm: `grep -rn "accel\.resolve" sidecar/sokuji_sidecar` returns only intended re-exports. (Design-A: reverted — engines call `accel.resolve*`, kept as thin Loader wrappers around `planner.resolve*`.)
 
 - [ ] **Step 4: Run characterisation + sidecar suite.**
 

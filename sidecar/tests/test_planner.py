@@ -922,3 +922,62 @@ def test_resolve_arm_ort_cuda_resolves_tts_cuda():
         "transcribe_cpp", "transcribe_cpp_stream", "llamacpp_qwen", "qwen3tts_onnx"}))
     tts = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
     assert tts[0].device == "cuda"
+
+
+# ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
+# Characterisation coverage hole: nothing previously asserted that RESOLVING
+# a model actually produces the right PlanConfig (only that an explicit
+# PlanConfig behaves correctly once inside a Plan). These pin both the direct
+# card->PlanConfig derivation and its propagation through resolve_translate/
+# resolve_tts, so a future change that forgets to thread it is caught.
+
+
+def test_plan_config_qwen3_06b_disables_thinking_and_appends_no_think():
+    # qwen3-0.6b is plain Qwen3: belt-and-braces both the chat-template kill
+    # switch AND the /no_think soft switch (see catalog.TranslateModel docstring).
+    card = catalog.translate_model("qwen3-0.6b")
+    assert planner._plan_config(card) == planner.PlanConfig(disable_thinking=True, append_no_think=True)
+
+
+def test_plan_config_qwen35_08b_disables_thinking_without_no_think():
+    # qwen3.5 only needs the chat-template switch -- append_no_think stays False.
+    card = catalog.translate_model("qwen3.5-0.8b")
+    assert planner._plan_config(card) == planner.PlanConfig(disable_thinking=True, append_no_think=False)
+
+
+def test_plan_config_qwen25_05b_is_fully_inert():
+    # A plain (non-thinking-mode) translate card carries an all-default,
+    # behaviour-inert PlanConfig.
+    card = catalog.translate_model("qwen2.5-0.5b")
+    assert planner._plan_config(card) == planner.PlanConfig()
+
+
+def test_plan_config_qwen3_tts_06b_carries_onnx_bf16_variant_subdir():
+    card = catalog.resolve_tts_card("qwen3-tts-0.6b")
+    assert planner._plan_config(card) == planner.PlanConfig(variant_subdir="onnx-bf16")
+
+
+def test_plan_config_non_onnx_tts_card_has_no_variant_subdir():
+    # moss-tts-nano has no cuda_variant_subdir field value set (defaults None)
+    # -- only the qwen3-tts onnx cards carry the bf16-graph subdir.
+    card = catalog.tts_model("moss-tts-nano")
+    assert planner._plan_config(card) == planner.PlanConfig()
+    assert planner._plan_config(card).variant_subdir is None
+
+
+def test_resolve_translate_propagates_qwen3_thinking_config():
+    # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
+    # must carry the card's derived PlanConfig through to the Plan it returns.
+    plans = planner.resolve_translate("qwen3-0.6b", "auto", machine=CUDA_12GB, platform="linux",
+                                      cache={}, downloaded=set(),
+                                      est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    assert plans[0].config == planner.PlanConfig(disable_thinking=True, append_no_think=True)
+    # every plan for this model shares the same card-derived config.
+    assert all(p.config == plans[0].config for p in plans)
+
+
+def test_resolve_tts_propagates_qwen3_variant_subdir_config():
+    m = _nv_machine(12000, installed=frozenset({"qwen3tts_onnx"}))
+    plans = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
+    assert plans[0].config.variant_subdir == "onnx-bf16"
+    assert all(p.config.variant_subdir == "onnx-bf16" for p in plans)
