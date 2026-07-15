@@ -52,10 +52,10 @@ def test_translate_init_echoes_device_and_resolved():
 
 
 def test_init_uses_resolver_and_sets_resolved(monkeypatch):
-    from sokuji_sidecar import accel, planner
+    from sokuji_sidecar import accel
     fake_backend = MagicMock()
     fake_plan = MagicMock(backend="llamacpp_qwen", device="cuda", compute_type="q8_0")
-    monkeypatch.setattr(planner, "resolve_translate", lambda mid, override=None, **_: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
@@ -72,11 +72,11 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
 
 
 def test_close_unloads_prior_backend_before_reinit(monkeypatch):
-    from sokuji_sidecar import accel, planner
+    from sokuji_sidecar import accel
     first, second = MagicMock(), MagicMock()
     plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
     backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
-    monkeypatch.setattr(planner, "resolve_translate", lambda mid, override=None, **_: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: next(backends_iter))
 
     eng = translate_engine.TranslateEngine()
@@ -97,10 +97,10 @@ def test_translate_delegates_to_backend_when_loaded():
 
 
 def test_init_stores_memory_and_fallback_reason(monkeypatch):
-    from sokuji_sidecar import accel, planner
+    from sokuji_sidecar import accel
     from unittest.mock import MagicMock
     fake_plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
-    monkeypatch.setattr(planner, "resolve_translate", lambda mid, override=None, **_: ["plan"])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
                         lambda plans, **kw: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)

@@ -94,7 +94,7 @@ class AsrEngine:
     def init(self, model_id=None, language="", sample_rate=SRC_RATE,
              vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
              pin=None):
-        from . import accel, planner
+        from . import accel
         t0 = time.time()
         # Free any previously-loaded model BEFORE loading the next. The engine is a
         # process singleton reused across sessions; without this, re-init piles a second
@@ -102,7 +102,7 @@ class AsrEngine:
         self.close()
         self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
         # Resolve the fastest available backend+device; CPU floor guaranteed.
-        plans = planner.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
+        plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="asr")
         self._language = language or None
         rtf = accel.measure_rtf(self._backend, plan, model_id or "sense-voice", accel.probe())
@@ -485,9 +485,9 @@ class AsrEngine:
         Only the top-ranked plan is checked; `pin` (the user-pinned quant) must match what
         init/init_streaming will load so both resolve the same plan. Returns False on any
         resolution error so the caller can safely fall back to the offline path."""
-        from . import backends, planner
+        from . import accel, backends
         try:
-            plans = planner.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
+            plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         except Exception:
             return False
         if not plans:
@@ -500,8 +500,8 @@ class AsrEngine:
             return False
 
     def _resolve_streaming_backend(self, model_id, device, pin=None):
-        from . import accel, planner
-        plans = planner.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto", pin=pin)
+        from . import accel
+        plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto", pin=pin)
         return accel.load_measured(plans, stage="asr")   # (backend, plan, notice, memory_bytes)
 
     def _vad_events(self, samples):

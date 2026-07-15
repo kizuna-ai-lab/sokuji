@@ -189,21 +189,28 @@ def probe(force: bool = False) -> Machine:
 
 
 # Deployment PLANNING ("which backend on which device", quant/variant picking,
-# platform filtering) lives in planner.py — imported back here (a) so this
-# module's own Loader code (load_measured, the _h_* RPC handlers below) can
-# keep calling these names unqualified, and (b) so `accel.<name>` keeps
-# resolving for every external caller of the pre-split surface (engines,
-# llama_runtime, and the test suite — including the frozen characterisation
-# suite, which calls accel.resolve/accel.resolve_translate/accel.resolve_tts/
+# platform filtering) lives in planner.py, which is pure (no I/O, no runtime
+# import of this module). Imported back here (a) so this module's own Loader
+# code (load_measured, the _h_* RPC handlers below) can keep calling the
+# genuinely pure names unqualified, and (b) so `accel.<name>` keeps resolving
+# for every external caller of the pre-split surface (engines, llama_runtime,
+# and the test suite — including the frozen characterisation suite, which
+# calls accel.resolve/accel.resolve_translate/accel.resolve_tts/
 # accel._tc_pick_quant/accel.select_variant/accel._llamacpp_variant_row
 # directly). This is an intentional re-export, not a smell.
+#
+# `resolve`, `resolve_translate`, `resolve_tts`, `select_variant`,
+# `_llamacpp_variant_row`, and `resolve_deployments` are NOT re-exported here:
+# their pure planner.* counterparts now take the environment facts below as
+# parameters, so this module instead defines same-named Loader-wrapper
+# functions (right below) that fetch those facts and delegate.
+from . import planner  # noqa: E402
 from .planner import (  # noqa: E402
     Plan, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
-    _tier_available, _platform_ok, resolve_deployments, _bench_key,
+    _tier_available, _platform_ok, _bench_key,
     _resolve_model, _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
-    resolve, resolve_translate, resolve_tts,
     _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp, _llamacpp_quant,
-    _LLAMA_RESIDENT_FACTOR, _llamacpp_variant_row, select_variant, _apply_bench,
+    _LLAMA_RESIDENT_FACTOR, _apply_bench,
 )
 
 
@@ -230,6 +237,60 @@ def _downloaded_quants(model) -> set:
         except Exception:
             pass
     return out
+
+
+# ── Loader wrappers for planner.py's pure resolve/pick functions ────────────
+# Same public names + call signatures as before the purification split.
+# Each fetches its I/O by calling the env-fact functions below AS BARE
+# MODULE-GLOBAL NAMES (current_platform(), bench_load(), probe(),
+# _downloaded_quants(), _est_bytes, _format_ready) so that
+# `monkeypatch.setattr(accel, "<name>", ...)` — used throughout the test
+# suite, including the frozen characterisation suite — is observed exactly
+# as it was before this split.
+
+
+def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None):
+    return planner.resolve_deployments(
+        model, machine, override, bench,
+        platform=platform if platform is not None else current_platform())
+
+
+def resolve(model_id, override="auto", machine=None, pin=None):
+    from . import catalog as _cat
+    m = machine or probe()
+    model = _cat.asr_model(model_id)
+    multi_quant = model is not None and len({d.compute_type for d in model.deployments}) > 1
+    downloaded = _downloaded_quants(model) if multi_quant else set()
+    return planner.resolve(model_id, override, machine=m, platform=current_platform(),
+                           cache=bench_load(), downloaded=downloaded, pin=pin)
+
+
+def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
+    from . import catalog as _cat
+    m = machine or probe()
+    model = _cat.translate_model(model_id)
+    downloaded = (_downloaded_quants(model)
+                 if override == "auto" and model is not None else set())
+    return planner.resolve_translate(
+        model_id, override, machine=m, platform=current_platform(), cache=bench_load(),
+        downloaded=downloaded, reserved_bytes=reserved_bytes, pin=pin,
+        est_bytes=_est_bytes, format_ready=_format_ready)
+
+
+def resolve_tts(model_id, override="auto", machine=None):
+    m = machine or probe()
+    return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
+                               cache=bench_load())
+
+
+def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):
+    return planner.select_variant(model, machine, reserved_bytes, pin, budget_bytes, downloaded,
+                                  est_bytes=_est_bytes, format_ready=_format_ready)
+
+
+def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None):
+    return planner._llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
+                                         downloaded=downloaded, est_bytes=_est_bytes)
 
 
 # ── Cross-stage VRAM ledger ──────────────────────────────────────────────────
@@ -657,11 +718,12 @@ async def _h_models_catalog(state, msg, _b, conn=None):
     if wanted:
         models = [x for x in models if x.id in wanted]
     out = []
+    platform_tag = current_platform()
     for mdl in models:
         tiers = []
         seen_tiers = set()
         for d in mdl.deployments:
-            if not _platform_ok(d, m):
+            if not _platform_ok(d, m, platform_tag):
                 continue                      # off-platform tier (e.g. windows-only gpu-dml on linux)
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
