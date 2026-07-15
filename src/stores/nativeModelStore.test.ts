@@ -39,16 +39,19 @@ class FakeWS {
         return;
       }
       // The sidecar returns ASR, translation, or TTS models depending on `kind` (default asr).
+      // Every real sidecar model row carries `kind` (nativeProtocol.NativeModelInfo requires
+      // it) — the catalog-filtering helpers (nativeAsrCards/nativeTranslationCards/etc.) key
+      // off it, so the fixture rows must too.
       let models;
       if (msg.kind === 'translate') {
-        models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', languages: ['multi'], recommended: true,
+        models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', kind: 'translate', languages: ['multi'], recommended: true,
              tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
                      { tier: 'cpu', backend: 'llamacpp_qwen', available: true }], sizeBytes: 999604126 }];
       } else if (msg.kind === 'tts') {
-        models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', languages: ['ja', 'zh'], recommended: true,
+        models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', kind: 'tts', languages: ['ja', 'zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];
       } else {
-        models = [{ id: 'sense-voice', name: 'SenseVoice', languages: ['zh'], recommended: true,
+        models = [{ id: 'sense-voice', name: 'SenseVoice', kind: 'asr', languages: ['zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }], sizeBytes: 944624033 },
            ..._asrExtraModels];
       }
@@ -157,7 +160,7 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
   // variant-aware caller happened to run. The catalog feed already carries the
   // full variant ladder, so the store derives the cache when the catalog lands.
   const FUN_ASR = {
-    id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', languages: ['multi'], recommended: true,
+    id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', kind: 'asr', languages: ['multi'], recommended: true,
     tiers: [{ tier: 'cpu', backend: 'transcribe_cpp', available: true }], sizeBytes: 690744384,
     variantIds: ['q6_k', 'q8_0'],
     variants: [
@@ -335,6 +338,109 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
     expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'ct2_opus_translate', computeType: 'int8' });
     s.setTtsResolved({ model: 'v', device: 'metal', backend: 'mlx_audio_tts', computeType: 'fp32' });
     expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ backend: 'mlx_audio_tts', computeType: 'fp32' });
+  });
+});
+
+describe('ensureSelectionReady (facade)', () => {
+  const SEL = {
+    sourceLanguage: 'zh', targetLanguage: 'en',
+    asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: '',
+    translationVariantByModel: {} as Record<string, string>,
+  };
+
+  beforeEach(() => {
+    _shouldReject = false;
+    // The top-level beforeEach resets catalog/statuses/statusRepos but not
+    // modelPreferences — autoSelect's step 1 layers recalled history from a
+    // PRIOR test's rememberModels() for the same `${src}→${tgt}` key on top of
+    // the requested selection, so a leftover here would silently override the
+    // translationModel this block is trying to exercise.
+    useNativeModelStore.setState({ modelPreferences: {} });
+  });
+
+  it('unavailable sidecar → not ready, reason unavailable, no corrections', async () => {
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
+    // ensureCatalog will try to (re)load; make the catalog fetch reject so it stays unavailable.
+    mockModelsCatalogReject();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    expect(r).toEqual({ ready: false, reason: 'unavailable', corrections: null });
+  });
+
+  it('bundle absent → reason engine-absent', async () => {
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'absent' });
+    // ensureCatalog's refreshBundle() re-queries the IPC bundle status before the
+    // lifecycle check runs; make that call throw (caught, best-effort) so the
+    // seeded bundleStatus survives instead of being overwritten by the default
+    // `{ ok: true }` mock reply (which carries no `state`/`sku`).
+    (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
+    mockModelsCatalogReject();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    expect(r.reason).toBe('engine-absent');
+  });
+
+  it('bundle mismatch → reason engine-mismatch', async () => {
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'mismatch' });
+    (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
+    mockModelsCatalogReject();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    expect(r.reason).toBe('engine-mismatch');
+  });
+
+  it('ready + downloaded compatible pair → ready', async () => {
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
+    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: true });
+    // FakeWS reports every queried model 'ready'; textOnly drops the TTS
+    // requirement so readiness only needs the asr+translation pair.
+    expect(r.ready).toBe(true);
+    expect(r.reason).toBe('ready');
+  });
+
+  it('stale translation for the reversed pair → not ready, reason translation-incompatible', async () => {
+    // FakeWS's default translate card (qwen2.5-0.5b) is `languages: ['multi']`,
+    // which nativeTranslationCards treats as valid for ANY pair — so autoSelect
+    // would always fall back to it and the selection would end up compatible
+    // again. Replace it with a DIRECTIONAL zh→en-only card, and add an 'en'
+    // -capable ASR card (the default sense-voice is zh-only, which would
+    // otherwise fail the ASR check first on this reversed pair and mask the
+    // translation-incompatible reason this test targets).
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { 'qwen2.5-0.5b': _drop, ...catalogWithoutQwen } = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: {
+      ...catalogWithoutQwen,
+      'whisper-en': { id: 'whisper-en', name: 'Whisper EN', kind: 'asr', languages: ['en'], recommended: false,
+        tiers: [{ tier: 'cpu', backend: 'whisper', available: true }], order: 1, repo: 'whisper-en' },
+      'opus-mt-zh-en': { id: 'opus-mt-zh-en', name: 'Opus MT zh-en', kind: 'translate', languages: ['zh', 'en'],
+        recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
+    } as any });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(
+      { ...SEL, sourceLanguage: 'en', targetLanguage: 'zh', asrModel: 'whisper-en', translationModel: 'opus-mt-zh-en' },
+      { textOnly: false });
+    // opus-mt-zh-en is a card for zh→en, not the reversed en→zh pair — incompatible
+    // even though its status reports "downloaded".
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe('translation-incompatible');
+  });
+
+  it('resolves the selected model chosen variant repo on the required-models refresh', async () => {
+    // Seed a multi-variant translate card into the FakeWS catalog for this test,
+    // then assert the LAST model_status carried its recommended repo.
+    // (Mirror the existing multi-variant fixtures at the top of this file.)
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const catalog = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: { ...catalog, 'hy-mt2-1.8b': {
+      id: 'hy-mt2-1.8b', name: 'HY', kind: 'translate', languages: ['multi'], recommended: false,
+      tiers: [], order: 9, repo: '', variantIds: ['q4_k_m', 'q8_0'],
+      variants: [
+        { id: 'fp8', sizeBytes: 8e9, repo: 'tencent/Hy-MT2-1.8B-FP8', supported: true, recommended: true },
+        { id: 'bf16', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-1.8B', supported: true, recommended: false },
+      ],
+    } } as any });
+    await useNativeModelStore.getState().ensureSelectionReady(
+      { ...SEL, translationModel: 'hy-mt2-1.8b' }, { textOnly: false });
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
   });
 });
 

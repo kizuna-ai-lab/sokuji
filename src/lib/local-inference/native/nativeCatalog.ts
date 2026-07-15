@@ -449,6 +449,37 @@ export interface NativeSelection {
   ttsModel: string;
 }
 
+/** Why a LOCAL_NATIVE selection is / isn't session-ready. `settingsStore` maps
+ * each reason to a user-facing message; the store never owns i18n strings. */
+export type NativeReadinessReason =
+  | 'ready'
+  | 'not-electron'
+  | 'engine-mismatch'
+  | 'engine-absent'
+  | 'unavailable'
+  | 'starting'
+  | 'asr-incompatible'
+  | 'translation-incompatible'
+  | 'models-missing';
+
+/** The selection fields readiness depends on (a structural subset of
+ * LocalNativeSettings, so the settings slice is assignable to it). */
+export interface NativeReadinessSelection {
+  sourceLanguage: string;
+  targetLanguage: string;
+  asrModel: string;
+  translationModel: string;
+  ttsModel: string;
+  translationVariantByModel: Record<string, string>;
+}
+
+export interface NativeReadinessResult {
+  ready: boolean;
+  reason: NativeReadinessReason;
+  /** Auto-select's changed fields (null = nothing changed); the caller persists them. */
+  corrections: Partial<NativeSelection> | null;
+}
+
 /**
  * Reconcile the native selection for a language pair — the native twin of
  * LOCAL_INFERENCE's `autoSelectModels`. Steps, in order, mirror that logic:
