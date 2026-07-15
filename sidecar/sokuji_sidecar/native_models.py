@@ -54,15 +54,11 @@ def _base_specs(model_id):
             if accel.current_platform() == "macos" and accel.probe().apple_silicon:
                 repos = [mlx.artifact]
         spec = {"repos": repos, "urls": list(_tm.urls)}
-        if model_id == "supertonic-3":
-            # The Supertone HF repo ships ~14MB of audio_samples/*.wav + img/*.png
-            # (demo assets) that the runtime never loads.
-            spec["ignore"] = ["audio_samples/*", "img/*"]
-        if model_id == "csukuangfj/vits-zh-aishell3":
-            # Skip the torch checkpoint (478MB), the text-normalization FST
-            # archive (181MB, rule_fsts is not wired in SherpaTtsBackend) and
-            # the int8 duplicate (the backend must find exactly ONE .onnx).
-            spec["ignore"] = ["G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
+        if _tm.download_ignore:
+            # Per-card fnmatch patterns for HF-repo cruft the runtime never
+            # loads (demo assets, unused torch checkpoints, duplicate quants
+            # the backend can't disambiguate) — see catalog.py TTS_MODELS.
+            spec["ignore"] = list(_tm.download_ignore)
         return spec
     from .catalog import translate_model as _translate_model
     _trm = _translate_model(model_id) if model_id else _translate_model("qwen2.5-0.5b")
