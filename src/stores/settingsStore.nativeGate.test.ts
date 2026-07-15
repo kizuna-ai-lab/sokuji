@@ -337,3 +337,52 @@ describe('LOCAL_NATIVE gate: sidecar lifecycle gates (Task 10)', () => {
     expect(r.valid).toBe(true);
   });
 });
+
+describe('LOCAL_NATIVE gate: validationMessage is frozen per scenario', () => {
+  it('empty message when ready', async () => {
+    mockIsReady.mockReturnValue(true);
+    setNative({ sourceLanguage: 'zh', targetLanguage: 'en', translationModel: 'qwen2.5-0.5b' });
+    const r = await useSettingsStore.getState().validateApiKey();
+    expect(r.valid).toBe(true);
+    expect(useSettingsStore.getState().validationMessage).toBe('');
+  });
+
+  it('unavailable → retry message', async () => {
+    mockNativeSidecar({ status: 'unavailable' });
+    await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().validationMessage)
+      .toBe('Native engine unavailable — retry in settings');
+  });
+
+  it('starting → starting message', async () => {
+    mockNativeSidecar({ status: 'starting' });
+    await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().validationMessage)
+      .toBe('Starting the local engine…');
+  });
+
+  it('translation incompatible → translation message', async () => {
+    mockIsReady.mockReturnValue(true);
+    setNative({ sourceLanguage: 'en', targetLanguage: 'zh', translationModel: 'opus-mt-zh-en' });
+    await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().validationMessage)
+      .toBe('Select a translation model for this language pair');
+  });
+
+  it('asr incompatible → asr message', async () => {
+    // An ASR model that is not an 'asr'-kind card for the source language.
+    mockIsReady.mockReturnValue(true);
+    setNative({ sourceLanguage: 'zh', targetLanguage: 'en', asrModel: 'no-such-asr', translationModel: 'qwen2.5-0.5b' });
+    await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().validationMessage)
+      .toBe('Select a speech-recognition model for the source language');
+  });
+
+  it('models missing → download message', async () => {
+    mockIsReady.mockReturnValue(false); // compatible selection, but not downloaded
+    setNative({ sourceLanguage: 'zh', targetLanguage: 'en', translationModel: 'qwen2.5-0.5b' });
+    await useSettingsStore.getState().validateApiKey();
+    expect(useSettingsStore.getState().validationMessage)
+      .toBe('Download the native models in settings');
+  });
+});
