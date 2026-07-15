@@ -1,6 +1,7 @@
 import pytest
 from sokuji_sidecar import translate_backends as tb
 from sokuji_sidecar import backends
+from sokuji_sidecar.planner import PlanConfig
 
 
 def test_default_prompt_mentions_langs():
@@ -55,32 +56,48 @@ class TestLlamaCppQwen:
         b.unload()
         assert not b.is_loaded
 
-    def test_qwen3_gets_no_think_and_enable_thinking_false(self, llama_env, monkeypatch, tmp_path):
-        d = tmp_path / "sokuji-translate-qwen3-0.6b-q8_0"
-        d.mkdir()
-        (d / "w.gguf").write_bytes(b"GGUF")
+    def test_qwen3_config_gets_no_think_and_enable_thinking_false(self, llama_env):
+        # qwen3-0.6b's catalog card carries disable_thinking=True,
+        # append_no_think=True (planner._plan_config reads these off the
+        # card) — the backend must derive both the kill-switch and the
+        # soft-switch from the injected PlanConfig, not from the model path.
         b = backends.make_backend("llamacpp_qwen")
-        b.load(str(d), "cpu", "q8_0")
+        b.load(llama_env, "cpu", "q8_0",
+               config=PlanConfig(disable_thinking=True, append_no_think=True))
         b.translate("hi", "", "en", "zh", False)
         echo = b._last_reply["echo"]
         assert "/no_think" in echo["messages"][0]["content"]
         assert echo["chat_template_kwargs"] == {"enable_thinking": False}
         b.unload()
 
-    def test_qwen35_enable_thinking_false_no_no_think(self, llama_env, tmp_path):
+    def test_qwen35_config_enable_thinking_false_no_no_think(self, llama_env):
         # Qwen3.5 ignores the /no_think soft switch (verified live: it still
         # burns all max_tokens reasoning and returns empty content), so it
         # must NOT be appended; chat_template_kwargs is the only mechanism
-        # that actually disables thinking mode for this model.
-        d = tmp_path / "sokuji-translate-qwen3.5-0.8b-q4_k_m"
-        d.mkdir()
-        (d / "w.gguf").write_bytes(b"GGUF")
+        # that actually disables thinking mode for this model. Its catalog
+        # card carries disable_thinking=True, append_no_think=False (the
+        # default) — mirrored here via PlanConfig instead of a magic path.
         b = backends.make_backend("llamacpp_qwen")
-        b.load(str(d), "cpu", "q4_k_m")
+        b.load(llama_env, "cpu", "q4_k_m",
+               config=PlanConfig(disable_thinking=True, append_no_think=False))
         b.translate("hi", "", "en", "zh", False)
         echo = b._last_reply["echo"]
         assert "/no_think" not in echo["messages"][0]["content"]
         assert echo["chat_template_kwargs"] == {"enable_thinking": False}
+        b.unload()
+
+    def test_qwen_plain_config_neither_flag(self, llama_env):
+        # A plain model (e.g. qwen2.5-0.5b) has no thinking flags on its
+        # catalog card, so its PlanConfig is all-inert defaults — pinned
+        # explicitly here (in addition to test_qwen25_payload_and_output,
+        # which exercises the same case via the load() default `config=None`)
+        # so the config-driven "neither" path has a direct assertion.
+        b = backends.make_backend("llamacpp_qwen")
+        b.load(llama_env, "cpu", "q8_0", config=PlanConfig())
+        b.translate("hi", "", "en", "zh", False)
+        echo = b._last_reply["echo"]
+        assert "/no_think" not in echo["messages"][0]["content"]
+        assert "chat_template_kwargs" not in echo
         b.unload()
 
     def test_missing_binary_is_load_error(self, monkeypatch, tmp_path):
