@@ -11,9 +11,8 @@ import {
 } from '../services/interfaces/IClient';
 import { getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { requiredNativeModels, supportsLanguage, statusReposFor, nativeTranslationCards, nativeAsrCards, nativeTtsCards, autoSelectNative, hardwareGated, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import { autoSelectNative, hardwareGated, type NativeSelection, type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from './nativeModelStore';
-import { isElectron } from '../utils/environment';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
@@ -53,6 +52,22 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+
+/** Map a native readiness reason to its user-facing message. Verbatim port of
+ * the messages the inline LOCAL_NATIVE gate produced. */
+function msgForNativeReason(reason: NativeReadinessReason): string {
+  switch (reason) {
+    case 'ready': return '';
+    case 'not-electron': return 'Native sidecar unavailable (desktop app + installed sidecar required)';
+    case 'engine-mismatch': return i18n.t('settings.localNativeEngineUpdateRequired', 'The inference engine needs an update — open provider settings to update it');
+    case 'engine-absent': return i18n.t('settings.localNativeEngineRequired', 'Download the inference engine in provider settings');
+    case 'unavailable': return i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings');
+    case 'starting': return i18n.t('settings.localNativeStarting', 'Starting the local engine…');
+    case 'asr-incompatible': return i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language');
+    case 'translation-incompatible': return i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair');
+    case 'models-missing': return i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+  }
+}
 
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
@@ -832,102 +847,17 @@ const useSettingsStore = create<SettingsStore>()(
       const state = get();
       const provider = state.provider;
 
-      // Native (Electron sidecar) inference: no API key. Readiness = the sidecar
-      // catalog is loaded and the reconciled selection passes compat + download
-      // checks. ensureCatalog warms the sidecar; never mutate the selection when
-      // the sidecar is still starting or unavailable.
+      // Native (Electron sidecar) inference: no API key. Readiness is owned by
+      // nativeModelStore's ensureSelectionReady facade (sidecar warmup, lifecycle
+      // gating, auto-select reconciliation, and compat/download checks); this
+      // branch only applies the resulting corrections and maps the reason to a
+      // user-facing message.
       if (provider === Provider.LOCAL_NATIVE) {
         const { useNativeModelStore } = await import('./nativeModelStore');
-        const nstore = useNativeModelStore.getState();
-        if (!isElectron()) {
-          set({ isApiKeyValid: false, availableModels: [], isValidating: false,
-            validationMessage: 'Native sidecar unavailable (desktop app + installed sidecar required)' });
-          return { valid: false, message: 'Native sidecar unavailable (desktop app + installed sidecar required)', validating: false };
-        }
-        // Warm the sidecar + load the full model catalog. Gate on the lifecycle;
-        // never run auto-select on an incomplete/empty catalog.
-        await nstore.ensureCatalog();
-        const status = useNativeModelStore.getState().sidecarStatus;
-        if (status !== 'ready') {
-          // When the ENGINE (bundle) is the reason, say so precisely — the
-          // engine card in provider settings carries the matching CTA (spec S10).
-          const bundle = useNativeModelStore.getState().bundleStatus;
-          const message = bundle === 'mismatch'
-            ? i18n.t('settings.localNativeEngineUpdateRequired',
-                'The inference engine needs an update — open provider settings to update it')
-            : (bundle === 'absent' || bundle === 'paused')
-              ? i18n.t('settings.localNativeEngineRequired',
-                  'Download the inference engine in provider settings')
-              : status === 'unavailable'
-                ? i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')
-                : i18n.t('settings.localNativeStarting', 'Starting the local engine…');
-          set({ isApiKeyValid: false, availableModels: [], validationMessage: message, isValidating: false });
-          return { valid: false, message, validating: false };
-        }
-        const catalog = useNativeModelStore.getState().catalog;
-        const s0 = get().localNative;
-        // Refresh download statuses for THIS pair's candidate models BEFORE
-        // auto-select. Statuses start empty on a cold start, and auto-select reads
-        // them to pick the best *downloaded* model — without this it would see
-        // nothing downloaded and fail to select a model the user already has.
-        const candidateIds = Array.from(new Set([
-          ...nativeAsrCards(s0.sourceLanguage, catalog),
-          ...nativeTranslationCards(s0.sourceLanguage, s0.targetLanguage, catalog),
-          ...nativeTtsCards(s0.targetLanguage, catalog),
-        ].map((c) => c.downloadId).filter((id): id is string => !!id)));
-        // This FIRST refresh must be variant-aware too: on a cold start the
-        // Settings panel (which normally publishes statusRepos) has never
-        // mounted, so checking the catalog DEFAULT repos here marks a card
-        // whose user-downloaded quant is the recommended/pinned one (e.g.
-        // Fun-ASR: default Q6_K, downloaded Q4_K_M) as absent — and the
-        // auto-select below then wipes the persisted selection to '' on
-        // every app restart (the "ASR shows None after reopening" bug).
-        const resolveVariantRepos = (ids: string[]): Record<string, string> => {
-          const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
-          for (const mid of ids) {
-            const vs = catalog[mid]?.variants;
-            if (!vs || vs.length < 2) continue;
-            vd[mid] = {
-              variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
-              recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
-            };
-          }
-          return statusReposFor(Object.keys(vd), vd, s0.translationVariantByModel);
-        };
-        const candidateRepos = resolveVariantRepos(candidateIds);
-        await useNativeModelStore.getState().refresh(
-          candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
-        // Global auto-select: reconcile the stale selection for this pair against
-        // the catalog + live download statuses, and persist it (fixes both the
-        // Start button and the model-info "None" on a language reversal).
-        const updates = nstore.autoSelect(s0.sourceLanguage, s0.targetLanguage, {
-          asrModel: s0.asrModel, translationModel: s0.translationModel, ttsModel: s0.ttsModel,
-        });
-        if (updates) get().updateLocalNative(updates);
-        const s = get().localNative;
-        const asrOpt = catalog[s.asrModel];
-        const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, s.sourceLanguage);
-        // The selected translation must be a valid card for THIS language pair.
-        const trCompatible = nativeTranslationCards(s.sourceLanguage, s.targetLanguage, catalog)
-          .some((c) => c.selectId === s.translationModel);
-        // Gate on the selected stage models being downloaded into the sidecar cache.
-        // TTS is dropped from the requirement when text-only is on.
-        const models = requiredNativeModels(s.asrModel, s.translationModel, s.ttsModel, s.sourceLanguage, s.targetLanguage, catalog, get().textOnly);
-        // Resolve the selected models' CHOSEN variant repos (pin ?? the
-        // catalog's precomputed recommendation) so the gate checks the right
-        // quant even on cold start — no list_variants round-trip needed: the
-        // models_catalog feed carries the full ladder per card.
-        let statusRepos: Record<string, string> | undefined;
-        const resolved = resolveVariantRepos([s.asrModel, s.translationModel]);
-        // Only override when resolution actually produced a repo; an empty
-        // map ({}) would defeat refresh's `repos ?? cache` fallback.
-        if (Object.keys(resolved).length > 0) statusRepos = resolved;
-        await useNativeModelStore.getState().refresh(models, statusRepos);
-        const ready = asrCompatible && trCompatible && useNativeModelStore.getState().isReady(models);
-        const message = ready ? ''
-          : !asrCompatible ? i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for the source language')
-          : !trCompatible ? i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair')
-          : i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
+        const { ready, reason, corrections } = await useNativeModelStore.getState()
+          .ensureSelectionReady(get().localNative, { textOnly: get().textOnly });
+        if (corrections) get().updateLocalNative(corrections);
+        const message = msgForNativeReason(reason);
         set({
           isApiKeyValid: ready,
           availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
