@@ -9,6 +9,7 @@ import pytest
 from types import SimpleNamespace
 
 from sokuji_sidecar.qwen3_tts import runtime
+from sokuji_sidecar.planner import PlanConfig
 
 H, GROUPS, VOCAB, SUBVOCAB, EOS = 8, 4, 32, 16, 30
 
@@ -612,10 +613,14 @@ def test_backend_load_prefers_bf16_dir_on_cuda(monkeypatch, tmp_path):
     monkeypatch.setattr("sokuji_sidecar.tts_backends._q3_codec.Codec12Hz",
                         lambda sessions: object())
 
+    # The variant subdir now comes from the resolved card's config (Task 8;
+    # catalog.py's cuda_variant_subdir="onnx-bf16" for the qwen3-tts rows),
+    # not a hard-coded string — pass it the same way load_with_fallback does
+    # via plan.config.
     b = Qwen3TtsOnnxBackend()
-    b.load("some/repo", "cuda", "fp32")
+    b.load("some/repo", "cuda", "fp32", config=PlanConfig(variant_subdir="onnx-bf16"))
     assert seen["variant"] == str(tmp_path / "onnx-bf16")
 
     b2 = Qwen3TtsOnnxBackend()
-    b2.load("some/repo", "cpu", "fp32")
+    b2.load("some/repo", "cpu", "fp32", config=PlanConfig(variant_subdir="onnx-bf16"))
     assert seen["variant"] is None                # CPU lane must stay on fp32

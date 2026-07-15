@@ -393,7 +393,7 @@ def load_measured(plans: list, stage: str | None = None):
         if plan.device == "cpu":
             ledger_claim(stage, 0)
         else:
-            est = _model_weight_bytes(plan.artifact)
+            est = _model_weight_bytes(plan.artifact, variant_subdir=plan.config.variant_subdir)
             ledger_claim(stage, memory or est or 0)
     return backend, plan, notice, memory
 
@@ -405,25 +405,27 @@ def load_measured(plans: list, stage: str | None = None):
 _WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx", ".onnx.data")
 
 
-def _model_weight_bytes(artifact: str):
+def _model_weight_bytes(artifact: str, variant_subdir: str | None = None):
     """Best-effort on-disk size of a model's weight files, read from the local
     HF cache (the model is already downloaded by the time we load it). Returns
     None when it can't be determined — a local dir without weight files, an
     artifact not present in the cache, or no huggingface_hub — so the VRAM gate
-    stays inert rather than guessing."""
+    stays inert rather than guessing.
+
+    `variant_subdir`, when given (both callers pass plan.config.variant_subdir —
+    "onnx-bf16" for the qwen3-tts cards, None for every other card), names a
+    snapshot subdir whose CUDA-only graph rebuilds are loaded INSTEAD of the
+    same-named fp32 graphs under onnx/ (see Qwen3TtsOnnxBackend.load) —
+    counting both copies would roughly double the estimate and wrongly demote
+    GPUs that comfortably fit the actual load."""
     try:
         path = artifact if os.path.isdir(artifact) else None
         if path is None:
             from huggingface_hub import snapshot_download
             path = snapshot_download(artifact, local_files_only=True)
         total = 0
-        # Both callers estimate CUDA loads. A snapshot may ship CUDA-only
-        # graph rebuilds under onnx-bf16/ that are loaded INSTEAD of the
-        # same-named fp32 graphs in onnx/ (see Qwen3TtsOnnxBackend.load) —
-        # counting both copies would roughly double the estimate and wrongly
-        # demote GPUs that comfortably fit the actual load.
-        variant_root = os.path.join(path, "onnx-bf16")
-        has_variant = os.path.isdir(variant_root)
+        variant_root = os.path.join(path, variant_subdir) if variant_subdir else None
+        has_variant = variant_root is not None and os.path.isdir(variant_root)
         for root, _dirs, files in os.walk(path):
             for fn in files:
                 if not fn.endswith(_WEIGHT_EXTS):
@@ -467,7 +469,8 @@ def load_with_fallback(plans: list):
         # guess here would only wrongly route a fittable model to CPU.
         is_llamacpp = plan.backend.startswith("llamacpp_")
         free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
-        need = _model_weight_bytes(plan.artifact) if (plan.device == "cuda" and not is_llamacpp) else None
+        need = (_model_weight_bytes(plan.artifact, variant_subdir=plan.config.variant_subdir)
+                if (plan.device == "cuda" and not is_llamacpp) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:

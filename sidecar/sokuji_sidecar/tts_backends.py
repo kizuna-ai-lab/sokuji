@@ -500,11 +500,15 @@ class Qwen3TtsOnnxBackend:
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
-            # code_predictor) alongside the fp32 set; bf16 has no CPU or DML
-            # kernels, so only the cuda device picks them up.
+            # code_predictor) alongside the fp32 set, in a subdir named by the
+            # card (config.variant_subdir, e.g. "onnx-bf16" for the qwen3-tts
+            # cards — see catalog.py's cuda_variant_subdir); bf16 has no CPU or
+            # DML kernels, so only the cuda device picks it up, and only when the
+            # subdir actually exists in this snapshot.
             variant_dir = None
-            if str(device).lower() == "cuda" and os.path.isdir(f"{d}/onnx-bf16"):
-                variant_dir = f"{d}/onnx-bf16"
+            subdir = config.variant_subdir if config is not None else None
+            if str(device).lower() == "cuda" and subdir and os.path.isdir(f"{d}/{subdir}"):
+                variant_dir = f"{d}/{subdir}"
             sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
                                                   variant_dir=variant_dir)
             self._cfg = _q3_config.load_model_config(d)
