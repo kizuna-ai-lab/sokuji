@@ -266,9 +266,15 @@ def resolve(model_id, override="auto", machine=None, pin=None):
 
 
 def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
-    from . import catalog as _cat
+    from . import catalog as _cat, llama_runtime
     m = machine or probe()
     model = _cat.translate_model(model_id)
+    if model is not None:
+        # Set regardless of override branch: the explicit device path loads a
+        # llamacpp backend exactly like the auto path, so --fit-target must be
+        # sized off the same reserved-VRAM figure. Kept in this Loader wrapper
+        # (not the pure planner) so planner.resolve_translate stays side-effect-free.
+        llama_runtime.set_reserved_bytes(reserved_bytes)
     downloaded = (_downloaded_quants(model)
                  if override == "auto" and model is not None else set())
     return planner.resolve_translate(

@@ -27,7 +27,7 @@ import dataclasses
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from . import catalog, llama_runtime
+from . import catalog
 
 if TYPE_CHECKING:
     from .accel import Machine
@@ -257,12 +257,6 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     model = catalog.translate_model(model_id)
     if model is None:
         raise ValueError(f"unknown translate model: {model_id}")
-    # Set regardless of override branch: the explicit device path (a
-    # first-class 'translationDevice: cuda|cpu' UI control) loads a llamacpp
-    # backend exactly like the auto path does, so it needs --fit-target sized
-    # off the same reserved-VRAM figure — leaving this only in the auto branch
-    # left the override path with a stale/zero reserved_bytes.
-    llama_runtime.set_reserved_bytes(reserved_bytes)
     # The `auto` branch below builds Plans via select_variant + a hand-picked cpu
     # floor and never flows through resolve_deployments' choke point, so drop
     # off-platform deployments up front here (all current translate cards are
