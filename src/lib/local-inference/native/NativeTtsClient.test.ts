@@ -55,6 +55,40 @@ describe('NativeTtsClient streaming', () => {
     conn.emitClose();
     await expect(genP).rejects.toThrow('native host disconnected');
   });
+
+  it('a correlated (id-carrying) error rejects the stream without also firing onError', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = await initClient(conn, true);
+    let onErrorCalls = 0;
+    c.onError = () => { onErrorCalls++; };
+    const genP = c.generate('hi', 1.0, () => {});
+    const id = conn.sent.find((m) => m.type === 'tts_generate').id;
+    conn.emit({ type: 'error', id, message: 'boom' });
+    await expect(genP).rejects.toThrow('boom');
+    expect(onErrorCalls).toBe(0);   // the caller surfaces it via the rejection
+  });
+
+  it('an id-less push error fires onError', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = await initClient(conn, true);
+    const errs: string[] = [];
+    c.onError = (e) => errs.push(e);
+    conn.emit({ type: 'error', message: 'engine crashed' });
+    expect(errs).toEqual(['engine crashed']);
+  });
+
+  it('streaming generate() returns the sample rate from init, not a hardcoded value', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTtsClient(conn);
+    const initP = c.init('moss', 'cpu');
+    conn.emit({ type: 'ready', id: conn.sent[0].id, sampleRate: 16000, loadTimeMs: 5, device: 'cpu', backend: 'moss_onnx', rtf: 0.44, streaming: true, clones: true });
+    await initP;
+    const genP = c.generate('hi', 1.0, () => {});
+    const id = conn.sent.find((m) => m.type === 'tts_generate').id;
+    conn.emit({ type: 'tts_done', id, totalSamples: 0, generationTimeMs: 3 });
+    const res = await genP;
+    expect(res.sampleRate).toBe(16000);
+  });
 });
 
 describe('NativeTtsClient voice selection', () => {
@@ -63,7 +97,7 @@ describe('NativeTtsClient voice selection', () => {
     const c = await initClient(conn, true);
     const clip = new Float32Array([0.1, 0.2]);
     const p = c.setReferenceVoice(clip, 24000, 'hello');
-    expect(conn.binarySent[0]).toBe(clip.buffer);
+    expect(conn.binarySent[0]).toBe(clip);
     const setSent = conn.sent.find((m) => m.type === 'set_voice');
     expect(setSent).toMatchObject({ type: 'set_voice', sampleRate: 24000, refText: 'hello' });
     conn.emit({ type: 'ok', id: setSent.id });
@@ -78,7 +112,8 @@ describe('NativeTtsClient voice selection', () => {
       { dims: [1, 2], data: [[5, 6]] as unknown as number[] },
     );
     expect(conn.binarySent).toHaveLength(1);
-    expect(Array.from(new Float32Array(conn.binarySent[0]))).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(conn.binarySent[0]).toBeInstanceOf(Float32Array);
+    expect(Array.from(conn.binarySent[0] as Float32Array)).toEqual([1, 2, 3, 4, 5, 6]);
     const setSent = conn.sent.find((m) => m.type === 'set_voice');
     expect(setSent).toMatchObject({ type: 'set_voice', styleVoice: { ttlDims: [2, 2], dpDims: [1, 2] } });
     conn.emit({ type: 'ok', id: setSent.id });

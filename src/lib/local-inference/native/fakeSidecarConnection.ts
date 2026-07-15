@@ -9,7 +9,7 @@ import type { ServerMsg } from './nativeProtocol';
  */
 export class FakeSidecarConnection implements ISidecarConnection {
   sent: any[] = [];
-  binarySent: ArrayBuffer[] = [];
+  binarySent: Array<ArrayBuffer | ArrayBufferView> = [];
   requestOpts: Array<{ timeoutMs?: number; id?: number } | undefined> = [];
   disposed = false;
   private counter = 0;
@@ -32,7 +32,7 @@ export class FakeSidecarConnection implements ISidecarConnection {
   }
 
   send(payload: object): void { this.sent.push(payload); }
-  sendBinary(buf: ArrayBuffer): void { this.binarySent.push(buf); }
+  sendBinary(buf: ArrayBuffer | ArrayBufferView): void { this.binarySent.push(buf); }
 
   /** Simulate a JSON message from the sidecar. */
   emit(msg: ServerMsg): void {

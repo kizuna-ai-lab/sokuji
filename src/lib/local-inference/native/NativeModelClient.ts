@@ -93,6 +93,10 @@ export class NativeModelClient {
   async download(model: string, onProgress?: (p: ModelProgressMsg) => void, repo?: string): Promise<ModelDownloadStatus> {
     await this.conn.connect();
     return new Promise<ModelDownloadStatus>((resolve, reject) => {
+      // Downloads are keyed by model. If one is already in flight for this model,
+      // overwriting its handle would strand that promise forever — reject it first.
+      const existing = this.downloads.get(model);
+      if (existing) existing.reject(new Error(`download for '${model}' superseded by a newer request`));
       this.downloads.set(model, { onProgress, resolve, reject });
       const payload: { type: 'model_download'; model: string; id: number; repo?: string } =
         { type: 'model_download', model, id: this.conn.nextId() };

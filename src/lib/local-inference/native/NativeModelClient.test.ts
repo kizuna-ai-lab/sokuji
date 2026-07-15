@@ -40,6 +40,22 @@ describe('NativeModelClient', () => {
     await expect(p).rejects.toThrow('disk full');
   });
 
+  it('a second download() for the same model rejects the superseded in-flight one', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const first = c.download('sense-voice');
+    const firstResult = first.catch((e: Error) => e);   // attach a handler before the supersede rejects it
+    await tick();
+    const second = c.download('sense-voice');
+    await tick();
+    const firstErr = await firstResult;
+    expect(firstErr).toBeInstanceOf(Error);
+    expect((firstErr as Error).message).toMatch(/superseded/);
+    // the second download is still live and resolves normally
+    conn.emit({ type: 'model_download_done', model: 'sense-voice', status: 'ready' });
+    await expect(second).resolves.toBe('ready');
+  });
+
   it('a socket close rejects an in-flight download via onClose', async () => {
     const conn = new FakeSidecarConnection();
     const c = new NativeModelClient(conn);

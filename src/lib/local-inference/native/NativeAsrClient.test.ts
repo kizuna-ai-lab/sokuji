@@ -14,13 +14,24 @@ describe('NativeAsrClient', () => {
     await expect(p).resolves.toMatchObject({ loadTimeMs: 2, device: 'cuda', rtf: 0.5 });
   });
 
-  it('feedAudio() sends the raw buffer as a binary frame', async () => {
+  it('feedAudio() sends the sample view as a binary frame (subarray boundaries preserved)', async () => {
     const conn = new FakeSidecarConnection();
     const c = new NativeAsrClient(conn);
     const samples = new Int16Array(24000);
     c.feedAudio(samples, 24000);
     expect(conn.binarySent).toHaveLength(1);
-    expect(conn.binarySent[0]).toBe(samples.buffer);
+    expect(conn.binarySent[0]).toBe(samples);
+  });
+
+  it('feedAudio() forwards a subarray view without over-sending the backing buffer', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeAsrClient(conn);
+    const backing = new Int16Array(24000);
+    const view = backing.subarray(100, 200);   // byteOffset 200, length 100
+    c.feedAudio(view, 24000);
+    const sent = conn.binarySent[0] as Int16Array;
+    expect(sent.byteOffset).toBe(200);
+    expect(sent.length).toBe(100);
   });
 
   it('routes id-less push messages to their callbacks', () => {
@@ -36,6 +47,16 @@ describe('NativeAsrClient', () => {
     expect(starts).toBe(1);
     expect(partials).toEqual(['he llo']);
     expect(finals).toEqual(['hello world']);
+  });
+
+  it('fires onError for an id-less feeder error but not for a late id-carrying one', () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeAsrClient(conn);
+    const errs: string[] = [];
+    c.onError = (e) => errs.push(e);
+    conn.emit({ type: 'error', message: 'feeder failed' });          // id-less push
+    conn.emit({ type: 'error', id: 999, message: 'late init reply' }); // late reply to a timed-out request
+    expect(errs).toEqual(['feeder failed']);
   });
 
   it('flush() resolves on the ok reply and rejects on an error reply', async () => {

@@ -135,6 +135,48 @@ describe('SidecarConnection', () => {
     expect(closeFired).toBe(false);
   });
 
+  it('a stale socket close does not reject the live socket\'s pending requests', async () => {
+    const c = new SidecarConnection();
+    await c.connect();
+    const a = FakeWS.instances[0];
+    // The server drops socket A into CLOSING without firing onclose yet.
+    a.readyState = 2;
+    // A follow-up connect() sees A is not OPEN and opens a replacement socket B.
+    await c.connect();
+    expect(FakeWS.instances).toHaveLength(2);
+    const b = FakeWS.instances[1];
+    // Issue a request on the live socket B.
+    const p = c.request({ type: 'translate', text: 'x' });
+    await tick();
+    // A's delayed onclose finally fires. Without the ownership guard it would null B
+    // and reject B's in-flight request; with it, B is untouched.
+    a.onclose?.();
+    const id = JSON.parse(b.sent[0]).id;
+    b.reply({ type: 'translation', id, translatedText: 'ok' });
+    await expect(p).resolves.toMatchObject({ translatedText: 'ok' });
+  });
+
+  it('connect() rejects (does not hang) if the socket closes before it opens', async () => {
+    vi.useFakeTimers();
+    const c = new SidecarConnection();
+    const caught = c.connect().catch((e) => e);
+    // Flush the electron().invoke() microtask so the socket is constructed, but do
+    // NOT advance timers, so FakeWS's queued onopen never fires.
+    await Promise.resolve();
+    await Promise.resolve();
+    FakeWS.instances[0].close();   // onclose arrives before onopen
+    const err = await caught;
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toBe('native host disconnected');
+  });
+
+  it('request() rejects and cleans up when send() throws synchronously', async () => {
+    const c = new SidecarConnection();
+    await c.connect();
+    FakeWS.instances[0].send = () => { throw new Error('send kaboom'); };
+    await expect(c.request({ type: 'translate', text: 'x' })).rejects.toThrow('send kaboom');
+  });
+
   it('honors a caller-provided id (for out-of-band cancel correlation)', async () => {
     const c = new SidecarConnection();
     await c.connect();

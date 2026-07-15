@@ -27,7 +27,9 @@ export class NativeAsrClient {
       return;
     }
     // Feeder errors during streaming arrive id-less (see sidecar server.py on_binary).
-    if (msg.type === 'error') this.onError?.(msg.message);
+    // An id-carrying error is a late reply to a timed-out asr_init/asr_flush whose
+    // request() already rejected — don't surface it a second time via onError.
+    if (msg.type === 'error' && (msg as { id?: number }).id === undefined) this.onError?.(msg.message);
   }
 
   async init(
@@ -45,7 +47,7 @@ export class NativeAsrClient {
   }
 
   feedAudio(samples: Int16Array, _sampleRate: number): void {
-    this.conn.sendBinary(samples.buffer);   // server is in asr binary mode after init
+    this.conn.sendBinary(samples);   // server is in asr binary mode after init; pass the view so a subarray isn't over-sent
   }
 
   async flush(): Promise<void> { await this.conn.request({ type: 'asr_flush' }); }

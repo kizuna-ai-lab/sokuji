@@ -29,8 +29,9 @@ export interface ISidecarConnection {
   request(payload: { type: string; [k: string]: unknown }, opts?: { timeoutMs?: number; id?: number }): Promise<ServerMsg>;
   /** Fire-and-forget JSON (streaming generate, cancel). Assumes connected; no-op if not. */
   send(payload: object): void;
-  /** Fire-and-forget binary frame (ASR audio, TTS reference clip / style vector). Assumes connected; no-op if not. */
-  sendBinary(buf: ArrayBuffer): void;
+  /** Fire-and-forget binary frame (ASR audio, TTS reference clip / style vector). Assumes connected; no-op if not.
+   *  Accepts a typed-array view directly so a subarray's byteOffset/byteLength are honoured (not the whole backing buffer). */
+  sendBinary(buf: ArrayBuffer | ArrayBufferView): void;
   /** Allocate a correlation id from the shared space (for send()s that embed their own id). */
   nextId(): number;
   /** Handler for JSON messages that did not match a pending request (pushes + streaming frames). */
@@ -90,6 +91,14 @@ export class SidecarConnection implements ISidecarConnection {
       ws.onopen = () => { this.ws = ws; resolve(); };
       ws.onerror = () => reject(new Error('native host WS error'));
       ws.onclose = () => {
+        // A close before this socket ever opened settles the connect() promise
+        // (no-op if it already resolved/rejected), so connect() can't hang when the
+        // socket closes without a preceding error event.
+        reject(new Error('native host disconnected'));
+        // Only the socket that currently owns the connection may tear down shared
+        // state. If a newer connect() already replaced us, a late onclose from the
+        // stale socket must not null the live socket or reject its pending requests.
+        if (this.ws !== ws) return;
         this.ws = null;
         const err = new Error('native host disconnected');
         this.rejectAllPending(err);
@@ -125,7 +134,15 @@ export class SidecarConnection implements ISidecarConnection {
         ? setTimeout(() => { if (this.pending.delete(id)) reject(new SidecarTimeoutError(payload.type, timeoutMs)); }, timeoutMs)
         : null;
       this.pending.set(id, { resolve, reject, timer });
-      this.ws.send(JSON.stringify({ ...payload, id }));
+      try {
+        this.ws.send(JSON.stringify({ ...payload, id }));
+      } catch (e) {
+        // A synchronous send() failure would otherwise leave the pending entry and
+        // its timer to linger until timeout; clear them and reject now.
+        if (timer) clearTimeout(timer);
+        this.pending.delete(id);
+        reject(e instanceof Error ? e : new Error(String(e)));
+      }
     }));
   }
 
@@ -133,7 +150,7 @@ export class SidecarConnection implements ISidecarConnection {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(payload));
   }
 
-  sendBinary(buf: ArrayBuffer): void {
+  sendBinary(buf: ArrayBuffer | ArrayBufferView): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(buf);
   }
 

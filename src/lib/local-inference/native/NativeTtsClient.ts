@@ -32,6 +32,7 @@ export class NativeTtsClient {
   private streamHandlers = new Map<number, (pcm: Float32Array, seq: number) => void>();
   private streamDone = new Map<number, StreamDone>();
   private streaming = false;          // cached from the last init()
+  private sampleRate = 24000;         // cached from the last init() (sidecar's PCM rate)
   private inFlightId = 0;             // id of the current generate (for cancel())
 
   constructor(conn: ISidecarConnection = new SidecarConnection()) {
@@ -59,12 +60,17 @@ export class NativeTtsClient {
       return;
     }
     if (msg.type === 'error') {
-      this.onError?.(msg.message);
+      // A streaming generate is correlated by id (it uses send(), so its error never
+      // matched a pending request). Reject that stream — its caller surfaces the
+      // failure — instead of also firing onError. Only id-less push errors hit onError.
       if (typeof id === 'number' && this.streamDone.has(id)) {
         const d = this.streamDone.get(id)!;
         this.streamDone.delete(id); this.streamHandlers.delete(id);
         d.reject(new Error(msg.message));
+      } else {
+        this.onError?.(msg.message);
       }
+      return;
     }
   }
 
@@ -78,8 +84,9 @@ export class NativeTtsClient {
     const msg = await this.conn.request({ type: 'tts_init', model, device }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
+    this.sampleRate = r.sampleRate ?? 24000;
     return {
-      sampleRate: r.sampleRate ?? 24000, loadTimeMs: r.loadTimeMs,
+      sampleRate: this.sampleRate, loadTimeMs: r.loadTimeMs,
       backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf,
       streaming: !!r.streaming, clones: !!r.clones, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason,
     };
@@ -92,7 +99,7 @@ export class NativeTtsClient {
   async setSpeaker(sid: number): Promise<void> { await this.conn.request({ type: 'set_voice', sid }); }
 
   async setReferenceVoice(audio: Float32Array, sampleRate: number, refText?: string): Promise<void> {
-    this.conn.sendBinary(audio.buffer);                  // binary frame precedes the control message
+    this.conn.sendBinary(audio);                         // binary frame precedes the control message; pass the view so a subarray isn't over-sent
     await this.conn.request({ type: 'set_voice', sampleRate, ...(refText ? { refText } : {}) });
   }
 
@@ -106,7 +113,7 @@ export class NativeTtsClient {
     const ttl = f32(styleTtl.data), dp = f32(styleDp.data);
     const buf = new Float32Array(ttl.length + dp.length);
     buf.set(ttl, 0); buf.set(dp, ttl.length);
-    this.conn.sendBinary(buf.buffer);                    // binary frame precedes the control message
+    this.conn.sendBinary(buf);                           // binary frame precedes the control message; pass the view so a subarray isn't over-sent
     await this.conn.request({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
   }
 
@@ -133,7 +140,7 @@ export class NativeTtsClient {
         this.conn.send({ type: 'tts_generate', text, speed, id });
       });
       const d = done as Extract<ServerMsg, { type: 'tts_done' }>;
-      return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: d.generationTimeMs };
+      return { samples: new Float32Array(0), sampleRate: this.sampleRate, generationTimeMs: d.generationTimeMs };
     }
     // One-shot: the sidecar sends the PCM binary frame, then the result meta.
     const id = this.conn.nextId();

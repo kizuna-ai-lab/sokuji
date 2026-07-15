@@ -9,9 +9,12 @@ export class NativeTranslateClient {
 
   constructor(conn: ISidecarConnection = new SidecarConnection()) {
     this.conn = conn;
-    // Only id-less errors reach here (id-carrying errors reject the request()); this
-    // is defensive — translate RPCs all carry ids, so callers see failures via reject.
-    this.conn.onMessage((msg) => { if (msg.type === 'error') this.onError?.(msg.message); });
+    // Surface only genuinely id-less push errors. Translate RPCs all carry ids, so
+    // callers see failures via request() reject; an id-carrying error reaching here is
+    // a late reply to an already-rejected timed-out request — don't double-signal it.
+    this.conn.onMessage((msg) => {
+      if (msg.type === 'error' && (msg as { id?: number }).id === undefined) this.onError?.(msg.message);
+    });
   }
 
   async init(

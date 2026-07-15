@@ -34,6 +34,18 @@ describe('NativeTranslateClient', () => {
     await expect(p).rejects.toThrow('boom');
   });
 
+  it('a late id-carrying error does not fire onError (the request already rejected)', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTranslateClient(conn);
+    const errs: string[] = [];
+    c.onError = (e) => errs.push(e);
+    const p = c.translate('x');
+    conn.emit({ type: 'error', id: conn.sent[0].id, message: 'boom' });  // rejects the request
+    await expect(p).rejects.toThrow('boom');
+    conn.emit({ type: 'error', id: conn.sent[0].id, message: 'late boom' }); // stray late reply, no longer pending
+    expect(errs).toEqual([]);
+  });
+
   it('dispose() rejects an unsettled request', async () => {
     const conn = new FakeSidecarConnection();
     const c = new NativeTranslateClient(conn);
