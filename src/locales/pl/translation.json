@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Witamy w Sokuji",
+          "content": "Witamy w Sokuji! Ten prosty przewodnik pomoże Ci rozpocząć korzystanie z tłumaczenia w czasie rzeczywistym w zaledwie kilku krokach."
         },
         "mode": {
           "content": "Wybierz, co tłumaczy Sokuji: Ty — Twój własny głos (aby inni Cię rozumieli); Inni — to, co mówią pozostali uczestnicy (abyś Ty ich rozumiał); lub Oba dla tłumaczenia dwukierunkowego. To decyduje, który dźwięk jest przechwytywany — wybierz Inni lub Oba, aby włączyć dźwięk uczestnika.",
           "title": "Tryb tłumaczenia"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "Krok 1: Otwórz Ustawienia",
+          "content": "Kliknij tutaj, aby otworzyć Ustawienia, gdzie możesz skonfigurować swoje języki i urządzenia audio."
         },
         "account": {
           "title": "Krok 2: Konto Użytkownika",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "Krok 5: Wybierz Mikrofon",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "Wybierz swój mikrofon z listy. To on będzie przechwytywał Twój głos."
         },
         "speaker": {
           "title": "Krok 6: Wybierz Głośnik",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "Krok 8: Rozpocznij Tłumaczenie",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "Kliknij 'Start', aby rozpocząć tłumaczenie! Po prostu mów naturalnie i słuchaj tłumaczenia w czasie rzeczywistym."
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "Wszystko gotowe!",
+          "content": "Świetnie! Możesz już korzystać z Sokuji. Kliknij Start i zacznij mówić, aby usłyszeć tłumaczenia w czasie rzeczywistym."
         },
         "provider": {
           "title": "Krok 4: Dostawca Tłumaczenia",
@@ -675,7 +675,7 @@
     "webrtcFallback": "Połączenie WebRTC nie powiodło się, używanie WebSocket zamiast niego"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Wyślij opinię"
   },
   "engine": {
     "title": "Silnik wnioskowania",
@@ -758,7 +758,7 @@
     "hwSpeed": "Szybkość",
     "hwMemory": "Pamięć",
     "hwSize": "Rozmiar",
-    "hwRepo": "Repo",
+    "hwRepo": "Repozytorium",
     "computeDevice": "Urządzenie obliczeniowe",
     "computeDeviceTooltip": "Urządzenie, na którym działa model mowy. Auto wybiera najszybsze dostępne (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU wymaga karty CUDA.",
     "computeDeviceTooltipTranslation": "Urządzenie, na którym działa model tłumaczenia. Auto wybiera najszybsze dostępne (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU wymaga karty CUDA.",
@@ -787,10 +787,10 @@
     "error": "Nie udało się sprawdzić aktualizacji",
     "currentVersion": "Aktualna wersja: v{{version}}",
     "newVersion": "Nowa wersja: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "AppImage obsługuje automatyczne aktualizacje. Instalacja AppImage zastępuje bieżącą instalację — nie trzeba niczego osobno odinstalowywać.",
+    "downloadAppImage": "Pobierz AppImage (zalecane)",
+    "downloadDeb": "Pobierz .deb",
+    "linuxMigrateTitle": "Nowa wersja v{{version}} dostępna"
   },
   "audioSystem": {
     "pactlMissingBody": "Nie znaleziono pactl (narzędzi wiersza poleceń PulseAudio), więc Sokuji nie mógł skonfigurować wirtualnego mikrofonu/głośnika. Zainstaluj je, a następnie spróbuj ponownie:",

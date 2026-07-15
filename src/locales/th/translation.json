@@ -356,7 +356,7 @@
     },
     "palabraai": {
       "name": "Palabra AI",
-      "description": "Specialized translation AI",
+      "description": "AI แปลภาษาเฉพาะทาง",
       "clientIdPlaceholder": "Client ID",
       "clientSecretPlaceholder": "Client Secret"
     },
@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "ยินดีต้อนรับสู่ Sokuji",
+          "content": "ยินดีต้อนรับสู่ Sokuji! คู่มือง่ายๆ นี้จะช่วยให้คุณเริ่มใช้การแปลแบบเรียลไทม์ได้ในไม่กี่ขั้นตอน"
         },
         "mode": {
           "content": "เลือกสิ่งที่ Sokuji จะแปล: คุณ — เสียงของคุณเอง (เพื่อให้ผู้อื่นเข้าใจคุณ); ผู้อื่น — สิ่งที่ผู้เข้าร่วมคนอื่นพูด (เพื่อให้คุณเข้าใจพวกเขา); หรือ ทั้งคู่ สำหรับการแปลสองทาง สิ่งนี้กำหนดว่าจะจับเสียงใด — เลือกผู้อื่นหรือทั้งคู่เพื่อเปิดเสียงผู้เข้าร่วม",
           "title": "โหมดการแปล"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "ขั้นตอนที่ 1: เปิดการตั้งค่า",
+          "content": "คลิกที่นี่เพื่อเปิดการตั้งค่า ซึ่งคุณสามารถกำหนดค่าภาษาและอุปกรณ์เสียงได้"
         },
         "account": {
           "title": "ขั้นตอนที่ 2: บัญชีผู้ใช้",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "ขั้นตอนที่ 5: เลือกไมโครโฟน",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "เลือกไมโครโฟนของคุณจากรายการ นี่คืออุปกรณ์ที่จะจับเสียงพูดของคุณ"
         },
         "speaker": {
           "title": "ขั้นตอนที่ 6: เลือกลำโพง",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "ขั้นตอนที่ 8: เริ่มแปลภาษา",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "คลิก 'เริ่ม' เพื่อเริ่มแปลภาษา! แค่พูดตามปกติแล้วฟังคำแปลแบบเรียลไทม์"
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "เสร็จเรียบร้อย!",
+          "content": "เยี่ยม! คุณพร้อมใช้งาน Sokuji แล้ว คลิก เริ่ม แล้วเริ่มพูดเพื่อฟังการแปลแบบเรียลไทม์"
         },
         "provider": {
           "title": "ขั้นตอนที่ 4: ผู้ให้บริการแปลภาษา",
@@ -675,7 +675,7 @@
     "webrtcFallback": "การเชื่อมต่อ WebRTC ล้มเหลว กำลังใช้ WebSocket แทน"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "ส่งข้อเสนอแนะ"
   },
   "engine": {
     "title": "เอนจินการประมวลผล",
@@ -787,10 +787,10 @@
     "error": "ตรวจสอบอัปเดตล้มเหลว",
     "currentVersion": "เวอร์ชันปัจจุบัน: v{{version}}",
     "newVersion": "เวอร์ชันใหม่: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "AppImage รองรับการอัปเดตอัตโนมัติ การติดตั้ง AppImage จะแทนที่การติดตั้งปัจจุบันของคุณ — ไม่ต้องถอนการติดตั้งแยกต่างหาก",
+    "downloadAppImage": "ดาวน์โหลด AppImage (แนะนำ)",
+    "downloadDeb": "ดาวน์โหลด .deb",
+    "linuxMigrateTitle": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน"
   },
   "audioSystem": {
     "pactlMissingBody": "ไม่พบ pactl (เครื่องมือบรรทัดคำสั่งของ PulseAudio) ทำให้ Sokuji ไม่สามารถตั้งค่าไมโครโฟน/ลำโพงเสมือนได้ โปรดติดตั้งแล้วลองใหม่:",

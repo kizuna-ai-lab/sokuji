@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "填入無效或留空的詞表 ID 會被靜默忽略——工作階段將視為該欄位未設定。在火山引擎主控台中更新詞表後，可能需要幾分鐘才能生效。",
     "zoomAIInfo": "Zoom AI Services 資訊",
     "zoomAIInfoText": "Zoom Scribe 會轉錄每一句話，再由 Zoom Translator 將其翻譯為文字。翻譯語言對的其中一方必須是英文。",
-    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
+    "geminiParticipantTokenWarning": "Gemini 參與者模式會產生並捨棄音訊回應，因此會增加權杖用量。",
     "help": "說明",
     "helpEmailTooltip": "回報問題或取得協助",
     "helpDiscussions": "討論區",
@@ -356,7 +356,7 @@
     },
     "palabraai": {
       "name": "Palabra AI",
-      "description": "Specialized translation AI",
+      "description": "專精翻譯的 AI",
       "clientIdPlaceholder": "Client ID",
       "clientSecretPlaceholder": "Client Secret"
     },
@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "歡迎使用 Sokuji",
+          "content": "歡迎使用 Sokuji！這份簡易指南將協助您在幾個步驟內開始使用即時翻譯。"
         },
         "mode": {
           "content": "選擇 Sokuji 翻譯什麼：您 — 您自己的語音（讓其他人聽懂您）；其他人 — 其他參與者說的話（讓您看懂他們）；或兩者，進行雙向翻譯。這決定了擷取哪一路音訊 — 選擇其他人或兩者即可開啟參與者音訊。",
           "title": "翻譯模式"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "步驟 1：開啟設定",
+          "content": "點擊這裡開啟設定，您可以在其中設定語言和音訊裝置。"
         },
         "account": {
           "title": "步驟 2：使用者帳戶",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "步驟 5：選擇麥克風",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "從清單中選擇您的麥克風。它將負責擷取您的聲音。"
         },
         "speaker": {
           "title": "步驟 6：選擇喇叭",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "步驟 8：開始翻譯",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "點擊「開始」即可開始翻譯！自然地說話，就能即時聽到翻譯。"
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "設定完成！",
+          "content": "太好了！您已可以開始使用 Sokuji。點擊「開始」並開口說話，即可聽到即時翻譯。"
         },
         "provider": {
           "title": "步驟 4：翻譯提供商",
@@ -675,7 +675,7 @@
     "webrtcFallback": "WebRTC 連線失敗，改用 WebSocket"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "發送意見回饋"
   },
   "engine": {
     "title": "推理引擎",

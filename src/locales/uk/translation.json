@@ -356,7 +356,7 @@
     },
     "palabraai": {
       "name": "Palabra AI",
-      "description": "Specialized translation AI",
+      "description": "Спеціалізований ШІ для перекладу",
       "clientIdPlaceholder": "Client ID",
       "clientSecretPlaceholder": "Client Secret"
     },
@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Ласкаво просимо до Sokuji",
+          "content": "Ласкаво просимо до Sokuji! Цей простий посібник допоможе вам почати користуватися перекладом у реальному часі всього за кілька кроків."
         },
         "mode": {
           "content": "Виберіть, що перекладає Sokuji: Ви — ваш власний голос (щоб інші вас розуміли); Інші — те, що говорять інші учасники (щоб ви розуміли їх); або Обидва для двостороннього перекладу. Це визначає, яке аудіо захоплюється — виберіть Інші або Обидва, щоб увімкнути аудіо учасників.",
           "title": "Режим перекладу"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "Крок 1: Відкрити налаштування",
+          "content": "Натисніть тут, щоб відкрити налаштування, де можна вибрати мови та аудіопристрої."
         },
         "account": {
           "title": "Крок 2: Обліковий запис",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "Крок 5: Вибір мікрофона",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "Виберіть мікрофон зі списку. Саме він захоплюватиме ваш голос."
         },
         "speaker": {
           "title": "Крок 6: Вибір динаміка",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "Крок 8: Почати переклад",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "Натисніть «Почати», щоб розпочати переклад! Просто говоріть природно та слухайте переклад у реальному часі."
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "Усе готово!",
+          "content": "Чудово! Ви готові користуватися Sokuji. Натисніть «Почати» та говоріть, щоб чути переклад у реальному часі."
         },
         "provider": {
           "title": "Крок 4: Постачальник перекладу",
@@ -675,7 +675,7 @@
     "webrtcFallback": "Не вдалося встановити з'єднання WebRTC, використовується WebSocket"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Надіслати відгук"
   },
   "engine": {
     "title": "Рушій інференсу",
@@ -787,10 +787,10 @@
     "error": "Не вдалося перевірити оновлення",
     "currentVersion": "Поточна версія: v{{version}}",
     "newVersion": "Нова версія: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "AppImage підтримує автоматичні оновлення. Встановлення AppImage замінює вашу поточну версію — окреме видалення не потрібне.",
+    "downloadAppImage": "Завантажити AppImage (рекомендовано)",
+    "downloadDeb": "Завантажити .deb",
+    "linuxMigrateTitle": "Доступна нова версія v{{version}}"
   },
   "audioSystem": {
     "pactlMissingBody": "Не знайдено pactl (інструменти командного рядка PulseAudio), тому Sokuji не вдалося налаштувати віртуальний мікрофон/динамік. Встановіть його та повторіть спробу:",

@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "IDs de biblioteca inválidos ou vazios são ignorados silenciosamente — a sessão é executada como se o campo não tivesse sido definido. Alterações feitas na consola da Volcengine podem demorar alguns minutos a entrar em vigor.",
     "zoomAIInfo": "Informações do Zoom AI Services",
     "zoomAIInfoText": "O Zoom Scribe transcreve cada enunciado e o Zoom Translator traduz para texto. Os pares de tradução têm de incluir inglês num dos lados.",
-    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
+    "geminiParticipantTokenWarning": "O modo participante do Gemini gera respostas de áudio que são descartadas, resultando numa utilização adicional de tokens.",
     "help": "Ajuda",
     "helpEmailTooltip": "Comunicar erros ou obter ajuda",
     "helpDiscussions": "Discussões",
@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Bem-vindo ao Sokuji",
+          "content": "Bem-vindo ao Sokuji! Este guia simples ajuda-o a começar a utilizar a tradução em tempo real em apenas alguns passos."
         },
         "mode": {
           "content": "Escolha o que o Sokuji traduz: Você — a sua própria voz (para que os outros o compreendam); Outros — o que os outros participantes dizem (para que os compreenda); ou Ambos para tradução bidirecional. Isto decide qual o áudio que é capturado — escolha Outros ou Ambos para ativar o áudio de participantes.",
           "title": "Modo de tradução"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "Passo 1: Abrir Definições",
+          "content": "Clique aqui para abrir as Definições, onde pode configurar os seus idiomas e dispositivos de áudio."
         },
         "account": {
           "title": "Passo 2: Conta de Utilizador",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "Passo 5: Selecionar Microfone",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "Selecione o seu microfone da lista. É este que vai captar a sua voz."
         },
         "speaker": {
           "title": "Passo 6: Selecionar Altifalante",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "Passo 8: Começar a Traduzir",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "Clique em \"Iniciar\" para começar a traduzir! Basta falar naturalmente e ouvir a tradução em tempo real."
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "Tudo Pronto!",
+          "content": "Perfeito! Está pronto para utilizar o Sokuji. Clique em Iniciar e comece a falar para ouvir traduções em tempo real."
         },
         "provider": {
           "title": "Passo 4: Fornecedor de Tradução",
@@ -675,7 +675,7 @@
     "webrtcFallback": "A ligação WebRTC falhou; a utilizar WebSocket em alternativa"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Enviar Comentários"
   },
   "engine": {
     "title": "Motor de inferência",
@@ -787,10 +787,10 @@
     "error": "Falha ao verificar atualizações",
     "currentVersion": "Versão atual: v{{version}}",
     "newVersion": "Nova versão: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "O AppImage suporta atualizações automáticas. Instalar o AppImage substitui a sua instalação atual — não é necessário desinstalar separadamente.",
+    "downloadAppImage": "Transferir AppImage (recomendado)",
+    "downloadDeb": "Transferir .deb",
+    "linuxMigrateTitle": "Nova versão v{{version}} disponível"
   },
   "audioSystem": {
     "pactlMissingBody": "O pactl (ferramentas de linha de comandos do PulseAudio) não foi encontrado, pelo que o Sokuji não conseguiu configurar o microfone/altifalante virtual. Instale-o e tente novamente:",

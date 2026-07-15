@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Недействительные или пустые ID библиотек молча игнорируются — сессия запускается так, как если бы поле не было задано. Изменения в консоли Volcengine могут вступать в силу через несколько минут.",
     "zoomAIInfo": "Информация о Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe расшифровывает каждую реплику, а Zoom Translator переводит её в текст. Одним из языков пары перевода должен быть английский.",
-    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
+    "geminiParticipantTokenWarning": "Режим участника Gemini генерирует аудиоответы, которые отбрасываются, что приводит к дополнительному расходу токенов.",
     "help": "Помощь",
     "helpEmailTooltip": "Сообщить об ошибке или получить помощь",
     "helpDiscussions": "Обсуждения",
@@ -675,7 +675,7 @@
     "webrtcFallback": "Не удалось подключиться по WebRTC, используется WebSocket"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Отправить отзыв"
   },
   "engine": {
     "title": "Движок вывода",

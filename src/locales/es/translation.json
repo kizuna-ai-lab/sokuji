@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Los ID de biblioteca inválidos o vacíos se ignoran silenciosamente — la sesión se ejecutará como si el campo no estuviera configurado. Los cambios realizados en la consola de Volcengine pueden tardar unos minutos en aplicarse.",
     "zoomAIInfo": "Información de Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe transcribe cada intervención y Zoom Translator la traduce a texto. Los pares de traducción deben incluir inglés en uno de los lados.",
-    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
+    "geminiParticipantTokenWarning": "El modo participante de Gemini genera respuestas de audio que se descartan, lo que produce un uso adicional de tokens.",
     "help": "Ayuda",
     "helpEmailTooltip": "Informa de errores u obtén ayuda",
     "helpDiscussions": "Discusiones",
@@ -675,7 +675,7 @@
     "webrtcFallback": "La conexión WebRTC falló, usando WebSocket en su lugar"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Enviar comentarios"
   },
   "engine": {
     "title": "Motor de inferencia",

@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Chào mừng đến với Sokuji",
+          "content": "Chào mừng đến với Sokuji! Hướng dẫn đơn giản này sẽ giúp bạn bắt đầu sử dụng dịch thời gian thực chỉ trong vài bước."
         },
         "mode": {
           "content": "Chọn những gì Sokuji dịch: Bạn — giọng của chính bạn (để người khác hiểu bạn); Người khác — những gì các người tham gia khác nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Người khác hoặc Cả hai để bật âm thanh người tham gia.",
           "title": "Chế độ dịch"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "Bước 1: Mở Cài đặt",
+          "content": "Nhấp vào đây để mở Cài đặt, nơi bạn có thể cấu hình ngôn ngữ và thiết bị âm thanh của mình."
         },
         "account": {
           "title": "Bước 2: Tài khoản người dùng",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "Bước 5: Chọn micrô",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "Chọn micrô của bạn từ danh sách. Đây là thiết bị sẽ thu giọng nói của bạn."
         },
         "speaker": {
           "title": "Bước 6: Chọn loa",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "Bước 8: Bắt đầu dịch",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "Nhấp vào 'Bắt đầu' để bắt đầu dịch! Chỉ cần nói tự nhiên và nghe bản dịch theo thời gian thực."
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "Đã sẵn sàng!",
+          "content": "Tuyệt vời! Bạn đã sẵn sàng sử dụng Sokuji. Nhấp vào Bắt đầu và nói để nghe bản dịch thời gian thực."
         },
         "provider": {
           "title": "Bước 4: Nhà cung cấp dịch thuật",
@@ -675,7 +675,7 @@
     "webrtcFallback": "Kết nối WebRTC thất bại, đang sử dụng WebSocket thay thế"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Gửi phản hồi"
   },
   "engine": {
     "title": "Công cụ suy luận",
@@ -758,7 +758,7 @@
     "hwSpeed": "Tốc độ",
     "hwMemory": "Bộ nhớ",
     "hwSize": "Dung lượng",
-    "hwRepo": "Repo",
+    "hwRepo": "Kho lưu trữ",
     "computeDevice": "Thiết bị tính toán",
     "computeDeviceTooltip": "Thiết bị nào chạy mô hình nhận dạng giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU yêu cầu GPU hỗ trợ CUDA.",
     "computeDeviceTooltipTranslation": "Thiết bị nào chạy mô hình dịch. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU yêu cầu GPU hỗ trợ CUDA.",
@@ -787,10 +787,10 @@
     "error": "Không thể kiểm tra cập nhật",
     "currentVersion": "Phiên bản hiện tại: v{{version}}",
     "newVersion": "Phiên bản mới: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "AppImage hỗ trợ cập nhật tự động. Cài đặt AppImage sẽ thay thế bản cài đặt hiện tại của bạn — không cần gỡ cài đặt riêng.",
+    "downloadAppImage": "Tải AppImage (khuyến nghị)",
+    "downloadDeb": "Tải .deb",
+    "linuxMigrateTitle": "Phiên bản mới v{{version}} khả dụng"
   },
   "audioSystem": {
     "pactlMissingBody": "Không tìm thấy pactl (công cụ dòng lệnh của PulseAudio), vì vậy Sokuji không thể thiết lập micro/loa ảo. Hãy cài đặt rồi thử lại:",

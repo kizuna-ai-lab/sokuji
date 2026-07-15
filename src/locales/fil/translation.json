@@ -41,7 +41,7 @@
     "pushToTranslate": "Push-to-Translate",
     "pushToTranslateNotAvailableInWebrtc": "Hindi available sa WebRTC mode. Lumipat sa WebSocket para gamitin ang Push-to-Translate.",
     "systemInstructions": "Mga tagubilin ng sistema",
-    "speechMode": "Speech Mode",
+    "speechMode": "Mode ng Pagsasalita",
     "speechModeAppliesTo": "Naaangkop sa iyong boses. Ang audio ng kalahok ay laging gumagamit ng semantic VAD.",
     "userTranscriptModel": "Modelo ng transkripsyon ng gumagamit",
     "noiseReduction": "Pagbawas ng ingay",
@@ -137,7 +137,7 @@
     "systemInstructionsTooltip": "Mga custom na tagubilin na nagsasabi sa AI kung paano magsasalin. Maaari ninyong gamitin ito para sa pag-define ng translation style, formality level, o mga specific na requirements.",
     "transportType": "Uri ng Koneksyon",
     "transportTypeTooltip": "WebRTC: Mas mababang latency, inirerekomenda para sa karamihan ng mga user.\nWebSocket: Mas magandang compatibility sa mga restricted network. Gamitin kung nabigo ang WebRTC connection.",
-    "websocket": "WebSocket (Stable)",
+    "websocket": "WebSocket (Matatag)",
     "webrtc": "WebRTC (Mababang Latency)",
     "webrtcVadDisabledTitle": "Hindi available ang Server VAD sa WebRTC mode",
     "webrtcVadNotice": "Naka-disable ang Server VAD sa WebRTC mode. Sa WebRTC, awtomatikong pinapaikli ng server ang audio kapag nakadetek ng pagsasalita, na nakakagambala sa mga pagsasalin.",
@@ -563,16 +563,16 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Maligayang pagdating sa Sokuji",
+          "content": "Maligayang pagdating sa Sokuji! Tutulungan ka ng simpleng gabay na ito na magsimulang gumamit ng real-time na pagsasalin sa ilang hakbang lamang."
         },
         "mode": {
           "content": "Piliin kung ano ang isasalin ng Sokuji: Ikaw — ang sarili mong boses (para maintindihan ka ng iba); Iba — ang sinasabi ng ibang kalahok (para maintindihan mo sila); o Pareho para sa dalawang-daang pagsasalin. Ito ang magpapasya kung aling audio ang kukunin — piliin ang Iba o Pareho para i-on ang audio ng kalahok.",
           "title": "Mode ng pagsasalin"
         },
         "settings": {
-          "title": "Step 1: Open Settings",
-          "content": "Click here to open Settings where you can configure your languages and audio devices."
+          "title": "Hakbang 1: Buksan ang Mga Setting",
+          "content": "I-click dito para buksan ang Mga Setting kung saan mo mai-configure ang iyong mga wika at audio device."
         },
         "account": {
           "title": "Hakbang 2: Account ng User",
@@ -584,7 +584,7 @@
         },
         "microphone": {
           "title": "Hakbang 5: Pumili ng Mikropono",
-          "content": "Select your microphone from the list. This is what will capture your voice."
+          "content": "Piliin ang iyong mikropono mula sa listahan. Ito ang kukuha ng iyong boses."
         },
         "speaker": {
           "title": "Hakbang 6: Pumili ng Speaker",
@@ -596,11 +596,11 @@
         },
         "start": {
           "title": "Hakbang 8: Simulan ang Pagsasalin",
-          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+          "content": "I-click ang 'Start' para magsimulang magsalin! Magsalita lang nang natural at marinig ang pagsasalin nang real-time."
         },
         "complete": {
-          "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "title": "Handa Na!",
+          "content": "Magaling! Handa ka nang gamitin ang Sokuji. I-click ang Start at magsimulang magsalita para marinig ang mga real-time na pagsasalin."
         },
         "provider": {
           "title": "Hakbang 4: Translation Provider",
@@ -675,7 +675,7 @@
     "webrtcFallback": "Nabigo ang koneksyon ng WebRTC, gumagamit ng WebSocket sa halip"
   },
   "feedback": {
-    "title": "Send Feedback"
+    "title": "Magpadala ng Feedback"
   },
   "engine": {
     "title": "Inference Engine",
@@ -730,7 +730,7 @@
     "asrModels": "Pagkilala sa pagsasalita (ASR)",
     "translationModels": "Pagsasalin",
     "ttsModels": "Sintesis ng pagsasalita (TTS)",
-    "autoSelected": "Auto-selected",
+    "autoSelected": "Awtomatikong napili",
     "download": "I-download",
     "cancel": "Kanselahin",
     "downloaded": "Na-download",
@@ -787,10 +787,10 @@
     "error": "Hindi nagawang suriin ang mga update",
     "currentVersion": "Kasalukuyang bersyon: v{{version}}",
     "newVersion": "Bagong bersyon: v{{version}}",
-    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
-    "downloadAppImage": "Download AppImage (recommended)",
-    "downloadDeb": "Download .deb",
-    "linuxMigrateTitle": "New version v{{version}} available"
+    "autoUpdateNote": "Sinusuportahan ng AppImage ang mga awtomatikong update. Pinapalitan ng pag-install ng AppImage ang kasalukuyan mong installation — hindi na kailangang mag-uninstall nang hiwalay.",
+    "downloadAppImage": "I-download ang AppImage (inirerekomenda)",
+    "downloadDeb": "I-download ang .deb",
+    "linuxMigrateTitle": "Bagong bersyon v{{version}} ay magagamit na"
   },
   "audioSystem": {
     "pactlMissingBody": "Hindi nahanap ang pactl (mga command-line tool ng PulseAudio), kaya hindi ma-set up ng Sokuji ang virtual na mikropono/speaker nito. I-install ito, pagkatapos ay subukang muli:",
@@ -862,7 +862,7 @@
     "showAll": "Ipakita lahat ng boses",
     "showFewer": "Magpakita ng mas kaunting boses",
     "stopRecording": "Itigil ang pag-record",
-    "transcript": "Transcript",
+    "transcript": "Transkripsyon",
     "transcriptHint": "Dapat tumugma sa mga salitang binigkas sa clip.",
     "transcriptPlaceholder": "I-type nang eksakto ang sinasabi ng clip…",
     "unstable": "hindi matatag",
