@@ -17,9 +17,15 @@ vi.mock('../utils/environment', async () => {
 let _shouldReject = false;
 let _asrExtraModels: any[] = [];
 let _catalogCallCount = 0;
+// Models the FakeWS should report as NOT downloaded on a `model_status` query.
+// The FakeWS reports every queried model 'ready' by default (see below); this
+// lets a test force a specific required model to read 'absent' so it can drive
+// ensureSelectionReady to the 'models-missing' reason.
+let _notReadyModels = new Set<string>();
 function mockModelsCatalogResolve() { _shouldReject = false; }
 function mockModelsCatalogReject() { _shouldReject = true; }
 function modelsCatalogCallCount() { return _catalogCallCount; }
+function mockModelNotReady(id: string) { _notReadyModels.add(id); }
 
 class FakeWS {
   static OPEN = 1;
@@ -60,7 +66,8 @@ class FakeWS {
     if (msg.type === 'model_status') {
       (globalThis as any).__lastStatusRepos = msg.repos;
       queueMicrotask(() => this.emit({ type: 'model_status_result', id: msg.id,
-        statuses: Object.fromEntries((msg.models || []).map((m: string) => [m, 'ready'])) }));
+        statuses: Object.fromEntries((msg.models || []).map((m: string) =>
+          [m, _notReadyModels.has(m) ? 'absent' : 'ready'])) }));
     }
     if (msg.type === 'model_delete') queueMicrotask(() =>
       this.emit({ type: 'model_delete_result', id: msg.id, freed: 0 }));
@@ -76,6 +83,7 @@ beforeEach(() => {
   _shouldReject = false;
   _asrExtraModels = [];
   _catalogCallCount = 0;
+  _notReadyModels = new Set();
   useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {} } as any);
 });
 
@@ -350,6 +358,7 @@ describe('ensureSelectionReady (facade)', () => {
 
   beforeEach(() => {
     _shouldReject = false;
+    _notReadyModels = new Set();
     // The top-level beforeEach resets catalog/statuses/statusRepos but not
     // modelPreferences — autoSelect's step 1 layers recalled history from a
     // PRIOR test's rememberModels() for the same `${src}→${tgt}` key on top of
@@ -441,6 +450,51 @@ describe('ensureSelectionReady (facade)', () => {
     await useNativeModelStore.getState().ensureSelectionReady(
       { ...SEL, translationModel: 'hy-mt2-1.8b' }, { textOnly: false });
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+  });
+
+  it('sidecar still starting → not ready, reason starting, no corrections', async () => {
+    // ensureCatalog() early-returns when status is already 'starting' (see its
+    // guard: `if (st === 'ready' || st === 'starting') return;`), so the status
+    // never advances past 'starting' and refreshBundle() never runs — pin
+    // bundleStatus to a value outside the mismatch/absent/paused branches (those
+    // take precedence over 'starting' in the reason derivation) so a leftover
+    // bundleStatus from an earlier test in this file can't steal the reason.
+    useNativeModelStore.setState({ sidecarStatus: 'starting', bundleStatus: 'unknown' });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    expect(r).toEqual({ ready: false, reason: 'starting', corrections: null });
+  });
+
+  it('source language with no compatible ASR model → not ready, reason asr-incompatible', async () => {
+    // The fixture catalog's only ASR card (sense-voice) is zh-only. Requesting a
+    // 'en' source leaves nativeAsrCards('en', catalog) empty, so autoSelect's ASR
+    // step (no compatible card, let alone a downloaded one) resets asrModel to ''
+    // — catalog[''] is undefined, so asrCompatible is false regardless of the
+    // translation pairing, and asr precedence (checked first) wins the reason.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
+    const r = await useNativeModelStore.getState().ensureSelectionReady(
+      { ...SEL, sourceLanguage: 'en', targetLanguage: 'en', asrModel: 'sense-voice' },
+      { textOnly: true });
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe('asr-incompatible');
+  });
+
+  it('a required TTS model not yet downloaded → not ready, reason models-missing', async () => {
+    // zh source / ja target: sense-voice (asr) and qwen2.5-0.5b (translate, multi)
+    // stay compatible and auto-select keeps them since the FakeWS reports them
+    // 'ready'; ttsModel is '' (Auto), so autoSelect's TTS branch never fires
+    // (it only revalidates an EXPLICIT choice) and leaves it at Auto, which
+    // resolves to moss-tts-nano (the only 'ja'-capable TTS card in the fixture).
+    // Force just that model 'absent' so the asr+translation pair is fully
+    // compatible and downloaded, but the required set as a whole is not —
+    // landing on 'models-missing' rather than 'asr-incompatible'/'translation-incompatible'.
+    mockModelsCatalogResolve();
+    mockModelNotReady('moss-tts-nano');
+    await useNativeModelStore.getState().ensureCatalog();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(
+      { ...SEL, targetLanguage: 'ja' }, { textOnly: false });
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe('models-missing');
   });
 });
 
