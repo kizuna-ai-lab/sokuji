@@ -235,7 +235,7 @@
     "virtualSpeakerWarningText2": "Valvontalaitteen yhdistäminen Sokujin lähtölaitteeseen loisi äänipalautesilmukan, jolloin syötteesi sisältäisi oman valvotun tulosteesi.",
     "virtualSpeakerWarningText3": "\"Ota käyttöön\" -kytkin yhdistää virtuaalikaiuttimen valitsemaasi valvontalaitteeseen, jolloin kuulet, mitä kokoussovellukseesi lähetetään. \"Poista käytöstä\" -kytkin katkaisee tämän valvontayhteyden.",
     "virtualSpeakerWarningText4": "Jotta toiminta olisi oikeaa, valitse luettelosta toinen valvontalaite (kuten kuulokkeesi tai kaiuttimesi).",
-    "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
+    "realVoicePassthrough": "Alkuperäisen äänen läpivienti",
     "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
     "passthroughManagedByPushToTranslate": "Paina ja käännä -tilassa läpisyöttö hallitaan automaattisesti: ääni kuuluu 100 %:n voimakkuudella, kun et pidä näppäintä pohjassa, ja pysähtyy (ääni ohjataan käännökseen), kun pidät näppäintä pohjassa.",
     "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus",
@@ -535,7 +535,7 @@
       "useHeadphones": "Käytä kuulokkeita parhaan tuloksen saamiseksi",
       "differentDevices": "Valitse eri äänilaitteet",
       "adjustDistance": "Siirrä mikrofoni kauemmas kaiuttimista",
-      "disablePassthrough": "Poista alkuperäisen äänen läpiviennti käytöstä",
+      "disablePassthrough": "Poista alkuperäisen äänen läpivienti käytöstä",
       "orTry": "Tai kokeile:"
     }
   },

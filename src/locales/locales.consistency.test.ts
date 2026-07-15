@@ -30,8 +30,12 @@ const flatten = (o: unknown, prefix = ''): Record<string, string> => {
 
 // Both conventions are live and are NOT interchangeable: {{x}} is i18next
 // interpolation, {x} is a manual .replace() at the call site.
-const placeholders = (s: string) =>
-  (s.match(/\{\{[^}]+\}\}|(?<!\{)\{[^{}]+\}(?!\})/g) ?? []).sort();
+// Tolerates a non-string so a stray number/null surfaces as a readable diff on
+// the offending key rather than a TypeError with no clue which key threw.
+const placeholders = (s: unknown) =>
+  (typeof s === 'string'
+    ? s.match(/\{\{[^}]+\}\}|(?<!\{)\{[^{}]+\}(?!\})/g) ?? []
+    : ['<not a string>']).sort();
 
 const EN = flatten(en);
 const locales = Object.entries(catalogs)
