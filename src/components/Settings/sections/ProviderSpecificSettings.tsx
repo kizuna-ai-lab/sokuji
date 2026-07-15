@@ -430,8 +430,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                       (no server VAD, manual hold-to-send). Surface it as Push-to-Talk
                       under the new "Speech Mode" label, matching the other providers'
                       equivalent button. The internal enum value stays 'Disabled' for
-                      backward compat with persisted settings. */}
-                  {mode === 'Disabled'
+                      backward compat with persisted settings. Volcengine AST2 spells
+                      the same mode 'Push-to-Talk', which lowercases to a key that does
+                      not exist — both spellings must map to settings.pushToTalk. */}
+                  {mode === 'Disabled' || mode === 'Push-to-Talk'
                     ? t('settings.pushToTalk')
                     : t(`settings.${mode.toLowerCase()}`)}
                 </button>

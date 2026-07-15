@@ -100,11 +100,11 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
       <button
         className={`mode-button ${isSimpleMode ? 'active' : ''}`}
         onClick={() => !isSimpleMode && handleModeToggle()}
-        title={t('settings.simpleMode', 'Simple')}
-        aria-label={t('settings.simple', 'Simple')}
+        title={t('settings.simpleMode', 'Quick')}
+        aria-label={t('settings.simple', 'Quick')}
       >
         <LayoutGrid size={14} />
-        <span>{t('settings.simple', 'Simple')}</span>
+        <span>{t('settings.simple', 'Quick')}</span>
       </button>
       <button
         className={`mode-button ${!isSimpleMode ? 'active' : ''}`}

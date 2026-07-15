@@ -71,18 +71,6 @@
   "slackGuidance": {
     "message": "Om Sokuji in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer dan <strong>\"Sokuji Virtual Microphone\"</strong> in je video- en microfooninstellingen, en <strong>schakel ruisonderdrukking uit</strong> in audio- en videovoorkeuren voor betere prestaties."
   },
-  "showMoreSites": {
-    "message": "$COUNT$ meer sites tonen",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "4"
-      }
-    }
-  },
-  "showLessSites": {
-    "message": "Minder sites tonen"
-  },
   "teamsTitle": {
     "message": "Sokuji voor Microsoft Teams"
   },
