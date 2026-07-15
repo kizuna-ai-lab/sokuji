@@ -35,9 +35,10 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class PlanConfig:
-    """Declarative per-load hints, read from the resolved catalog card (Tasks
-    6-8 will make backends actually read these; this task only populates
-    them). All-inert defaults so a bare `PlanConfig()` changes no behavior."""
+    """Declarative per-load hints, read from the resolved catalog card and
+    consumed by backends at load time: llama.cpp reads the two thinking flags,
+    the Qwen3-TTS ONNX backend reads variant_subdir. All-inert defaults so a
+    bare `PlanConfig()` changes no behavior."""
     variant_subdir: str | None = None
     disable_thinking: bool = False
     append_no_think: bool = False
@@ -426,7 +427,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
 
     pin → that quant unconditionally (user's will; --fit copes with memory).
     budget known → the LARGEST quant that fits FULLY resident
-        (est_bytes × 1.1 ≤ budget − reserved): a fully-resident smaller quant
+        (est_bytes x 1.1 <= budget - reserved): a fully-resident smaller quant
         beats a partially-offloaded bigger one. Nothing fits → keep the GPU
         tier with the rank-default quant via --fit only while the budget still
         covers ≥50% of the smallest quant; below that, fully-CPU is faster.

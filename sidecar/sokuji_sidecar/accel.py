@@ -205,12 +205,12 @@ def probe(force: bool = False) -> Machine:
 # parameters, so this module instead defines same-named Loader-wrapper
 # functions (right below) that fetch those facts and delegate.
 from . import planner  # noqa: E402
-from .planner import (  # noqa: E402
-    Plan, PlanConfig, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
+from .planner import (  # noqa: E402,F401
+    Plan, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
     _tier_available, _platform_ok, _bench_key,
-    _resolve_model, _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
-    _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp, _llamacpp_quant,
-    _LLAMA_RESIDENT_FACTOR, _apply_bench,
+    _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
+    _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp,
+    _LLAMA_RESIDENT_FACTOR,
 )
 
 

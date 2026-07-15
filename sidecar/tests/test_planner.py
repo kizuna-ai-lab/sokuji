@@ -399,7 +399,6 @@ def test_resolve_arm_nvidia_leads_with_vulkan():
 # test_asr_bench_demotion_uses_quant_keyed_entries
 
 _COHERE_MODEL = catalog.asr_model("cohere-transcribe-03-2026")
-_COHERE_ALL_QUANTS = {"f16", "q8_0", "q6_k", "q5_k_m", "q4_k_m"}
 
 
 TC_PICK_QUANT_DIRECT_MATRIX = [

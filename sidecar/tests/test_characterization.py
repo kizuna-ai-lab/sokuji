@@ -30,15 +30,10 @@ Determinism notes:
     filter.py). It is pinned per-test to the OS the Machine fixture
     represents, so the macOS-only mlx_audio_tts deployment rows resolve
     correctly even though this suite runs on a Linux CI/dev box.
-  * SOKUJI_BENCH_DIR is pointed at a fresh temp dir so the RTF/tps bench
-    cache (which can demote a plan in AUTO mode) never leaks in from a real
-    run — mirrors tests/test_accel.py's own setup.
+  * `accel.bench_load` is pinned to {} by the autouse fixture below so the
+    RTF/tps bench cache (which can demote a plan in AUTO mode) never leaks in
+    from a real run — deterministic regardless of any ambient SOKUJI_BENCH_DIR.
 """
-import os
-import tempfile
-
-os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
-
 import pytest
 
 from sokuji_sidecar import accel, catalog
@@ -94,10 +89,12 @@ def _platform_for(machine) -> str:
 
 @pytest.fixture(autouse=True)
 def _nothing_downloaded(monkeypatch):
-    """Default: no quant/variant is in the local HF cache. Isolates every
-    test in this file from this dev box's ambient ~/.cache/huggingface
-    state (see module docstring)."""
+    """Default: no quant/variant is in the local HF cache, and the RTF/tps
+    bench cache is empty. Isolates every test in this file from this dev box's
+    ambient ~/.cache/huggingface and SOKUJI_BENCH_DIR state (see module
+    docstring)."""
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "bench_load", lambda: {})
 
 
 def _plan_tuples(plans):
