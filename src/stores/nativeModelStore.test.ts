@@ -203,6 +203,12 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
     const repos = (globalThis as any).__lastStatusRepos ?? {};
     expect(repos['sense-voice']).toBeUndefined();
   });
+
+  it('deriveVariantRepos skips single-variant cards (via catalog-derived statusRepos)', async () => {
+    await useNativeModelStore.getState().ensureCatalog();
+    // sense-voice (the fixture ASR) has no `variants` → no entry in statusRepos.
+    expect(useNativeModelStore.getState().statusRepos['sense-voice']).toBeUndefined();
+  });
 });
 
 describe('nativeModelStore.deleteModel', () => {

@@ -114,14 +114,12 @@ const client = new NativeModelClient();
  * Q8_0) read 'absent' from the default-repo check and the ASR chip showed
  * "None" until a variant-aware caller happened to run.
  */
-async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
-  let pins: Record<string, string> = {};
-  try {
-    const { useSettingsStore } = await import('./settingsStore');
-    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
-  } catch { /* settings store unavailable — fall back to recommendations */ }
+/** A card's CHOSEN (pinned ?? recommended) variant repo, for each multi-variant
+ * card in `cards`. Single-variant cards are skipped (their status uses the
+ * default-repo cache). Pure: no store/settings reads — pins are injected. */
+function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, string>): Record<string, string> {
   const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
-  for (const m of list) {
+  for (const m of cards) {
     const vs = m.variants;
     if (!vs || vs.length < 2) continue;
     vd[m.id] = {
@@ -130,6 +128,15 @@ async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<strin
     };
   }
   return statusReposFor(Object.keys(vd), vd, pins);
+}
+
+async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
+  let pins: Record<string, string> = {};
+  try {
+    const { useSettingsStore } = await import('./settingsStore');
+    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
+  } catch { /* settings store unavailable — fall back to recommendations */ }
+  return deriveVariantRepos(list, pins);
 }
 
 async function revalidateNativeProvider(): Promise<void> {
