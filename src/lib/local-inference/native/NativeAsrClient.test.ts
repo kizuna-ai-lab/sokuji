@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { NativeAsrClient } from './NativeAsrClient';
-import { FakeSidecarConnection } from './fakeSidecarConnection';
+import { FakeSidecarConnection } from './SidecarConnection.fake';
 
 describe('NativeAsrClient', () => {
   it('init() sends asr_init with device override and returns device + rtf', async () => {

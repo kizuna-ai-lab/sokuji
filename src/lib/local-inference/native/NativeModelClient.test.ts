@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { NativeModelClient } from './NativeModelClient';
-import { FakeSidecarConnection } from './fakeSidecarConnection';
+import { FakeSidecarConnection } from './SidecarConnection.fake';
 
 // download() awaits conn.connect() before it registers its handle and sends, so
 // the register+send land a microtask later — flush before emitting to it.

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { NativeTtsClient } from './NativeTtsClient';
-import { FakeSidecarConnection } from './fakeSidecarConnection';
+import { FakeSidecarConnection } from './SidecarConnection.fake';
 
 async function initClient(conn: FakeSidecarConnection, streaming: boolean) {
   const c = new NativeTtsClient(conn);

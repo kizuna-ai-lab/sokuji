@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { NativeTranslateClient } from './NativeTranslateClient';
-import { FakeSidecarConnection } from './fakeSidecarConnection';
+import { FakeSidecarConnection } from './SidecarConnection.fake';
 import { INIT_REQUEST_TIMEOUT_MS } from './SidecarConnection';
 
 describe('NativeTranslateClient', () => {
