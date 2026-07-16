@@ -42,7 +42,12 @@ def build_reference(audio: np.ndarray, sr: int, text: str, language: str,
                     hubert_session) -> Reference:
     # genie_tts Audio/Audio.py:load_audio, inlined + adapted for an
     # in-memory array instead of sf.read(audio_path).
-    wav = np.asarray(audio, dtype=np.float32).reshape(-1)
+    wav = np.asarray(audio, dtype=np.float32)
+    if wav.ndim > 1:
+        # SOKUJI: restore upstream Audio.py:25-26 — average channels to mono
+        # (soundfile returns (frames, channels) for stereo files).
+        wav = wav.mean(axis=1)
+    wav = wav.reshape(-1)
     duration = wav.shape[0] / float(sr)
     if not MIN_DURATION_S <= duration <= MAX_DURATION_S:
         logger.warning(

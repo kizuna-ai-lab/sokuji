@@ -26,6 +26,16 @@ def test_build_reference_resamples_and_pads():
     assert ref.prompt_text == "test transcript"
 
 
+def test_build_reference_averages_stereo_to_mono():
+    sr = 32000
+    left = np.ones(sr, dtype=np.float32)
+    right = -np.ones(sr, dtype=np.float32)
+    stereo = np.stack([left, right], axis=1)  # (frames, channels)
+    ref = reference.build_reference(stereo, sr, "t", "english", _FakeHubert())
+    content = ref.audio_32k.reshape(-1)[: sr]  # before the appended silence
+    assert float(np.abs(content).max()) < 1e-6  # L/R cancel -> silence
+
+
 class _StopImmediatelyDecoder:
     """Stage decoder whose stop condition fires on the very first step."""
     def __init__(self):
