@@ -461,17 +461,36 @@ import pytest
 from sokuji_sidecar import tts_engine, accel, catalog, server
 ```
 
-Append this test to the end of `sidecar/tests/test_tts_engine.py`:
+Append this test to the end of `sidecar/tests/test_tts_engine.py`.
+
+It uses a hand-rolled fake engine rather than the real `TtsEngine`, for the same reason the existing ASR analogue (`test_conn_close_frees_asr_model`) does — and this is the whole trap here: **`TtsEngine.init()` calls `self.close()` itself** for VRAM hygiene (`tts_engine.py:46`), exactly as `AsrEngine.close()`'s docstring advertises ("called at the start of each init()"). Drive a *real* engine through one `tts_init` and `close()` fires twice — once inside `init()`, once from the disconnect teardown — so a `== 1` assertion fails and a `== 2` assertion could not tell you whether the disconnect closed anything at all. A fake engine whose `init()` does not self-close isolates the disconnect path, which is the only thing this test is here to pin.
+
+`_h_tts_init` touches exactly three things on the engine — `init(...)`, `sample_rate`, `resolved` — so the fake needs only those, and no `_patch`/`_state`/`monkeypatch` machinery at all.
 
 ```python
-def test_conn_close_frees_tts_model(monkeypatch):
+def test_conn_close_frees_tts_model():
     """A TTS session connection (tts_init) closing must trigger engine.close() in
     _conn's finally, releasing the model from VRAM on stop — the TTS analogue of
-    test_conn_close_frees_asr_model."""
-    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    test_conn_close_frees_asr_model.
+
+    Uses a fake engine for the same reason that test does: the real TtsEngine.init()
+    calls close() itself for VRAM hygiene (tts_engine.py:46), so a real engine would
+    count two closes for one tts_init and could not show whether the DISCONNECT closed
+    the model."""
     closed = {"n": 0}
-    monkeypatch.setattr(st["tts_engine"], "close",
-                        lambda: closed.__setitem__("n", closed["n"] + 1))
+
+    class Eng:
+        sample_rate = 24000
+        resolved = None
+
+        def init(self, *a, **k):
+            return 1
+
+        def close(self):
+            closed["n"] += 1
+
+    st = {"tts_engine": Eng(), "handlers": {}}
+    tts_engine.register(st)
 
     class WS:
         def __init__(self):
@@ -491,6 +510,8 @@ def test_conn_close_frees_tts_model(monkeypatch):
     asyncio.run(server._conn(st, WS()))
     assert closed["n"] == 1
 ```
+
+This exact test has been verified green on the unmigrated code and mutation-verified non-vacuous (disabling the `owns_tts` branch in `server.py` turns it red with `assert 0 == 1`).
 
 - [ ] **Step 2: Run it — it must PASS on the unmigrated code**
 
