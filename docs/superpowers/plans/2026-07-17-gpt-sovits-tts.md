@@ -1273,7 +1273,15 @@ git commit -m "feat(sidecar): GPT-SoVITS repo assembly script; finalize card siz
 from huggingface_hub import HfApi
 api = HfApi()
 api.create_repo('jiangzhuo9357/gpt-sovits-v2pp-onnx', repo_type='model', exist_ok=True)
-api.upload_folder(folder_path='.spike/hf-repo', repo_id='jiangzhuo9357/gpt-sovits-v2pp-onnx')
+api.upload_folder(
+    folder_path='.spike/hf-repo', repo_id='jiangzhuo9357/gpt-sovits-v2pp-onnx',
+    # belt-and-braces: build-gpt-sovits-repo.sh already deletes these fp32
+    # expansion twins (ensure_fp32_bins() writes them in place if the tree
+    # was ever smoke-loaded) but ignore_patterns guards the upload itself
+    # against a tree that was reassembled/loaded without the script's guard.
+    ignore_patterns=['model/t2s_shared_fp32.bin', 'model/vits_fp32.bin',
+                      'model/prompt_encoder_fp32.bin',
+                      'genie_data/chinese-hubert-base/chinese-hubert-base_weights.bin'])
 "
 ```
 

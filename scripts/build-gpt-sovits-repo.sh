@@ -68,5 +68,20 @@ Default voice clip: JFK 1961 inaugural address excerpt (US government work,
 public domain).
 EOF
 
+# Guard against fp32 expansion pollution: `ensure_fp32_bins()` expands the
+# fp16 bins to their fp32 twins IN PLACE at load time (see runtime.py
+# FP16_TO_FP32), so any tree that was smoke-tested by loading the backend
+# straight out of $OUT picks up these twins alongside the fp16 originals we
+# actually want to publish. Delete them by exact path, not a glob — the
+# encoder bin (t2s_encoder_fp32.bin) is a REAL fp32-only shipped file with no
+# fp16 twin and must survive this.
+for f in model/t2s_shared_fp32.bin model/vits_fp32.bin model/prompt_encoder_fp32.bin \
+         genie_data/chinese-hubert-base/chinese-hubert-base_weights.bin; do
+  if [ -f "$OUT/$f" ]; then
+    echo "removing fp32 expansion twin: $f"
+    rm -f "$OUT/$f"
+  fi
+done
+
 du -sb "$OUT"
 echo "repo tree assembled at $OUT"
