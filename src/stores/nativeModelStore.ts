@@ -5,7 +5,7 @@ import {
   autoSelectNative, hardwareGated, statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
   requiredNativeModels, supportsLanguage,
-  type NativeSelection, type NativeReadinessSelection, type NativeReadinessResult, type NativeReadinessReason,
+  type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 
@@ -82,8 +82,10 @@ interface NativeModelStore {
    *  lifecycle, refresh the pair's statuses (variant-aware), auto-select stale
    *  choices, and judge compat + downloaded state. Returns ready + a reason and
    *  the auto-select corrections (the caller persists them). Mirrors the WASM
-   *  useModelStore.ensureSelectionReady in shape (peers, not a shared layer). */
-  ensureSelectionReady: (selection: NativeReadinessSelection, opts: { textOnly: boolean }) => Promise<NativeReadinessResult>;
+   *  useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
+   *  `read` is a thunk, called only once the sidecar is warm — see
+   *  NativeReadinessInput for why a snapshot would be wrong. */
+  ensureSelectionReady: (read: () => NativeReadinessInput) => Promise<NativeReadinessResult>;
   /** Persist the chosen models for a language pair/direction. */
   rememberModels: (src: string, tgt: string, sel: NativeSelection) => void;
   /** The remembered selection for a direction (raw; readiness is re-checked by autoSelect). */
@@ -433,7 +435,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   isReady: (models) => models.length > 0 && models.every((m) => get().statuses[m] === 'ready'),
 
-  ensureSelectionReady: async (selection, opts) => {
+  ensureSelectionReady: async (read) => {
     if (!isElectron()) return { ready: false, reason: 'not-electron', corrections: null };
     await get().ensureCatalog();
     const status = get().sidecarStatus;
@@ -446,6 +448,10 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         : 'starting';
       return { ready: false, reason, corrections: null };
     }
+    // Settings are read HERE, not at the call site: the warmup above can take
+    // seconds on a cold start, during which the user may change the pair or
+    // toggle text-only. The pre-facade gate read them at this same point.
+    const { selection, textOnly } = read();
     const catalog = get().catalog;
     const pins = selection.translationVariantByModel ?? {};
     const asCards = (ids: string[]): NativeModelInfo[] =>
@@ -472,7 +478,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       .some((c) => c.selectId === effective.translationModel);
     const models = requiredNativeModels(
       effective.asrModel, effective.translationModel, effective.ttsModel,
-      effective.sourceLanguage, effective.targetLanguage, catalog, opts.textOnly);
+      effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
     // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
     const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;

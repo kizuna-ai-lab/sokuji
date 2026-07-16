@@ -473,6 +473,15 @@ export interface NativeReadinessSelection {
   translationVariantByModel: Record<string, string>;
 }
 
+/** Everything readiness reads out of settings, resolved in one go. Handed to the
+ * facade as a thunk rather than a value: a cold sidecar start is slow, and the
+ * user can change the pair / text-only while it runs, so the verdict must be
+ * computed from the selection as of AFTER warmup — not a call-site snapshot. */
+export interface NativeReadinessInput {
+  selection: NativeReadinessSelection;
+  textOnly: boolean;
+}
+
 export interface NativeReadinessResult {
   ready: boolean;
   reason: NativeReadinessReason;

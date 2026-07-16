@@ -367,11 +367,28 @@ describe('ensureSelectionReady (facade)', () => {
     useNativeModelStore.setState({ modelPreferences: {} });
   });
 
+  it('reads the selection AFTER sidecar warmup, not at call time', async () => {
+    // The facade takes a READ THUNK, not a snapshot, and calls it only once the
+    // sidecar is warm — matching the pre-facade gate, which read get().localNative
+    // after `await ensureCatalog()`. A cold start can take seconds, so a snapshot
+    // taken at the call site would resolve the verdict against a selection the
+    // user has since changed (pair / text-only) mid-warmup.
+    mockModelsCatalogResolve();
+    // beforeEach seeds sidecarStatus 'idle' → ensureCatalog actually runs here.
+    let statusWhenRead: string | undefined;
+    await useNativeModelStore.getState().ensureSelectionReady(() => {
+      statusWhenRead = useNativeModelStore.getState().sidecarStatus;
+      return { selection: SEL, textOnly: true };
+    });
+    // Would be 'idle' if the read were hoisted back above the warmup await.
+    expect(statusWhenRead).toBe('ready');
+  });
+
   it('unavailable sidecar → not ready, reason unavailable, no corrections', async () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
     // ensureCatalog will try to (re)load; make the catalog fetch reject so it stays unavailable.
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     expect(r).toEqual({ ready: false, reason: 'unavailable', corrections: null });
   });
 
@@ -383,7 +400,7 @@ describe('ensureSelectionReady (facade)', () => {
     // `{ ok: true }` mock reply (which carries no `state`/`sku`).
     (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     expect(r.reason).toBe('engine-absent');
   });
 
@@ -391,14 +408,14 @@ describe('ensureSelectionReady (facade)', () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'mismatch' });
     (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));
     mockModelsCatalogReject();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     expect(r.reason).toBe('engine-mismatch');
   });
 
   it('ready + downloaded compatible pair → ready', async () => {
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
-    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: true });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: true }));
     // FakeWS reports every queried model 'ready'; textOnly drops the TTS
     // requirement so readiness only needs the asr+translation pair.
     expect(r.ready).toBe(true);
@@ -423,9 +440,10 @@ describe('ensureSelectionReady (facade)', () => {
       'opus-mt-zh-en': { id: 'opus-mt-zh-en', name: 'Opus MT zh-en', kind: 'translate', languages: ['zh', 'en'],
         recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
     } as any });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(
-      { ...SEL, sourceLanguage: 'en', targetLanguage: 'zh', asrModel: 'whisper-en', translationModel: 'opus-mt-zh-en' },
-      { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, sourceLanguage: 'en', targetLanguage: 'zh', asrModel: 'whisper-en', translationModel: 'opus-mt-zh-en' },
+      textOnly: false,
+    }));
     // opus-mt-zh-en is a card for zh→en, not the reversed en→zh pair — incompatible
     // even though its status reports "downloaded".
     expect(r.ready).toBe(false);
@@ -447,8 +465,9 @@ describe('ensureSelectionReady (facade)', () => {
         { id: 'bf16', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-1.8B', supported: true, recommended: false },
       ],
     } } as any });
-    await useNativeModelStore.getState().ensureSelectionReady(
-      { ...SEL, translationModel: 'hy-mt2-1.8b' }, { textOnly: false });
+    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, translationModel: 'hy-mt2-1.8b' }, textOnly: false,
+    }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
   });
 
@@ -460,7 +479,7 @@ describe('ensureSelectionReady (facade)', () => {
     // take precedence over 'starting' in the reason derivation) so a leftover
     // bundleStatus from an earlier test in this file can't steal the reason.
     useNativeModelStore.setState({ sidecarStatus: 'starting', bundleStatus: 'unknown' });
-    const r = await useNativeModelStore.getState().ensureSelectionReady(SEL, { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     expect(r).toEqual({ ready: false, reason: 'starting', corrections: null });
   });
 
@@ -472,9 +491,10 @@ describe('ensureSelectionReady (facade)', () => {
     // translation pairing, and asr precedence (checked first) wins the reason.
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
-    const r = await useNativeModelStore.getState().ensureSelectionReady(
-      { ...SEL, sourceLanguage: 'en', targetLanguage: 'en', asrModel: 'sense-voice' },
-      { textOnly: true });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, sourceLanguage: 'en', targetLanguage: 'en', asrModel: 'sense-voice' },
+      textOnly: true,
+    }));
     expect(r.ready).toBe(false);
     expect(r.reason).toBe('asr-incompatible');
   });
@@ -491,8 +511,9 @@ describe('ensureSelectionReady (facade)', () => {
     mockModelsCatalogResolve();
     mockModelNotReady('moss-tts-nano');
     await useNativeModelStore.getState().ensureCatalog();
-    const r = await useNativeModelStore.getState().ensureSelectionReady(
-      { ...SEL, targetLanguage: 'ja' }, { textOnly: false });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja' }, textOnly: false,
+    }));
     expect(r.ready).toBe(false);
     expect(r.reason).toBe('models-missing');
   });

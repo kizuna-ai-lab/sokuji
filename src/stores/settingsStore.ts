@@ -58,7 +58,7 @@ import { defaultKizunaVolcengineAst2Settings } from '../services/providers/Kizun
 function msgForNativeReason(reason: NativeReadinessReason): string {
   switch (reason) {
     case 'ready': return '';
-    case 'not-electron': return 'Native sidecar unavailable (desktop app + installed sidecar required)';
+    case 'not-electron': return i18n.t('settings.localNativeNotElectron', 'Native sidecar unavailable (desktop app + installed sidecar required)');
     case 'engine-mismatch': return i18n.t('settings.localNativeEngineUpdateRequired', 'The inference engine needs an update — open provider settings to update it');
     case 'engine-absent': return i18n.t('settings.localNativeEngineRequired', 'Download the inference engine in provider settings');
     case 'unavailable': return i18n.t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings');
@@ -853,9 +853,11 @@ const useSettingsStore = create<SettingsStore>()(
       // branch only applies the resulting corrections and maps the reason to a
       // user-facing message.
       if (provider === Provider.LOCAL_NATIVE) {
-        const { useNativeModelStore } = await import('./nativeModelStore');
+        // Settings go in as a thunk, not a snapshot: the facade warms the sidecar
+        // first (seconds, on a cold start) and reads them only after — so a pair
+        // or text-only change made during warmup is honoured, not resolved stale.
         const { ready, reason, corrections } = await useNativeModelStore.getState()
-          .ensureSelectionReady(get().localNative, { textOnly: get().textOnly });
+          .ensureSelectionReady(() => ({ selection: get().localNative, textOnly: get().textOnly }));
         if (corrections) get().updateLocalNative(corrections);
         const message = msgForNativeReason(reason);
         set({

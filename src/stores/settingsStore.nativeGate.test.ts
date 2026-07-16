@@ -1,7 +1,7 @@
 /**
  * The LOCAL_NATIVE readiness gate (validateApiKey) is a thin wrapper around
- * nativeModelStore's `ensureSelectionReady` facade: it forwards the current
- * localNative selection, applies any corrections the facade returns, and maps
+ * nativeModelStore's `ensureSelectionReady` facade: it hands the facade a thunk
+ * reading the live localNative selection, applies any corrections it returns, and maps
  * the returned reason to a user-facing message via the module-private
  * `msgForNativeReason` helper. All sidecar warmup / lifecycle-gating /
  * auto-select / variant-repo-resolution behavior now lives in and is tested by
@@ -66,6 +66,29 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
     expect(r).toEqual({ valid: true, message: '', validating: false });
     expect(useSettingsStore.getState().isApiKeyValid).toBe(true);
     expect(useSettingsStore.getState().availableModels).toEqual([{ id: 'native-asr-translate', type: 'realtime', created: 0 }]);
+  });
+
+  it('hands the facade a live reader, not a pre-warmup snapshot', async () => {
+    // The wrapper's half of the stale-snapshot fix: it passes a thunk, so what
+    // the facade reads reflects the settings at READ time (after it has warmed
+    // the sidecar), not at call time. Simulates a pair/text-only change landing
+    // during a slow cold start.
+    useSettingsStore.setState({
+      localNative: { ...useSettingsStore.getState().localNative, sourceLanguage: 'zh' },
+      textOnly: false,
+    } as any);
+    let seen: any;
+    mockEnsureSelectionReady.mockImplementation(async (read: any) => {
+      useSettingsStore.setState({
+        localNative: { ...useSettingsStore.getState().localNative, sourceLanguage: 'ja' },
+        textOnly: true,
+      } as any);
+      seen = read();
+      return { ready: true, reason: 'ready', corrections: null };
+    });
+    await useSettingsStore.getState().validateApiKey();
+    expect(seen.selection.sourceLanguage).toBe('ja');
+    expect(seen.textOnly).toBe(true);
   });
 
   it('applies corrections to localNative', async () => {
