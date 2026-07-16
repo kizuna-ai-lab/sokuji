@@ -348,6 +348,64 @@ def test_conn_close_frees_asr_model():
     assert closed["n"] == 1
 
 
+def test_conn_close_frees_streaming_asr_model():
+    # Same contract as test_conn_close_frees_asr_model above, but for the STREAMING
+    # branch of _h_asr_init (asr_engine.py:565-572). That branch registers its own
+    # on_close callback independently of the offline branch, so it needs its own net:
+    # a fake with resolves_to_streaming() -> True drives _conn through the streaming
+    # path, which is the only one that creates conn.ctx["stream_task"]. Losing the
+    # registration there leaks both a live asyncio task (still running run_stream
+    # against a dead connection) and the model's VRAM.
+    closed = {"n": 0}
+    task_holder = {}
+
+    class Eng:
+        def resolves_to_streaming(self, model_id, device, pin=None):
+            return True
+
+        def init_streaming(self, model_id=None, language="", sample_rate=None,
+                           vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto", **kw):
+            return 5
+
+        def feed_stream(self, b):
+            return []
+
+        async def run_stream(self, send):
+            task_holder["task"] = asyncio.current_task()
+            await asyncio.sleep(3600)   # never returns on its own; must be cancelled by teardown
+
+        def close(self):
+            closed["n"] += 1
+
+    st = {"asr_engine": Eng(), "handlers": {}}
+    asr_engine.register(st)
+
+    class WS:
+        def __init__(self):
+            self._msgs = [json.dumps({"type": "asr_init", "id": 1,
+                                       "model": "voxtral-mini-4b-realtime", "device": "cuda"})]
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._msgs:
+                return self._msgs.pop(0)
+            await asyncio.sleep(0)   # let the just-created stream_task start running
+            raise StopAsyncIteration
+
+        async def send(self, d):
+            pass
+
+    async def scenario():
+        await server._conn(st, WS())
+        await asyncio.sleep(0)   # let the cancelled task process its CancelledError
+
+    asyncio.run(scenario())
+    assert closed["n"] == 1
+    assert task_holder["task"].cancelled() is True
+
+
 def test_close_aborts_open_streaming_session():
     """A mid-utterance close() must end the open stream (not leak its threads)."""
     from sokuji_sidecar.asr_engine import AsrEngine
