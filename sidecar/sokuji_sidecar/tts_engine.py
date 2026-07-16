@@ -214,7 +214,7 @@ async def _h_tts_generate(state, msg, _b, conn=None):
         conn.ctx["tts_stream_task"] = asyncio.create_task(_run_tts_stream())
         return None, None                  # dispatched; read loop stays live for tts_cancel
     pcm, gen_ms = eng.generate(text, speed)
-    reply = {"type": "result", "id": mid, "sampleRate": eng.sample_rate,
+    reply = {"type": "tts_generate_result", "id": mid, "sampleRate": eng.sample_rate,
              "generationTimeMs": gen_ms, "samples": len(pcm) // 2}
     return reply, pcm
 

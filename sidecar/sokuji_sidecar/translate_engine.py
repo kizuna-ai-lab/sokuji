@@ -89,7 +89,7 @@ async def _h_translate(state, msg, _b, conn=None):
     text = msg.get("text", "")
     translated, ms = state["translate_engine"].translate(
         text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)))
-    return {"type": "translation", "id": msg.get("id"),
+    return {"type": "translate_result", "id": msg.get("id"),
             "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None
 
 

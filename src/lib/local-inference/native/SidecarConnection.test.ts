@@ -57,7 +57,7 @@ describe('SidecarConnection', () => {
     const sent = JSON.parse(ws.sent[0]);
     expect(sent).toMatchObject({ type: 'translate', text: 'hi' });
     expect(typeof sent.id).toBe('number');
-    ws.reply({ type: 'translation', id: sent.id, sourceText: 'hi', translatedText: 'こんにちは', inferenceTimeMs: 3 });
+    ws.reply({ type: 'translate_result', id: sent.id, sourceText: 'hi', translatedText: 'こんにちは', inferenceTimeMs: 3 });
     await expect(p).resolves.toMatchObject({ translatedText: 'こんにちは' });
   });
 
@@ -87,7 +87,7 @@ describe('SidecarConnection', () => {
     // A late reply after timeout must be routed to onMessage, not crash.
     const pushes: any[] = [];
     c.onMessage((m) => pushes.push(m));
-    ws.reply({ type: 'translation', id, translatedText: 'late' });
+    ws.reply({ type: 'translate_result', id, translatedText: 'late' });
     expect(pushes).toHaveLength(1);
   });
 
@@ -152,7 +152,7 @@ describe('SidecarConnection', () => {
     // and reject B's in-flight request; with it, B is untouched.
     a.onclose?.();
     const id = JSON.parse(b.sent[0]).id;
-    b.reply({ type: 'translation', id, translatedText: 'ok' });
+    b.reply({ type: 'translate_result', id, translatedText: 'ok' });
     await expect(p).resolves.toMatchObject({ translatedText: 'ok' });
   });
 
@@ -211,7 +211,7 @@ describe('SidecarConnection', () => {
     await tick();
     const ws = FakeWS.instances[0];
     expect(JSON.parse(ws.sent[0]).id).toBe(4242);
-    ws.reply({ type: 'result', id: 4242, sampleRate: 24000, generationTimeMs: 5, samples: 0 });
-    await expect(p).resolves.toMatchObject({ type: 'result' });
+    ws.reply({ type: 'tts_generate_result', id: 4242, sampleRate: 24000, generationTimeMs: 5, samples: 0 });
+    await expect(p).resolves.toMatchObject({ type: 'tts_generate_result' });
   });
 });

@@ -19,11 +19,9 @@ export class NativeAsrClient {
   private onPush(msg: ServerMsg): void {
     if (msg.type === 'speech_start') { this.onSpeechStart?.(); return; }
     if (msg.type === 'partial') { this.onPartialResult?.(msg.text); return; }
-    // ASR results are pushed without an id; TTS results carry an id and are matched
-    // as request replies on the (separate) TTS connection — they never reach here.
+    // ASR results are pushed without an id — they are not replies to a request.
     if (msg.type === 'result') {
-      const r = msg as Extract<ServerMsg, { type: 'result' }> & { text?: string; startSample?: number; durationMs?: number; recognitionTimeMs?: number };
-      this.onResult?.({ text: r.text as string, startSample: r.startSample, durationMs: r.durationMs as number, recognitionTimeMs: r.recognitionTimeMs as number });
+      this.onResult?.({ text: msg.text, startSample: msg.startSample, durationMs: msg.durationMs, recognitionTimeMs: msg.recognitionTimeMs });
       return;
     }
     // Feeder errors during streaming arrive id-less (see sidecar server.py on_binary).

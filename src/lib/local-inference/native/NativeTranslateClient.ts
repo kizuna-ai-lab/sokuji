@@ -34,7 +34,7 @@ export class NativeTranslateClient {
   }
 
   async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<TranslationResult> {
-    const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translation' }>;
+    const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translate_result' }>;
     return { sourceText: msg.sourceText, translatedText: msg.translatedText, inferenceTimeMs: msg.inferenceTimeMs };
   }
 
