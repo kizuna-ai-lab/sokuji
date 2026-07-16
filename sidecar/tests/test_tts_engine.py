@@ -1,7 +1,8 @@
 import asyncio
+import json
 import numpy as np
 import pytest
-from sokuji_sidecar import tts_engine, accel, catalog
+from sokuji_sidecar import tts_engine, accel, catalog, server
 
 
 def test_resample_48k_stereo_to_24k_mono():
@@ -295,3 +296,46 @@ def test_tts_cancel_stops_inflight_stream(monkeypatch):
         assert kinds.count("tts_done") == 1
 
     asyncio.run(run())
+
+
+def test_conn_close_frees_tts_model():
+    """A TTS session connection (tts_init) closing must trigger engine.close() in
+    _conn's finally, releasing the model from VRAM on stop — the TTS analogue of
+    test_conn_close_frees_asr_model.
+
+    Uses a fake engine for the same reason that test does: the real TtsEngine.init()
+    calls close() itself for VRAM hygiene (tts_engine.py:46), so a real engine would
+    count two closes for one tts_init and could not show whether the DISCONNECT closed
+    the model."""
+    closed = {"n": 0}
+
+    class Eng:
+        sample_rate = 24000
+        resolved = None
+
+        def init(self, *a, **k):
+            return 1
+
+        def close(self):
+            closed["n"] += 1
+
+    st = {"tts_engine": Eng(), "handlers": {}}
+    tts_engine.register(st)
+
+    class WS:
+        def __init__(self):
+            self._msgs = [json.dumps({"type": "tts_init", "id": 1, "model": "moss-tts-nano"})]
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._msgs:
+                return self._msgs.pop(0)
+            raise StopAsyncIteration
+
+        async def send(self, d):
+            pass
+
+    asyncio.run(server._conn(st, WS()))
+    assert closed["n"] == 1
