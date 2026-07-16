@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Stäng av mikrofon",
     "turnOnMonitor": "Slå på högtalarmonitor",
     "turnOffMonitor": "Stäng av högtalarmonitor",
+    "monitorLockedByMode": "Högtalarmedhörning är endast tillgänglig i läget \"{{mode}}\" — den kan inte köras samtidigt som Deltagarljud utan att orsaka eko. Byt översättningsläge till \"{{mode}}\" för att aktivera den igen.",
     "refreshDevices": "Uppdatera enheter",
     "unknownDevice": "Okänd enhet"
   },

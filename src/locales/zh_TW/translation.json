@@ -253,6 +253,7 @@
     "turnOffMicrophone": "關閉麥克風",
     "turnOnMonitor": "開啟揚聲器監聽",
     "turnOffMonitor": "關閉揚聲器監聽",
+    "monitorLockedByMode": "揚聲器監聽僅在「{{mode}}」模式下可用——與參與者音訊同時開啟會產生回音。將翻譯模式切換為「{{mode}}」即可重新啟用。",
     "refreshDevices": "重新整理裝置",
     "unknownDevice": "未知裝置"
   },

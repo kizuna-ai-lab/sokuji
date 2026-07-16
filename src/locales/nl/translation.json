@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Microfoon uitschakelen",
     "turnOnMonitor": "Luidsprekermonitor inschakelen",
     "turnOffMonitor": "Luidsprekermonitor uitschakelen",
+    "monitorLockedByMode": "Luidsprekermonitoring is alleen beschikbaar in de modus \"{{mode}}\" — samen met Deelnemer Audio zou het echo veroorzaken. Schakel de vertaalmodus naar \"{{mode}}\" om het weer in te schakelen.",
     "refreshDevices": "Apparaten vernieuwen",
     "unknownDevice": "Onbekend apparaat"
   },

@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Tắt micro",
     "turnOnMonitor": "Bật giám sát loa",
     "turnOffMonitor": "Tắt giám sát loa",
+    "monitorLockedByMode": "Chỉ có thể theo dõi qua loa ở chế độ \"{{mode}}\" — chạy đồng thời với Âm thanh người tham gia sẽ gây vọng âm. Hãy chuyển chế độ dịch sang \"{{mode}}\" để bật lại.",
     "refreshDevices": "Làm mới thiết bị",
     "unknownDevice": "Thiết bị không rõ"
   },

@@ -253,6 +253,7 @@
     "turnOffMicrophone": "כבה מיקרופון",
     "turnOnMonitor": "הפעל ניטור רמקול",
     "turnOffMonitor": "כבה ניטור רמקול",
+    "monitorLockedByMode": "ניטור הרמקול זמין רק במצב \"{{mode}}\" — הפעלתו יחד עם שמע משתתפים תיצור הד. החלף את מצב התרגום ל-\"{{mode}}\" כדי להפעיל אותו מחדש.",
     "refreshDevices": "רענן התקנים",
     "unknownDevice": "התקן לא ידוע"
   },

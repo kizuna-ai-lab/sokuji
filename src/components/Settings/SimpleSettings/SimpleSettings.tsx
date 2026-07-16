@@ -45,6 +45,12 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   const lockMonitor = effectiveMode !== 'speaker';
   const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
+  // The monitor lock survives restarts (mode is persisted), so without a stated
+  // reason the greyed section reads as broken rather than locked. Name the mode
+  // through modePicker's own key so the reason and the picker segment can't
+  // drift apart in a locale.
+  const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
+
   // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
   useEffect(() => {
     const targetSection = highlightSection || settingsNavigationTarget;
@@ -109,6 +115,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
         <AudioDeviceSection
           isSessionActive={isSessionActive}
           isLocked={lockMonitor}
+          lockedReason={lockMonitor ? monitorLockedReason : undefined}
           showMicrophone={false}
           showSpeaker={true}
         />

@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Apagar micrófono",
     "turnOnMonitor": "Activar monitor de altavoz",
     "turnOffMonitor": "Desactivar monitor de altavoz",
+    "monitorLockedByMode": "La monitorización por altavoz solo está disponible en el modo \"{{mode}}\": no puede funcionar junto con el Audio de Participantes sin provocar eco. Cambia el modo de traducción a \"{{mode}}\" para volver a habilitarla.",
     "refreshDevices": "Actualizar dispositivos",
     "unknownDevice": "Dispositivo desconocido"
   },

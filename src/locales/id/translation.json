@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Matikan mikrofon",
     "turnOnMonitor": "Nyalakan monitor speaker",
     "turnOffMonitor": "Matikan monitor speaker",
+    "monitorLockedByMode": "Pemantauan speaker hanya tersedia dalam mode \"{{mode}}\" — tidak dapat berjalan bersamaan dengan Audio Peserta tanpa menimbulkan gema. Ubah mode terjemahan ke \"{{mode}}\" untuk mengaktifkannya kembali.",
     "refreshDevices": "Segarkan perangkat",
     "unknownDevice": "Perangkat tidak dikenal"
   },

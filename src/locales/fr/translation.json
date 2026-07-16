@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Désactiver le microphone",
     "turnOnMonitor": "Activer la surveillance du haut-parleur",
     "turnOffMonitor": "Désactiver la surveillance du haut-parleur",
+    "monitorLockedByMode": "L'écoute par haut-parleur n'est disponible qu'en mode « {{mode}} » : elle ne peut pas fonctionner en même temps que l'Audio des Participants sans provoquer d'écho. Passez le mode de traduction sur « {{mode}} » pour la réactiver.",
     "refreshDevices": "Actualiser les périphériques",
     "unknownDevice": "Périphérique inconnu"
   },

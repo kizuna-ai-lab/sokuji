@@ -253,6 +253,7 @@
     "turnOffMicrophone": "マイクをオフにする",
     "turnOnMonitor": "スピーカーモニターをオンにする",
     "turnOffMonitor": "スピーカーモニターをオフにする",
+    "monitorLockedByMode": "スピーカーモニターは「{{mode}}」モードでのみ使用できます。参加者の音声と同時に使用するとエコーが発生するためです。再び有効にするには、翻訳モードを「{{mode}}」に切り替えてください。",
     "refreshDevices": "デバイスを更新",
     "unknownDevice": "不明なデバイス"
   },

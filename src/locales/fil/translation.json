@@ -253,6 +253,7 @@
     "turnOffMicrophone": "I-off ang mikropono",
     "turnOnMonitor": "I-on ang monitor ng speaker",
     "turnOffMonitor": "I-off ang monitor ng speaker",
+    "monitorLockedByMode": "Available lang ang speaker monitoring sa mode na \"{{mode}}\" — hindi ito maaaring tumakbo kasabay ng Audio ng Kalahok nang hindi nagdudulot ng echo. Palitan ang translation mode sa \"{{mode}}\" para muling paganahin ito.",
     "refreshDevices": "I-refresh ang mga device",
     "unknownDevice": "Hindi kilalang device"
   },

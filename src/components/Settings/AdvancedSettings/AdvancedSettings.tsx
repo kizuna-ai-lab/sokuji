@@ -60,6 +60,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
   const lockMonitor = effectiveMode !== 'speaker';
   const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
 
+  // The monitor lock survives restarts (mode is persisted), so without a stated
+  // reason the greyed section reads as broken rather than locked. Name the mode
+  // through modePicker's own key so the reason and the picker segment can't
+  // drift apart in a locale.
+  const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
+
   // Current Speech Mode for active provider — used to disable VoicePassthroughSection
   // when Push-to-Translate is in effect (mutual exclusion).
   const currentTurnDetectionMode = useCurrentTurnDetectionMode();
@@ -144,6 +150,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
             <AudioDeviceSection
               isSessionActive={isSessionActive}
               isLocked={lockMonitor}
+              lockedReason={lockMonitor ? monitorLockedReason : undefined}
               showMicrophone={false}
               showSpeaker={true}
             />
