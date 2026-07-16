@@ -699,9 +699,11 @@ def _gpt_sovits_stage_real_tree(src_dir: str) -> str:
             break
     if not has_symlink:
         return src_dir
-    key = hashlib.blake2s(src_dir.encode(), digest_size=8).hexdigest()
-    staged = os.path.join(tempfile.gettempdir(), "sokuji_gpt_sovits", key,
-                          os.path.basename(src_dir))
+    # Stage NEXT TO the source (inside the user-private HF snapshot, like the
+    # fp32 bin expansion), never in the world-writable tempdir: the dir holds
+    # pickles the G2P unpickles, and a predictable /tmp path would let a local
+    # attacker pre-plant them (the idempotent skip would then adopt the files).
+    staged = src_dir + ".staged"
     for root, _dirs, files in os.walk(src_dir):
         rel = os.path.relpath(root, src_dir)
         dst_root = staged if rel == "." else os.path.join(staged, rel)
