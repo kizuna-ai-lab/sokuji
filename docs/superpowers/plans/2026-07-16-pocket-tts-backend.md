@@ -54,10 +54,10 @@ Branch base `d0c2cd28` (main): **769 passed, 15 skipped**. Expected after each t
 | Task 1 | 772 | 15 | +3 parser tests |
 | Task 2 | 780 | 16 | +8 mapping tests, +1 gated |
 | Task 3 | 782 | 17 | −3 (stage tests deleted), +5 backend tests, +1 gated |
-| Task 4 | 787 | 17 | +1 listing test, +4 matrix rows |
-| Task 5 | 787 | 17 | script only |
+| Task 4 | 788 | 17 | +1 listing test, +4 matrix rows, +1 installed-gate regression test (review fix) |
+| Task 5 | 788 | 17 | script only |
 
-With `POCKET_MODEL_DIR` exported, the three pocket-gated tests unlock: **790 passed, 14 skipped**. The binding invariant is always **0 failed** plus the stated per-task delta; if a number differs for any other reason, report the discrepancy — do not adjust code or tests to hit a number.
+With `POCKET_MODEL_DIR` exported, the three pocket-gated tests unlock: **791 passed, 14 skipped**. The binding invariant is always **0 failed** plus the stated per-task delta; if a number differs for any other reason, report the discrepancy — do not adjust code or tests to hit a number.
 
 ## File Structure
 
@@ -1078,13 +1078,13 @@ Expected: five ` <lang>: pocket-mirrors/pocket-tts-<lang>-onnx  198,64x,xxx byte
 # Sidecar, ungated
 cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/ -q
 ```
-Expected: **787 passed, 17 skipped, 0 failed**.
+Expected: **788 passed, 17 skipped, 0 failed**.
 
 ```bash
 # Sidecar, with the real bundle (resolve POCKET_MODEL_DIR per Global Constraint 5)
 cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/ -q
 ```
-Expected: **790 passed, 14 skipped, 0 failed** (the three pocket-gated tests unlock).
+Expected: **791 passed, 14 skipped, 0 failed** (the three pocket-gated tests unlock).
 
 ```bash
 # Zero renderer-side edits (Global Constraint 1)
