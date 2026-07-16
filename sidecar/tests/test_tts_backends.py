@@ -211,3 +211,107 @@ def test_qwen3tts_load_variant_dir_none_when_config_omitted(monkeypatch, tmp_pat
     b.load("some/repo", "cuda", "fp32")  # config defaults to None
 
     assert captured["variant_dir"] is None
+
+
+def test_pocket_onnx_registered_and_flags():
+    b = backends.make_backend("pocket_onnx")
+    assert b.NAME == "pocket_onnx" and b.STREAMING is False and b.CLONES is True
+    assert b.is_loaded is False and b.sample_rate == 24000
+    assert b.preset_voice == "alba"
+
+
+def test_pocket_set_builtin_voice_unknown_raises():
+    b = backends.make_backend("pocket_onnx")
+    b._voices = {}                      # already "parsed": empty -> nothing matches
+    with pytest.raises(backends.BackendLoadError):
+        b.set_builtin_voice("nope")
+
+
+def test_pocket_set_builtin_voice_maps_record_to_flow_state():
+    b = backends.make_backend("pocket_onnx")
+    b._meta = {"flow_lm_state_manifest": [
+        {"input_name": "state_0", "dtype": "float32", "shape": [1, 4], "fill": "nan",
+         "module": "layer.0", "key": "cache"},
+        {"input_name": "state_1", "dtype": "int64", "shape": [1], "fill": "zeros",
+         "module": "layer.0", "key": "step"},
+    ]}
+    b._voices = {"alba": {"layer.0/cache": np.ones((1, 2), np.float32),
+                          "layer.0/offset": np.asarray([2], np.int64)}}
+    b.set_builtin_voice("alba")
+    assert np.array_equal(b._flow["state_0"][:, :2], np.ones((1, 2), np.float32))
+    assert np.isnan(b._flow["state_0"][:, 2:]).all()
+    assert b._flow["state_1"][0] == 2
+
+
+def test_pocket_generate_defaults_to_preset_voice(monkeypatch):
+    from sokuji_sidecar import pocket_inference as pi
+
+    class _Tok:
+        def encode_ids(self, text):
+            return [1, 2, 3]
+
+    class _Sess:
+        def run(self, names, feeds):
+            return [np.zeros((1, 3, 8), np.float32)]
+
+    b = backends.make_backend("pocket_onnx")
+    b._tok = _Tok()
+    b._sessions = {"textConditioner": _Sess()}
+    b._meta = {}
+    applied = []
+
+    def fake_builtin(name):
+        applied.append(name)
+        b._flow = {"state_0": np.zeros(1, np.float32)}
+
+    monkeypatch.setattr(b, "set_builtin_voice", fake_builtin)
+    monkeypatch.setattr(pi, "generate", lambda *a, **k: np.zeros(2400, np.float32))
+    samples, ms = b.generate("hello")
+    # No voice picked yet -> the preset is applied (the post-load RTF probe
+    # generates before the renderer ever sends set_voice).
+    assert applied == ["alba"]
+    assert samples.shape == (2400,) and ms >= 0
+
+
+def test_pocket_load_missing_snapshot_raises_backend_load_error(monkeypatch):
+    import huggingface_hub
+
+    def boom(**kw):
+        raise FileNotFoundError("not cached")
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", boom)
+    b = backends.make_backend("pocket_onnx")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("jiangzhuo9357/pocket-tts-en-onnx", "cpu", "int8")
+    assert b.is_loaded is False
+
+
+@pytest.mark.skipif(not os.environ.get("POCKET_MODEL_DIR"),
+                    reason="set POCKET_MODEL_DIR to a local Pocket bundle dir")
+def test_pocket_backend_builtin_voices_end_to_end(monkeypatch):
+    """The KV-mapping failure mode is audio that PLAYS but carries the wrong
+    timbre — shape/finiteness checks can't see it. Teeth: with a seeded rng and
+    one intra-op thread (bitwise-deterministic), the same builtin voice twice is
+    byte-identical while two different voices diverge. A mapping that collapsed
+    to manifest defaults (ignoring the record) would make every voice sound the
+    same and fail the alba-vs-javert assertion."""
+    import huggingface_hub
+    d = os.environ["POCKET_MODEL_DIR"]
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **kw: d)
+    monkeypatch.setenv("POCKET_NATIVE_THREADS", "1")
+    real_rng = np.random.default_rng
+    monkeypatch.setattr(np.random, "default_rng", lambda *a, **k: real_rng(0))
+    b = backends.make_backend("pocket_onnx")
+    b.load("mirror-not-needed-locally", "cpu", "int8")
+    assert b.is_loaded and b.sample_rate == 24000
+    text = "The quick brown fox jumps over the lazy dog."
+    b.set_builtin_voice("alba")
+    a1, ms1 = b.generate(text)
+    a2, _ = b.generate(text)
+    assert np.array_equal(a1, a2)                       # seeded -> deterministic
+    assert np.isfinite(a1).all() and len(a1) > 24000 and np.abs(a1).max() > 0.05
+    b.set_builtin_voice("javert")
+    a3, _ = b.generate(text)
+    assert a1.shape != a3.shape or not np.array_equal(a1, a3)
+    b.unload()
+    assert b.is_loaded is False
