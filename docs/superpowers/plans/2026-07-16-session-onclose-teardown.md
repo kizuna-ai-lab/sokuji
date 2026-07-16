@@ -125,7 +125,9 @@ def test_conn_close_isolates_a_raising_cleanup():
 VP=/home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python
 $VP -m pytest tests/test_server_conn.py -q -k "cleanup"
 ```
-Expected: 2 failed, with `AttributeError: 'Conn' object has no attribute 'on_close'`.
+Expected: 2 failed with `AssertionError: assert [] == ['first', 'second']` (and the analogous empty-list assertion for the isolation test).
+
+Note the failure mode, because it is not the obvious one: `conn.on_close(...)` does raise `AttributeError` inside the fake stage handler, but `_conn` wraps every `handle_message` call in `try/except Exception` (`server.py:49-54`) and converts ANY handler exception into an `{"type": "error"}` reply rather than letting it propagate. So the AttributeError is swallowed, the handler registers nothing, and the only observable RED signal is the assertion on `calls`. That is still a true RED for the right reason (the seam does not exist yet), but do not expect a traceback.
 
 - [ ] **Step 3: Add the seam to `Conn`**
 
