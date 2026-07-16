@@ -17,6 +17,16 @@ ctranslate2==4.8.1
 # NVML-free since 2026-07-06 (D7): device truth = the transcribe.cpp probe.
 soundfile>=0.13
 soxr>=0.5
+# GPT-SoVITS (vendored Genie-TTS runtime) G2P dependencies — issue #322.
+# jieba (pure python) replaces upstream's jieba_fast: identical API surface
+# (posseg.lcut / cut_for_search / setLogLevel), no C build on aarch64.
+jieba==0.42.1
+pypinyin==0.55.0
+g2pM==0.1.2.5
+nltk==3.10.0
+# ja G2P. Pulls sudachipy + sudachidict_core (~212MB) — kept deliberately
+# (kanji homograph readings); quality follow-up tracked in issue #322.
+pyopenjtalk-plus==0.4.1.post8
 # ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
 transcribe-cpp==0.1.1
 # macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
