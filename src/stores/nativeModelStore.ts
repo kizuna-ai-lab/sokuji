@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
 import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
-import { autoSelectNative, hardwareGated, statusReposFor, type NativeSelection } from '../lib/local-inference/native/nativeCatalog';
+import {
+  autoSelectNative, hardwareGated, statusReposFor,
+  nativeAsrCards, nativeTranslationCards, nativeTtsCards,
+  requiredNativeModels, supportsLanguage,
+  type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
+} from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
@@ -73,6 +78,14 @@ interface NativeModelStore {
   deleteModel: (model: string, repo?: string) => Promise<void>;
   /** True only if every listed model is cached. */
   isReady: (models: string[]) => boolean;
+  /** Full LOCAL_NATIVE session-readiness gate: warm the sidecar, check the
+   *  lifecycle, refresh the pair's statuses (variant-aware), auto-select stale
+   *  choices, and judge compat + downloaded state. Returns ready + a reason and
+   *  the auto-select corrections (the caller persists them). Mirrors the WASM
+   *  useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
+   *  `read` is a thunk, called only once the sidecar is warm — see
+   *  NativeReadinessInput for why a snapshot would be wrong. */
+  ensureSelectionReady: (read: () => NativeReadinessInput) => Promise<NativeReadinessResult>;
   /** Persist the chosen models for a language pair/direction. */
   rememberModels: (src: string, tgt: string, sel: NativeSelection) => void;
   /** The remembered selection for a direction (raw; readiness is re-checked by autoSelect). */
@@ -114,14 +127,12 @@ const client = new NativeModelClient();
  * Q8_0) read 'absent' from the default-repo check and the ASR chip showed
  * "None" until a variant-aware caller happened to run.
  */
-async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
-  let pins: Record<string, string> = {};
-  try {
-    const { useSettingsStore } = await import('./settingsStore');
-    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
-  } catch { /* settings store unavailable — fall back to recommendations */ }
+/** A card's CHOSEN (pinned ?? recommended) variant repo, for each multi-variant
+ * card in `cards`. Single-variant cards are skipped (their status uses the
+ * default-repo cache). Pure: no store/settings reads — pins are injected. */
+function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, string>): Record<string, string> {
   const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
-  for (const m of list) {
+  for (const m of cards) {
     const vs = m.variants;
     if (!vs || vs.length < 2) continue;
     vd[m.id] = {
@@ -130,6 +141,15 @@ async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<strin
     };
   }
   return statusReposFor(Object.keys(vd), vd, pins);
+}
+
+async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
+  let pins: Record<string, string> = {};
+  try {
+    const { useSettingsStore } = await import('./settingsStore');
+    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
+  } catch { /* settings store unavailable — fall back to recommendations */ }
+  return deriveVariantRepos(list, pins);
 }
 
 async function revalidateNativeProvider(): Promise<void> {
@@ -414,6 +434,62 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   isReady: (models) => models.length > 0 && models.every((m) => get().statuses[m] === 'ready'),
+
+  ensureSelectionReady: async (read) => {
+    if (!isElectron()) return { ready: false, reason: 'not-electron', corrections: null };
+    await get().ensureCatalog();
+    const status = get().sidecarStatus;
+    if (status !== 'ready') {
+      const bundle = get().bundleStatus;
+      const reason: NativeReadinessReason =
+        bundle === 'mismatch' ? 'engine-mismatch'
+        : (bundle === 'absent' || bundle === 'paused') ? 'engine-absent'
+        : status === 'unavailable' ? 'unavailable'
+        : 'starting';
+      return { ready: false, reason, corrections: null };
+    }
+    // Settings are read HERE, not at the call site: the warmup above can take
+    // seconds on a cold start, during which the user may change the pair or
+    // toggle text-only. The pre-facade gate read them at this same point.
+    const { selection, textOnly } = read();
+    const catalog = get().catalog;
+    const pins = selection.translationVariantByModel ?? {};
+    const asCards = (ids: string[]): NativeModelInfo[] =>
+      ids.map((id) => catalog[id]).filter((c): c is NativeModelInfo => !!c);
+    // FIRST refresh: this pair's candidate statuses, variant-aware — so a cold
+    // start doesn't read the default repo and wipe a valid pinned selection.
+    const candidateIds = Array.from(new Set([
+      ...nativeAsrCards(selection.sourceLanguage, catalog),
+      ...nativeTranslationCards(selection.sourceLanguage, selection.targetLanguage, catalog),
+      ...nativeTtsCards(selection.targetLanguage, catalog),
+    ].map((c) => c.downloadId).filter((id): id is string => !!id)));
+    const candidateRepos = deriveVariantRepos(asCards(candidateIds), pins);
+    await get().refresh(candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
+    // Reconcile the stale selection against catalog + live statuses. autoSelect
+    // also persists to modelPreferences internally; it RETURNS the changed
+    // settings fields (the caller applies them to settingsStore).
+    const corrections = get().autoSelect(selection.sourceLanguage, selection.targetLanguage, {
+      asrModel: selection.asrModel, translationModel: selection.translationModel, ttsModel: selection.ttsModel,
+    });
+    const effective = corrections ? { ...selection, ...corrections } : selection;
+    const asrOpt = catalog[effective.asrModel];
+    const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, effective.sourceLanguage);
+    const trCompatible = nativeTranslationCards(effective.sourceLanguage, effective.targetLanguage, catalog)
+      .some((c) => c.selectId === effective.translationModel);
+    const models = requiredNativeModels(
+      effective.asrModel, effective.translationModel, effective.ttsModel,
+      effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
+    // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
+    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel]), pins);
+    const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
+    await get().refresh(models, statusRepos);
+    const ready = asrCompatible && trCompatible && get().isReady(models);
+    const reason: NativeReadinessReason = ready ? 'ready'
+      : !asrCompatible ? 'asr-incompatible'
+      : !trCompatible ? 'translation-incompatible'
+      : 'models-missing';
+    return { ready, reason, corrections: corrections ?? null };
+  },
 
   rememberModels: (src, tgt, sel) => {
     set((s) => ({ modelPreferences: { ...s.modelPreferences, [`${src}→${tgt}`]: sel } }));
