@@ -1,4 +1,5 @@
 import json
+import sys
 import websockets
 
 
@@ -6,6 +7,17 @@ class Conn:
     def __init__(self, ws):
         self._ws = ws
         self.ctx = {}
+        self._on_close = []
+
+    def on_close(self, cb):
+        """Register a zero-arg cleanup to run when this connection closes.
+
+        Each stage registers its own teardown at init, so the server never has to know
+        which ctx keys a stage owns. A cleanup must read conn.ctx/state when it RUNS,
+        not when it registers: a stage may create the handle it cancels after init (the
+        TTS stream task is created by tts_generate, not tts_init).
+        """
+        self._on_close.append(cb)
 
     async def send(self, obj=None, binary=None):
         if binary is not None:
@@ -59,36 +71,21 @@ async def _conn(state, ws):
                 await ws.send(json.dumps(reply))
     finally:
         # A session connection closing is "stop": free that connection's model from VRAM.
-        # Ownership is per-connection: ASR streaming sets on_binary, the translate session
-        # sets owns_translate; the model-management connection sets neither and leaves
-        # models alone. Both engines are process singletons reused on the next init.
-        if conn.ctx.get("on_binary") is not None:
-            task = conn.ctx.get("stream_task")
-            if task is not None:
-                task.cancel()
-            eng = state.get("asr_engine")
-            if eng is not None:
-                try:
-                    eng.close()
-                except Exception:
-                    pass
-        if conn.ctx.get("owns_translate"):
-            teng = state.get("translate_engine")
-            if teng is not None:
-                try:
-                    teng.close()
-                except Exception:
-                    pass
-        if conn.ctx.get("owns_tts"):
-            task = conn.ctx.get("tts_stream_task")
-            if task is not None:
-                task.cancel()
-            teng = state.get("tts_engine")
-            if teng is not None:
-                try:
-                    teng.close()
-                except Exception:
-                    pass
+        # Each stage registers its own cleanup at init (conn.on_close), so the server
+        # never needs to know which ctx keys a stage owns; the model-management
+        # connection registers none and leaves models alone. The engines are process
+        # singletons reused on the next init. Cleanups are independent — one raising
+        # must not skip the rest.
+        for cb in conn._on_close:
+            try:
+                cb()
+            except Exception as e:
+                # A broken cleanup must not skip the other stages' cleanups — but it
+                # must not vanish either: its stage's model would silently never leave
+                # VRAM. stderr is piped to the Electron log by NativeHostManager;
+                # stdout is the port-handshake channel and must stay structured.
+                print(f"[teardown] on_close cleanup failed: {e!r}",
+                      file=sys.stderr, flush=True)
 
 
 # A voice-clone reference clip (set_voice) is sent as ONE binary frame of raw

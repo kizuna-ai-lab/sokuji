@@ -2,6 +2,16 @@ import time
 from . import translate_backends  # noqa: F401 — registers the llamacpp_*/ct2_opus_translate backends
 
 
+def _translate_teardown(state):
+    """Free this connection's translate model when the connection closes."""
+    eng = state.get("translate_engine")
+    if eng is not None:
+        try:
+            eng.close()
+        except Exception:
+            pass
+
+
 class TranslateEngine:
     def __init__(self):
         self._tok = None
@@ -65,10 +75,9 @@ async def _h_translate_init(state, msg, _b, conn=None):
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
         msg.get("device", "auto"), reserved_bytes=reserve, pin=msg.get("variant"))
-    # This connection owns the translate model: closing it frees the model from VRAM
-    # (mirrors the ASR streaming connection's on_binary ownership in server._conn).
+    # This connection owns the translate model: closing it frees the model from VRAM.
     if conn is not None:
-        conn.ctx["owns_translate"] = True
+        conn.on_close(lambda: _translate_teardown(state))
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(state["translate_engine"], "resolved", None)
     if resolved:
