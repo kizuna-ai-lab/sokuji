@@ -78,16 +78,9 @@ async def _conn(state, ws):
             except Exception:
                 pass
         # A session connection closing is "stop": free that connection's model from VRAM.
-        # Ownership is per-connection: the translate session sets owns_translate, the TTS
-        # session sets owns_tts; the model-management connection sets neither and leaves
-        # models alone. Both engines are process singletons reused on the next init.
-        if conn.ctx.get("owns_translate"):
-            teng = state.get("translate_engine")
-            if teng is not None:
-                try:
-                    teng.close()
-                except Exception:
-                    pass
+        # Ownership is per-connection: the TTS session sets owns_tts; the model-management
+        # connection does not and leaves models alone. The engine is a process singleton
+        # reused on the next init.
         if conn.ctx.get("owns_tts"):
             task = conn.ctx.get("tts_stream_task")
             if task is not None:
