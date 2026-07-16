@@ -681,7 +681,8 @@ class PocketOnnxTtsBackend:
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             self._sessions = pi.load_sessions(
                 d, int(os.environ.get("POCKET_NATIVE_THREADS", "2")))
-            self._meta = _json.load(open(os.path.join(d, pb.METADATA_FILE)))
+            with open(os.path.join(d, pb.METADATA_FILE), encoding="utf-8") as f:
+                self._meta = _json.load(f)
             self._bos = (pb.parse_npy_float32(os.path.join(d, pb.BOS_FILE))
                          if self._meta.get("insert_bos_before_voice") else None)
             self._tok = PocketTokenizer(os.path.join(d, pb.TOKENIZER_FILE))

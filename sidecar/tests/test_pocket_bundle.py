@@ -74,3 +74,18 @@ def test_parse_voices_bin_rejects_unknown_dtype(tmp_path):
     p.write_bytes(bytes(out))
     with pytest.raises(ValueError, match="dtype"):
         pb.parse_voices_bin(str(p))
+
+
+def test_parse_voices_bin_rejects_payload_size_mismatch(tmp_path):
+    import struct
+    # One extra trailing byte inside the tensor payload: a floor-divided count
+    # would still reshape cleanly and silently drop the junk byte.
+    out = bytearray(b"PTVB1")
+    out += struct.pack("<I", 1)
+    out += struct.pack("<H", 4) + b"alba" + struct.pack("<H", 1)
+    out += struct.pack("<H", 3) + b"a/b" + struct.pack("<BB", 0, 1)
+    out += struct.pack("<I", 2) + struct.pack("<I", 9) + b"\x00" * 9   # shape (2,) f32 = 8 bytes, not 9
+    p = tmp_path / "voices.bin"
+    p.write_bytes(bytes(out))
+    with pytest.raises(ValueError, match="size mismatch"):
+        pb.parse_voices_bin(str(p))

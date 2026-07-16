@@ -36,7 +36,8 @@ def parse_voices_bin(path: str) -> dict[str, dict[str, np.ndarray]]:
     "module.path/tensor_key". Format writer: the upstream Space's
     scripts/export_voice_bins.py. Raises ValueError rather than returning a
     partial dict — a silently-empty parse would read as "no voices"."""
-    data = open(path, "rb").read()
+    with open(path, "rb") as f:
+        data = f.read()
     if data[:5] != _PTVB_MAGIC:
         raise ValueError(f"not a PTVB1 file: {path}")
     off = 5
@@ -58,6 +59,13 @@ def parse_voices_bin(path: str) -> dict[str, dict[str, np.ndarray]]:
             if dt is None:
                 raise ValueError(
                     f"unsupported voices.bin dtype code {dtype_code} for {name}/{key}")
+            expected = int(np.prod(shape, dtype=np.int64)) * np.dtype(dt).itemsize
+            if nbytes != expected:
+                # A floor-divided count would silently drop sub-itemsize trailing
+                # bytes — corruption must raise, not parse partially.
+                raise ValueError(
+                    f"voices.bin payload size mismatch for {name}/{key}: "
+                    f"{nbytes} bytes vs shape {tuple(shape)} ({expected})")
             count = nbytes // np.dtype(dt).itemsize
             arr = np.frombuffer(data, dtype=dt, count=count, offset=off)
             tensors[key] = arr.reshape(shape).copy()

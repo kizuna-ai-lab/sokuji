@@ -213,7 +213,8 @@ def test_qwen3tts_load_variant_dir_none_when_config_omitted(monkeypatch, tmp_pat
     assert captured["variant_dir"] is None
 
 
-def test_pocket_onnx_registered_and_flags():
+def test_pocket_onnx_registered_and_flags(monkeypatch):
+    monkeypatch.delenv("SOKUJI_POCKET_PRESET_VOICE", raising=False)
     b = backends.make_backend("pocket_onnx")
     assert b.NAME == "pocket_onnx" and b.STREAMING is False and b.CLONES is True
     assert b.is_loaded is False and b.sample_rate == 24000

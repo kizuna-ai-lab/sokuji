@@ -43,16 +43,21 @@ def main() -> int:
                                  allow_patterns=[f"onnx/{sub}/*"])
         src = Path(root) / "onnx" / sub
         dst = out_root / f"pocket-tts-{lang}-onnx"
-        (dst / "voices").mkdir(parents=True, exist_ok=True)
+        # Stage fresh every run: a skip-if-exists guard would keep stale files
+        # after an upstream drift (the old bytes still sum to EXPECTED, so the
+        # check would report OK while pinning the old version), and a file
+        # REMOVED upstream would linger uncounted yet still get uploaded.
+        # Staging is hardlinks from the snapshot — rebuilding costs nothing.
+        shutil.rmtree(dst, ignore_errors=True)
+        (dst / "voices").mkdir(parents=True)
         total = 0
         for f in sorted(src.iterdir()):
             real = f.resolve()          # deref the HF blob symlink
             target = dst / f.name
-            if not target.exists():
-                try:
-                    os.link(real, target)
-                except OSError:         # cross-filesystem fallback
-                    shutil.copy2(real, target)
+            try:
+                os.link(real, target)
+            except OSError:             # cross-filesystem fallback
+                shutil.copy2(real, target)
             total += target.stat().st_size
         mf = manifest_bytes()
         (dst / "voices" / "manifest.json").write_bytes(mf)

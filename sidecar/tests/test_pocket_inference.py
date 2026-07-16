@@ -44,7 +44,8 @@ def test_init_state_honors_fill_and_dtype():
 def test_end_to_end_produces_audio():
     d = os.environ["POCKET_MODEL_DIR"]
     sessions = pi.load_sessions(d, threads=2)
-    meta = json.load(open(f"{d}/{pb.METADATA_FILE}"))
+    with open(f"{d}/{pb.METADATA_FILE}", encoding="utf-8") as f:
+        meta = json.load(f)
     bos = pb.parse_npy_float32(f"{d}/{pb.BOS_FILE}") if meta.get("insert_bos_before_voice") else None
     ref = np.zeros(24000, np.float32)  # 1s silence reference is enough to exercise the graph
     flow = pi.build_voice_conditioned_state(sessions, meta, pi.encode_reference(sessions, ref), bos)
@@ -138,7 +139,8 @@ def test_state_from_voice_record_real_alba_mapping():
     failure mode — a mapping that quietly falls back to manifest defaults
     passes every shape/finiteness check but fails this."""
     d = os.environ["POCKET_MODEL_DIR"]
-    meta = json.load(open(f"{d}/{pb.METADATA_FILE}"))
+    with open(f"{d}/{pb.METADATA_FILE}", encoding="utf-8") as f:
+        meta = json.load(f)
     voices = pb.parse_voices_bin(f"{d}/{pb.VOICES_FILE}")
     rec = voices["alba"]
     st = pi.state_from_voice_record(meta, rec)
