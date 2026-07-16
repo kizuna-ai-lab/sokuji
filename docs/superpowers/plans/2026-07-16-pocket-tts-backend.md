@@ -80,7 +80,7 @@ With `POCKET_MODEL_DIR` exported, the three pocket-gated tests unlock: **790 pas
 
 **Interfaces:**
 - Produces: `pocket_bundle.VOICES_FILE = "voices.bin"` and `pocket_bundle.parse_voices_bin(path: str) -> dict[str, dict[str, np.ndarray]]` — `{voice_name: {tensor_key: ndarray}}`, arrays already shaped and typed. Raises `ValueError` on a bad magic or unknown dtype code. Tasks 2 and 3 consume both.
-- Deletes: `pocket_bundle.HF_REPO`, `pocket_bundle.HF_SUBFOLDER`, `pocket_bundle.resolve_bundle_dir` — the Space-based resolver whose only consumer (`pocket_engine.py`) dies in Task 3. (`prefetch_models.py` has its own copies of those constants; it is updated in Task 4, not here.)
+- Note: the Space-based resolver in this file (`HF_REPO`/`HF_SUBFOLDER`/`resolve_bundle_dir`) is deleted in **Task 3** together with its only consumer (`pocket_engine.py`), never here — deleting it now would leave `pocket_engine.py:20` referencing a function that no longer exists.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -151,7 +151,7 @@ def test_parse_voices_bin_rejects_unknown_dtype(tmp_path):
 Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/test_pocket_bundle.py -q`
 Expected: 3 FAIL with `AttributeError: module 'sokuji_sidecar.pocket_bundle' has no attribute 'parse_voices_bin'`; the 2 pre-existing tests still pass.
 
-- [ ] **Step 3: Implement the parser and delete the Space resolver**
+- [ ] **Step 3: Implement the parser**
 
 In `sidecar/sokuji_sidecar/pocket_bundle.py`, change the first line from `import numpy as np` to:
 
@@ -159,26 +159,6 @@ In `sidecar/sokuji_sidecar/pocket_bundle.py`, change the first line from `import
 import struct
 
 import numpy as np
-```
-
-Delete these lines (the Space-based resolver — its only consumer is the standalone stage this plan retires; the mirror-repo world resolves through the standard `snapshot_download` in the backend):
-
-```python
-HF_REPO = "KevinAHM/pocket-tts-web"
-HF_SUBFOLDER = "onnx/english_2026-04"
-
-
-def resolve_bundle_dir(local_dir: str | None = None) -> str:
-    """Dev/tests: pass local_dir. Real path: snapshot_download the english bundle."""
-    if local_dir:
-        return local_dir
-    from huggingface_hub import snapshot_download  # HF_HOME set by the caller (env)
-    root = snapshot_download(
-        repo_id=HF_REPO, repo_type="space",
-        allow_patterns=[f"{HF_SUBFOLDER}/*"],
-        local_files_only=True,   # offline-first: model fetched by the manager beforehand
-    )
-    return f"{root}/{HF_SUBFOLDER}"
 ```
 
 Add `VOICES_FILE` next to the other filename constants (after the `BOS_FILE = "bos_before_voice.npy"` line):
@@ -245,9 +225,7 @@ git add sidecar/sokuji_sidecar/pocket_bundle.py sidecar/tests/test_pocket_bundle
 git commit -m "feat(sidecar): PTVB1 parser for Pocket TTS predefined voices
 
 voices.bin holds, per predefined voice, the flow-LM KV-cache prefix a
-reference-clip encode would otherwise produce. The Space-based bundle resolver
-is deleted: its only consumer is the standalone pocket stage being retired, and
-the mirror-repo world resolves through the standard snapshot path."
+reference-clip encode would otherwise produce."
 ```
 
 ---
@@ -479,6 +457,7 @@ byte-exactly against the real voices.bin."
 
 **Files:**
 - Modify: `sidecar/sokuji_sidecar/tts_backends.py`
+- Modify: `sidecar/sokuji_sidecar/pocket_bundle.py` (delete the Space resolver — its only consumer dies here)
 - Delete: `sidecar/sokuji_sidecar/pocket_engine.py`, `sidecar/tests/test_pocket_engine.py`
 - Test: `sidecar/tests/test_tts_backends.py`
 
@@ -710,13 +689,33 @@ class PocketOnnxTtsBackend:
 Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/test_tts_backends.py -q`
 Expected: all pass; 5 new green, gated skipped.
 
-- [ ] **Step 5: Delete the standalone stage**
+- [ ] **Step 5: Delete the standalone stage and its Space resolver**
 
 ```bash
 git rm sidecar/sokuji_sidecar/pocket_engine.py sidecar/tests/test_pocket_engine.py
 ```
 
 The stage is unreachable (never registered in `__main__._run()`; zero production imports) and its `"set_voice"` handler name collides with `tts_engine.register`'s — the shared handlers dict is composed with plain `dict.update`, so re-registering it would silently steal the key. Its capability now lives in the backend.
+
+With the stage gone, the Space-based resolver in `pocket_bundle.py` has zero consumers (the backend resolves through the standard `snapshot_download`; `prefetch_models.py` carries its own constants, updated in Task 4). Delete these lines from `sidecar/sokuji_sidecar/pocket_bundle.py`:
+
+```python
+HF_REPO = "KevinAHM/pocket-tts-web"
+HF_SUBFOLDER = "onnx/english_2026-04"
+
+
+def resolve_bundle_dir(local_dir: str | None = None) -> str:
+    """Dev/tests: pass local_dir. Real path: snapshot_download the english bundle."""
+    if local_dir:
+        return local_dir
+    from huggingface_hub import snapshot_download  # HF_HOME set by the caller (env)
+    root = snapshot_download(
+        repo_id=HF_REPO, repo_type="space",
+        allow_patterns=[f"{HF_SUBFOLDER}/*"],
+        local_files_only=True,   # offline-first: model fetched by the manager beforehand
+    )
+    return f"{root}/{HF_SUBFOLDER}"
+```
 
 - [ ] **Step 6: Run the gated e2e + the wire-consistency net**
 
@@ -740,7 +739,7 @@ Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/
 Expected: **782 passed, 17 skipped**.
 
 ```bash
-git add sidecar/sokuji_sidecar/tts_backends.py sidecar/tests/test_tts_backends.py
+git add sidecar/sokuji_sidecar/tts_backends.py sidecar/sokuji_sidecar/pocket_bundle.py sidecar/tests/test_tts_backends.py
 git commit -m "feat(sidecar): PocketOnnxTtsBackend; retire the standalone pocket stage
 
 Pocket TTS becomes a registered backend in the pluggable TTS system instead of
