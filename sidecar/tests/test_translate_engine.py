@@ -35,7 +35,7 @@ def test_translate_returns_translation():
     reply, binary = asyncio.run(server.handle_message(
         st, json.dumps({"type": "translate", "id": 2, "text": "hola"})))
     assert binary is None
-    assert reply == {"type": "translation", "id": 2,
+    assert reply == {"type": "translate_result", "id": 2,
                      "sourceText": "hola", "translatedText": "<hola>", "inferenceTimeMs": 8}
 
 

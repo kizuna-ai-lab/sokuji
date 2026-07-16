@@ -22,7 +22,7 @@ describe('NativeTranslateClient', () => {
     const p = c.translate('hello', 'be terse', true);
     const sent = conn.sent[0];
     expect(sent).toMatchObject({ type: 'translate', text: 'hello', systemPrompt: 'be terse', wrapTranscript: true });
-    conn.emit({ type: 'translation', id: sent.id, sourceText: 'hello', translatedText: 'こんにちは', inferenceTimeMs: 12 });
+    conn.emit({ type: 'translate_result', id: sent.id, sourceText: 'hello', translatedText: 'こんにちは', inferenceTimeMs: 12 });
     await expect(p).resolves.toEqual({ sourceText: 'hello', translatedText: 'こんにちは', inferenceTimeMs: 12 });
   });
 
