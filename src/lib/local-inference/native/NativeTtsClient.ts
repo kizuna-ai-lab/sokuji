@@ -79,9 +79,12 @@ export class NativeTtsClient {
     this.streamDone.clear(); this.streamHandlers.clear(); this.lastBinary = null;
   }
 
-  async init(model?: string, device?: string): Promise<TtsReady> {
+  async init(model?: string, device?: string, language?: string): Promise<TtsReady> {
     this.onStatus?.('[native-tts] init…');
-    const msg = await this.conn.request({ type: 'tts_init', model, device }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
+    // language = the session's target language. Backends with per-language
+    // frontends (gpt_sovits_onnx G2P) need it; others ignore it. Omitting it
+    // made zh/ja text run through the English G2P → "no audio" (live repro).
+    const msg = await this.conn.request({ type: 'tts_init', model, device, language }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
     this.sampleRate = r.sampleRate ?? 24000;

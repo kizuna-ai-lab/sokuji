@@ -237,3 +237,14 @@ def test_set_builtin_voice_unknown_without_manifest_raises(monkeypatch, tmp_path
     b = _loaded_backend(monkeypatch, tmp_path)
     with pytest.raises(BackendLoadError, match="unknown builtin voice"):
         b.set_builtin_voice("eponine")
+
+
+def test_generate_no_audio_error_hints_language_mismatch(monkeypatch, tmp_path):
+    # Live repro: tts_init without language left the backend on english while
+    # the session spoke Chinese -> instant-EOS -> "no audio". The error must
+    # name the likely cause.
+    b = _loaded_backend(monkeypatch, tmp_path)
+    b._reference = object()
+    b._synth = type("S", (), {"synthesize": lambda self, *a, **k: None})()
+    with pytest.raises(RuntimeError, match="looks chinese.*session language is english"):
+        b.generate("我很高兴。", 1.0)

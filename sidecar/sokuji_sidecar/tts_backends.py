@@ -887,7 +887,14 @@ class GptSovitsOnnxBackend:
                 # Deliberate: if ANY chunk raised, degrade the whole call to silence — keep the live session alive rather than hard-fail on partial G2P crashes.
                 print("[gpt_sovits_onnx] all chunks failed; emitting silence", file=sys.stderr, flush=True)
                 return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
-            raise RuntimeError("gpt_sovits_onnx: synthesis produced no audio")
+            # A script/language mismatch (e.g. zh text through the English
+            # G2P when tts_init carried no language) degenerates the AR loop
+            # to instant EOS — name the likely cause in the error.
+            detected = _gpt_sovits_detect_language(text)
+            hint = ("" if detected == self._language else
+                    f" (text looks {detected} but the session language is "
+                    f"{self._language} — was tts_init sent without language?)")
+            raise RuntimeError(f"gpt_sovits_onnx: synthesis produced no audio{hint}")
 
         samples = results[0] if len(results) == 1 else np.concatenate(results)
         gen_ms = int((time.time() - t0) * 1000)
