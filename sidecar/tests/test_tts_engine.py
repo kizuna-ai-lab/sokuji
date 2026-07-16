@@ -118,7 +118,7 @@ def _state(backend, monkeypatch, model_id):
     return st
 
 
-def test_handler_tts_init_ready_sets_ownership(monkeypatch):
+def test_handler_tts_init_ready_registers_teardown(monkeypatch):
     st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
     conn = _FakeConn()
     reply, _ = asyncio.run(st["handlers"]["tts_init"](
