@@ -206,3 +206,34 @@ def test_stage_real_tree_dereferences_hf_blob_symlinks(tmp_path):
     assert os.path.isfile(os.path.join(staged, "cmudict.rep"))
     # idempotent: second call reuses the staged tree
     assert _gpt_sovits_stage_real_tree(str(d)) == staged
+
+
+def _snapshot_with_default_voice(tmp_path):
+    """Snapshot voices/ with a real tiny default clip + manifest."""
+    import json
+    import soundfile as sf
+    vdir = tmp_path / "voices"
+    vdir.mkdir(exist_ok=True)
+    sf.write(str(vdir / "classic-en.wav"), np.zeros(2400, dtype=np.float32), 24000)
+    (vdir / "classic-en.txt").write_text("ask not")
+    (vdir / "manifest.json").write_text(json.dumps(
+        [{"name": "classic-en", "language": "en", "default": True}]))
+
+
+def test_set_builtin_voice_unknown_falls_back_to_default(monkeypatch, tmp_path, capsys):
+    # Live regression: a stale renderer setting sent pocket's 'eponine' here;
+    # the raw file error killed TTS for the whole session (ttsEnabled: false).
+    b = _loaded_backend(monkeypatch, tmp_path)
+    _snapshot_with_default_voice(tmp_path)
+    applied = []
+    monkeypatch.setattr(b, "set_voice",
+                        lambda wav, sr, ref_text="": applied.append((sr, ref_text)))
+    b.set_builtin_voice("eponine")
+    assert applied and applied[0][1] == "ask not"  # default clip's transcript
+    assert "falling back to default" in capsys.readouterr().err
+
+
+def test_set_builtin_voice_unknown_without_manifest_raises(monkeypatch, tmp_path):
+    b = _loaded_backend(monkeypatch, tmp_path)
+    with pytest.raises(BackendLoadError, match="unknown builtin voice"):
+        b.set_builtin_voice("eponine")

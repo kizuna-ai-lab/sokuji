@@ -805,10 +805,32 @@ class GptSovitsOnnxBackend:
     def set_builtin_voice(self, name):
         import soundfile
         base = os.path.join(self._snapshot, "voices", name)
+        if not (os.path.isfile(base + ".wav") and os.path.isfile(base + ".txt")):
+            # A stale renderer setting can carry another model's voice name
+            # (seen live: pocket's 'eponine' arriving here). Degrade to the
+            # card's default voice rather than killing TTS for the session.
+            default = self._default_voice_name()
+            if default is None or default == name:
+                raise BackendLoadError(f"unknown builtin voice: {name}")
+            print(f"[gpt_sovits_onnx] unknown builtin voice {name!r}; "
+                  f"falling back to default '{default}'", file=sys.stderr, flush=True)
+            base = os.path.join(self._snapshot, "voices", default)
         wav, sr = soundfile.read(base + ".wav", dtype="float32")
         with open(base + ".txt", encoding="utf-8") as f:
             transcript = f.read().strip()
         self.set_voice(wav, sr, ref_text=transcript)
+
+    def _default_voice_name(self):
+        """Default entry from voices/manifest.json, or None when unavailable."""
+        manifest_path = os.path.join(self._snapshot, "voices", "manifest.json")
+        if not os.path.isfile(manifest_path):
+            return None
+        with open(manifest_path, encoding="utf-8") as f:
+            voices = _json.load(f)
+        if not voices:
+            return None
+        entry = next((v for v in voices if v.get("default")), voices[0])
+        return entry["name"]
 
     def _ensure_voice(self):
         """Callers (notably accel.measure_rtf_tts, which benches right after
@@ -818,15 +840,9 @@ class GptSovitsOnnxBackend:
         to the first builtin voice."""
         if self._reference is not None:
             return
-        manifest_path = os.path.join(self._snapshot, "voices", "manifest.json")
-        if not os.path.isfile(manifest_path):
+        name = self._default_voice_name()
+        if name is None:
             raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
-        with open(manifest_path, encoding="utf-8") as f:
-            voices = _json.load(f)
-        if not voices:
-            raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
-        entry = next((v for v in voices if v.get("default")), voices[0])
-        name = entry["name"]
         print(f"[gpt_sovits_onnx] no voice set; using default builtin '{name}'",
               file=sys.stderr, flush=True)
         self.set_builtin_voice(name)
