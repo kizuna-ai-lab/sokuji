@@ -11,6 +11,26 @@ class FakeWS:
         self.sent.append(d)
 
 
+class _IterWS:
+    """Drives _conn over a fixed message list, then closes (runs _conn's finally)."""
+
+    def __init__(self, messages=()):
+        self._msgs = iter(messages)
+        self.sent = []
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._msgs)
+        except StopIteration:
+            raise StopAsyncIteration
+
+    async def send(self, d):
+        self.sent.append(d)
+
+
 def test_conn_send_json_and_binary():
     ws = FakeWS()
     conn = Conn(ws)
@@ -238,6 +258,40 @@ def test_owns_tts_closes_engine_on_disconnect():
             server.Conn = orig
     asyncio.run(run())
     assert closed["v"] is True
+
+
+def test_conn_close_runs_registered_cleanups_in_order():
+    """A stage registers its teardown at init; _conn's finally runs it on disconnect,
+    in registration order. This is the seam that replaces the hard-coded per-engine
+    teardown branches."""
+    calls = []
+
+    async def _stage_init(state, msg, _b, conn=None):
+        conn.on_close(lambda: calls.append("first"))
+        conn.on_close(lambda: calls.append("second"))
+        return {"type": "ready", "id": msg.get("id")}, None
+
+    state = {"handlers": {"stage_init": _stage_init}}
+    asyncio.run(_conn(state, _IterWS([json.dumps({"type": "stage_init", "id": 1})])))
+    assert calls == ["first", "second"]
+
+
+def test_conn_close_isolates_a_raising_cleanup():
+    """One stage's cleanup raising must not skip the cleanups registered after it."""
+    calls = []
+
+    async def _stage_init(state, msg, _b, conn=None):
+        def _boom():
+            calls.append("boom")
+            raise RuntimeError("cleanup exploded")
+
+        conn.on_close(_boom)
+        conn.on_close(lambda: calls.append("after"))
+        return {"type": "ready", "id": msg.get("id")}, None
+
+    state = {"handlers": {"stage_init": _stage_init}}
+    asyncio.run(_conn(state, _IterWS([json.dumps({"type": "stage_init", "id": 1})])))
+    assert calls == ["boom", "after"]
 
 
 def test_server_accepts_large_binary_frame():

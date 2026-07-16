@@ -6,6 +6,17 @@ class Conn:
     def __init__(self, ws):
         self._ws = ws
         self.ctx = {}
+        self._on_close = []
+
+    def on_close(self, cb):
+        """Register a zero-arg cleanup to run when this connection closes.
+
+        Each stage registers its own teardown at init, so the server never has to know
+        which ctx keys a stage owns. A cleanup must read conn.ctx/state when it RUNS,
+        not when it registers: a stage may create the handle it cancels after init (the
+        TTS stream task is created by tts_generate, not tts_init).
+        """
+        self._on_close.append(cb)
 
     async def send(self, obj=None, binary=None):
         if binary is not None:
@@ -58,6 +69,14 @@ async def _conn(state, ws):
             if reply is not None:
                 await ws.send(json.dumps(reply))
     finally:
+        # Each stage registers its own cleanup at init (conn.on_close); run them without
+        # knowing any stage's ctx keys. Cleanups are independent — one raising must not
+        # skip the rest.
+        for cb in conn._on_close:
+            try:
+                cb()
+            except Exception:
+                pass
         # A session connection closing is "stop": free that connection's model from VRAM.
         # Ownership is per-connection: ASR streaming sets on_binary, the translate session
         # sets owns_translate; the model-management connection sets neither and leaves
