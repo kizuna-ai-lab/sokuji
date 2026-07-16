@@ -60,6 +60,8 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
             try:
                 os.remove(tmp)
             except OSError:
+                # Best-effort cleanup of the temp file; the original
+                # exception below is what matters.
                 pass
             raise
         written.append(dst)
