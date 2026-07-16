@@ -163,6 +163,12 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/whisper-large-v3-gguf", "whisper-large-v3",
             60, {"F16": 3107236640, "Q8_0": 1668741440, "Q6_K": 1297130208,
                  "Q5_K_M": 1161143008, "Q4_K_M": 997303008}, default="Q8_0"),
+    # WER 1.90 (q5_k_m best rung; default q8_0 lands 1.93) — the tiny/fastest
+    # canary rung (en/de/es/fr).
+    _tc_row("canary-180m-flash", "Canary 180M Flash", ("en", "de", "es", "fr"),
+            "handy-computer/canary-180m-flash-gguf", "canary-180m-flash",
+            65, {"F16": 381632192, "Q8_0": 218447552, "Q6_K": 176291520,
+                 "Q5_K_M": 158704320, "Q4_K_M": 139223744}, default="Q8_0"),
     # WER 1.91 — European quality tier (NVIDIA Canary, 25 langs).
     _tc_row("canary-1b-v2", "Canary 1B v2",
             ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
@@ -171,11 +177,6 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/canary-1b-v2-gguf", "canary-1b-v2",
             70, {"F16": 1966111456, "Q8_0": 1144290016, "Q6_K": 931986144,
                  "Q5_K_M": 836664032, "Q4_K_M": 735476448}, default="Q8_0"),
-    # WER 1.93 — the tiny/fastest canary rung (en/de/es/fr).
-    _tc_row("canary-180m-flash", "Canary 180M Flash", ("en", "de", "es", "fr"),
-            "handy-computer/canary-180m-flash-gguf", "canary-180m-flash",
-            75, {"F16": 381632192, "Q8_0": 218447552, "Q6_K": 176291520,
-                 "Q5_K_M": 158704320, "Q4_K_M": 139223744}, default="Q8_0"),
     # WER 1.92 at RTF 151 (metal) — the European SPEED tier (NVIDIA TDT).
     _tc_row("parakeet-tdt-0.6b-v3", "Parakeet TDT 0.6B v3",
             ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
