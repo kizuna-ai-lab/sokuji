@@ -69,28 +69,17 @@ async def _conn(state, ws):
             if reply is not None:
                 await ws.send(json.dumps(reply))
     finally:
-        # Each stage registers its own cleanup at init (conn.on_close); run them without
-        # knowing any stage's ctx keys. Cleanups are independent — one raising must not
-        # skip the rest.
+        # A session connection closing is "stop": free that connection's model from VRAM.
+        # Each stage registers its own cleanup at init (conn.on_close), so the server
+        # never needs to know which ctx keys a stage owns; the model-management
+        # connection registers none and leaves models alone. The engines are process
+        # singletons reused on the next init. Cleanups are independent — one raising
+        # must not skip the rest.
         for cb in conn._on_close:
             try:
                 cb()
             except Exception:
                 pass
-        # A session connection closing is "stop": free that connection's model from VRAM.
-        # Ownership is per-connection: the TTS session sets owns_tts; the model-management
-        # connection does not and leaves models alone. The engine is a process singleton
-        # reused on the next init.
-        if conn.ctx.get("owns_tts"):
-            task = conn.ctx.get("tts_stream_task")
-            if task is not None:
-                task.cancel()
-            teng = state.get("tts_engine")
-            if teng is not None:
-                try:
-                    teng.close()
-                except Exception:
-                    pass
 
 
 # A voice-clone reference clip (set_voice) is sent as ONE binary frame of raw

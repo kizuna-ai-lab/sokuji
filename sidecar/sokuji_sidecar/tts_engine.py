@@ -136,11 +136,29 @@ class TtsEngine:
                 pass
 
 
+def _tts_teardown(state, conn):
+    """Free this connection's TTS model when the connection closes.
+
+    Reads the stream task from conn.ctx at close time: tts_generate creates it after
+    tts_init registered this cleanup.
+    """
+    task = conn.ctx.get("tts_stream_task")
+    if task is not None:
+        task.cancel()
+    eng = state.get("tts_engine")
+    if eng is not None:
+        try:
+            eng.close()
+        except Exception:
+            pass
+
+
 async def _h_tts_init(state, msg, _b, conn=None):
     eng = state["tts_engine"]
     ms = eng.init(msg.get("model"), msg.get("device", "auto"), msg.get("language", ""))
+    # This connection owns the TTS model: closing it frees the model from VRAM.
     if conn is not None:
-        conn.ctx["owns_tts"] = True
+        conn.on_close(lambda: _tts_teardown(state, conn))
     reply = {"type": "ready", "id": msg.get("id"), "sampleRate": eng.sample_rate,
              "loadTimeMs": ms}
     if eng.resolved:

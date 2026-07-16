@@ -234,32 +234,6 @@ def test_non_translate_connection_does_not_free_engine():
     assert closed["n"] == 0  # engine untouched — this connection never owned it
 
 
-def test_owns_tts_closes_engine_on_disconnect():
-    closed = {"v": False}
-    class _Eng:
-        def close(self): closed["v"] = True
-    class _WS:
-        def __aiter__(self): return self
-        async def __anext__(self): raise StopAsyncIteration
-    state = {"tts_engine": _Eng()}
-    # mark ownership the way _h_tts_init would, by pre-seeding the conn ctx via a wrapper
-    async def run():
-        conn_holder = {}
-        orig = server.Conn
-        class _Conn(orig):
-            def __init__(self, ws):
-                super().__init__(ws)
-                self.ctx["owns_tts"] = True
-                conn_holder["c"] = self
-        server.Conn = _Conn
-        try:
-            await server._conn(state, _WS())
-        finally:
-            server.Conn = orig
-    asyncio.run(run())
-    assert closed["v"] is True
-
-
 def test_conn_close_runs_registered_cleanups_in_order():
     """A stage registers its teardown at init; _conn's finally runs it on disconnect,
     in registration order. This is the seam that replaces the hard-coded per-engine

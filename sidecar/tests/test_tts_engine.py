@@ -106,7 +106,8 @@ def test_generate_stream_honors_cancel(monkeypatch):
 
 
 class _FakeConn:
-    def __init__(self): self.ctx = {}; self.sent = []
+    def __init__(self): self.ctx = {}; self.sent = []; self._on_close = []
+    def on_close(self, cb): self._on_close.append(cb)
     async def send(self, obj=None, binary=None): self.sent.append((obj, binary))
 
 
@@ -124,7 +125,7 @@ def test_handler_tts_init_ready_sets_ownership(monkeypatch):
         st, {"type": "tts_init", "id": 1, "model": "moss-tts-nano"}, None, conn))
     assert reply["type"] == "ready" and reply["sampleRate"] == 24000
     assert reply["streaming"] is True and reply["clones"] is True
-    assert conn.ctx.get("owns_tts") is True
+    assert len(conn._on_close) == 1        # tts_init registered this session's cleanup
 
 
 def test_handler_set_voice_buffers_binary(monkeypatch):
