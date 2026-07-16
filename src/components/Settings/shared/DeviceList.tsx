@@ -93,6 +93,13 @@ const DeviceList: React.FC<DeviceListProps> = ({
       role="listbox"
       aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.speaker')}
       aria-describedby={ariaDescribedBy}
+      // Disabled drops every option to tabIndex -1, which would leave nothing in
+      // the widget to focus — a keyboard user would tab straight past it and
+      // never hear why it won't respond. Take the tab stop at the listbox
+      // instead, so the label and the describedby reason get announced. Enabled,
+      // the container stays out of the tab order: the options carry it, as before.
+      tabIndex={disabled ? 0 : undefined}
+      aria-disabled={disabled || undefined}
     >
       {/* Off option */}
       <div

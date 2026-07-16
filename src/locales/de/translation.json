@@ -253,7 +253,7 @@
     "turnOffMicrophone": "Mikrofon ausschalten",
     "turnOnMonitor": "Lautsprecher-Überwachung einschalten",
     "turnOffMonitor": "Lautsprecher-Überwachung ausschalten",
-    "monitorLockedByMode": "Lautsprecher-Monitoring ist nur im Modus \"{{mode}}\" verfügbar — zusammen mit Teilnehmer-Audio würde es ein Echo verursachen. Wechseln Sie den Übersetzungsmodus zu \"{{mode}}\", um es wieder zu aktivieren.",
+    "monitorLockedByMode": "Lautsprecher-Überwachung ist nur im Modus \"{{mode}}\" verfügbar — zusammen mit Teilnehmer-Audio würde sie ein Echo verursachen. Wechseln Sie den Übersetzungsmodus zu \"{{mode}}\", um sie wieder zu aktivieren.",
     "refreshDevices": "Geräte aktualisieren",
     "unknownDevice": "Unbekanntes Gerät"
   },

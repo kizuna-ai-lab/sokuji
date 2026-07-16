@@ -87,4 +87,23 @@ describe('AudioDeviceSection lockedReason', () => {
     renderSpeaker({ isLocked: false, lockedReason: REASON });
     expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-describedby');
   });
+
+  // Every option drops to tabIndex -1 while disabled, so unless the listbox
+  // itself takes focus there is nothing in the widget to land on — and an
+  // aria-describedby that never gets announced is decoration. Keeping a
+  // disabled control focusable is what lets a keyboard user discover why it
+  // won't respond.
+  it('keeps the locked list reachable by keyboard so the reason is announced', () => {
+    renderSpeaker({ isLocked: true, lockedReason: REASON });
+    const list = screen.getByRole('listbox');
+    expect(list).toHaveAttribute('tabindex', '0');
+    expect(list).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('keeps the unlocked list out of the tab order — its options carry it', () => {
+    renderSpeaker({ isLocked: false });
+    const list = screen.getByRole('listbox');
+    expect(list).not.toHaveAttribute('tabindex');
+    expect(list).not.toHaveAttribute('aria-disabled');
+  });
 });

@@ -253,7 +253,7 @@
     "turnOffMicrophone": "Mikrofonu kapat",
     "turnOnMonitor": "Hoparlör izlemeyi aç",
     "turnOffMonitor": "Hoparlör izlemeyi kapat",
-    "monitorLockedByMode": "Hoparlör dinleme yalnızca \"{{mode}}\" modunda kullanılabilir — Katılımcı sesiyle aynı anda çalışırsa yankı oluşur. Yeniden etkinleştirmek için çeviri modunu \"{{mode}}\" olarak değiştirin.",
+    "monitorLockedByMode": "Hoparlör izleme yalnızca \"{{mode}}\" modunda kullanılabilir — Katılımcı sesiyle aynı anda çalışırsa yankı oluşur. Yeniden etkinleştirmek için çeviri modunu \"{{mode}}\" olarak değiştirin.",
     "refreshDevices": "Cihazları yenile",
     "unknownDevice": "Bilinmeyen cihaz"
   },
