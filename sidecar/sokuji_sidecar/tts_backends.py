@@ -8,6 +8,7 @@ import logging
 import os
 import queue
 import shutil
+import sys
 import tempfile
 import threading
 import time
@@ -774,8 +775,7 @@ class GptSovitsOnnxBackend:
         text = (text or "").strip()
         t0 = time.time()
         if _gpt_sovits_effective_len(text) < self.MIN_EFFECTIVE_CHARS:
-            logger.info("gpt_sovits_onnx: input %r below min length; emitting silence",
-                        text)
+            print(f"[gpt_sovits_onnx] input {text!r} below min length; emitting silence", file=sys.stderr, flush=True)
             return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
 
         # Long inputs must be sentence-split before synthesis: the vendored
@@ -784,6 +784,7 @@ class GptSovitsOnnxBackend:
         # feed/flush) — split() ahead of time, then synthesize per chunk.
         from .gpt_sovits.text_splitter import TextSplitter
         chunks = TextSplitter(max_len=40, min_len=5).split(text)
+        # Unreachable in practice (short inputs are pre-guarded); belt against splitter returning [].
         if not chunks:
             chunks = [text]
 
@@ -806,7 +807,8 @@ class GptSovitsOnnxBackend:
 
         if not results:
             if any_chunk_errored:
-                logger.info("gpt_sovits_onnx: all chunks failed; emitting silence")
+                # Deliberate: if ANY chunk raised, degrade the whole call to silence — keep the live session alive rather than hard-fail on partial G2P crashes.
+                print("[gpt_sovits_onnx] all chunks failed; emitting silence", file=sys.stderr, flush=True)
                 return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
             raise RuntimeError("gpt_sovits_onnx: synthesis produced no audio")
 

@@ -7,13 +7,11 @@ time lets stock ORT resolve the weights natively — no `onnx` package needed.
 """
 from __future__ import annotations
 
-import logging
 import os
+import sys
 
 import numpy as np
 import onnxruntime as ort
-
-logger = logging.getLogger(__name__)
 
 # fp16 bin -> fp32 name referenced by the shipped graphs (byte-exact 2x sizes;
 # note hubert's target has no _fp32 suffix — that is what its graph references).
@@ -44,7 +42,7 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
         want = os.path.getsize(src) * 2
         if os.path.isfile(dst) and os.path.getsize(dst) == want:
             continue
-        logger.info("expanding %s -> %s (%d bytes)", name16, name32, want)
+        print(f"[gpt_sovits] expanding {name16} -> {name32} ({want} bytes)", file=sys.stderr, flush=True)
         np.fromfile(src, dtype=np.float16).astype(np.float32).tofile(dst)
         written.append(dst)
     return written
