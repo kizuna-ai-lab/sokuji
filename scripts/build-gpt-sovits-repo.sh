@@ -42,9 +42,27 @@ with open(f"{out}/voices/classic-en.txt", "w") as f:
     f.write("Ask not what your country can do for you. "
             "Ask what you can do for your country.")
 EOF
+# zh/ja default voices: fully synthetic clips generated with our own
+# qwen3-tts-1.7b card (Apache-2.0; Luna -> zh, Orion -> ja) — no third-party
+# speaker rights involved. Checked in under scripts/assets/ for reproducible
+# rebuilds without the 11GB generator model.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "$SCRIPT_DIR/assets/gpt-sovits-voices/classic-zh.wav" \
+   "$SCRIPT_DIR/assets/gpt-sovits-voices/classic-zh.txt" \
+   "$SCRIPT_DIR/assets/gpt-sovits-voices/classic-ja.wav" \
+   "$SCRIPT_DIR/assets/gpt-sovits-voices/classic-ja.txt" \
+   "$OUT/voices/"
+
+# One default per language (the renderer resolves the target language's
+# default first; classic-en stays FIRST — the sidecar's no-voice bench
+# fallback picks the first default entry).
 cat > "$OUT/voices/manifest.json" <<'EOF'
 [
   {"name": "classic-en", "language": "en", "gender": "m",
+   "curated": true, "unstable": false, "default": true},
+  {"name": "classic-zh", "language": "zh", "gender": "f",
+   "curated": true, "unstable": false, "default": true},
+  {"name": "classic-ja", "language": "ja", "gender": "m",
    "curated": true, "unstable": false, "default": true}
 ]
 EOF
@@ -64,8 +82,9 @@ RoBERTa Apache-2.0).
 Weight bins under `model/` and `genie_data/chinese-hubert-base/` are fp16;
 the Sokuji sidecar expands them to fp32 in place at load time.
 
-Default voice clip: JFK 1961 inaugural address excerpt (US government work,
-public domain).
+Default voice clips: en — JFK 1961 inaugural address excerpt (US government
+work, public domain); zh/ja — fully synthetic speech generated with
+Qwen3-TTS 1.7B (Apache-2.0), no human speaker involved.
 EOF
 
 # Guard against fp32 expansion pollution: `ensure_fp32_bins()` expands the

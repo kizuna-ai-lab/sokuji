@@ -540,7 +540,7 @@ TTS_MODELS: list[TtsModel] = [
               Deployment("gpt_sovits_onnx", "cpu", "fp32", _GPT_SOVITS_REPO, 1.0)),
              repos=(_GPT_SOVITS_REPO,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=32000,
-             recommended=False, sort_order=4, size_bytes=1_346_249_825),
+             recommended=False, sort_order=4, size_bytes=1_346_768_817),
     *(_pocket_tts_row(*row) for row in _POCKET_TTS_ROWS),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
