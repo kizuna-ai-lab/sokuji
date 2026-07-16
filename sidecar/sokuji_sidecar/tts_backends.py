@@ -682,6 +682,42 @@ def _gpt_sovits_effective_len(text: str) -> int:
                or "一" <= ch <= "鿿")
 
 
+def _gpt_sovits_stage_real_tree(src_dir: str) -> str:
+    """Mirror a directory into real files if it contains symlinks.
+
+    HF-cache snapshots are symlink farms into blobs/, and nltk's pathsec
+    (used by the English G2P's perceptron tagger) rejects files whose
+    realpath escapes its authorized roots — so the EnglishG2P dir must be
+    materialized as real files before nltk touches it (recursive variant of
+    MOSS's _link_tree; hardlink first, copy on cross-device).
+    Returns src_dir unchanged when it already contains no symlinks.
+    """
+    has_symlink = False
+    for root, _dirs, files in os.walk(src_dir):
+        if any(os.path.islink(os.path.join(root, f)) for f in files):
+            has_symlink = True
+            break
+    if not has_symlink:
+        return src_dir
+    key = hashlib.blake2s(src_dir.encode(), digest_size=8).hexdigest()
+    staged = os.path.join(tempfile.gettempdir(), "sokuji_gpt_sovits", key,
+                          os.path.basename(src_dir))
+    for root, _dirs, files in os.walk(src_dir):
+        rel = os.path.relpath(root, src_dir)
+        dst_root = staged if rel == "." else os.path.join(staged, rel)
+        os.makedirs(dst_root, exist_ok=True)
+        for name in files:
+            src = os.path.realpath(os.path.join(root, name))
+            dst = os.path.join(dst_root, name)
+            if os.path.exists(dst):
+                continue
+            try:
+                os.link(src, dst)
+            except OSError:
+                shutil.copy2(src, dst)
+    return staged
+
+
 @register_backend
 class GptSovitsOnnxBackend:
     NAME = "gpt_sovits_onnx"
@@ -716,7 +752,10 @@ class GptSovitsOnnxBackend:
                 os.path.join(genie_dir, "chinese-hubert-base"))
             _gs_assets.configure(
                 chinese_g2p_dir=os.path.join(genie_dir, "G2P", "ChineseG2P"),
-                english_g2p_dir=os.path.join(genie_dir, "G2P", "EnglishG2P"))
+                # EnglishG2P must be real files: nltk pathsec rejects HF-cache
+                # blob symlinks (production-path smoke, 2026-07-17).
+                english_g2p_dir=_gpt_sovits_stage_real_tree(
+                    os.path.join(genie_dir, "G2P", "EnglishG2P")))
             self._sessions = _gs_runtime.build_model_sessions(model_dir, device)
             self._hubert = _gs_runtime.make_session(
                 os.path.join(genie_dir, "chinese-hubert-base",

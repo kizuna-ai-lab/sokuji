@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -172,3 +174,35 @@ def test_generate_mixed_chunk_outcomes_degrade_to_silence(monkeypatch, tmp_path)
     samples, ms = b.generate(text, 1.0)
     assert len(calls) >= 2
     assert float(np.abs(samples).max()) == 0.0
+
+
+def test_stage_real_tree_returns_src_when_no_symlinks(tmp_path):
+    from sokuji_sidecar.tts_backends import _gpt_sovits_stage_real_tree
+    d = tmp_path / "EnglishG2P"
+    (d / "taggers").mkdir(parents=True)
+    (d / "cmudict.rep").write_text("data")
+    (d / "taggers" / "weights.json").write_text("{}")
+    assert _gpt_sovits_stage_real_tree(str(d)) == str(d)
+
+
+def test_stage_real_tree_dereferences_hf_blob_symlinks(tmp_path):
+    # HF-cache snapshots symlink into blobs/; nltk pathsec rejects those.
+    from sokuji_sidecar.tts_backends import _gpt_sovits_stage_real_tree
+    blobs = tmp_path / "blobs"
+    blobs.mkdir()
+    (blobs / "abc123").write_text("tagger-weights")
+    d = tmp_path / "snap" / "EnglishG2P"
+    (d / "taggers" / "eng").mkdir(parents=True)
+    (d / "cmudict.rep").write_text("plain")  # mixed: one real file
+    os.symlink(blobs / "abc123", d / "taggers" / "eng" / "weights.json")
+
+    staged = _gpt_sovits_stage_real_tree(str(d))
+    assert staged != str(d)
+    staged_file = os.path.join(staged, "taggers", "eng", "weights.json")
+    assert os.path.isfile(staged_file) and not os.path.islink(staged_file)
+    assert os.path.realpath(staged_file) == staged_file  # no symlink escape
+    with open(staged_file) as f:
+        assert f.read() == "tagger-weights"
+    assert os.path.isfile(os.path.join(staged, "cmudict.rep"))
+    # idempotent: second call reuses the staged tree
+    assert _gpt_sovits_stage_real_tree(str(d)) == staged
