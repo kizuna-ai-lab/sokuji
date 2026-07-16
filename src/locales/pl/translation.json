@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Wyłącz mikrofon",
     "turnOnMonitor": "Włącz monitor głośnika",
     "turnOffMonitor": "Wyłącz monitor głośnika",
+    "monitorLockedByMode": "Monitorowanie przez głośnik jest dostępne tylko w trybie \"{{mode}}\" — nie może działać jednocześnie z Dźwiękiem uczestnika bez powodowania echa. Przełącz tryb tłumaczenia na \"{{mode}}\", aby ponownie je włączyć.",
     "refreshDevices": "Odśwież urządzenia",
     "unknownDevice": "Nieznane urządzenie"
   },

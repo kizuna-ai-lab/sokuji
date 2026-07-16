@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Mic, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -18,6 +18,14 @@ interface AudioDeviceSectionProps {
    * while a session is active) should pass this explicitly.
    */
   isLocked?: boolean;
+  /**
+   * Why the channel is locked (i18n string). Rendered under the section
+   * heading while `isLocked` holds. Greying a control without stating the
+   * reason invites the interaction it then refuses — worse still when the lock
+   * is persistent (the monitor stays locked outside 'You' mode across
+   * restarts), where it reads as broken rather than locked.
+   */
+  lockedReason?: string;
   /** Show microphone section */
   showMicrophone?: boolean;
   /** Show speaker section */
@@ -33,6 +41,7 @@ interface AudioDeviceSectionProps {
 const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   isSessionActive,
   isLocked,
+  lockedReason,
   showMicrophone = true,
   showSpeaker = true,
   isSystemAudioEnabled = false,
@@ -40,6 +49,18 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   className = ''
 }) => {
   const locked = isLocked ?? isSessionActive;
+  const reactId = useId();
+  // Only referenced (and only rendered) while locked, so an unlocked list stays
+  // undescribed rather than pointing at an absent element. Both sections can be
+  // shown at once, so the id is per-channel to keep it unique.
+  const showReason = locked && !!lockedReason;
+  const reasonIdFor = (channel: 'mic' | 'speaker') =>
+    showReason ? `${reactId}-${channel}-locked-reason` : undefined;
+  const renderReason = (channel: 'mic' | 'speaker') => showReason && (
+    <span className="setting-description section-locked-reason" id={reasonIdFor(channel)}>
+      {lockedReason}
+    </span>
+  );
   // Monitor is in scope only in pure speaker mode (mutex with participant).
   // Out of scope the monitor toggle reads Off even though the user's saved
   // preference (isMonitorMuted) is preserved underneath and restored when they
@@ -155,6 +176,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             </button>
           </h3>
 
+          {renderReason('mic')}
+
           <DeviceList
             devices={filteredInputDevices}
             selectedDevice={selectedInputDevice}
@@ -169,6 +192,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             toggleAriaLabel={isMicMuted
               ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
               : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
+            ariaDescribedBy={reasonIdFor('mic')}
           />
 
           {/* Noise Suppression Mode */}
@@ -230,6 +254,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             </button>
           </h3>
 
+          {renderReason('speaker')}
+
           <DeviceList
             devices={filteredMonitorDevices}
             selectedDevice={selectedMonitorDevice}
@@ -244,6 +270,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             toggleAriaLabel={isMonitorMuted
               ? t('audioPanel.turnOnMonitor', 'Turn on speaker monitor')
               : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
+            ariaDescribedBy={reasonIdFor('speaker')}
           />
         </div>
       )}

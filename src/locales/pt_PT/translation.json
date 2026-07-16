@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Desligar microfone",
     "turnOnMonitor": "Ligar monitor de altifalante",
     "turnOffMonitor": "Desligar monitor de altifalante",
+    "monitorLockedByMode": "A monitorização pelo altifalante só está disponível no modo \"{{mode}}\" — não pode funcionar em simultâneo com o Áudio de Participantes sem causar eco. Mude o modo de tradução para \"{{mode}}\" para o reativar.",
     "refreshDevices": "Atualizar dispositivos",
     "unknownDevice": "Dispositivo desconhecido"
   },

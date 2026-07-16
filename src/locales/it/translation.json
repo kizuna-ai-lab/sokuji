@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Disattiva microfono",
     "turnOnMonitor": "Attiva monitoraggio altoparlante",
     "turnOffMonitor": "Disattiva monitoraggio altoparlante",
+    "monitorLockedByMode": "Il monitoraggio dall'altoparlante è disponibile solo nella modalità \"{{mode}}\": non può funzionare insieme all'Audio dei Partecipanti senza causare eco. Imposta la modalità di traduzione su \"{{mode}}\" per riattivarlo.",
     "refreshDevices": "Aggiorna dispositivi",
     "unknownDevice": "Dispositivo sconosciuto"
   },

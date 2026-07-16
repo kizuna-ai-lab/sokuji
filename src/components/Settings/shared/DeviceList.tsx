@@ -22,6 +22,11 @@ interface DeviceListProps {
   className?: string;
   /** Accessible label for the Off option (context-specific, e.g. "Turn off microphone") */
   toggleAriaLabel?: string;
+  /**
+   * Id of an element explaining why the list is disabled. Without it the
+   * `aria-disabled` options announce the refusal but never the reason.
+   */
+  ariaDescribedBy?: string;
 }
 
 const DeviceList: React.FC<DeviceListProps> = ({
@@ -36,7 +41,8 @@ const DeviceList: React.FC<DeviceListProps> = ({
   showVirtualIndicators = true,
   onVirtualDeviceClick,
   className = '',
-  toggleAriaLabel
+  toggleAriaLabel,
+  ariaDescribedBy
 }) => {
   const { t } = useTranslation();
 
@@ -82,7 +88,19 @@ const DeviceList: React.FC<DeviceListProps> = ({
   };
 
   return (
-    <div className={`device-list ${className}`} role="listbox" aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.speaker')}>
+    <div
+      className={`device-list ${className}`}
+      role="listbox"
+      aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.speaker')}
+      aria-describedby={ariaDescribedBy}
+      // Disabled drops every option to tabIndex -1, which would leave nothing in
+      // the widget to focus — a keyboard user would tab straight past it and
+      // never hear why it won't respond. Take the tab stop at the listbox
+      // instead, so the label and the describedby reason get announced. Enabled,
+      // the container stays out of the tab order: the options carry it, as before.
+      tabIndex={disabled ? 0 : undefined}
+      aria-disabled={disabled || undefined}
+    >
       {/* Off option */}
       <div
         className={`device-option ${!isDeviceOn ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}

@@ -74,6 +74,16 @@
     margin-top: 6px;
   }
 
+  // Why a channel is greyed (e.g. the speaker monitor outside 'You' mode). Sits
+  // between the heading and the control it justifies so the reason is read
+  // before the user tries the control, not after it refuses. Pulled up against
+  // the heading's own margin-bottom to read as part of it.
+  .section-locked-reason {
+    margin-top: -6px;
+    margin-bottom: vars.$space-3;
+    color: vars.$text-muted;
+  }
+
   h3, h2 {
     display: flex;
     align-items: center;

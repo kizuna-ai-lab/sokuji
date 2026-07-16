@@ -253,6 +253,7 @@
     "turnOffMicrophone": "마이크 끄기",
     "turnOnMonitor": "스피커 모니터 켜기",
     "turnOffMonitor": "스피커 모니터 끄기",
+    "monitorLockedByMode": "스피커 모니터링은 \"{{mode}}\" 모드에서만 사용할 수 있습니다. 참가자 오디오와 동시에 사용하면 에코가 발생합니다. 다시 사용하려면 번역 모드를 \"{{mode}}\"(으)로 전환하세요.",
     "refreshDevices": "장치 새로고침",
     "unknownDevice": "알 수 없는 장치"
   },

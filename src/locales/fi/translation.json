@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Poista mikrofoni käytöstä",
     "turnOnMonitor": "Ota kaiuttimen valvonta käyttöön",
     "turnOffMonitor": "Poista kaiuttimen valvonta käytöstä",
+    "monitorLockedByMode": "Kaiuttimen valvonta on käytettävissä vain tilassa \"{{mode}}\" — se ei voi olla käytössä yhtä aikaa Osallistujan äänen kanssa ilman kaikua. Vaihda käännöstilaksi \"{{mode}}\" ottaaksesi sen uudelleen käyttöön.",
     "refreshDevices": "Päivitä laitteet",
     "unknownDevice": "Tuntematon laite"
   },

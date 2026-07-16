@@ -253,6 +253,7 @@
     "turnOffMicrophone": "Turn off microphone",
     "turnOnMonitor": "Turn on speaker monitor",
     "turnOffMonitor": "Turn off speaker monitor",
+    "monitorLockedByMode": "Speaker monitoring is only available in \"{{mode}}\" mode — it cannot run alongside Participant audio without causing echo. Switch the translation mode to \"{{mode}}\" to re-enable it.",
     "refreshDevices": "Refresh devices",
     "unknownDevice": "Unknown device"
   },
