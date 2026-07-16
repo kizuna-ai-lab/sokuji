@@ -103,7 +103,28 @@ def test_generate_zero_output_raises(monkeypatch, tmp_path):
         b.generate("A normal length sentence for synthesis.", 1.0)
 
 
-def test_generate_requires_voice(monkeypatch, tmp_path):
+def test_generate_without_voice_uses_default_builtin(monkeypatch, tmp_path):
+    b = _loaded_backend(monkeypatch, tmp_path)
+    voices_dir = tmp_path / "voices"
+    voices_dir.mkdir()
+    (voices_dir / "manifest.json").write_text(
+        '[{"name": "classic-en", "language": "en", "default": true}]',
+        encoding="utf-8")
+    used = []
+
+    def _fake_set_builtin_voice(self, name):
+        used.append(name)
+        self._reference = object()
+    monkeypatch.setattr(tts_backends.GptSovitsOnnxBackend,
+                        "set_builtin_voice", _fake_set_builtin_voice)
+    b._synth = type("S", (), {"synthesize":
+                    lambda self, *a, **k: np.ones(100, dtype=np.float32)})()
+    samples, ms = b.generate("A normal length sentence for synthesis.", 1.0)
+    assert used == ["classic-en"]
+    assert samples.shape[0] > 0
+
+
+def test_generate_without_voice_and_no_manifest_raises(monkeypatch, tmp_path):
     b = _loaded_backend(monkeypatch, tmp_path)
     with pytest.raises(RuntimeError, match="voice"):
         b.generate("Hello there, this is a test.", 1.0)
@@ -131,3 +152,23 @@ def test_generate_concatenates_sentence_chunks(monkeypatch, tmp_path):
     samples, ms = b.generate(text, 1.0)
     assert len(seen) >= 2
     assert samples.shape[0] == 100 * len(seen)
+
+
+def test_generate_mixed_chunk_outcomes_degrade_to_silence(monkeypatch, tmp_path):
+    """One chunk raising and another returning None (no exception) must still
+    degrade the whole call to silence, not raise — any_chunk_errored is set
+    by the raising chunk regardless of what other chunks return."""
+    b = _loaded_backend(monkeypatch, tmp_path)
+    b._reference = object()
+    calls = []
+
+    def _synth(self, chunk, ref, lang):
+        calls.append(chunk)
+        if len(calls) == 1:
+            raise IndexError("string index out of range")
+        return None
+    b._synth = type("S", (), {"synthesize": _synth})()
+    text = "这是第一个足够长的句子，应当被切分。这是第二个足够长的句子，也应当被切分。"
+    samples, ms = b.generate(text, 1.0)
+    assert len(calls) >= 2
+    assert float(np.abs(samples).max()) == 0.0

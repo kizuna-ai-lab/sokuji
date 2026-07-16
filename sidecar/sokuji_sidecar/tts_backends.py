@@ -769,9 +769,29 @@ class GptSovitsOnnxBackend:
             transcript = f.read().strip()
         self.set_voice(wav, sr, ref_text=transcript)
 
-    def generate(self, text, speed=1.0):
-        if self._reference is None:
+    def _ensure_voice(self):
+        """Callers (notably accel.measure_rtf_tts, which benches right after
+        load() with no set_voice/set_builtin_voice call) may invoke generate()
+        before any voice is selected. Fall back to the card's default builtin
+        voice — mirrors MossTtsBackend._resolve_prompt_audio_codes' fallback
+        to the first builtin voice."""
+        if self._reference is not None:
+            return
+        manifest_path = os.path.join(self._snapshot, "voices", "manifest.json")
+        if not os.path.isfile(manifest_path):
             raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
+        with open(manifest_path, encoding="utf-8") as f:
+            voices = _json.load(f)
+        if not voices:
+            raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
+        entry = next((v for v in voices if v.get("default")), voices[0])
+        name = entry["name"]
+        print(f"[gpt_sovits_onnx] no voice set; using default builtin '{name}'",
+              file=sys.stderr, flush=True)
+        self.set_builtin_voice(name)
+
+    def generate(self, text, speed=1.0):
+        self._ensure_voice()
         text = (text or "").strip()
         t0 = time.time()
         if _gpt_sovits_effective_len(text) < self.MIN_EFFECTIVE_CHARS:

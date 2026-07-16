@@ -454,9 +454,12 @@ TTS_MODELS: list[TtsModel] = [
              cuda_variant_subdir="onnx-bf16"),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
-    # x86 discrete-GPU benefit unverified (per-step KV round-trip) — the RTF
-    # bench demotes it there if slow. recommended stays False until en/ja
-    # quality is validated (upstream reports; sudachi kanji readings).
+    # x86 discrete-GPU benefit unverified (per-step KV round-trip). The bench
+    # reports rtf via the default builtin voice; bench-based tier demotion for
+    # TTS is currently disconnected upstream (tts:-prefixed cache keys vs
+    # unprefixed reads) — tracked as a follow-up. recommended stays False
+    # until en/ja quality is validated (upstream reports; sudachi kanji
+    # readings).
     TtsModel("gpt-sovits-v2pp", "GPT-SoVITS v2ProPlus",
              ("zh", "en", "ja"),
              (Deployment("gpt_sovits_onnx", "gpu-cuda", "fp32", _GPT_SOVITS_REPO, 1.0,

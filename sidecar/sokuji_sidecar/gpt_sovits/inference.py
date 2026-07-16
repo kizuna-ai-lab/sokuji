@@ -11,13 +11,9 @@ engine is synchronous, no cross-thread cancellation).
 """
 from __future__ import annotations
 
-import logging
-
 import numpy as np
 
 from .text import get_phones_and_bert
-
-logger = logging.getLogger(__name__)
 
 MAX_AR_STEPS = 500
 EOS_TOKEN = 1024
