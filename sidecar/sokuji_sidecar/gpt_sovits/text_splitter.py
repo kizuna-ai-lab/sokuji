@@ -1,8 +1,7 @@
 # Vendored from Genie-TTS 2.0.2 (MIT, https://github.com/High-Logic/Genie-TTS),
-# original path: genie_tts/Utils/TextSplitter.py. Local modifications are
-# marked with "SOKUJI:" comments. See gpt_sovits/LICENSE.
+# original path: genie_tts/Utils/TextSplitter.py. See gpt_sovits/LICENSE.
 import re
-from typing import List, Set, Pattern, Tuple
+from typing import List, Set, Pattern
 
 
 class TextSplitter:
@@ -15,12 +14,6 @@ class TextSplitter:
         """
         self.max_len: int = max_len
         self.min_len: int = min_len
-        # SOKUJI: upstream TextSplitter only exposes a one-shot split(text).
-        # feed()/flush() below add a streaming wrapper (needed by the sidecar's
-        # incremental synthesis loop) on top of the unchanged split()/
-        # _flush_buffer() logic; _pending holds text not yet resolved into a
-        # complete sentence.
-        self._pending: str = ""
 
         # 1. 定义基础字符集合
         # 只要标点块中包含这些字符，就视为 Ending (终止符)
@@ -77,22 +70,6 @@ class TextSplitter:
         if not text:
             return []
 
-        # SOKUJI: loop body factored out into _split_partial() so feed()/flush()
-        # below can reuse it; behavior is unchanged (same segments/thresholds).
-        sentences, current_buffer = self._split_partial(text)
-
-        # 处理残留缓冲区
-        if current_buffer:
-            self._flush_buffer(sentences, current_buffer)
-
-        return sentences
-
-    def _split_partial(self, text: str) -> Tuple[List[str], str]:
-        """
-        SOKUJI: added — same segmentation loop as split(), but returns the
-        trailing incomplete buffer instead of flushing it, so a caller can
-        keep accumulating text across multiple calls (see feed()).
-        """
         text = text.replace('\n', '')
 
         # 正则切分，segments 格式如: ['你好', '......', '我是谁', '？！', '']
@@ -131,7 +108,11 @@ class TextSplitter:
                 # 纯文本
                 current_buffer += segment
 
-        return sentences, current_buffer
+        # 处理残留缓冲区
+        if current_buffer:
+            self._flush_buffer(sentences, current_buffer)
+
+        return sentences
 
     def _flush_buffer(self, sentences: List[str], buffer: str):
         candidate = buffer.strip()
@@ -142,26 +123,3 @@ class TextSplitter:
             sentences.append(candidate)
         elif sentences:
             sentences[-1] += candidate
-
-    # SOKUJI: streaming API added for the sidecar's incremental synthesis
-    # loop — upstream genie_tts only calls split() on a complete text. feed()
-    # accumulates chunks and returns whichever sentences became complete;
-    # flush() forces out whatever remains (e.g. at end-of-stream), bypassing
-    # the min_len threshold since no more text is coming.
-    def feed(self, chunk: str) -> List[str]:
-        """Feed a streamed text chunk; returns newly completed sentences."""
-        if not chunk:
-            return []
-        self._pending += chunk
-        sentences, remainder = self._split_partial(self._pending)
-        self._pending = remainder
-        return sentences
-
-    def flush(self) -> List[str]:
-        """Force out whatever text remains buffered and reset state."""
-        remainder = self._pending
-        self._pending = ""
-        candidate = remainder.strip()
-        if not candidate:
-            return []
-        return [candidate]

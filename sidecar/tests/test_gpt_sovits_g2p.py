@@ -70,14 +70,21 @@ def test_zero_bert_fallback_shape_matches_phones():
     assert bert.shape[-1] == 1024
 
 
-def test_text_splitter_min_len_and_flush():
+def test_text_splitter_batch_split():
     from sokuji_sidecar.gpt_sovits.text_splitter import TextSplitter
     ts = TextSplitter(max_len=40, min_len=5)
-    parts = ts.feed("短。这是一个足够长的句子，应当被切分出来。")
-    parts += ts.flush()
-    joined = "".join(parts)
-    assert "足够长的句子" in joined
+    parts = ts.split("短。这是一个足够长的句子，应当被切分出来。")
+    assert "".join(parts) == "短。这是一个足够长的句子，应当被切分出来。"
     assert all(p.strip() for p in parts)
+
+
+def test_text_splitter_merges_trailing_punctuation():
+    from sokuji_sidecar.gpt_sovits.text_splitter import TextSplitter
+    ts = TextSplitter(max_len=40, min_len=5)
+    # a pure-punctuation tail must merge into the preceding sentence,
+    # never come back as its own bare-punctuation "sentence"
+    parts = ts.split("这是一个测试句子。！")
+    assert parts == ["这是一个测试句子。！"]
 
 
 def test_vendored_tree_is_torch_free():
