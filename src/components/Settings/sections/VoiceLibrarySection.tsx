@@ -2,6 +2,9 @@ import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, Plus, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
+import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
+
+export type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
@@ -23,27 +26,6 @@ export interface VoiceEntry {
     unstable?: boolean;
     language?: string;
   };
-}
-
-export interface VoiceLibraryCapability {
-  /** Which import affordances to render. `upload` → file picker + drop zone;
-   *  `record` → microphone Record button. */
-  importModes: ('upload' | 'record')[];
-  /** When true, only curated builtins are shown by default with a "show all"
-   *  expander revealing the rest. When false, all builtins are shown. */
-  curation: boolean;
-  /** `accept` filter for the upload file input. Defaults to the JSON voice-card
-   *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
-  accept?: string;
-  /** How voice SELECTION is presented. `'list'` (default) renders a clickable
-   *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
-   *  original Supertonic affordance). Curation does not apply in dropdown mode. */
-  presentation?: 'list' | 'dropdown';
-  /** When true, captured clips must carry a reference transcript (native
-   *  zero-shot cloning models that require ICL text). Renders a labeled
-   *  transcript input in the manage toolbar and disables Import/Record until
-   *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
-  transcriptRequired?: boolean;
 }
 
 export interface VoiceLibrarySectionProps {

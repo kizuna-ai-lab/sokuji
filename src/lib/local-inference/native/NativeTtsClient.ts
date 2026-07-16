@@ -1,6 +1,10 @@
-import type { TtsResult } from '../engine/TtsEngine';
 import type { ServerMsg } from './nativeProtocol';
 import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError, type ISidecarConnection } from './SidecarConnection';
+
+/** A finished native synthesis. Shape-compatible with the WASM lane's TtsResult
+ *  by construction, NOT by import — the two providers are peers and the native
+ *  lane owns its own contracts (cf. TtsReady/NativeAsrResult below/above). */
+export interface NativeTtsResult { samples: Float32Array; sampleRate: number; generationTimeMs: number; }
 
 /** Reject a streaming generate if no chunk/done arrives for this long (inactivity). */
 const TTS_STREAM_INACTIVITY_MS = 30_000;
@@ -117,7 +121,7 @@ export class NativeTtsClient {
     await this.conn.request({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
   }
 
-  async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<TtsResult> {
+  async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<NativeTtsResult> {
     if (this.streaming && onChunk) {
       const id = this.conn.nextId();
       this.inFlightId = id;
