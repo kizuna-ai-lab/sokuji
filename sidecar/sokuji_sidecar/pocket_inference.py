@@ -47,6 +47,72 @@ def update_state_from_outputs(state: dict, result: dict, manifest: list[dict]) -
             state[e["input_name"]] = result[e["output_name"]]
 
 
+def group_voice_record_by_module(record: dict) -> dict:
+    """{"module.path/key": tensor} -> {"module.path": {"key": tensor}}, split on
+    the FIRST slash (module paths contain dots, keys may not contain slashes —
+    but mirror the reference impl and split once anyway)."""
+    grouped: dict[str, dict] = {}
+    for key, value in record.items():
+        slash = key.find("/")
+        if slash == -1:
+            continue
+        grouped.setdefault(key[:slash], {})[key[slash + 1:]] = value
+    return grouped
+
+
+def derive_step(module_state: dict) -> np.ndarray:
+    """The manifest wants a `step` counter the voice file doesn't store under
+    that name (it stores `offset`). Port of the reference deriveStep: step ->
+    offset (only when end_offset is absent) -> len(current_end) -> 0."""
+    if "step" in module_state:
+        return np.asarray([int(np.asarray(module_state["step"]).reshape(-1)[0])], np.int64)
+    if "offset" in module_state and "end_offset" not in module_state:
+        return np.asarray([int(np.asarray(module_state["offset"]).reshape(-1)[0])], np.int64)
+    if "current_end" in module_state:
+        return np.asarray([int(np.asarray(module_state["current_end"]).shape[0])], np.int64)
+    return np.zeros(1, np.int64)
+
+
+def adapt_tensor(source: np.ndarray, entry: dict) -> np.ndarray:
+    """Fit a voices.bin tensor into a manifest state slot (port of the reference
+    adaptTypedArray): exact shape -> cast; same element count -> reshape; rank
+    mismatch -> manifest default; otherwise embed as a per-axis prefix and leave
+    the manifest fill in the tail. The predefined-voice KV cache is a 126-frame
+    prefix of the 1000-frame state buffer — the prefix branch is the one that
+    carries voice identity."""
+    dt = _DT[entry["dtype"]]
+    target_shape = tuple(entry["shape"])
+    src = np.asarray(source)
+    if src.shape == target_shape:
+        return src.astype(dt, copy=True)
+    if src.size == int(np.prod(target_shape)):
+        return src.astype(dt).reshape(target_shape)
+    target = _filled(list(target_shape), entry["dtype"], entry.get("fill"))
+    if src.ndim != len(target_shape):
+        return target
+    sl = tuple(slice(0, min(s, t)) for s, t in zip(src.shape, target_shape))
+    target[sl] = src[sl].astype(dt)
+    return target
+
+
+def state_from_voice_record(meta: dict, record: dict) -> dict:
+    """Build a flow-LM state dict from a parsed predefined-voice record,
+    skipping the mimi encoder + prefill a reference clip would need. Slots the
+    record doesn't cover keep their manifest defaults (current_end has no
+    stored counterpart); `step` is derived when absent."""
+    grouped = group_voice_record_by_module(record)
+    state = init_state_from_manifest(meta["flow_lm_state_manifest"])
+    for entry in meta["flow_lm_state_manifest"]:
+        module_state = grouped.get(entry["module"], {})
+        source = module_state.get(entry["key"])
+        if source is None and entry["key"] == "step":
+            source = derive_step(module_state)
+        if source is None:
+            continue
+        state[entry["input_name"]] = adapt_tensor(source, entry)
+    return state
+
+
 def resample_to_24k(samples: np.ndarray, src_rate: int) -> np.ndarray:
     if len(samples) == 0:
         return np.zeros(0, dtype=np.float32)

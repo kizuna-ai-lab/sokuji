@@ -448,6 +448,34 @@ SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", 
                     "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
                     "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi")
 
+# Pocket TTS (Kyutai CALM zero-shot voice cloning), int8 ONNX, one bundle per
+# language — the flow-LM is language-specific; every bundle ships the same
+# eight predefined voices (KV-cache prefixes in voices.bin). Upstream lives in
+# SUBFOLDERS of the KevinAHM/pocket-tts-web SPACE, a shape the download path
+# deliberately does not speak, so scripts/mirror_pocket_tts.py stages flat
+# model-repo mirrors (bundle files + the voices/manifest.json the voice
+# listing reads). size_bytes = the 9 upstream files + that 263-byte manifest.
+# CPU-only by measurement: int8 seqlen-1 AR decode is memory-bound, 2.5-6.6x
+# realtime on CPU, and the int8 operator set has no validated GPU kernel path.
+_POCKET_TTS_ROWS = (
+    ("en", "English",    4, 198645821),
+    ("de", "German",     5, 198646300),
+    ("es", "Spanish",    6, 198647361),
+    ("it", "Italian",    7, 198646544),
+    ("pt", "Portuguese", 8, 198647467),
+)
+
+
+def _pocket_tts_row(lang: str, label: str, order: int, size: int) -> TtsModel:
+    repo = os.environ.get(f"SOKUJI_POCKET_TTS_{lang.upper()}_REPO",
+                          f"jiangzhuo9357/pocket-tts-{lang}-onnx")
+    return TtsModel(
+        f"pocket-tts-{lang}", f"Pocket TTS ({label})", (lang,),
+        (Deployment("pocket_onnx", "cpu", "int8", repo, 1.0),),
+        repos=(repo,), clones=True, streaming=False, named_voices=True,
+        sample_rate=24000, sort_order=order, size_bytes=size)
+
+
 TTS_MODELS: list[TtsModel] = [
     TtsModel("moss-tts-nano", "MOSS-TTS-Nano (100M)",
              ("zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru",
@@ -494,6 +522,7 @@ TTS_MODELS: list[TtsModel] = [
              transcript_required=True, named_voices=True, sample_rate=24000,
              recommended=False, sort_order=3, size_bytes=11431100174,
              cuda_variant_subdir="onnx-bf16"),
+    *(_pocket_tts_row(*row) for row in _POCKET_TTS_ROWS),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,

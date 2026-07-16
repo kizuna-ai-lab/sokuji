@@ -45,8 +45,8 @@ from sokuji_sidecar import accel, catalog
 # mlx/mlx_audio_tts which only ever run on Apple Silicon in practice.
 _ALL_BACKENDS = frozenset({
     "transcribe_cpp", "transcribe_cpp_stream", "sherpa_tts", "moss_onnx",
-    "supertonic", "qwen3tts_onnx", "onnx", "llamacpp_qwen", "llamacpp_hunyuan",
-    "llamacpp_gemma", "ct2_opus_translate",
+    "supertonic", "qwen3tts_onnx", "pocket_onnx", "onnx", "llamacpp_qwen",
+    "llamacpp_hunyuan", "llamacpp_gemma", "ct2_opus_translate",
 })
 _APPLE_BACKENDS = _ALL_BACKENDS | {"mlx_audio_tts", "mlx"}
 
@@ -216,6 +216,12 @@ TTS_MATRIX = [
     ('csukuangfj/vits-piper-en_US-ryan-medium', CUDA_24GB, 'cpu', [('sherpa_tts', 'cpu', 'cpu', 'fp32', 'csukuangfj/vits-piper-en_US-ryan-medium', 1.0)]),
     ('csukuangfj/vits-piper-en_US-ryan-medium', APPLE_SILICON, 'auto', [('sherpa_tts', 'cpu', 'cpu', 'fp32', 'csukuangfj/vits-piper-en_US-ryan-medium', 1.0)]),
     ('csukuangfj/vits-piper-en_US-ryan-medium', APPLE_SILICON, 'cpu', [('sherpa_tts', 'cpu', 'cpu', 'fp32', 'csukuangfj/vits-piper-en_US-ryan-medium', 1.0)]),
+    # Pocket TTS: cpu-only single-deployment card — every machine resolves the
+    # same one-plan ladder regardless of GPUs present (like the piper rows).
+    ('pocket-tts-en', CPU_ONLY, 'auto', [('pocket_onnx', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/pocket-tts-en-onnx', 1.0)]),
+    ('pocket-tts-en', CPU_ONLY, 'cpu', [('pocket_onnx', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/pocket-tts-en-onnx', 1.0)]),
+    ('pocket-tts-en', CUDA_12GB, 'auto', [('pocket_onnx', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/pocket-tts-en-onnx', 1.0)]),
+    ('pocket-tts-en', APPLE_SILICON, 'auto', [('pocket_onnx', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/pocket-tts-en-onnx', 1.0)]),
 ]
 
 
