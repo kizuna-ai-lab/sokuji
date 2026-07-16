@@ -128,6 +128,7 @@ def _installed() -> frozenset:
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
             "qwen3tts_onnx": "onnxruntime",
+            "gpt_sovits_onnx": "onnxruntime",
             "mlx_audio_tts": ("mlx_audio",),
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
             # llamacpp_* backends run an external llama-server binary — a

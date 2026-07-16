@@ -4,6 +4,7 @@ generate / generate_stream on top of load/unload; load_with_fallback only calls
 load(), so sharing the registry is safe."""
 import hashlib
 import json as _json
+import logging
 import os
 import queue
 import shutil
@@ -13,6 +14,11 @@ import time
 from pathlib import Path
 
 import numpy as np
+# Module-level (not the other backends' local-import-inside-load() style):
+# gpt_sovits_onnx's tests monkeypatch tts_backends.snapshot_download directly,
+# which requires the name to live in this module's globals so load() picks up
+# the patched callable instead of re-resolving huggingface_hub at call time.
+from huggingface_hub import snapshot_download
 
 from .backends import register_backend, BackendLoadError
 from . import supertonic_frontend as _sf
@@ -21,6 +27,8 @@ from .qwen3_tts import config as _q3_config
 from .qwen3_tts import mel as _q3_mel
 from .qwen3_tts import runtime as _q3_runtime
 from .qwen3_tts import template as _q3_template
+
+logger = logging.getLogger(__name__)
 
 # short id -> HF repo (unknown ids are treated as a repo id directly)
 SHERPA_TTS_REPOS = {
@@ -643,6 +651,175 @@ class Qwen3TtsOnnxBackend:
     @property
     def is_loaded(self) -> bool:
         return self._sessions is not None
+
+
+# ---------------------------------------------------------------------------
+# GPT-SoVITS (v2ProPlus) via the vendored Genie-TTS ONNX runtime — issue #322.
+# CPU + CUDA tiers; fp16 bins expand to fp32 at load (see gpt_sovits.runtime).
+
+_GPT_SOVITS_LANGS = {"zh": "chinese", "en": "english", "ja": "japanese"}
+
+
+def _gpt_sovits_detect_language(text: str) -> str:
+    """Best-effort language of a reference transcript (wire carries no refLang).
+
+    Kana wins over Han (ja text usually mixes both); Han without kana is
+    treated as Chinese — kanji-only Japanese is genuinely ambiguous, zh is the
+    documented default. TODO(#322): consider a refLang wire field later.
+    """
+    if any("぀" <= ch <= "ヿ" for ch in text):
+        return "japanese"
+    if any("一" <= ch <= "鿿" for ch in text):
+        return "chinese"
+    return "english"
+
+
+def _gpt_sovits_effective_len(text: str) -> int:
+    """Count phoneme-bearing characters (CJK chars and latin letters)."""
+    return sum(1 for ch in text
+               if ch.isalpha() or "぀" <= ch <= "ヿ"
+               or "一" <= ch <= "鿿")
+
+
+@register_backend
+class GptSovitsOnnxBackend:
+    NAME = "gpt_sovits_onnx"
+    STREAMING = False
+    CLONES = True
+    # Inputs shorter than this synthesize unreliably on GPT-SoVITS (upstream
+    # short-text hazards, spike 2026-07-16) — return brief silence instead.
+    MIN_EFFECTIVE_CHARS = 2
+
+    def __init__(self):
+        self.sample_rate = 32000
+        self._sessions = None
+        self._synth = None
+        self._hubert = None
+        self._reference = None
+        self._language = "english"
+        self._snapshot = None
+
+    @property
+    def is_loaded(self):
+        return self._synth is not None
+
+    def load(self, model_ref, device, compute_type, config=None):
+        from .gpt_sovits import assets as _gs_assets
+        from .gpt_sovits import runtime as _gs_runtime
+        try:
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            model_dir = os.path.join(d, "model")
+            genie_dir = os.path.join(d, "genie_data")
+            _gs_runtime.ensure_fp32_bins(model_dir)
+            _gs_runtime.ensure_fp32_bins(
+                os.path.join(genie_dir, "chinese-hubert-base"))
+            _gs_assets.configure(
+                chinese_g2p_dir=os.path.join(genie_dir, "G2P", "ChineseG2P"),
+                english_g2p_dir=os.path.join(genie_dir, "G2P", "EnglishG2P"))
+            self._sessions = _gs_runtime.build_model_sessions(model_dir, device)
+            self._hubert = _gs_runtime.make_session(
+                os.path.join(genie_dir, "chinese-hubert-base",
+                             "chinese-hubert-base.onnx"), device)
+            sv = _gs_runtime.make_session(
+                os.path.join(genie_dir, "speaker_encoder.onnx"), device)
+            roberta = self._load_roberta(genie_dir, device)
+            from .gpt_sovits.inference import Synthesizer
+            self._synth = Synthesizer(self._sessions, sv_session=sv,
+                                      roberta=roberta)
+            self._snapshot = d
+        except Exception as e:  # noqa: BLE001 — contract: wrap all load failures
+            self.unload()
+            raise BackendLoadError(f"gpt_sovits_onnx load failed: {e}") from e
+
+    def _load_roberta(self, genie_dir, device):
+        from .gpt_sovits import runtime as _gs_runtime
+        onnx_path = os.path.join(genie_dir, "RoBERTa", "RoBERTa.onnx")
+        tok_path = os.path.join(genie_dir, "RoBERTa", "roberta_tokenizer",
+                                "tokenizer.json")
+        if not (os.path.isfile(onnx_path) and os.path.isfile(tok_path)):
+            return None  # zh prosody degrades to zero BERT features
+        from tokenizers import Tokenizer
+        return (_gs_runtime.make_session(onnx_path, device),
+                Tokenizer.from_file(tok_path))
+
+    def set_language(self, lang):
+        if not lang:
+            return
+        key = lang.lower().split("-")[0]
+        if key not in _GPT_SOVITS_LANGS:
+            raise ValueError(f"gpt_sovits_onnx does not support language {lang!r}")
+        self._language = _GPT_SOVITS_LANGS[key]
+
+    def set_voice(self, audio, sr, ref_text=""):
+        if not ref_text or not ref_text.strip():
+            raise ValueError(
+                "gpt_sovits_onnx cloning requires the reference transcript "
+                "(transcript_required=True)")
+        from .gpt_sovits.reference import build_reference
+        self._reference = build_reference(
+            np.asarray(audio, dtype=np.float32), int(sr), ref_text.strip(),
+            _gpt_sovits_detect_language(ref_text), self._hubert)
+
+    def set_builtin_voice(self, name):
+        import soundfile
+        base = os.path.join(self._snapshot, "voices", name)
+        wav, sr = soundfile.read(base + ".wav", dtype="float32")
+        with open(base + ".txt", encoding="utf-8") as f:
+            transcript = f.read().strip()
+        self.set_voice(wav, sr, ref_text=transcript)
+
+    def generate(self, text, speed=1.0):
+        if self._reference is None:
+            raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
+        text = (text or "").strip()
+        t0 = time.time()
+        if _gpt_sovits_effective_len(text) < self.MIN_EFFECTIVE_CHARS:
+            logger.info("gpt_sovits_onnx: input %r below min length; emitting silence",
+                        text)
+            return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
+
+        # Long inputs must be sentence-split before synthesis: the vendored
+        # AR t2s loop is capped at MAX_AR_STEPS and degrades badly on long
+        # multi-sentence inputs. TextSplitter is a one-shot batch API (no
+        # feed/flush) — split() ahead of time, then synthesize per chunk.
+        from .gpt_sovits.text_splitter import TextSplitter
+        chunks = TextSplitter(max_len=40, min_len=5).split(text)
+        if not chunks:
+            chunks = [text]
+
+        results = []
+        any_chunk_errored = False
+        for chunk in chunks:
+            try:
+                samples = self._synth.synthesize(chunk, self._reference, self._language)
+            except Exception:
+                # zh G2P has known crash inputs (e.g. vowel-less nasals); a live
+                # translation session must survive them. Fixed upstream cases
+                # are guarded in the vendored ToneSandhi; this is the safety
+                # net — skip the bad chunk and keep going.
+                any_chunk_errored = True
+                logger.exception(
+                    "gpt_sovits_onnx: synthesis failed for chunk %r; skipping", chunk)
+                continue
+            if samples is not None:
+                results.append(np.asarray(samples, dtype=np.float32).reshape(-1))
+
+        if not results:
+            if any_chunk_errored:
+                logger.info("gpt_sovits_onnx: all chunks failed; emitting silence")
+                return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
+            raise RuntimeError("gpt_sovits_onnx: synthesis produced no audio")
+
+        samples = results[0] if len(results) == 1 else np.concatenate(results)
+        gen_ms = int((time.time() - t0) * 1000)
+        return samples.astype(np.float32), gen_ms
+
+    def unload(self):
+        self._sessions = None
+        self._synth = None
+        self._hubert = None
+        self._reference = None
+        self._snapshot = None
 
 
 # Registered in a separate module (Apple-Silicon-only mlx-audio), imported here so
