@@ -758,6 +758,7 @@ the stage removes the trap."
 
 **Files:**
 - Modify: `sidecar/sokuji_sidecar/catalog.py`
+- Modify: `sidecar/sokuji_sidecar/accel.py` (the `_installed()` runtime gate — a catalog card whose backend is not in this map is silently filtered out of every plan: NoUsablePlan on every machine)
 - Modify: `sidecar/prefetch_models.py`
 - Test: `sidecar/tests/test_catalog.py`, `sidecar/tests/test_tts_voices.py`, `sidecar/tests/test_characterization.py`
 
@@ -852,7 +853,50 @@ def test_pocket_bundled_voice_manifest_listing(monkeypatch, tmp_path):
 Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/test_tts_voices.py -q`
 Expected: all pass.
 
-- [ ] **Step 5: Add the characterization matrix rows**
+- [ ] **Step 5: Register the backend in the runtime-installed gate**
+
+Registering a backend takes THREE sites, not two: the `@register_backend` class (Task 3), the catalog card (Step 1), and `accel._installed()` — the map from backend NAME to the Python runtime it needs. A backend absent from that map is never in `machine.installed`, so the planner filters its deployments out and `resolve_tts` raises `NoUsablePlan` on every machine even though the card renders in the UI. (This step exists because exactly that happened on first execution — the Step 6 matrix rows are what caught it.)
+
+In `sidecar/sokuji_sidecar/accel.py`, inside `_installed()`'s `mods` dict, add directly after the `"qwen3tts_onnx": "onnxruntime",` line:
+
+```python
+            "pocket_onnx": ("onnxruntime", "sentencepiece"),
+```
+
+(Tuple because Pocket hard-requires both: onnxruntime for the five sessions, sentencepiece for `PocketTokenizer`.)
+
+The characterization fixture machines mirror that gate. In `sidecar/tests/test_characterization.py`, extend `_ALL_BACKENDS`:
+
+```python
+_ALL_BACKENDS = frozenset({
+    "transcribe_cpp", "transcribe_cpp_stream", "sherpa_tts", "moss_onnx",
+    "supertonic", "qwen3tts_onnx", "onnx", "llamacpp_qwen", "llamacpp_hunyuan",
+    "llamacpp_gemma", "ct2_opus_translate",
+})
+```
+
+becomes:
+
+```python
+_ALL_BACKENDS = frozenset({
+    "transcribe_cpp", "transcribe_cpp_stream", "sherpa_tts", "moss_onnx",
+    "supertonic", "qwen3tts_onnx", "pocket_onnx", "onnx", "llamacpp_qwen",
+    "llamacpp_hunyuan", "llamacpp_gemma", "ct2_opus_translate",
+})
+```
+
+Do NOT change only the fixture — that would green the matrix while real machines still fail; the production gate in `accel.py` is the fix, the fixture just mirrors it.
+
+Sanity-check the live path (real probe on this machine, not a fixture):
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-react/.claude/worktrees/wire-result-collision/sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -c "
+from sokuji_sidecar import accel
+print([(p.backend, p.tier, p.compute_type, p.artifact) for p in accel.resolve_tts('pocket-tts-en')])"
+```
+Expected: `[('pocket_onnx', 'cpu', 'int8', 'jiangzhuo9357/pocket-tts-en-onnx')]`.
+
+- [ ] **Step 6: Add the characterization matrix rows**
 
 In `sidecar/tests/test_characterization.py`, append inside the `TTS_MATRIX` list, directly before its closing `]`:
 
@@ -868,7 +912,7 @@ In `sidecar/tests/test_characterization.py`, append inside the `TTS_MATRIX` list
 Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/test_characterization.py -q`
 Expected: all pass (+4).
 
-- [ ] **Step 6: Point prefetch at the mirror**
+- [ ] **Step 7: Point prefetch at the mirror**
 
 In `sidecar/prefetch_models.py`, replace:
 
@@ -909,13 +953,13 @@ with:
         print(f"  export POCKET_MODEL_DIR={pocket_root}")
 ```
 
-- [ ] **Step 7: Full suite + commit**
+- [ ] **Step 8: Full suite + commit**
 
 Run: `cd sidecar && /home/jiangzhuo/Desktop/kizunaai/sokuji-react/sidecar/.venv/bin/python -m pytest tests/ -q`
 Expected: **787 passed, 17 skipped**.
 
 ```bash
-git add sidecar/sokuji_sidecar/catalog.py sidecar/prefetch_models.py sidecar/tests/test_catalog.py sidecar/tests/test_tts_voices.py sidecar/tests/test_characterization.py
+git add sidecar/sokuji_sidecar/catalog.py sidecar/sokuji_sidecar/accel.py sidecar/prefetch_models.py sidecar/tests/test_catalog.py sidecar/tests/test_tts_voices.py sidecar/tests/test_characterization.py
 git commit -m "feat(sidecar): five Pocket TTS language cards (cpu-only, named voices)
 
 One card per language (the flow-LM is language-specific), one cpu/int8
