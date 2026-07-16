@@ -211,7 +211,7 @@ describe('SidecarConnection', () => {
     await tick();
     const ws = FakeWS.instances[0];
     expect(JSON.parse(ws.sent[0]).id).toBe(4242);
-    ws.reply({ type: 'result', id: 4242, sampleRate: 24000, generationTimeMs: 5, samples: 0 });
-    await expect(p).resolves.toMatchObject({ type: 'result' });
+    ws.reply({ type: 'tts_generate_result', id: 4242, sampleRate: 24000, generationTimeMs: 5, samples: 0 });
+    await expect(p).resolves.toMatchObject({ type: 'tts_generate_result' });
   });
 });

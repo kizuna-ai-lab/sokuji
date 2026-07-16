@@ -147,7 +147,7 @@ export class NativeTtsClient {
     this.inFlightId = id;
     this.lastBinary = null;
     const msg = await this.conn.request({ type: 'tts_generate', text, speed }, { id });
-    const r = msg as Extract<ServerMsg, { type: 'result' }>;
+    const r = msg as Extract<ServerMsg, { type: 'tts_generate_result' }>;
     const binary = this.lastBinary; this.lastBinary = null;
     return { samples: int16ToFloat32(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
   }

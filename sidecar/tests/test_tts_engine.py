@@ -165,7 +165,7 @@ def test_handler_tts_generate_oneshot_returns_result(monkeypatch):
                 "model": "piper-en-amy"}, None, conn))
     reply, binary = asyncio.run(st["handlers"]["tts_generate"](
         st, {"type": "tts_generate", "id": "g2", "text": "hello"}, None, conn))
-    assert reply["type"] == "result" and reply["id"] == "g2"
+    assert reply["type"] == "tts_generate_result" and reply["id"] == "g2"
     assert reply["sampleRate"] == 24000 and binary is not None
     assert reply["samples"] == len(binary) // 2
 

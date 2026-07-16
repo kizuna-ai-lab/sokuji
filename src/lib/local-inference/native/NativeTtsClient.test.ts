@@ -21,7 +21,7 @@ describe('NativeTtsClient one-shot', () => {
     // Sidecar sends the PCM binary frame BEFORE the result meta.
     const pcm = new Int16Array([16384, 16384, 16384]);
     conn.emitBinary(pcm.buffer);
-    conn.emit({ type: 'result', id: genSent.id, sampleRate: 24000, generationTimeMs: 7, samples: 3 });
+    conn.emit({ type: 'tts_generate_result', id: genSent.id, sampleRate: 24000, generationTimeMs: 7, samples: 3 });
     const res = await genP;
     expect(res.sampleRate).toBe(24000);
     expect(res.generationTimeMs).toBe(7);
