@@ -2,7 +2,7 @@ import asyncio
 import json
 import numpy as np
 import pytest
-from sokuji_sidecar import tts_engine, accel, catalog, server
+from sokuji_sidecar import tts_engine, accel, server
 
 
 def test_resample_48k_stereo_to_24k_mono():

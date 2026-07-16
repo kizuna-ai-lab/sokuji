@@ -1,4 +1,5 @@
 import json
+import sys
 import websockets
 
 
@@ -78,8 +79,13 @@ async def _conn(state, ws):
         for cb in conn._on_close:
             try:
                 cb()
-            except Exception:
-                pass
+            except Exception as e:
+                # A broken cleanup must not skip the other stages' cleanups — but it
+                # must not vanish either: its stage's model would silently never leave
+                # VRAM. stderr is piped to the Electron log by NativeHostManager;
+                # stdout is the port-handshake channel and must stay structured.
+                print(f"[teardown] on_close cleanup failed: {e!r}",
+                      file=sys.stderr, flush=True)
 
 
 # A voice-clone reference clip (set_voice) is sent as ONE binary frame of raw
