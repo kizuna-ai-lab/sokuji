@@ -529,6 +529,22 @@ class AsrEngine:
         return events
 
 
+def _asr_teardown(state, conn):
+    """Free this connection's ASR model when the connection closes (stop = release VRAM).
+
+    Reads the stream task from conn.ctx at close time — the offline path never creates one.
+    """
+    task = conn.ctx.get("stream_task")
+    if task is not None:
+        task.cancel()
+    eng = state.get("asr_engine")
+    if eng is not None:
+        try:
+            eng.close()
+        except Exception:
+            pass
+
+
 async def _h_asr_init(state, msg, _b, conn=None):
     import asyncio
     eng = state["asr_engine"]
@@ -553,6 +569,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed_stream
             conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
+            conn.on_close(lambda: _asr_teardown(state, conn))
         ms = 0
     else:
         # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
@@ -560,6 +577,7 @@ async def _h_asr_init(state, msg, _b, conn=None):
                       vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed
+            conn.on_close(lambda: _asr_teardown(state, conn))
 
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(eng, "resolved", None)

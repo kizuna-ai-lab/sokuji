@@ -312,8 +312,8 @@ def test_streaming_init_sets_resolved_device_and_memory(monkeypatch):
 
 
 def test_conn_close_frees_asr_model():
-    # A session connection (asr_init set on_binary) closing must trigger engine.close()
-    # in _conn's finally, releasing the model from VRAM on stop.
+    # A session connection (asr_init registers its cleanup) closing must trigger
+    # engine.close() in _conn's finally, releasing the model from VRAM on stop.
     closed = {"n": 0}
 
     class Eng:

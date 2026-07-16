@@ -78,19 +78,9 @@ async def _conn(state, ws):
             except Exception:
                 pass
         # A session connection closing is "stop": free that connection's model from VRAM.
-        # Ownership is per-connection: ASR streaming sets on_binary, the translate session
-        # sets owns_translate; the model-management connection sets neither and leaves
+        # Ownership is per-connection: the translate session sets owns_translate, the TTS
+        # session sets owns_tts; the model-management connection sets neither and leaves
         # models alone. Both engines are process singletons reused on the next init.
-        if conn.ctx.get("on_binary") is not None:
-            task = conn.ctx.get("stream_task")
-            if task is not None:
-                task.cancel()
-            eng = state.get("asr_engine")
-            if eng is not None:
-                try:
-                    eng.close()
-                except Exception:
-                    pass
         if conn.ctx.get("owns_translate"):
             teng = state.get("translate_engine")
             if teng is not None:
