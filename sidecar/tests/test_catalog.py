@@ -134,7 +134,7 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
-                                 "qwen3tts_onnx", "mlx_audio_tts"}
+                                 "qwen3tts_onnx", "mlx_audio_tts", "gpt_sovits_onnx"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():

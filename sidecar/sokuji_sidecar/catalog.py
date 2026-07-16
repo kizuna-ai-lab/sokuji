@@ -390,6 +390,9 @@ _QWEN3_TTS_06B_REPO = os.environ.get(
 _QWEN3_TTS_17B_REPO = os.environ.get(
     "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx")
 
+_GPT_SOVITS_REPO = os.environ.get(
+    "SOKUJI_GPT_SOVITS_REPO", "jiangzhuo9357/gpt-sovits-v2pp-onnx")
+
 # macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
 # same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
 _MOSS_NANO_MLX_REPO = os.environ.get(
@@ -449,6 +452,19 @@ TTS_MODELS: list[TtsModel] = [
              transcript_required=True, named_voices=True, sample_rate=24000,
              recommended=False, sort_order=3, size_bytes=11431100174,
              cuda_variant_subdir="onnx-bf16"),
+    # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
+    # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
+    # x86 discrete-GPU benefit unverified (per-step KV round-trip) — the RTF
+    # bench demotes it there if slow. recommended stays False until en/ja
+    # quality is validated (upstream reports; sudachi kanji readings).
+    TtsModel("gpt-sovits-v2pp", "GPT-SoVITS v2ProPlus",
+             ("zh", "en", "ja"),
+             (Deployment("gpt_sovits_onnx", "gpu-cuda", "fp32", _GPT_SOVITS_REPO, 1.0,
+                         est_bytes=2_500_000_000),
+              Deployment("gpt_sovits_onnx", "cpu", "fp32", _GPT_SOVITS_REPO, 1.0)),
+             repos=(_GPT_SOVITS_REPO,), clones=True, streaming=False,
+             transcript_required=True, named_voices=True, sample_rate=32000,
+             recommended=False, sort_order=4, size_bytes=1_360_000_000),
     # piper / vits single-voice models (one repo = one model = one voice).
     _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
                     "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,
