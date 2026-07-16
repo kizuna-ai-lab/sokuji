@@ -1,7 +1,7 @@
 # Vendored from Genie-TTS 2.0.2 (MIT, https://github.com/High-Logic/Genie-TTS),
 # original path: genie_tts/G2P/English/EnglishG2P.py. Local modifications are
 # marked with "SOKUJI:" comments. See gpt_sovits/LICENSE.
-import pickle
+import json  # SOKUJI: dictionaries ship as JSON, not pickle (see CACHE_PATH)
 import os
 import re
 from typing import List, Dict, Tuple
@@ -25,8 +25,12 @@ word_tokenize = TweetTokenizer().tokenize
 CMU_DICT_PATH = os.path.join(assets.english_g2p_dir(), "cmudict.rep")
 CMU_DICT_FAST_PATH = os.path.join(assets.english_g2p_dir(), "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(assets.english_g2p_dir(), "engdict-hot.rep")
-CACHE_PATH = os.path.join(assets.english_g2p_dir(), "engdict_cache.pickle")
-NAMECACHE_PATH = os.path.join(assets.english_g2p_dir(), "namedict_cache.pickle")
+# SOKUJI: upstream ships these caches as pickles; unpickling files from a
+# downloaded (and env-overridable) model repository is arbitrary code
+# execution by design, so the Sokuji model card publishes them as JSON
+# (same dict[str, list] payload) and this port loads JSON only.
+CACHE_PATH = os.path.join(assets.english_g2p_dir(), "engdict_cache.json")
+NAMECACHE_PATH = os.path.join(assets.english_g2p_dir(), "namedict_cache.json")
 MODEL_PATH = os.path.join(assets.english_g2p_dir(), "checkpoint20.npz")
 
 # 正则表达式和映射
@@ -59,10 +63,8 @@ def _read_cmu_dict(file_path: str) -> Dict[str, List[str]]:
 
 
 def _load_and_cache_dict() -> Dict[str, List[List[str]]]:
-    # Trusted local asset bundled in the downloaded GenieData/model-card
-    # snapshot (not user-supplied input) — pickle.load is safe here.
-    with open(CACHE_PATH, "rb") as f:
-        g2p_dict = pickle.load(f)
+    with open(CACHE_PATH, encoding="utf-8") as f:  # SOKUJI: JSON, not pickle
+        g2p_dict = json.load(f)
     hot_dict = _read_cmu_dict(CMU_DICT_HOT_PATH)
     if hot_dict: g2p_dict.update(hot_dict)
     return g2p_dict
@@ -134,19 +136,20 @@ class CleanG2p:
             raise FileNotFoundError(f"G2P model file not found at: {MODEL_PATH}. "
                                     f"Please ensure 'checkpoint20.npz' is in the correct directory.")
 
-        variables = np.load(MODEL_PATH)
-        self.enc_emb = variables["enc_emb"]
-        self.enc_w_ih = variables["enc_w_ih"]
-        self.enc_w_hh = variables["enc_w_hh"]
-        self.enc_b_ih = variables["enc_b_ih"]
-        self.enc_b_hh = variables["enc_b_hh"]
-        self.dec_emb = variables["dec_emb"]
-        self.dec_w_ih = variables["dec_w_ih"]
-        self.dec_w_hh = variables["dec_w_hh"]
-        self.dec_b_ih = variables["dec_b_ih"]
-        self.dec_b_hh = variables["dec_b_hh"]
-        self.fc_w = variables["fc_w"]
-        self.fc_b = variables["fc_b"]
+        # SOKUJI: context manager — NpzFile otherwise holds an open fd
+        with np.load(MODEL_PATH) as variables:
+            self.enc_emb = variables["enc_emb"]
+            self.enc_w_ih = variables["enc_w_ih"]
+            self.enc_w_hh = variables["enc_w_hh"]
+            self.enc_b_ih = variables["enc_b_ih"]
+            self.enc_b_hh = variables["enc_b_hh"]
+            self.dec_emb = variables["dec_emb"]
+            self.dec_w_ih = variables["dec_w_ih"]
+            self.dec_w_hh = variables["dec_w_hh"]
+            self.dec_b_ih = variables["dec_b_ih"]
+            self.dec_b_hh = variables["dec_b_hh"]
+            self.fc_w = variables["fc_w"]
+            self.fc_b = variables["fc_b"]
         # logger.info("G2P neural network model loaded successfully.")
 
     @staticmethod
@@ -206,10 +209,8 @@ class CleanG2p:
 
     @staticmethod
     def _load_name_dict() -> Dict[str, List[List[str]]]:
-        # Trusted local asset bundled in the downloaded GenieData/model-card
-        # snapshot (not user-supplied input) — pickle.load is safe here.
-        if os.path.exists(NAMECACHE_PATH):
-            with open(NAMECACHE_PATH, "rb") as f: return pickle.load(f)
+        if os.path.exists(NAMECACHE_PATH):  # SOKUJI: JSON, not pickle
+            with open(NAMECACHE_PATH, encoding="utf-8") as f: return json.load(f)
         return {}
 
     def _setup_homographs(self):

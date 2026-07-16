@@ -31,6 +31,27 @@ cp -rL "$GENIE/RoBERTa" "$OUT/genie_data/"
 cp -rL "$GENIE/G2P/ChineseG2P" "$OUT/genie_data/G2P/"
 cp -rL "$GENIE/G2P/EnglishG2P" "$OUT/genie_data/G2P/"
 
+# Publish the G2P dictionaries as JSON and drop the upstream pickles:
+# unpickling files from a downloaded repo is arbitrary code execution, so the
+# vendored loaders read JSON only (plain dict[str, list] payloads).
+python3 - "$OUT" <<'EOF'
+import json, pickle, os, sys
+out = sys.argv[1]
+for rel in ("genie_data/G2P/EnglishG2P/engdict_cache.pickle",
+            "genie_data/G2P/EnglishG2P/namedict_cache.pickle",
+            "genie_data/G2P/ChineseG2P/polyphonic.pickle"):
+    src = os.path.join(out, rel)
+    # Trusted here by provenance: input is the GenieData tree the maintainer
+    # fetched from upstream to run this build; the published repo carries
+    # only the JSON conversions.
+    with open(src, "rb") as f:
+        data = pickle.load(f)
+    with open(src[: -len(".pickle")] + ".json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.remove(src)
+    print("converted", rel, "-> json")
+EOF
+
 # default builtin voice: first utterance of the repo benchmark clip (JFK 1961
 # inaugural — US government work, public domain), trimmed to ~4.4s.
 python3 - "$OUT" <<'EOF'

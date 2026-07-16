@@ -43,7 +43,25 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
         if os.path.isfile(dst) and os.path.getsize(dst) == want:
             continue
         print(f"[gpt_sovits] expanding {name16} -> {name32} ({want} bytes)", file=sys.stderr, flush=True)
-        np.fromfile(src, dtype=np.float16).astype(np.float32).tofile(dst)
+        # Chunked convert into a temp file, then atomic os.replace: an
+        # interrupted or concurrent expansion can never leave a wrong-sized
+        # (or half-written but right-sized) fp32 file behind, and peak RAM
+        # stays at one chunk instead of fp16+fp32 whole-file copies.
+        tmp = dst + ".tmp"
+        try:
+            with open(src, "rb") as fin, open(tmp, "wb") as fout:
+                while True:
+                    chunk = np.fromfile(fin, dtype=np.float16, count=8_388_608)
+                    if chunk.size == 0:
+                        break
+                    chunk.astype(np.float32).tofile(fout)
+            os.replace(tmp, dst)
+        except BaseException:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            raise
         written.append(dst)
     return written
 

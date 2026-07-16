@@ -13,8 +13,30 @@ needs_assets = pytest.mark.skipif(
     reason="SOKUJI_GPT_SOVITS_ASSETS not set to a GenieData dir")
 
 
+def _ensure_json_dicts():
+    """The raw upstream GenieData assets carry pickles; the vendored loaders
+    read JSON only (published repos ship JSON — unpickling downloaded files
+    would be arbitrary code execution). Convert once for the test assets."""
+    import json
+    import pickle
+    for rel in ("G2P/EnglishG2P/engdict_cache.pickle",
+                "G2P/EnglishG2P/namedict_cache.pickle",
+                "G2P/ChineseG2P/polyphonic.pickle"):
+        src = os.path.join(ASSETS, rel)
+        dst = src[: -len(".pickle")] + ".json"
+        if os.path.isfile(src) and not os.path.isfile(dst):
+            with open(src, "rb") as f:
+                # Safe by scope: this is a dev-only fixture path the developer
+                # opts into via SOKUJI_GPT_SOVITS_ASSETS (upstream GenieData
+                # they fetched themselves); production loaders never unpickle.
+                data = pickle.load(f)
+            with open(dst, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+
+
 def _configure():
     from sokuji_sidecar.gpt_sovits import assets
+    _ensure_json_dicts()
     assets.configure(
         chinese_g2p_dir=os.path.join(ASSETS, "G2P", "ChineseG2P"),
         english_g2p_dir=os.path.join(ASSETS, "G2P", "EnglishG2P"),

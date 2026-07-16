@@ -248,3 +248,27 @@ def test_generate_no_audio_error_hints_language_mismatch(monkeypatch, tmp_path):
     b._synth = type("S", (), {"synthesize": lambda self, *a, **k: None})()
     with pytest.raises(RuntimeError, match="looks chinese.*session language is english"):
         b.generate("我很高兴。", 1.0)
+
+
+def test_stage_real_tree_blocks_symlink_escape(tmp_path, capsys):
+    # HF layout: <repo>/blobs + <repo>/snapshots/<rev>/...; a link escaping
+    # the repo root must be skipped, not materialized.
+    from sokuji_sidecar.tts_backends import _gpt_sovits_stage_real_tree
+    repo = tmp_path / "models--x--y"
+    blobs = repo / "blobs"
+    blobs.mkdir(parents=True)
+    (blobs / "goodblob").write_text("legit")
+    outside = tmp_path / "outside-secret.txt"
+    outside.write_text("secret")
+    d = repo / "snapshots" / "rev" / "EnglishG2P"
+    d.mkdir(parents=True)
+    os.symlink(blobs / "goodblob", d / "good.rep")
+    os.symlink(outside, d / "evil.rep")
+
+    staged = _gpt_sovits_stage_real_tree(str(d))
+    assert os.path.isfile(os.path.join(staged, "good.rep"))
+    assert not os.path.exists(os.path.join(staged, "evil.rep"))
+    assert "escapes the model cache" in capsys.readouterr().err
+    # atomic build: no tmp residue next to the staged tree
+    parent = os.path.dirname(staged)
+    assert not [n for n in os.listdir(parent) if ".staged.tmp" in n]

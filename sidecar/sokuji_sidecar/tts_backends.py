@@ -700,23 +700,48 @@ def _gpt_sovits_stage_real_tree(src_dir: str) -> str:
     if not has_symlink:
         return src_dir
     # Stage NEXT TO the source (inside the user-private HF snapshot, like the
-    # fp32 bin expansion), never in the world-writable tempdir: the dir holds
-    # pickles the G2P unpickles, and a predictable /tmp path would let a local
-    # attacker pre-plant them (the idempotent skip would then adopt the files).
+    # fp32 bin expansion), never in the world-writable tempdir — a predictable
+    # /tmp path would let a local attacker pre-plant files that the
+    # idempotent skip below would adopt.
     staged = src_dir + ".staged"
-    for root, _dirs, files in os.walk(src_dir):
-        rel = os.path.relpath(root, src_dir)
-        dst_root = staged if rel == "." else os.path.join(staged, rel)
-        os.makedirs(dst_root, exist_ok=True)
-        for name in files:
-            src = os.path.realpath(os.path.join(root, name))
-            dst = os.path.join(dst_root, name)
-            if os.path.exists(dst):
-                continue
-            try:
-                os.link(src, dst)
-            except OSError:
-                shutil.copy2(src, dst)
+    if os.path.isdir(staged):
+        # Built atomically (rename below), so existence == complete.
+        return staged
+    # Symlink targets must stay inside the HF repo cache (snapshots link into
+    # its sibling blobs/); a link escaping it would materialize arbitrary
+    # local files into the staged tree.
+    allowed_root = None
+    probe = os.path.dirname(src_dir)
+    while probe != os.path.dirname(probe):
+        if os.path.isdir(os.path.join(probe, "blobs")):
+            allowed_root = os.path.realpath(probe)
+            break
+        probe = os.path.dirname(probe)
+    tmp_root = f"{staged}.tmp{os.getpid()}"
+    shutil.rmtree(tmp_root, ignore_errors=True)
+    try:
+        for root, _dirs, files in os.walk(src_dir):
+            rel = os.path.relpath(root, src_dir)
+            dst_root = tmp_root if rel == "." else os.path.join(tmp_root, rel)
+            os.makedirs(dst_root, exist_ok=True)
+            for name in files:
+                src = os.path.realpath(os.path.join(root, name))
+                if allowed_root is not None and not src.startswith(allowed_root + os.sep):
+                    print(f"[gpt_sovits] skipping {name}: symlink target escapes "
+                          f"the model cache ({src})", file=sys.stderr, flush=True)
+                    continue
+                dst = os.path.join(dst_root, name)
+                try:
+                    os.link(src, dst)
+                except OSError:
+                    shutil.copy2(src, dst)
+        try:
+            os.rename(tmp_root, staged)  # atomic: complete trees only
+        except OSError:
+            if not os.path.isdir(staged):  # lost a race to another process?
+                raise
+    finally:
+        shutil.rmtree(tmp_root, ignore_errors=True)
     return staged
 
 
@@ -848,6 +873,10 @@ class GptSovitsOnnxBackend:
         self.set_builtin_voice(name)
 
     def generate(self, text, speed=1.0):
+        # NOTE: `speed` is accepted for engine-contract parity but not applied:
+        # the converted VITS graph exposes no length/rate control (upstream
+        # genie-tts has no speed parameter either), and naive resampling would
+        # shift pitch. Revisit if a length_scale input lands upstream.
         self._ensure_voice()
         text = (text or "").strip()
         t0 = time.time()

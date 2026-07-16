@@ -2,7 +2,7 @@
 # original path: genie_tts/G2P/Chinese/CorrectPronunciation.py. Local
 # modifications are marked with "SOKUJI:" comments. See gpt_sovits/LICENSE.
 import os
-import pickle
+import json  # SOKUJI: dictionary ships as JSON, not pickle (see _default_cache_path)
 from typing import List, Dict, Any, Optional, Union
 
 from ... import assets  # SOKUJI: Core.Resources env-driven dirs -> explicit configure()
@@ -12,7 +12,10 @@ def _default_cache_path() -> str:
     # SOKUJI: was a module-level constant bound to Chinese_G2P_DIR at import
     # time; assets.chinese_g2p_dir() must be resolved lazily (after
     # configure() has run), not at module-import time.
-    return os.path.join(assets.chinese_g2p_dir(), "polyphonic.pickle")
+    # SOKUJI: upstream ships polyphonic.pickle; unpickling files from a
+    # downloaded (env-overridable) model repository is arbitrary code
+    # execution by design, so the Sokuji model card publishes JSON instead.
+    return os.path.join(assets.chinese_g2p_dir(), "polyphonic.json")
 
 
 class PolyphonicDictManager:
@@ -21,10 +24,8 @@ class PolyphonicDictManager:
     @classmethod
     def get_data(cls, path: Optional[str] = None) -> Dict[str, Any]:
         if not cls._data:
-            # Trusted local asset bundled in the downloaded GenieData/model-card
-            # snapshot (not user-supplied input) — pickle.load is safe here.
-            with open(path or _default_cache_path(), "rb") as f:
-                cls._data = pickle.load(f)
+            with open(path or _default_cache_path(), encoding="utf-8") as f:
+                cls._data = json.load(f)  # SOKUJI: JSON, not pickle
         return cls._data
 
 

@@ -84,3 +84,11 @@ def test_build_model_sessions_optional_prompt_encoder(monkeypatch, tmp_path):
     sessions = runtime.build_model_sessions(str(tmp_path), "cpu")
     assert set(sessions) == {"t2s_encoder_fp32.onnx", "t2s_first_stage_decoder_fp32.onnx",
                              "t2s_stage_decoder_fp32.onnx", "vits_fp32.onnx"}
+
+
+def test_fp16_expansion_leaves_no_tmp_residue(tmp_path):
+    np.zeros(16, dtype=np.float16).tofile(tmp_path / "vits_fp16.bin")
+    runtime.ensure_fp32_bins(str(tmp_path))
+    residue = [p.name for p in tmp_path.iterdir() if p.name.endswith(".tmp")]
+    assert residue == []
+    assert (tmp_path / "vits_fp32.bin").stat().st_size == 16 * 4
