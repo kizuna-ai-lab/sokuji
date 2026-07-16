@@ -12,8 +12,8 @@ from huggingface_hub import hf_hub_download, snapshot_download
 
 from sokuji_sidecar.catalog import _gguf_artifact, split_artifact
 
-POCKET_REPO = "KevinAHM/pocket-tts-web"
-POCKET_SUB = "onnx/english_2026-04"
+# The english Pocket mirror (flat model repo staged by scripts/mirror_pocket_tts.py).
+POCKET_REPO = os.environ.get("SOKUJI_POCKET_TTS_EN_REPO", "jiangzhuo9357/pocket-tts-en-onnx")
 # Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (llamacpp_qwen backend).
 # Upstream-sourced (Task 14b): an "org/repo/file.gguf" artifact, not a snapshot-able repo.
 TRANSLATE = _gguf_artifact("qwen2.5-0.5b", "q8_0")
@@ -41,8 +41,7 @@ def main():
     print(f"HF_HOME={os.environ.get('HF_HOME', '(default ~/.cache/huggingface)')}\n")
 
     print("Pocket TTS (voice cloning):")
-    pocket_root = fetch("pocket", repo_id=POCKET_REPO, repo_type="space",
-                        allow_patterns=[f"{POCKET_SUB}/*"])
+    pocket_root = fetch("pocket", repo_id=POCKET_REPO)
 
     print(f"\nTranslation LLM ({TRANSLATE}):")
     repo, fname = split_artifact(TRANSLATE)
@@ -75,7 +74,7 @@ def main():
 
     if pocket_root:
         print("\nFor the model-gated Pocket pytest (sidecar/tests):")
-        print(f"  export POCKET_MODEL_DIR={pocket_root}/{POCKET_SUB}")
+        print(f"  export POCKET_MODEL_DIR={pocket_root}")
     print("\nTo let the Electron app reuse this cache, launch with the same HF_HOME, e.g.:")
     print(f"  HF_HOME={os.environ.get('HF_HOME', os.path.expanduser('~/.cache/huggingface'))} npm run electron:dev")
 
