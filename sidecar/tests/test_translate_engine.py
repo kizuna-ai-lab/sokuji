@@ -30,7 +30,7 @@ def test_translate_init():
     assert st["translate_engine"].langs == ("ja", "en")
 
 
-def test_translate_returns_translation():
+def test_translate_returns_translate_result():
     st = make_state()
     reply, binary = asyncio.run(server.handle_message(
         st, json.dumps({"type": "translate", "id": 2, "text": "hola"})))

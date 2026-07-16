@@ -158,7 +158,7 @@ def test_handler_tts_generate_streaming_pushes_chunks(monkeypatch):
     assert kinds.count("tts_chunk") == 3 and kinds.count("tts_done") == 1
 
 
-def test_handler_tts_generate_oneshot_returns_result(monkeypatch):
+def test_handler_tts_generate_oneshot_returns_tts_generate_result(monkeypatch):
     st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
     conn = _FakeConn()
     asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
