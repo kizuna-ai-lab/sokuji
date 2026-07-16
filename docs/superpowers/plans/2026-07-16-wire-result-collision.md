@@ -303,11 +303,15 @@ Expected: native TS lane all pass; sidecar `test_tts_engine.py` + `test_asr_engi
 Run: `npx tsc --noEmit 2>&1 | grep -c 'error TS'`
 Expected: **160** (was 162; the two `NativeTtsClient.ts(152)` TS2339 errors are gone).
 
-Confirm none of the remaining errors are in the native lane:
+Confirm no error remains in a file this branch touches:
 ```bash
-npx tsc --noEmit 2>&1 | grep 'local-inference/native'
+npx tsc --noEmit 2>&1 | grep -E 'NativeTtsClient|NativeTranslateClient|NativeAsrClient|nativeProtocol'
 ```
-Expected: no output. Per Global Constraint 5, do not touch the other 160.
+Expected: no output.
+
+Do **not** grep for `local-inference/native` — that lane has **7** pre-existing errors
+(in `nativeCatalog.test.ts` and `nativeVoiceStorage.ts`, both untouched by this branch)
+which are not yours to fix. Per Global Constraint 5, leave the other 160 alone.
 
 - [ ] **Step 12: Commit**
 
@@ -704,8 +708,12 @@ report the discrepancy rather than adjusting anything to hit the number.
 Run: `npx tsc --noEmit 2>&1 | grep -c 'error TS'`
 Expected: **160** (baseline 162, minus the two collision errors).
 
-Run: `npx tsc --noEmit 2>&1 | grep 'local-inference/native'`
+Run: `npx tsc --noEmit 2>&1 | grep -E 'NativeTtsClient|NativeTranslateClient|NativeAsrClient|nativeProtocol'`
 Expected: no output.
+
+Do **not** grep for `local-inference/native` — that lane has **7** pre-existing errors
+(`nativeCatalog.test.ts`, `nativeVoiceStorage.ts`), untouched by this branch and not
+yours to fix.
 
 - [ ] **Step 5: Verify no stray old names survive in the native lane**
 
