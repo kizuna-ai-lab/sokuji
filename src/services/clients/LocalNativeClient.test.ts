@@ -545,17 +545,20 @@ describe('LocalNativeClient TTS connect', () => {
     expect(loadingStates[1]).toBe(false);
   });
 
-  it('does NOT init TTS for pocket models', async () => {
+  it('inits TTS for pocket models like any other voice-capable card', async () => {
+    // The pocket exclusion predated the pluggable pocket_onnx backend: pocket
+    // now rides the standard tts_init + capability-driven voice path, so the
+    // model-id string gate is gone.
     const deps = tts4Deps();
     const c = new LocalNativeClient(deps);
     c.setEventHandlers({});
     await c.connect({
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
-      ttsModelId: 'pocket-tts-v1', ttsSpeed: 1.0, textOnly: false,
+      ttsModelId: 'pocket-tts-en', ttsSpeed: 1.0, textOnly: false,
     } as any);
-    expect(deps.tts.init).not.toHaveBeenCalled();
-    expect(useNativeModelStore.getState().ttsResolved).toBeNull();
+    expect(deps.tts.init).toHaveBeenCalledWith('pocket-tts-en', undefined);
+    expect(useNativeModelStore.getState().ttsResolved).not.toBeNull();
   });
 });
 

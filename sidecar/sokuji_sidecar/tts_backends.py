@@ -842,6 +842,104 @@ class GptSovitsOnnxBackend:
         self._hubert = None
         self._reference = None
         self._snapshot = None
+@register_backend
+class PocketOnnxTtsBackend:
+    """Pocket TTS (Kyutai CALM zero-shot voice cloning) via int8 ONNX on CPU.
+
+    One language per model repo — the bundle's flow-LM is language-specific;
+    all bundles ship the same eight predefined voices in voices.bin (KV-cache
+    prefixes, so picking one skips the reference-encode prefill entirely).
+    CPU-only by measurement: the int8 seqlen-1 AR decode is memory-bound and
+    runs well above realtime on CPU, while the int8 operator set
+    (MatMulInteger/DynamicQuantizeLinear) has no validated GPU kernel path.
+    Runtime lives in pocket_inference/pocket_bundle/pocket_tokenizer."""
+    NAME = "pocket_onnx"
+    STREAMING = False
+    CLONES = True
+
+    def __init__(self):
+        self._sessions = None
+        self._meta = None
+        self._bos = None
+        self._tok = None
+        self._flow = None       # voice-conditioned flow-LM state (KV prefix)
+        self._voices = None     # parsed voices.bin, loaded on first builtin pick
+        self._dir = None
+        self.sample_rate = 24000
+        self.preset_voice = os.environ.get("SOKUJI_POCKET_PRESET_VOICE", "alba")
+
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
+        self.unload()
+        try:
+            from huggingface_hub import snapshot_download
+            from . import pocket_bundle as pb
+            from . import pocket_inference as pi
+            from .pocket_tokenizer import PocketTokenizer
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            self._sessions = pi.load_sessions(
+                d, int(os.environ.get("POCKET_NATIVE_THREADS", "2")))
+            with open(os.path.join(d, pb.METADATA_FILE), encoding="utf-8") as f:
+                self._meta = _json.load(f)
+            self._bos = (pb.parse_npy_float32(os.path.join(d, pb.BOS_FILE))
+                         if self._meta.get("insert_bos_before_voice") else None)
+            self._tok = PocketTokenizer(os.path.join(d, pb.TOKENIZER_FILE))
+            self.sample_rate = int(self._meta.get("sample_rate", pb.SAMPLE_RATE))
+            self._dir = d
+        except Exception as e:  # missing snapshot / bad bundle -> resolver fallback
+            self.unload()
+            raise BackendLoadError(str(e))
+
+    # ---- voices ----------------------------------------------------------
+    def set_voice(self, audio, sr):
+        from . import pocket_inference as pi
+        ref = pi.resample_to_24k(np.asarray(audio, dtype=np.float32), int(sr))
+        emb = pi.encode_reference(self._sessions, ref)
+        self._flow = pi.build_voice_conditioned_state(
+            self._sessions, self._meta, emb, self._bos)
+
+    def set_builtin_voice(self, name: str) -> None:
+        from . import pocket_bundle as pb
+        from . import pocket_inference as pi
+        if self._voices is None:
+            self._voices = pb.parse_voices_bin(os.path.join(self._dir, pb.VOICES_FILE))
+        record = self._voices.get(name)
+        if record is None:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        self._flow = pi.state_from_voice_record(self._meta, record)
+
+    def set_speaker(self, sid):
+        pass  # Pocket selects voices by name/clip, not a numeric speaker id
+
+    # ---- synthesis -------------------------------------------------------
+    def generate(self, text, speed=1.0):
+        # `speed` is a deliberate no-op: frame count is EOS-governed (upstream
+        # behaviour). No voice picked yet -> apply the preset; the post-load RTF
+        # probe generates before the renderer ever sends set_voice, and the
+        # predefined-voice path skips the reference-encode prefill entirely.
+        from . import pocket_bundle as pb
+        from . import pocket_inference as pi
+        if self._flow is None:
+            self.set_builtin_voice(self.preset_voice)
+        t0 = time.time()
+        ids = np.array(self._tok.encode_ids(text), np.int64).reshape(1, -1)
+        tc = self._sessions["textConditioner"].run(None, {"token_ids": ids})[0]
+        out = pi.generate(self._sessions, self._meta, tc, self._flow,
+                          lsd_steps=pb.DEFAULT_LSD_STEPS,
+                          max_frames=pb.DEFAULT_MAX_FRAMES)
+        return out, int((time.time() - t0) * 1000)
+
+    def unload(self) -> None:
+        self._sessions = None
+        self._meta = None
+        self._bos = None
+        self._tok = None
+        self._flow = None
+        self._voices = None
+        self._dir = None
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._sessions is not None
 
 
 # Registered in a separate module (Apple-Silicon-only mlx-audio), imported here so

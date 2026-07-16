@@ -92,7 +92,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 15
+    assert len(ids) == 23
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
@@ -134,7 +134,8 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
-                                 "qwen3tts_onnx", "mlx_audio_tts", "gpt_sovits_onnx"}
+                                 "qwen3tts_onnx", "mlx_audio_tts",
+                                 "gpt_sovits_onnx", "pocket_onnx"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():

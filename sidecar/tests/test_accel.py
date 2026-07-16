@@ -638,6 +638,22 @@ def test_qwen3_backend_installed_and_resolvable():
     assert plans and plans[0].backend == "qwen3tts_onnx"
 
 
+def test_pocket_onnx_installed_and_resolvable():
+    # Force a REAL probe: the characterization fixtures below hand-author their
+    # own `installed` sets, so they would stay green even if accel._installed()'s
+    # pocket_onnx gate-map entry were reverted or typo'd — which would make
+    # resolve_tts raise NoUsablePlan for every real machine (this exact bug
+    # already happened once while wiring pocket_onnx into _installed()).
+    accel.probe(force=True)
+    # onnxruntime + sentencepiece are sidecar dependencies → pocket_onnx
+    # self-gates ON here, and resolve_tts must produce the single cpu/int8
+    # plan the catalog declares (not raise NoUsablePlan).
+    assert "pocket_onnx" in accel._installed()
+    plans = accel.resolve_tts("pocket-tts-en", override="cpu")
+    assert plans and plans[0].backend == "pocket_onnx"
+    assert plans[0].tier == "cpu" and plans[0].compute_type == "int8"
+
+
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     from sokuji_sidecar import accel
     import numpy as np

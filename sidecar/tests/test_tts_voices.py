@@ -89,3 +89,20 @@ def test_qwen3_without_bundled_voices_dir_falls_through_to_empty(tmp_path, monke
     snap.mkdir()
     monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
     assert tts_voices.list_builtin_voices("qwen3-tts-0.6b") == []
+
+
+def test_pocket_bundled_voice_manifest_listing(monkeypatch, tmp_path):
+    # Pocket rides the generic bundled-voices branch: the mirror repo ships
+    # voices/manifest.json (staged by scripts/mirror_pocket_tts.py), so voice
+    # listing needs no pocket-specific code path.
+    from sokuji_sidecar import tts_voices
+    vdir = tmp_path / "voices"
+    vdir.mkdir()
+    (vdir / "manifest.json").write_text(json.dumps(
+        [{"name": "alba", "default": True}] + [{"name": n} for n in
+         ["azelma", "cosette", "eponine", "fantine", "javert", "jean", "marius"]]))
+    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(tmp_path))
+    out = tts_voices.list_builtin_voices("pocket-tts-en")
+    assert len(out) == 8
+    assert [v["name"] for v in out][:2] == ["alba", "azelma"]
+    assert out[0]["default"] is True and out[1]["default"] is False
