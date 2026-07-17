@@ -1058,17 +1058,27 @@ def test_plan_config_qwen25_05b_is_fully_inert():
     assert planner._plan_config(card) == planner.PlanConfig()
 
 
-def test_plan_config_qwen3_tts_06b_carries_onnx_bf16_variant_subdir():
-    card = catalog.resolve_tts_card("qwen3-tts-0.6b")
+def test_plan_config_carries_cuda_variant_subdir_when_card_sets_it():
+    # The real qwen3-tts cards no longer set cuda_variant_subdir (P7: they now
+    # ship the bf16 graph as its own self-contained repo/deployment row
+    # instead of a subdir picked at load time) -- the field/mechanism itself
+    # is still live (removal is a later task), so cover _plan_config's
+    # threading of it with a hand-built card, mirroring this file's
+    # resolve_tts_card-fixture pattern (see module docstring).
+    card = catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0),),
+        cuda_variant_subdir="onnx-bf16")
     assert planner._plan_config(card) == planner.PlanConfig(variant_subdir="onnx-bf16")
 
 
 def test_plan_config_non_onnx_tts_card_has_no_variant_subdir():
-    # moss-tts-nano has no cuda_variant_subdir field value set (defaults None)
-    # -- only the qwen3-tts onnx cards carry the bf16-graph subdir.
-    card = catalog.tts_model("moss-tts-nano")
-    assert planner._plan_config(card) == planner.PlanConfig()
-    assert planner._plan_config(card).variant_subdir is None
+    # moss-tts-nano (and, as of P7, the qwen3-tts cards too) has no
+    # cuda_variant_subdir field value set (defaults None).
+    for mid in ("moss-tts-nano", "qwen3-tts-0.6b", "qwen3-tts-1.7b"):
+        card = catalog.tts_model(mid)
+        assert planner._plan_config(card) == planner.PlanConfig()
+        assert planner._plan_config(card).variant_subdir is None
 
 
 def test_resolve_translate_propagates_qwen3_thinking_config():
@@ -1082,8 +1092,17 @@ def test_resolve_translate_propagates_qwen3_thinking_config():
     assert all(p.config == plans[0].config for p in plans)
 
 
-def test_resolve_tts_propagates_qwen3_variant_subdir_config():
+def test_resolve_tts_propagates_cuda_variant_subdir_config(monkeypatch):
+    # The real qwen3-tts cards no longer set cuda_variant_subdir (P7); cover
+    # resolve_tts's propagation of the field with a hand-built card, mirroring
+    # this file's other resolve_tts_card-fixture tests (see module docstring).
+    card = catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0)),
+        cuda_variant_subdir="onnx-bf16")
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: card)
     m = _nv_machine(12000, installed=frozenset({"qwen3tts_onnx"}))
-    plans = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
+    plans = planner.resolve_tts("fake-tts", machine=m, platform="linux", cache={})
     assert plans[0].config.variant_subdir == "onnx-bf16"
     assert all(p.config.variant_subdir == "onnx-bf16" for p in plans)
