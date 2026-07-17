@@ -14,9 +14,10 @@ text marks it Japanese. Normalization runs on punctuation-delimited chunks
 so punctuation marks pass through byte-for-byte instead of being rewritten
 by pyopenjtalk (empirically, feeding it a whole string with ASCII
 punctuation mixed in rewrites "," / "!" to full-width "，" / "！", which
-would silently change output the caller didn't ask for). pyopenjtalk import
-failures degrade softly (text passes through unmodified) so the backend
-never dies over the JA path.
+would silently change output the caller didn't ask for). Both a pyopenjtalk
+import failure and a runtime g2p() failure on a given chunk degrade softly
+(the affected text passes through unmodified) so the backend never dies
+over the JA path.
 """
 import re
 
@@ -51,7 +52,13 @@ def _kana_normalize(text: str) -> str:
     out = []
     for part in parts:
         if part and (_KANA_RE.search(part) or _CJK_RE.search(part)):
-            out.append(pyopenjtalk.g2p(part, kana=True))
+            try:
+                out.append(pyopenjtalk.g2p(part, kana=True))
+            except Exception:
+                # A g2p failure on this chunk (pathological input, dictionary
+                # gap, ...) must not take down the whole request — fall back
+                # to the untouched chunk, same as an import failure.
+                out.append(part)
         else:
             out.append(part)
     return "".join(out)

@@ -1,3 +1,6 @@
+import sys
+import types
+
 import pytest
 
 from sokuji_sidecar.cosyvoice3 import frontend
@@ -40,3 +43,28 @@ def test_kana_detection_requires_kana_not_just_cjk():
     # kanji-only strings are ambiguous zh/ja: leave them alone
     s = "人工知能"
     assert frontend.normalize_text(s) == s
+
+
+def test_g2p_runtime_failure_degrades_softly(monkeypatch):
+    """A pyopenjtalk.g2p() exception on a chunk (pathological input,
+    dictionary gap, ...) must not propagate — the affected chunk passes
+    through unmodified rather than crashing the whole request."""
+    def _raising_g2p(text, kana=True):
+        raise RuntimeError("simulated g2p failure")
+
+    fake_pyopenjtalk = types.SimpleNamespace(g2p=_raising_g2p)
+    monkeypatch.setitem(sys.modules, "pyopenjtalk", fake_pyopenjtalk)
+
+    text = "こんにちは、今日は。"
+    assert frontend.normalize_text(text) == text
+
+
+def test_pyopenjtalk_import_failure_degrades_softly(monkeypatch):
+    """Setting sys.modules['pyopenjtalk'] = None makes the in-function
+    `import pyopenjtalk` raise ImportError, simulating the wheel being
+    absent at runtime — text must pass through unmodified rather than
+    raising."""
+    monkeypatch.setitem(sys.modules, "pyopenjtalk", None)
+
+    text = "こんにちは、今日は。"
+    assert frontend.normalize_text(text) == text
