@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from sokuji_sidecar.cosyvoice3 import pipeline
 

@@ -123,11 +123,11 @@ def llm_generate(sessions, tok, tts_text: str, prompt: VoicePrompt, rng) -> np.n
 
     min_len = MIN_TOKEN_TEXT_RATIO * len(tts_ids)
     max_len = min(MAX_TOKEN_TEXT_RATIO * len(tts_ids), HARD_MAX_TOKENS)
-    min_len = min(min_len, max_len)  # HARD_MAX_TOKENS can cap max_len below
-                                      # min_len for very long tts_text; without
-                                      # this the stop-mask (active while
-                                      # i < min_len) never lifts and decoding
-                                      # runs to max_len every time.
+    # HARD_MAX_TOKENS can cap max_len below min_len for very long tts_text;
+    # leave the stop-mask (active while i < min_len) at least one final step
+    # to lift so a natural stop stays reachable instead of always truncating
+    # at the cap.
+    min_len = min(min_len, max_len - 1)
 
     out_tokens: list = []       # full LLM sequence (RAS window + feedback)
     flow_tokens: list = []      # silent-filtered sequence for the flow
