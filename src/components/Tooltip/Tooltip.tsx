@@ -11,6 +11,7 @@ import {
   useDismiss,
   useRole,
   useInteractions,
+  useMergeRefs,
   FloatingPortal,
   arrow,
   useClick,
@@ -95,6 +96,14 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   const triggerElement = children || renderIcon();
 
+  // React 19 passes ref as a regular prop, so a caller-supplied ref on the
+  // trigger child arrives via props and must be merged with (not clobbered
+  // by, nor clobbering) the floating-ui anchor ref.
+  const childRef = isValidElement(triggerElement)
+    ? (triggerElement.props as { ref?: React.Ref<Element> }).ref
+    : undefined;
+  const triggerRef = useMergeRefs([refs.setReference, childRef]);
+
   // Function to render content with line break support
   const renderContent = () => {
     if (typeof content === 'string' && content.includes('\n')) {
@@ -122,8 +131,8 @@ const Tooltip: React.FC<TooltipProps> = ({
         cloneElement(
           triggerElement,
           getReferenceProps({
-            ref: refs.setReference,
             ...(triggerElement.props as any),
+            ref: triggerRef,
             className: `${(triggerElement.props as any)?.className || ''} tooltip-trigger`.trim(),
           })
         )

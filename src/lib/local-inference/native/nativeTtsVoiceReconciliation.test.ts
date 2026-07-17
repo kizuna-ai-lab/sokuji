@@ -1,3 +1,4 @@
+import { it, expect } from 'vitest';
 import { reconcileTtsVoice } from './nativeTtsVoiceReconciliation';
 const ava = [{ name: 'Ava', language: 'en', curated: true, unstable: false, default: true }];
 
