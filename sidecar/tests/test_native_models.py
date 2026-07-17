@@ -969,6 +969,35 @@ def test_model_status_tts_single_variant_card_unaffected(monkeypatch):
     assert native_models.model_status("fake-single-tts") == "absent"
 
 
+def test_model_status_tts_any_variant_on_macos_mlx_lane_checks_mlx_repo(monkeypatch):
+    """On macOS/Apple Silicon, _base_specs swaps a multi-variant TTS card's
+    download to the single MLX repo (see _base_specs docstring) — the ONNX
+    variant_repos are never fetched there. The any-rung branch must therefore
+    NOT apply on that lane (checking only the ONNX repos would report a
+    permanently-absent card even with the MLX repo fully cached); status must
+    fall through to the normal _repos_cached(specs) check, which correctly
+    evaluates the MLX repo. Regression for a reviewer-caught defect where
+    qwen3-tts-0.6b/1.7b read 'absent' forever on macOS despite the MLX repo
+    being fully cached."""
+    import types
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
+    mlx_repo = "mlx-community/fake-mlx"
+    card = catalog.TtsModel(
+        "fake-tts-mlx", "Fake TTS MLX", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", mlx_repo, 1.0,
+                             platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    # Only the MLX repo is cached; both ONNX variant repos are absent.
+    monkeypatch.setattr(native_models, "_repos_cached",
+                        lambda specs: specs["repos"] == [mlx_repo])
+    assert native_models.model_status("fake-tts-mlx") == "ready"
+
+
 def test_model_status_tts_repo_override_keeps_specific_variant_semantics(monkeypatch):
     """With an explicit repo override (the download button's 'is THIS variant
     downloaded?' question) the any-variant relaxation must NOT apply — mirrors
