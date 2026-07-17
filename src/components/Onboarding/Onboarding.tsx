@@ -28,6 +28,16 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   '#participant-section': 'participant',
 };
 
+// The settings panel stays mounted inside a hidden <Activity> when closed,
+// so DOM presence no longer implies the panel is open — check visibility
+// (offsetParent is null anywhere under a display:none ancestor).
+const isSettingsPanelVisible = (): boolean => {
+  const panel = document.querySelector<HTMLElement>(
+    '.settings-panel, .simple-settings, .advanced-settings'
+  );
+  return !!panel && panel.offsetParent !== null;
+};
+
 const Onboarding: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -52,8 +62,7 @@ const Onboarding: React.FC = () => {
 
     if (navTarget === 'close-settings') {
       // Close settings panel if it's open
-      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
-      if (settingsPanel) {
+      if (isSettingsPanelVisible()) {
         const settingsButton = document.querySelector('.settings-button') as HTMLElement;
         if (settingsButton) settingsButton.click();
         return 300;
@@ -63,8 +72,7 @@ const Onboarding: React.FC = () => {
 
     if (navTarget) {
       // Ensure settings panel is open
-      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
-      if (!settingsPanel) {
+      if (!isSettingsPanelVisible()) {
         const settingsButton = document.querySelector('.settings-button') as HTMLElement;
         if (settingsButton) settingsButton.click();
       }
