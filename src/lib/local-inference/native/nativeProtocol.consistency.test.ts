@@ -111,3 +111,88 @@ describe('nativeProtocol ServerMsg stays consistent with the sidecar wire', () =
     expect(unmodelled).toEqual([]);
   });
 });
+
+
+// ── Field-level contract ──────────────────────────────────────────────────────
+// C4a pinned the TYPE NAMES across the boundary; wire_schema.json (loaded by the
+// sidecar's wire.validate_outbound at its single outbound funnel) extends the
+// contract to top-level FIELD names. These tests pin that schema against the
+// ServerMsg interfaces, so a field added/renamed on one side goes red here.
+
+const WIRE_SCHEMA_FILE = join(SIDECAR_DIR, 'wire_schema.json');
+
+function loadWireSchema(): Map<string, { required: Set<string>; optional: Set<string> }> {
+  const raw = JSON.parse(readFileSync(WIRE_SCHEMA_FILE, 'utf-8'));
+  delete raw._comment;
+  const out = new Map<string, { required: Set<string>; optional: Set<string> }>();
+  for (const [mtype, spec] of Object.entries<any>(raw)) {
+    out.set(mtype, { required: new Set(spec.required), optional: new Set(spec.optional) });
+  }
+  if (out.size < MIN_SERVER_MSG_MEMBERS) {
+    throw new Error(`wire schema parsed to only ${out.size} messages — broken load`);
+  }
+  return out;
+}
+
+/** Top-level field names (+ optionality) per ServerMsg member, parsed from the
+ *  interface bodies. Throws on anything it cannot parse rather than returning a
+ *  partial set. */
+function extractServerMsgFields(): Map<string, { required: Set<string>; optional: Set<string> }> {
+  const source = readFileSync(PROTOCOL_FILE, 'utf-8');
+  const out = new Map<string, { required: Set<string>; optional: Set<string> }>();
+  for (const [name, discriminant] of extractServerMsgDiscriminants()) {
+    const start = source.indexOf(`export interface ${name} {`);
+    const open = source.indexOf('{', start);
+    // Brace-counted body: HardwareInfoResultMsg nests an inline object type.
+    let depth = 0; let end = open;
+    for (let i = open; i < source.length; i++) {
+      if (source[i] === '{') depth++;
+      else if (source[i] === '}' && --depth === 0) { end = i; break; }
+    }
+    if (depth !== 0) throw new Error(`unbalanced braces in interface ${name}`);
+    const body = source.slice(open + 1, end).replace(/\/\/[^\n]*/g, '');
+    const required = new Set<string>(); const optional = new Set<string>();
+    let level = 0; let field = '';
+    const commit = (chunk: string) => {
+      const m = chunk.match(/^\s*(\w+)(\?)?\s*:/);
+      if (!m) return;
+      if (m[1] === 'type') return;
+      (m[2] ? optional : required).add(m[1]);
+    };
+    for (const ch of body) {
+      if (ch === '{') level++;
+      else if (ch === '}') level--;
+      if (ch === ';' && level === 0) { commit(field); field = ''; } else field += ch;
+    }
+    commit(field);
+    out.set(discriminant, { required, optional });
+  }
+  return out;
+}
+
+describe('nativeProtocol ServerMsg fields stay consistent with the wire schema', () => {
+  it('every ServerMsg member matches the schema field-for-field', () => {
+    const schema = loadWireSchema();
+    const mismatches: string[] = [];
+    for (const [mtype, ts] of extractServerMsgFields()) {
+      const spec = schema.get(mtype);
+      if (!spec) { mismatches.push(`${mtype}: absent from wire_schema.json`); continue; }
+      const diff = (label: string, a: Set<string>, b: Set<string>) => {
+        for (const f of a) if (!b.has(f)) mismatches.push(`${mtype}.${f}: ${label}`);
+      };
+      diff('required in TS, not in schema', ts.required, spec.required);
+      diff('required in schema, not in TS', spec.required, ts.required);
+      diff('optional in TS, not in schema', ts.optional, spec.optional);
+      diff('optional in schema, not in TS', spec.optional, ts.optional);
+    }
+    expect(mismatches).toEqual([]);
+  });
+
+  it('the schema covers exactly ServerMsg plus the ping health-check', () => {
+    const modelled = new Set(extractServerMsgDiscriminants().map(([, t]) => t));
+    const schemaKeys = new Set(loadWireSchema().keys());
+    const missing = [...modelled].filter(t => !schemaKeys.has(t)).sort();
+    const extra = [...schemaKeys].filter(t => !modelled.has(t) && !SIDECAR_ONLY.has(t)).sort();
+    expect({ missing, extra }).toEqual({ missing: [], extra: [] });
+  });
+});
