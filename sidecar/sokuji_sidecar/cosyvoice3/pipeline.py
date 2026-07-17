@@ -27,7 +27,7 @@ import soxr
 
 from . import frontend
 from .mel import kaldi_fbank_80_cmn, matcha_mel_80, whisper_log_mel_128
-from .sampling import ras_sampling
+from .sampling import log_softmax, ras_sampling
 
 SAMPLE_RATE = 24000
 SPEECH_TOKEN_SIZE = 6561
@@ -44,6 +44,7 @@ MAX_TOKEN_TEXT_RATIO = 20
 HARD_MAX_TOKENS = 1500
 
 PROMPT_MAX_SECONDS = 30
+MIN_PROMPT_SECONDS = 0.5
 
 
 @dataclass
@@ -63,6 +64,15 @@ def process_prompt(sessions, tok, audio: np.ndarray, sr: int, transcript: str) -
     """Extract speech tokens, speaker embedding and flow mel conditioning
     from a reference (prompt) waveform, plus the zero-shot prompt_text ids."""
     audio = np.asarray(audio, dtype=np.float32)
+    # Guard degenerate clips: the mel front-ends reflect-pad (up to 720
+    # samples at 24 kHz) and the kaldi fbank needs at least one full frame,
+    # so a near-empty clip would crash or emit NaN through CMN. Refuse
+    # loudly instead of synthesizing garbage from a padded clip.
+    if sr <= 0:
+        raise ValueError("reference clip sample rate must be positive")
+    if audio.size < int(MIN_PROMPT_SECONDS * sr):
+        raise ValueError(
+            f"reference clip too short: need >= {MIN_PROMPT_SECONDS}s of audio")
     audio = audio[: PROMPT_MAX_SECONDS * sr]
 
     a16 = soxr.resample(audio, sr, 16000) if sr != 16000 else audio
@@ -133,8 +143,7 @@ def llm_generate(sessions, tok, tts_text: str, prompt: VoicePrompt, rng) -> np.n
     flow_tokens: list = []      # silent-filtered sequence for the flow
     consecutive_silent = 0
     for i in range(max_len):
-        logp = logits[0].astype(np.float64)
-        logp = logp - np.log(np.sum(np.exp(logp - logp.max()))) - logp.max()
+        logp = log_softmax(logits[0].astype(np.float64))
         if i < min_len:
             logp[STOP_TOKEN_MIN:] = -np.inf
         token_id = ras_sampling(logp, out_tokens, rng)
@@ -254,6 +263,8 @@ def hift_generate(sessions, mel: np.ndarray) -> np.ndarray:
 def synthesize(sessions, tok, text: str, prompt: VoicePrompt, rng, speed: float = 1.0) -> np.ndarray:
     """Synthesize ``text`` in the voice of ``prompt``. Returns float32 mono
     24 kHz audio, or an empty array if ``text`` is blank."""
+    if not np.isfinite(speed) or speed <= 0:
+        raise ValueError("speed must be a positive finite number")
     if not text.strip():
         return np.zeros(0, dtype=np.float32)
 

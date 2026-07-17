@@ -318,7 +318,8 @@ def test_pocket_backend_builtin_voices_end_to_end(monkeypatch):
     assert b.is_loaded is False
 
 
-@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_COSYVOICE3"),
+@pytest.mark.skipif(not (os.environ.get("SOKUJI_RUN_COSYVOICE3")
+                         and os.environ.get("SOKUJI_COSYVOICE3_REPO")),
                     reason="real-model cosyvoice3 smoke (needs local repo + models)")
 def test_cosyvoice3_real_model_smoke():
     b = backends.make_backend("cosyvoice3_onnx")

@@ -68,3 +68,33 @@ def test_engine_threads_ref_text():
     # the engine passes ref_text only to backends whose set_voice accepts it
     sig = inspect.signature(make_backend("cosyvoice3_onnx").set_voice)
     assert "ref_text" in sig.parameters
+
+
+def test_voice_methods_require_loaded_backend():
+    b = make_backend("cosyvoice3_onnx")
+    with pytest.raises(BackendLoadError):
+        b.set_voice(np.zeros(16000, np.float32), 16000, ref_text="hello")
+    with pytest.raises(BackendLoadError):
+        b.set_builtin_voice("classic-zh")
+
+
+def test_builtin_voice_name_traversal_rejected(tmp_path):
+    b = make_backend("cosyvoice3_onnx")
+    b._sessions, b._tok, b._dir = {}, object(), str(tmp_path)
+    for bad in ("../x", "..", "a/../b", "voices/../../x", "a b", ""):
+        with pytest.raises(BackendLoadError):
+            b.set_builtin_voice(bad)
+
+
+def test_load_clears_stale_voice_state(monkeypatch):
+    b = make_backend("cosyvoice3_onnx")
+    monkeypatch.setattr(tts_backends, "snapshot_download", lambda **k: "/snap")
+    monkeypatch.setattr(tts_backends._cv3_frontend, "load_tokenizer",
+                        lambda d: object())
+    monkeypatch.setattr(tts_backends._cv3_runtime, "build_sessions",
+                        lambda d, dev, t: {})
+    b.load("repo", "cpu", "fp32")
+    b._voice_cache["stale"] = "PROMPT"
+    b._prompt = "PROMPT"
+    b.load("repo", "cpu", "fp32")
+    assert b._voice_cache == {} and b._prompt is None

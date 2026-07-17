@@ -7,6 +7,7 @@ import json as _json
 import logging
 import os
 import queue
+import re
 import shutil
 import sys
 import tempfile
@@ -697,6 +698,9 @@ class CosyVoice3OnnxBackend:
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         try:
+            # a reload (e.g. switching deployments) must not keep voice
+            # prompts computed with the previous sessions/tokenizer
+            self.unload()
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             self._tok = _cv3_frontend.load_tokenizer(d)
@@ -715,6 +719,8 @@ class CosyVoice3OnnxBackend:
         self._voice_cache = {}
 
     def set_voice(self, audio, sr, ref_text: str = "") -> None:
+        if not self.is_loaded:
+            raise BackendLoadError("cosyvoice3 backend is not loaded")
         if not ref_text or not ref_text.strip():
             raise BackendLoadError("cosyvoice3 requires the reference transcript")
         audio32 = np.asarray(audio, dtype=np.float32)
@@ -731,6 +737,12 @@ class CosyVoice3OnnxBackend:
         in the model snapshot) — cloning from our own curated reference clip,
         the same code path as a user-supplied clip. Unknown name / missing
         files -> BackendLoadError (mirrors Qwen3TtsOnnxBackend.set_builtin_voice)."""
+        if not self.is_loaded:
+            raise BackendLoadError("cosyvoice3 backend is not loaded")
+        # names come over the wire: allow-list the charset so a crafted name
+        # like "../../etc/x" can never resolve outside the voices/ directory
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or ".." in name:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
         if name in self._voice_cache:
             self._prompt = self._voice_cache[name]
             return

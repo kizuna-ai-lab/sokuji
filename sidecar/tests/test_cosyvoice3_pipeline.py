@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from sokuji_sidecar.cosyvoice3 import pipeline
 
@@ -73,7 +74,7 @@ def test_llm_stops_on_any_reserved_id_and_never_emits_it():
     # away the very id this test exists to check.
     sessions = _fake_sessions([10, 11, 12, 6725])
     p = _prompt(sessions)
-    audio = pipeline.synthesize(sessions, _FakeTok(), "a", p,
+    pipeline.synthesize(sessions, _FakeTok(), "a", p,
                                 np.random.default_rng(0))
     # flow got prompt tokens + exactly the 3 emitted ids
     flow_feed = sessions["flow_token_embedding"].calls[-1]["token"]
@@ -133,3 +134,23 @@ def test_empty_text_returns_empty_audio():
     p = _prompt(sessions)
     out = pipeline.synthesize(sessions, _FakeTok(), "   ", p, np.random.default_rng(0))
     assert out.size == 0
+
+
+def test_invalid_speed_rejected():
+    sessions = _fake_sessions([6562])
+    p = _prompt(sessions)
+    for bad in (0.0, -1.0, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            pipeline.synthesize(sessions, _FakeTok(), "abcd", p,
+                                np.random.default_rng(0), speed=bad)
+
+
+def test_too_short_prompt_rejected():
+    # sub-minimum clips would crash the reflect padding / NaN through CMN
+    sessions = _fake_sessions([6562])
+    with pytest.raises(ValueError):
+        pipeline.process_prompt(sessions, _FakeTok(),
+                                np.zeros(1000, dtype=np.float32), 24000, "ref")
+    with pytest.raises(ValueError):
+        pipeline.process_prompt(sessions, _FakeTok(),
+                                np.zeros(1000, dtype=np.float32), 0, "ref")

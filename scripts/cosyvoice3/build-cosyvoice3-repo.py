@@ -94,7 +94,9 @@ def main():
     for name, source, default in VOICES:
         dst_wav = f"{args.out}/voices/{name}.wav"
         if source == "download:official":
-            urllib.request.urlretrieve(OFFICIAL_ZH_PROMPT, dst_wav)
+            with urllib.request.urlopen(OFFICIAL_ZH_PROMPT, timeout=30) as resp, \
+                    open(dst_wav, "wb") as out_file:
+                out_file.write(resp.read())
         elif source.startswith("asset:"):
             base = os.path.join(assets, source.split(":", 1)[1])
             shutil.copy2(base + ".wav", dst_wav)
@@ -108,7 +110,7 @@ def main():
         if default:
             entry["default"] = True
         manifest.append(entry)
-    with open(f"{args.out}/voices/manifest.json", "w") as f:
+    with open(f"{args.out}/voices/manifest.json", "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
     # Every voice must land with BOTH files, non-empty — fail loudly rather
@@ -125,7 +127,7 @@ def main():
     assert sum(1 for e in manifest if e.get("default")) == 1, \
         "exactly one voice must be marked default"
 
-    with open(f"{args.out}/README.md", "w") as f:
+    with open(f"{args.out}/README.md", "w", encoding="utf-8") as f:
         f.write(
             "---\nlicense: apache-2.0\n---\n\n"
             "# CosyVoice 3 0.5B — ONNX for Sokuji Local Native\n\n"
