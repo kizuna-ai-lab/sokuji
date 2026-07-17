@@ -759,6 +759,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         sizes_by_ct = {}
         artifact_by_ct = {}
         for d in mdl.deployments:
+            if not _platform_ok(d, m, platform_tag):
+                continue                      # off-platform tier (e.g. mac-only mlx row)
             if d.compute_type not in seen_cts:
                 seen_cts.append(d.compute_type)
                 artifact_by_ct[d.compute_type] = d.artifact
@@ -775,29 +777,50 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             # that flapped with the OTHER stages' selections would read as
             # noise. Renderer renders; it computes nothing.
             budget = _quant_budget_bytes(m)
-            is_llama = _is_llamacpp(mdl)
-            if is_llama:
-                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
-                rec = chosen.compute_type if chosen is not None else None
+            if kind == "tts":
+                # TTS variants are whole-repo downloads, not resident-weight
+                # quants (no _TC_RESIDENT_FACTOR/_LLAMA_RESIDENT_FACTOR
+                # inflation) — needBytes is just the download size. A ct is
+                # "supported" when ANY of its deployment rows is tier-available
+                # on this machine (a cpu row makes it always supported);
+                # recommended mirrors the same narrowing resolve_tts uses at
+                # load time (planner._tts_pick_quant), so the UI default never
+                # disagrees with what actually gets loaded.
+                rec = planner._tts_pick_quant(mdl, m)
+                variants = []
+                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                    supported = any(
+                        _tier_available(d.tier, m, d.backend)
+                        for d in mdl.deployments if d.compute_type == ct)
+                    variants.append({"id": ct, "sizeBytes": size, "needBytes": size,
+                                     "repo": artifact_by_ct.get(ct),
+                                     "supported": supported, "recommended": ct == rec})
+                entry["variants"] = variants
+                entry["deviceMemBytes"] = budget
             else:
-                rec = _tc_pick_quant(mdl, m, None, budget)
-            variants = []
-            factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
-            for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
-                need = int(size * factor)                  # fit-check figure, for UI reasons
+                is_llama = _is_llamacpp(mdl)
                 if is_llama:
-                    supported = True                       # --fit always runs
-                elif budget is None:
-                    supported = True                       # no GPU → CPU runs anything
+                    chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                    rec = chosen.compute_type if chosen is not None else None
                 else:
-                    supported = need <= budget
-                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
-                                 "repo": artifact_by_ct.get(ct),
-                                 "supported": supported, "recommended": ct == rec})
-            entry["variants"] = variants
-            # Machine context for the renderer's localized reason strings
-            # ("needs ~X — this machine has Y"); null on cpu-only machines.
-            entry["deviceMemBytes"] = budget
+                    rec = _tc_pick_quant(mdl, m, None, budget)
+                variants = []
+                factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
+                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                    need = int(size * factor)                  # fit-check figure, for UI reasons
+                    if is_llama:
+                        supported = True                       # --fit always runs
+                    elif budget is None:
+                        supported = True                       # no GPU → CPU runs anything
+                    else:
+                        supported = need <= budget
+                    variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
+                                     "repo": artifact_by_ct.get(ct),
+                                     "supported": supported, "recommended": ct == rec})
+                entry["variants"] = variants
+                # Machine context for the renderer's localized reason strings
+                # ("needs ~X — this machine has Y"); null on cpu-only machines.
+                entry["deviceMemBytes"] = budget
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

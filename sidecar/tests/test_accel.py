@@ -662,10 +662,16 @@ def test_pocket_onnx_installed_and_resolvable():
 
 
 def _tts_variant_card():
+    # 3-ct ladder (fp32/bf16/int8): the shipping ladder itself is fp32/bf16
+    # only (int8 was cut, see planner.py), but this SYNTHETIC fixture keeps
+    # int8's cpu-only row on purpose — it exercises the generic multi-ct
+    # machinery (including a compute_type that only ever runs on cpu)
+    # without depending on production catalog shape.
     return catalog.TtsModel(
         "fake-tts", "Fake TTS", ("en",),
         (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
         repos=("org/fake-fp32",), clones=True, streaming=False)
 
 
@@ -688,6 +694,19 @@ def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
     monkeypatch.setattr(catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
     assert accel.resolve_tts("fake-tts", pin="fp32") == ["sentinel"]
     assert seen == {"downloaded": frozenset({"int8"}), "pin": "fp32"}
+
+
+def test_models_catalog_emits_tts_variants(monkeypatch):
+    cuda_machine = _machine(gpus=_nv_gpus(12000))
+    monkeypatch.setattr(accel, "probe", lambda force=False: cuda_machine)
+    monkeypatch.setattr(catalog, "tts_models", lambda: [_tts_variant_card()])
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "tts", "id": 1}, None))
+    entry = reply["models"][0]
+    by_id = {v["id"]: v for v in entry["variants"]}
+    assert set(by_id) == {"fp32", "bf16", "int8"}
+    assert by_id["bf16"]["recommended"] and by_id["bf16"]["supported"]
+    assert by_id["int8"]["supported"]           # cpu tier always runs
+    assert by_id["bf16"]["repo"] == "org/fake-bf16"
 
 
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
