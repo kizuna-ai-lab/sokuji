@@ -23,6 +23,7 @@ instead of rediscovering the bug one weight file at a time.
 """
 from __future__ import annotations
 
+import glob
 import os
 import shutil
 
@@ -48,10 +49,24 @@ def materialize_symlinks(dir_path: str, *, suffixes: tuple[str, ...] | None = No
         real = os.path.realpath(p)
         if not os.path.isfile(real):
             continue  # dangling link — leave it so the caller fails loudly
-        tmp = p + ".tmp"
+        # Unique per-process tmp name: two processes materializing the same
+        # dir concurrently (e.g. two sidecar sessions warming the same model)
+        # previously shared the exact-named `p + ".tmp"`, so one could
+        # remove/replace the other's in-progress tmp between creation and
+        # os.replace, raising FileNotFoundError. A stale tmp left behind by a
+        # run that crashed before reaching os.replace (a different, now-dead
+        # pid) is swept below, best-effort, before this process starts its own.
+        tmp = f"{p}.tmp{os.getpid()}"
+        for stale in glob.glob(f"{p}.tmp*"):
+            try:
+                os.remove(stale)
+            except OSError:
+                try:
+                    os.chmod(stale, 0o666)  # Windows: a read-only blob copy can't be unlinked as-is
+                    os.remove(stale)
+                except OSError:
+                    pass  # in use by a concurrent run, or genuinely unremovable — best-effort cleanup only
         try:
-            if os.path.lexists(tmp):
-                os.remove(tmp)
             try:
                 os.link(real, tmp)          # hardlink: real entry, same blob data
             except OSError:
@@ -61,7 +76,7 @@ def materialize_symlinks(dir_path: str, *, suffixes: tuple[str, ...] | None = No
             try:
                 os.remove(tmp)
             except OSError:
-                pass
+                pass  # tmp was never created, or already swept — nothing to clean up
             raise
         written.append(p)
     return written

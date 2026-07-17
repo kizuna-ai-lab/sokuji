@@ -95,6 +95,7 @@ def main():
             api.create_repo(repo, exist_ok=True)
             api.upload_folder(folder_path=out_dir, repo_id=repo)
             print(f"uploaded -> https://huggingface.co/{repo}")
+    return 0
 
 
 if __name__ == "__main__":

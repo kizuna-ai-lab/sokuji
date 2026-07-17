@@ -45,12 +45,12 @@ def quantize_one(src_path: str, dst_path: str, bits: int, block_size: int) -> No
     stage_dir = None
     load_path = src_path
     data_src = src_path + ".data"
-    if os.path.exists(data_src):
-        stage_dir = tempfile.mkdtemp(prefix="q3nbits-stage-")
-        load_path = os.path.join(stage_dir, os.path.basename(src_path))
-        shutil.copyfile(os.path.realpath(src_path), load_path)
-        shutil.copyfile(os.path.realpath(data_src), load_path + ".data")
     try:
+        if os.path.exists(data_src):
+            stage_dir = tempfile.mkdtemp(prefix="q3nbits-stage-")
+            load_path = os.path.join(stage_dir, os.path.basename(src_path))
+            shutil.copyfile(os.path.realpath(src_path), load_path)
+            shutil.copyfile(os.path.realpath(data_src), load_path + ".data")
         model = onnx.load(load_path)
     finally:
         if stage_dir:
@@ -103,7 +103,15 @@ def main() -> None:
         src_link = os.path.join(src, "onnx", name)
         src_real = os.path.realpath(src_link)
         dst_graph = os.path.join(onnx_dir, name)
-        if os.path.exists(dst_graph):
+        data_link = src_link + ".data"
+        has_data_companion = os.path.exists(data_link)
+        # A run interrupted between the graph copy and its .data companion
+        # copy (the else branch below does them as two separate steps) would
+        # otherwise leave dst_graph present but its companion missing —
+        # `if os.path.exists(dst_graph): continue` alone would then skip that
+        # incomplete pair forever on every later run. Require both.
+        if os.path.exists(dst_graph) and (not has_data_companion
+                                           or os.path.exists(dst_graph + ".data")):
             continue
         if name in targets:
             print(f"quantizing {name} → int{args.bits}", flush=True)
@@ -114,8 +122,7 @@ def main() -> None:
                 os.link(src_real, dst_graph)
             except OSError:
                 shutil.copyfile(src_real, dst_graph)
-            data_link = src_link + ".data"
-            if os.path.exists(data_link):
+            if has_data_companion:
                 data_real = os.path.realpath(data_link)
                 try:
                     os.link(data_real, dst_graph + ".data")

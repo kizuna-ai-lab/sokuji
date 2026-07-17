@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useNativeModelStore } from './nativeModelStore';
+import { useNativeModelStore, deriveVariantRepos } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 
 // The store's bundle IPC helpers (bundleInvoke/onBundleProgress) gate on the
@@ -219,6 +219,40 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
     await useNativeModelStore.getState().ensureCatalog();
     // sense-voice (the fixture ASR) has no `variants` → no entry in statusRepos.
     expect(useNativeModelStore.getState().statusRepos['sense-voice']).toBeUndefined();
+  });
+});
+
+describe('deriveVariantRepos', () => {
+  // Pure-function unit tests (no store/settingsStore involvement) for the fix
+  // site directly, per its own docstring: an unsupported pin must not drive
+  // the readiness gate to validate a repo the sidecar's runnable-filter never
+  // loads — it must fall back to the recommended (supported) variant.
+  const CARD = {
+    id: 'card', name: 'Card', kind: 'asr', languages: ['multi'], recommended: true,
+    tiers: [], order: 0, repo: 'org/fake-fp32',
+    variants: [
+      { id: 'fp32', sizeBytes: 1000, repo: 'org/fake-fp32', supported: true, recommended: true },
+      { id: 'bf16', sizeBytes: 1000, repo: 'org/fake-bf16', supported: false, recommended: false },
+    ],
+  } as any;
+
+  it('ignores a pin whose variant is unsupported, falling back to the recommended repo', () => {
+    expect(deriveVariantRepos([CARD], { card: 'bf16' })).toEqual({ card: 'org/fake-fp32' });
+  });
+
+  it('honours a pin whose variant IS supported', () => {
+    const supportedPinCard = {
+      ...CARD,
+      variants: [
+        { id: 'fp32', sizeBytes: 1000, repo: 'org/fake-fp32', supported: true, recommended: true },
+        { id: 'bf16', sizeBytes: 1000, repo: 'org/fake-bf16', supported: true, recommended: false },
+      ],
+    };
+    expect(deriveVariantRepos([supportedPinCard], { card: 'bf16' })).toEqual({ card: 'org/fake-bf16' });
+  });
+
+  it('falls back to recommended with no pin at all', () => {
+    expect(deriveVariantRepos([CARD], {})).toEqual({ card: 'org/fake-fp32' });
   });
 });
 

@@ -209,7 +209,12 @@ def main():
     # input sentence before any fp32-vs-int8 comparison is trusted.
     harness_ok = True
     for lang, text in SENTENCES.items():
-        f_hyp, _f_rtf, _f_n, f_raw = results[("fp32", lang)]
+        f_hyp, _f_rtf, f_n, f_raw = results[("fp32", lang)]
+        if f_n < MIN_SAMPLES or not f_hyp:
+            print(f"HARNESS ERROR {lang}: fp32 produced empty/near-silent audio "
+                  f"(samples={f_n}) -- refusing to judge int8 against a broken baseline")
+            harness_ok = False
+            continue
         if not _baseline_plausible(lang, text, f_hyp):
             print(f"HARNESS ERROR {lang}: fp32 baseline does not resemble the input "
                   f"sentence (input={text!r} fp32_raw_hyp={f_raw!r} fp32_norm_hyp={f_hyp!r}) "

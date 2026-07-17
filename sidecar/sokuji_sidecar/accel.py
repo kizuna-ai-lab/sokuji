@@ -285,21 +285,29 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
         est_bytes=_est_bytes, format_ready=_format_ready)
 
 
-def _downloaded_tts_variants(model) -> frozenset:
+def _downloaded_tts_variants(model, machine, platform) -> frozenset:
     """compute_types of `model` whose variant repo is fully cached locally.
     TTS variants are whole repos (unlike translate's per-file quants), so the
     check is native_models.model_status with the repo override — which carries
-    the partial-snapshot/.incomplete guards a bare snapshot_download lacks."""
+    the partial-snapshot/.incomplete guards a bare snapshot_download lacks.
+
+    Deployments are filtered through _platform_ok(d, machine, platform) first:
+    without it, an off-platform artifact that happens to share a compute_type
+    with an on-platform one (e.g. a macOS MLX snapshot cached on a Linux box —
+    both can be "fp32") would mark that compute_type downloaded even though
+    the platform's own repo isn't cached at all."""
     from . import native_models
     out = set()
     for d in model.deployments:
         if d.compute_type in out:
             continue
+        if not _platform_ok(d, machine, platform):
+            continue
         try:
             if native_models.model_status(model.id, repo=d.artifact) == "ready":
                 out.add(d.compute_type)
         except Exception:
-            pass
+            pass  # treat an unreadable/broken cache entry as "not downloaded", not a crash
     return frozenset(out)
 
 
@@ -308,8 +316,9 @@ def resolve_tts(model_id, override="auto", machine=None, pin=None):
     m = machine or probe()
     model = _cat.resolve_tts_card(model_id)
     multi = model is not None and len({d.compute_type for d in model.deployments}) > 1
-    downloaded = _downloaded_tts_variants(model) if multi else frozenset()
-    return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
+    platform = current_platform()
+    downloaded = _downloaded_tts_variants(model, m, platform) if multi else frozenset()
+    return planner.resolve_tts(model_id, override, machine=m, platform=platform,
                                cache=bench_load(), downloaded=downloaded, pin=pin)
 
 

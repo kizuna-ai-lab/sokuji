@@ -240,6 +240,14 @@ TTS_MATRIX = [
 @pytest.mark.parametrize("model_id, machine, override, expected", TTS_MATRIX)
 def test_resolve_tts_matrix(model_id, machine, override, expected, monkeypatch):
     monkeypatch.setattr(accel, "current_platform", lambda: _platform_for(machine))
+    # accel.resolve_tts's multi-variant path calls _downloaded_tts_variants,
+    # which hits the REAL local HF cache (native_models.model_status) — a
+    # dev/CI box with a qwen3-tts variant repo already cached would flip
+    # these pinned rows out from under this matrix. The matrix pins the
+    # fresh-machine baseline; downloaded-state behaviors have their own
+    # tests (test_accel.py's _downloaded_tts_variants / resolve_tts wrapper
+    # tests).
+    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda *a, **k: frozenset())
     plans = accel.resolve_tts(model_id, override, machine=machine)
     assert _plan_tuples(plans) == expected
 

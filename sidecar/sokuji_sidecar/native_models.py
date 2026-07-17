@@ -257,7 +257,21 @@ def model_status(model_id, repo=None):
                 # one of the ONNX variants (see docstring) — on the macOS MLX
                 # lane this condition is false and we fall through to the
                 # normal _repos_cached(specs) check below.
-                if any(_repos_cached({"repos": [r]}) for r in variant_repos):
+                #
+                # Per-repo try/except (not a bare `any(_repos_cached(...) for
+                # r in variant_repos)`): _repos_cached calls snapshot_download
+                # (local_files_only=True), which RAISES for an uncached repo
+                # rather than returning False. Letting that exception escape
+                # the generator would abort `any()` on the FIRST absent
+                # variant and fall into the outer try/except -> 'absent',
+                # even when a LATER variant is fully cached (the normal
+                # post-download state, e.g. fp32 absent + bf16 cached).
+                def _variant_cached(repo):
+                    try:
+                        return _repos_cached({"repos": [repo]})
+                    except Exception:
+                        return False
+                if any(_variant_cached(r) for r in variant_repos):
                     return "ready"
                 return "absent"
         if not _repos_cached(specs):

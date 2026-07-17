@@ -681,7 +681,32 @@ def test_downloaded_tts_variants_checks_each_repo(monkeypatch):
     ready = {"org/fake-bf16"}
     monkeypatch.setattr(native_models, "model_status",
                         lambda mid, repo=None: "ready" if repo in ready else "absent")
-    assert accel._downloaded_tts_variants(card) == frozenset({"bf16"})
+    m = _machine()
+    assert accel._downloaded_tts_variants(card, m, "linux") == frozenset({"bf16"})
+
+
+def test_downloaded_tts_variants_ignores_off_platform_artifact(monkeypatch):
+    # An MLX snapshot (macOS-only, requires_apple_silicon) cached on a Linux
+    # box shares compute_type "fp32" with the ONNX cpu deployment. Without the
+    # _platform_ok filter, model_status("ready") for the MLX repo would mark
+    # "fp32" downloaded even though the platform's own ONNX repo isn't cached
+    # at all — resolve_tts would then think it can load a variant that
+    # doesn't exist on this platform.
+    from sokuji_sidecar import native_models
+    card = catalog.TtsModel(
+        "fake-tts-mlx", "Fake TTS MLX", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "mlx-community/fake-mlx", 1.0,
+                             platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+    ready = {"mlx-community/fake-mlx"}  # only the off-platform MLX repo is cached
+    monkeypatch.setattr(native_models, "model_status",
+                        lambda mid, repo=None: "ready" if repo in ready else "absent")
+    m = _machine(apple=False)  # Linux box, not Apple Silicon
+    result = accel._downloaded_tts_variants(card, m, "linux")
+    assert "fp32" not in result
+    assert result == frozenset()
 
 
 def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
@@ -690,7 +715,7 @@ def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
         seen.update(downloaded=downloaded, pin=pin)
         return ["sentinel"]
     monkeypatch.setattr(accel.planner, "resolve_tts", fake)
-    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda m: frozenset({"int8"}))
+    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda m, machine, platform: frozenset({"int8"}))
     monkeypatch.setattr(catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
     assert accel.resolve_tts("fake-tts", pin="fp32") == ["sentinel"]
     assert seen == {"downloaded": frozenset({"int8"}), "pin": "fp32"}

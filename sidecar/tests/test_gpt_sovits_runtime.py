@@ -39,8 +39,10 @@ def test_ensure_real_bins_derefs_escaping_symlink(tmp_path):
     # Mimic the HF cache: a weight *.bin in model/ symlinks OUT into a sibling
     # blobs/ tree. ORT's ValidateExternalDataPath canonicalizes external-data
     # paths and rejects such an "escaping" file, so it must become a real entry.
-    blobs = tmp_path / "blobs"; blobs.mkdir()
-    model = tmp_path / "model"; model.mkdir()
+    blobs = tmp_path / "blobs"
+    blobs.mkdir()
+    model = tmp_path / "model"
+    model.mkdir()
     payload = np.arange(4, dtype=np.float32)
     payload.tofile(blobs / "blob123")
     link = model / "t2s_encoder_fp32.bin"
@@ -66,8 +68,10 @@ def test_ensure_real_bins_tolerates_missing_dir(tmp_path):
 
 
 def test_ensure_real_bins_is_idempotent(tmp_path):
-    blobs = tmp_path / "blobs"; blobs.mkdir()
-    model = tmp_path / "model"; model.mkdir()
+    blobs = tmp_path / "blobs"
+    blobs.mkdir()
+    model = tmp_path / "model"
+    model.mkdir()
     (blobs / "b").write_bytes(b"\x01\x02\x03\x04")
     (model / "x.bin").symlink_to(os.path.join("..", "blobs", "b"))
     assert runtime.ensure_real_bins(str(model))       # first pass derefs

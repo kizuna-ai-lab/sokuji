@@ -960,6 +960,26 @@ def test_model_status_tts_any_variant_repo_counts(monkeypatch):
     assert native_models.model_status("fake-tts") == "ready"
 
 
+def test_model_status_tts_any_variant_survives_a_repo_raising(monkeypatch):
+    """A LATER cached variant repo must still report 'ready' even when an
+    EARLIER variant's _repos_cached call raises — which is exactly what the
+    real _repos_cached does via snapshot_download(local_files_only=True) for
+    an uncached repo (raises rather than returning False). Regression for a
+    bug where `any(_repos_cached({"repos": [r]}) for r in variant_repos)` let
+    that exception escape the generator, abort the any(), and fall through to
+    the outer try/except -> 'absent', even though a later variant WAS cached
+    (the normal post-download state: e.g. fp32 absent + bf16 cached)."""
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+
+    def _repos_cached(specs):
+        r = specs["repos"][0]
+        if r == "org/fake-bf16":
+            raise RuntimeError("simulated snapshot_download(local_files_only=True) miss")
+        return r == "org/fake-fp32"
+    monkeypatch.setattr(native_models, "_repos_cached", _repos_cached)
+    assert native_models.model_status("fake-tts") == "ready"
+
+
 def test_model_status_tts_single_variant_card_unaffected(monkeypatch):
     """A single-variant TTS card (moss/supertonic/pocket/gpt-sovits — every
     non-mlx deployment shares one artifact) must NOT take the any-variant
