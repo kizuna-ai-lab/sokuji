@@ -36,10 +36,8 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
-    consumed by backends at load time: llama.cpp reads the two thinking flags,
-    the Qwen3-TTS ONNX backend reads variant_subdir. All-inert defaults so a
-    bare `PlanConfig()` changes no behavior."""
-    variant_subdir: str | None = None
+    consumed by backends at load time: llama.cpp reads the two thinking flags.
+    All-inert defaults so a bare `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
 
@@ -62,12 +60,10 @@ class NoUsablePlan(Exception):
 
 def _plan_config(model) -> PlanConfig:
     """Build a Plan's PlanConfig from its resolved catalog card. Card types
-    differ (an AsrModel has neither thinking flags nor a variant subdir, a
-    TtsModel has no thinking flags, a TranslateModel has no variant subdir),
-    so every field is read defensively via getattr with an inert default —
-    this stays correct for any current or future card shape."""
+    differ (an AsrModel and a TtsModel have no thinking flags), so every
+    field is read defensively via getattr with an inert default — this stays
+    correct for any current or future card shape."""
     return PlanConfig(
-        variant_subdir=getattr(model, "cuda_variant_subdir", None),
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
     )

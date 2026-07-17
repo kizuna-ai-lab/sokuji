@@ -509,25 +509,12 @@ class Qwen3TtsOnnxBackend:
             from .qwen_tokenizer import load_qwen2_tokenizer
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
-            # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
-            # code_predictor) alongside the fp32 set, in a subdir named by the
-            # card (config.variant_subdir, e.g. "onnx-bf16" for the qwen3-tts
-            # cards — see catalog.py's cuda_variant_subdir); bf16 has no CPU or
-            # DML kernels, so only the cuda device picks it up, and only when the
-            # subdir actually exists in this snapshot.
-            variant_dir = None
-            subdir = config.variant_subdir if config is not None else None
-            if str(device).lower() == "cuda" and subdir and os.path.isdir(f"{d}/{subdir}"):
-                variant_dir = f"{d}/{subdir}"
             # The >2GB talker graph stores weights in an external *.onnx.data
             # file that stays an HF-cache symlink into ../blobs/; ORT's
             # external-data validation rejects it as escaping the model dir.
-            # Deref to real files (both the fp32 onnx/ dir and any CUDA variant).
+            # Deref to real files.
             _hf_symlinks.materialize_symlinks(f"{d}/onnx")
-            if variant_dir:
-                _hf_symlinks.materialize_symlinks(variant_dir)
-            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
-                                                  variant_dir=variant_dir)
+            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
             self._cfg = _q3_config.load_model_config(d)
             self._tok = load_qwen2_tokenizer(d)
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)

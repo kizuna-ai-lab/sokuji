@@ -87,7 +87,7 @@ def default_providers(device: str | None = None) -> list[str]:
 
 
 def build_sessions(
-    onnx_dir: str | Path, device: str | None, threads: int, variant_dir: str | None = None
+    onnx_dir: str | Path, device: str | None, threads: int
 ) -> dict[str, Any]:
     """Build the Qwen3-TTS talker ONNX sessions with per-graph device placement.
 
@@ -97,11 +97,6 @@ def build_sessions(
     in try/except with a CPU-only retry, mirroring the reference
     `_make_session` pattern.
 
-    `variant_dir` (e.g. the snapshot's `onnx-bf16/`) overrides individual
-    graph files when present there — a repo ships one fp32 set plus a few
-    device-specific rebuilds, and the caller decides per device which variant
-    applies (bf16 graphs have no CPU/DML kernels).
-
     `talker_prefill` is included only if `talker_prefill.onnx` exists in
     `onnx_dir` — its absence puts `generate_codes` into zero-past mode.
     """
@@ -110,10 +105,6 @@ def build_sessions(
     onnx_dir = Path(onnx_dir)
 
     def _graph_path(filename: str) -> Path:
-        if variant_dir is not None:
-            candidate = Path(variant_dir) / filename
-            if candidate.exists():
-                return candidate
         return onnx_dir / filename
 
     options = ort.SessionOptions()

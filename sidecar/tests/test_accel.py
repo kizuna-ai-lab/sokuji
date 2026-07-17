@@ -149,7 +149,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
     # A flexible model (cuda + cpu floor) whose weights can't fit free VRAM is
     # routed straight to CPU — the cuda plan is never even attempted (no OOM).
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 5 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
@@ -161,7 +161,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
 
 def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 4 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct, config=None): self.device = device; self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
@@ -173,7 +173,7 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
     # No CUDA / unknown footprint → gate stays out of the way; the existing
     # try/except path still steps cuda → cpu on a real OOM.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: None)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     class FakeBackend:
         def __init__(self, ok): self.ok = ok
         def load(self, a, device, ct, config=None):
@@ -188,7 +188,7 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
 def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
     # The proactive gate must read device_free_bytes (tc probe), never NVML.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 5 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
@@ -588,7 +588,7 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     # An fp8 plan should use factor 1.5; on a 12GiB free machine with 8GiB weights:
     # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → cuda proactively skipped.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 12 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 8 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 * _GIB)
     fp8_plan = accel.Plan("hunyuan_translate", "gpu-cuda", "cuda", "fp8", "repo", 1.0)
     cpu_pl = _plan("cpu")
     attempted = []
@@ -761,7 +761,7 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
     """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
     llama-server's --fit handles memory by partial offload."""
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 8 << 30)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
 
     class FakeBackend:
@@ -1103,24 +1103,6 @@ def test_gpu_metal_tier_available_via_tc_metal_kind():
     assert accel._tier_available("gpu-metal", m) is True
 
 
-def test_model_weight_bytes_counts_variant_shadowing_and_external_data(tmp_path):
-    # A qwen3-tts-style snapshot: fp32 graphs under onnx/, CUDA-only bf16
-    # rebuilds under onnx-bf16/. The estimator serves CUDA-plan gating, and
-    # CUDA loads the bf16 rebuild INSTEAD of the same-named fp32 graph — the
-    # shadowed fp32 file must not be double-counted. External weight payloads
-    # (<name>.onnx.data) count toward their graph.
-    onnx_dir = tmp_path / "onnx"
-    bf16_dir = tmp_path / "onnx-bf16"
-    onnx_dir.mkdir()
-    bf16_dir.mkdir()
-    (onnx_dir / "talker.onnx").write_bytes(b"x" * 100)      # shadowed by bf16
-    (onnx_dir / "codec.onnx").write_bytes(b"x" * 20)
-    (onnx_dir / "codec.onnx.data").write_bytes(b"x" * 30)   # external payload
-    (bf16_dir / "talker.onnx").write_bytes(b"x" * 40)
-    from sokuji_sidecar import accel
-    assert accel._model_weight_bytes(str(tmp_path), variant_subdir="onnx-bf16") == 40 + 20 + 30
-
-
 def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     onnx_dir = tmp_path / "onnx"
     onnx_dir.mkdir()
@@ -1128,25 +1110,3 @@ def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     (onnx_dir / "talker.onnx.data").write_bytes(b"x" * 50)
     from sokuji_sidecar import accel
     assert accel._model_weight_bytes(str(tmp_path)) == 150
-
-
-def test_model_weight_bytes_variant_subdir_param_controls_dedup(tmp_path):
-    # Same on-disk layout probed both ways with a real variant dir present:
-    # an explicit variant_subdir (what both load_measured and load_with_fallback
-    # now pass, sourced from plan.config.variant_subdir — Task 8) dedupes the
-    # shadowed fp32 copy; omitting it (None, the default for every non-qwen3-tts
-    # plan, since only the qwen3-tts cards set cuda_variant_subdir) counts every
-    # weight file with no de-dup.
-    from sokuji_sidecar import accel
-    onnx_dir = tmp_path / "onnx"
-    variant_dir = tmp_path / "onnx-bf16"
-    onnx_dir.mkdir()
-    variant_dir.mkdir()
-    (onnx_dir / "model.onnx").write_bytes(b"x" * 111)        # shadowed by the variant copy
-    (variant_dir / "model.onnx").write_bytes(b"x" * 222)
-
-    deduped = accel._model_weight_bytes(str(tmp_path), variant_subdir="onnx-bf16")
-    assert deduped == 222                        # fp32 copy in onnx/ skipped; bf16 copy counted once
-
-    undeduped = accel._model_weight_bytes(str(tmp_path))   # variant_subdir defaults to None
-    assert undeduped == 111 + 222                 # no dedup requested -> every weight file counted

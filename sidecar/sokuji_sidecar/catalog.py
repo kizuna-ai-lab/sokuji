@@ -398,8 +398,6 @@ class TtsModel(_ModelBase):
     named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
     style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
     transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
-    cuda_variant_subdir: str | None = None  # bf16-graph subdir picked on cuda
-                                             # (mirrors Qwen3TtsOnnxBackend.load's onnx-bf16 check)
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
