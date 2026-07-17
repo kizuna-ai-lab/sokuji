@@ -7,6 +7,7 @@ import json as _json
 import logging
 import os
 import queue
+import re
 import shutil
 import sys
 import tempfile
@@ -15,6 +16,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import soundfile as sf
 # Module-level (not the other backends' local-import-inside-load() style):
 # gpt_sovits_onnx's tests monkeypatch tts_backends.snapshot_download directly,
 # which requires the name to live in this module's globals so load() picks up
@@ -24,6 +26,9 @@ from huggingface_hub import snapshot_download
 from .backends import register_backend, BackendLoadError
 from . import hf_symlinks as _hf_symlinks
 from . import supertonic_frontend as _sf
+from .cosyvoice3 import frontend as _cv3_frontend
+from .cosyvoice3 import pipeline as _cv3_pipeline
+from .cosyvoice3 import runtime as _cv3_runtime
 from .qwen3_tts import codec as _q3_codec
 from .qwen3_tts import config as _q3_config
 from .qwen3_tts import mel as _q3_mel
@@ -647,6 +652,125 @@ class Qwen3TtsOnnxBackend:
     @property
     def is_loaded(self) -> bool:
         return self._sessions is not None
+
+
+# ---------------------------------------------------------------------------
+# CosyVoice3 (Fun-CosyVoice3-0.5B) — issue #323. Fresh torch-free ONNX
+# pipeline (see sokuji_sidecar.cosyvoice3): int4 LLM backbones + fp32
+# flow/HiFT graphs from our own conversion of the community export.
+
+_COSYVOICE3_DEFAULT_VOICE = "classic-zh"
+
+
+@register_backend
+class CosyVoice3OnnxBackend:
+    """CosyVoice 3 (Fun-CosyVoice3-0.5B) zero-shot voice cloning TTS.
+
+    Fresh torch-free ONNX pipeline (issue #323): int4 LLM backbones +
+    fp32 flow/HiFT graphs from our own conversion of the community
+    export. GPU-CUDA-only card; the CPU tier misses the realtime bar
+    (spike RTF ~3.5) and is deliberately not shipped.
+    ICL cloning: reference clip + transcript, both for bundled voices/
+    presets and user clips (transcript required).
+    """
+
+    NAME = "cosyvoice3_onnx"
+    STREAMING = False
+    CLONES = True
+
+    def __init__(self):
+        self.sample_rate = 24000
+        self._sessions = None
+        self._tok = None
+        self._dir = None
+        self._prompt = None
+        self._voice_cache = {}
+        self._rng = None
+
+    @property
+    def is_loaded(self):
+        return self._sessions is not None
+
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
+        try:
+            # a reload (e.g. switching deployments) must not keep voice
+            # prompts computed with the previous sessions/tokenizer
+            self.unload()
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
+            self._tok = _cv3_frontend.load_tokenizer(d)
+            self._sessions = _cv3_runtime.build_sessions(d, device, threads)
+            self._dir = d
+            self._rng = np.random.default_rng()
+        except Exception as e:
+            self.unload()
+            raise BackendLoadError(str(e))
+
+    def unload(self) -> None:
+        self._sessions = None
+        self._tok = None
+        self._dir = None
+        self._prompt = None
+        self._voice_cache = {}
+
+    def set_voice(self, audio, sr, ref_text: str = "") -> None:
+        if not self.is_loaded:
+            raise BackendLoadError("cosyvoice3 backend is not loaded")
+        if not ref_text or not ref_text.strip():
+            raise BackendLoadError("cosyvoice3 requires the reference transcript")
+        audio32 = np.asarray(audio, dtype=np.float32)
+        key = "custom:" + hashlib.sha1(
+            audio32.tobytes() + str(int(sr)).encode() + ref_text.encode("utf-8")
+        ).hexdigest()
+        if key not in self._voice_cache:
+            self._voice_cache[key] = _cv3_pipeline.process_prompt(
+                self._sessions, self._tok, audio32, int(sr), ref_text)
+        self._prompt = self._voice_cache[key]
+
+    def set_builtin_voice(self, name: str) -> None:
+        """Select one of the bundled ICL preset voices (voices/<name>.wav|.txt
+        in the model snapshot) — cloning from our own curated reference clip,
+        the same code path as a user-supplied clip. Unknown name / missing
+        files -> BackendLoadError (mirrors Qwen3TtsOnnxBackend.set_builtin_voice)."""
+        if not self.is_loaded:
+            raise BackendLoadError("cosyvoice3 backend is not loaded")
+        # names come over the wire: allow-list the charset so a crafted name
+        # like "../../etc/x" can never resolve outside the voices/ directory
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or ".." in name:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        if name in self._voice_cache:
+            self._prompt = self._voice_cache[name]
+            return
+        wav_path = f"{self._dir}/voices/{name}.wav"
+        txt_path = f"{self._dir}/voices/{name}.txt"
+        if not (os.path.exists(wav_path) and os.path.exists(txt_path)):
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        try:
+            audio, sr = sf.read(wav_path, dtype="float32", always_2d=False)
+            if audio.ndim > 1:  # soundfile layout is (frames, channels) — downmix here
+                audio = audio.mean(axis=1).astype(np.float32)
+            with open(txt_path, encoding="utf-8") as f:
+                transcript = f.read().strip()
+            prompt = _cv3_pipeline.process_prompt(
+                self._sessions, self._tok, audio, sr, transcript)
+        except Exception as e:
+            raise BackendLoadError(str(e))
+        self._voice_cache[name] = prompt
+        self._prompt = prompt
+
+    def generate(self, text, speed=1.0):
+        if self._prompt is None:
+            self.set_builtin_voice(
+                os.environ.get("SOKUJI_COSYVOICE3_PRESET_VOICE", _COSYVOICE3_DEFAULT_VOICE))
+        t0 = time.time()
+        audio = _cv3_pipeline.synthesize(
+            self._sessions, self._tok, text, self._prompt, self._rng,
+            speed=float(speed))
+        return audio.astype(np.float32), int((time.time() - t0) * 1000)
+
+    @staticmethod
+    def list_builtin_voices():
+        return []  # descriptors come from voices/manifest.json (tts_voices)
 
 
 # ---------------------------------------------------------------------------

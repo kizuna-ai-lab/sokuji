@@ -526,6 +526,26 @@ def test_new_translate_backends_installed_and_resolvable():
     assert any(p.backend == "llamacpp_gemma" for p in g)
 
 
+def test_cosyvoice3_backend_installed_and_resolvable():
+    """Catches the three-site registration gotcha: a backend missing from
+    accel._installed() renders in the catalog but NoUsablePlan everywhere."""
+    from sokuji_sidecar import planner
+
+    installed = accel._installed()          # REAL probe of this host's venv
+    assert "cosyvoice3_onnx" in installed
+
+    # Resolution needs an NVIDIA machine; synthesize one but keep the REAL
+    # installed set so a missing mods entry still fails this test.
+    machine = accel.Machine(
+        os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
+        dml_adapters=(), installed=frozenset(installed), fingerprint="t",
+        tc_kinds=("cuda",), gpus=(("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),),
+        ort_cuda=True)
+    plans = planner.resolve_tts("cosyvoice3-0.5b", machine=machine, platform="linux", cache={})
+    assert plans, "cosyvoice3-0.5b resolved to no usable plan"
+    assert plans[0].backend == "cosyvoice3_onnx" and plans[0].tier == "gpu-cuda"
+
+
 # ── select_variant tests ────────────────────────────────────────────────────
 
 

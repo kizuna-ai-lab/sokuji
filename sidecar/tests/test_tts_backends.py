@@ -286,3 +286,16 @@ def test_pocket_backend_builtin_voices_end_to_end(monkeypatch):
     assert a1.shape != a3.shape or not np.array_equal(a1, a3)
     b.unload()
     assert b.is_loaded is False
+
+
+@pytest.mark.skipif(not (os.environ.get("SOKUJI_RUN_COSYVOICE3")
+                         and os.environ.get("SOKUJI_COSYVOICE3_REPO")),
+                    reason="real-model cosyvoice3 smoke (needs local repo + models)")
+def test_cosyvoice3_real_model_smoke():
+    b = backends.make_backend("cosyvoice3_onnx")
+    b.load(os.environ["SOKUJI_COSYVOICE3_REPO"], "cpu", "fp32")
+    b.set_builtin_voice("classic-zh")
+    audio, ms = b.generate("今天的天气真不错。")
+    assert audio.dtype == np.float32
+    assert 1.0 < len(audio) / 24000 < 10.0
+    assert float(np.sqrt((audio ** 2).mean())) > 0.01

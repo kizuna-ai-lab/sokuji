@@ -135,14 +135,36 @@ def test_tts_models_have_deployments_languages_and_repos():
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
                                  "qwen3tts_onnx", "mlx_audio_tts",
-                                 "gpt_sovits_onnx", "pocket_onnx"}
+                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx"}
+
+
+# The realtime bar decides which tiers exist (issue #323): CosyVoice3's CPU
+# RTF ~3.5 is unusable, so it is the first deliberately GPU-only TTS card.
+GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
     ids = [m.id for m in catalog.tts_models()]
     assert len(ids) == len(set(ids)), "duplicate tts model ids"
     for m in catalog.tts_models():
+        if m.id in GPU_ONLY_TTS_IDS:
+            assert all(d.tier != "cpu" for d in m.deployments), \
+                f"{m.id} is declared GPU-only but ships a cpu row"
+            continue
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no cpu floor"
+
+
+def test_cosyvoice3_card_shape():
+    m = catalog.tts_model("cosyvoice3-0.5b")
+    assert m is not None
+    assert m.clones and m.named_voices and m.transcript_required
+    assert not m.streaming
+    assert m.sample_rate == 24000 and m.num_speakers == 1
+    assert set(m.languages) == {"zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"}
+    tiers = {d.tier for d in m.deployments}
+    assert tiers == {"gpu-cuda"}
+    assert all(d.backend == "cosyvoice3_onnx" for d in m.deployments)
+    assert m.size_bytes > 3_000_000_000
 
 
 def test_tts_moss_nano_is_streaming_cloning():

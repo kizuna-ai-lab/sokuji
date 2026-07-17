@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import VoiceLibrarySection, { type VoiceEntry, type VoiceLibraryCapability } from './VoiceLibrarySection';
+import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
+import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,

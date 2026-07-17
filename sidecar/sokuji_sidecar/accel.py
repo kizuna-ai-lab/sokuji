@@ -128,6 +128,7 @@ def _installed() -> frozenset:
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
             "qwen3tts_onnx": "onnxruntime",
+            "cosyvoice3_onnx": "onnxruntime",
             "gpt_sovits_onnx": "onnxruntime",
             "pocket_onnx": ("onnxruntime", "sentencepiece"),
             "mlx_audio_tts": ("mlx_audio",),
