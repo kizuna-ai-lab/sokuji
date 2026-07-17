@@ -1030,6 +1030,46 @@ def test_tts_pick_quant_pin_absent_from_ladder_falls_through():
     assert got == "bf16"    # int8 isn't a compute_type on this card -> pin ignored
 
 
+# ── _tts_pick_quant / resolve_tts: override-aware narrowing ─────────────
+# The multi-compute-type narrowing runs BEFORE _resolve_model applies the
+# device override. On _tts_variant_card_v2 (fp32: cpu+cuda rows, bf16:
+# cuda-only row) a CUDA machine's un-scoped narrowing always prefers bf16 —
+# so an explicit override='cpu' arrived at _resolve_model already narrowed
+# to a compute_type with no cpu row, and the override had nothing to pin:
+# it was silently ignored and the plan landed on gpu-cuda bf16 anyway. The
+# override must instead scope the narrowing itself to variants that have a
+# row on the pinned device.
+
+
+def test_tts_pick_quant_cuda_machine_override_cpu_picks_fp32():
+    # bf16 has no cpu row -> override='cpu' must scope the narrowing away
+    # from it, landing on fp32 (which does have a cpu row), NOT bf16.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cpu")
+    assert got == "fp32"
+
+
+def test_resolve_tts_cuda_machine_override_cpu_lands_on_cpu_fp32(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", "cpu", machine=CUDA_12GB, platform="linux", cache={})
+    assert plans[0].device == "cpu"
+    assert plans[0].compute_type == "fp32"
+
+
+def test_tts_pick_quant_cuda_machine_override_cuda_still_picks_bf16():
+    # override='cuda' is already a superset of the un-scoped GPU-preferring
+    # walk on this fixture -> unchanged behavior.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cuda")
+    assert got == "bf16"
+
+
+def test_tts_pick_quant_override_with_no_matching_device_falls_back():
+    # The fixture has no gpu-dml row at all -> the override-scoped runnable
+    # set is empty, so this gracefully falls back to the machine-wide
+    # (un-scoped) narrowing rather than raising or picking nothing.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="dml")
+    assert got == "bf16"
+
+
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
 # Characterisation coverage hole: nothing previously asserted that RESOLVING
 # a model actually produces the right PlanConfig (only that an explicit

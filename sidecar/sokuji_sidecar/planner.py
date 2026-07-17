@@ -365,7 +365,8 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
 
 
 def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
-                    downloaded: frozenset | None = None) -> str:
+                    downloaded: frozenset | None = None,
+                    override: str = "auto") -> str:
     """Quant for a multi-compute-type TTS card.
 
     Candidates are first narrowed to `runnable` compute_types — those with at
@@ -378,9 +379,27 @@ def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
     otherwise "win" the smallest-est_bytes fallback below and leave zero
     runnable deployments — the exact dead end this narrowing exists to avoid).
 
-    pin wins when it names a runnable compute_type; a pin naming an
-    unrunnable (or unknown) compute_type is ignored and falls through to the
-    rest of this function, rather than being honored into a dead end.
+    An explicit device `override` narrows the variant choice further, to
+    variants that can actually run on the device being pinned — using the
+    SAME predicate `resolve_deployments` uses to pin rows (tier's device ==
+    override, or override == 'cuda' matching any non-cpu tier). Without this,
+    the narrowing above can hand back a compute_type that has no row at all
+    on the overridden device (e.g. bf16 outranks fp32 on a CUDA machine, but
+    bf16 ships no cpu row) — the model is then narrowed to bf16-only rows
+    BEFORE the override ever gets a chance to pin anything, so the pin has
+    nothing to attach to and is silently dropped: override='cpu' would still
+    resolve to gpu-cuda. If the override-scoped runnable set is empty (the
+    override names a device this model has no row for at all, e.g.
+    override='dml' on a card with no dml deployments), fall back to the
+    machine-wide runnable set exactly as when override is 'auto' — the
+    override then has nothing to pin downstream regardless of which
+    compute_type is chosen here, so this is a graceful no-op rather than a
+    dead end.
+
+    pin wins when it names a runnable (override-scoped, when applicable)
+    compute_type; a pin naming an unrunnable (or unknown) compute_type is
+    ignored and falls through to the rest of this function, rather than
+    being honored into a dead end.
 
     Otherwise, restrict to `downloaded` variants that are also runnable, when
     that intersection is non-empty (we prefer to LOAD the repo the user
@@ -402,6 +421,15 @@ def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
     runnable = {c for c in uniq
                 if any(d.compute_type == c and _tier_available(d.tier, machine, d.backend)
                        for d in model.deployments)}
+    if override != "auto":
+        def _pinned(d):
+            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+        scoped = {c for c in runnable
+                  if any(d.compute_type == c and _pinned(d)
+                         and _tier_available(d.tier, machine, d.backend)
+                         for d in model.deployments)}
+        if scoped:
+            runnable = scoped
     runnable_cands = [c for c in uniq if c in runnable] or uniq
     if pin in runnable:
         return pin
@@ -428,9 +456,13 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
     if model is None:
         raise ValueError(f"unknown tts model: {model_id}")
     # Multi-variant card: narrow to ONE compute_type before tier resolution,
-    # mirroring resolve()'s ASR multi-quant narrowing.
+    # mirroring resolve()'s ASR multi-quant narrowing. `override` is threaded
+    # through so the narrowing itself is device-aware (see _tts_pick_quant's
+    # docstring) — otherwise an explicit override='cpu' can arrive at
+    # _resolve_model after the model has already been narrowed to a
+    # cpu-less compute_type, leaving the override with nothing to pin.
     if len({d.compute_type for d in model.deployments}) > 1:
-        quant = _tts_pick_quant(model, machine, pin, downloaded)
+        quant = _tts_pick_quant(model, machine, pin, downloaded, override)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)

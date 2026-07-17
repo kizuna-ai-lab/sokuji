@@ -189,17 +189,21 @@ TTS_MATRIX = [
     # P7 (Task 6): qwen3-tts-0.6b became a multi-variant card (per-variant
     # self-contained fp32/bf16 ONNX repos, no shared-repo subdir) -- a real
     # behaviour change, re-captured here by RUNNING the new planner code
-    # (not hand-derived). On a CUDA-capable machine the multi-variant
-    # narrowing (planner._tts_pick_quant) now picks bf16 UNCONDITIONALLY --
-    # before the override is applied -- and bf16 ships no cpu row, so
-    # override='cpu' still resolves to the single gpu-cuda bf16 plan (no cpu
-    # fallback plan exists for it to fall back to).
+    # (not hand-derived). The multi-variant narrowing (planner._tts_pick_quant)
+    # is device-override-aware: an explicit override='cpu' scopes the
+    # narrowing to compute_types that actually have a row on cpu BEFORE
+    # picking one, so it lands on fp32 (which ships a cpu row) rather than
+    # unconditionally picking bf16 (cuda-only, no cpu row -- which used to
+    # leave override='cpu' with nothing to pin, silently landing back on
+    # gpu-cuda). Because fp32 also ships a gpu-cuda row, override='cpu' on a
+    # CUDA machine resolves to a two-plan ladder (cpu fp32 first, gpu-cuda
+    # fp32 as the non-cpu fallback) rather than a single plan.
     ('qwen3-tts-0.6b', CPU_ONLY, 'auto', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
     ('qwen3-tts-0.6b', CPU_ONLY, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
     ('qwen3-tts-0.6b', CUDA_12GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
-    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
+    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
     ('qwen3-tts-0.6b', CUDA_24GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
-    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
+    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
     ('qwen3-tts-0.6b', APPLE_SILICON, 'auto', [('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0), ('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
     ('qwen3-tts-0.6b', APPLE_SILICON, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0)]),
     # Carded sherpa voice (one repo = one model = one voice) — CPU-only by
