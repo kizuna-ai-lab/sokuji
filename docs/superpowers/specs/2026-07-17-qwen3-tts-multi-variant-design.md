@@ -150,13 +150,31 @@ size-significant existing variants.
 | Pocket TTS | 0.19 GB/lang | int8-only by design (no valid GPU int8 path) | keep single |
 | sherpa piper | 0.08 GB | none | keep single |
 
-Future options recorded, not scheduled:
+Precision-variant research concluded 2026-07-17 (two agent passes; full
+evidence in project memory `tts-precision-variant-research`), user decisions
+applied:
+
+- **GPT-SoVITS int8: spike APPROVED** (separate work, not in this plan).
+  Two shipped community precedents use the identical split — int8 t2s
+  decoders + fp32 vits (mikv39/gpt-sovits-onnx-custom: t2s 1.05s→407ms
+  ≈2.6× on Ryzen 7700; AstraTTS ships the `quantize_dynamic(QInt8,
+  MatMul/Gemm, exclude Conv)` recipe). Our t2s graphs are MatMul×121+Gemm×24
+  with Conv×0 (ideal target; attention logits stay fp32). Expected CPU RTF
+  0.6-0.75 → ~0.35-0.45. Constraint: int8 ops are CPU-EP-only — the variant
+  row must gate to the cpu tier; cuda keeps fp32. If the spike passes
+  (whisper loopback zh/en/ja, 嗯。-guard regression, cross-lingual clone A/B,
+  runaway/early-EOS rate), it lands as one catalog row on this framework.
+- **MOSS precision variants: WON'T DO** (user decision). int8 measured only
+  ~1.4× on CPU with a real prosody risk (F0 std −33% in community A/B) on a
+  model with a known silence-attractor (#277); GPU variants are pointless
+  (upstream #55: MPS 6× slower than CPU — transfer-dominated at 100M params).
+- GPT-SoVITS bf16: dropped (no tooling, patchy ORT CUDA bf16 kernels, AR
+  loop is launch/memory-bound). fp16-CUDA: deferred (numerically likely safe
+  — upstream torch default is half — but no bottleneck to relieve).
 - GPT-SoVITS RoBERTa split: `RoBERTa.onnx` (571 MB) is the repo's largest
   file and optional (zh prosody only) — a zh-quality addon download would cut
-  the base repo ~44%. Different axis (content, not precision).
-- GPT-SoVITS / MOSS precision variants: separate research running (upstream
-  availability, AR fp16/bf16 numerical risk, int8 quality) — outcome decides
-  whether a conversion+validation spike is worth scheduling.
+  the base repo ~44%. Different axis (content, not precision); recorded, not
+  scheduled.
 
 ## Out of scope
 
