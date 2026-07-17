@@ -438,6 +438,9 @@ _QWEN3_TTS_17B_REPO = os.environ.get(
 _GPT_SOVITS_REPO = os.environ.get(
     "SOKUJI_GPT_SOVITS_REPO", "jiangzhuo9357/gpt-sovits-v2pp-onnx")
 
+_COSYVOICE3_REPO = os.environ.get(
+    "SOKUJI_COSYVOICE3_REPO", "jiangzhuo9357/cosyvoice3-0.5b-onnx")
+
 # macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
 # same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
 _MOSS_NANO_MLX_REPO = os.environ.get(
@@ -525,6 +528,21 @@ TTS_MODELS: list[TtsModel] = [
              transcript_required=True, named_voices=True, sample_rate=24000,
              recommended=False, sort_order=3, size_bytes=11431100174,
              cuda_variant_subdir="onnx-bf16"),
+    TtsModel("cosyvoice3-0.5b", "CosyVoice 3 0.5B",
+             ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"),
+             (
+                 # GPU-only by design (issue #323): CPU RTF ~3.5 misses the
+                 # realtime bar even on a 20-core box; no cpu row on purpose.
+                 Deployment("cosyvoice3_onnx", "gpu-cuda", "fp32",
+                            _COSYVOICE3_REPO, 1.0),
+             ),
+             repos=(_COSYVOICE3_REPO,),
+             clones=True, named_voices=True, transcript_required=True,
+             streaming=False, sample_rate=24000, num_speakers=1,
+             # exact live-repo total (build output 3_721_010_968 + the
+             # HF-generated .gitattributes the downloader also fetches)
+             size_bytes=3_721_012_656,
+             sort_order=9),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
     # x86 discrete-GPU benefit unverified (per-step KV round-trip). The bench
