@@ -22,6 +22,16 @@ const TABS: Tab[] = [
   { id: 'provider', labelKey: 'settings.tabs.provider', fallback: 'Provider', icon: Cpu },
 ];
 
+// Settings unmounts whenever another panel takes its place (MainLayout renders
+// panels conditionally), so the active tab lives in sessionStorage like the
+// rest of the panelState.* keys.
+const TAB_STORAGE_KEY = 'panelState.settingsActiveTab';
+
+function readStoredTab(): string {
+  const stored = sessionStorage.getItem(TAB_STORAGE_KEY);
+  return stored && TABS.some((tab) => tab.id === stored) ? stored : 'general';
+}
+
 const NAVIGATION_TAB_MAP: Record<string, string> = {
   'user-account': 'general',
   'languages': 'general',
@@ -52,7 +62,11 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
   // 'basic' maps to Simple/Quick, 'advanced' maps to Advanced.
   const isSimpleMode = uiMode === 'basic';
 
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(readStoredTab);
+
+  useEffect(() => {
+    sessionStorage.setItem(TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   // Advanced-only: switch to the target tab and scroll/highlight its section.
   // Quick mode highlights via SimpleSettings' highlightSection instead.
