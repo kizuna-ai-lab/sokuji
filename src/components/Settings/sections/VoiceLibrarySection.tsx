@@ -4,8 +4,6 @@ import { Mic, Plus, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
-export type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
-
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
  * adapter defines its own scheme (e.g. Supertonic encodes sids as
