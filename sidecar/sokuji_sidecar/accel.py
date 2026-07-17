@@ -285,10 +285,32 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
         est_bytes=_est_bytes, format_ready=_format_ready)
 
 
-def resolve_tts(model_id, override="auto", machine=None):
+def _downloaded_tts_variants(model) -> frozenset:
+    """compute_types of `model` whose variant repo is fully cached locally.
+    TTS variants are whole repos (unlike translate's per-file quants), so the
+    check is native_models.model_status with the repo override — which carries
+    the partial-snapshot/.incomplete guards a bare snapshot_download lacks."""
+    from . import native_models
+    out = set()
+    for d in model.deployments:
+        if d.compute_type in out:
+            continue
+        try:
+            if native_models.model_status(model.id, repo=d.artifact) == "ready":
+                out.add(d.compute_type)
+        except Exception:
+            pass
+    return frozenset(out)
+
+
+def resolve_tts(model_id, override="auto", machine=None, pin=None):
+    from . import catalog as _cat
     m = machine or probe()
+    model = _cat.resolve_tts_card(model_id)
+    multi = model is not None and len({d.compute_type for d in model.deployments}) > 1
+    downloaded = _downloaded_tts_variants(model) if multi else frozenset()
     return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
-                               cache=bench_load())
+                               cache=bench_load(), downloaded=downloaded, pin=pin)
 
 
 def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):

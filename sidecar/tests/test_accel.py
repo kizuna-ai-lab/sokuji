@@ -654,6 +654,42 @@ def test_pocket_onnx_installed_and_resolvable():
     assert plans[0].tier == "cpu" and plans[0].compute_type == "int8"
 
 
+# ── resolve_tts Loader wrapper: downloaded-variant detection + pin plumbing ──
+# Mirrors resolve()'s _downloaded_quants/multi_quant wiring above, but for TTS
+# variant cards, whose repos are whole-repo deployments (not per-file quants
+# like translate) — hence native_models.model_status(repo=...) instead of
+# hf_hub_download(local_files_only=True).
+
+
+def _tts_variant_card():
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_downloaded_tts_variants_checks_each_repo(monkeypatch):
+    from sokuji_sidecar import native_models
+    card = _tts_variant_card()
+    ready = {"org/fake-bf16"}
+    monkeypatch.setattr(native_models, "model_status",
+                        lambda mid, repo=None: "ready" if repo in ready else "absent")
+    assert accel._downloaded_tts_variants(card) == frozenset({"bf16"})
+
+
+def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
+    seen = {}
+    def fake(mid, override, *, machine, platform, cache, downloaded, pin):
+        seen.update(downloaded=downloaded, pin=pin)
+        return ["sentinel"]
+    monkeypatch.setattr(accel.planner, "resolve_tts", fake)
+    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda m: frozenset({"int8"}))
+    monkeypatch.setattr(catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    assert accel.resolve_tts("fake-tts", pin="fp32") == ["sentinel"]
+    assert seen == {"downloaded": frozenset({"int8"}), "pin": "fp32"}
+
+
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     from sokuji_sidecar import accel
     import numpy as np

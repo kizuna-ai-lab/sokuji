@@ -128,6 +128,27 @@ def test_handler_tts_init_ready_registers_teardown(monkeypatch):
     assert len(conn._on_close) == 1        # tts_init registered this session's cleanup
 
 
+def test_handler_tts_init_passes_variant_as_pin(monkeypatch):
+    # tts_init's optional `variant` field (renderer's variant picker, same field
+    # name as asr_init's — see asr_engine.py:558) must reach accel.resolve_tts
+    # as the pin= kwarg, not get silently dropped.
+    b = _FakeOneShot()
+    plan = accel.Plan(b.NAME, "cpu", "cpu", "fp32", "repo", 1.0)
+    seen = {}
+    def fake_resolve_tts(mid, override="auto", pin=None):
+        seen["pin"] = pin
+        return [plan]
+    monkeypatch.setattr(accel, "resolve_tts", fake_resolve_tts)
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (b, plan, None, None))
+    monkeypatch.setattr(accel, "measure_rtf_tts", lambda *a, **k: 0.1)
+    st = {"tts_engine": tts_engine.TtsEngine(), "handlers": {}}
+    tts_engine.register(st)
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "piper-en-amy", "variant": "bf16"}, None, conn))
+    assert seen["pin"] == "bf16"
+
+
 def test_handler_set_voice_buffers_binary(monkeypatch):
     st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
     conn = _FakeConn()
