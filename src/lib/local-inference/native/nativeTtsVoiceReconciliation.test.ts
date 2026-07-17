@@ -18,3 +18,12 @@ it('drops a missing custom id for any custom-capable model', () => {
 it('passes through when the model has no custom voices', () => {
   expect(reconcileTtsVoice('builtin:X', [], 'en', [], false)).toBe('builtin:X');
 });
+it('drops a stale builtin name from a previously selected model', () => {
+  // regression: pocket's persisted 'builtin:eponine' reached gpt-sovits and
+  // killed TTS for the session (voices/eponine.wav → System error)
+  expect(reconcileTtsVoice('builtin:eponine', [], 'zh', ava, true)).toBe('builtin:Ava');
+  expect(reconcileTtsVoice('builtin:Ava', [], 'en', ava, true)).toBe('builtin:Ava');
+});
+it('cannot validate builtin names against an empty voice list (pass through)', () => {
+  expect(reconcileTtsVoice('builtin:Style1', [], 'en', [], true)).toBe('builtin:Style1');
+});

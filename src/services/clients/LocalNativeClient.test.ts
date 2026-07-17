@@ -88,7 +88,7 @@ describe('LocalNativeClient', () => {
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b', ttsModelId: 'piper-en-amy',
     } as any);
-    expect(m.tts.init).toHaveBeenCalledWith('piper-en-amy', undefined);
+    expect(m.tts.init).toHaveBeenCalledWith('piper-en-amy', undefined, 'en');
     await m.asr.onResult({ text: 'hi', durationMs: 10, recognitionTimeMs: 1 });
     await new Promise((r) => setTimeout(r, 0));
     expect(deltas.length).toBe(1);
@@ -104,7 +104,7 @@ describe('LocalNativeClient', () => {
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsDevice: 'cuda',
     } as any);
-    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', 'cuda');
+    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', 'cuda', 'en');
   });
 
   it('returns a fresh array from getConversationItems (so setItems re-renders)', async () => {
@@ -516,7 +516,7 @@ describe('LocalNativeClient TTS connect', () => {
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
       ttsModelId: 'moss-tts-nano', ttsSpeed: 1.0, textOnly: false,
     } as any);
-    expect(deps.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined);
+    expect(deps.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined, 'ja');
     expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ model: 'moss-tts-nano', device: 'cpu', rtf: 0.44 });
   });
 
@@ -557,7 +557,7 @@ describe('LocalNativeClient TTS connect', () => {
       asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
       ttsModelId: 'pocket-tts-en', ttsSpeed: 1.0, textOnly: false,
     } as any);
-    expect(deps.tts.init).toHaveBeenCalledWith('pocket-tts-en', undefined);
+    expect(deps.tts.init).toHaveBeenCalledWith('pocket-tts-en', undefined, 'ja');
     expect(useNativeModelStore.getState().ttsResolved).not.toBeNull();
   });
 });
@@ -574,7 +574,7 @@ describe('LocalNativeClient voice selection', () => {
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsVoice: 'builtin:Bella',
     } as any);
-    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined);
+    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', undefined, 'en');
     expect(m.tts.setVoice).toHaveBeenCalledWith('Bella');
   });
 

@@ -4,15 +4,22 @@ generate / generate_stream on top of load/unload; load_with_fallback only calls
 load(), so sharing the registry is safe."""
 import hashlib
 import json as _json
+import logging
 import os
 import queue
 import shutil
+import sys
 import tempfile
 import threading
 import time
 from pathlib import Path
 
 import numpy as np
+# Module-level (not the other backends' local-import-inside-load() style):
+# gpt_sovits_onnx's tests monkeypatch tts_backends.snapshot_download directly,
+# which requires the name to live in this module's globals so load() picks up
+# the patched callable instead of re-resolving huggingface_hub at call time.
+from huggingface_hub import snapshot_download
 
 from .backends import register_backend, BackendLoadError
 from . import supertonic_frontend as _sf
@@ -21,6 +28,8 @@ from .qwen3_tts import config as _q3_config
 from .qwen3_tts import mel as _q3_mel
 from .qwen3_tts import runtime as _q3_runtime
 from .qwen3_tts import template as _q3_template
+
+logger = logging.getLogger(__name__)
 
 # short id -> HF repo (unknown ids are treated as a repo id directly)
 SHERPA_TTS_REPOS = {
@@ -645,6 +654,287 @@ class Qwen3TtsOnnxBackend:
         return self._sessions is not None
 
 
+# ---------------------------------------------------------------------------
+# GPT-SoVITS (v2ProPlus) via the vendored Genie-TTS ONNX runtime — issue #322.
+# CPU + CUDA tiers; fp16 bins expand to fp32 at load (see gpt_sovits.runtime).
+
+_GPT_SOVITS_LANGS = {"zh": "chinese", "en": "english", "ja": "japanese"}
+
+
+def _gpt_sovits_detect_language(text: str) -> str:
+    """Best-effort language of a reference transcript (wire carries no refLang).
+
+    Kana wins over Han (ja text usually mixes both); Han without kana is
+    treated as Chinese — kanji-only Japanese is genuinely ambiguous, zh is the
+    documented default. TODO(#322): consider a refLang wire field later.
+    """
+    if any("぀" <= ch <= "ヿ" for ch in text):
+        return "japanese"
+    if any("一" <= ch <= "鿿" for ch in text):
+        return "chinese"
+    return "english"
+
+
+def _gpt_sovits_effective_len(text: str) -> int:
+    """Count phoneme-bearing characters (CJK chars and latin letters)."""
+    return sum(1 for ch in text
+               if ch.isalpha() or "぀" <= ch <= "ヿ"
+               or "一" <= ch <= "鿿")
+
+
+def _gpt_sovits_stage_real_tree(src_dir: str) -> str:
+    """Mirror a directory into real files if it contains symlinks.
+
+    HF-cache snapshots are symlink farms into blobs/, and nltk's pathsec
+    (used by the English G2P's perceptron tagger) rejects files whose
+    realpath escapes its authorized roots — so the EnglishG2P dir must be
+    materialized as real files before nltk touches it (recursive variant of
+    MOSS's _link_tree; hardlink first, copy on cross-device).
+    Returns src_dir unchanged when it already contains no symlinks.
+    """
+    has_symlink = False
+    for root, _dirs, files in os.walk(src_dir):
+        if any(os.path.islink(os.path.join(root, f)) for f in files):
+            has_symlink = True
+            break
+    if not has_symlink:
+        return src_dir
+    # Stage NEXT TO the source (inside the user-private HF snapshot, like the
+    # fp32 bin expansion), never in the world-writable tempdir — a predictable
+    # /tmp path would let a local attacker pre-plant files that the
+    # idempotent skip below would adopt.
+    staged = src_dir + ".staged"
+    if os.path.isdir(staged):
+        # Built atomically (rename below), so existence == complete.
+        return staged
+    # Symlink targets must stay inside the HF repo cache (snapshots link into
+    # its sibling blobs/); a link escaping it would materialize arbitrary
+    # local files into the staged tree.
+    allowed_root = None
+    probe = os.path.dirname(src_dir)
+    while probe != os.path.dirname(probe):
+        if os.path.isdir(os.path.join(probe, "blobs")):
+            allowed_root = os.path.realpath(probe)
+            break
+        probe = os.path.dirname(probe)
+    tmp_root = f"{staged}.tmp{os.getpid()}"
+    shutil.rmtree(tmp_root, ignore_errors=True)
+    try:
+        for root, _dirs, files in os.walk(src_dir):
+            rel = os.path.relpath(root, src_dir)
+            dst_root = tmp_root if rel == "." else os.path.join(tmp_root, rel)
+            os.makedirs(dst_root, exist_ok=True)
+            for name in files:
+                src = os.path.realpath(os.path.join(root, name))
+                if allowed_root is not None and not src.startswith(allowed_root + os.sep):
+                    print(f"[gpt_sovits] skipping {name}: symlink target escapes "
+                          f"the model cache ({src})", file=sys.stderr, flush=True)
+                    continue
+                dst = os.path.join(dst_root, name)
+                try:
+                    os.link(src, dst)
+                except OSError:
+                    shutil.copy2(src, dst)
+        try:
+            os.rename(tmp_root, staged)  # atomic: complete trees only
+        except OSError:
+            if not os.path.isdir(staged):  # lost a race to another process?
+                raise
+    finally:
+        shutil.rmtree(tmp_root, ignore_errors=True)
+    return staged
+
+
+@register_backend
+class GptSovitsOnnxBackend:
+    NAME = "gpt_sovits_onnx"
+    STREAMING = False
+    CLONES = True
+    # Inputs shorter than this synthesize unreliably on GPT-SoVITS (upstream
+    # short-text hazards, spike 2026-07-16) — return brief silence instead.
+    MIN_EFFECTIVE_CHARS = 2
+
+    def __init__(self):
+        self.sample_rate = 32000
+        self._sessions = None
+        self._synth = None
+        self._hubert = None
+        self._reference = None
+        self._language = "english"
+        self._snapshot = None
+
+    @property
+    def is_loaded(self):
+        return self._synth is not None
+
+    def load(self, model_ref, device, compute_type, config=None):
+        from .gpt_sovits import assets as _gs_assets
+        from .gpt_sovits import runtime as _gs_runtime
+        try:
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            model_dir = os.path.join(d, "model")
+            genie_dir = os.path.join(d, "genie_data")
+            _gs_runtime.ensure_fp32_bins(model_dir)
+            _gs_runtime.ensure_fp32_bins(
+                os.path.join(genie_dir, "chinese-hubert-base"))
+            _gs_assets.configure(
+                chinese_g2p_dir=os.path.join(genie_dir, "G2P", "ChineseG2P"),
+                # EnglishG2P must be real files: nltk pathsec rejects HF-cache
+                # blob symlinks (production-path smoke, 2026-07-17).
+                english_g2p_dir=_gpt_sovits_stage_real_tree(
+                    os.path.join(genie_dir, "G2P", "EnglishG2P")))
+            self._sessions = _gs_runtime.build_model_sessions(model_dir, device)
+            self._hubert = _gs_runtime.make_session(
+                os.path.join(genie_dir, "chinese-hubert-base",
+                             "chinese-hubert-base.onnx"), device)
+            sv = _gs_runtime.make_session(
+                os.path.join(genie_dir, "speaker_encoder.onnx"), device)
+            roberta = self._load_roberta(genie_dir, device)
+            from .gpt_sovits.inference import Synthesizer
+            self._synth = Synthesizer(self._sessions, sv_session=sv,
+                                      roberta=roberta)
+            self._snapshot = d
+        except Exception as e:  # noqa: BLE001 — contract: wrap all load failures
+            self.unload()
+            raise BackendLoadError(f"gpt_sovits_onnx load failed: {e}") from e
+
+    def _load_roberta(self, genie_dir, device):
+        from .gpt_sovits import runtime as _gs_runtime
+        onnx_path = os.path.join(genie_dir, "RoBERTa", "RoBERTa.onnx")
+        tok_path = os.path.join(genie_dir, "RoBERTa", "roberta_tokenizer",
+                                "tokenizer.json")
+        if not (os.path.isfile(onnx_path) and os.path.isfile(tok_path)):
+            return None  # zh prosody degrades to zero BERT features
+        from tokenizers import Tokenizer
+        return (_gs_runtime.make_session(onnx_path, device),
+                Tokenizer.from_file(tok_path))
+
+    def set_language(self, lang):
+        if not lang:
+            return
+        key = lang.lower().split("-")[0]
+        if key not in _GPT_SOVITS_LANGS:
+            raise ValueError(f"gpt_sovits_onnx does not support language {lang!r}")
+        self._language = _GPT_SOVITS_LANGS[key]
+
+    def set_voice(self, audio, sr, ref_text=""):
+        if not ref_text or not ref_text.strip():
+            raise ValueError(
+                "gpt_sovits_onnx cloning requires the reference transcript "
+                "(transcript_required=True)")
+        from .gpt_sovits.reference import build_reference
+        self._reference = build_reference(
+            np.asarray(audio, dtype=np.float32), int(sr), ref_text.strip(),
+            _gpt_sovits_detect_language(ref_text), self._hubert)
+
+    def set_builtin_voice(self, name):
+        import soundfile
+        base = os.path.join(self._snapshot, "voices", name)
+        if not (os.path.isfile(base + ".wav") and os.path.isfile(base + ".txt")):
+            # A stale renderer setting can carry another model's voice name
+            # (seen live: pocket's 'eponine' arriving here). Degrade to the
+            # card's default voice rather than killing TTS for the session.
+            default = self._default_voice_name()
+            if default is None or default == name:
+                raise BackendLoadError(f"unknown builtin voice: {name}")
+            print(f"[gpt_sovits_onnx] unknown builtin voice {name!r}; "
+                  f"falling back to default '{default}'", file=sys.stderr, flush=True)
+            base = os.path.join(self._snapshot, "voices", default)
+        wav, sr = soundfile.read(base + ".wav", dtype="float32")
+        with open(base + ".txt", encoding="utf-8") as f:
+            transcript = f.read().strip()
+        self.set_voice(wav, sr, ref_text=transcript)
+
+    def _default_voice_name(self):
+        """Default entry from voices/manifest.json, or None when unavailable."""
+        manifest_path = os.path.join(self._snapshot, "voices", "manifest.json")
+        if not os.path.isfile(manifest_path):
+            return None
+        with open(manifest_path, encoding="utf-8") as f:
+            voices = _json.load(f)
+        if not voices:
+            return None
+        entry = next((v for v in voices if v.get("default")), voices[0])
+        return entry["name"]
+
+    def _ensure_voice(self):
+        """Callers (notably accel.measure_rtf_tts, which benches right after
+        load() with no set_voice/set_builtin_voice call) may invoke generate()
+        before any voice is selected. Fall back to the card's default builtin
+        voice — mirrors MossTtsBackend._resolve_prompt_audio_codes' fallback
+        to the first builtin voice."""
+        if self._reference is not None:
+            return
+        name = self._default_voice_name()
+        if name is None:
+            raise RuntimeError("gpt_sovits_onnx: no voice set — call set_voice first")
+        print(f"[gpt_sovits_onnx] no voice set; using default builtin '{name}'",
+              file=sys.stderr, flush=True)
+        self.set_builtin_voice(name)
+
+    def generate(self, text, speed=1.0):
+        # NOTE: `speed` is accepted for engine-contract parity but not applied:
+        # the converted VITS graph exposes no length/rate control (upstream
+        # genie-tts has no speed parameter either), and naive resampling would
+        # shift pitch. Revisit if a length_scale input lands upstream.
+        self._ensure_voice()
+        text = (text or "").strip()
+        t0 = time.time()
+        if _gpt_sovits_effective_len(text) < self.MIN_EFFECTIVE_CHARS:
+            print(f"[gpt_sovits_onnx] input {text!r} below min length; emitting silence", file=sys.stderr, flush=True)
+            return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
+
+        # Long inputs must be sentence-split before synthesis: the vendored
+        # AR t2s loop is capped at MAX_AR_STEPS and degrades badly on long
+        # multi-sentence inputs. TextSplitter is a one-shot batch API (no
+        # feed/flush) — split() ahead of time, then synthesize per chunk.
+        from .gpt_sovits.text_splitter import TextSplitter
+        chunks = TextSplitter(max_len=40, min_len=5).split(text)
+        # Unreachable in practice (short inputs are pre-guarded); belt against splitter returning [].
+        if not chunks:
+            chunks = [text]
+
+        results = []
+        any_chunk_errored = False
+        for chunk in chunks:
+            try:
+                samples = self._synth.synthesize(chunk, self._reference, self._language)
+            except Exception:
+                # zh G2P has known crash inputs (e.g. vowel-less nasals); a live
+                # translation session must survive them. Fixed upstream cases
+                # are guarded in the vendored ToneSandhi; this is the safety
+                # net — skip the bad chunk and keep going.
+                any_chunk_errored = True
+                logger.exception(
+                    "gpt_sovits_onnx: synthesis failed for chunk %r; skipping", chunk)
+                continue
+            if samples is not None:
+                results.append(np.asarray(samples, dtype=np.float32).reshape(-1))
+
+        if not results:
+            if any_chunk_errored:
+                # Deliberate: if ANY chunk raised, degrade the whole call to silence — keep the live session alive rather than hard-fail on partial G2P crashes.
+                print("[gpt_sovits_onnx] all chunks failed; emitting silence", file=sys.stderr, flush=True)
+                return np.zeros(int(0.15 * self.sample_rate), dtype=np.float32), 0
+            # A script/language mismatch (e.g. zh text through the English
+            # G2P when tts_init carried no language) degenerates the AR loop
+            # to instant EOS — name the likely cause in the error.
+            detected = _gpt_sovits_detect_language(text)
+            hint = ("" if detected == self._language else
+                    f" (text looks {detected} but the session language is "
+                    f"{self._language} — was tts_init sent without language?)")
+            raise RuntimeError(f"gpt_sovits_onnx: synthesis produced no audio{hint}")
+
+        samples = results[0] if len(results) == 1 else np.concatenate(results)
+        gen_ms = int((time.time() - t0) * 1000)
+        return samples.astype(np.float32), gen_ms
+
+    def unload(self):
+        self._sessions = None
+        self._synth = None
+        self._hubert = None
+        self._reference = None
+        self._snapshot = None
 @register_backend
 class PocketOnnxTtsBackend:
     """Pocket TTS (Kyutai CALM zero-shot voice cloning) via int8 ONNX on CPU.
