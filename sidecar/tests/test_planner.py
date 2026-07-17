@@ -8,7 +8,11 @@ parameter rather than reading one. That is the whole point of the
 accel/planner split (see planner.py's module docstring): the Loader wrappers
 in accel.py fetch those facts and hand them to the same pure functions tested
 here; this file is the table-driven proof that the planner's decision logic
-needs no test-time patching to exercise.
+needs no test-time patching to exercise. The two resolve_tts tests that
+monkeypatch `planner.catalog.resolve_tts_card` are a narrow, justified
+exception: resolve_tts takes a model_id (not a model), so injecting a
+hand-built fixture card requires patching the catalog lookup it calls
+internally — that's a test-fixture seam, not an environment fact.
 
 _fit_walk (below) is the size-descending fit-walk nucleus shared by
 _tc_pick_quant and _llamacpp_variant_row (see planner.py docstrings): given a
@@ -979,6 +983,51 @@ def test_resolve_tts_downloaded_int8_lands_on_cpu(monkeypatch):
     plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux",
                                 cache={}, downloaded=frozenset({"int8"}))
     assert [p.device for p in plans] == ["cpu"] and plans[0].compute_type == "int8"
+
+
+# ── _tts_pick_quant: fp32/bf16-only ladder (post-int8-cut shipping ladder) ──
+# The real catalog's TTS ladder changed to fp32 (cpu + gpu-cuda + gpu-dml
+# rows) + bf16 (gpu-cuda row ONLY) — int8, which had the card's only other
+# cpu row, was cut. This exposed two bugs in _tts_pick_quant: (1) the
+# smallest-est_bytes fallback could pick bf16 on a CPU-only machine even
+# though bf16 has no cpu row at all, narrowing the model to zero runnable
+# deployments; (2) the GPU-preference walk trusted tuple declaration order
+# instead of rank, so a card that happened to declare fp32-cuda before
+# bf16-cuda would land on fp32 even though bf16 outranks it. fp32-cuda is
+# declared BEFORE bf16-cuda below specifically so these tests can tell a
+# rank-ordered walk apart from a declaration-order one.
+def _tts_variant_card_v2():
+    return catalog.TtsModel(
+        "fake-tts-v2", "Fake TTS v2", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_tts_pick_quant_cpu_only_avoids_unrunnable_bf16():
+    # bf16 (5_000 bytes) is smaller than fp32 (8_000 bytes), but bf16 has no
+    # cpu row -> unrunnable on a CPU-only machine. Narrowing to it would leave
+    # zero runnable deployments (NoUsablePlan for every CPU-only user).
+    assert planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY) == "fp32"
+
+
+def test_tts_pick_quant_rank_beats_declaration_order():
+    # fp32-cuda (rank 1.0) is declared before bf16-cuda (rank 1.2); the
+    # preference walk must land on bf16 because it outranks fp32, not because
+    # of tuple position.
+    assert planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB) == "bf16"
+
+
+def test_tts_pick_quant_runnable_beats_downloaded_but_unrunnable():
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY,
+                                  downloaded=frozenset({"bf16"}))
+    assert got == "fp32"    # bf16 downloaded but unrunnable here -> not chosen
+
+
+def test_tts_pick_quant_pin_absent_from_ladder_falls_through():
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, pin="int8")
+    assert got == "bf16"    # int8 isn't a compute_type on this card -> pin ignored
 
 
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
