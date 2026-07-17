@@ -777,6 +777,12 @@ class GptSovitsOnnxBackend:
             _gs_runtime.ensure_fp32_bins(model_dir)
             _gs_runtime.ensure_fp32_bins(
                 os.path.join(genie_dir, "chinese-hubert-base"))
+            # HF-cache weight bins shipped pre-expanded (e.g. t2s_encoder_fp32.bin)
+            # stay symlinks into ../blobs/; ORT's external-data path validation
+            # rejects those as escaping the model dir. Deref to real files first.
+            _gs_runtime.ensure_real_bins(model_dir)
+            _gs_runtime.ensure_real_bins(
+                os.path.join(genie_dir, "chinese-hubert-base"))
             _gs_assets.configure(
                 chinese_g2p_dir=os.path.join(genie_dir, "G2P", "ChineseG2P"),
                 # EnglishG2P must be real files: nltk pathsec rejects HF-cache

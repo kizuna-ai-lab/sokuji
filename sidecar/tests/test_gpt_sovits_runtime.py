@@ -35,6 +35,45 @@ def test_fp16_expansion_rewrites_on_size_mismatch(tmp_path):
     assert (tmp_path / "vits_fp32.bin").stat().st_size == 8 * 4
 
 
+def test_ensure_real_bins_derefs_escaping_symlink(tmp_path):
+    # Mimic the HF cache: a weight *.bin in model/ symlinks OUT into a sibling
+    # blobs/ tree. ORT's ValidateExternalDataPath canonicalizes external-data
+    # paths and rejects such an "escaping" file, so it must become a real entry.
+    blobs = tmp_path / "blobs"; blobs.mkdir()
+    model = tmp_path / "model"; model.mkdir()
+    payload = np.arange(4, dtype=np.float32)
+    payload.tofile(blobs / "blob123")
+    link = model / "t2s_encoder_fp32.bin"
+    link.symlink_to(os.path.join("..", "blobs", "blob123"))
+    assert link.is_symlink()
+
+    written = runtime.ensure_real_bins(str(model))
+
+    assert str(link) in written
+    assert link.exists() and not link.is_symlink()   # real dir entry now
+    np.testing.assert_array_equal(np.fromfile(link, dtype=np.float32), payload)
+
+
+def test_ensure_real_bins_ignores_real_files(tmp_path):
+    (tmp_path / "vits_fp32.bin").write_bytes(b"\x00" * 8)
+    assert runtime.ensure_real_bins(str(tmp_path)) == []  # nothing to deref
+
+
+def test_ensure_real_bins_tolerates_missing_dir(tmp_path):
+    # plain-v2 models ship no chinese-hubert-base dir; a missing path must no-op
+    # rather than raise (mirrors ensure_fp32_bins tolerating missing files).
+    assert runtime.ensure_real_bins(str(tmp_path / "nope")) == []
+
+
+def test_ensure_real_bins_is_idempotent(tmp_path):
+    blobs = tmp_path / "blobs"; blobs.mkdir()
+    model = tmp_path / "model"; model.mkdir()
+    (blobs / "b").write_bytes(b"\x01\x02\x03\x04")
+    (model / "x.bin").symlink_to(os.path.join("..", "blobs", "b"))
+    assert runtime.ensure_real_bins(str(model))       # first pass derefs
+    assert runtime.ensure_real_bins(str(model)) == []  # second is a no-op
+
+
 def test_providers_for_cpu():
     assert runtime.providers_for("cpu") == ["CPUExecutionProvider"]
 

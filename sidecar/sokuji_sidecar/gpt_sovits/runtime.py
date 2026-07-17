@@ -8,6 +8,7 @@ time lets stock ORT resolve the weights natively — no `onnx` package needed.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 
 import numpy as np
@@ -65,6 +66,54 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
                 pass
             raise
         written.append(dst)
+    return written
+
+
+def ensure_real_bins(dir_path: str) -> list[str]:
+    """Materialize every *.bin symlink in dir_path as a real file. Idempotent.
+
+    ORT's ValidateExternalDataPath canonicalizes a graph's external-data path
+    and rejects it when the resolved file escapes the model directory. The HF
+    cache stores weights as symlinks into a sibling ../blobs/ tree, so a
+    directly-shipped weight bin (e.g. t2s_encoder_fp32.bin — which, unlike the
+    fp16->fp32 twins ensure_fp32_bins writes, arrives pre-expanded and is never
+    rewritten) stays an escaping symlink and fails to load on stricter ORT
+    builds (seen on the sbsa onnxruntime-gpu 1.24 wheel). Dereferencing it into
+    a real dir entry keeps the file inside the model dir where validation
+    passes; a hardlink shares the blob's inode (no data copy, HF cache intact),
+    with a copy fallback across filesystems.
+    """
+    written: list[str] = []
+    if not os.path.isdir(dir_path):
+        return written  # tolerate a missing dir (e.g. plain-v2 has no hubert dir)
+    for name in sorted(os.listdir(dir_path)):
+        if not name.endswith(".bin"):
+            continue
+        p = os.path.join(dir_path, name)
+        if not os.path.islink(p):
+            continue
+        real = os.path.realpath(p)
+        if not os.path.isfile(real):
+            continue  # dangling link — leave it so the caller fails loudly
+        # Atomic swap (mirrors ensure_fp32_bins): build the real entry at a temp
+        # name, then os.replace over the symlink so an interrupted run never
+        # leaves the weight missing.
+        tmp = p + ".tmp"
+        try:
+            if os.path.lexists(tmp):
+                os.remove(tmp)
+            try:
+                os.link(real, tmp)          # hardlink: real entry, same blob data
+            except OSError:
+                shutil.copy2(real, tmp)     # cross-filesystem fallback
+            os.replace(tmp, p)              # atomic: symlink -> real file
+        except BaseException:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            raise
+        written.append(p)
     return written
 
 
