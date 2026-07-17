@@ -22,6 +22,7 @@ import numpy as np
 from huggingface_hub import snapshot_download
 
 from .backends import register_backend, BackendLoadError
+from . import hf_symlinks as _hf_symlinks
 from . import supertonic_frontend as _sf
 from .qwen3_tts import codec as _q3_codec
 from .qwen3_tts import config as _q3_config
@@ -518,6 +519,13 @@ class Qwen3TtsOnnxBackend:
             subdir = config.variant_subdir if config is not None else None
             if str(device).lower() == "cuda" and subdir and os.path.isdir(f"{d}/{subdir}"):
                 variant_dir = f"{d}/{subdir}"
+            # The >2GB talker graph stores weights in an external *.onnx.data
+            # file that stays an HF-cache symlink into ../blobs/; ORT's
+            # external-data validation rejects it as escaping the model dir.
+            # Deref to real files (both the fp32 onnx/ dir and any CUDA variant).
+            _hf_symlinks.materialize_symlinks(f"{d}/onnx")
+            if variant_dir:
+                _hf_symlinks.materialize_symlinks(variant_dir)
             sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
                                                   variant_dir=variant_dir)
             self._cfg = _q3_config.load_model_config(d)

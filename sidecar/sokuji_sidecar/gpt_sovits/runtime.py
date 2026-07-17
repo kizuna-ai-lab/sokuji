@@ -8,11 +8,12 @@ time lets stock ORT resolve the weights natively — no `onnx` package needed.
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 
 import numpy as np
 import onnxruntime as ort
+
+from .. import hf_symlinks
 
 # fp16 bin -> fp32 name referenced by the shipped graphs (byte-exact 2x sizes;
 # note hubert's target has no _fp32 suffix — that is what its graph references).
@@ -70,51 +71,16 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
 
 
 def ensure_real_bins(dir_path: str) -> list[str]:
-    """Materialize every *.bin symlink in dir_path as a real file. Idempotent.
+    """Materialize every *.bin symlink in dir_path as a real file.
 
-    ORT's ValidateExternalDataPath canonicalizes a graph's external-data path
-    and rejects it when the resolved file escapes the model directory. The HF
-    cache stores weights as symlinks into a sibling ../blobs/ tree, so a
-    directly-shipped weight bin (e.g. t2s_encoder_fp32.bin — which, unlike the
-    fp16->fp32 twins ensure_fp32_bins writes, arrives pre-expanded and is never
-    rewritten) stays an escaping symlink and fails to load on stricter ORT
-    builds (seen on the sbsa onnxruntime-gpu 1.24 wheel). Dereferencing it into
-    a real dir entry keeps the file inside the model dir where validation
-    passes; a hardlink shares the blob's inode (no data copy, HF cache intact),
-    with a copy fallback across filesystems.
+    The HF cache stores t2s_encoder_fp32.bin — shipped pre-expanded, so (unlike
+    the fp16->fp32 twins ensure_fp32_bins writes) it is never rewritten — as a
+    symlink into ../blobs/, which ORT's external-data path validation rejects as
+    escaping the model dir. Thin wrapper over the shared hf_symlinks helper,
+    scoped to the weight bins this backend loads. Idempotent; tolerates a
+    missing dir (plain-v2 has no chinese-hubert-base dir).
     """
-    written: list[str] = []
-    if not os.path.isdir(dir_path):
-        return written  # tolerate a missing dir (e.g. plain-v2 has no hubert dir)
-    for name in sorted(os.listdir(dir_path)):
-        if not name.endswith(".bin"):
-            continue
-        p = os.path.join(dir_path, name)
-        if not os.path.islink(p):
-            continue
-        real = os.path.realpath(p)
-        if not os.path.isfile(real):
-            continue  # dangling link — leave it so the caller fails loudly
-        # Atomic swap (mirrors ensure_fp32_bins): build the real entry at a temp
-        # name, then os.replace over the symlink so an interrupted run never
-        # leaves the weight missing.
-        tmp = p + ".tmp"
-        try:
-            if os.path.lexists(tmp):
-                os.remove(tmp)
-            try:
-                os.link(real, tmp)          # hardlink: real entry, same blob data
-            except OSError:
-                shutil.copy2(real, tmp)     # cross-filesystem fallback
-            os.replace(tmp, p)              # atomic: symlink -> real file
-        except BaseException:
-            try:
-                os.remove(tmp)
-            except OSError:
-                pass
-            raise
-        written.append(p)
-    return written
+    return hf_symlinks.materialize_symlinks(dir_path, suffixes=(".bin",))
 
 
 def providers_for(device: str) -> list[str]:
