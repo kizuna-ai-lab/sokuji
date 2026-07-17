@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { describe, it, expect } from 'vitest';
@@ -14,10 +15,16 @@ const FORBIDDEN_SEGMENTS = ['/engine/', '/workers/', '/components/'];
 /** Anti-vacuity floor: the lane has 14 .ts files today. */
 const MIN_LANE_FILES = 8;
 
-function laneSourceFiles(): string[] {
-  const files = readdirSync(__dirname)
-    .filter(f => f.endsWith('.ts') && !f.includes('.test.'));
-  if (files.length < MIN_LANE_FILES) {
+function laneSourceFiles(dir: string = __dirname): string[] {
+  // Recursive: a future native/ subdirectory must not silently escape the net
+  // while the top-level files keep MIN_LANE_FILES satisfied.
+  const files: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...laneSourceFiles(full));
+    else if (entry.name.endsWith('.ts') && !entry.name.includes('.test.')) files.push(full);
+  }
+  if (dir === __dirname && files.length < MIN_LANE_FILES) {
     throw new Error(`only ${files.length} lane files found under ${__dirname} ` +
       `(expected >= ${MIN_LANE_FILES}) — the scan is probably broken`);
   }
@@ -25,9 +32,11 @@ function laneSourceFiles(): string[] {
 }
 
 function importPaths(source: string): string[] {
-  // Static imports, type imports, re-exports, and dynamic import() calls.
+  // Static imports, type imports, re-exports, dynamic import() calls, AND bare
+  // side-effect imports (import '../x') — the last kind is a runtime dependency,
+  // the worst way to cross this boundary, and the original pattern missed it.
   const out: string[] = [];
-  for (const m of source.matchAll(/(?:from\s*|import\s*\(\s*)['"]([^'"]+)['"]/g)) {
+  for (const m of source.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"]([^'"]+)['"]/g)) {
     out.push(m[1]);
   }
   return out;
@@ -37,13 +46,13 @@ describe('native lane import boundary', () => {
   it('no file under native/ imports from the WASM lane or from components', () => {
     const offenders: string[] = [];
     for (const file of laneSourceFiles()) {
-      const source = readFileSync(join(__dirname, file), 'utf-8');
+      const source = readFileSync(file, 'utf-8');
       for (const spec of importPaths(source)) {
         // Normalize "../engine/TtsEngine" so segment matching sees "/engine/".
         const normalized = `/${spec.replace(/^(\.\.\/)+|^\.\//, '')}`;
         const hit = FORBIDDEN_SEGMENTS.find(seg =>
           (normalized + '/').includes(seg) && spec.startsWith('..'));
-        if (hit) offenders.push(`${file}: '${spec}'`);
+        if (hit) offenders.push(`${file.slice(__dirname.length + 1)}: '${spec}'`);
       }
     }
     expect(offenders).toEqual([]);

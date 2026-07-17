@@ -3,7 +3,7 @@ import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError, type I
 
 /** A finished native synthesis. Shape-compatible with the WASM lane's TtsResult
  *  by construction, NOT by import — the two providers are peers and the native
- *  lane owns its own contracts (cf. TtsReady/NativeAsrResult below/above). */
+ *  lane owns its own contracts (cf. TtsReady below; NativeAsrClient's NativeAsrResult). */
 export interface NativeTtsResult { samples: Float32Array; sampleRate: number; generationTimeMs: number; }
 
 /** Reject a streaming generate if no chunk/done arrives for this long (inactivity). */
