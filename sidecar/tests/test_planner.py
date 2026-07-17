@@ -923,6 +923,64 @@ def test_resolve_arm_ort_cuda_resolves_tts_cuda():
     assert tts[0].device == "cuda"
 
 
+# ── _tts_pick_quant / resolve_tts: multi-compute-type TTS card narrowing ──
+# A "variant" TTS card lists the SAME logical model at several compute_types
+# (bf16/fp32/int8 qwen3-tts ONNX repos, plus a macOS mlx row) rather than one
+# compute_type per tier. _tts_pick_quant narrows to a single compute_type
+# BEFORE the generic tier resolver runs, mirroring resolve()'s ASR
+# _tc_pick_quant narrowing. Reuses the CUDA_12GB/CPU_ONLY/APPLE_SILICON
+# fixtures above (their `installed` sets already cover qwen3tts_onnx and
+# mlx_audio_tts) rather than adding new machine fixtures.
+
+
+def _tts_variant_card():
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "org/fake-mlx", 1.0,
+                            platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_tts_pick_quant_cuda_machine_prefers_bf16():
+    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB) == "bf16"
+
+
+def test_tts_pick_quant_cpu_machine_prefers_smallest():
+    assert planner._tts_pick_quant(_tts_variant_card(), CPU_ONLY) == "int8"
+
+
+def test_tts_pick_quant_apple_silicon_prefers_fp32():
+    # the metal/mlx row is fp32 — narrowing must keep it alive on macOS
+    assert planner._tts_pick_quant(_tts_variant_card(), APPLE_SILICON) == "fp32"
+
+
+def test_tts_pick_quant_pin_wins():
+    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, pin="fp32") == "fp32"
+
+
+def test_tts_pick_quant_restricts_to_downloaded():
+    got = planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, downloaded=frozenset({"fp32"}))
+    assert got == "fp32"    # bf16 not downloaded -> never chosen
+
+
+def test_resolve_tts_narrows_multi_ct_card(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux", cache={})
+    assert {p.compute_type for p in plans} == {"bf16"}
+    assert plans[0].artifact == "org/fake-bf16"
+
+
+def test_resolve_tts_downloaded_int8_lands_on_cpu(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux",
+                                cache={}, downloaded=frozenset({"int8"}))
+    assert [p.device for p in plans] == ["cpu"] and plans[0].compute_type == "int8"
+
+
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
 # Characterisation coverage hole: nothing previously asserted that RESOLVING
 # a model actually produces the right PlanConfig (only that an explicit

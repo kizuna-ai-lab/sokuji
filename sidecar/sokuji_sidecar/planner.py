@@ -364,11 +364,46 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
+def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
+                    downloaded: frozenset | None = None) -> str:
+    """Quant for a multi-compute-type TTS card. pin wins when it names a listed
+    compute_type; otherwise restrict to `downloaded` variants when any exist
+    (we always LOAD the repo the user DOWNLOADED); then take the first
+    candidate whose own accelerator row is usable on this machine (deployments
+    are quality/rank ordered, so cuda machines land on bf16, Apple Silicon on
+    the fp32 mlx row); with no usable accelerator row, the smallest candidate
+    wins (CPU is bandwidth-bound: smaller = faster)."""
+    uniq = list(dict.fromkeys(d.compute_type for d in model.deployments))
+    if pin in uniq:
+        return pin
+    cands = [c for c in uniq if downloaded and c in downloaded] or uniq
+    for d in model.deployments:
+        if (d.compute_type in cands and d.tier != "cpu"
+                and _tier_available(d.tier, machine, d.backend)):
+            return d.compute_type
+    sized = {}
+    for c in cands:
+        sizes = [d.est_bytes for d in model.deployments
+                 if d.compute_type == c and d.est_bytes]
+        if sizes:
+            sized[c] = max(sizes)
+    if len(sized) == len(cands) and sized:
+        return min(sized, key=sized.get)
+    return cands[0]
+
+
 def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
-                cache: dict) -> list[Plan]:
+                cache: dict, downloaded: frozenset = frozenset(),
+                pin: str | None = None) -> list[Plan]:
     model = catalog.resolve_tts_card(model_id)
     if model is None:
         raise ValueError(f"unknown tts model: {model_id}")
+    # Multi-variant card: narrow to ONE compute_type before tier resolution,
+    # mirroring resolve()'s ASR multi-quant narrowing.
+    if len({d.compute_type for d in model.deployments}) > 1:
+        quant = _tts_pick_quant(model, machine, pin, downloaded)
+        model = dataclasses.replace(
+            model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
