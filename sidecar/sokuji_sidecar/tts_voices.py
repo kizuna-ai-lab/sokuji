@@ -9,14 +9,14 @@ _DEFAULT_REPO = "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX"
 
 
 def _repo_cached(repo: str) -> bool:
-    """True if `repo`'s snapshot is present in the local HF cache (best-effort:
-    unlike native_models._repos_cached, doesn't check for a stray .incomplete
-    blob — used only to pick which cached variant repo to read voices/ from,
-    not as a download-readiness gate)."""
-    from huggingface_hub import snapshot_download
+    """True if `repo`'s snapshot is fully cached locally. Uses native_models'
+    _repos_cached (the .incomplete-aware check): an INTERRUPTED download of the
+    default repo must not shadow a fully-cached alternate variant in
+    _variant_repo's repos[0]-first walk — a partial snapshot resolves via
+    snapshot_download but may lack voices/, silently emptying the preset list."""
+    from . import native_models
     try:
-        snapshot_download(repo_id=repo, local_files_only=True)
-        return True
+        return native_models._repos_cached({"repos": [repo]})
     except Exception:
         return False
 

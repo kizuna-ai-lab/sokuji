@@ -62,7 +62,7 @@ def materialize_symlinks(dir_path: str, *, suffixes: tuple[str, ...] | None = No
                 os.remove(stale)
             except OSError:
                 try:
-                    os.chmod(stale, 0o666)  # Windows: a read-only blob copy can't be unlinked as-is
+                    os.chmod(stale, 0o600)  # clear read-only (Windows) without going world-writable (POSIX)
                     os.remove(stale)
                 except OSError:
                     pass  # in use by a concurrent run, or genuinely unremovable — best-effort cleanup only
