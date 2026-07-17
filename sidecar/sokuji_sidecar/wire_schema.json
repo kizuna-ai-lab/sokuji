@@ -1,0 +1,22 @@
+{
+  "_comment": "Outbound wire contract: every JSON message the sidecar sends, top-level field names only (values are not typed here). Single source of truth shared by wire.validate_outbound (runtime, fail-open in prod / strict in tests) and the renderer-side field test in nativeProtocol.consistency.test.ts, which pins this file against the ServerMsg interfaces. 'pong' answers the ping health check and is deliberately absent from ServerMsg (see the type-name net). Keep keys sorted.",
+  "error": {"required": ["message"], "optional": ["id", "model"]},
+  "hardware_info_result": {"required": ["id", "os", "arch", "cpuCores", "gpus", "backendsInstalled", "accelAvailable"], "optional": []},
+  "list_tts_voices_result": {"required": ["id", "voices"], "optional": []},
+  "list_variants_result": {"required": ["id", "variants", "recommended"], "optional": []},
+  "model_delete_result": {"required": ["id", "model", "freed"], "optional": []},
+  "model_download_done": {"required": ["model", "status"], "optional": []},
+  "model_progress": {"required": ["model", "downloaded", "total"], "optional": []},
+  "model_status_result": {"required": ["id", "statuses"], "optional": []},
+  "models_catalog_result": {"required": ["id", "models"], "optional": []},
+  "ok": {"required": ["id"], "optional": []},
+  "partial": {"required": ["text"], "optional": []},
+  "pong": {"required": ["id"], "optional": []},
+  "ready": {"required": ["id", "loadTimeMs"], "optional": ["sampleRate", "backend", "device", "computeType", "rtf", "tokensPerSec", "memoryBytes", "fallbackReason", "streaming", "clones"]},
+  "result": {"required": ["text", "durationMs", "recognitionTimeMs"], "optional": ["startSample"]},
+  "speech_start": {"required": [], "optional": []},
+  "translate_result": {"required": ["id", "sourceText", "translatedText", "inferenceTimeMs"], "optional": []},
+  "tts_chunk": {"required": ["id", "seq"], "optional": []},
+  "tts_done": {"required": ["id", "totalSamples", "generationTimeMs"], "optional": []},
+  "tts_generate_result": {"required": ["id", "sampleRate", "generationTimeMs", "samples"], "optional": []}
+}

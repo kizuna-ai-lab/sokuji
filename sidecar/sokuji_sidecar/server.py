@@ -2,6 +2,8 @@ import json
 import sys
 import websockets
 
+from . import wire
+
 
 class Conn:
     def __init__(self, ws):
@@ -20,6 +22,14 @@ class Conn:
         self._on_close.append(cb)
 
     async def send(self, obj=None, binary=None):
+        """The ONE outbound funnel: every JSON message this process sends —
+        handler replies and engine pushes alike — leaves through here, so the
+        wire contract is enforced in exactly one place (strict in tests,
+        fail-open in production; see wire.py)."""
+        # Validate BEFORE any I/O: a strict-mode violation must leave the
+        # process in a nothing-sent state, not binary-without-its-JSON.
+        if obj is not None:
+            wire.validate_outbound(obj)
         if binary is not None:
             await self._ws.send(binary)
         if obj is not None:
@@ -65,10 +75,7 @@ async def _conn(state, ws):
                     _mid = None
                 reply, binary = {"type": "error", "id": _mid, "message": str(e)}, None
             pending_binary = None
-            if binary is not None:
-                await ws.send(binary)
-            if reply is not None:
-                await ws.send(json.dumps(reply))
+            await conn.send(reply, binary)   # same binary-before-json order
     finally:
         # A session connection closing is "stop": free that connection's model from VRAM.
         # Each stage registers its own cleanup at init (conn.on_close), so the server
