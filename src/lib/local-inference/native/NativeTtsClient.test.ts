@@ -11,6 +11,26 @@ async function initClient(conn: FakeSidecarConnection, streaming: boolean) {
   return c;
 }
 
+describe('NativeTtsClient init', () => {
+  it('sends variant with tts_init when provided', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTtsClient(conn);
+    const p = c.init('qwen3-tts-1.7b', 'auto', 'en', 'bf16');
+    expect(conn.sent[0]).toMatchObject({ type: 'tts_init', model: 'qwen3-tts-1.7b', variant: 'bf16' });
+    conn.emit({ type: 'ready', id: conn.sent[0].id, sampleRate: 24000, loadTimeMs: 5, device: 'cpu', backend: 'qwen3_tts_onnx', rtf: 0.3, streaming: false, clones: false });
+    await p;
+  });
+
+  it('omits variant when not provided (undefined, not a missing-key surprise)', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTtsClient(conn);
+    const p = c.init('moss', 'cpu');
+    expect(conn.sent[0]).toMatchObject({ type: 'tts_init', model: 'moss', device: 'cpu', variant: undefined });
+    conn.emit({ type: 'ready', id: conn.sent[0].id, sampleRate: 24000, loadTimeMs: 5, device: 'cpu', backend: 'moss_onnx', rtf: 0.44, streaming: false, clones: false });
+    await p;
+  });
+});
+
 describe('NativeTtsClient one-shot', () => {
   it('generate() pairs the buffered binary with the result reply', async () => {
     const conn = new FakeSidecarConnection();

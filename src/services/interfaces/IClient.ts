@@ -222,6 +222,8 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   translationVariant?: string;
   /** User-pinned ASR quant (variant picker) — load must match the download. */
   asrVariant?: string;
+  /** User-pinned TTS quant (variant picker, e.g. qwen3-tts fp32/bf16) — load must match the download. */
+  ttsVariant?: string;
 }
 
 /**

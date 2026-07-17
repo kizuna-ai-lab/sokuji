@@ -521,6 +521,10 @@ export function createParticipantLocalNativeConfig(
       translationVariant: translationModel === (baseConfig.translationModelId ?? '')
         ? baseConfig.translationVariant : undefined,
       ttsModelId: undefined,
+      // TTS is dropped entirely for the participant channel (text-only) — drop
+      // its variant pin too, else a stale pin from the base config would leak
+      // into a config whose ttsModelId is unconditionally undefined.
+      ttsVariant: undefined,
     },
   };
 }

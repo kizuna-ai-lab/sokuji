@@ -786,8 +786,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             ttsCards,
             (c) => ttsSelected(c.selectId),
             'ttsModel',
-            undefined,
-            undefined,
+            variantData,
+            handlePinVariant,
             () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
               <NativeVoiceSection
                 capability={capability}
