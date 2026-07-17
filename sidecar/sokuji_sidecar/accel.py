@@ -286,10 +286,41 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
         est_bytes=_est_bytes, format_ready=_format_ready)
 
 
-def resolve_tts(model_id, override="auto", machine=None):
+def _downloaded_tts_variants(model, machine, platform) -> frozenset:
+    """compute_types of `model` whose variant repo is fully cached locally.
+    TTS variants are whole repos (unlike translate's per-file quants), so the
+    check is native_models.model_status with the repo override — which carries
+    the partial-snapshot/.incomplete guards a bare snapshot_download lacks.
+
+    Deployments are filtered through _platform_ok(d, machine, platform) first:
+    without it, an off-platform artifact that happens to share a compute_type
+    with an on-platform one (e.g. a macOS MLX snapshot cached on a Linux box —
+    both can be "fp32") would mark that compute_type downloaded even though
+    the platform's own repo isn't cached at all."""
+    from . import native_models
+    out = set()
+    for d in model.deployments:
+        if d.compute_type in out:
+            continue
+        if not _platform_ok(d, machine, platform):
+            continue
+        try:
+            if native_models.model_status(model.id, repo=d.artifact) == "ready":
+                out.add(d.compute_type)
+        except Exception:
+            pass  # treat an unreadable/broken cache entry as "not downloaded", not a crash
+    return frozenset(out)
+
+
+def resolve_tts(model_id, override="auto", machine=None, pin=None):
+    from . import catalog as _cat
     m = machine or probe()
-    return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
-                               cache=bench_load())
+    model = _cat.resolve_tts_card(model_id)
+    multi = model is not None and len({d.compute_type for d in model.deployments}) > 1
+    platform = current_platform()
+    downloaded = _downloaded_tts_variants(model, m, platform) if multi else frozenset()
+    return planner.resolve_tts(model_id, override, machine=m, platform=platform,
+                               cache=bench_load(), downloaded=downloaded, pin=pin)
 
 
 def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):
@@ -396,7 +427,7 @@ def load_measured(plans: list, stage: str | None = None):
         if plan.device == "cpu":
             ledger_claim(stage, 0)
         else:
-            est = _model_weight_bytes(plan.artifact, variant_subdir=plan.config.variant_subdir)
+            est = _model_weight_bytes(plan.artifact)
             ledger_claim(stage, memory or est or 0)
     return backend, plan, notice, memory
 
@@ -408,33 +439,21 @@ def load_measured(plans: list, stage: str | None = None):
 _WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx", ".onnx.data")
 
 
-def _model_weight_bytes(artifact: str, variant_subdir: str | None = None):
+def _model_weight_bytes(artifact: str):
     """Best-effort on-disk size of a model's weight files, read from the local
     HF cache (the model is already downloaded by the time we load it). Returns
     None when it can't be determined — a local dir without weight files, an
     artifact not present in the cache, or no huggingface_hub — so the VRAM gate
-    stays inert rather than guessing.
-
-    `variant_subdir`, when given (both callers pass plan.config.variant_subdir —
-    "onnx-bf16" for the qwen3-tts cards, None for every other card), names a
-    snapshot subdir whose CUDA-only graph rebuilds are loaded INSTEAD of the
-    same-named fp32 graphs under onnx/ (see Qwen3TtsOnnxBackend.load) —
-    counting both copies would roughly double the estimate and wrongly demote
-    GPUs that comfortably fit the actual load."""
+    stays inert rather than guessing."""
     try:
         path = artifact if os.path.isdir(artifact) else None
         if path is None:
             from huggingface_hub import snapshot_download
             path = snapshot_download(artifact, local_files_only=True)
         total = 0
-        variant_root = os.path.join(path, variant_subdir) if variant_subdir else None
-        has_variant = variant_root is not None and os.path.isdir(variant_root)
         for root, _dirs, files in os.walk(path):
             for fn in files:
                 if not fn.endswith(_WEIGHT_EXTS):
-                    continue
-                if (has_variant and os.path.basename(root) == "onnx"
-                        and os.path.exists(os.path.join(variant_root, fn))):
                     continue
                 total += os.path.getsize(os.path.realpath(os.path.join(root, fn)))
         return total or None
@@ -472,7 +491,7 @@ def load_with_fallback(plans: list):
         # guess here would only wrongly route a fittable model to CPU.
         is_llamacpp = plan.backend.startswith("llamacpp_")
         free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
-        need = (_model_weight_bytes(plan.artifact, variant_subdir=plan.config.variant_subdir)
+        need = (_model_weight_bytes(plan.artifact)
                 if (plan.device == "cuda" and not is_llamacpp) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
@@ -750,6 +769,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         sizes_by_ct = {}
         artifact_by_ct = {}
         for d in mdl.deployments:
+            if not _platform_ok(d, m, platform_tag):
+                continue                      # off-platform tier (e.g. mac-only mlx row)
             if d.compute_type not in seen_cts:
                 seen_cts.append(d.compute_type)
                 artifact_by_ct[d.compute_type] = d.artifact
@@ -766,29 +787,55 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             # that flapped with the OTHER stages' selections would read as
             # noise. Renderer renders; it computes nothing.
             budget = _quant_budget_bytes(m)
-            is_llama = _is_llamacpp(mdl)
-            if is_llama:
-                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
-                rec = chosen.compute_type if chosen is not None else None
+            if kind == "tts":
+                # TTS variants are whole-repo downloads, not resident-weight
+                # quants (no _TC_RESIDENT_FACTOR/_LLAMA_RESIDENT_FACTOR
+                # inflation) — needBytes is just the download size. A ct is
+                # "supported" when ANY of its deployment rows is tier-available
+                # on this machine (a cpu row makes it always supported);
+                # recommended mirrors the same narrowing resolve_tts uses at
+                # load time (planner._tts_pick_quant), EXCEPT this call omits
+                # `downloaded` — same convention as translate's rec below, and
+                # for the same reason: this is the FRESH-recommendation default,
+                # not a reflection of this machine's download state. resolve_tts
+                # itself still narrows by `downloaded` at load time, and (since
+                # the downloaded-fp32 cpu tail) can append a cpu fallback plan
+                # this recommendation doesn't know about.
+                rec = planner._tts_pick_quant(mdl, m)
+                variants = []
+                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                    supported = any(
+                        _tier_available(d.tier, m, d.backend)
+                        for d in mdl.deployments if d.compute_type == ct)
+                    variants.append({"id": ct, "sizeBytes": size, "needBytes": size,
+                                     "repo": artifact_by_ct.get(ct),
+                                     "supported": supported, "recommended": ct == rec})
+                entry["variants"] = variants
+                entry["deviceMemBytes"] = budget
             else:
-                rec = _tc_pick_quant(mdl, m, None, budget)
-            variants = []
-            factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
-            for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
-                need = int(size * factor)                  # fit-check figure, for UI reasons
+                is_llama = _is_llamacpp(mdl)
                 if is_llama:
-                    supported = True                       # --fit always runs
-                elif budget is None:
-                    supported = True                       # no GPU → CPU runs anything
+                    chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                    rec = chosen.compute_type if chosen is not None else None
                 else:
-                    supported = need <= budget
-                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
-                                 "repo": artifact_by_ct.get(ct),
-                                 "supported": supported, "recommended": ct == rec})
-            entry["variants"] = variants
-            # Machine context for the renderer's localized reason strings
-            # ("needs ~X — this machine has Y"); null on cpu-only machines.
-            entry["deviceMemBytes"] = budget
+                    rec = _tc_pick_quant(mdl, m, None, budget)
+                variants = []
+                factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
+                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                    need = int(size * factor)                  # fit-check figure, for UI reasons
+                    if is_llama:
+                        supported = True                       # --fit always runs
+                    elif budget is None:
+                        supported = True                       # no GPU → CPU runs anything
+                    else:
+                        supported = need <= budget
+                    variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
+                                     "repo": artifact_by_ct.get(ct),
+                                     "supported": supported, "recommended": ct == rec})
+                entry["variants"] = variants
+                # Machine context for the renderer's localized reason strings
+                # ("needs ~X — this machine has Y"); null on cpu-only machines.
+                entry["deviceMemBytes"] = budget
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

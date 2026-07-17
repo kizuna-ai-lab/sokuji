@@ -116,7 +116,7 @@ export class LocalNativeClient implements IClient {
     if (this.ttsEnabled) {
       store.setTtsLoading(true);
       try {
-        const r = await this.tts.init(config.ttsModelId, config.ttsDevice, config.targetLanguage);
+        const r = await this.tts.init(config.ttsModelId, config.ttsDevice, config.targetLanguage, config.ttsVariant);
         this.ttsStreaming = !!r.streaming;
         store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu', backend: r.backend, computeType: r.computeType,
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });

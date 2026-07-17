@@ -13,6 +13,8 @@ import sys
 import numpy as np
 import onnxruntime as ort
 
+from .. import hf_symlinks
+
 # fp16 bin -> fp32 name referenced by the shipped graphs (byte-exact 2x sizes;
 # note hubert's target has no _fp32 suffix — that is what its graph references).
 FP16_TO_FP32 = {
@@ -66,6 +68,19 @@ def ensure_fp32_bins(dir_path: str) -> list[str]:
             raise
         written.append(dst)
     return written
+
+
+def ensure_real_bins(dir_path: str) -> list[str]:
+    """Materialize every *.bin symlink in dir_path as a real file.
+
+    The HF cache stores t2s_encoder_fp32.bin — shipped pre-expanded, so (unlike
+    the fp16->fp32 twins ensure_fp32_bins writes) it is never rewritten — as a
+    symlink into ../blobs/, which ORT's external-data path validation rejects as
+    escaping the model dir. Thin wrapper over the shared hf_symlinks helper,
+    scoped to the weight bins this backend loads. Idempotent; tolerates a
+    missing dir (plain-v2 has no chinese-hubert-base dir).
+    """
+    return hf_symlinks.materialize_symlinks(dir_path, suffixes=(".bin",))
 
 
 def providers_for(device: str) -> list[str]:

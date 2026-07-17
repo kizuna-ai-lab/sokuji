@@ -8,6 +8,33 @@ from .moss_tts.ort_runtime import OrtCpuRuntime
 _DEFAULT_REPO = "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX"
 
 
+def _repo_cached(repo: str) -> bool:
+    """True if `repo`'s snapshot is fully cached locally. Uses native_models'
+    _repos_cached (the .incomplete-aware check): an INTERRUPTED download of the
+    default repo must not shadow a fully-cached alternate variant in
+    _variant_repo's repos[0]-first walk — a partial snapshot resolves via
+    snapshot_download but may lack voices/, silently emptying the preset list."""
+    from . import native_models
+    try:
+        return native_models._repos_cached({"repos": [repo]})
+    except Exception:
+        return False
+
+
+def _variant_repo(m) -> str:
+    """Pick which of a (possibly multi-variant) TTS card's repos to read
+    voices/ from: the first one that's actually cached locally — `m.repos[0]`
+    checked first, then the card's other unique deployment-artifact repos in
+    deployment order — falling back to `m.repos[0]` when none is cached.
+    voices/ content is identical across a card's variant repos (same model,
+    different dtype), so any cached one serves; this lets voice listing work
+    off a downloaded bf16 repo without also requiring the default fp32 repo."""
+    candidates = list(dict.fromkeys(
+        [m.repos[0]] +
+        [d.artifact for d in m.deployments if d.backend != "mlx_audio_tts"]))
+    return next((r for r in candidates if _repo_cached(r)), m.repos[0])
+
+
 def _repo_for(model_id: str | None) -> str:
     """Resolve a catalog TTS id (e.g. 'moss-tts-nano') to its HF LM repo — repos[0]
     carries browser_poc_manifest.json. None → the default MOSS model. An id that
@@ -17,7 +44,7 @@ def _repo_for(model_id: str | None) -> str:
     lookup = model_id or "moss-tts-nano"
     m = catalog.tts_model(lookup)
     if m and m.repos:
-        return m.repos[0]
+        return _variant_repo(m)
     return model_id or _DEFAULT_REPO   # unknown id → assume it's already a repo path
 
 
@@ -83,9 +110,11 @@ def list_builtin_voices(model_id=None):
         # Generic bundled-voices branch: any TTS model may ship curated ICL preset
         # clips as voices/<name>.wav|.txt + voices/manifest.json in its snapshot
         # (currently Qwen3-TTS). Falls through when the model isn't downloaded or
-        # doesn't bundle voices this way.
+        # doesn't bundle voices this way. _variant_repo prefers a cached variant
+        # repo (e.g. bf16) over the card's default (fp32) so voice listing works
+        # off whichever variant the user actually downloaded.
         try:
-            root = Path(_snapshot_dir(m.repos[0]))
+            root = Path(_snapshot_dir(_variant_repo(m)))
             manifest_path = root / "voices" / "manifest.json"
             if manifest_path.exists():
                 manifest = json.loads(manifest_path.read_text())

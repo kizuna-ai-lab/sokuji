@@ -424,8 +424,12 @@ def test_heavy_tts_cards_have_windows_only_gpu_dml_rows():
         assert d.backend == backend
         assert d.platforms == ("windows",), mid           # DirectML SKU is Windows-only
         assert d.compute_type == "fp32"
-        # Same artifact as the CUDA row: DML runs the identical graphs (spec D2).
-        assert d.artifact == by_tier["gpu-cuda"][0].artifact
+        # Same artifact as the fp32 CUDA row: DML runs the identical graphs
+        # (spec D2). The qwen3-tts cards carry a SECOND, bf16, gpu-cuda row
+        # (P7 multi-variant ladder) — compare against the fp32 one by name,
+        # not by tier-list position.
+        cuda_fp32 = next(x for x in by_tier["gpu-cuda"] if x.compute_type == "fp32")
+        assert d.artifact == cuda_fp32.artifact
 
 
 def test_sherpa_tts_cards_have_no_gpu_dml_row():
@@ -437,13 +441,16 @@ def test_sherpa_tts_cards_have_no_gpu_dml_row():
 
 def test_mlx_tts_deployment_rows():
     # spec D5 / P6: each MLX-lane card gains ONE Apple-Silicon macOS metal row,
-    # pointed at the mlx-community repo, reusing the card's compute_type so the
-    # card still exposes exactly one variant (no new TTS variantIds).
+    # pointed at the mlx-community repo, reusing the card's compute_type. moss
+    # is single-variant, so it still exposes exactly one compute_type overall;
+    # the qwen3-tts cards are now multi-variant (P7: fp32 + bf16 ONNX rows) —
+    # the mlx row's fp32 just needs to be ONE of the card's onnx compute_types.
     expect = {
         "moss-tts-nano": "mlx-community/MOSS-TTS-Nano-100M",
         "qwen3-tts-0.6b": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
         "qwen3-tts-1.7b": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
     }
+    single_variant = {"moss-tts-nano"}
     for mid, repo in expect.items():
         m = catalog.tts_model(mid)
         mlx = [d for d in m.deployments if d.backend == "mlx_audio_tts"]
@@ -453,10 +460,11 @@ def test_mlx_tts_deployment_rows():
         assert d.artifact == repo
         assert d.platforms == ("macos",)
         assert d.requires_apple_silicon is True
-        # compute_type reused from the card's ONNX rows → still a single variant
+        # compute_type reused from the card's ONNX rows → not a brand-new one
         onnx_cts = {x.compute_type for x in m.deployments if x.backend != "mlx_audio_tts"}
         assert d.compute_type in onnx_cts
-        assert len({x.compute_type for x in m.deployments}) == 1, mid
+        if mid in single_variant:
+            assert len({x.compute_type for x in m.deployments}) == 1, mid
 
 
 def test_mlx_cards_keep_onnx_cpu_fallback_rows():
@@ -466,3 +474,24 @@ def test_mlx_cards_keep_onnx_cpu_fallback_rows():
         m = catalog.tts_model(mid)
         assert any(d.tier == "cpu" and d.backend != "mlx_audio_tts"
                    for d in m.deployments), mid
+
+
+def test_qwen3_tts_cards_carry_per_variant_onnx_repos():
+    # Multi-variant shipping ladder (int8 was CUT after validating slower on
+    # both aarch64 and x86 — only fp32 + bf16 ship): each variant is its OWN
+    # self-contained repo (the repo IS the variant), not a subdir/file inside
+    # one shared repo. bf16 is CUDA-only (no cpu/dml row); fp32 covers
+    # cpu + gpu-cuda + gpu-dml.
+    for mid in ("qwen3-tts-0.6b", "qwen3-tts-1.7b"):
+        card = catalog.tts_model(mid)
+        onnx = [d for d in card.deployments if d.backend == "qwen3tts_onnx"]
+        cts = {d.compute_type for d in onnx}
+        assert cts == {"fp32", "bf16"}
+        for d in onnx:
+            assert d.artifact.endswith(f"-{d.compute_type}"), (mid, d.compute_type, d.artifact)
+            assert d.est_bytes, f"{mid}/{d.compute_type} missing est_bytes"
+        assert all(d.tier == "gpu-cuda" for d in onnx if d.compute_type == "bf16")
+        assert {d.tier for d in onnx if d.compute_type == "fp32"} == {"cpu", "gpu-cuda", "gpu-dml"}
+        fp32_repo = next(d.artifact for d in onnx if d.compute_type == "fp32")
+        assert card.repos == (fp32_repo,)
+        assert card.size_bytes == next(d.est_bytes for d in onnx if d.compute_type == "fp32")

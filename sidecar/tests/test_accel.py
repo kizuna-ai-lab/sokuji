@@ -149,7 +149,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
     # A flexible model (cuda + cpu floor) whose weights can't fit free VRAM is
     # routed straight to CPU — the cuda plan is never even attempted (no OOM).
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 5 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
@@ -161,7 +161,7 @@ def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
 
 def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 4 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct, config=None): self.device = device; self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
@@ -173,7 +173,7 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
     # No CUDA / unknown footprint → gate stays out of the way; the existing
     # try/except path still steps cuda → cpu on a real OOM.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: None)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     class FakeBackend:
         def __init__(self, ok): self.ok = ok
         def load(self, a, device, ct, config=None):
@@ -188,7 +188,7 @@ def test_vram_gate_inert_without_estimates(monkeypatch):
 def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
     # The proactive gate must read device_free_bytes (tc probe), never NVML.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 5 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
@@ -608,7 +608,7 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     # An fp8 plan should use factor 1.5; on a 12GiB free machine with 8GiB weights:
     # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → cuda proactively skipped.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 12 * _GIB)
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 8 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 * _GIB)
     fp8_plan = accel.Plan("hunyuan_translate", "gpu-cuda", "cuda", "fp8", "repo", 1.0)
     cpu_pl = _plan("cpu")
     attempted = []
@@ -672,6 +672,86 @@ def test_pocket_onnx_installed_and_resolvable():
     plans = accel.resolve_tts("pocket-tts-en", override="cpu")
     assert plans and plans[0].backend == "pocket_onnx"
     assert plans[0].tier == "cpu" and plans[0].compute_type == "int8"
+
+
+# ── resolve_tts Loader wrapper: downloaded-variant detection + pin plumbing ──
+# Mirrors resolve()'s _downloaded_quants/multi_quant wiring above, but for TTS
+# variant cards, whose repos are whole-repo deployments (not per-file quants
+# like translate) — hence native_models.model_status(repo=...) instead of
+# hf_hub_download(local_files_only=True).
+
+
+def _tts_variant_card():
+    # 3-ct ladder (fp32/bf16/int8): the shipping ladder itself is fp32/bf16
+    # only (int8 was cut, see planner.py), but this SYNTHETIC fixture keeps
+    # int8's cpu-only row on purpose — it exercises the generic multi-ct
+    # machinery (including a compute_type that only ever runs on cpu)
+    # without depending on production catalog shape.
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_downloaded_tts_variants_checks_each_repo(monkeypatch):
+    from sokuji_sidecar import native_models
+    card = _tts_variant_card()
+    ready = {"org/fake-bf16"}
+    monkeypatch.setattr(native_models, "model_status",
+                        lambda mid, repo=None: "ready" if repo in ready else "absent")
+    m = _machine()
+    assert accel._downloaded_tts_variants(card, m, "linux") == frozenset({"bf16"})
+
+
+def test_downloaded_tts_variants_ignores_off_platform_artifact(monkeypatch):
+    # An MLX snapshot (macOS-only, requires_apple_silicon) cached on a Linux
+    # box shares compute_type "fp32" with the ONNX cpu deployment. Without the
+    # _platform_ok filter, model_status("ready") for the MLX repo would mark
+    # "fp32" downloaded even though the platform's own ONNX repo isn't cached
+    # at all — resolve_tts would then think it can load a variant that
+    # doesn't exist on this platform.
+    from sokuji_sidecar import native_models
+    card = catalog.TtsModel(
+        "fake-tts-mlx", "Fake TTS MLX", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "mlx-community/fake-mlx", 1.0,
+                             platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+    ready = {"mlx-community/fake-mlx"}  # only the off-platform MLX repo is cached
+    monkeypatch.setattr(native_models, "model_status",
+                        lambda mid, repo=None: "ready" if repo in ready else "absent")
+    m = _machine(apple=False)  # Linux box, not Apple Silicon
+    result = accel._downloaded_tts_variants(card, m, "linux")
+    assert "fp32" not in result
+    assert result == frozenset()
+
+
+def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
+    seen = {}
+    def fake(mid, override, *, machine, platform, cache, downloaded, pin):
+        seen.update(downloaded=downloaded, pin=pin)
+        return ["sentinel"]
+    monkeypatch.setattr(accel.planner, "resolve_tts", fake)
+    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda m, machine, platform: frozenset({"int8"}))
+    monkeypatch.setattr(catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    assert accel.resolve_tts("fake-tts", pin="fp32") == ["sentinel"]
+    assert seen == {"downloaded": frozenset({"int8"}), "pin": "fp32"}
+
+
+def test_models_catalog_emits_tts_variants(monkeypatch):
+    cuda_machine = _machine(gpus=_nv_gpus(12000))
+    monkeypatch.setattr(accel, "probe", lambda force=False: cuda_machine)
+    monkeypatch.setattr(catalog, "tts_models", lambda: [_tts_variant_card()])
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "tts", "id": 1}, None))
+    entry = reply["models"][0]
+    by_id = {v["id"]: v for v in entry["variants"]}
+    assert set(by_id) == {"fp32", "bf16", "int8"}
+    assert by_id["bf16"]["recommended"] and by_id["bf16"]["supported"]
+    assert by_id["int8"]["supported"]           # cpu tier always runs
+    assert by_id["bf16"]["repo"] == "org/fake-bf16"
 
 
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
@@ -745,7 +825,7 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
     """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
     llama-server's --fit handles memory by partial offload."""
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
-    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a, variant_subdir=None: 8 << 30)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
 
     class FakeBackend:
@@ -1087,24 +1167,6 @@ def test_gpu_metal_tier_available_via_tc_metal_kind():
     assert accel._tier_available("gpu-metal", m) is True
 
 
-def test_model_weight_bytes_counts_variant_shadowing_and_external_data(tmp_path):
-    # A qwen3-tts-style snapshot: fp32 graphs under onnx/, CUDA-only bf16
-    # rebuilds under onnx-bf16/. The estimator serves CUDA-plan gating, and
-    # CUDA loads the bf16 rebuild INSTEAD of the same-named fp32 graph — the
-    # shadowed fp32 file must not be double-counted. External weight payloads
-    # (<name>.onnx.data) count toward their graph.
-    onnx_dir = tmp_path / "onnx"
-    bf16_dir = tmp_path / "onnx-bf16"
-    onnx_dir.mkdir()
-    bf16_dir.mkdir()
-    (onnx_dir / "talker.onnx").write_bytes(b"x" * 100)      # shadowed by bf16
-    (onnx_dir / "codec.onnx").write_bytes(b"x" * 20)
-    (onnx_dir / "codec.onnx.data").write_bytes(b"x" * 30)   # external payload
-    (bf16_dir / "talker.onnx").write_bytes(b"x" * 40)
-    from sokuji_sidecar import accel
-    assert accel._model_weight_bytes(str(tmp_path), variant_subdir="onnx-bf16") == 40 + 20 + 30
-
-
 def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     onnx_dir = tmp_path / "onnx"
     onnx_dir.mkdir()
@@ -1112,25 +1174,3 @@ def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     (onnx_dir / "talker.onnx.data").write_bytes(b"x" * 50)
     from sokuji_sidecar import accel
     assert accel._model_weight_bytes(str(tmp_path)) == 150
-
-
-def test_model_weight_bytes_variant_subdir_param_controls_dedup(tmp_path):
-    # Same on-disk layout probed both ways with a real variant dir present:
-    # an explicit variant_subdir (what both load_measured and load_with_fallback
-    # now pass, sourced from plan.config.variant_subdir — Task 8) dedupes the
-    # shadowed fp32 copy; omitting it (None, the default for every non-qwen3-tts
-    # plan, since only the qwen3-tts cards set cuda_variant_subdir) counts every
-    # weight file with no de-dup.
-    from sokuji_sidecar import accel
-    onnx_dir = tmp_path / "onnx"
-    variant_dir = tmp_path / "onnx-bf16"
-    onnx_dir.mkdir()
-    variant_dir.mkdir()
-    (onnx_dir / "model.onnx").write_bytes(b"x" * 111)        # shadowed by the variant copy
-    (variant_dir / "model.onnx").write_bytes(b"x" * 222)
-
-    deduped = accel._model_weight_bytes(str(tmp_path), variant_subdir="onnx-bf16")
-    assert deduped == 222                        # fp32 copy in onnx/ skipped; bf16 copy counted once
-
-    undeduped = accel._model_weight_bytes(str(tmp_path))   # variant_subdir defaults to None
-    assert undeduped == 111 + 222                 # no dedup requested -> every weight file counted

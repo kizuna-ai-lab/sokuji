@@ -83,12 +83,15 @@ export class NativeTtsClient {
     this.streamDone.clear(); this.streamHandlers.clear(); this.lastBinary = null;
   }
 
-  async init(model?: string, device?: string, language?: string): Promise<TtsReady> {
+  async init(model?: string, device?: string, language?: string, variant?: string): Promise<TtsReady> {
     this.onStatus?.('[native-tts] init…');
     // language = the session's target language. Backends with per-language
     // frontends (gpt_sovits_onnx G2P) need it; others ignore it. Omitting it
     // made zh/ja text run through the English G2P → "no audio" (live repro).
-    const msg = await this.conn.request({ type: 'tts_init', model, device, language }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
+    // variant = the user-pinned compute type (e.g. 'bf16') for multi-variant
+    // TTS cards (qwen3-tts) — mirrors asr_init's field so load resolves the
+    // same repo download picked.
+    const msg = await this.conn.request({ type: 'tts_init', model, device, language, variant }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
     this.sampleRate = r.sampleRate ?? 24000;

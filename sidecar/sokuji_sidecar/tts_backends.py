@@ -24,6 +24,7 @@ import soundfile as sf
 from huggingface_hub import snapshot_download
 
 from .backends import register_backend, BackendLoadError
+from . import hf_symlinks as _hf_symlinks
 from . import supertonic_frontend as _sf
 from .cosyvoice3 import frontend as _cv3_frontend
 from .cosyvoice3 import pipeline as _cv3_pipeline
@@ -513,18 +514,12 @@ class Qwen3TtsOnnxBackend:
             from .qwen_tokenizer import load_qwen2_tokenizer
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
-            # The snapshot may ship CUDA-only graph rebuilds (bf16 talker /
-            # code_predictor) alongside the fp32 set, in a subdir named by the
-            # card (config.variant_subdir, e.g. "onnx-bf16" for the qwen3-tts
-            # cards — see catalog.py's cuda_variant_subdir); bf16 has no CPU or
-            # DML kernels, so only the cuda device picks it up, and only when the
-            # subdir actually exists in this snapshot.
-            variant_dir = None
-            subdir = config.variant_subdir if config is not None else None
-            if str(device).lower() == "cuda" and subdir and os.path.isdir(f"{d}/{subdir}"):
-                variant_dir = f"{d}/{subdir}"
-            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads,
-                                                  variant_dir=variant_dir)
+            # The >2GB talker graph stores weights in an external *.onnx.data
+            # file that stays an HF-cache symlink into ../blobs/; ORT's
+            # external-data validation rejects it as escaping the model dir.
+            # Deref to real files.
+            _hf_symlinks.materialize_symlinks(f"{d}/onnx")
+            sessions = _q3_runtime.build_sessions(f"{d}/onnx", device, threads)
             self._cfg = _q3_config.load_model_config(d)
             self._tok = load_qwen2_tokenizer(d)
             self._emb = _q3_runtime.Embeddings.from_sessions(sessions)
@@ -900,6 +895,12 @@ class GptSovitsOnnxBackend:
             genie_dir = os.path.join(d, "genie_data")
             _gs_runtime.ensure_fp32_bins(model_dir)
             _gs_runtime.ensure_fp32_bins(
+                os.path.join(genie_dir, "chinese-hubert-base"))
+            # HF-cache weight bins shipped pre-expanded (e.g. t2s_encoder_fp32.bin)
+            # stay symlinks into ../blobs/; ORT's external-data path validation
+            # rejects those as escaping the model dir. Deref to real files first.
+            _gs_runtime.ensure_real_bins(model_dir)
+            _gs_runtime.ensure_real_bins(
                 os.path.join(genie_dir, "chinese-hubert-base"))
             _gs_assets.configure(
                 chinese_g2p_dir=os.path.join(genie_dir, "G2P", "ChineseG2P"),

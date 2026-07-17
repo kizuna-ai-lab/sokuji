@@ -186,14 +186,26 @@ TTS_MATRIX = [
     ('moss-tts-nano', CUDA_24GB, 'cpu', [('moss_onnx', 'cpu', 'cpu', 'fp32', 'OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX', 1.0), ('moss_onnx', 'gpu-cuda', 'cuda', 'fp32', 'OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX', 1.0)]),
     ('moss-tts-nano', APPLE_SILICON, 'auto', [('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/MOSS-TTS-Nano-100M', 1.0), ('moss_onnx', 'cpu', 'cpu', 'fp32', 'OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX', 1.0)]),
     ('moss-tts-nano', APPLE_SILICON, 'cpu', [('moss_onnx', 'cpu', 'cpu', 'fp32', 'OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX', 1.0), ('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/MOSS-TTS-Nano-100M', 1.0)]),
-    ('qwen3-tts-0.6b', CPU_ONLY, 'auto', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', CPU_ONLY, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_12GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0), ('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_24GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0), ('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', APPLE_SILICON, 'auto', [('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0), ('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0)]),
-    ('qwen3-tts-0.6b', APPLE_SILICON, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx', 1.0), ('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0)]),
+    # P7 (Task 6): qwen3-tts-0.6b became a multi-variant card (per-variant
+    # self-contained fp32/bf16 ONNX repos, no shared-repo subdir) -- a real
+    # behaviour change, re-captured here by RUNNING the new planner code
+    # (not hand-derived). The multi-variant narrowing (planner._tts_pick_quant)
+    # is device-override-aware: an explicit override='cpu' scopes the
+    # narrowing to compute_types that actually have a row on cpu BEFORE
+    # picking one, so it lands on fp32 (which ships a cpu row) rather than
+    # unconditionally picking bf16 (cuda-only, no cpu row -- which used to
+    # leave override='cpu' with nothing to pin, silently landing back on
+    # gpu-cuda). Because fp32 also ships a gpu-cuda row, override='cpu' on a
+    # CUDA machine resolves to a two-plan ladder (cpu fp32 first, gpu-cuda
+    # fp32 as the non-cpu fallback) rather than a single plan.
+    ('qwen3-tts-0.6b', CPU_ONLY, 'auto', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
+    ('qwen3-tts-0.6b', CPU_ONLY, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_12GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
+    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_24GB, 'auto', [('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'bf16', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16', 1.2)]),
+    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('qwen3tts_onnx', 'gpu-cuda', 'cuda', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
+    ('qwen3-tts-0.6b', APPLE_SILICON, 'auto', [('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0), ('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0)]),
+    ('qwen3-tts-0.6b', APPLE_SILICON, 'cpu', [('qwen3tts_onnx', 'cpu', 'cpu', 'fp32', 'jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32', 1.0), ('mlx_audio_tts', 'gpu-metal', 'metal', 'fp32', 'mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', 1.0)]),
     # Carded sherpa voice (one repo = one model = one voice) — CPU-only by
     # reality across every machine: the stock sherpa-onnx wheel bundles a
     # CPU-only ORT (D11), so no GPU tier row exists for it at all.
@@ -228,6 +240,14 @@ TTS_MATRIX = [
 @pytest.mark.parametrize("model_id, machine, override, expected", TTS_MATRIX)
 def test_resolve_tts_matrix(model_id, machine, override, expected, monkeypatch):
     monkeypatch.setattr(accel, "current_platform", lambda: _platform_for(machine))
+    # accel.resolve_tts's multi-variant path calls _downloaded_tts_variants,
+    # which hits the REAL local HF cache (native_models.model_status) — a
+    # dev/CI box with a qwen3-tts variant repo already cached would flip
+    # these pinned rows out from under this matrix. The matrix pins the
+    # fresh-machine baseline; downloaded-state behaviors have their own
+    # tests (test_accel.py's _downloaded_tts_variants / resolve_tts wrapper
+    # tests).
+    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda *a, **k: frozenset())
     plans = accel.resolve_tts(model_id, override, machine=machine)
     assert _plan_tuples(plans) == expected
 

@@ -144,73 +144,43 @@ def test_moss_load_maps_device_to_execution_provider(monkeypatch, tmp_path, devi
     assert b.is_loaded
 
 
-def _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured):
-    """Stub every collaborator Qwen3TtsOnnxBackend.load reaches for (snapshot
-    download, tokenizer, ONNX session builder, embeddings, codec), capturing the
-    variant_dir handed to build_sessions — mirrors the mocking style of
-    test_moss_load_maps_device_to_execution_provider above."""
+def test_qwen3_tts_onnx_load_materializes_symlinks_and_builds_sessions(monkeypatch, tmp_path):
+    """Qwen3TtsOnnxBackend.load must (1) deref the snapshot's onnx/ subdir
+    through hf_symlinks.materialize_symlinks before touching it (the
+    >2GB talker graph's external-data file is an HF-cache symlink that ORT's
+    external-data validation rejects) and (2) build the ONNX sessions from
+    that same onnx/ subdir with the caller's device. Mirrors the MOSS
+    load-test pattern above: every real collaborator (snapshot_download,
+    the tokenizer/config/codec loaders, session building) is stubbed so this
+    is a pure wiring test, not an integration test."""
     from sokuji_sidecar import tts_backends as tb
+    captured = {}
 
+    monkeypatch.delenv("SOKUJI_TTS_THREADS", raising=False)
     monkeypatch.setitem(_sys.modules, "huggingface_hub",
                         _types.SimpleNamespace(
                             snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
-    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer", lambda d: object())
-
-    def fake_build_sessions(onnx_dir, device, threads, variant_dir=None):
-        captured["variant_dir"] = variant_dir
-        return {}
-
-    monkeypatch.setattr(tb._q3_runtime, "build_sessions", fake_build_sessions)
+    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer",
+                        lambda model_dir: object())
+    monkeypatch.setattr(tb._hf_symlinks, "materialize_symlinks",
+                        lambda d: captured.setdefault("materialize_dir", d))
     monkeypatch.setattr(tb._q3_config, "load_model_config", lambda d: object())
+
+    def fake_build_sessions(onnx_dir, device, threads):
+        captured["build_sessions_args"] = (onnx_dir, device, threads)
+        return {}
+    monkeypatch.setattr(tb._q3_runtime, "build_sessions", fake_build_sessions)
     monkeypatch.setattr(tb._q3_runtime.Embeddings, "from_sessions",
                         classmethod(lambda cls, sessions: object()))
     monkeypatch.setattr(tb._q3_codec, "Codec12Hz", lambda sessions: object())
-    return tb
-
-
-@pytest.mark.parametrize("device,subdir,make_dir,expect_variant", [
-    ("cuda", "onnx-bf16", True, True),      # real qwen3-tts card on cuda: variant selected
-    ("cpu", "onnx-bf16", True, False),      # non-cuda device: never selects a variant
-    ("cuda", None, False, False),           # config.variant_subdir=None (e.g. no card sets it): no variant
-    ("cuda", "onnx-bf16", False, False),    # subdir configured but absent from the snapshot: falls back
-    ("cuda", "custom-subdir", True, True),  # arbitrary subdir name from the card, NOT the literal
-                                             # "onnx-bf16" — proves the value is read from config, not
-                                             # hard-coded (this case cannot pass against the old hard-coded
-                                             # "onnx-bf16" string, which would never look for this dir)
-])
-def test_qwen3tts_load_variant_dir_from_config(monkeypatch, tmp_path, device, subdir, make_dir,
-                                               expect_variant):
-    """Qwen3TtsOnnxBackend.load must source the CUDA-only bf16 variant subdir from
-    config.variant_subdir (the card's cuda_variant_subdir, plumbed through
-    PlanConfig in Task 5) instead of a hard-coded 'onnx-bf16' string — while
-    reproducing the exact old behavior: device must be cuda AND the subdir must
-    both be configured and exist on disk before it is selected."""
-    from sokuji_sidecar.planner import PlanConfig
-    if make_dir:
-        (tmp_path / subdir).mkdir()
-    captured = {}
-    tb = _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured)
 
     b = tb.Qwen3TtsOnnxBackend()
-    b.load("some/repo", device, "fp32", config=PlanConfig(variant_subdir=subdir))
+    b.load("some/qwen3-tts-repo", "cpu", "fp32", None)
 
-    if expect_variant:
-        assert captured["variant_dir"] == str(tmp_path / subdir)
-    else:
-        assert captured["variant_dir"] is None
-
-
-def test_qwen3tts_load_variant_dir_none_when_config_omitted(monkeypatch, tmp_path):
-    """load(..., config=None) — the default when a caller doesn't pass one — must
-    never select a variant dir, even on cuda with the dir present on disk."""
-    (tmp_path / "onnx-bf16").mkdir()
-    captured = {}
-    tb = _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured)
-
-    b = tb.Qwen3TtsOnnxBackend()
-    b.load("some/repo", "cuda", "fp32")  # config defaults to None
-
-    assert captured["variant_dir"] is None
+    expected_dir = f"{tmp_path}/onnx"
+    assert captured["materialize_dir"] == expected_dir
+    assert captured["build_sessions_args"] == (expected_dir, "cpu", 4)
+    assert b.is_loaded
 
 
 def test_pocket_onnx_registered_and_flags(monkeypatch):

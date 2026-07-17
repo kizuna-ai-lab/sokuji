@@ -398,8 +398,6 @@ class TtsModel(_ModelBase):
     named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
     style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
     transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
-    cuda_variant_subdir: str | None = None  # bf16-graph subdir picked on cuda
-                                             # (mirrors Qwen3TtsOnnxBackend.load's onnx-bf16 check)
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
@@ -430,10 +428,16 @@ _MOSS_NANO_LM_REPO = os.environ.get(
 _MOSS_NANO_TOK_REPO = os.environ.get(
     "SOKUJI_MOSS_TTS_NANO_TOK_REPO", "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
 
-_QWEN3_TTS_06B_REPO = os.environ.get(
-    "SOKUJI_QWEN3_TTS_06B_REPO", "jiangzhuo9357/qwen3-tts-0.6b-onnx")
-_QWEN3_TTS_17B_REPO = os.environ.get(
-    "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx")
+# Per-variant self-contained repos (spec P7): the repo IS the variant, rather
+# than one repo with a CUDA-only bf16 subdir picked at load time. int8 was CUT
+# from the shipping ladder — validated slower than fp32 on both aarch64 and
+# x86 — so only fp32 (cpu + gpu-cuda + gpu-dml) and bf16 (gpu-cuda only) ship.
+_QWEN3_TTS_06B_FP32 = os.environ.get(
+    "SOKUJI_QWEN3_TTS_06B_REPO", "jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32")
+_QWEN3_TTS_06B_BF16 = "jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16"
+_QWEN3_TTS_17B_FP32 = os.environ.get(
+    "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx-fp32")
+_QWEN3_TTS_17B_BF16 = "jiangzhuo9357/qwen3-tts-1.7b-onnx-bf16"
 
 _GPT_SOVITS_REPO = os.environ.get(
     "SOKUJI_GPT_SOVITS_REPO", "jiangzhuo9357/gpt-sovits-v2pp-onnx")
@@ -508,26 +512,36 @@ TTS_MODELS: list[TtsModel] = [
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
              (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_06B_MLX_REPO, 1.0,
                          platforms=("macos",), requires_apple_silicon=True),
-              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_REPO, 1.0),
-              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_06B_REPO, 1.0,
-                         platforms=("windows",)),
-              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_REPO, 1.0)),
-             repos=(_QWEN3_TTS_06B_REPO,), clones=True, streaming=False,
+              # Per-variant self-contained repos (fp32/bf16) — the repo IS the
+              # variant; bf16 has CUDA-only kernels (no cpu/dml row).
+              Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", _QWEN3_TTS_06B_BF16, 1.2,
+                         est_bytes=3_208_592_970),
+              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
+                         est_bytes=4_318_015_468),
+              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
+                         platforms=("windows",), est_bytes=4_318_015_468),
+              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
+                         est_bytes=4_318_015_468)),
+             repos=(_QWEN3_TTS_06B_FP32,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=True, sort_order=2, size_bytes=5426257741,
-             cuda_variant_subdir="onnx-bf16"),
+             recommended=True, sort_order=2, size_bytes=4_318_015_468),
     TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
              ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
              (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_17B_MLX_REPO, 1.0,
                          platforms=("macos",), requires_apple_silicon=True),
-              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_REPO, 1.0),
-              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_17B_REPO, 1.0,
-                         platforms=("windows",)),
-              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_REPO, 1.0)),
-             repos=(_QWEN3_TTS_17B_REPO,), clones=True, streaming=False,
+              # Per-variant self-contained repos (fp32/bf16) — the repo IS the
+              # variant; bf16 has CUDA-only kernels (no cpu/dml row).
+              Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", _QWEN3_TTS_17B_BF16, 1.2,
+                         est_bytes=5_316_372_654),
+              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
+                         est_bytes=8_374_470_096),
+              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
+                         platforms=("windows",), est_bytes=8_374_470_096),
+              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
+                         est_bytes=8_374_470_096)),
+             repos=(_QWEN3_TTS_17B_FP32,), clones=True, streaming=False,
              transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=False, sort_order=3, size_bytes=11431100174,
-             cuda_variant_subdir="onnx-bf16"),
+             recommended=False, sort_order=3, size_bytes=8_374_470_096),
     TtsModel("cosyvoice3-0.5b", "CosyVoice 3 0.5B",
              ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"),
              (

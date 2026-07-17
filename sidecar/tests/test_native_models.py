@@ -611,10 +611,16 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
 
 
 def test_qwen3_download_specs_point_at_per_size_repos(monkeypatch):
-    from sokuji_sidecar import accel
+    from sokuji_sidecar import accel, catalog
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
-    assert "qwen3-tts-0.6b-onnx" in native_models.download_specs("qwen3-tts-0.6b")["repos"][0]
-    assert "qwen3-tts-1.7b-onnx" in native_models.download_specs("qwen3-tts-1.7b")["repos"][0]
+    # Exact repo id, not a loose substring: the auto (fresh-recommendation)
+    # download spec must point at the fp32 variant specifically — fp32 is the
+    # only compute_type with a cpu row, so it's the one every CPU-only user
+    # (and every fresh recommendation, per _tts_pick_quant's runnable
+    # narrowing) can actually load. A substring check would also pass for the
+    # cuda-only bf16 repo, silently missing a regression that swapped in bf16.
+    assert native_models.download_specs("qwen3-tts-0.6b")["repos"][0] == catalog._QWEN3_TTS_06B_FP32
+    assert native_models.download_specs("qwen3-tts-1.7b")["repos"][0] == catalog._QWEN3_TTS_17B_FP32
 
 
 def test_download_specs_moss_mlx_on_apple_silicon(monkeypatch):
@@ -923,3 +929,108 @@ def test_model_status_translate_ladder_still_needs_llama_binary(monkeypatch, tmp
     assert native_models.model_status("qwen2.5-0.5b") == "absent"
     monkeypatch.setattr(llama_runtime, "binary_path", lambda f: "/x/llama")
     assert native_models.model_status("qwen2.5-0.5b") == "ready"
+
+
+# ── TTS multi-variant status: any cached variant repo satisfies the card ─────
+
+
+def _tts_variant_card():
+    # Mirrors test_accel.py's synthetic multi-variant TTS card: 3 deployments
+    # (bf16/fp32/int8), all non-mlx, so len(unique artifacts) > 1 exercises the
+    # any-variant status branch without depending on the production catalog
+    # shape (which currently ships fp32/bf16 only, int8 cut — see catalog.py).
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_model_status_tts_any_variant_repo_counts(monkeypatch):
+    """A multi-variant TTS card (fp32/bf16 self-contained repos, e.g. qwen3-tts)
+    is 'ready' when ANY variant repo is fully cached — mirrors the ASR/translate
+    any-rung ladder semantics above, but per-whole-repo rather than per-file,
+    since load-time resolution (accel.resolve_tts) only ever loads a downloaded
+    variant, not necessarily the card's default repos[0]."""
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+    cached = {"org/fake-int8"}
+    monkeypatch.setattr(native_models, "_repos_cached",
+                        lambda specs: all(r in cached for r in specs["repos"]))
+    assert native_models.model_status("fake-tts") == "ready"
+
+
+def test_model_status_tts_any_variant_survives_a_repo_raising(monkeypatch):
+    """A LATER cached variant repo must still report 'ready' even when an
+    EARLIER variant's _repos_cached call raises — which is exactly what the
+    real _repos_cached does via snapshot_download(local_files_only=True) for
+    an uncached repo (raises rather than returning False). Regression for a
+    bug where `any(_repos_cached({"repos": [r]}) for r in variant_repos)` let
+    that exception escape the generator, abort the any(), and fall through to
+    the outer try/except -> 'absent', even though a later variant WAS cached
+    (the normal post-download state: e.g. fp32 absent + bf16 cached)."""
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+
+    def _repos_cached(specs):
+        r = specs["repos"][0]
+        if r == "org/fake-bf16":
+            raise RuntimeError("simulated snapshot_download(local_files_only=True) miss")
+        return r == "org/fake-fp32"
+    monkeypatch.setattr(native_models, "_repos_cached", _repos_cached)
+    assert native_models.model_status("fake-tts") == "ready"
+
+
+def test_model_status_tts_single_variant_card_unaffected(monkeypatch):
+    """A single-variant TTS card (moss/supertonic/pocket/gpt-sovits — every
+    non-mlx deployment shares one artifact) must NOT take the any-variant
+    branch: status stays gated on the card's one real repos entry, same as
+    before this feature existed."""
+    single = catalog.TtsModel(
+        "fake-single-tts", "Fake Single TTS", ("en",),
+        (catalog.Deployment("moss_onnx", "gpu-cuda", "fp32", "org/fake-only", 1.0),
+         catalog.Deployment("moss_onnx", "cpu", "fp32", "org/fake-only", 1.0)),
+        repos=("org/fake-only",))
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: single)
+    monkeypatch.setattr(native_models, "_repos_cached", lambda specs: False)
+    assert native_models.model_status("fake-single-tts") == "absent"
+
+
+def test_model_status_tts_any_variant_on_macos_mlx_lane_checks_mlx_repo(monkeypatch):
+    """On macOS/Apple Silicon, _base_specs swaps a multi-variant TTS card's
+    download to the single MLX repo (see _base_specs docstring) — the ONNX
+    variant_repos are never fetched there. The any-rung branch must therefore
+    NOT apply on that lane (checking only the ONNX repos would report a
+    permanently-absent card even with the MLX repo fully cached); status must
+    fall through to the normal _repos_cached(specs) check, which correctly
+    evaluates the MLX repo. Regression for a reviewer-caught defect where
+    qwen3-tts-0.6b/1.7b read 'absent' forever on macOS despite the MLX repo
+    being fully cached."""
+    import types
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
+    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
+    mlx_repo = "mlx-community/fake-mlx"
+    card = catalog.TtsModel(
+        "fake-tts-mlx", "Fake TTS MLX", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", mlx_repo, 1.0,
+                             platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    # Only the MLX repo is cached; both ONNX variant repos are absent.
+    monkeypatch.setattr(native_models, "_repos_cached",
+                        lambda specs: specs["repos"] == [mlx_repo])
+    assert native_models.model_status("fake-tts-mlx") == "ready"
+
+
+def test_model_status_tts_repo_override_keeps_specific_variant_semantics(monkeypatch):
+    """With an explicit repo override (the download button's 'is THIS variant
+    downloaded?' question) the any-variant relaxation must NOT apply — mirrors
+    test_model_status_repo_override_keeps_specific_quant_semantics above."""
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+    cached = {"org/fake-int8"}
+    monkeypatch.setattr(native_models, "_repos_cached",
+                        lambda specs: all(r in cached for r in specs["repos"]))
+    assert native_models.model_status("fake-tts", repo="org/fake-bf16") == "absent"
+    assert native_models.model_status("fake-tts", repo="org/fake-int8") == "ready"
