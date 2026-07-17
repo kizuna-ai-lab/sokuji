@@ -54,12 +54,18 @@ self-contained and directly runnable:
 |---|---|---|---|
 | `-fp32` | all-fp32 graph set | ~7.8 GB | ~4.1 GB |
 | `-bf16` | `talker_decode` + `code_predictor` bf16 rebuilds, rest fp32 | ~5.0 GB | ~3.1 GB |
-| `-int8` | `talker_decode` / `code_predictor` / `text_project` int8-quantized, small COLD graphs fp32 | ~2.6 GB (est.) | ~1.5 GB (est.) |
+| ~~`-int8`~~ | ~~`talker_decode` / `code_predictor` / `text_project` int8-quantized, small COLD graphs fp32~~ | ~~~2.6 GB (est.)~~ | ~~~1.5 GB (est.)~~ |
+
+> **int8: CUT (2026-07-17).** The whisper-loopback quality gate PASSED
+> (transcripts byte-identical to fp32/bf16), but int8 measured ~3x SLOWER
+> than fp32 on BOTH aarch64 (GB10) and x86/AVX-VNNI (i7-14700F) — the
+> "smaller = faster on CPU" premise this plan assumed (§3) was falsified in
+> practice. The ladder ships as fp32/bf16 only. Artifacts + the gate script
+> are retained for future runtime-improvement work:
+> `scripts/quantize-qwen3-tts-nbits.py` (export),
+> `scripts/validate-qwen3-tts-int8.py` (gate).
 
 - bf16 rebuilds are the existing validated graphs (moved, not regenerated).
-- int8 is exported with the existing `scripts/quantize-qwen3-tts-nbits.py`
-  and **gated on whisper-loopback quality validation (zh/en)**. If validation
-  fails, int8 is not shipped and the ladder is fp32/bf16.
 - The old dual-directory repos are deleted after the new ones are verified.
 - Assembly/upload scripts are updated to build per-variant trees.
 
@@ -71,12 +77,12 @@ TtsModel("qwen3-tts-1.7b", ...,
      Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", REPO_BF16, 1.2, est_bytes=~5.0G),
      Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", REPO_FP32, 1.0, est_bytes=~7.8G),
      Deployment("qwen3tts_onnx", "gpu-dml",  "fp32", REPO_FP32, 1.0, windows),
-     Deployment("qwen3tts_onnx", "cpu",      "int8", REPO_INT8, 1.1, est_bytes=~2.6G),
+     # int8 CUT (see §1) -- no cpu int8 row ships. fp32 is the only cpu row.
      Deployment("qwen3tts_onnx", "cpu",      "fp32", REPO_FP32, 1.0)),
     ...)
 ```
 
-- compute_type strings: `"fp32"` / `"bf16"` / `"int8"`.
+- compute_type strings: `"fp32"` / `"bf16"` (int8 CUT, see §1).
 - **Delete `cuda_variant_subdir` entirely** (the qwen3 cards are its only
   user), cascading: `PlanConfig.variant_subdir`, the `onnx-bf16` probe in
   `Qwen3TtsOnnxBackend.load`, `build_sessions`' `variant_dir` parameter, and
@@ -91,9 +97,10 @@ Mirror ASR's `resolve()` narrowing. `resolve_tts` gains `downloaded` and
 - `pin` wins (picker selection, user's will);
 - otherwise restrict to **downloaded** variants (we always run the file the
   user downloaded — same iron rule as ASR/translate);
-- machine recommendation: CUDA available → `bf16`; no GPU → `int8` (CPU is
-  bandwidth-bound, smaller = faster, same logic as `_tc_pick_quant`);
-  DML → `fp32`.
+- machine recommendation: CUDA available → `bf16`; no GPU → the smallest
+  RUNNABLE variant (fp32 today — int8 was CUT, see §1: it measured ~3x
+  SLOWER than fp32 on CPU, falsifying the "smaller = faster" premise this
+  plan originally assumed); DML → `fp32`.
 - "Downloaded" detection for TTS = **is the variant's repo cached** (repo
   granularity, new accel helper), unlike translate's per-file check.
 
@@ -104,8 +111,8 @@ Mirror ASR's `resolve()` narrowing. `resolve_tts` gains `downloaded` and
   picker uses it).
 - `_h_models_catalog`: `len(seen_cts) > 1` auto-emits the `variants` payload
   for TTS (sizes / supported / recommended). Recommended gains a TTS branch
-  (cuda → bf16, no-GPU → int8). `bf16` is `supported: false` on non-CUDA
-  machines.
+  (cuda → bf16, no-GPU → smallest runnable variant, fp32 today — int8 was
+  CUT, see §1). `bf16` is `supported: false` on non-CUDA machines.
 - **Renderer**: pass `variantData + onPin` to the TTS `renderCards` call in
   `NativeModelManagementSection` (aligning with the translate call) — the
   picker appears with no new UI code.
@@ -115,10 +122,22 @@ Mirror ASR's `resolve()` narrowing. `resolve_tts` gains `downloaded` and
 
 Every repo is self-contained at `onnx/`; `Qwen3TtsOnnxBackend.load` calls
 `build_sessions(f"{d}/onnx", device, threads)` with no variant probing — in a
-bf16 repo the same-named files ARE the bf16 graphs. A bf16 graph on CPU fails
-session creation → `BackendLoadError` → resolver falls back to the cpu plan
-(int8/fp32 rows) honestly. The `hf_symlinks.materialize_symlinks` deref (ORT
-external-data path validation) stays.
+bf16 repo the same-named files ARE the bf16 graphs. The
+`hf_symlinks.materialize_symlinks` deref (ORT external-data path validation)
+stays.
+
+CPU fallback is **not** a load-time `BackendLoadError` catch — bf16 ships no
+`cpu` tier row at all, so `_tts_pick_quant`'s runnable-filtered,
+override-aware narrowing (§3) never selects it for a CPU device in the first
+place; a bf16 graph is never even attempted on CPU. The actual fallback lives
+in `resolve_tts` itself: narrowing picks ONE compute type before tier
+resolution runs (bf16 on a CUDA machine, since it outranks fp32), so an
+all-bf16 plan list has nothing to fall back to on a genuine bf16-on-CUDA load
+failure — **unless** a different, cpu-capable compute type (fp32) is ALSO
+already downloaded, in which case `resolve_tts` appends fp32's cpu plan as a
+last-resort tail after the bf16 plan (`fix(sidecar): downloaded-fp32 cpu tail
+for bf16 plans`, 2026-07-17). A bf16-only download still fails honestly with
+a single plan — no cpu fallback exists until fp32 is downloaded too.
 
 ## §6 Tests & verification
 
