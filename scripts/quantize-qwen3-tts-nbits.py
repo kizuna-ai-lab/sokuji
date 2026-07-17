@@ -17,6 +17,7 @@ Stages a complete model dir: quantized graphs + originals for the rest.
 import argparse
 import os
 import shutil
+import tempfile
 
 GRAPHS_ALL = ["talker_decode.onnx", "code_predictor.onnx", "code_predictor_embed.onnx",
               "codec_embed.onnx", "text_project.onnx", "speaker_encoder.onnx",
@@ -34,7 +35,26 @@ def quantize_one(src_path: str, dst_path: str, bits: int, block_size: int) -> No
         MatMulNBitsQuantizer,
     )
 
-    model = onnx.load(src_path)
+    # onnx's external-data loader refuses tensors backed by a symlink ("... but
+    # it is a symbolic link") or by a file with >1 hard link ("... indicating a
+    # potential hardlink attack") — and a HF-cache snapshot path is exactly
+    # that (snapshots/<sha>/onnx/*.onnx is a symlink into blobs/, and blobs/
+    # entries are shared across every ref that pins that content hash). Only
+    # graphs with a .data companion (talker_decode on 1.7b) hit this; stage a
+    # real, independent copy first and load from there.
+    stage_dir = None
+    load_path = src_path
+    data_src = src_path + ".data"
+    if os.path.exists(data_src):
+        stage_dir = tempfile.mkdtemp(prefix="q3nbits-stage-")
+        load_path = os.path.join(stage_dir, os.path.basename(src_path))
+        shutil.copyfile(os.path.realpath(src_path), load_path)
+        shutil.copyfile(os.path.realpath(data_src), load_path + ".data")
+    try:
+        model = onnx.load(load_path)
+    finally:
+        if stage_dir:
+            shutil.rmtree(stage_dir, ignore_errors=True)
     cfg = DefaultWeightOnlyQuantConfig(block_size=block_size, is_symmetric=True, bits=bits)
     quantizer = MatMulNBitsQuantizer(model, algo_config=cfg)
     quantizer.process()
@@ -72,25 +92,35 @@ def main() -> None:
     os.makedirs(onnx_dir, exist_ok=True)
 
     for name in GRAPHS_ALL:
-        src_graph = os.path.realpath(os.path.join(src, "onnx", name))
+        # Keep the snapshot (symlink) path around: the external-data companion
+        # (e.g. talker_decode.onnx.data) only sits next to the .onnx file under
+        # its friendly name in snapshots/, not in blobs/ (hash-named files
+        # only), so companion detection (src_link + ".data") needs the symlink
+        # path. Hardlinking, however, needs the *real* target: os.link() on a
+        # symlink links the symlink inode itself, so the copy in --out would
+        # carry over the same "../../../blobs/<hash>" relative target string —
+        # which resolves to nothing outside the HF cache tree.
+        src_link = os.path.join(src, "onnx", name)
+        src_real = os.path.realpath(src_link)
         dst_graph = os.path.join(onnx_dir, name)
         if os.path.exists(dst_graph):
             continue
         if name in targets:
             print(f"quantizing {name} → int{args.bits}", flush=True)
-            quantize_one(src_graph, dst_graph, args.bits, args.block_size)
+            quantize_one(src_link, dst_graph, args.bits, args.block_size)
             # external-data companions of the source must not be needed anymore
         else:
             try:
-                os.link(src_graph, dst_graph)
+                os.link(src_real, dst_graph)
             except OSError:
-                shutil.copyfile(src_graph, dst_graph)
-            data = src_graph + ".data"
-            if os.path.exists(data):
+                shutil.copyfile(src_real, dst_graph)
+            data_link = src_link + ".data"
+            if os.path.exists(data_link):
+                data_real = os.path.realpath(data_link)
                 try:
-                    os.link(data, dst_graph + ".data")
+                    os.link(data_real, dst_graph + ".data")
                 except OSError:
-                    shutil.copyfile(data, dst_graph + ".data")
+                    shutil.copyfile(data_real, dst_graph + ".data")
 
     for name in ROOT_FILES:
         dst = os.path.join(root, name)
