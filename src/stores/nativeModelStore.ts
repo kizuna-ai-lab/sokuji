@@ -480,7 +480,11 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       effective.asrModel, effective.translationModel, effective.ttsModel,
       effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
     // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
-    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel]), pins);
+    // Includes ttsModel alongside asrModel/translationModel — omitting it here
+    // meant a pinned non-recommended TTS variant (e.g. fp32 on a box where bf16
+    // is recommended) was checked against the recommended/default repo instead
+    // of the pin, so readiness could report ready/missing against the wrong repo.
+    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, effective.ttsModel]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
     const ready = asrCompatible && trCompatible && get().isReady(models);

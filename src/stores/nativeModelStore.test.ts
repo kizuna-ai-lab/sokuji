@@ -471,6 +471,34 @@ describe('ensureSelectionReady (facade)', () => {
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
   });
 
+  it('resolves the PINNED tts variant repo on the required-models refresh, not the recommended one', async () => {
+    // Same shape as the translation-model variant test above, but for TTS: a
+    // multi-variant TTS card, pinned to its NON-recommended variant. The
+    // required-models refresh (the one that queries exactly the models
+    // requiredNativeModels() says are needed) must resolve the TTS card's
+    // PINNED repo — ensureSelectionReady's second deriveVariantRepos() call
+    // historically only listed asrModel/translationModel and silently dropped
+    // ttsModel, so this card's status was checked against its default/
+    // recommended repo instead of the one the user actually pinned.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const catalog = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: { ...catalog, 'moss-tts-pro': {
+      id: 'moss-tts-pro', name: 'MOSS Pro', kind: 'tts', languages: ['ja', 'zh'], recommended: false,
+      tiers: [], order: 9, repo: '',
+      variants: [
+        { id: 'fp32', sizeBytes: 3e9, repo: 'org/moss-pro-fp32', supported: true, recommended: false },
+        { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
+      ],
+    } } as any });
+    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja', ttsModel: 'moss-tts-pro',
+        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
+      textOnly: false,
+    }));
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
+  });
+
   it('sidecar still starting → not ready, reason starting, no corrections', async () => {
     // ensureCatalog() early-returns when status is already 'starting' (see its
     // guard: `if (st === 'ready' || st === 'starting') return;`), so the status
