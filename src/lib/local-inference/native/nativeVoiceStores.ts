@@ -12,7 +12,7 @@
  * its existing test/consumers.
  */
 
-import type { VoiceLibraryCapability } from '../../../components/Settings/sections/VoiceLibrarySection';
+import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   listNativeVoices, addNativeVoice, renameNativeVoice, deleteNativeVoice, getNativeVoice,
 } from '../nativeVoiceStorage';
