@@ -1070,6 +1070,40 @@ def test_tts_pick_quant_override_with_no_matching_device_falls_back():
     assert got == "bf16"
 
 
+# ── resolve_tts: downloaded-fp32 cpu tail for a cpu-less narrowed ct ─────
+# _tts_variant_card_v2's bf16 row is gpu-cuda ONLY (no cpu row at all); a CUDA
+# machine narrows to it because it outranks fp32 (see
+# test_tts_pick_quant_rank_beats_declaration_order). A bf16-only download
+# then has nothing to fall back to on a load failure -- an honest single
+# plan. But when fp32 (which DOES have a cpu row) is ALSO already downloaded
+# alongside bf16, that cpu-loadable file is already sitting on disk, so
+# resolve_tts appends it as a last-resort tail: a CUDA machine with BOTH
+# variants downloaded degrades to cpu fp32 on a bf16 load failure instead of
+# hard-failing. The tail only ever uses an ALREADY-DOWNLOADED variant, so
+# bf16-only downloads and fresh (nothing downloaded) recommendations are
+# unaffected.
+
+
+def test_resolve_tts_appends_cpu_fp32_tail_when_both_variants_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
+                                downloaded=frozenset({"fp32", "bf16"}))
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16"), ("cpu", "fp32")]
+
+
+def test_resolve_tts_no_cpu_tail_when_only_bf16_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
+                                downloaded=frozenset({"bf16"}))
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
+
+
+def test_resolve_tts_no_cpu_tail_when_nothing_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={})
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
+
+
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
 # Characterisation coverage hole: nothing previously asserted that RESOLVING
 # a model actually produces the right PlanConfig (only that an explicit

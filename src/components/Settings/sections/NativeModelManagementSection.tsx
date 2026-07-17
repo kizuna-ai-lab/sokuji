@@ -570,8 +570,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
-  // Pick the download quant for a card — a per-model setting only. Does NOT change
-  // the active translation model (so the auto-select reconcile never fires on a pick).
+  // Pick the download quant/variant for a card (asr/translation/tts alike) — a
+  // per-model setting only. Does NOT change the active model for its stage (so
+  // the auto-select reconcile never fires on a pick).
   const handlePinVariant = useCallback((selectId: string, variantId: string) => {
     update({ translationVariantByModel: { ...settings.translationVariantByModel, [selectId]: variantId } });
   }, [update, settings.translationVariantByModel]);

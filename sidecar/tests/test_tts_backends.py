@@ -144,6 +144,45 @@ def test_moss_load_maps_device_to_execution_provider(monkeypatch, tmp_path, devi
     assert b.is_loaded
 
 
+def test_qwen3_tts_onnx_load_materializes_symlinks_and_builds_sessions(monkeypatch, tmp_path):
+    """Qwen3TtsOnnxBackend.load must (1) deref the snapshot's onnx/ subdir
+    through hf_symlinks.materialize_symlinks before touching it (the
+    >2GB talker graph's external-data file is an HF-cache symlink that ORT's
+    external-data validation rejects) and (2) build the ONNX sessions from
+    that same onnx/ subdir with the caller's device. Mirrors the MOSS
+    load-test pattern above: every real collaborator (snapshot_download,
+    the tokenizer/config/codec loaders, session building) is stubbed so this
+    is a pure wiring test, not an integration test."""
+    from sokuji_sidecar import tts_backends as tb
+    captured = {}
+
+    monkeypatch.delenv("SOKUJI_TTS_THREADS", raising=False)
+    monkeypatch.setitem(_sys.modules, "huggingface_hub",
+                        _types.SimpleNamespace(
+                            snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
+    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer",
+                        lambda model_dir: object())
+    monkeypatch.setattr(tb._hf_symlinks, "materialize_symlinks",
+                        lambda d: captured.setdefault("materialize_dir", d))
+    monkeypatch.setattr(tb._q3_config, "load_model_config", lambda d: object())
+
+    def fake_build_sessions(onnx_dir, device, threads):
+        captured["build_sessions_args"] = (onnx_dir, device, threads)
+        return {}
+    monkeypatch.setattr(tb._q3_runtime, "build_sessions", fake_build_sessions)
+    monkeypatch.setattr(tb._q3_runtime.Embeddings, "from_sessions",
+                        classmethod(lambda cls, sessions: object()))
+    monkeypatch.setattr(tb._q3_codec, "Codec12Hz", lambda sessions: object())
+
+    b = tb.Qwen3TtsOnnxBackend()
+    b.load("some/qwen3-tts-repo", "cpu", "fp32", None)
+
+    expected_dir = f"{tmp_path}/onnx"
+    assert captured["materialize_dir"] == expected_dir
+    assert captured["build_sessions_args"] == (expected_dir, "cpu", 4)
+    assert b.is_loaded
+
+
 def test_pocket_onnx_registered_and_flags(monkeypatch):
     monkeypatch.delenv("SOKUJI_POCKET_PRESET_VOICE", raising=False)
     b = backends.make_backend("pocket_onnx")

@@ -784,8 +784,13 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                 # "supported" when ANY of its deployment rows is tier-available
                 # on this machine (a cpu row makes it always supported);
                 # recommended mirrors the same narrowing resolve_tts uses at
-                # load time (planner._tts_pick_quant), so the UI default never
-                # disagrees with what actually gets loaded.
+                # load time (planner._tts_pick_quant), EXCEPT this call omits
+                # `downloaded` — same convention as translate's rec below, and
+                # for the same reason: this is the FRESH-recommendation default,
+                # not a reflection of this machine's download state. resolve_tts
+                # itself still narrows by `downloaded` at load time, and (since
+                # the downloaded-fp32 cpu tail) can append a cpu fallback plan
+                # this recommendation doesn't know about.
                 rec = planner._tts_pick_quant(mdl, m)
                 variants = []
                 for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):

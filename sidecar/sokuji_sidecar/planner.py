@@ -458,9 +458,40 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
     # _resolve_model after the model has already been narrowed to a
     # cpu-less compute_type, leaving the override with nothing to pin.
     if len({d.compute_type for d in model.deployments}) > 1:
+        pre_narrow = model
         quant = _tts_pick_quant(model, machine, pin, downloaded, override)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
+        plans = _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
+        # The narrowed compute_type can be GPU-only (e.g. bf16 ships no cpu
+        # row at all), leaving nothing to fall back to on a load failure --
+        # ordinarily the honest outcome. But when a DIFFERENT compute_type
+        # that DOES have a cpu row (e.g. fp32) is already downloaded
+        # alongside it, that cpu-loadable file is already sitting on disk:
+        # append its cpu plan as a last-resort tail so a CUDA machine with
+        # BOTH variants downloaded degrades to cpu on a bf16 load failure
+        # instead of hard-failing. Guarded on `downloaded` being non-empty
+        # and actually containing such a compute_type -- the tail only ever
+        # uses an ALREADY-DOWNLOADED variant, so a bf16-only download still
+        # gets the honest single plan, and so does a fresh (nothing
+        # downloaded yet) recommendation.
+        if downloaded and all(p.device != "cpu" for p in plans):
+            cpu_ct = next((d.compute_type for d in sorted(pre_narrow.deployments, key=lambda d: -d.rank)
+                          if d.tier == "cpu" and d.compute_type != quant
+                          and d.compute_type in downloaded), None)
+            if cpu_ct is not None:
+                cpu_model = dataclasses.replace(
+                    pre_narrow, deployments=tuple(d for d in pre_narrow.deployments
+                                                  if d.compute_type == cpu_ct))
+                try:
+                    cpu_plans = _resolve_model(cpu_model, model_id, override, machine,
+                                               cache=cache, platform=platform)
+                except NoUsablePlan:
+                    cpu_plans = []
+                tail = next((p for p in cpu_plans if p.device == "cpu"), None)
+                if tail is not None:
+                    plans = plans + [tail]
+        return plans
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 

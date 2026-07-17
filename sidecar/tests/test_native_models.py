@@ -611,10 +611,16 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
 
 
 def test_qwen3_download_specs_point_at_per_size_repos(monkeypatch):
-    from sokuji_sidecar import accel
+    from sokuji_sidecar import accel, catalog
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
-    assert "qwen3-tts-0.6b-onnx" in native_models.download_specs("qwen3-tts-0.6b")["repos"][0]
-    assert "qwen3-tts-1.7b-onnx" in native_models.download_specs("qwen3-tts-1.7b")["repos"][0]
+    # Exact repo id, not a loose substring: the auto (fresh-recommendation)
+    # download spec must point at the fp32 variant specifically — fp32 is the
+    # only compute_type with a cpu row, so it's the one every CPU-only user
+    # (and every fresh recommendation, per _tts_pick_quant's runnable
+    # narrowing) can actually load. A substring check would also pass for the
+    # cuda-only bf16 repo, silently missing a regression that swapped in bf16.
+    assert native_models.download_specs("qwen3-tts-0.6b")["repos"][0] == catalog._QWEN3_TTS_06B_FP32
+    assert native_models.download_specs("qwen3-tts-1.7b")["repos"][0] == catalog._QWEN3_TTS_17B_FP32
 
 
 def test_download_specs_moss_mlx_on_apple_silicon(monkeypatch):
