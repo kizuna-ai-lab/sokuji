@@ -539,7 +539,9 @@ TTS_MODELS: list[TtsModel] = [
              repos=(_COSYVOICE3_REPO,),
              clones=True, named_voices=True, transcript_required=True,
              streaming=False, sample_rate=24000, num_speakers=1,
-             size_bytes=3_721_010_968,
+             # exact live-repo total (build output 3_721_010_968 + the
+             # HF-generated .gitattributes the downloader also fetches)
+             size_bytes=3_721_012_656,
              sort_order=9),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
