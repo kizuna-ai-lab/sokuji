@@ -39,7 +39,8 @@ task-2-report.md for the full trace):
     (verified bit-exact across repeat fp32 runs, so this isn't run-to-run
     noise) -- transcribes to a stray filler word, not the input sentence,
     for BOTH variants. A garbled baseline can't judge int8. This harness
-    only sets SOKUJI_QWEN3_TTS_SEED=42 (the caller exports it) and leaves
+    only sets SOKUJI_QWEN3_TTS_SEED=42 (harness defaults to 42, caller may
+    override) and leaves
     sampling stochastic (do_sample=True); comparison is over normalized
     ASR TEXT (semantic), not raw samples, so fp32 and int8 need not decode
     an identical token path or produce identical sample counts -- they only
@@ -186,6 +187,9 @@ def _baseline_plausible(lang, reference_text, hyp_norm):
 
 
 def main():
+    # Iron requirement: without a fixed seed, fp32 and int8 sample independent
+    # random streams and a transcript mismatch means nothing (see docstring).
+    os.environ.setdefault("SOKUJI_QWEN3_TTS_SEED", "42")
     size = sys.argv[1] if len(sys.argv) > 1 else "0.6b"
     results = {}
     for variant, tree in (("fp32", f"/tmp/q3repos/qwen3-tts-{size}-onnx-fp32"),
