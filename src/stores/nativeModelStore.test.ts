@@ -499,6 +499,37 @@ describe('ensureSelectionReady (facade)', () => {
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
   });
 
+  it('resolves the PINNED tts variant repo when TTS is on Auto (ttsModel: \'\'), not just an explicit pick', async () => {
+    // Same pin as the test above, but ttsModel is '' (Auto) — the DEFAULT for
+    // most users. requiredNativeModels() resolves Auto through resolveNativeTts()
+    // internally and status-checks the CONCRETE model id it picks, but the
+    // second deriveVariantRepos() call historically fed it effective.ttsModel
+    // RAW ('' for Auto): asCards() maps '' -> catalog[''] -> undefined and
+    // filters it out, so the pinned card never made it into that repo lookup —
+    // the checked model (Auto-resolved) and the pin-looked-up model (none,
+    // since '' was dropped) diverged and the pin was silently ignored for
+    // every Auto-TTS user. Drop the default moss-tts-nano fixture so the
+    // pinned multi-variant card is the SOLE ja-matching TTS candidate — the
+    // one Auto resolves to.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { 'moss-tts-nano': _dropTts, ...catalogWithoutMossNano } = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: { ...catalogWithoutMossNano, 'moss-tts-pro': {
+      id: 'moss-tts-pro', name: 'MOSS Pro', kind: 'tts', languages: ['ja', 'zh'], recommended: false,
+      tiers: [], order: 9, repo: '',
+      variants: [
+        { id: 'fp32', sizeBytes: 3e9, repo: 'org/moss-pro-fp32', supported: true, recommended: false },
+        { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
+      ],
+    } } as any });
+    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja', ttsModel: '',
+        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
+      textOnly: false,
+    }));
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
+  });
+
   it('sidecar still starting → not ready, reason starting, no corrections', async () => {
     // ensureCatalog() early-returns when status is already 'starting' (see its
     // guard: `if (st === 'ready' || st === 'starting') return;`), so the status

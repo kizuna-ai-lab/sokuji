@@ -4,7 +4,7 @@ import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, H
 import {
   autoSelectNative, hardwareGated, statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
-  requiredNativeModels, supportsLanguage,
+  requiredNativeModels, resolveNativeTts, supportsLanguage,
   type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
@@ -484,7 +484,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // meant a pinned non-recommended TTS variant (e.g. fp32 on a box where bf16
     // is recommended) was checked against the recommended/default repo instead
     // of the pin, so readiness could report ready/missing against the wrong repo.
-    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, effective.ttsModel]), pins);
+    // effective.ttsModel is resolved through resolveNativeTts FIRST, not passed
+    // raw: '' means Auto, and asCards() below drops '' (catalog[''] is
+    // undefined) — passing it raw silently dropped the pin lookup for Auto-TTS
+    // users even though `models` above (via requiredNativeModels) already
+    // status-checks the concrete Auto-resolved id. Mirrors
+    // LocalNativeProviderConfig's ttsModelId resolution (same "not
+    // settings.ttsModel, which can be '' for Auto" reasoning).
+    const resolvedTtsId = resolveNativeTts(effective.ttsModel, effective.targetLanguage, catalog) ?? '';
+    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, resolvedTtsId]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
     const ready = asrCompatible && trCompatible && get().isReady(models);
