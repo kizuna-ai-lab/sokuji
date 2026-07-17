@@ -18,10 +18,7 @@ import numpy as np
 
 # ---- Slaney filterbank + window helpers, copied verbatim from
 # sokuji_sidecar/qwen3_tts/mel.py — self-contained per backend-module
-# convention. NOTE: unlike qwen3's _hann_window (which divides by N as
-# part of its Rust-matching recipe), this module's _hann_window matches
-# librosa's periodic hann (no /N division) — that's what the spike's
-# librosa.stft(window="hann") goldens were generated with. ----
+# convention. ----
 
 
 def _hz_to_mel_slaney(freqs: np.ndarray) -> np.ndarray:
@@ -69,9 +66,8 @@ def mel_filterbank(sr: int, n_fft: int, n_mels: int, fmin: float, fmax: float) -
 
 
 def _hann_window(size: int) -> np.ndarray:
-    """Periodic Hann window matching librosa/numpy's STFT convention (no
-    division by N — that recipe belongs to qwen3_tts's Rust-matching port,
-    not this librosa-derived one)."""
+    """Periodic Hann window, matching librosa's default STFT window
+    (``0.5 - 0.5*cos(2*pi*n/size)``)."""
     if size == 0:
         return np.zeros(0, dtype=np.float64)
     n = np.arange(size, dtype=np.float64)
