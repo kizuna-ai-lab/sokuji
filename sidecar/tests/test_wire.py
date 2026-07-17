@@ -66,3 +66,18 @@ def test_schema_json_is_the_loaded_source():
         raw = json.load(f)
     raw.pop("_comment", None)
     assert set(raw) == set(wire.SCHEMA)
+
+
+def test_validator_crash_fails_open_outside_strict_mode(monkeypatch, capsys):
+    # The guard must never be more dangerous than what it guards: a validator
+    # crash (here: a non-dict "message") is reported and swallowed in prod.
+    monkeypatch.delenv("SOKUJI_WIRE_STRICT", raising=False)
+    wire.validate_outbound(["not", "a", "dict"])  # type: ignore[arg-type]
+    err = capsys.readouterr().err
+    assert "[wire]" in err and "validator crashed" in err
+
+
+def test_validator_crash_is_loud_in_strict_mode(monkeypatch):
+    monkeypatch.setenv("SOKUJI_WIRE_STRICT", "1")
+    with pytest.raises(AttributeError):        # the RAW bug, not a wrapped one
+        wire.validate_outbound(["not", "a", "dict"])  # type: ignore[arg-type]

@@ -40,13 +40,23 @@ class WireContractError(Exception):
 def validate_outbound(obj: dict) -> None:
     """Check one outbound JSON message against the schema. Raises
     WireContractError in strict mode; otherwise reports to stderr and returns
-    (the caller sends the message regardless — fail-open)."""
-    problem = _problem(obj)
-    if problem is None:
-        return
+    (the caller sends the message regardless — fail-open).
+
+    Fail-open covers the validator ITSELF too: in production a crash inside
+    _problem (a handler returning a non-dict, say) is reported and the message
+    passes — the guard must never be more dangerous than what it guards. In
+    strict mode the same crash surfaces raw, pointing at the real bug."""
     if os.environ.get("SOKUJI_WIRE_STRICT") == "1":
-        raise WireContractError(problem)
-    print(f"[wire] contract violation: {problem}", file=sys.stderr, flush=True)
+        problem = _problem(obj)
+        if problem is not None:
+            raise WireContractError(problem)
+        return
+    try:
+        problem = _problem(obj)
+    except Exception as e:
+        problem = f"validator crashed: {e!r}"
+    if problem is not None:
+        print(f"[wire] contract violation: {problem}", file=sys.stderr, flush=True)
 
 
 def _problem(obj: dict) -> str | None:

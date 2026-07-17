@@ -26,10 +26,13 @@ class Conn:
         handler replies and engine pushes alike — leaves through here, so the
         wire contract is enforced in exactly one place (strict in tests,
         fail-open in production; see wire.py)."""
+        # Validate BEFORE any I/O: a strict-mode violation must leave the
+        # process in a nothing-sent state, not binary-without-its-JSON.
+        if obj is not None:
+            wire.validate_outbound(obj)
         if binary is not None:
             await self._ws.send(binary)
         if obj is not None:
-            wire.validate_outbound(obj)
             await self._ws.send(json.dumps(obj))
 
 

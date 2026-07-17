@@ -126,6 +126,12 @@ function loadWireSchema(): Map<string, { required: Set<string>; optional: Set<st
   delete raw._comment;
   const out = new Map<string, { required: Set<string>; optional: Set<string> }>();
   for (const [mtype, spec] of Object.entries<any>(raw)) {
+    // new Set(undefined) is silently empty — a malformed entry must throw,
+    // not masquerade as field drift.
+    if (!Array.isArray(spec?.required) || !Array.isArray(spec?.optional)) {
+      throw new Error(`wire_schema.json entry '${mtype}' is malformed: ` +
+        `required/optional must both be arrays`);
+    }
     out.set(mtype, { required: new Set(spec.required), optional: new Set(spec.optional) });
   }
   if (out.size < MIN_SERVER_MSG_MEMBERS) {
@@ -138,7 +144,12 @@ function loadWireSchema(): Map<string, { required: Set<string>; optional: Set<st
  *  interface bodies. Throws on anything it cannot parse rather than returning a
  *  partial set. */
 function extractServerMsgFields(): Map<string, { required: Set<string>; optional: Set<string> }> {
-  const source = readFileSync(PROTOCOL_FILE, 'utf-8');
+  // Comments are stripped before brace counting: a brace inside a comment must
+  // not corrupt body extraction. Any stripping mistake here fails LOUD — the
+  // extracted sets are diffed bidirectionally against the schema.
+  const source = readFileSync(PROTOCOL_FILE, 'utf-8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\n]*/g, '');
   const out = new Map<string, { required: Set<string>; optional: Set<string> }>();
   for (const [name, discriminant] of extractServerMsgDiscriminants()) {
     const start = source.indexOf(`export interface ${name} {`);
@@ -150,7 +161,7 @@ function extractServerMsgFields(): Map<string, { required: Set<string>; optional
       else if (source[i] === '}' && --depth === 0) { end = i; break; }
     }
     if (depth !== 0) throw new Error(`unbalanced braces in interface ${name}`);
-    const body = source.slice(open + 1, end).replace(/\/\/[^\n]*/g, '');
+    const body = source.slice(open + 1, end);
     const required = new Set<string>(); const optional = new Set<string>();
     let level = 0; let field = '';
     const commit = (chunk: string) => {

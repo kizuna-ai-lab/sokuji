@@ -53,6 +53,11 @@ def test_conn_send_enforces_the_wire_contract():
     with pytest.raises(wire.WireContractError):
         asyncio.run(conn.send({"type": "ok"}))   # missing required id
     assert ws.sent == []
+    # Validation runs BEFORE any I/O: with a paired binary frame, a violating
+    # JSON must not leave an orphan binary already on the wire.
+    with pytest.raises(wire.WireContractError):
+        asyncio.run(conn.send({"type": "ok"}, binary=b"\x00\x01"))
+    assert ws.sent == []
 
 
 def test_handle_message_passes_conn_to_handler():
