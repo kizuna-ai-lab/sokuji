@@ -717,11 +717,13 @@ class CosyVoice3OnnxBackend:
     def set_voice(self, audio, sr, ref_text: str = "") -> None:
         if not ref_text or not ref_text.strip():
             raise BackendLoadError("cosyvoice3 requires the reference transcript")
-        key = f"custom:{hash((np.asarray(audio, dtype=np.float32).tobytes(), int(sr), ref_text))}"
+        audio32 = np.asarray(audio, dtype=np.float32)
+        key = "custom:" + hashlib.sha1(
+            audio32.tobytes() + str(int(sr)).encode() + ref_text.encode("utf-8")
+        ).hexdigest()
         if key not in self._voice_cache:
             self._voice_cache[key] = _cv3_pipeline.process_prompt(
-                self._sessions, self._tok,
-                np.asarray(audio, dtype=np.float32), int(sr), ref_text)
+                self._sessions, self._tok, audio32, int(sr), ref_text)
         self._prompt = self._voice_cache[key]
 
     def set_builtin_voice(self, name: str) -> None:
@@ -736,14 +738,18 @@ class CosyVoice3OnnxBackend:
         txt_path = f"{self._dir}/voices/{name}.txt"
         if not (os.path.exists(wav_path) and os.path.exists(txt_path)):
             raise BackendLoadError(f"unknown builtin voice: {name}")
-        audio, sr = sf.read(wav_path, dtype="float32", always_2d=False)
-        if audio.ndim > 1:  # soundfile layout is (frames, channels) — downmix here
-            audio = audio.mean(axis=1).astype(np.float32)
-        with open(txt_path, encoding="utf-8") as f:
-            transcript = f.read().strip()
-        self._voice_cache[name] = _cv3_pipeline.process_prompt(
-            self._sessions, self._tok, audio, sr, transcript)
-        self._prompt = self._voice_cache[name]
+        try:
+            audio, sr = sf.read(wav_path, dtype="float32", always_2d=False)
+            if audio.ndim > 1:  # soundfile layout is (frames, channels) — downmix here
+                audio = audio.mean(axis=1).astype(np.float32)
+            with open(txt_path, encoding="utf-8") as f:
+                transcript = f.read().strip()
+            prompt = _cv3_pipeline.process_prompt(
+                self._sessions, self._tok, audio, sr, transcript)
+        except Exception as e:
+            raise BackendLoadError(str(e))
+        self._voice_cache[name] = prompt
+        self._prompt = prompt
 
     def generate(self, text, speed=1.0):
         if self._prompt is None:

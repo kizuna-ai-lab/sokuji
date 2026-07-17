@@ -58,5 +58,24 @@ def build_sessions(model_dir: str, device: str, threads: int,
         so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         so.intra_op_num_threads = threads
         providers = cpu if key in COLD_GRAPHS else hot
-        sessions[key] = factory(f"{model_dir}/{rel}", providers, so)
+        session = factory(f"{model_dir}/{rel}", providers, so)
+        if device == "cuda" and key not in COLD_GRAPHS:
+            # ORT silently falls back to CPU when the requested EP is
+            # unavailable (missing CUDA libs, wrong onnxruntime package,
+            # etc.) instead of raising. This card is deliberately GPU-only
+            # with no cpu deployment row (spike-measured CPU RTF ~3.5 misses
+            # the realtime bar), so a silently-CPU hot session would invert
+            # the design without any visible error, at an RTF around 3.
+            # Fail fast instead. `get_providers` is absent on the fake
+            # session objects the test seam substitutes (session_factory),
+            # so the check is skipped there deliberately -- it's a runtime
+            # safety net, not part of the seam's contract.
+            get_providers = getattr(session, "get_providers", None)
+            if get_providers is not None and \
+                    "CUDAExecutionProvider" not in get_providers():
+                raise RuntimeError(
+                    f"cosyvoice3: hot graph {key!r} did not get "
+                    f"CUDAExecutionProvider (actual providers: "
+                    f"{get_providers()}); refusing silent CPU fallback")
+        sessions[key] = session
     return sessions

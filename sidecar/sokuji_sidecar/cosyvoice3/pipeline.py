@@ -34,8 +34,6 @@ SPEECH_TOKEN_SIZE = 6561
 SOS = 6561
 TASK_ID = 6563
 STOP_TOKEN_MIN = SPEECH_TOKEN_SIZE          # ids 6561..6760 all stop decoding
-ENDOFPROMPT_ID = 151646                      # <|endofprompt|>, absent from exported tokenizer
-ZERO_SHOT_PREFIX = "You are a helpful assistant."
 SILENT_TOKENS = frozenset({1, 2, 28, 29, 55, 248, 494, 2241, 2242, 2322, 2323})
 MAX_CONSECUTIVE_SILENT = 5
 TOKEN_MEL_RATIO = 2
@@ -125,6 +123,11 @@ def llm_generate(sessions, tok, tts_text: str, prompt: VoicePrompt, rng) -> np.n
 
     min_len = MIN_TOKEN_TEXT_RATIO * len(tts_ids)
     max_len = min(MAX_TOKEN_TEXT_RATIO * len(tts_ids), HARD_MAX_TOKENS)
+    min_len = min(min_len, max_len)  # HARD_MAX_TOKENS can cap max_len below
+                                      # min_len for very long tts_text; without
+                                      # this the stop-mask (active while
+                                      # i < min_len) never lifts and decoding
+                                      # runs to max_len every time.
 
     out_tokens: list = []       # full LLM sequence (RAS window + feedback)
     flow_tokens: list = []      # silent-filtered sequence for the flow

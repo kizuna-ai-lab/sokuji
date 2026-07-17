@@ -117,7 +117,6 @@ def test_estimator_gets_cfg_rows():
     assert f["x"].shape[0] == 2
     assert np.allclose(f["mu"][1], 0) and np.allclose(f["cond"][1], 0) \
         and np.allclose(f["spks"][1], 0)
-    assert not np.allclose(f["mu"][0], f["mu"][1]) or True  # row0 is the conditional
 
 
 def test_speed_scales_mel_length():

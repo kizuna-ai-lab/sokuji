@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from pathlib import Path
 
 from sokuji_sidecar.cosyvoice3 import mel

@@ -1,4 +1,4 @@
-import numpy as np
+import pytest
 
 from sokuji_sidecar.cosyvoice3 import runtime
 
@@ -52,3 +52,29 @@ def test_all_fourteen_sessions_built():
     sessions = runtime.build_sessions("/m", "cpu", 4,
                                       session_factory=_capture_factory(calls))
     assert len(calls) == 14 and len(sessions) == 14
+
+
+class _FakeSession:
+    """Fake session exposing get_providers(), mirroring the real ORT
+    InferenceSession attribute the CUDA fail-fast check inspects."""
+    def __init__(self, providers):
+        self._providers = providers
+
+    def get_providers(self):
+        return self._providers
+
+
+def test_cuda_device_raises_when_hot_session_silently_falls_back_to_cpu():
+    def factory(path, providers, sess_options):
+        return _FakeSession(["CPUExecutionProvider"])
+
+    with pytest.raises(RuntimeError):
+        runtime.build_sessions("/m", "cuda", 4, session_factory=factory)
+
+
+def test_cuda_device_does_not_raise_when_hot_session_has_cuda_provider():
+    def factory(path, providers, sess_options):
+        return _FakeSession(["CUDAExecutionProvider", "CPUExecutionProvider"])
+
+    sessions = runtime.build_sessions("/m", "cuda", 4, session_factory=factory)
+    assert len(sessions) == 14

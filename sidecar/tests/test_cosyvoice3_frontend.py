@@ -1,8 +1,6 @@
 import sys
 import types
 
-import pytest
-
 from sokuji_sidecar.cosyvoice3 import frontend
 
 
