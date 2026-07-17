@@ -190,6 +190,21 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       host: true,
+      watch: {
+        // Vite recursively watches the whole project tree. Python virtualenvs
+        // living under git worktrees (.claude/worktrees/**/.spike/venv — with
+        // site-packages holding 100k+ files like onnx/torch) blow past the
+        // inotify max_user_watches limit and crash the dev server with ENOSPC.
+        // None of these dirs feed the build, so exclude them from the watcher.
+        // Merged with Vite's defaults (node_modules, .git already ignored).
+        ignored: [
+          '**/.claude/worktrees/**',
+          '**/.spike/**',
+          '**/venv/**',
+          '**/.venv/**',
+          '**/__pycache__/**',
+        ],
+      },
       // Cross-origin isolation for the dev server (electron:dev / web dev only).
       // Electron 40's Chromium requires COEP for ES module workers even when SAB
       // comes from --enable-features=SharedArrayBuffer, so without these the
