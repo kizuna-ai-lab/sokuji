@@ -218,6 +218,12 @@ def model_status(model_id, repo=None):
     ANY cached rung of its ladder (see _ladder_artifacts) — the override form
     keeps per-quant semantics for the download buttons.
 
+    A multi-variant TTS card (qwen3-tts's self-contained fp32/bf16 repos —
+    see catalog.py) applies the analogous any-rung relaxation, but per-repo
+    rather than per-file: WITHOUT an override, the card is 'ready' when ANY
+    of its unique deployment-artifact repos is fully cached, since load-time
+    resolution (accel.resolve_tts) only ever picks a downloaded variant.
+
     llamacpp_* translate cards additionally need the shared llama-server binary
     installed for EVERY required flavor (see download() / llama_runtime.
     required_flavors) — the machine's default flavor AND the tiny cpu floor;
@@ -226,6 +232,18 @@ def model_status(model_id, repo=None):
     required flavors land."""
     specs = download_specs(model_id, repo)
     try:
+        from .catalog import tts_model as _tts_card
+        tcard = _tts_card(model_id) if repo is None else None
+        if tcard is not None:
+            variant_repos = list(dict.fromkeys(
+                d.artifact for d in tcard.deployments if d.backend != "mlx_audio_tts"))
+            if len(variant_repos) > 1:
+                # Multi-variant TTS: ANY fully-cached variant repo satisfies the
+                # card (we load whichever the user downloaded); per-variant
+                # semantics stay available via the explicit `repo` override.
+                if any(_repos_cached({"repos": [r]}) for r in variant_repos):
+                    return "ready"
+                return "absent"
         if not _repos_cached(specs):
             return "absent"
         ladder = _ladder_artifacts(model_id) if repo is None else []
