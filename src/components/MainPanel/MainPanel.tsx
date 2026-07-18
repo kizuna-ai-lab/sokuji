@@ -43,7 +43,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -640,6 +640,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (config.provider === 'volcengine_ast2') {
       const ast2 = config as VolcengineAST2SessionConfig;
       [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    } else if (config.provider === 'soniox') {
+      // Soniox carries direction in sourceLanguage/targetLanguage; reverse it so the
+      // participant translates the other party's speech into the user's language.
+      const sx = config as SonioxSessionConfig;
+      [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
     } else if (config.provider === 'local_native') {
       // Native ASR/translate carry the translation direction in
       // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
@@ -1516,6 +1521,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Get session configuration
         const sessionConfig = getSessionConfig();
+        // Both single-session (Soniox): flip the speaker config to a bidirectional
+        // two_way session so one core handles both directions. Requires the shared
+        // toggle on and a concrete source language (two_way needs a real source);
+        // otherwise fall through to the normal two-client path.
+        if (
+          sessionConfig.provider === 'soniox' &&
+          effectiveMode === 'both' &&
+          (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
+          (sessionConfig as SonioxSessionConfig).sourceLanguage !== 'auto'
+        ) {
+          (sessionConfig as SonioxSessionConfig).bidirectional = true;
+        }
 
         // Track connection attempt and measure latency
         const connectionStartTime = Date.now();
@@ -1724,8 +1741,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
 
           if (electronAcquireOk) {
-            // Create participant client using helper
-            participantClientRef.current = await createAIClient();
+            // Create participant client. In Both single-session (Soniox, shared
+            // toggle on, concrete source language), reuse the speaker core as
+            // channel B via its inert secondary port instead of opening a second
+            // session. Otherwise create an independent participant client.
+            const speakerCore = speakerClientRef.current;
+            if (
+              provider === Provider.SONIOX &&
+              effectiveMode === 'both' &&
+              (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
+              useSettingsStore.getState().soniox.sourceLanguage !== 'auto' &&
+              speakerCore && typeof (speakerCore as any).createSecondaryPort === 'function'
+            ) {
+              participantClientRef.current = (speakerCore as any).createSecondaryPort();
+            } else {
+              participantClientRef.current = await createAIClient();
+            }
 
             // Setup event handlers using helper
             const participantClient = participantClientRef.current;
