@@ -122,4 +122,36 @@ describe('SonioxSttStream', () => {
       (m) => typeof m === 'string' && m.includes('keepalive'));
     expect(keepalives).toHaveLength(0);
   });
+
+  it('connect() rejects when the socket never opens within the timeout', async () => {
+    const s = new SonioxSttStream();
+    const p = s.connect(CONFIG);
+    const rejection = expect(p).rejects.toThrow(/timeout/i);
+    vi.advanceTimersByTime(15_000);
+    await rejection;
+  });
+
+  it('connect() rejects on a pre-open socket error', async () => {
+    const s = new SonioxSttStream();
+    const p = s.connect(CONFIG);
+    const rejection = expect(p).rejects.toThrow();
+    MockWebSocket.instances[0].onerror?.(new Error('refused'));
+    await rejection;
+  });
+
+  it('post-open socket errors route to onError, not a rejection', async () => {
+    const { s, ws } = await openStream();
+    const errors: string[] = [];
+    s.setHandlers({ onError: (code) => errors.push(code) });
+    ws.onerror?.(new Error('boom'));
+    expect(errors).toEqual(['socket_error']);
+  });
+
+  it('remote close routes to onClose with the close code', async () => {
+    const { s, ws } = await openStream();
+    const closes: Array<{ code?: number; reason?: string }> = [];
+    s.setHandlers({ onClose: (e) => closes.push(e) });
+    ws.close();
+    expect(closes).toEqual([{ code: 1000, reason: undefined }]);
+  });
 });
