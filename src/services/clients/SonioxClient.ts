@@ -229,48 +229,101 @@ export class SonioxClient implements IClient {
     // Mint (or reuse) this utterance's assistant item id up front, and pin it
     // as the audio target — audio for this utterance keeps arriving after
     // <end> clears currentAssistantItemId, so it needs its own anchor.
-    if (!this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
-    this.audioItemId = this.currentAssistantItemId;
+    this.audioItemId = this.ensureItem('assistant').id;
     this.tts.sendText(text, this.utteranceTtsLanguage);
   }
 
-  /** Emit/refresh the in-progress item for one side of the pair. */
-  private emitTextUpdate(role: 'user' | 'assistant', finalText: string, partialText: string): void {
-    const text = finalText + partialText;
-    if (!text) return;
-    if (role === 'user' && !this.currentUserItemId) this.currentUserItemId = this.generateItemId('user');
-    if (role === 'assistant' && !this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
+  /**
+   * Mint-if-needed placeholder ConversationItem for a role's current
+   * utterance side, pushing it into `conversationItems` immediately so it's
+   * listed (and thus visible — MainPanel renders exclusively from
+   * `getConversationItems()`) before any text has arrived for it. Returns
+   * the existing item as-is if one is already tracked; never mutates it —
+   * callers that need to update its content go through `upsertItem`
+   * instead, which always builds a fresh object so a snapshot already
+   * handed to an onConversationUpdated listener is never rewritten out from
+   * under it by a later update.
+   *
+   * Looks the id up in `conversationItems` itself (not a separate cache) so
+   * that if the array is externally truncated (clearConversationItems())
+   * mid-utterance, the next call self-heals by minting a fresh id/item
+   * instead of resuming a detached object that would never be visible
+   * again.
+   */
+  private ensureItem(role: 'user' | 'assistant'): ConversationItem {
+    const currentId = role === 'user' ? this.currentUserItemId : this.currentAssistantItemId;
+    const existing = currentId ? this.conversationItems.find((i) => i.id === currentId) : undefined;
+    if (existing) return existing;
+    const id = this.generateItemId(role);
+    if (role === 'user') this.currentUserItemId = id; else this.currentAssistantItemId = id;
     const item: ConversationItem = {
-      id: role === 'user' ? this.currentUserItemId! : this.currentAssistantItemId!,
+      id,
       role,
       type: 'message',
       status: 'in_progress',
       createdAt: Date.now(),
+      formatted: { text: '', transcript: '' },
+      content: [{ type: 'text', text: '' }],
+    };
+    this.conversationItems.push(item);
+    return item;
+  }
+
+  /**
+   * Build a fresh ConversationItem carrying `patch` and store it — replacing
+   * the `conversationItems` entry for `currentId` in place if one is
+   * tracked there (self-healing to a freshly minted id/entry if `currentId`
+   * doesn't resolve, e.g. after an external clearConversationItems()), or
+   * appending a new one. Deliberately never mutates the previous item
+   * object, so a reference already emitted to an onConversationUpdated
+   * listener stays a frozen snapshot of that moment.
+   */
+  private upsertItem(
+    role: 'user' | 'assistant',
+    currentId: string | null,
+    patch: Pick<ConversationItem, 'status' | 'formatted' | 'content'>
+  ): ConversationItem {
+    const idx = currentId ? this.conversationItems.findIndex((i) => i.id === currentId) : -1;
+    const previous = idx !== -1 ? this.conversationItems[idx] : undefined;
+    const item: ConversationItem = {
+      id: previous?.id ?? currentId ?? this.generateItemId(role),
+      role,
+      type: 'message',
+      createdAt: previous?.createdAt ?? Date.now(),
+      ...patch,
+    };
+    if (idx !== -1) this.conversationItems[idx] = item; else this.conversationItems.push(item);
+    return item;
+  }
+
+  /** Update the in-progress item for one side of the pair. */
+  private emitTextUpdate(role: 'user' | 'assistant', finalText: string, partialText: string): void {
+    const text = finalText + partialText;
+    if (!text) return;
+    const currentId = role === 'user' ? this.currentUserItemId : this.currentAssistantItemId;
+    const item = this.upsertItem(role, currentId, {
+      status: 'in_progress',
       formatted: { text, transcript: text },
       content: [{ type: 'text', text }],
-    };
+    });
+    if (role === 'user') this.currentUserItemId = item.id; else this.currentAssistantItemId = item.id;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { text } });
   }
 
-  /** <end>: complete both sides, push to history, reset per-utterance state. */
+  /** <end>: complete both sides' stored items, reset per-utterance state. */
   private finishUtterance(): void {
     const complete = (role: 'user' | 'assistant', existingId: string | null, text: string) => {
       if (!text) return;
       // <end> can arrive in the same STT message as the finals that complete
       // it — before the post-loop emitTextUpdate() has ever assigned an item
-      // id for this batch. Generate one lazily rather than dropping the
+      // id for this batch (e.g. a user-side final with no preceding TTS
+      // mint). upsertItem() mints+lists one lazily rather than dropping the
       // completed item.
-      const id = existingId ?? this.generateItemId(role);
-      const item: ConversationItem = {
-        id,
-        role,
-        type: 'message',
+      const item = this.upsertItem(role, existingId, {
         status: 'completed',
-        createdAt: Date.now(),
         formatted: { text, transcript: text },
         content: [{ type: 'text', text }],
-      };
-      this.conversationItems.push(item);
+      });
       this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
     };
     complete('user', this.currentUserItemId, this.userFinal);
@@ -289,13 +342,13 @@ export class SonioxClient implements IClient {
   /** TTS audio chunk → audio-only delta on the assistant item (MainPanel plays it). */
   private emitAssistantAudio(audio: Int16Array): void {
     // Pure-audio edge case that shouldn't happen in practice (audio always
-    // follows feedTts, which sets audioItemId) — fall back to minting rather
-    // than dropping the chunk.
-    if (!this.audioItemId) this.audioItemId = this.generateItemId('assistant');
+    // follows feedTts, which sets audioItemId) — fall back to minting (and
+    // listing) rather than dropping the chunk.
+    if (!this.audioItemId) this.audioItemId = this.ensureItem('assistant').id;
     // keepReplayAudio (per-item formatted.audio accumulation for the inline
     // replay button) is deliberately NOT implemented in v1 — plan scopes it
     // out; live playback via the audio-only delta below is the v1 contract.
-    const item: ConversationItem = {
+    const item: ConversationItem = this.conversationItems.find((i) => i.id === this.audioItemId) ?? {
       id: this.audioItemId,
       role: 'assistant',
       type: 'message',

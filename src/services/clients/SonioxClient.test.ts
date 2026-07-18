@@ -185,6 +185,68 @@ describe('SonioxClient token handling', () => {
   });
 });
 
+describe('SonioxClient in-progress items stay listed (MainPanel renders exclusively from getConversationItems)', () => {
+  it('a partial-only message lists an in-progress user item with the partial text', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [tok('He', { translation_status: 'original' })] }); // no is_final, no <end>
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ role: 'user', status: 'in_progress', formatted: { text: 'He' } });
+  });
+
+  it('finals without <end> list in-progress user+assistant items with accumulated text', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original' }),
+      tok('Hello', { is_final: true, translation_status: 'translation' }),
+    ] });
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(2);
+    const user = items.find((i) => i.role === 'user')!;
+    const assistant = items.find((i) => i.role === 'assistant')!;
+    expect(user).toMatchObject({ status: 'in_progress', formatted: { text: '你好' } });
+    expect(assistant).toMatchObject({ status: 'in_progress', formatted: { text: 'Hello' } });
+  });
+
+  it('<end> flips the same item ids to completed — no duplicates', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original' }),
+      tok('Hello', { is_final: true, translation_status: 'translation' }),
+    ] });
+    const beforeEnd = client.getConversationItems();
+    expect(beforeEnd).toHaveLength(2);
+    const idsBefore = beforeEnd.map((i) => i.id).sort();
+
+    stt.emit({ tokens: [tok('<end>')] });
+    const afterEnd = client.getConversationItems();
+    expect(afterEnd).toHaveLength(2); // same pair, no duplicates
+    expect(afterEnd.map((i) => i.id).sort()).toEqual(idsBefore); // same ids
+    expect(afterEnd.every((i) => i.status === 'completed')).toBe(true);
+  });
+
+  it('a second utterance mints new ids — the list grows to 4', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original' }),
+      tok('Hello', { is_final: true, translation_status: 'translation' }),
+      tok('<end>'),
+    ] });
+    const firstIds = new Set(client.getConversationItems().map((i) => i.id));
+    expect(firstIds.size).toBe(2);
+
+    stt.emit({ tokens: [
+      tok('再见', { is_final: true, translation_status: 'original' }),
+      tok('Bye', { is_final: true, translation_status: 'translation' }),
+    ] });
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(4);
+    // second utterance's ids are new, not reused from the first
+    const secondIds = items.map((i) => i.id).filter((id) => !firstIds.has(id));
+    expect(secondIds).toHaveLength(2);
+  });
+});
+
 describe('SonioxClient TTS feeding', () => {
   it('feeds only final translation tokens, with per-utterance language', async () => {
     const { stt, tts } = await connectedClient();
