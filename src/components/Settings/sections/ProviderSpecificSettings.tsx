@@ -1734,23 +1734,31 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // the toggle is force-disabled (and shown unchecked) whenever auto-detect
     // is selected, mirroring the descriptor's own degrade rule (Task 5).
     const autoSource = sonioxSettings.sourceLanguage === 'auto';
+    const twoWayEnabled = sonioxSettings.twoWayTranslation && !autoSource;
 
     return (
       <div className="settings-section" id="soniox-settings-section">
         <h2>{t('settings.translationMode', 'Translation Mode')}</h2>
         <div className="setting-item">
-          <label
-            className="checkbox-label"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: (isSessionActive || autoSource) ? 'not-allowed' : 'pointer' }}
-          >
-            <input
-              type="checkbox"
-              checked={sonioxSettings.twoWayTranslation && !autoSource}
-              disabled={isSessionActive || autoSource}
-              onChange={(e) => updateSonioxSettings({ twoWayTranslation: e.target.checked })}
-            />
+          <div className="setting-label">
             <span>{t('settings.sonioxTwoWay', 'Two-way translation')}</span>
-          </label>
+          </div>
+          <div className="turn-detection-options">
+            <button
+              className={`option-button ${twoWayEnabled ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ twoWayTranslation: true })}
+              disabled={isSessionActive || autoSource}
+            >
+              {t('settings.enabled', 'Enabled')}
+            </button>
+            <button
+              className={`option-button ${!twoWayEnabled ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ twoWayTranslation: false })}
+              disabled={isSessionActive || autoSource}
+            >
+              {t('settings.disabled', 'Disabled')}
+            </button>
+          </div>
           <div className="setting-description">
             {autoSource
               ? t('settings.sonioxTwoWayNeedsSource', 'Select a specific source language to enable two-way translation')
