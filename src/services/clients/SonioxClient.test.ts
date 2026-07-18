@@ -452,4 +452,32 @@ describe('SonioxClient bidirectional tagging + TTS filter', () => {
     ] });
     expect(tts!.sent).toEqual([{ text: 'Hello', language: 'en' }]);
   });
+
+  it('trailing TTS audio keeps ITS OWN utterance\'s side even after the next utterance re-latches utteranceSide', async () => {
+    const { updates, stt, tts } = await bidi(false);
+
+    // Utterance N: me→other (speaker). feedTts latches audioItemId + audioItemSide='speaker'.
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' }),
+    ] });
+    const nAssistant = updates.find((u) => u.item.role === 'assistant')!;
+    expect(nAssistant).toBeDefined();
+    const nAssistantId = nAssistant.item.id;
+
+    // <end> completes utterance N: utteranceSide resets to null, but audioItemId
+    // (and now audioItemSide) deliberately stay stale for N's trailing audio.
+    stt.emit({ tokens: [tok('<end>')] });
+
+    // Utterance N+1 starts as the OTHER side: re-latches a NEW utteranceSide
+    // ('participant') BEFORE N's trailing TTS audio has finished arriving.
+    stt.emit({ tokens: [tok('Hi', { is_final: true, translation_status: 'none', language: 'en' })] });
+
+    // N's trailing TTS audio arrives now — after N+1 already re-latched utteranceSide.
+    tts!.handlers.onAudio!(new Int16Array([1, 2]));
+    const audioUpdate = updates.find((u) => u.delta?.audio)!;
+    expect(audioUpdate).toBeDefined();
+    expect(audioUpdate.item.source).toBe('speaker'); // N's side, NOT N+1's 'participant'
+    expect(audioUpdate.item.id).toBe(nAssistantId);
+  });
 });

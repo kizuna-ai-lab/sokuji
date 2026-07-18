@@ -70,6 +70,14 @@ export class SonioxClient implements IClient {
   // that same utterance keeps arriving afterward — it must still land on the
   // completed utterance's item, not mint a new one.
   private audioItemId: string | null = null;
+  // Snapshot of utteranceSide taken at the same moment audioItemId is
+  // latched (in feedTts). TTS audio and STT text are independent async
+  // streams: <end> resets the live utteranceSide to null, and the NEXT
+  // utterance can re-latch a new one before this utterance's trailing audio
+  // has finished arriving. emitAssistantAudio must tag with the side this
+  // audio's utterance actually belonged to, not whatever utteranceSide is
+  // live when the audio happens to show up.
+  private audioItemSide: 'speaker' | 'participant' | null = null;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -260,7 +268,11 @@ export class SonioxClient implements IClient {
     // Mint (or reuse) this utterance's assistant item id up front, and pin it
     // as the audio target — audio for this utterance keeps arriving after
     // <end> clears currentAssistantItemId, so it needs its own anchor.
+    // Snapshot the CURRENT utterance's side alongside it: utteranceSide is
+    // live state that a following utterance can overwrite before this
+    // utterance's trailing audio finishes arriving (see audioItemSide doc).
     this.audioItemId = this.ensureItem('assistant').id;
+    this.audioItemSide = this.utteranceSide;
     this.tts.sendText(text, this.utteranceTtsLanguage);
   }
 
@@ -389,7 +401,7 @@ export class SonioxClient implements IClient {
       status: 'in_progress',
       formatted: {},
     };
-    if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
+    if (this.bidirectional && this.audioItemSide) item.source = this.audioItemSide;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { audio } });
   }
 
@@ -454,6 +466,7 @@ export class SonioxClient implements IClient {
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     this.audioItemId = null;
+    this.audioItemSide = null;
     this.userFinal = '';
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
