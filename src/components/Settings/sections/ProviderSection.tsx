@@ -20,6 +20,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -121,6 +122,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -311,6 +313,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.ZOOM_AI:
         updateZoomAISettings({ apiKey: value });
+        break;
+      case Provider.SONIOX:
+        updateSonioxSettings({ apiKey: value });
         break;
     }
   };

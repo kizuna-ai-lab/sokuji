@@ -24,6 +24,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useNavigateToSettings,
   useSetUIMode,
   useTextOnly,
@@ -97,6 +98,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
   // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
@@ -215,6 +217,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         });
         break;
       }
+      case Provider.SONIOX:
+        updateSonioxSettings({ sourceLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -284,6 +289,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.ZOOM_AI:
         updateZoomAISettings({ targetLanguage: value });
+        break;
+      case Provider.SONIOX:
+        updateSonioxSettings({ targetLanguage: value });
         break;
     }
     trackEvent('language_changed', {

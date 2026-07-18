@@ -13,7 +13,10 @@
  * - {"type":"finalize"} only finalizes pending tokens (emits a <fin> token);
  *   it does NOT end the session.
  * - ~20 s without input triggers "408 Request timeout"; {"type":"keepalive"}
- *   prevents it. We send one after 15 s without audio.
+ *   prevents it. We send one after 15 s without audio, checked every 5 s so
+ *   the worst-case gap between the idle threshold firing and the actual send
+ *   stays well under the server's ~20 s timeout (checking on the same 15 s
+ *   cadence as the threshold let the worst case approach 30 s).
  */
 
 export interface SonioxToken {
@@ -57,6 +60,7 @@ export interface SonioxSttStreamHandlers {
 const STT_URL = 'wss://stt-rt.soniox.com/transcribe-websocket';
 const CONNECTION_TIMEOUT_MS = 15000;
 const KEEPALIVE_AFTER_IDLE_MS = 15000;
+const KEEPALIVE_CHECK_INTERVAL_MS = 5000;
 
 export class SonioxSttStream {
   private ws: WebSocket | null = null;
@@ -171,7 +175,7 @@ export class SonioxSttStream {
         this.ws!.send(JSON.stringify({ type: 'keepalive' }));
         this.lastAudioAt = Date.now();
       }
-    }, KEEPALIVE_AFTER_IDLE_MS);
+    }, KEEPALIVE_CHECK_INTERVAL_MS);
   }
 
   private stopKeepalive(): void {
