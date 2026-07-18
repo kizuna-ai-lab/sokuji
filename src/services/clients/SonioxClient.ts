@@ -1,0 +1,375 @@
+import {
+  IClient,
+  ConversationItem,
+  SessionConfig,
+  ClientEventHandlers,
+  ApiKeyValidationResult,
+  FilteredModel,
+  ResponseConfig,
+  SonioxSessionConfig
+} from '../interfaces/IClient';
+import { Provider, ProviderType } from '../../types/Provider';
+import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
+import { SonioxTtsStream } from './SonioxTtsStream';
+import i18n from '../../locales';
+
+/**
+ * Soniox speech-to-speech translation client.
+ *
+ * Orchestrates two protocol components:
+ * - SonioxSttStream: STT+translation (always on)
+ * - SonioxTtsStream: spoken translation (only when !textOnly; best-effort —
+ *   a TTS failure degrades the session to subtitles, never kills it)
+ *
+ * All Sokuji conversation semantics (items, finals-only feeding, <end>
+ * segmentation) live here; the streams speak only the Soniox wire protocol.
+ *
+ * No-interruption rule: createResponse/cancelResponse are no-ops and
+ * onConversationInterrupted is never fired — the translation stream is
+ * continuous and AI output must never be cut by user audio.
+ */
+
+const STT_MODEL = 'stt-rt-v5';
+const TTS_MODEL = 'tts-rt-v1';
+const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
+const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+
+export class SonioxClient implements IClient {
+  private apiKey: string;
+  private stt: SonioxSttStream | null = null;
+  private tts: SonioxTtsStream | null = null;
+  private eventHandlers: ClientEventHandlers = {};
+  private conversationItems: ConversationItem[] = [];
+  private isConnectedState = false;
+  private instanceId: string;
+  private currentConfig: SonioxSessionConfig | null = null;
+
+  // Per-utterance display state
+  private currentUserItemId: string | null = null;
+  private currentAssistantItemId: string | null = null;
+  private userFinal = '';
+  private assistantFinal = '';
+  // TTS language for the in-flight utterance (two_way: from the first final
+  // translation token; one_way: always the target language)
+  private utteranceTtsLanguage: string | null = null;
+  private ttsFailedOnce = false;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+    this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private generateItemId(type: string): string {
+    return `${this.instanceId}_${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /** Validate the key with a cheap temporary-key probe (201 = valid). */
+  static async validateApiKeyAndFetchModels(apiKey: string): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
+    if (!apiKey) {
+      return {
+        validation: { valid: false, message: i18n.t('settings.errorValidatingApiKey'), validating: false },
+        models: []
+      };
+    }
+    try {
+      const response = await fetch(AUTH_PROBE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ usage_type: 'transcribe_websocket', expires_in_seconds: 60 }),
+      });
+      if (response.status === 200 || response.status === 201) {
+        return {
+          validation: { valid: true, message: i18n.t('settings.apiKeyValidationCompleted'), validating: false },
+          models: [{ id: STT_MODEL, type: 'realtime', created: Date.now() }]
+        };
+      }
+      if (response.status === 401 || response.status === 403) {
+        return {
+          validation: { valid: false, message: i18n.t('settings.invalidApiKeyFormat'), validating: false },
+          models: []
+        };
+      }
+      return {
+        validation: { valid: false, message: `${i18n.t('settings.errorValidatingApiKey')}: HTTP ${response.status}`, validating: false },
+        models: []
+      };
+    } catch (error: any) {
+      return {
+        validation: { valid: false, message: error.message || i18n.t('settings.errorValidatingApiKey'), validating: false },
+        models: []
+      };
+    }
+  }
+
+  async connect(config: SessionConfig): Promise<void> {
+    if (config.provider !== 'soniox') {
+      throw new Error('Invalid session config for Soniox client');
+    }
+    this.currentConfig = config as SonioxSessionConfig;
+    this.reset();
+
+    const cfg = this.currentConfig;
+    // two_way needs a concrete source; degrade to one_way on 'auto'
+    // (the descriptor applies the same rule — this is the safety belt).
+    const effectiveTwoWay = cfg.twoWayTranslation && cfg.sourceLanguage !== 'auto';
+    const translation: SonioxTranslationConfig = effectiveTwoWay
+      ? { type: 'two_way', language_a: cfg.sourceLanguage, language_b: cfg.targetLanguage }
+      : { type: 'one_way', target_language: cfg.targetLanguage };
+    const languageHints = effectiveTwoWay
+      ? [cfg.sourceLanguage, cfg.targetLanguage]
+      : (cfg.sourceLanguage !== 'auto' ? [cfg.sourceLanguage] : undefined);
+
+    this.stt = new SonioxSttStream();
+    this.stt.setHandlers({
+      onMessage: (message) => this.handleSttMessage(message),
+      onError: (code, message) => this.handleSttError(code, message),
+      onClose: (event) => {
+        this.isConnectedState = false;
+        this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
+        this.eventHandlers.onClose?.(event);
+      },
+    });
+    await this.stt.connect({
+      apiKey: this.apiKey,
+      model: cfg.model || STT_MODEL,
+      sampleRate: SAMPLE_RATE,
+      languageHints,
+      translation,
+    });
+    this.isConnectedState = true;
+
+    if (!cfg.textOnly) {
+      try {
+        this.tts = new SonioxTtsStream({
+          apiKey: this.apiKey,
+          voice: cfg.voice || 'Maya',
+          model: TTS_MODEL,
+          sampleRate: SAMPLE_RATE,
+        });
+        this.tts.setHandlers({
+          onAudio: (audio) => this.emitAssistantAudio(audio),
+          onError: (code, message) => this.handleTtsError(code, message),
+        });
+        await this.tts.connect();
+        this.tts.prewarm(cfg.targetLanguage);
+      } catch (error) {
+        // TTS is best-effort: never fail the session because audio is unavailable.
+        console.error('[SonioxClient] TTS connect failed — continuing text-only:', error);
+        this.emitRealtime('client', 'tts.degraded', { reason: String(error) });
+        this.tts = null;
+      }
+    }
+
+    this.emitRealtime('client', 'session.opened', {
+      provider: 'soniox',
+      translation,
+      textOnly: !!cfg.textOnly,
+    });
+    this.eventHandlers.onOpen?.();
+  }
+
+  private handleSttMessage(message: SonioxSttMessage): void {
+    this.emitRealtime('server', 'message.received', message);
+    const tokens = message.tokens ?? [];
+
+    // Partials are re-sent in full on every message: rebuild them each time.
+    let userPartial = '';
+    let assistantPartial = '';
+
+    for (const token of tokens) {
+      const text = token.text ?? '';
+      if (text === '<fin>') continue;
+      if (text === '<end>') {
+        this.finishUtterance();
+        continue;
+      }
+      const isTranslation = token.translation_status === 'translation';
+      if (isTranslation) {
+        if (token.is_final) {
+          this.assistantFinal += text;
+          this.feedTts(text, token);
+        } else {
+          assistantPartial += text;
+        }
+      } else {
+        if (token.is_final) {
+          this.userFinal += text;
+        } else {
+          userPartial += text;
+        }
+      }
+    }
+
+    this.emitTextUpdate('user', this.userFinal, userPartial);
+    this.emitTextUpdate('assistant', this.assistantFinal, assistantPartial);
+  }
+
+  private feedTts(text: string, token: SonioxToken): void {
+    if (!this.tts) return;
+    if (this.utteranceTtsLanguage === null) {
+      this.utteranceTtsLanguage = token.language || this.currentConfig?.targetLanguage || 'en';
+    }
+    this.tts.sendText(text, this.utteranceTtsLanguage);
+  }
+
+  /** Emit/refresh the in-progress item for one side of the pair. */
+  private emitTextUpdate(role: 'user' | 'assistant', finalText: string, partialText: string): void {
+    const text = finalText + partialText;
+    if (!text) return;
+    if (role === 'user' && !this.currentUserItemId) this.currentUserItemId = this.generateItemId('user');
+    if (role === 'assistant' && !this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
+    const item: ConversationItem = {
+      id: role === 'user' ? this.currentUserItemId! : this.currentAssistantItemId!,
+      role,
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { text, transcript: text },
+      content: [{ type: 'text', text }],
+    };
+    this.eventHandlers.onConversationUpdated?.({ item, delta: { text } });
+  }
+
+  /** <end>: complete both sides, push to history, reset per-utterance state. */
+  private finishUtterance(): void {
+    const complete = (role: 'user' | 'assistant', existingId: string | null, text: string) => {
+      if (!text) return;
+      // <end> can arrive in the same STT message as the finals that complete
+      // it — before the post-loop emitTextUpdate() has ever assigned an item
+      // id for this batch. Generate one lazily rather than dropping the
+      // completed item.
+      const id = existingId ?? this.generateItemId(role);
+      const item: ConversationItem = {
+        id,
+        role,
+        type: 'message',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: { text, transcript: text },
+        content: [{ type: 'text', text }],
+      };
+      this.conversationItems.push(item);
+      this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
+    };
+    complete('user', this.currentUserItemId, this.userFinal);
+    complete('assistant', this.currentAssistantItemId, this.assistantFinal);
+    this.currentUserItemId = null;
+    this.currentAssistantItemId = null;
+    this.userFinal = '';
+    this.assistantFinal = '';
+    this.utteranceTtsLanguage = null;
+    this.tts?.endUtterance();
+  }
+
+  /** TTS audio chunk → audio-only delta on the assistant item (MainPanel plays it). */
+  private emitAssistantAudio(audio: Int16Array): void {
+    if (!this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
+    const item: ConversationItem = {
+      id: this.currentAssistantItemId,
+      role: 'assistant',
+      type: 'message',
+      status: 'in_progress',
+      formatted: {},
+    };
+    this.eventHandlers.onConversationUpdated?.({ item, delta: { audio } });
+  }
+
+  private handleSttError(code: string, message: string): void {
+    console.error(`[SonioxClient] STT error ${code}: ${message}`);
+    const errorItem: ConversationItem = {
+      id: this.generateItemId('error'),
+      role: 'system',
+      type: 'error',
+      status: 'completed',
+      formatted: { text: `[Soniox ${code}] ${message}` },
+      content: [{ type: 'text', text: message }],
+    };
+    this.conversationItems.push(errorItem);
+    this.eventHandlers.onConversationUpdated?.({ item: errorItem });
+    this.eventHandlers.onError?.({ code, message });
+  }
+
+  private handleTtsError(code: string, message: string): void {
+    // TTS errors are non-fatal: log once, keep subtitles running.
+    if (!this.ttsFailedOnce) {
+      this.ttsFailedOnce = true;
+      console.error(`[SonioxClient] TTS error ${code}: ${message} — spoken translation degraded`);
+      this.emitRealtime('client', 'tts.degraded', { code, message });
+    }
+  }
+
+  private emitRealtime(source: 'client' | 'server', type: string, data: unknown): void {
+    this.eventHandlers.onRealtimeEvent?.({
+      source,
+      event: { type, data },
+    } as any);
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.stt) {
+      this.stt.end();   // empty text frame: server flushes and closes
+      this.stt.close();
+      this.stt = null;
+    }
+    if (this.tts) {
+      this.tts.close();
+      this.tts = null;
+    }
+    this.isConnectedState = false;
+    this.emitRealtime('client', 'session.closed', { provider: 'soniox', reason: 'client_disconnect' });
+    this.eventHandlers.onClose?.({});
+  }
+
+  isConnected(): boolean {
+    return this.isConnectedState;
+  }
+
+  updateSession(_config: Partial<SessionConfig>): void {
+    console.warn('[SonioxClient] Session updates are not supported. Reconnect to change configuration.');
+  }
+
+  reset(): void {
+    this.conversationItems = [];
+    this.currentUserItemId = null;
+    this.currentAssistantItemId = null;
+    this.userFinal = '';
+    this.assistantFinal = '';
+    this.utteranceTtsLanguage = null;
+    this.ttsFailedOnce = false;
+  }
+
+  appendInputAudio(audioData: Int16Array): void {
+    if (!this.stt?.isOpen()) return;
+    this.stt.sendAudio(audioData);
+  }
+
+  appendInputText(_text: string): void {
+    console.warn('[SonioxClient] Text input is not supported for speech translation');
+  }
+
+  // Continuous streaming: responses are generated automatically by the server.
+  createResponse(_config?: ResponseConfig): void { /* no-op by design */ }
+  cancelResponse(_trackId?: string, _offset?: number): void { /* no-op by design (no-interruption rule) */ }
+
+  getConversationItems(): ConversationItem[] {
+    return [...this.conversationItems];
+  }
+
+  clearConversationItems(): void {
+    this.conversationItems = [];
+  }
+
+  setEventHandlers(handlers: ClientEventHandlers): void {
+    this.eventHandlers = { ...handlers };
+  }
+
+  getProvider(): ProviderType {
+    return Provider.SONIOX;
+  }
+}
