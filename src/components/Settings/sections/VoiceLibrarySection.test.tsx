@@ -99,12 +99,18 @@ describe('VoiceLibrarySection', () => {
 // the microphone both on unmount and when the settings panel hides inside
 // its <Activity> boundary (effects unmount on hide).
 describe('VoiceLibrarySection recording teardown under Activity hide', () => {
-  it('stops the capture graph when the panel hides mid-recording', async () => {
-    const { Activity } = await import('react');
-    const { waitFor } = await import('@testing-library/react');
+  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
 
-    const stopTrack = vi.fn();
-    const gum = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }));
+  const restoreMediaDevices = () => {
+    if (originalMediaDevices) {
+      Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+    } else {
+      delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+    }
+    vi.unstubAllGlobals();
+  };
+
+  const installCaptureStubs = (gum: ReturnType<typeof vi.fn>) => {
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: gum },
@@ -112,37 +118,79 @@ describe('VoiceLibrarySection recording teardown under Activity hide', () => {
     const closeCtx = vi.fn(async () => {});
     const disconnectSource = vi.fn();
     const disconnectProcessor = vi.fn();
+    const ctxConstructed = vi.fn();
     class FakeAudioContext {
       sampleRate = 48000;
       destination = {};
+      constructor() { ctxConstructed(); }
       createMediaStreamSource() { return { connect: vi.fn(), disconnect: disconnectSource }; }
       createScriptProcessor() { return { connect: vi.fn(), disconnect: disconnectProcessor, onaudioprocess: null }; }
       close = closeCtx;
     }
     vi.stubGlobal('AudioContext', FakeAudioContext);
+    return { closeCtx, disconnectSource, disconnectProcessor, ctxConstructed };
+  };
+
+  const ui = (Activity: React.ComponentType<{ mode: string; children: React.ReactNode }>, mode: 'visible' | 'hidden') => (
+    <Activity mode={mode}>
+      <VoiceLibrarySection
+        {...base}
+        voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
+        capability={{ importModes: ['record', 'upload'], curation: true }}
+        onRecord={async () => {}}
+      />
+    </Activity>
+  );
+
+  it('stops the capture graph when the panel hides mid-recording', async () => {
+    const { Activity } = await import('react');
+    const { waitFor } = await import('@testing-library/react');
+
+    const stopTrack = vi.fn();
+    const gum = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }));
+    const stubs = installCaptureStubs(gum);
 
     try {
-      const ui = (mode: 'visible' | 'hidden') => (
-        <Activity mode={mode}>
-          <VoiceLibrarySection
-            {...base}
-            voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
-            capability={{ importModes: ['record', 'upload'], curation: true }}
-            onRecord={async () => {}}
-          />
-        </Activity>
-      );
-      const { rerender } = render(ui('visible'));
+      const { rerender } = render(ui(Activity as never, 'visible'));
+      fireEvent.click(screen.getByRole('button', { name: /record/i }));
+      await waitFor(() => expect(stubs.ctxConstructed).toHaveBeenCalled());
+
+      rerender(ui(Activity as never, 'hidden'));
+      expect(stopTrack).toHaveBeenCalled();
+      expect(stubs.closeCtx).toHaveBeenCalled();
+      expect(stubs.disconnectProcessor).toHaveBeenCalled();
+      expect(stubs.disconnectSource).toHaveBeenCalled();
+    } finally {
+      restoreMediaDevices();
+    }
+  });
+
+  it('stops a getUserMedia stream that resolves only after the panel hid', async () => {
+    const { Activity } = await import('react');
+    const { act, waitFor } = await import('@testing-library/react');
+
+    const stopTrack = vi.fn();
+    let resolveGum: (stream: unknown) => void = () => {};
+    const gum = vi.fn(() => new Promise((resolve) => { resolveGum = resolve; }));
+    const stubs = installCaptureStubs(gum);
+
+    try {
+      const { rerender } = render(ui(Activity as never, 'visible'));
       fireEvent.click(screen.getByRole('button', { name: /record/i }));
       await waitFor(() => expect(gum).toHaveBeenCalled());
 
-      rerender(ui('hidden'));
+      // Panel hides while the permission prompt is still pending…
+      rerender(ui(Activity as never, 'hidden'));
+      // …then the stream arrives late.
+      await act(async () => {
+        resolveGum({ getTracks: () => [{ stop: stopTrack }] });
+      });
+
       expect(stopTrack).toHaveBeenCalled();
-      expect(closeCtx).toHaveBeenCalled();
-      expect(disconnectProcessor).toHaveBeenCalled();
-      expect(disconnectSource).toHaveBeenCalled();
+      // The capture graph must never be built from a stale acquisition.
+      expect(stubs.ctxConstructed).not.toHaveBeenCalled();
     } finally {
-      vi.unstubAllGlobals();
+      restoreMediaDevices();
     }
   });
 });

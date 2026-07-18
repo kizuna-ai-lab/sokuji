@@ -275,8 +275,8 @@ const Onboarding: React.FC = () => {
         // placeholders; map them to v3's {current}/{total} at runtime so
         // translations don't need a sweep.
         nextWithProgress: t('onboarding.nextWithProgress', 'Next ({step}/{steps})')
-          .replace('{step}', '{current}')
-          .replace('{steps}', '{total}'),
+          .replace(/\{steps\}/g, '{total}')
+          .replace(/\{step\}/g, '{current}'),
         open: t('onboarding.open', 'Open the dialog'),
         skip: t('onboarding.skip', 'Skip tour'),
       }}

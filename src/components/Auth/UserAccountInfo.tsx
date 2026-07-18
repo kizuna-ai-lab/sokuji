@@ -120,7 +120,14 @@ export function UserAccountInfo({
         setCooldownSeconds(remainingNow());
         return;
       }
-      const timer = setTimeout(() => setCooldownSeconds(remainingNow()), 1000);
+      // min(prev - 1, wall clock): the guaranteed decrement means the state
+      // always changes (a timer firing a few ms early would otherwise produce
+      // an identical value and React's bailout would stop the tick chain),
+      // while the wall clock corrects any accumulated drift downward.
+      const timer = setTimeout(
+        () => setCooldownSeconds((prev) => Math.max(0, Math.min(prev - 1, remainingNow()))),
+        1000
+      );
 
       // Poll verification status every 10 seconds, and at 1 second remaining
       const shouldPoll = cooldownSeconds % 10 === 0 || cooldownSeconds === 1;

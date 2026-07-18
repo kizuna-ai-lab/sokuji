@@ -174,7 +174,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   // The capture graph lives only in recRef, so without this the mic would
   // keep recording invisibly after a panel switch. Partial audio is
   // deliberately discarded rather than submitted as a half-finished clip.
+  // The generation counter also invalidates a getUserMedia call still
+  // pending at cleanup time, so a late-resolving stream is stopped instead
+  // of resurrecting the capture graph.
+  const recGenerationRef = useRef(0);
   useEffect(() => () => {
+    recGenerationRef.current += 1;
     const rec = recRef.current;
     if (!rec) return;
     recRef.current = null;
@@ -188,7 +193,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
     try {
+      const generation = recGenerationRef.current;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (generation !== recGenerationRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
