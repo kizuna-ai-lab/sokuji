@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "రియల్-టైమ్ స్పీచ్-టు-స్పీచ్ అనువాదం",
+      "description": "60+ భాషలలో ఏ భాష నుండి ఏ భాషకైనా అనువాదం, ఏకదిశ లేదా ద్విదిశ",
       "apiKeyPlaceholder": "మీ Soniox API కీని నమోదు చేయండి"
     },
     "volcengine_ast2": {

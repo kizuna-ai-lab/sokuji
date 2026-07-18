@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "रीयल-टाइम स्पीच-टू-स्पीच अनुवाद",
+      "description": "60+ भाषाओं में किसी भी भाषा से किसी भी भाषा में अनुवाद, एकतरफ़ा या द्विदिश",
       "apiKeyPlaceholder": "अपनी Soniox API कुंजी दर्ज करें"
     },
     "volcengine_ast2": {

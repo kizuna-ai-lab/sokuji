@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Tłumaczenie mowy na mowę w czasie rzeczywistym",
+      "description": "Tłumaczenie między dowolnymi z ponad 60 języków, jedno- lub dwukierunkowe",
       "apiKeyPlaceholder": "Wprowadź swój klucz API Soniox"
     },
     "volcengine_ast2": {

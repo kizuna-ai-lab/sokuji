@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Синхронний переклад мовлення в мовлення",
+      "description": "Переклад між будь-якими з 60+ мов, односторонній або двосторонній",
       "apiKeyPlaceholder": "Введіть свій API-ключ Soniox"
     },
     "volcengine_ast2": {

@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Terjemahan ucapan-ke-ucapan real-time",
+      "description": "Terjemahan antar bahasa apa pun dari 60+ bahasa, satu arah atau dua arah",
       "apiKeyPlaceholder": "Masukkan Soniox API Key Anda"
     },
     "volcengine_ast2": {

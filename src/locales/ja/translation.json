@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "音声から音声へのリアルタイム翻訳",
+      "description": "60以上の言語を自由な組み合わせで翻訳、一方向・双方向に対応",
       "apiKeyPlaceholder": "Soniox APIキーを入力してください"
     },
     "volcengine_ast2": {

@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Terjemahan pertuturan-ke-pertuturan masa nyata",
+      "description": "Terjemahan antara mana-mana bahasa daripada 60+ bahasa, sehala atau dua hala",
       "apiKeyPlaceholder": "Masukkan Kunci API Soniox anda"
     },
     "volcengine_ast2": {

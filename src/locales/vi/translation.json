@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Dịch giọng nói sang giọng nói theo thời gian thực",
+      "description": "Dịch giữa hai ngôn ngữ bất kỳ trong hơn 60 ngôn ngữ, một chiều hoặc hai chiều",
       "apiKeyPlaceholder": "Nhập Soniox API Key của bạn"
     },
     "volcengine_ast2": {

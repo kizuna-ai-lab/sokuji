@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Traduction vocale en temps réel",
+      "description": "Traduction entre n'importe quelles langues parmi plus de 60, unidirectionnelle ou bidirectionnelle",
       "apiKeyPlaceholder": "Entrez votre clé API Soniox"
     },
     "volcengine_ast2": {

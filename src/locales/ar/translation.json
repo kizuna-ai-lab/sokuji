@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "الترجمة الفورية من كلام إلى كلام",
+      "description": "ترجمة بين أي لغتين من بين أكثر من 60 لغة، باتجاه واحد أو اتجاهين",
       "apiKeyPlaceholder": "أدخل مفتاح API الخاص بـ Soniox"
     },
     "volcengine_ast2": {

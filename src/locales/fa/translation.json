@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "ترجمه بی‌درنگ گفتار به گفتار",
+      "description": "ترجمه میان هر جفت از بیش از ۶۰ زبان، یک‌طرفه یا دوطرفه",
       "apiKeyPlaceholder": "کلید API Soniox خود را وارد کنید"
     },
     "volcengine_ast2": {

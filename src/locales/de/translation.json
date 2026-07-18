@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Sprache-zu-Sprache-Übersetzung in Echtzeit",
+      "description": "Übersetzung zwischen über 60 Sprachen in beliebiger Kombination, ein- oder bidirektional",
       "apiKeyPlaceholder": "Geben Sie Ihren Soniox-API-Schlüssel ein"
     },
     "volcengine_ast2": {

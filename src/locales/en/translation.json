@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Real-time speech-to-speech translation",
+      "description": "Any-to-any translation across 60+ languages, one-way or two-way",
       "apiKeyPlaceholder": "Enter your Soniox API Key"
     },
     "volcengine_ast2": {

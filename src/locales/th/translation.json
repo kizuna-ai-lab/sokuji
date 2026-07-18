@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "การแปลเสียงพูดเป็นเสียงพูดแบบเรียลไทม์",
+      "description": "แปลระหว่างภาษาใดก็ได้จากกว่า 60 ภาษา แบบทางเดียวหรือสองทาง",
       "apiKeyPlaceholder": "ป้อนคีย์ API Soniox ของคุณ"
     },
     "volcengine_ast2": {

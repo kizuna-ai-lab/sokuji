@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Real-time na pagsasalin ng pananalita sa pananalita",
+      "description": "Pagsasalin sa anumang pares mula sa 60+ na wika, one-way o two-way",
       "apiKeyPlaceholder": "Ilagay ang iyong Soniox API Key"
     },
     "volcengine_ast2": {

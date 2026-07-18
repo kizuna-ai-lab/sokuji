@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Reaaliaikainen puheesta puheeksi -käännös",
+      "description": "Käännös minkä tahansa yli 60 kielen välillä, yksi- tai kaksisuuntaisesti",
       "apiKeyPlaceholder": "Anna Soniox API -avaimesi"
     },
     "volcengine_ast2": {

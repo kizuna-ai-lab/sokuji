@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "תרגום דיבור לדיבור בזמן אמת",
+      "description": "תרגום בין כל זוג שפות מתוך יותר מ-60 שפות, חד-כיווני או דו-כיווני",
       "apiKeyPlaceholder": "הזן את מפתח ה-API של Soniox שלך"
     },
     "volcengine_ast2": {

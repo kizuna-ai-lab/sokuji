@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Realtime spraak-naar-spraak vertaling",
+      "description": "Vertaling tussen willekeurige talen uit 60+ talen, in één of twee richtingen",
       "apiKeyPlaceholder": "Voer uw Soniox API-sleutel in"
     },
     "volcengine_ast2": {
