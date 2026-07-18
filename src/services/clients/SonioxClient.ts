@@ -43,6 +43,7 @@ export class SonioxClient implements IClient {
   private isConnectedState = false;
   private instanceId: string;
   private currentConfig: SonioxSessionConfig | null = null;
+  private bidirectional = false;
 
   // Per-utterance display state
   private currentUserItemId: string | null = null;
@@ -123,7 +124,8 @@ export class SonioxClient implements IClient {
     const cfg = this.currentConfig;
     // two_way needs a concrete source; degrade to one_way on 'auto'
     // (the descriptor applies the same rule — this is the safety belt).
-    const effectiveTwoWay = cfg.twoWayTranslation && cfg.sourceLanguage !== 'auto';
+    const effectiveTwoWay = cfg.bidirectional && cfg.sourceLanguage !== 'auto';
+    this.bidirectional = effectiveTwoWay;
     const translation: SonioxTranslationConfig = effectiveTwoWay
       ? { type: 'two_way', language_a: cfg.sourceLanguage, language_b: cfg.targetLanguage }
       : { type: 'one_way', target_language: cfg.targetLanguage };

@@ -9,7 +9,8 @@ export interface SonioxSettings {
   apiKey: string;
   sourceLanguage: string;     // 'auto' | ISO code
   targetLanguage: string;
-  twoWayTranslation: boolean; // one_way ↔ two_way translation mode
+  /** Both mode: use one shared two_way session (true) vs two separate sessions (false). */
+  bothModeSharedSession: boolean;
   voice: string;              // TTS voice, one of VOICES
   model: string;
 }
@@ -18,7 +19,7 @@ export const defaultSonioxSettings: SonioxSettings = {
   apiKey: '',
   sourceLanguage: 'auto',
   targetLanguage: 'en',
-  twoWayTranslation: false,
+  bothModeSharedSession: true,
   voice: 'Maya',
   model: 'stt-rt-v5',
 };
@@ -49,8 +50,9 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,
-      // two_way requires a concrete source language ('auto' would be ambiguous)
-      twoWayTranslation: settings.twoWayTranslation && settings.sourceLanguage !== 'auto',
+      // Direction is derived from You/Others/Both at connect time; default one_way.
+      // MainPanel sets bidirectional:true only for the shared-Both single-session path.
+      bidirectional: false,
     } as SonioxSessionConfig;
   }
 

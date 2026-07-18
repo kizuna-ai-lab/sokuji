@@ -54,7 +54,7 @@ const BASE_CONFIG: SonioxSessionConfig = {
   voice: 'Maya',
   sourceLanguage: 'zh',
   targetLanguage: 'en',
-  twoWayTranslation: false,
+  bidirectional: false,
   textOnly: false,
 };
 
@@ -92,13 +92,13 @@ describe('SonioxClient connect', () => {
   });
 
   it('two_way uses source/target as language_a/language_b with both hints', async () => {
-    const { stt } = await connectedClient({ twoWayTranslation: true });
+    const { stt } = await connectedClient({ bidirectional: true });
     expect(stt.config!.translation).toEqual({ type: 'two_way', language_a: 'zh', language_b: 'en' });
     expect(stt.config!.languageHints).toEqual(['zh', 'en']);
   });
 
   it('two_way with auto source degrades to one_way', async () => {
-    const { stt } = await connectedClient({ twoWayTranslation: true, sourceLanguage: 'auto' });
+    const { stt } = await connectedClient({ bidirectional: true, sourceLanguage: 'auto' });
     expect(stt.config!.translation).toEqual({ type: 'one_way', target_language: 'en' });
   });
 

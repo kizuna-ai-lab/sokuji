@@ -171,7 +171,7 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
 
 /**
  * Soniox speech-to-speech translation session configuration.
- * `voice` comes from BaseSessionConfig. When `twoWayTranslation` is true the
+ * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
  * client sends a two_way translation block (source ↔ target); sourceLanguage
  * must then be a concrete language ('auto' is only valid for one_way, where
  * it means "no language_hints").
@@ -180,7 +180,8 @@ export interface SonioxSessionConfig extends BaseSessionConfig {
   provider: 'soniox';
   sourceLanguage: string; // 'auto' | ISO code
   targetLanguage: string; // ISO code
-  twoWayTranslation: boolean;
+  /** True only for Both mode with a shared single session (set by MainPanel). Drives two_way vs one_way. */
+  bidirectional: boolean;
 }
 
 /**
