@@ -11,6 +11,7 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
+import { PcmMixer } from './PcmMixer';
 import i18n from '../../locales';
 
 /**
@@ -44,6 +45,9 @@ export class SonioxClient implements IClient {
   private instanceId: string;
   private currentConfig: SonioxSessionConfig | null = null;
   private bidirectional = false;
+  // Both single-session: mixes appendInputAudio (channel A) with the
+  // secondary port's appendParticipantAudio (channel B) into one STT stream.
+  private mixer: PcmMixer | null = null;
 
   // Per-utterance display state
   private currentUserItemId: string | null = null;
@@ -151,6 +155,16 @@ export class SonioxClient implements IClient {
       translation,
     });
     this.isConnectedState = true;
+
+    if (this.bidirectional) {
+      this.mixer = new PcmMixer({
+        frameSamples: Math.round(SAMPLE_RATE * 0.1),
+        intervalMs: 100,
+        maxBacklogSamples: SAMPLE_RATE * 2,
+        onFrame: (mixed) => { if (this.stt?.isOpen()) this.stt.sendAudio(mixed); },
+      });
+      this.mixer.start();
+    }
 
     if (!cfg.textOnly) {
       try {
@@ -392,6 +406,7 @@ export class SonioxClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     if (this.stt) {
       this.stt.end();   // empty text frame: server flushes and closes
       this.stt.close();
@@ -415,6 +430,7 @@ export class SonioxClient implements IClient {
   }
 
   reset(): void {
+    if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     this.conversationItems = [];
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
@@ -426,8 +442,38 @@ export class SonioxClient implements IClient {
   }
 
   appendInputAudio(audioData: Int16Array): void {
+    if (this.mixer) { this.mixer.pushA(audioData); return; }
     if (!this.stt?.isOpen()) return;
     this.stt.sendAudio(audioData);
+  }
+
+  /** Channel B feed for the Both single-session mixer (fed by the secondary port). */
+  appendParticipantAudio(audioData: Int16Array): void {
+    if (this.mixer) this.mixer.pushB(audioData);
+  }
+
+  /**
+   * Second IClient reference for MainPanel's participant slot in Both single-session.
+   * Its audio is channel B of this core's mixer; every other method is inert so the
+   * core is driven solely by the primary (speaker) reference.
+   */
+  createSecondaryPort(): IClient {
+    const core = this;
+    return {
+      connect: async () => {},
+      disconnect: async () => {},
+      isConnected: () => core.isConnected(),
+      updateSession: () => {},
+      reset: () => {},
+      appendInputAudio: (d: Int16Array) => core.appendParticipantAudio(d),
+      appendInputText: () => {},
+      createResponse: () => {},
+      cancelResponse: () => {},
+      getConversationItems: () => [],
+      clearConversationItems: () => {},
+      setEventHandlers: () => {},
+      getProvider: () => core.getProvider(),
+    };
   }
 
   appendInputText(_text: string): void {

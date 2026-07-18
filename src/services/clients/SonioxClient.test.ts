@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxClient } from './SonioxClient';
 import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
@@ -345,5 +345,60 @@ describe('SonioxClient lifecycle and IClient contract', () => {
   it('rejects a non-soniox session config', async () => {
     const client = new SonioxClient('key');
     await expect(client.connect({ provider: 'gemini' } as any)).rejects.toThrow(/soniox/i);
+  });
+});
+
+describe('SonioxClient bidirectional core (Both single-session)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function bidiClient() {
+    const client = new SonioxClient('key');
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
+    return { client, stt: sttInstances.at(-1)! };
+  }
+
+  it('mixes appendInputAudio (A) and the secondary port (B) into one STT stream', async () => {
+    const { client, stt } = await bidiClient();
+    const port = (client as any).createSecondaryPort();
+    client.appendInputAudio(new Int16Array([100, 100]));
+    port.appendInputAudio(new Int16Array([10, 10]));
+    vi.advanceTimersByTime(100);
+    // one mixed frame reached the STT stream (0.5*100 + 0.5*10 = 55)
+    const frame = stt.sentAudio.at(-1)!;
+    expect(frame[0]).toBe(55);
+  });
+
+  it('non-bidirectional appendInputAudio still goes straight to the STT stream (no mixer)', async () => {
+    const client = new SonioxClient('key');
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, bidirectional: false, textOnly: true });
+    const stt = sttInstances.at(-1)!;
+    const pcm = new Int16Array([7, 7]);
+    client.appendInputAudio(pcm);
+    expect(stt.sentAudio).toContain(pcm); // direct, unmixed
+  });
+
+  it('secondary port is inert for lifecycle/handlers and delegates identity', async () => {
+    const { client } = await bidiClient();
+    const port = (client as any).createSecondaryPort();
+    const handler = vi.fn();
+    port.setEventHandlers({ onConversationUpdated: handler });
+    await port.connect({} as any);   // no-op
+    await port.disconnect();          // no-op — must NOT tear down the core
+    expect(client.isConnected()).toBe(true);
+    expect(port.isConnected()).toBe(true);
+    expect(port.getProvider()).toBe(Provider.SONIOX);
+    expect(port.getConversationItems()).toEqual([]);
+  });
+
+  it('disconnect stops the mixer (no frames after teardown)', async () => {
+    const { client, stt } = await bidiClient();
+    client.appendInputAudio(new Int16Array([100, 100]));
+    await client.disconnect();
+    const before = stt.sentAudio.length;
+    vi.advanceTimersByTime(500);
+    expect(stt.sentAudio.length).toBe(before);
   });
 });
