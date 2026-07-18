@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "תרגום דיבור לדיבור בזמן אמת",
+      "apiKeyPlaceholder": "הזן את מפתח ה-API של Soniox שלך"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "תרגום סימולטני Doubao",

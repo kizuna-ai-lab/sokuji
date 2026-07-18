@@ -12,6 +12,7 @@ import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
+import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isKizunaAIEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
 
@@ -58,6 +59,9 @@ export class ProviderConfigFactory {
 
     // Zoom AI Services — always available (stable)
     ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
+
+    // Soniox speech-to-speech translation — always available (BYOK)
+    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
   }
 
   /**

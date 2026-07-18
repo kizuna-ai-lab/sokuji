@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Terjemahan ucapan-ke-ucapan real-time",
+      "apiKeyPlaceholder": "Masukkan Soniox API Key Anda"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "Terjemahan simultan Doubao",

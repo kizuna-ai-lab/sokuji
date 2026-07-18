@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Синхронний переклад мовлення в мовлення",
+      "apiKeyPlaceholder": "Введіть свій API-ключ Soniox"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "Синхронний переклад Doubao",

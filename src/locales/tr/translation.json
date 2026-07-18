@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Gerçek zamanlı konuşmadan konuşmaya çeviri",
+      "apiKeyPlaceholder": "Soniox API Anahtarınızı girin"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "Doubao eşzamanlı çeviri",

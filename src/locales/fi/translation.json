@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Reaaliaikainen puheesta puheeksi -käännös",
+      "apiKeyPlaceholder": "Anna Soniox API -avaimesi"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "Doubao simultaanitulkkaus",

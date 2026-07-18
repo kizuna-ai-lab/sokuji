@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "రియల్-టైమ్ స్పీచ్-టు-స్పీచ్ అనువాదం",
+      "apiKeyPlaceholder": "మీ Soniox API కీని నమోదు చేయండి"
+    },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
       "description": "Doubao సైమల్టేనియస్ ట్రాన్స్‌లేషన్",

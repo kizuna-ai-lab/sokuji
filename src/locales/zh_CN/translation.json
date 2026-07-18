@@ -367,6 +367,11 @@
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
+    "soniox": {
+      "name": "Soniox",
+      "description": "实时语音到语音翻译",
+      "apiKeyPlaceholder": "输入您的 Soniox API 密钥"
+    },
     "volcengine_ast2": {
       "name": "豆包同声传译 2.0",
       "description": "豆包语音同声传译",

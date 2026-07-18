@@ -27,6 +27,7 @@ import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
+import { defaultSonioxSettings } from './SonioxProviderConfig';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
@@ -44,12 +45,13 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   localNative: defaultLocalNativeSettings,
   kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
   kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
+  soniox: defaultSonioxSettings,
 };
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(12);
+    expect(ids.length).toBe(13);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -163,6 +165,7 @@ describe('descriptor.buildSessionConfig', () => {
       volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
       local_native: 'local_native',
       kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
+      soniox: 'soniox',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
