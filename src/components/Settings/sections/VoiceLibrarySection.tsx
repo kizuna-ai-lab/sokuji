@@ -1,4 +1,4 @@
-import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, Plus, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
@@ -168,6 +168,22 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     try { await onDelete(id); }
     catch (err) { console.warn('Delete failed:', err); }
   }, [onDelete, t]);
+
+  // Release the microphone when the component's effects unmount — a real
+  // unmount, or the settings panel hiding inside its <Activity> boundary.
+  // The capture graph lives only in recRef, so without this the mic would
+  // keep recording invisibly after a panel switch. Partial audio is
+  // deliberately discarded rather than submitted as a half-finished clip.
+  useEffect(() => () => {
+    const rec = recRef.current;
+    if (!rec) return;
+    recRef.current = null;
+    rec.processor.disconnect();
+    rec.source.disconnect();
+    rec.stream.getTracks().forEach((track) => track.stop());
+    void rec.ctx.close();
+    setIsRecording(false);
+  }, []);
 
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;

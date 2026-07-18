@@ -81,13 +81,16 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     // pending scroll on cleanup so flipping modes mid-navigation doesn't
     // fire into an unmounted/stale DOM.
     let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+    let highlightedEl: HTMLElement | null = null;
     const scrollTimer = setTimeout(() => {
       const element = document.getElementById(`${settingsNavigationTarget}-section`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         element.classList.add('highlight');
+        highlightedEl = element;
         highlightTimer = setTimeout(() => {
           element.classList.remove('highlight');
+          highlightedEl = null;
           navigateToSettings(null);
         }, 3000);
       }
@@ -95,6 +98,9 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     return () => {
       clearTimeout(scrollTimer);
       if (highlightTimer) clearTimeout(highlightTimer);
+      // The DOM persists across panel hides (<Activity>), so a highlight
+      // interrupted mid-animation must be removed here, not just its timer.
+      highlightedEl?.classList.remove('highlight');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsNavigationTarget, navigateToSettings, isSimpleMode]);

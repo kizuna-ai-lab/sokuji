@@ -52,6 +52,24 @@ describe('PanelBar', () => {
     }
   });
 
+  it('does NOT defer to a dialog hidden inside another panel (display:none ancestor)', () => {
+    const onClose = vi.fn();
+    // Simulate a persisted-open dialog inside a hidden <Activity> subtree.
+    const hiddenHost = document.createElement('div');
+    hiddenHost.style.display = 'none';
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    hiddenHost.appendChild(dialog);
+    document.body.appendChild(hiddenHost);
+    try {
+      render(<PanelBar onClose={onClose} />);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      document.body.removeChild(hiddenHost);
+    }
+  });
+
   it('does not call onClose after unmount', () => {
     const onClose = vi.fn();
     const { unmount } = render(<PanelBar onClose={onClose} />);

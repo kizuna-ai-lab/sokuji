@@ -94,3 +94,55 @@ describe('VoiceLibrarySection', () => {
     expect(btn).not.toBeDisabled();
   });
 });
+
+// Recording resources live only in a ref; the teardown effect must release
+// the microphone both on unmount and when the settings panel hides inside
+// its <Activity> boundary (effects unmount on hide).
+describe('VoiceLibrarySection recording teardown under Activity hide', () => {
+  it('stops the capture graph when the panel hides mid-recording', async () => {
+    const { Activity } = await import('react');
+    const { waitFor } = await import('@testing-library/react');
+
+    const stopTrack = vi.fn();
+    const gum = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }));
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: gum },
+    });
+    const closeCtx = vi.fn(async () => {});
+    const disconnectSource = vi.fn();
+    const disconnectProcessor = vi.fn();
+    class FakeAudioContext {
+      sampleRate = 48000;
+      destination = {};
+      createMediaStreamSource() { return { connect: vi.fn(), disconnect: disconnectSource }; }
+      createScriptProcessor() { return { connect: vi.fn(), disconnect: disconnectProcessor, onaudioprocess: null }; }
+      close = closeCtx;
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+
+    try {
+      const ui = (mode: 'visible' | 'hidden') => (
+        <Activity mode={mode}>
+          <VoiceLibrarySection
+            {...base}
+            voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
+            capability={{ importModes: ['record', 'upload'], curation: true }}
+            onRecord={async () => {}}
+          />
+        </Activity>
+      );
+      const { rerender } = render(ui('visible'));
+      fireEvent.click(screen.getByRole('button', { name: /record/i }));
+      await waitFor(() => expect(gum).toHaveBeenCalled());
+
+      rerender(ui('hidden'));
+      expect(stopTrack).toHaveBeenCalled();
+      expect(closeCtx).toHaveBeenCalled();
+      expect(disconnectProcessor).toHaveBeenCalled();
+      expect(disconnectSource).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

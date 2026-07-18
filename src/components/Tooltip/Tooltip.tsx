@@ -1,4 +1,4 @@
-import React, { useState, cloneElement, isValidElement } from 'react';
+import React, { useState, useEffect, cloneElement, isValidElement } from 'react';
 import { HelpCircle, Info } from 'lucide-react';
 import {
   useFloating,
@@ -41,6 +41,11 @@ const Tooltip: React.FC<TooltipProps> = ({
   openDelay = 100
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Effects unmount when an ancestor <Activity> hides (panel switch) as well
+  // as on real unmount; reset so a tooltip open at hide time doesn't
+  // reappear frozen on the next reveal.
+  useEffect(() => () => setIsOpen(false), []);
   const arrowRef = React.useRef(null);
 
   const { refs, floatingStyles, context, placement } = useFloating({
