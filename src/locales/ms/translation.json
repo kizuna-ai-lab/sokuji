@@ -210,8 +210,8 @@
     "localNativeTranslationIncompatible": "Pilih model terjemahan untuk pasangan bahasa ini",
     "localNativeUnavailable": "Enjin native tidak tersedia — cuba lagi dalam tetapan",
     "simpleMode": "Cepat",
-    "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
+    "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
+    "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan penutur automatik — kos dan latensi lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih dipercayai apabila kedua-duanya bercakap serentak, tetapi kira-kira dua kali ganda kos.\n\nHanya menjejaskan mod Kedua-duanya."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",

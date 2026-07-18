@@ -210,8 +210,8 @@
     "localNativeTranslationIncompatible": "Виберіть модель перекладу для цієї мовної пари",
     "localNativeUnavailable": "Нативний рушій недоступний — повторіть спробу в налаштуваннях",
     "simpleMode": "Швидкий",
-    "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
+    "sonioxSharedSession": "Спільний сеанс у режимі «Обидва»",
+    "sonioxSharedSessionTooltip": "У режимі «Обидва» можна використовувати один спільний сеанс Soniox або окремий сеанс для кожного напрямку.\n\nУвімкнено: один сеанс перекладає обидві сторони з автоматичним розділенням мовців — нижчі витрати та затримка.\n\nВимкнено: окремий сеанс для кожного напрямку — надійніше, коли обидва говорять одночасно, але приблизно вдвічі дорожче.\n\nВпливає лише на режим «Обидва»."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",

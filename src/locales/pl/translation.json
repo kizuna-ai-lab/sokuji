@@ -210,8 +210,8 @@
     "localNativeTranslationIncompatible": "Wybierz model tłumaczenia dla tej pary językowej",
     "localNativeUnavailable": "Silnik natywny niedostępny — ponów próbę w ustawieniach",
     "simpleMode": "Szybki",
-    "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
+    "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
+    "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem mówców — niższy koszt i opóźnienie.\n\nWyłączony: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt około dwukrotnie wyższy.\n\nDotyczy tylko trybu Oba."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
