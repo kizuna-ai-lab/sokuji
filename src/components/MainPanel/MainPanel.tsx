@@ -1747,6 +1747,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // session. Otherwise create an independent participant client.
             const speakerCore = speakerClientRef.current;
             if (
+              speakerWillStart &&
               provider === Provider.SONIOX &&
               effectiveMode === 'both' &&
               (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
