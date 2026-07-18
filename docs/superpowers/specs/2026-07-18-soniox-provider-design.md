@@ -169,3 +169,65 @@ No changes to `ClientFactory.ts`, `ProviderDescriptor.ts`, or `MainPanel.tsx` (a
 - Backend-minted temporary keys (needed only for a future Kizuna-managed Soniox variant).
 - Generic cross-provider STT/TTS composition layer (future project; this design only leaves the seams).
 - Speaker diarization display, `<end>`-based karaoke alignment, auto-reconnect beyond the template behavior.
+
+---
+
+# Addendum 2026-07-19 — Mode-driven direction + Both single-session
+
+Supersedes the standalone `twoWayTranslation` user toggle. Validated by live experiments (diarization on a single mixed stream; gain-strategy invariance; level invariance) — see `project_soniox_provider_research` memory.
+
+## Insight
+
+You / Others / Both **are** the translation direction. Every provider already derives direction from the mode picker via the speaker/participant client split ("swapped languages" for the participant). Soniox aligns with that instead of carrying its own direction toggle — and, because Soniox natively supports `two_way` + speaker diarization, **Both can collapse from two clients to one** (mic + system mixed into a single `two_way` session), halving STT cost.
+
+| Mode | Soniox config | Audio | Clients |
+|---|---|---|---|
+| You | `one_way → targetLanguage` | mic | 1 (speaker path — generic) |
+| Others | `one_way → sourceLanguage` (swapped) | system | 1 (participant path — generic) |
+| Both, shared **ON** (default) | `two_way {language_a: source, language_b: target}` | mic + system **mixed** | **1 (new)** |
+| Both, shared **OFF** (fallback) | two `one_way`, opposite directions | mic / system separate | 2 (existing generic path) |
+
+## Decisions (user-confirmed 2026-07-19)
+
+- **Remove** `SonioxSettings.twoWayTranslation` + its UI toggle + the four `settings.sonioxTwoWay*` / `settings.translationMode` locale keys. Direction is derived from mode at connect time. (Not shipped yet — no migration.)
+- **Add** `SonioxSettings.bothModeSharedSession: boolean` (default **true**). UI: an option-button pill in Soniox settings, **greyed out unless the current mode is Both**, with a tooltip explaining when it applies. Label **"Shared session in Both mode"**.
+- Tooltip copy (v1, state-based) — EN authoritative, replicate to 30 locales:
+  - On (recommended): one Soniox session translates both sides with automatic speaker separation — lower cost and latency.
+  - Off: a separate session per direction — more reliable when both people talk at once, but about twice the cost.
+  - Disabled-state hint: "Only affects Both mode."
+- **Mixer gain = fixed 0.5 per channel, summed** (`0.5*mic + 0.5*system`). Experiment proved Soniox recognition is level-invariant (WER 0.000 from full down to −18 dB) and identical across fixed-0.5 / limiter / hardclip; fixed 0.5 is simplest and can never clip. No dynamic gain, no mute compensation.
+- **No mixing strategy recovers true simultaneous speech** (overlap loses the weaker side equally under every strategy) — this, not audio quality, is the sole justification for the OFF fallback.
+
+## Architecture delta
+
+### SonioxSessionConfig
+Replace `twoWayTranslation: boolean` with `bidirectional: boolean` (derived at connect: true only for Both-shared). Keep source/target/voice.
+
+### PcmMixer.ts (new, `src/services/clients/PcmMixer.ts`)
+Pure logic, unit-testable. Two Int16 FIFOs; a 100 ms tick sums `0.5*A + 0.5*B` (zero-filling a starved side to preserve timing); output Int16 frame via callback. Backlog cap (~500 ms) drops oldest with a log. No Web Audio (cross-AudioContext drift is immaterial to STT — verified).
+
+### SonioxClient — dual-port over one core (user design 2026-07-19)
+Goal: **MainPanel keeps its two-client shape** (two refs, two audio feeds, two handler sets, symmetric teardown) — the two refs just point at one shared core, and the core knows which port fed it. Complexity moves out of MainPanel (shared, untestable) into SonioxClient (isolated, unit-testable).
+
+- `SonioxClient` runs `bidirectional` when its session config carries `bidirectional:true` (set only for Both-shared). In that mode it owns an internal `PcmMixer`; `appendInputAudio` feeds mixer channel A; mixed frames go to the STT stream (two_way).
+- `createSecondaryPort(): IClient` returns a lightweight adapter bound to the same core: its `appendInputAudio` feeds mixer **channel B**; `connect`/`disconnect`/`setEventHandlers`/lifecycle methods are **inert no-ops** (the core is driven by the primary/speaker port); read methods delegate. This is the "second client reference" MainPanel holds for the participant.
+- **Item source tagging** (bidirectional only): the core sets `item.source` from token direction, so all items flow through the primary port's handlers yet display on the correct side —
+  - original token: `language === sourceLanguage ? 'speaker' : 'participant'`
+  - translation token: `source_language === sourceLanguage ? 'speaker' : 'participant'`
+  - `combinedItems` already honors `item.source ?? fallbackSource`; the participant items list stays empty (harmless) and You/Others/Both display, bubble sides, and merge keep working unchanged.
+
+### MainPanel.tsx — minimal, localized (two small branches, NOT a Both rewrite)
+The user's port design keeps `connectConversation`, ModePicker, mute gates, waveforms, footer, and teardown **unchanged**. Only two localized branches:
+1. Speaker session config for `SONIOX && Both && bothModeSharedSession` sets `bidirectional:true`.
+2. Participant client creation for the same case returns `(<speaker core>).createSecondaryPort()` instead of `createAIClient()`.
+Everything else (feed mic→speakerRef.appendInputAudio, system→participantRef.appendInputAudio, event handlers on each ref, symmetric teardown) is byte-identical to today. Teardown: disconnecting the speaker tears down the core; disconnecting the secondary port is a no-op.
+
+### TTS output routing — single track in v1 (user decision 2026-07-19, direction confirmed)
+v1 uses the **single existing `ai-assistant` sink** (→ virtual mic, exactly as today's speaker client). Only the **me→other** direction is spoken: TTS is fed only for translation tokens whose `source_language === sourceLanguage` (my speech → target language out); the TTS stream language is `targetLanguage`. The reverse direction (other→me, translated into my language) is **text-only** in v1. This matches the existing 2-client Both behavior (speaker spoken, participant text-only). Dual-sink routing (also voicing the other→me direction to my speakers) is a **deferred follow-up, not built**.
+
+### Settings UI
+- Remove the two-way toggle branch; add the `bothModeSharedSession` pill (greyed unless Both) in `ProviderSpecificSettings`. The greying reads the current mode.
+
+## Superseded
+
+The 2026-07-18 base plan's `twoWayTranslation` toggle (Task 6) and the direction-tooltip proposals (①②③ in the v1-proposals artifact) are obsolete. The only surviving tooltip is this addendum's fallback-toggle tooltip.
