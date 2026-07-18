@@ -1,4 +1,4 @@
-import React, { useState, cloneElement, isValidElement } from 'react';
+import React, { useState, useEffect, cloneElement, isValidElement } from 'react';
 import { HelpCircle, Info } from 'lucide-react';
 import {
   useFloating,
@@ -11,6 +11,7 @@ import {
   useDismiss,
   useRole,
   useInteractions,
+  useMergeRefs,
   FloatingPortal,
   arrow,
   useClick,
@@ -40,6 +41,11 @@ const Tooltip: React.FC<TooltipProps> = ({
   openDelay = 100
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Effects unmount when an ancestor <Activity> hides (panel switch) as well
+  // as on real unmount; reset so a tooltip open at hide time doesn't
+  // reappear frozen on the next reveal.
+  useEffect(() => () => setIsOpen(false), []);
   const arrowRef = React.useRef(null);
 
   const { refs, floatingStyles, context, placement } = useFloating({
@@ -95,6 +101,14 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   const triggerElement = children || renderIcon();
 
+  // React 19 passes ref as a regular prop, so a caller-supplied ref on the
+  // trigger child arrives via props and must be merged with (not clobbered
+  // by, nor clobbering) the floating-ui anchor ref.
+  const childRef = isValidElement(triggerElement)
+    ? (triggerElement.props as { ref?: React.Ref<Element> }).ref
+    : undefined;
+  const triggerRef = useMergeRefs([refs.setReference, childRef]);
+
   // Function to render content with line break support
   const renderContent = () => {
     if (typeof content === 'string' && content.includes('\n')) {
@@ -122,8 +136,8 @@ const Tooltip: React.FC<TooltipProps> = ({
         cloneElement(
           triggerElement,
           getReferenceProps({
-            ref: refs.setReference,
             ...(triggerElement.props as any),
+            ref: triggerRef,
             className: `${(triggerElement.props as any)?.className || ''} tooltip-trigger`.trim(),
           })
         )

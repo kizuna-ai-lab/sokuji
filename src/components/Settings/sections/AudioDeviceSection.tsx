@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { Mic, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -93,6 +93,11 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 
   // Warning modal state
   const [warningType, setWarningType] = useState<WarningType | null>(null);
+
+  // Close the warning modal when the panel hides (<Activity> runs effect
+  // cleanups on hide); a hidden-but-open dialog would otherwise reappear on
+  // the next reveal and swallow the visible panel's Escape key.
+  useEffect(() => () => setWarningType(null), []);
 
   const handleInputDeviceSelect = (device: AudioDevice) => {
     if (isMicMuted) {

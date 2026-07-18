@@ -361,6 +361,11 @@ export function ModelManagementSection({
   const [showAllTts, setShowAllTts] = useState(false);
   const [importFor, setImportFor] = useState<ModelManifestEntry | null>(null);
 
+  // Close the import dialog when the panel hides (<Activity> cleanup); a
+  // hidden-but-open dialog would reappear on reveal and swallow the visible
+  // panel's Escape key. Staged files are intentionally discarded with it.
+  useEffect(() => () => setImportFor(null), []);
+
   useEffect(() => {
     initialize();
   }, [initialize]);

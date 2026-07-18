@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride';
+import { Joyride, STATUS, EVENTS, ACTIONS, type EventData } from 'react-joyride';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
 import useSettingsStore from '../../stores/settingsStore';
@@ -28,6 +28,16 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   '#participant-section': 'participant',
 };
 
+// The settings panel stays mounted inside a hidden <Activity> when closed,
+// so DOM presence no longer implies the panel is open — check visibility
+// (offsetParent is null anywhere under a display:none ancestor).
+const isSettingsPanelVisible = (): boolean => {
+  const panel = document.querySelector<HTMLElement>(
+    '.settings-panel, .simple-settings, .advanced-settings'
+  );
+  return !!panel && panel.offsetParent !== null;
+};
+
 const Onboarding: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -36,7 +46,6 @@ const Onboarding: React.FC = () => {
     steps,
     nextStep,
     prevStep,
-    skipOnboarding,
     markOnboardingComplete,
   } = useOnboarding();
 
@@ -53,8 +62,7 @@ const Onboarding: React.FC = () => {
 
     if (navTarget === 'close-settings') {
       // Close settings panel if it's open
-      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
-      if (settingsPanel) {
+      if (isSettingsPanelVisible()) {
         const settingsButton = document.querySelector('.settings-button') as HTMLElement;
         if (settingsButton) settingsButton.click();
         return 300;
@@ -64,8 +72,7 @@ const Onboarding: React.FC = () => {
 
     if (navTarget) {
       // Ensure settings panel is open
-      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
-      if (!settingsPanel) {
+      if (!isSettingsPanelVisible()) {
         const settingsButton = document.querySelector('.settings-button') as HTMLElement;
         if (settingsButton) settingsButton.click();
       }
@@ -136,7 +143,7 @@ const Onboarding: React.FC = () => {
     }
   }, [prepareForStep, prevStep]);
 
-  const handleJoyrideCallback = useCallback((data: CallBackProps) => {
+  const handleJoyrideEvent = useCallback((data: EventData) => {
     const { status, type, action, index } = data;
 
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
@@ -173,28 +180,26 @@ const Onboarding: React.FC = () => {
 
   return (
     <Joyride
-      callback={handleJoyrideCallback}
+      onEvent={handleJoyrideEvent}
       continuous={true}
-      hideCloseButton={false}
       run={isOnboardingActive}
       scrollToFirstStep={true}
-      showProgress={true}
-      showSkipButton={true}
       stepIndex={currentStepIndex}
       steps={steps}
-      disableOverlayClose={true}
-      disableCloseOnEsc={false}
-      disableScrolling={false}
+      options={{
+        // v2's showSkipButton; 'close' is in v3's default set too.
+        buttons: ['back', 'close', 'primary', 'skip'],
+        // v2's disableOverlayClose.
+        overlayClickAction: false,
+        showProgress: true,
+        primaryColor: '#007bff',
+        backgroundColor: '#ffffff',
+        textColor: '#333333',
+        overlayColor: 'rgba(0, 0, 0, 0.4)',
+        beaconSize: 36,
+        zIndex: 10000,
+      }}
       styles={{
-        options: {
-          primaryColor: '#007bff',
-          backgroundColor: '#ffffff',
-          textColor: '#333333',
-          overlayColor: 'rgba(0, 0, 0, 0.4)',
-          spotlightShadow: '0 0 15px rgba(0, 0, 0, 0.5)',
-          beaconSize: 36,
-          zIndex: 10000,
-        },
         tooltip: {
           borderRadius: 8,
           fontSize: 14,
@@ -214,7 +219,7 @@ const Onboarding: React.FC = () => {
           lineHeight: 1.5,
           marginBottom: 15,
         },
-        buttonNext: {
+        buttonPrimary: {
           backgroundColor: '#007bff',
           borderRadius: 4,
           color: '#ffffff',
@@ -254,9 +259,6 @@ const Onboarding: React.FC = () => {
           right: 8,
           top: 8,
         },
-        spotlight: {
-          borderRadius: 4,
-        },
         beacon: {
           backgroundColor: '#007bff',
           border: '2px solid #ffffff',
@@ -269,12 +271,14 @@ const Onboarding: React.FC = () => {
         close: t('onboarding.close', 'Close'),
         last: t('onboarding.finish', 'Finish'),
         next: t('onboarding.next', 'Next'),
-        nextLabelWithProgress: t('onboarding.nextWithProgress', 'Next ({step}/{steps})'),
+        // The 30 locale files predate v3 and use its old {step}/{steps}
+        // placeholders; map them to v3's {current}/{total} at runtime so
+        // translations don't need a sweep.
+        nextWithProgress: t('onboarding.nextWithProgress', 'Next ({step}/{steps})')
+          .replace(/\{steps\}/g, '{total}')
+          .replace(/\{step\}/g, '{current}'),
         open: t('onboarding.open', 'Open the dialog'),
         skip: t('onboarding.skip', 'Skip tour'),
-      }}
-      floaterProps={{
-        disableAnimation: true,
       }}
     />
   );

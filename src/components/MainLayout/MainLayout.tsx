@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, Activity } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
@@ -209,25 +209,35 @@ const MainLayout: React.FC = () => {
         </div>
       </div>
       {(showLogs || showSettings) && (
-        <>
-          <PanelResizer
-            width={panelWidth}
-            min={PANEL_MIN_WIDTH}
-            max={maxPanelWidth(window.innerWidth)}
-            onResize={handlePanelResize}
-            onCommit={handlePanelResizeCommit}
-          />
-          <div className="settings-panel-container" style={{ width: panelWidth }}>
-            {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
-            {showSettings && (
-              <SettingsComponent
-                toggleSettings={toggleSettings}
-                highlightSection={settingsNavigationTarget}
-              />
-            )}
-          </div>
-        </>
+        <PanelResizer
+          width={panelWidth}
+          min={PANEL_MIN_WIDTH}
+          max={maxPanelWidth(window.innerWidth)}
+          onResize={handlePanelResize}
+          onCommit={handlePanelResizeCommit}
+        />
       )}
+      {/* The panel container stays mounted; each panel lives inside an
+          <Activity> boundary so hidden panels keep their state (active tab,
+          scroll positions, collapsed sections) while their effects are
+          unmounted and their rendering is deprioritized. */}
+      <div
+        className="settings-panel-container"
+        style={{
+          width: panelWidth,
+          ...((showLogs || showSettings) ? null : { display: 'none' }),
+        }}
+      >
+        <Activity mode={showLogs ? 'visible' : 'hidden'}>
+          <LogsPanel toggleLogs={toggleLogs} />
+        </Activity>
+        <Activity mode={showSettings ? 'visible' : 'hidden'}>
+          <SettingsComponent
+            toggleSettings={toggleSettings}
+            highlightSection={settingsNavigationTarget}
+          />
+        </Activity>
+      </div>
       <Onboarding />
     </div>
     {electronSubtitleTakeover && <SubtitleApp />}

@@ -2,7 +2,7 @@
  * Unified user account information component that combines user profile and quota status
  */
 
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useAuth, useUser} from '../../lib/auth/hooks';
 import {useUserProfile} from '../../contexts/UserProfileContext';
 import {authClient} from '../../lib/auth-client';
@@ -78,6 +78,16 @@ export function UserAccountInfo({
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  // Wall-clock anchor for the cooldown. The countdown ticks are paused while
+  // the settings panel is hidden (<Activity> unmounts effects), so deriving
+  // the remaining time from this anchor keeps hidden periods from
+  // stretching the cooldown.
+  const cooldownUntilRef = useRef<number | null>(null);
+
+  const startCooldown = useCallback((seconds: number) => {
+    cooldownUntilRef.current = Date.now() + seconds * 1000;
+    setCooldownSeconds(seconds);
+  }, []);
 
   // Check if user just signed up (within 60 seconds) and auto-start cooldown
   useEffect(() => {
@@ -89,17 +99,35 @@ export function UserAccountInfo({
       // If user was created within last 60 seconds, start cooldown with remaining time
       if (secondsSinceCreation < 60) {
         const remainingCooldown = 60 - secondsSinceCreation;
-        setCooldownSeconds(remainingCooldown);
+        startCooldown(remainingCooldown);
         // Show "check your email" message for new signups
         setVerificationMessage(t('auth.checkYourEmail'));
       }
     }
-  }, [betterAuthUser?.createdAt, betterAuthUser?.emailVerified, t]);
+  }, [betterAuthUser?.createdAt, betterAuthUser?.emailVerified, t, startCooldown]);
 
   // Cooldown timer effect with periodic verification status check
   useEffect(() => {
     if (cooldownSeconds > 0) {
-      const timer = setTimeout(() => setCooldownSeconds(cooldownSeconds - 1), 1000);
+      // Remaining time comes from the wall-clock anchor, not a decrement, so
+      // a panel hidden mid-countdown snaps to the true value on reveal.
+      const remainingNow = () => {
+        const until = cooldownUntilRef.current;
+        return until === null ? 0 : Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      };
+      // Effects remount on panel reveal: resync immediately after a hidden gap.
+      if (remainingNow() < cooldownSeconds - 1) {
+        setCooldownSeconds(remainingNow());
+        return;
+      }
+      // min(prev - 1, wall clock): the guaranteed decrement means the state
+      // always changes (a timer firing a few ms early would otherwise produce
+      // an identical value and React's bailout would stop the tick chain),
+      // while the wall clock corrects any accumulated drift downward.
+      const timer = setTimeout(
+        () => setCooldownSeconds((prev) => Math.max(0, Math.min(prev - 1, remainingNow()))),
+        1000
+      );
 
       // Poll verification status every 10 seconds, and at 1 second remaining
       const shouldPoll = cooldownSeconds % 10 === 0 || cooldownSeconds === 1;
@@ -111,6 +139,7 @@ export function UserAccountInfo({
             // User verified! Update UI immediately
             trackEvent('email_verification_completed', {});
             refetchSession?.();
+            cooldownUntilRef.current = null;
             setCooldownSeconds(0);
             setVerificationMessage(null);
           }
@@ -157,7 +186,7 @@ export function UserAccountInfo({
         // Check if rate limited by server (status 429 or message contains "Too many")
         if (result.error.status === 429 || result.error.message?.includes('Too many')) {
           setVerificationMessage(t('auth.rateLimitExceeded'));
-          setCooldownSeconds(60);
+          startCooldown(60);
           trackEvent('email_verification_failed', {error_type: 'rate_limit'});
         } else {
           setVerificationMessage(t('auth.verificationEmailFailed'));
@@ -171,14 +200,14 @@ export function UserAccountInfo({
       trackEvent('email_verification_sent', {});
 
       setVerificationMessage(t('auth.verificationEmailSent'));
-      setCooldownSeconds(60); // Start 60-second cooldown
+      startCooldown(60); // Start 60-second cooldown
       setTimeout(() => setVerificationMessage(null), 5000);
     } catch (error: any) {
       console.error('Failed to send verification email:', error);
       // Check if rate limited by server
       if (error?.status === 429 || error?.message?.includes('Too many')) {
         setVerificationMessage(t('auth.rateLimitExceeded'));
-        setCooldownSeconds(60);
+        startCooldown(60);
         trackEvent('email_verification_failed', {error_type: 'rate_limit'});
       } else {
         setVerificationMessage(t('auth.verificationEmailFailed'));
