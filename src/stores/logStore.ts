@@ -252,6 +252,10 @@ const useLogStore = create<LogStore>(
       else if (eventType.includes('delta')) {
         groupingKey = eventType;
       }
+      // Soniox: collapse the stream of TTS audio chunks into one counted entry.
+      else if (eventType === 'tts.audio') {
+        groupingKey = 'soniox_tts_audio';
+      }
       // Gemini-specific grouping
       else if (eventType === 'serverContent.modelTurn' || eventType === 'serverContent.outputTranscription') {
         // Group Gemini model turn and output transcription events together (both are assistant output)

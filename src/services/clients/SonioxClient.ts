@@ -78,6 +78,16 @@ export class SonioxClient implements IClient {
   // audio's utterance actually belonged to, not whatever utteranceSide is
   // live when the audio happens to show up.
   private audioItemSide: 'speaker' | 'participant' | null = null;
+  // Text fed to TTS for the current utterance, accumulated for the tts.speak
+  // debug-timeline event (reset each utterance).
+  private ttsSpokenText = '';
+  // Reconnect-on-demand: the server closes an idle TTS socket with no active
+  // stream at ~11 s (code 1001) regardless of keep_alive, so between/before
+  // utterances the socket often dies. When feedTts finds it closed it queues
+  // the text/end here and re-establishes the socket; the queue is flushed in
+  // order once connected.
+  private ttsConnecting = false;
+  private ttsPending: Array<{ kind: 'text'; text: string; language: string } | { kind: 'end' }> = [];
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -182,27 +192,17 @@ export class SonioxClient implements IClient {
 
     if (!cfg.textOnly) {
       try {
-        this.tts = new SonioxTtsStream({
-          apiKey: this.apiKey,
-          voice: cfg.voice || 'Maya',
-          model: TTS_MODEL,
-          sampleRate: SAMPLE_RATE,
-        });
-        this.tts.setHandlers({
-          onAudio: (audio) => this.emitAssistantAudio(audio),
-          onError: (code, message) => this.handleTtsError(code, message),
-        });
+        this.tts = this.createTtsStream();
         await this.tts.connect();
-        this.tts.prewarm(cfg.targetLanguage);
+        // No prewarm: a config-only TTS stream with no text is 408'd by the
+        // server in ~5 s. And an idle socket with no active stream is closed at
+        // ~11 s (code 1001) regardless of keep_alive — so this socket may die
+        // during a long silence before the first translation. feedTts detects a
+        // closed socket and reconnects on demand (see ensureTts).
       } catch (error) {
-        // TTS is best-effort: never fail the session because audio is unavailable.
-        console.error('[SonioxClient] TTS connect failed — continuing text-only:', error);
-        this.emitRealtime('client', 'tts.degraded', { reason: String(error) });
-        // The hardened stream may ALSO fire onError('socket_closed', ...) for
-        // this same failure (e.g. a real underlying socket closing after the
-        // connect() promise already rejected) — suppress that echo so we
-        // don't log/emit tts.degraded twice for one failure.
-        this.ttsFailedOnce = true;
+        // Best-effort: never fail the session because TTS is unavailable.
+        // feedTts will retry the connection on the first translation.
+        console.error('[SonioxClient] TTS initial connect failed — will reconnect on demand:', error);
         this.tts = null;
       }
     }
@@ -259,11 +259,55 @@ export class SonioxClient implements IClient {
     this.emitTextUpdate('assistant', this.assistantFinal, assistantPartial);
   }
 
+  private createTtsStream(): SonioxTtsStream {
+    const stream = new SonioxTtsStream({
+      apiKey: this.apiKey,
+      voice: this.currentConfig?.voice || 'Maya',
+      model: TTS_MODEL,
+      sampleRate: SAMPLE_RATE,
+    });
+    stream.setHandlers({
+      onAudio: (audio) => this.emitAssistantAudio(audio),
+      onError: (code, message) => this.handleTtsError(code, message),
+    });
+    return stream;
+  }
+
+  /**
+   * (Re)establish the TTS socket when it is closed, then flush any text/end
+   * markers queued while it was down. Idle TTS sockets are closed by the
+   * server (~11 s) between utterances, so this runs whenever a translation
+   * needs speaking but the socket is not open.
+   */
+  private async ensureTts(): Promise<void> {
+    if (this.ttsConnecting) return;
+    if (!this.currentConfig || this.currentConfig.textOnly) return;
+    this.ttsConnecting = true;
+    try {
+      const stream = this.createTtsStream();
+      await stream.connect();
+      this.tts = stream;
+      this.ttsFailedOnce = false; // recovered
+      const pending = this.ttsPending;
+      this.ttsPending = [];
+      for (const op of pending) {
+        if (op.kind === 'end') this.tts.endUtterance();
+        else this.tts.sendText(op.text, op.language);
+      }
+    } catch (error) {
+      // Reconnect itself failed → spoken output genuinely unavailable now.
+      this.ttsPending = [];
+      this.handleTtsError('connect_failed', String(error));
+    } finally {
+      this.ttsConnecting = false;
+    }
+  }
+
   private feedTts(text: string, token: SonioxToken): void {
-    if (!this.tts) return;
-    if (this.bidirectional && token.source_language !== this.currentConfig?.sourceLanguage) return; // v1: only me→other is spoken
+    if (!this.currentConfig || this.currentConfig.textOnly) return;
+    if (this.bidirectional && token.source_language !== this.currentConfig.sourceLanguage) return; // v1: only me→other is spoken
     if (this.utteranceTtsLanguage === null) {
-      this.utteranceTtsLanguage = token.language || this.currentConfig?.targetLanguage || 'en';
+      this.utteranceTtsLanguage = token.language || this.currentConfig.targetLanguage || 'en';
     }
     // Mint (or reuse) this utterance's assistant item id up front, and pin it
     // as the audio target — audio for this utterance keeps arriving after
@@ -273,7 +317,16 @@ export class SonioxClient implements IClient {
     // utterance's trailing audio finishes arriving (see audioItemSide doc).
     this.audioItemId = this.ensureItem('assistant').id;
     this.audioItemSide = this.utteranceSide;
-    this.tts.sendText(text, this.utteranceTtsLanguage);
+    this.ttsSpokenText += text;
+    const language = this.utteranceTtsLanguage;
+    if (this.tts?.isOpen()) {
+      this.tts.sendText(text, language);
+    } else {
+      // Socket died during the preceding silence (or never connected) — queue
+      // and re-establish it; the queue flushes in order once connected.
+      this.ttsPending.push({ kind: 'text', text, language });
+      void this.ensureTts();
+    }
   }
 
   /**
@@ -382,11 +435,24 @@ export class SonioxClient implements IClient {
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
-    this.tts?.endUtterance();
+    // Debug-timeline milestone: the text this utterance sent to TTS to be
+    // spoken. Only appears when TTS actually received text — a missing
+    // tts.speak next to a translation means spoken output was skipped/degraded.
+    if (this.ttsSpokenText && !this.currentConfig?.textOnly) {
+      this.emitRealtime('client', 'tts.speak', { text: this.ttsSpokenText });
+    }
+    this.ttsSpokenText = '';
+    // Close the utterance's TTS stream — queue the end if we're mid-reconnect
+    // so it's flushed in order after this utterance's buffered text.
+    if (this.ttsConnecting) this.ttsPending.push({ kind: 'end' });
+    else this.tts?.endUtterance();
   }
 
   /** TTS audio chunk → audio-only delta on the assistant item (MainPanel plays it). */
   private emitAssistantAudio(audio: Int16Array): void {
+    // Debug-timeline: TTS audio arriving from the server (grouped by logStore
+    // into a single counted `tts.audio (N)` entry).
+    this.emitRealtime('server', 'tts.audio', { bytes: audio.length });
     // Pure-audio edge case that shouldn't happen in practice (audio always
     // follows feedTts, which sets audioItemId) — fall back to minting (and
     // listing) rather than dropping the chunk.
@@ -431,7 +497,14 @@ export class SonioxClient implements IClient {
   }
 
   private handleTtsError(code: string, message: string): void {
-    // TTS errors are non-fatal: log once, keep subtitles running.
+    // An idle TTS socket is closed by the server (~11 s, code 1001) between
+    // utterances and is recovered by reconnecting on the next translation
+    // (ensureTts) — that's expected, not a degradation, so don't surface it.
+    // Only a genuine failure (a reconnect that itself failed, or a wire-level
+    // error code) degrades spoken output.
+    if (code === 'socket_closed' || code === 'socket_error') return;
+    // TTS errors are non-fatal: log once, keep subtitles running. ttsFailedOnce
+    // is reset on a successful reconnect so a later genuine failure logs again.
     if (!this.ttsFailedOnce) {
       this.ttsFailedOnce = true;
       console.error(`[SonioxClient] TTS error ${code}: ${message} — spoken translation degraded`);
@@ -520,6 +593,9 @@ export class SonioxClient implements IClient {
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
+    this.ttsSpokenText = '';
+    this.ttsPending = [];
+    this.ttsConnecting = false;
     this.ttsFailedOnce = false;
   }
 

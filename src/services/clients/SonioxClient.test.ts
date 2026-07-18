@@ -102,12 +102,12 @@ describe('SonioxClient connect', () => {
     expect(stt.config!.translation).toEqual({ type: 'one_way', target_language: 'en' });
   });
 
-  it('textOnly skips TTS entirely; otherwise TTS connects and prewarns target', async () => {
+  it('textOnly skips TTS entirely; otherwise TTS connects (no prewarm — a config-only stream 408s)', async () => {
     const a = await connectedClient({ textOnly: true });
     expect(a.tts).toBeUndefined();
     const b = await connectedClient({ textOnly: false });
     expect(b.tts).toBeDefined();
-    expect(b.tts!.prewarmed).toEqual(['en']);
+    expect(b.tts!.prewarmed).toEqual([]); // prewarm removed — opens the stream on first text instead
   });
 
   it('TTS connect failure degrades to text-only without failing connect', async () => {
@@ -116,14 +116,21 @@ describe('SonioxClient connect', () => {
     expect(client.isConnected()).toBe(true);
   });
 
-  it('TTS connect failure emits exactly one tts.degraded event (no duplicate echo)', async () => {
+  it('TTS eager-connect failure defers (no degraded); a failed reconnect on the first translation degrades once', async () => {
     MockTts.failConnect = true;
     const client = new SonioxClient('key');
     const realtimeEvents: Array<{ event: { type: string } }> = [];
     client.setEventHandlers({ onRealtimeEvent: (e: any) => realtimeEvents.push(e) });
-    await client.connect(BASE_CONFIG);
-    const degraded = realtimeEvents.filter((e) => e.event.type === 'tts.degraded');
-    expect(degraded).toHaveLength(1);
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    // Eager connect failed but that is recoverable — no degradation yet.
+    expect(client.isConnected()).toBe(true);
+    expect(realtimeEvents.filter((e) => e.event.type === 'tts.degraded')).toHaveLength(0);
+    // A translation triggers ensureTts; the reconnect ALSO fails → degraded once.
+    sttInstances.at(-1)!.emit({ tokens: [
+      { text: 'Hi', is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' },
+    ] });
+    await new Promise((r) => setTimeout(r, 0)); // let ensureTts's async connect reject
+    expect(realtimeEvents.filter((e) => e.event.type === 'tts.degraded')).toHaveLength(1);
   });
 });
 
@@ -522,5 +529,45 @@ describe('SonioxClient compact debug logging', () => {
     expect(events.find((e) => e.event.type === 'stt.translation')?.event.data).toEqual({ text: 'Nice.' });
     expect(events.some((e) => e.event.type === 'stt.endpoint')).toBe(true);
     expect(events.some((e) => e.event.type === 'stt.delta')).toBe(false); // all-final frames are milestones, not deltas
+  });
+
+  it('emits tts.speak (the text sent to TTS) once per utterance, and tts.audio per chunk', async () => {
+    const client = new SonioxClient('key');
+    const events: Array<{ event: { type: string; data: any } }> = [];
+    client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e) });
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const tts = ttsInstances.at(-1)!;
+    // one utterance: a final translation is fed to TTS, then <end> closes it
+    stt.emit({ tokens: [tok('Nice.', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>', { is_final: true, translation_status: 'none' })] });
+    const speak = events.filter((e) => e.event.type === 'tts.speak');
+    expect(speak).toHaveLength(1);
+    expect(speak[0].event.data).toEqual({ text: 'Nice.' });
+    // TTS audio arriving surfaces as tts.audio events (logStore groups them)
+    tts.handlers.onAudio!(new Int16Array([1, 2, 3]));
+    expect(events.find((e) => e.event.type === 'tts.audio')?.event.data).toEqual({ bytes: 3 });
+  });
+});
+
+describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', () => {
+  it('reconnects a dead TTS socket on the next translation and flushes buffered text + end in order', async () => {
+    const client = new SonioxClient('key');
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const tts0 = ttsInstances.at(-1)!;
+    // Simulate the idle TTS socket having been closed by the server (~11s).
+    tts0.closed = true;
+    expect(tts0.isOpen()).toBe(false);
+    // A translation arrives, then <end> — both must land on a fresh stream.
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>', { is_final: true, translation_status: 'none' })] });
+    await new Promise((r) => setTimeout(r, 0)); // let ensureTts connect + flush
+    const tts1 = ttsInstances.at(-1)!;
+    expect(tts1).not.toBe(tts0);
+    expect(tts0.sent).toEqual([]);                              // nothing fed to the dead stream
+    expect(tts1.sent).toEqual([{ text: 'Hello', language: 'en' }]); // flushed to the fresh one
+    expect(tts1.utteranceEnds).toBe(1);                         // queued end flushed after the text
   });
 });
