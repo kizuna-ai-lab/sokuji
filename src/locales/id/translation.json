@@ -209,6 +209,10 @@
     "localNativeStarting": "Memulai mesin lokal",
     "localNativeTranslationIncompatible": "Pilih model terjemahan untuk pasangan bahasa ini",
     "localNativeUnavailable": "Mesin native tidak tersedia — coba lagi di pengaturan",
+    "translationMode": "Mode Terjemahan",
+    "sonioxTwoWay": "Terjemahan dua arah",
+    "sonioxTwoWayDesc": "Menerjemahkan dalam kedua arah antara bahasa sumber dan target",
+    "sonioxTwoWayNeedsSource": "Pilih bahasa sumber tertentu untuk mengaktifkan terjemahan dua arah",
     "simpleMode": "Cepat"
   },
   "simpleSettings": {

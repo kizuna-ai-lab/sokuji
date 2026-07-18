@@ -16,6 +16,7 @@ import {
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
+  useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
@@ -33,6 +34,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
@@ -109,6 +111,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
+  const sonioxSettings = useSonioxSettings();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -135,6 +138,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -280,6 +284,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineAST2Settings({ [key]: value });
     } else if (provider === Provider.ZOOM_AI) {
       updateZoomAISettings({ [key]: value });
+    } else if (provider === Provider.SONIOX) {
+      updateSonioxSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
@@ -1720,6 +1726,41 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderSonioxSettings = () => {
+    if (provider !== Provider.SONIOX) return null;
+
+    // Two-way translation needs a concrete source language to translate back
+    // into — with 'auto' there's no fixed source side for the reverse leg, so
+    // the toggle is force-disabled (and shown unchecked) whenever auto-detect
+    // is selected, mirroring the descriptor's own degrade rule (Task 5).
+    const autoSource = sonioxSettings.sourceLanguage === 'auto';
+
+    return (
+      <div className="settings-section" id="soniox-settings-section">
+        <h2>{t('settings.translationMode', 'Translation Mode')}</h2>
+        <div className="setting-item">
+          <label
+            className="checkbox-label"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: (isSessionActive || autoSource) ? 'not-allowed' : 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={sonioxSettings.twoWayTranslation && !autoSource}
+              disabled={isSessionActive || autoSource}
+              onChange={(e) => updateSonioxSettings({ twoWayTranslation: e.target.checked })}
+            />
+            <span>{t('settings.sonioxTwoWay', 'Two-way translation')}</span>
+          </label>
+          <div className="setting-description">
+            {autoSource
+              ? t('settings.sonioxTwoWayNeedsSource', 'Select a specific source language to enable two-way translation')
+              : t('settings.sonioxTwoWayDesc', 'Translate in both directions between the source and target languages')}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderLocalNativeSettings = () => {
     if (provider !== Provider.LOCAL_NATIVE) {
       return null;
@@ -2017,6 +2058,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
       {renderZoomAISettings()}
+      {renderSonioxSettings()}
       {renderLocalInferenceSettings()}
       {renderLocalNativeSettings()}
     </Fragment>

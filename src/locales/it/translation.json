@@ -209,6 +209,10 @@
     "localNativeStarting": "Avvio del motore locale",
     "localNativeTranslationIncompatible": "Seleziona un modello di traduzione per questa coppia di lingue",
     "localNativeUnavailable": "Motore nativo non disponibile — riprova nelle impostazioni",
+    "translationMode": "Modalità di traduzione",
+    "sonioxTwoWay": "Traduzione bidirezionale",
+    "sonioxTwoWayDesc": "Traduce in entrambe le direzioni tra la lingua di origine e quella di destinazione",
+    "sonioxTwoWayNeedsSource": "Seleziona una lingua di origine specifica per abilitare la traduzione bidirezionale",
     "simpleMode": "Rapido"
   },
   "simpleSettings": {

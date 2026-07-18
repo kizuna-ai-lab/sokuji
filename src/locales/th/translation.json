@@ -209,6 +209,10 @@
     "localNativeStarting": "กำลังเริ่มเอนจินในเครื่อง",
     "localNativeTranslationIncompatible": "เลือกโมเดลแปลสำหรับคู่ภาษานี้",
     "localNativeUnavailable": "เอนจิน native ไม่พร้อมใช้งาน — ลองใหม่ในการตั้งค่า",
+    "translationMode": "โหมดการแปล",
+    "sonioxTwoWay": "การแปลสองทาง",
+    "sonioxTwoWayDesc": "แปลทั้งสองทิศทางระหว่างภาษาต้นทางและภาษาเป้าหมาย",
+    "sonioxTwoWayNeedsSource": "เลือกภาษาต้นทางที่เจาะจงเพื่อเปิดใช้งานการแปลสองทาง",
     "simpleMode": "ด่วน"
   },
   "simpleSettings": {

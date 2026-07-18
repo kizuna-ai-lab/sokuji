@@ -209,6 +209,10 @@
     "localNativeStarting": "Запуск локального движка",
     "localNativeTranslationIncompatible": "Выберите модель перевода для этой языковой пары",
     "localNativeUnavailable": "Нативный движок недоступен — повторите попытку в настройках",
+    "translationMode": "Режим перевода",
+    "sonioxTwoWay": "Двусторонний перевод",
+    "sonioxTwoWayDesc": "Перевод в обоих направлениях между исходным и целевым языком",
+    "sonioxTwoWayNeedsSource": "Выберите конкретный исходный язык, чтобы включить двусторонний перевод",
     "simpleMode": "Быстрый"
   },
   "simpleSettings": {

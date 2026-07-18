@@ -209,6 +209,10 @@
     "localNativeStarting": "Sinisimulan ang local engine",
     "localNativeTranslationIncompatible": "Pumili ng translation model para sa language pair na ito",
     "localNativeUnavailable": "Hindi available ang native engine — subukang muli sa mga setting",
+    "translationMode": "Mode ng Pagsasalin",
+    "sonioxTwoWay": "Dalawang-daan na pagsasalin",
+    "sonioxTwoWayDesc": "Isinasalin sa magkabilang direksyon sa pagitan ng source at target na wika",
+    "sonioxTwoWayNeedsSource": "Pumili ng tiyak na source language para paganahin ang dalawang-daang pagsasalin",
     "simpleMode": "Mabilis"
   },
   "simpleSettings": {

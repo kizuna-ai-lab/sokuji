@@ -209,6 +209,10 @@
     "localNativeStarting": "Käynnistetään paikallista moottoria",
     "localNativeTranslationIncompatible": "Valitse käännösmalli tälle kieliparille",
     "localNativeUnavailable": "Natiivimoottori ei ole käytettävissä — yritä uudelleen asetuksista",
+    "translationMode": "Käännöstila",
+    "sonioxTwoWay": "Kaksisuuntainen käännös",
+    "sonioxTwoWayDesc": "Kääntää molempiin suuntiin lähde- ja kohdekielen välillä",
+    "sonioxTwoWayNeedsSource": "Valitse tietty lähdekieli ottaaksesi kaksisuuntaisen käännöksen käyttöön",
     "simpleMode": "Pika"
   },
   "simpleSettings": {

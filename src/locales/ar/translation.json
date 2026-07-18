@@ -209,6 +209,10 @@
     "localNativeStarting": "جاري تشغيل المحرك المحلي",
     "localNativeTranslationIncompatible": "اختر نموذج ترجمة لزوج اللغات هذا",
     "localNativeUnavailable": "المحرك الأصلي غير متاح — أعد المحاولة من الإعدادات",
+    "translationMode": "وضع الترجمة",
+    "sonioxTwoWay": "الترجمة ثنائية الاتجاه",
+    "sonioxTwoWayDesc": "الترجمة في كلا الاتجاهين بين لغة المصدر ولغة الهدف",
+    "sonioxTwoWayNeedsSource": "اختر لغة مصدر محددة لتمكين الترجمة ثنائية الاتجاه",
     "simpleMode": "سريع"
   },
   "simpleSettings": {

@@ -209,6 +209,10 @@
     "localNativeStarting": "स्थानीय इंजन शुरू हो रहा है",
     "localNativeTranslationIncompatible": "इस भाषा जोड़ी के लिए अनुवाद मॉडल चुनें",
     "localNativeUnavailable": "नेटिव इंजन अनुपलब्ध — सेटिंग्स में पुनः प्रयास करें",
+    "translationMode": "अनुवाद मोड",
+    "sonioxTwoWay": "द्विदिश अनुवाद",
+    "sonioxTwoWayDesc": "स्रोत और लक्ष्य भाषा के बीच दोनों दिशाओं में अनुवाद करें",
+    "sonioxTwoWayNeedsSource": "द्विदिश अनुवाद सक्षम करने के लिए एक विशिष्ट स्रोत भाषा चुनें",
     "simpleMode": "त्वरित"
   },
   "simpleSettings": {

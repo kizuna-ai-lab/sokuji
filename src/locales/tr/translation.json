@@ -209,6 +209,10 @@
     "localNativeStarting": "Yerel motor başlatılıyor",
     "localNativeTranslationIncompatible": "Bu dil çifti için bir çeviri modeli seçin",
     "localNativeUnavailable": "Native motor kullanılamıyor — ayarlardan yeniden deneyin",
+    "translationMode": "Çeviri Modu",
+    "sonioxTwoWay": "İki yönlü çeviri",
+    "sonioxTwoWayDesc": "Kaynak ve hedef dil arasında her iki yönde de çeviri yapar",
+    "sonioxTwoWayNeedsSource": "İki yönlü çeviriyi etkinleştirmek için belirli bir kaynak dil seçin",
     "simpleMode": "Hızlı"
   },
   "simpleSettings": {

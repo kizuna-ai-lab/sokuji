@@ -209,6 +209,10 @@
     "localNativeStarting": "מפעיל את המנוע המקומי",
     "localNativeTranslationIncompatible": "בחר מודל תרגום עבור צמד שפות זה",
     "localNativeUnavailable": "מנוע ה-Native אינו זמין — נסה שוב בהגדרות",
+    "translationMode": "מצב תרגום",
+    "sonioxTwoWay": "תרגום דו-כיווני",
+    "sonioxTwoWayDesc": "מתרגם בשני הכיוונים בין שפת המקור לשפת היעד",
+    "sonioxTwoWayNeedsSource": "בחר שפת מקור ספציפית כדי לאפשר תרגום דו-כיווני",
     "simpleMode": "מהיר"
   },
   "simpleSettings": {

@@ -209,6 +209,10 @@
     "localNativeStarting": "Запуск локального рушія",
     "localNativeTranslationIncompatible": "Виберіть модель перекладу для цієї мовної пари",
     "localNativeUnavailable": "Нативний рушій недоступний — повторіть спробу в налаштуваннях",
+    "translationMode": "Режим перекладу",
+    "sonioxTwoWay": "Двосторонній переклад",
+    "sonioxTwoWayDesc": "Перекладає в обох напрямках між мовою джерела та цільовою мовою",
+    "sonioxTwoWayNeedsSource": "Виберіть конкретну мову джерела, щоб увімкнути двосторонній переклад",
     "simpleMode": "Швидкий"
   },
   "simpleSettings": {

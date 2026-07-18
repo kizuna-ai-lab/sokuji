@@ -209,6 +209,10 @@
     "localNativeStarting": "Đang khởi động công cụ cục bộ",
     "localNativeTranslationIncompatible": "Chọn mô hình dịch cho cặp ngôn ngữ này",
     "localNativeUnavailable": "Công cụ native không khả dụng — thử lại trong cài đặt",
+    "translationMode": "Chế độ dịch",
+    "sonioxTwoWay": "Dịch hai chiều",
+    "sonioxTwoWayDesc": "Dịch theo cả hai hướng giữa ngôn ngữ nguồn và ngôn ngữ đích",
+    "sonioxTwoWayNeedsSource": "Chọn một ngôn ngữ nguồn cụ thể để bật dịch hai chiều",
     "simpleMode": "Nhanh"
   },
   "simpleSettings": {

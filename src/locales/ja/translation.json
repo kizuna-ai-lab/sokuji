@@ -209,6 +209,10 @@
     "localNativeStarting": "ローカルエンジンを起動中",
     "localNativeTranslationIncompatible": "この言語ペアの翻訳モデルを選択してください",
     "localNativeUnavailable": "ネイティブエンジンを利用できません — 設定で再試行してください",
+    "translationMode": "翻訳モード",
+    "sonioxTwoWay": "双方向翻訳",
+    "sonioxTwoWayDesc": "元の言語と対象言語の両方向に翻訳します",
+    "sonioxTwoWayNeedsSource": "双方向翻訳を有効にするには、特定のソース言語を選択してください",
     "simpleMode": "クイック"
   },
   "simpleSettings": {

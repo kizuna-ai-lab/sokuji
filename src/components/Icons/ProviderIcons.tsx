@@ -153,3 +153,13 @@ export const ZoomIcon: React.FC<IconProps> = ({ size = 24, className, style }) =
     />
   </svg>
 );
+
+/** Stylized sound-wave "S" mark for Soniox (not in LobeHub; no official brand SVG available) */
+export const SonioxIcon: React.FC<{ size?: string | number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="9" width="3" height="6" rx="1.5" fill="currentColor" />
+    <rect x="7" y="5" width="3" height="14" rx="1.5" fill="currentColor" />
+    <rect x="12" y="2" width="3" height="20" rx="1.5" fill="currentColor" />
+    <rect x="17" y="7" width="3" height="10" rx="1.5" fill="currentColor" />
+  </svg>
+);

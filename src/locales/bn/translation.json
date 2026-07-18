@@ -209,6 +209,10 @@
     "localNativeStarting": "স্থানীয় ইঞ্জিন শুরু হচ্ছে",
     "localNativeTranslationIncompatible": "এই ভাষা জোড়ার জন্য একটি অনুবাদ মডেল নির্বাচন করুন",
     "localNativeUnavailable": "নেটিভ ইঞ্জিন উপলব্ধ নয় — সেটিংসে পুনরায় চেষ্টা করুন",
+    "translationMode": "অনুবাদ মোড",
+    "sonioxTwoWay": "দ্বিমুখী অনুবাদ",
+    "sonioxTwoWayDesc": "উৎস এবং লক্ষ্য ভাষার মধ্যে উভয় দিকে অনুবাদ করুন",
+    "sonioxTwoWayNeedsSource": "দ্বিমুখী অনুবাদ সক্ষম করতে একটি নির্দিষ্ট উৎস ভাষা নির্বাচন করুন",
     "simpleMode": "দ্রুত"
   },
   "simpleSettings": {

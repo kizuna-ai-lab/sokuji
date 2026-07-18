@@ -209,6 +209,10 @@
     "localNativeStarting": "లోకల్ ఇంజిన్ ప్రారంభమవుతోంది",
     "localNativeTranslationIncompatible": "ఈ భాషా జంట కోసం అనువాద మోడల్‌ను ఎంచుకోండి",
     "localNativeUnavailable": "నేటివ్ ఇంజిన్ అందుబాటులో లేదు — సెట్టింగ్‌లలో మళ్ళీ ప్రయత్నించండి",
+    "translationMode": "అనువాద మోడ్",
+    "sonioxTwoWay": "ద్విదిశ అనువాదం",
+    "sonioxTwoWayDesc": "మూల మరియు లక్ష్య భాషల మధ్య రెండు దిశలలో అనువదించండి",
+    "sonioxTwoWayNeedsSource": "ద్విదిశ అనువాదాన్ని ప్రారంభించడానికి నిర్దిష్ట మూల భాషను ఎంచుకోండి",
     "simpleMode": "శీఘ్ర"
   },
   "simpleSettings": {

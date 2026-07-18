@@ -209,6 +209,10 @@
     "localNativeStarting": "Startar den lokala motorn",
     "localNativeTranslationIncompatible": "Välj en översättningsmodell för detta språkpar",
     "localNativeUnavailable": "Native-motorn är inte tillgänglig — försök igen i inställningarna",
+    "translationMode": "Översättningsläge",
+    "sonioxTwoWay": "Dubbelriktad översättning",
+    "sonioxTwoWayDesc": "Översätter i båda riktningarna mellan käll- och målspråk",
+    "sonioxTwoWayNeedsSource": "Välj ett specifikt källspråk för att aktivera dubbelriktad översättning",
     "simpleMode": "Snabb"
   },
   "simpleSettings": {

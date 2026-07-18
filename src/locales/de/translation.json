@@ -209,6 +209,10 @@
     "localNativeStarting": "Lokale Engine wird gestartet",
     "localNativeTranslationIncompatible": "Wählen Sie ein Übersetzungsmodell für dieses Sprachpaar",
     "localNativeUnavailable": "Native Engine nicht verfügbar — in den Einstellungen erneut versuchen",
+    "translationMode": "Übersetzungsmodus",
+    "sonioxTwoWay": "Zweiweg-Übersetzung",
+    "sonioxTwoWayDesc": "Übersetzt in beide Richtungen zwischen Quell- und Zielsprache",
+    "sonioxTwoWayNeedsSource": "Wählen Sie eine bestimmte Ausgangssprache aus, um die Zweiweg-Übersetzung zu aktivieren",
     "simpleMode": "Schnell"
   },
   "simpleSettings": {

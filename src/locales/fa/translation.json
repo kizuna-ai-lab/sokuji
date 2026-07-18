@@ -209,6 +209,10 @@
     "localNativeStarting": "در حال راه‌اندازی موتور محلی",
     "localNativeTranslationIncompatible": "یک مدل ترجمه برای این جفت زبان انتخاب کنید",
     "localNativeUnavailable": "موتور Native در دسترس نیست — در تنظیمات دوباره تلاش کنید",
+    "translationMode": "حالت ترجمه",
+    "sonioxTwoWay": "ترجمه دوطرفه",
+    "sonioxTwoWayDesc": "ترجمه در هر دو جهت بین زبان مبدأ و مقصد",
+    "sonioxTwoWayNeedsSource": "برای فعال کردن ترجمه دوطرفه، یک زبان مبدأ مشخص انتخاب کنید",
     "simpleMode": "سریع"
   },
   "simpleSettings": {

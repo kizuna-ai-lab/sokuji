@@ -209,6 +209,10 @@
     "localNativeStarting": "正在啟動本機引擎",
     "localNativeTranslationIncompatible": "請為此語言對選擇翻譯模型",
     "localNativeUnavailable": "本機引擎不可用 — 請在設定中重試",
+    "translationMode": "翻譯模式",
+    "sonioxTwoWay": "雙向翻譯",
+    "sonioxTwoWayDesc": "在來源語言與目標語言之間進行雙向翻譯",
+    "sonioxTwoWayNeedsSource": "選擇特定的來源語言以啟用雙向翻譯",
     "simpleMode": "快捷"
   },
   "simpleSettings": {
