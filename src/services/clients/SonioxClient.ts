@@ -394,14 +394,24 @@ export class SonioxClient implements IClient {
     // keepReplayAudio (per-item formatted.audio accumulation for the inline
     // replay button) is deliberately NOT implemented in v1 — plan scopes it
     // out; live playback via the audio-only delta below is the v1 contract.
-    const item: ConversationItem = this.conversationItems.find((i) => i.id === this.audioItemId) ?? {
-      id: this.audioItemId,
-      role: 'assistant',
-      type: 'message',
-      status: 'in_progress',
-      formatted: {},
+    // Never mutate the stored entry in place (same discipline as upsertItem):
+    // build a fresh object and, if one was already tracked, replace it in
+    // conversationItems rather than rewriting fields on the shared reference —
+    // a snapshot already handed to an onConversationUpdated listener must stay
+    // a frozen snapshot of that moment.
+    const idx = this.conversationItems.findIndex((i) => i.id === this.audioItemId);
+    const previous = idx !== -1 ? this.conversationItems[idx] : undefined;
+    const item: ConversationItem = {
+      ...(previous ?? {
+        id: this.audioItemId,
+        role: 'assistant',
+        type: 'message',
+        status: 'in_progress',
+        formatted: {},
+      }),
     };
     if (this.bidirectional && this.audioItemSide) item.source = this.audioItemSide;
+    if (idx !== -1) this.conversationItems[idx] = item;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { audio } });
   }
 

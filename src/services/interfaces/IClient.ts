@@ -396,6 +396,12 @@ export interface IClient {
   switchOutputDevice?(deviceId: string): Promise<void>;
   setOutputMuted?(muted: boolean): void;
   setOutputVolume?(volume: number): void;
+
+  // Optional Both single-session (Soniox) mixer methods
+  /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
+  appendParticipantAudio?(audioData: Int16Array): void;
+  /** Return a second IClient reference bound to this same core (Both single-session). SonioxClient only. */
+  createSecondaryPort?(): IClient;
 }
 
 /**

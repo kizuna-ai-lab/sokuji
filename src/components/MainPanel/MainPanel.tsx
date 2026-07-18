@@ -1480,6 +1480,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // inside createAIClient via the active provider's descriptor, so the old
       // per-provider apiKey switch and modelName lookup that lived here are gone.
 
+      // Both mode uses ONE shared Soniox two_way session (mic+system mixed) when the
+      // shared-session toggle is on and the source language is concrete; else 2 clients.
+      const sonioxSharedBoth =
+        provider === Provider.SONIOX &&
+        effectiveMode === 'both' &&
+        (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
+        useSettingsStore.getState().soniox.sourceLanguage !== 'auto';
+
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
       // client is created — saves a WebSocket and, for Kizuna AI, token cost.
@@ -1522,15 +1530,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Get session configuration
         const sessionConfig = getSessionConfig();
         // Both single-session (Soniox): flip the speaker config to a bidirectional
-        // two_way session so one core handles both directions. Requires the shared
-        // toggle on and a concrete source language (two_way needs a real source);
-        // otherwise fall through to the normal two-client path.
-        if (
-          sessionConfig.provider === 'soniox' &&
-          effectiveMode === 'both' &&
-          (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
-          (sessionConfig as SonioxSessionConfig).sourceLanguage !== 'auto'
-        ) {
+        // two_way session so one core handles both directions. sonioxSharedBoth
+        // already guarantees provider === 'soniox', shared toggle on, and a
+        // concrete source language; otherwise fall through to the normal
+        // two-client path.
+        if (sonioxSharedBoth) {
           (sessionConfig as SonioxSessionConfig).bidirectional = true;
         }
 
@@ -1748,13 +1752,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             const speakerCore = speakerClientRef.current;
             if (
               speakerWillStart &&
-              provider === Provider.SONIOX &&
-              effectiveMode === 'both' &&
-              (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
-              useSettingsStore.getState().soniox.sourceLanguage !== 'auto' &&
-              speakerCore && typeof (speakerCore as any).createSecondaryPort === 'function'
+              sonioxSharedBoth &&
+              speakerCore && typeof speakerCore.createSecondaryPort === 'function'
             ) {
-              participantClientRef.current = (speakerCore as any).createSecondaryPort();
+              participantClientRef.current = speakerCore.createSecondaryPort();
             } else {
               participantClientRef.current = await createAIClient();
             }
