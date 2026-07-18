@@ -132,4 +132,54 @@ describe('SonioxTtsStream', () => {
     vi.advanceTimersByTime(20_000);
     expect(ws.jsonSent().at(-1)).toEqual({ keep_alive: true });
   });
+
+  it('processes terminated even when the same message also carries an error (queue must not wedge)', async () => {
+    const { t, ws } = await openTts();
+    const errors: string[] = [];
+    t.setHandlers({ onError: (code) => errors.push(code) });
+    t.sendText('one', 'en');
+    t.endUtterance();
+    ws.message({ stream_id: 'utt-1', error_code: 500, error_message: 'x', terminated: true });
+    t.sendText('two', 'en');
+    const ids = ws.jsonSent().filter((m) => m.model).map((m) => m.stream_id);
+    expect(ids).toEqual(['utt-1', 'utt-2']);
+    expect(errors).toEqual(['500']);
+  });
+
+  it('an error naming the active stream resets state so the next sendText opens a fresh stream', async () => {
+    const { t, ws } = await openTts();
+    t.sendText('a', 'en');
+    ws.message({ stream_id: 'utt-1', error_code: 500, error_message: 'x' });
+    t.sendText('b', 'en');
+    const ids = ws.jsonSent().filter((m) => m.model).map((m) => m.stream_id);
+    expect(ids).toEqual(['utt-1', 'utt-2']);
+  });
+
+  it('fires onError on an unexpected remote close', async () => {
+    const { t, ws } = await openTts();
+    const errors: string[] = [];
+    t.setHandlers({ onError: (code) => errors.push(code) });
+    ws.close();
+    expect(errors).toEqual(['socket_closed']);
+  });
+
+  it('stays silent on an intentional close', async () => {
+    const { t, ws } = await openTts();
+    const errors: string[] = [];
+    t.setHandlers({ onError: (code) => errors.push(code) });
+    t.close();
+    expect(errors).toHaveLength(0);
+    expect(ws.readyState).toBe(MockWebSocket.CLOSED);
+  });
+
+  it('drops audio for a stream_id that does not match the active/draining stream, but forwards a matching one', async () => {
+    const { t, ws } = await openTts();
+    const chunks: Int16Array[] = [];
+    t.setHandlers({ onAudio: (a) => chunks.push(a) });
+    ws.message({ stream_id: 'ghost', audio: pcmB64() });
+    expect(chunks).toHaveLength(0);
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: 'utt-1', audio: pcmB64() });
+    expect(chunks).toHaveLength(1);
+  });
 });

@@ -4,7 +4,7 @@
  * Protocol-only: knows the Soniox TTS wire protocol and nothing about STT,
  * IClient or Sokuji semantics. Deliberately decoupled — it consumes a
  * (text, language) event stream from ANY source, which is the seam for
- * future cross-provider composition (e.g. другой STT → Soniox TTS).
+ * future cross-provider composition (e.g. another STT → Soniox TTS).
  *
  * Stream model (mirrors the official soniox_examples STS demo):
  * - One TTS stream per utterance over a single WebSocket, identified by
@@ -59,6 +59,7 @@ export class SonioxTtsStream {
   private queue: QueuedItem[] = [];
   private utteranceCounter = 0;
   private prewarmCounter = 0;
+  private intentionalClose = false;
 
   constructor(options: SonioxTtsOptions) {
     this.options = options;
@@ -72,6 +73,7 @@ export class SonioxTtsStream {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(TTS_URL);
       this.ws = ws;
+      this.intentionalClose = false;
       let opened = false;
       const timer = setTimeout(() => {
         if (!opened) {
@@ -96,11 +98,13 @@ export class SonioxTtsStream {
         }
         if (data.error_code != null) {
           this.handlers.onError?.(String(data.error_code), data.error_message ?? '');
-          return;
-        }
-        if (data.audio) {
+          this.handleStreamFailure(data.stream_id);
+        } else if (data.audio && (data.stream_id === this.activeStreamId || data.stream_id === this.drainingStreamId)) {
           this.handlers.onAudio?.(this.base64ToInt16(data.audio));
         }
+        // terminated must always be processed, even when the same message also
+        // carried an error — otherwise a combined error+terminated frame would
+        // leave drainingStreamId set and wedge the queue forever.
         if (data.terminated) {
           if (data.stream_id === this.drainingStreamId) {
             this.drainingStreamId = null;
@@ -121,6 +125,14 @@ export class SonioxTtsStream {
       ws.onclose = () => {
         clearTimeout(timer);
         this.stopKeepalive();
+        if (!this.intentionalClose) {
+          this.activeStreamId = null;
+          this.activeLanguage = null;
+          this.activeStreamUsed = false;
+          this.drainingStreamId = null;
+          this.queue = [];
+          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly');
+        }
       };
     });
   }
@@ -152,6 +164,7 @@ export class SonioxTtsStream {
   }
 
   close(): void {
+    this.intentionalClose = true;
     this.stopKeepalive();
     this.queue = [];
     if (this.ws) {
@@ -198,6 +211,32 @@ export class SonioxTtsStream {
     this.activeStreamId = null;
     this.activeLanguage = null;
     this.activeStreamUsed = false;
+  }
+
+  /**
+   * Reset stream state after a wire error so a wedged component never results:
+   * the failing stream (whichever role it held) is forgotten, and anything
+   * queued behind a draining stream is released.
+   */
+  private handleStreamFailure(streamId?: string): void {
+    if (streamId === undefined) {
+      // Connection-level error: no specific stream named, clear everything.
+      this.activeStreamId = null;
+      this.activeLanguage = null;
+      this.activeStreamUsed = false;
+      this.drainingStreamId = null;
+      this.flushQueue();
+      return;
+    }
+    if (streamId === this.activeStreamId) {
+      this.activeStreamId = null;
+      this.activeLanguage = null;
+      this.activeStreamUsed = false;
+    }
+    if (streamId === this.drainingStreamId) {
+      this.drainingStreamId = null;
+      this.flushQueue();
+    }
   }
 
   private flushQueue(): void {
