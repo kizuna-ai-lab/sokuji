@@ -481,3 +481,46 @@ describe('SonioxClient bidirectional tagging + TTS filter', () => {
     expect(audioUpdate.item.id).toBe(nAssistantId);
   });
 });
+
+describe('SonioxClient compact debug logging', () => {
+  async function logged() {
+    const client = new SonioxClient('key');
+    const events: Array<{ event: { type: string; data: any } }> = [];
+    client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e) });
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
+    return { events, stt: sttInstances.at(-1)! };
+  }
+  const sttTypes = (events: any[]) => events.filter((e) => e.event.type.startsWith('stt.')).map((e) => e.event.type);
+
+  it('never emits raw message.received and drops empty keepalive frames', async () => {
+    const { events, stt } = await logged();
+    const before = events.length;
+    stt.emit({ tokens: [], final_audio_proc_ms: 0, total_audio_proc_ms: 1080 });
+    expect(events.length).toBe(before); // empty frame → no log at all
+    expect(events.some((e) => e.event.type === 'message.received')).toBe(false);
+  });
+
+  it('emits one compact stt.delta for a partial frame (no raw token array)', async () => {
+    const { events, stt } = await logged();
+    stt.emit({ tokens: [
+      tok('今', { is_final: false, translation_status: 'original', language: 'zh' }),
+      tok('天', { is_final: false, translation_status: 'original', language: 'zh' }),
+    ] });
+    const delta = events.find((e) => e.event.type === 'stt.delta');
+    expect(delta).toBeDefined();
+    expect(delta!.event.data).toEqual({ transcript: '今天', translation: '' });
+    expect((delta!.event.data as any).tokens).toBeUndefined();
+    expect(sttTypes(events)).toEqual(['stt.delta']); // no transcript/translation milestone for a partial
+  });
+
+  it('emits stt.transcript / stt.translation milestones on finalization and stt.endpoint on <end>', async () => {
+    const { events, stt } = await logged();
+    stt.emit({ tokens: [tok('今天不错。', { is_final: true, translation_status: 'original', language: 'zh' })] });
+    stt.emit({ tokens: [tok('Nice.', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>', { is_final: true, translation_status: 'none' })] });
+    expect(events.find((e) => e.event.type === 'stt.transcript')?.event.data).toEqual({ text: '今天不错。' });
+    expect(events.find((e) => e.event.type === 'stt.translation')?.event.data).toEqual({ text: 'Nice.' });
+    expect(events.some((e) => e.event.type === 'stt.endpoint')).toBe(true);
+    expect(events.some((e) => e.event.type === 'stt.delta')).toBe(false); // all-final frames are milestones, not deltas
+  });
+});

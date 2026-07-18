@@ -216,8 +216,8 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttMessage(message: SonioxSttMessage): void {
-    this.emitRealtime('server', 'message.received', message);
     const tokens = message.tokens ?? [];
+    this.emitDebugLog(tokens);
 
     // Partials are re-sent in full on every message: rebuild them each time.
     let userPartial = '';
@@ -444,6 +444,45 @@ export class SonioxClient implements IClient {
       source,
       event: { type, data },
     } as any);
+  }
+
+  /**
+   * Compact, groupable debug-timeline logging. Soniox re-sends the FULL
+   * cumulative token list on every frame and interleaves empty keepalive
+   * frames, so forwarding raw `message.received` payloads floods the timeline
+   * with huge, unreadable, un-mergeable blobs. Instead:
+   *  - empty keepalive/progress frames are dropped;
+   *  - streaming partials emit one compact `stt.delta` (logStore collapses
+   *    consecutive `.delta` events into a single counted group);
+   *  - a finalized segment emits readable `stt.transcript` / `stt.translation`
+   *    milestones (ungrouped);
+   *  - an endpoint emits `stt.endpoint`.
+   */
+  private emitDebugLog(tokens: SonioxToken[]): void {
+    if (tokens.length === 0) return; // skip empty keepalive/progress frames
+    let transcript = '';
+    let translation = '';
+    let endpoint = false;
+    let allFinal = true;
+    let hasContent = false;
+    for (const token of tokens) {
+      const text = token.text ?? '';
+      if (text === '<end>') { endpoint = true; continue; }
+      if (text === '<fin>') continue;
+      hasContent = true;
+      if (!token.is_final) allFinal = false;
+      if (token.translation_status === 'translation') translation += text;
+      else transcript += text;
+    }
+    if (hasContent) {
+      if (allFinal) {
+        if (transcript) this.emitRealtime('server', 'stt.transcript', { text: transcript });
+        if (translation) this.emitRealtime('server', 'stt.translation', { text: translation });
+      } else {
+        this.emitRealtime('server', 'stt.delta', { transcript, translation });
+      }
+    }
+    if (endpoint) this.emitRealtime('server', 'stt.endpoint', {});
   }
 
   async disconnect(): Promise<void> {
