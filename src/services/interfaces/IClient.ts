@@ -170,6 +170,20 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Soniox speech-to-speech translation session configuration.
+ * `voice` comes from BaseSessionConfig. When `twoWayTranslation` is true the
+ * client sends a two_way translation block (source ↔ target); sourceLanguage
+ * must then be a concrete language ('auto' is only valid for one_way, where
+ * it means "no language_hints").
+ */
+export interface SonioxSessionConfig extends BaseSessionConfig {
+  provider: 'soniox';
+  sourceLanguage: string; // 'auto' | ISO code
+  targetLanguage: string; // ISO code
+  twoWayTranslation: boolean;
+}
+
+/**
  * Local inference session configuration
  */
 export interface LocalInferenceSessionConfig extends BaseSessionConfig {
@@ -229,7 +243,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -260,6 +274,10 @@ export function isZoomAISessionConfig(config: SessionConfig): config is ZoomAISe
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
   return config.provider === 'volcengine_ast2';
+}
+
+export function isSonioxSessionConfig(config: SessionConfig): config is SonioxSessionConfig {
+  return config.provider === 'soniox';
 }
 
 export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
