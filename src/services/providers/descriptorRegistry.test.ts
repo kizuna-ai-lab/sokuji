@@ -238,6 +238,7 @@ describe('registry invariants', () => {
     [Provider.LOCAL_NATIVE]: 'localNative',
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
+    [Provider.SONIOX]: 'soniox',
   };
 
   it('settingsSliceKey matches the exact expected value per provider', () => {
@@ -265,6 +266,7 @@ describe('registry invariants', () => {
     [Provider.LOCAL_NATIVE]: false,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false,
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false,
+    [Provider.SONIOX]: false,
   };
 
   it('supportsWebRTC matches the exact expected value per provider', () => {
