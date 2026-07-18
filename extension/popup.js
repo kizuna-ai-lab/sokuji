@@ -272,7 +272,7 @@ function renderUnsupportedFirstHtml(headlineHtml) {
     </div>
 
     <div class="cta-card">
-      <div class="cta-card-title">💻 ${getMessage('desktopCtaTitle')}</div>
+      <div class="cta-card-title">${getMessage('desktopCtaTitle')}</div>
       <p class="cta-card-body">${getMessage('desktopCtaBody')}</p>
       <button id="downloadDesktop" class="primary-button cta-card-button">${getMessage('desktopCtaButton')}</button>
     </div>
