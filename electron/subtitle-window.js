@@ -50,6 +50,83 @@ function getLiveWindow() {
   return activeWindow && !activeWindow.isDestroyed() ? activeWindow : null;
 }
 
+// --- Always-on-top enforcement (#326) --------------------------------------
+// On Windows, PowerPoint's slideshow / Presenter View re-asserts its own
+// HWND_TOPMOST z-order whenever window activation changes. A one-shot
+// setAlwaysOnTop() is displaced permanently the moment the pinned bar is
+// merely clicked (activating it deactivates PowerPoint, which re-raises
+// itself above us), and Electron emits no event for "another window went
+// above us". Crucially, the displaced window KEEPS its WS_EX_TOPMOST style —
+// isAlwaysOnTop() still returns true (electron/electron#2097) — so the fix
+// must re-assert UNCONDITIONALLY while pinned:
+//  - a short delayed re-assert on focus/blur — the activation transitions
+//    that make PowerPoint re-raise itself — so recovery is near-immediate;
+//  - a 1s heartbeat as a safety net for re-raises we get no event for
+//    (PowerToys "Always On Top" survives PowerPoint the same way, via
+//    WinEvent-triggered SetWindowPos(HWND_TOPMOST) re-pins).
+// Each re-assert is one setAlwaysOnTop(true, ...) call — never a false→true
+// toggle (drops us out of the topmost band and can knock OTHER topmost
+// windows down, electron#31536) and never moveTop() (its SWP_SHOWWINDOW
+// flag would force-show a hidden window). Windows-only: on macOS the
+// 'floating' NSWindow level is a real window level honored by the WM, and
+// periodic raises would be needless churn.
+const PIN_REASSERT_INTERVAL_MS = 1000;
+const PIN_REASSERT_EVENT_DELAY_MS = 200;
+
+// On Windows, every setAlwaysOnTop with a level in Electron's
+// "behind task bar" set — which includes the 'floating' default — ends with
+// a second SetWindowPos tucking the window just BELOW the taskbar in the
+// topmost band. A PowerPoint slideshow sits ABOVE the taskbar, so a
+// 'floating' pin can never beat it. 'screen-saver' skips that demotion and
+// leaves the bar at the very top of the topmost band. On macOS the level is
+// a real NSWindow level; keep the original 'floating' there.
+function pinLevel() {
+  return process.platform === 'win32' ? 'screen-saver' : 'floating';
+}
+
+let pinHeartbeatTimer = null;
+let pinEventTimer = null;
+
+function reassertOnTop() {
+  const win = getLiveWindow();
+  if (!win) {
+    stopPinEnforcement();
+    return;
+  }
+  // Don't churn the z-order of a window the user can't see; enforcement
+  // resumes on the next tick once the window is visible again.
+  if (!win.isVisible() || win.isMinimized()) return;
+  win.setAlwaysOnTop(true, pinLevel());
+}
+
+function startPinEnforcement() {
+  stopPinEnforcement();
+  if (process.platform !== 'win32') return;
+  pinHeartbeatTimer = setInterval(reassertOnTop, PIN_REASSERT_INTERVAL_MS);
+}
+
+function stopPinEnforcement() {
+  if (pinHeartbeatTimer) {
+    clearInterval(pinHeartbeatTimer);
+    pinHeartbeatTimer = null;
+  }
+  if (pinEventTimer) {
+    clearTimeout(pinEventTimer);
+    pinEventTimer = null;
+  }
+}
+
+// Deferred re-assert after a focus/blur transition: give the other window
+// (PowerPoint) a moment to finish its own re-raise, then top it again.
+function schedulePinReassert() {
+  if (!pinHeartbeatTimer) return; // only while pinned
+  if (pinEventTimer) clearTimeout(pinEventTimer);
+  pinEventTimer = setTimeout(() => {
+    pinEventTimer = null;
+    reassertOnTop();
+  }, PIN_REASSERT_EVENT_DELAY_MS);
+}
+
 ipcMain.handle('subtitle:get-screen-bounds', () => {
   const display = screen.getPrimaryDisplay();
   return display.workArea;
@@ -65,7 +142,12 @@ ipcMain.handle('subtitle:enter', (_event, payload) => {
   normalBoundsSnapshot = win.getBounds();
   beginTransition();
   win.setBounds(clamped);
-  win.setAlwaysOnTop(Boolean(payload?.alwaysOnTop), 'floating');
+  win.setAlwaysOnTop(Boolean(payload?.alwaysOnTop), pinLevel());
+  if (payload?.alwaysOnTop) {
+    startPinEnforcement();
+  } else {
+    stopPinEnforcement();
+  }
   win.setResizable(!payload?.locked);
   if (process.platform === 'darwin') {
     win.setWindowButtonVisibility(false);
@@ -103,6 +185,7 @@ ipcMain.handle('subtitle:exit', (_event, payload) => {
       height: 800,
     });
   }
+  stopPinEnforcement();
   win.setAlwaysOnTop(false);
   win.setResizable(true);
   if (process.platform === 'darwin') {
@@ -115,7 +198,12 @@ ipcMain.handle('subtitle:exit', (_event, payload) => {
 ipcMain.handle('subtitle:set-always-on-top', (_event, flag) => {
   const win = getLiveWindow();
   if (!win) return { ok: false };
-  win.setAlwaysOnTop(Boolean(flag), 'floating');
+  win.setAlwaysOnTop(Boolean(flag), pinLevel());
+  if (flag) {
+    startPinEnforcement();
+  } else {
+    stopPinEnforcement();
+  }
   return { ok: true };
 });
 
@@ -142,9 +230,11 @@ function setupSubtitleHandlers(mainWindow) {
   // to be attached on every createWindow() call.
   activeWindow = mainWindow;
   // Reset snapshot/transition for the fresh window so a stale snapshot
-  // from a previous window can't leak in.
+  // from a previous window can't leak in. A fresh window starts unpinned,
+  // so any enforcement left over from a previous window must stop too.
   normalBoundsSnapshot = null;
   transitionUntil = 0;
+  stopPinEnforcement();
 
   // Debounced bounds-changed broadcaster. Suppressed during transition
   // windows so we don't capture intermediate WM-reported sizes as the
@@ -171,7 +261,12 @@ function setupSubtitleHandlers(mainWindow) {
     mainWindow.webContents.send('subtitle:fullscreen-changed', false);
   mainWindow.on('enter-full-screen', onEnterFullScreen);
   mainWindow.on('leave-full-screen', onLeaveFullScreen);
+  // Activation transitions are the moments PowerPoint re-raises itself
+  // above a pinned bar — respond to them promptly (see enforcement above).
+  mainWindow.on('focus', schedulePinReassert);
+  mainWindow.on('blur', schedulePinReassert);
   mainWindow.on('closed', () => {
+    stopPinEnforcement();
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
