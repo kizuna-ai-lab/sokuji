@@ -209,11 +209,11 @@
     "localNativeStarting": "Запуск локального движка",
     "localNativeTranslationIncompatible": "Выберите модель перевода для этой языковой пары",
     "localNativeUnavailable": "Нативный движок недоступен — повторите попытку в настройках",
-    "translationMode": "Режим перевода",
-    "sonioxTwoWay": "Двусторонний перевод",
-    "sonioxTwoWayDesc": "Перевод в обоих направлениях между исходным и целевым языком",
-    "sonioxTwoWayNeedsSource": "Выберите конкретный исходный язык, чтобы включить двусторонний перевод",
-    "simpleMode": "Быстрый"
+    "simpleMode": "Быстрый",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись",

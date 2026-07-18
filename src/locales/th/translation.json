@@ -209,11 +209,11 @@
     "localNativeStarting": "กำลังเริ่มเอนจินในเครื่อง",
     "localNativeTranslationIncompatible": "เลือกโมเดลแปลสำหรับคู่ภาษานี้",
     "localNativeUnavailable": "เอนจิน native ไม่พร้อมใช้งาน — ลองใหม่ในการตั้งค่า",
-    "translationMode": "โหมดการแปล",
-    "sonioxTwoWay": "การแปลสองทาง",
-    "sonioxTwoWayDesc": "แปลทั้งสองทิศทางระหว่างภาษาต้นทางและภาษาเป้าหมาย",
-    "sonioxTwoWayNeedsSource": "เลือกภาษาต้นทางที่เจาะจงเพื่อเปิดใช้งานการแปลสองทาง",
-    "simpleMode": "ด่วน"
+    "simpleMode": "ด่วน",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",

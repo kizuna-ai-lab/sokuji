@@ -209,11 +209,11 @@
     "localNativeStarting": "جاري تشغيل المحرك المحلي",
     "localNativeTranslationIncompatible": "اختر نموذج ترجمة لزوج اللغات هذا",
     "localNativeUnavailable": "المحرك الأصلي غير متاح — أعد المحاولة من الإعدادات",
-    "translationMode": "وضع الترجمة",
-    "sonioxTwoWay": "الترجمة ثنائية الاتجاه",
-    "sonioxTwoWayDesc": "الترجمة في كلا الاتجاهين بين لغة المصدر ولغة الهدف",
-    "sonioxTwoWayNeedsSource": "اختر لغة مصدر محددة لتمكين الترجمة ثنائية الاتجاه",
-    "simpleMode": "سريع"
+    "simpleMode": "سريع",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",

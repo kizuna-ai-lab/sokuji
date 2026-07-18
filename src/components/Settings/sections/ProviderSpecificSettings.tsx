@@ -56,6 +56,7 @@ import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
+import { useMode } from '../../../stores/audioStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
@@ -112,6 +113,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
   const sonioxSettings = useSonioxSettings();
+  const mode = useMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -1729,40 +1731,39 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const renderSonioxSettings = () => {
     if (provider !== Provider.SONIOX) return null;
 
-    // Two-way translation needs a concrete source language to translate back
-    // into — with 'auto' there's no fixed source side for the reverse leg, so
-    // the toggle is force-disabled (and shown unchecked) whenever auto-detect
-    // is selected, mirroring the descriptor's own degrade rule (Task 5).
-    const autoSource = sonioxSettings.sourceLanguage === 'auto';
-    const twoWayEnabled = sonioxSettings.twoWayTranslation && !autoSource;
+    // The shared-session toggle only means anything in Both mode — Soniox
+    // runs a single You/Others session there instead of two separate ones.
+    // In You-only or Others-only mode there's nothing to share, so the pill
+    // is greyed out (still shows the persisted preference, just inert).
+    const inBoth = mode === 'both';
+    const shared = sonioxSettings.bothModeSharedSession;
 
     return (
       <div className="settings-section" id="soniox-settings-section">
-        <h2>{t('settings.translationMode', 'Translation Mode')}</h2>
+        <h2>{t('settings.sonioxSharedSession', 'Shared session in Both mode')}</h2>
         <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.sonioxTwoWay', 'Two-way translation')}</span>
-          </div>
           <div className="turn-detection-options">
             <button
-              className={`option-button ${twoWayEnabled ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ twoWayTranslation: true })}
-              disabled={isSessionActive || autoSource}
+              className={`option-button ${shared ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ bothModeSharedSession: true })}
+              disabled={isSessionActive || !inBoth}
             >
               {t('settings.enabled', 'Enabled')}
             </button>
             <button
-              className={`option-button ${!twoWayEnabled ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ twoWayTranslation: false })}
-              disabled={isSessionActive || autoSource}
+              className={`option-button ${!shared ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ bothModeSharedSession: false })}
+              disabled={isSessionActive || !inBoth}
             >
               {t('settings.disabled', 'Disabled')}
             </button>
           </div>
           <div className="setting-description">
-            {autoSource
-              ? t('settings.sonioxTwoWayNeedsSource', 'Select a specific source language to enable two-way translation')
-              : t('settings.sonioxTwoWayDesc', 'Translate in both directions between the source and target languages')}
+            {!inBoth
+              ? t('settings.sonioxSharedSessionOnlyBoth', 'Only affects Both mode.')
+              : shared
+                ? t('settings.sonioxSharedSessionOn', 'One Soniox session translates both sides with automatic speaker separation — lower cost and latency.')
+                : t('settings.sonioxSharedSessionOff', 'A separate session per direction — more reliable when both people talk at once, but about twice the cost.')}
           </div>
         </div>
       </div>

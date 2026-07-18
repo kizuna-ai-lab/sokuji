@@ -209,11 +209,11 @@
     "localNativeStarting": "Memulakan enjin tempatan",
     "localNativeTranslationIncompatible": "Pilih model terjemahan untuk pasangan bahasa ini",
     "localNativeUnavailable": "Enjin native tidak tersedia — cuba lagi dalam tetapan",
-    "translationMode": "Mod Terjemahan",
-    "sonioxTwoWay": "Terjemahan dua hala",
-    "sonioxTwoWayDesc": "Menterjemah dalam kedua-dua arah antara bahasa sumber dan sasaran",
-    "sonioxTwoWayNeedsSource": "Pilih bahasa sumber tertentu untuk mendayakan terjemahan dua hala",
-    "simpleMode": "Cepat"
+    "simpleMode": "Cepat",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",

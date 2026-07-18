@@ -209,11 +209,11 @@
     "localNativeStarting": "מפעיל את המנוע המקומי",
     "localNativeTranslationIncompatible": "בחר מודל תרגום עבור צמד שפות זה",
     "localNativeUnavailable": "מנוע ה-Native אינו זמין — נסה שוב בהגדרות",
-    "translationMode": "מצב תרגום",
-    "sonioxTwoWay": "תרגום דו-כיווני",
-    "sonioxTwoWayDesc": "מתרגם בשני הכיוונים בין שפת המקור לשפת היעד",
-    "sonioxTwoWayNeedsSource": "בחר שפת מקור ספציפית כדי לאפשר תרגום דו-כיווני",
-    "simpleMode": "מהיר"
+    "simpleMode": "מהיר",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",

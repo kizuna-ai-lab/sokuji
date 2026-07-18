@@ -209,11 +209,11 @@
     "localNativeStarting": "De lokale engine wordt gestart",
     "localNativeTranslationIncompatible": "Selecteer een vertaalmodel voor dit taalpaar",
     "localNativeUnavailable": "Native engine niet beschikbaar — probeer opnieuw in Instellingen",
-    "translationMode": "Vertaalmodus",
-    "sonioxTwoWay": "Tweerichtingsvertaling",
-    "sonioxTwoWayDesc": "Vertaalt in beide richtingen tussen de bron- en doeltaal",
-    "sonioxTwoWayNeedsSource": "Selecteer een specifieke brontaal om tweerichtingsvertaling in te schakelen",
-    "simpleMode": "Snel"
+    "simpleMode": "Snel",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",

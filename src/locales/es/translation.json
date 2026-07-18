@@ -209,11 +209,11 @@
     "localNativeStarting": "Iniciando el motor local",
     "localNativeTranslationIncompatible": "Selecciona un modelo de traducción para este par de idiomas",
     "localNativeUnavailable": "Motor nativo no disponible — reintenta en la configuración",
-    "translationMode": "Modo de traducción",
-    "sonioxTwoWay": "Traducción bidireccional",
-    "sonioxTwoWayDesc": "Traduce en ambas direcciones entre el idioma de origen y el de destino",
-    "sonioxTwoWayNeedsSource": "Selecciona un idioma de origen específico para habilitar la traducción bidireccional",
-    "simpleMode": "Rápido"
+    "simpleMode": "Rápido",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",

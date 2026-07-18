@@ -209,11 +209,11 @@
     "localNativeStarting": "در حال راه‌اندازی موتور محلی",
     "localNativeTranslationIncompatible": "یک مدل ترجمه برای این جفت زبان انتخاب کنید",
     "localNativeUnavailable": "موتور Native در دسترس نیست — در تنظیمات دوباره تلاش کنید",
-    "translationMode": "حالت ترجمه",
-    "sonioxTwoWay": "ترجمه دوطرفه",
-    "sonioxTwoWayDesc": "ترجمه در هر دو جهت بین زبان مبدأ و مقصد",
-    "sonioxTwoWayNeedsSource": "برای فعال کردن ترجمه دوطرفه، یک زبان مبدأ مشخص انتخاب کنید",
-    "simpleMode": "سریع"
+    "simpleMode": "سریع",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",

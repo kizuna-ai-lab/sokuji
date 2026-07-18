@@ -209,11 +209,11 @@
     "localNativeStarting": "உள்ளூர் இயந்திரம் தொடங்குகிறது",
     "localNativeTranslationIncompatible": "இந்த மொழி ஜோடிக்கான மொழிபெயர்ப்பு மாடலைத் தேர்ந்தெடுக்கவும்",
     "localNativeUnavailable": "நேட்டிவ் இயந்திரம் கிடைக்கவில்லை — அமைப்புகளில் மீண்டும் முயற்சிக்கவும்",
-    "translationMode": "மொழிபெயர்ப்பு முறை",
-    "sonioxTwoWay": "இருவழி மொழிபெயர்ப்பு",
-    "sonioxTwoWayDesc": "மூல மற்றும் இலக்கு மொழிகளுக்கு இடையே இரு திசைகளிலும் மொழிபெயர்க்கவும்",
-    "sonioxTwoWayNeedsSource": "இருவழி மொழிபெயர்ப்பை இயக்க ஒரு குறிப்பிட்ட மூல மொழியைத் தேர்ந்தெடுக்கவும்",
-    "simpleMode": "விரைவு"
+    "simpleMode": "விரைவு",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது",

@@ -209,11 +209,11 @@
     "localNativeStarting": "Käynnistetään paikallista moottoria",
     "localNativeTranslationIncompatible": "Valitse käännösmalli tälle kieliparille",
     "localNativeUnavailable": "Natiivimoottori ei ole käytettävissä — yritä uudelleen asetuksista",
-    "translationMode": "Käännöstila",
-    "sonioxTwoWay": "Kaksisuuntainen käännös",
-    "sonioxTwoWayDesc": "Kääntää molempiin suuntiin lähde- ja kohdekielen välillä",
-    "sonioxTwoWayNeedsSource": "Valitse tietty lähdekieli ottaaksesi kaksisuuntaisen käännöksen käyttöön",
-    "simpleMode": "Pika"
+    "simpleMode": "Pika",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",

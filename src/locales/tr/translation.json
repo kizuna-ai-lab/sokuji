@@ -209,11 +209,11 @@
     "localNativeStarting": "Yerel motor başlatılıyor",
     "localNativeTranslationIncompatible": "Bu dil çifti için bir çeviri modeli seçin",
     "localNativeUnavailable": "Native motor kullanılamıyor — ayarlardan yeniden deneyin",
-    "translationMode": "Çeviri Modu",
-    "sonioxTwoWay": "İki yönlü çeviri",
-    "sonioxTwoWayDesc": "Kaynak ve hedef dil arasında her iki yönde de çeviri yapar",
-    "sonioxTwoWayNeedsSource": "İki yönlü çeviriyi etkinleştirmek için belirli bir kaynak dil seçin",
-    "simpleMode": "Hızlı"
+    "simpleMode": "Hızlı",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",

@@ -209,11 +209,11 @@
     "localNativeStarting": "Đang khởi động công cụ cục bộ",
     "localNativeTranslationIncompatible": "Chọn mô hình dịch cho cặp ngôn ngữ này",
     "localNativeUnavailable": "Công cụ native không khả dụng — thử lại trong cài đặt",
-    "translationMode": "Chế độ dịch",
-    "sonioxTwoWay": "Dịch hai chiều",
-    "sonioxTwoWayDesc": "Dịch theo cả hai hướng giữa ngôn ngữ nguồn và ngôn ngữ đích",
-    "sonioxTwoWayNeedsSource": "Chọn một ngôn ngữ nguồn cụ thể để bật dịch hai chiều",
-    "simpleMode": "Nhanh"
+    "simpleMode": "Nhanh",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
+    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
+    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
