@@ -58,6 +58,12 @@ export class SonioxClient implements IClient {
   // translation token; one_way: always the target language)
   private utteranceTtsLanguage: string | null = null;
   private ttsFailedOnce = false;
+  // Bidirectional only: which side (my language vs. the other's) the
+  // in-flight utterance belongs to, derived from the first original token's
+  // language (or the first translation token's source_language, if the
+  // original arrived in an earlier already-flushed message). Reset on
+  // <end> and in reset().
+  private utteranceSide: 'speaker' | 'participant' | null = null;
   // Tracks which utterance's audio is currently streaming back from TTS.
   // Deliberately independent of currentAssistantItemId: text_end is sent on
   // <end> (which clears currentAssistantItemId), but the trailing audio for
@@ -217,6 +223,14 @@ export class SonioxClient implements IClient {
         continue;
       }
       const isTranslation = token.translation_status === 'translation';
+      if (this.bidirectional && this.utteranceSide === null) {
+        const src = this.currentConfig?.sourceLanguage;
+        if (!isTranslation && token.language) {
+          this.utteranceSide = token.language === src ? 'speaker' : 'participant';
+        } else if (isTranslation && token.source_language) {
+          this.utteranceSide = token.source_language === src ? 'speaker' : 'participant';
+        }
+      }
       if (isTranslation) {
         if (token.is_final) {
           this.assistantFinal += text;
@@ -239,6 +253,7 @@ export class SonioxClient implements IClient {
 
   private feedTts(text: string, token: SonioxToken): void {
     if (!this.tts) return;
+    if (this.bidirectional && token.source_language !== this.currentConfig?.sourceLanguage) return; // v1: only me→other is spoken
     if (this.utteranceTtsLanguage === null) {
       this.utteranceTtsLanguage = token.language || this.currentConfig?.targetLanguage || 'en';
     }
@@ -322,6 +337,7 @@ export class SonioxClient implements IClient {
       formatted: { text, transcript: text },
       content: [{ type: 'text', text }],
     });
+    if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
     if (role === 'user') this.currentUserItemId = item.id; else this.currentAssistantItemId = item.id;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { text } });
   }
@@ -340,6 +356,7 @@ export class SonioxClient implements IClient {
         formatted: { text, transcript: text },
         content: [{ type: 'text', text }],
       });
+      if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
       this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
     };
     complete('user', this.currentUserItemId, this.userFinal);
@@ -352,6 +369,7 @@ export class SonioxClient implements IClient {
     this.userFinal = '';
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
+    this.utteranceSide = null;
     this.tts?.endUtterance();
   }
 
@@ -371,6 +389,7 @@ export class SonioxClient implements IClient {
       status: 'in_progress',
       formatted: {},
     };
+    if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { audio } });
   }
 
@@ -438,6 +457,7 @@ export class SonioxClient implements IClient {
     this.userFinal = '';
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
+    this.utteranceSide = null;
     this.ttsFailedOnce = false;
   }
 

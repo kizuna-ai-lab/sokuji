@@ -402,3 +402,54 @@ describe('SonioxClient bidirectional core (Both single-session)', () => {
     expect(stt.sentAudio.length).toBe(before);
   });
 });
+
+describe('SonioxClient bidirectional tagging + TTS filter', () => {
+  async function bidi(textOnly = true) {
+    const client = new SonioxClient('key');
+    const updates: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly });
+    return { client, updates, stt: sttInstances.at(-1)!, tts: ttsInstances.at(-1) };
+  }
+  const tok = (text: string, extra: object = {}) => ({ text, ...extra });
+
+  it('tags my-language utterance items as source=speaker', async () => {
+    const { updates, stt } = await bidi();
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' }),
+    ] });
+    expect(updates.every((u) => u.item.source === 'speaker')).toBe(true);
+  });
+
+  it('tags other-language utterance items as source=participant', async () => {
+    const { updates, stt } = await bidi();
+    stt.emit({ tokens: [
+      tok('Hello', { is_final: true, translation_status: 'original', language: 'en' }),
+      tok('你好', { is_final: true, translation_status: 'translation', language: 'zh', source_language: 'en' }),
+    ] });
+    expect(updates.some((u) => u.item.source === 'participant')).toBe(true);
+    expect(updates.every((u) => u.item.source === 'participant')).toBe(true);
+  });
+
+  it('does NOT set source when not bidirectional (MainPanel fallback owns it)', async () => {
+    const client = new SonioxClient('key');
+    const updates: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, bidirectional: false, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
+    const stt = sttInstances.at(-1)!;
+    stt.emit({ tokens: [tok('你好', { is_final: true, translation_status: 'original', language: 'zh' })] });
+    expect(updates.every((u) => u.item.source === undefined)).toBe(true);
+  });
+
+  it('feeds TTS only for me→other translations (source_language === sourceLanguage)', async () => {
+    const { stt, tts } = await bidi(false);
+    stt.emit({ tokens: [
+      tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' }), // me→other: SPOKEN
+    ] });
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'translation', language: 'zh', source_language: 'en' }),   // other→me: TEXT ONLY
+    ] });
+    expect(tts!.sent).toEqual([{ text: 'Hello', language: 'en' }]);
+  });
+});
