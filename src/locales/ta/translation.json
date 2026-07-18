@@ -211,9 +211,7 @@
     "localNativeUnavailable": "நேட்டிவ் இயந்திரம் கிடைக்கவில்லை — அமைப்புகளில் மீண்டும் முயற்சிக்கவும்",
     "simpleMode": "விரைவு",
     "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
-    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
-    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது",

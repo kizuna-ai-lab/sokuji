@@ -211,9 +211,7 @@
     "localNativeUnavailable": "Native 引擎不可用 — 请在设置中重试",
     "simpleMode": "快捷",
     "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
-    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
-    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",

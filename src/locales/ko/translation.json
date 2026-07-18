@@ -211,9 +211,7 @@
     "localNativeUnavailable": "네이티브 엔진을 사용할 수 없습니다 — 설정에서 다시 시도하세요",
     "simpleMode": "빠른",
     "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionOn": "One Soniox session translates both sides with automatic speaker separation — lower cost and latency.",
-    "sonioxSharedSessionOff": "A separate session per direction — more reliable when both people talk at once, but about twice the cost.",
-    "sonioxSharedSessionOnlyBoth": "Only affects Both mode."
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",

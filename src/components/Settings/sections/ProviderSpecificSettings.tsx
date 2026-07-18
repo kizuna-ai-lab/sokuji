@@ -1740,7 +1740,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section" id="soniox-settings-section">
-        <h2>{t('settings.sonioxSharedSession', 'Shared session in Both mode')}</h2>
+        <h2>
+          {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
+          <Tooltip
+            content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
             <button
@@ -1757,13 +1765,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             >
               {t('settings.disabled', 'Disabled')}
             </button>
-          </div>
-          <div className="setting-description">
-            {!inBoth
-              ? t('settings.sonioxSharedSessionOnlyBoth', 'Only affects Both mode.')
-              : shared
-                ? t('settings.sonioxSharedSessionOn', 'One Soniox session translates both sides with automatic speaker separation — lower cost and latency.')
-                : t('settings.sonioxSharedSessionOff', 'A separate session per direction — more reliable when both people talk at once, but about twice the cost.')}
           </div>
         </div>
       </div>
