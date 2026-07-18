@@ -266,14 +266,17 @@ function setupSubtitleHandlers(mainWindow) {
   mainWindow.on('focus', schedulePinReassert);
   mainWindow.on('blur', schedulePinReassert);
   mainWindow.on('closed', () => {
-    stopPinEnforcement();
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
     // Drop the reference so handlers know there's no live window until the
-    // next createWindow() rebinds it.
+    // next createWindow() rebinds it. Like the rest of the module-scoped
+    // state, enforcement is only torn down when the closing window is still
+    // the bound one — a stale 'closed' from a window that was already
+    // replaced by a rebind must not stop the new window's enforcement.
     if (activeWindow === mainWindow) {
+      stopPinEnforcement();
       activeWindow = null;
       normalBoundsSnapshot = null;
     }

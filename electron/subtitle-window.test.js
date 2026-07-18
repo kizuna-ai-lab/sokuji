@@ -301,6 +301,25 @@ describe('subtitle-window always-on-top enforcement (#326)', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('a stale window closing after a rebind does not stop the new window enforcement', async () => {
+    // createWindow() can run again (macOS dock activate) and rebind the
+    // handlers before the previous window's deferred 'closed' fires. That
+    // stale event must not tear down the timers now serving the new window.
+    const newWin = makeFakeWindow();
+    setupSubtitleHandlers(newWin);
+    await enter({ alwaysOnTop: true }); // pins the new window
+
+    win.destroyed = true;
+    win.emit('closed'); // stale event from the old window
+
+    newWin.setAlwaysOnTop.mockClear();
+    vi.advanceTimersByTime(3000);
+    expect(newWin.setAlwaysOnTop.mock.calls.length).toBe(3);
+
+    newWin.destroyed = true;
+    newWin.emit('closed');
+  });
+
   it('survives the window being destroyed between heartbeats', async () => {
     await enter({ alwaysOnTop: true });
 
