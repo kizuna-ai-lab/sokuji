@@ -596,10 +596,15 @@ git commit -m "feat(soniox): bidirectional item.source tagging by language + me-
 - Consumes: `SonioxSettings.bothModeSharedSession` (Task 2); the current mode (`useConversationMode`/`effectiveMode` — see below).
 - Produces: the greyed-unless-Both shared-session pill + its tooltip; removal of the two-way toggle and its interlock.
 
-- [ ] **Step 1: Find how the settings panel reads the current You/Others/Both mode**
+- [ ] **Step 1: Read the current You/Others/Both mode in the settings component**
 
-Run: `grep -rn "useConversationMode\|conversationMode\|state.mode\b" src/stores src/components/Settings | head`
-Use whatever selector the store exposes for the active mode (`'speaker' | 'participant' | 'both'`). In `ProviderSpecificSettings.tsx`, read it (e.g. `const mode = useConversationMode();`). If no hook exists, read `useSettingsStore`/session store's mode field directly the way sibling code does. The pill is enabled only when `mode === 'both'`.
+The active mode selector is `useMode()` from `src/stores/audioStore.ts` — it returns `'speaker' | 'participant' | 'both'`. In `ProviderSpecificSettings.tsx`, add the import and hook:
+```ts
+import { useMode } from '../../../stores/audioStore'; // adjust relative depth to match sibling imports in this file
+// ...inside the component:
+const mode = useMode();
+```
+The shared-session pill is enabled only when `mode === 'both'`. (Adjust the import path to whatever depth the file's other store imports use.)
 
 - [ ] **Step 2: Replace the Soniox settings render function**
 
