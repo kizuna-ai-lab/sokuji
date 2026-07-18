@@ -211,8 +211,8 @@
     "localNativeUnavailable": "ネイティブエンジンを利用できません — 設定で再試行してください",
     "translationMode": "翻訳モード",
     "sonioxTwoWay": "双方向翻訳",
-    "sonioxTwoWayDesc": "元の言語と対象言語の両方向に翻訳します",
-    "sonioxTwoWayNeedsSource": "双方向翻訳を有効にするには、特定のソース言語を選択してください",
+    "sonioxTwoWayDesc": "翻訳元と翻訳先の言語間で双方向に翻訳します",
+    "sonioxTwoWayNeedsSource": "双方向翻訳を有効にするには、翻訳元の言語を具体的に選択してください",
     "simpleMode": "クイック"
   },
   "simpleSettings": {
@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "リアルタイム音声対音声翻訳",
+      "description": "音声から音声へのリアルタイム翻訳",
       "apiKeyPlaceholder": "Soniox APIキーを入力してください"
     },
     "volcengine_ast2": {

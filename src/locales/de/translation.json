@@ -210,9 +210,9 @@
     "localNativeTranslationIncompatible": "Wählen Sie ein Übersetzungsmodell für dieses Sprachpaar",
     "localNativeUnavailable": "Native Engine nicht verfügbar — in den Einstellungen erneut versuchen",
     "translationMode": "Übersetzungsmodus",
-    "sonioxTwoWay": "Zweiweg-Übersetzung",
+    "sonioxTwoWay": "Bidirektionale Übersetzung",
     "sonioxTwoWayDesc": "Übersetzt in beide Richtungen zwischen Quell- und Zielsprache",
-    "sonioxTwoWayNeedsSource": "Wählen Sie eine bestimmte Ausgangssprache aus, um die Zweiweg-Übersetzung zu aktivieren",
+    "sonioxTwoWayNeedsSource": "Wählen Sie eine konkrete Ausgangssprache aus, um die bidirektionale Übersetzung zu aktivieren",
     "simpleMode": "Schnell"
   },
   "simpleSettings": {
@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "Echtzeit-Sprache-zu-Sprache-Übersetzung",
+      "description": "Sprache-zu-Sprache-Übersetzung in Echtzeit",
       "apiKeyPlaceholder": "Geben Sie Ihren Soniox-API-Schlüssel ein"
     },
     "volcengine_ast2": {

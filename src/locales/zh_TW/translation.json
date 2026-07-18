@@ -373,7 +373,7 @@
     },
     "soniox": {
       "name": "Soniox",
-      "description": "即時語音對語音翻譯",
+      "description": "即時語音轉語音翻譯",
       "apiKeyPlaceholder": "輸入您的 Soniox API 金鑰"
     },
     "volcengine_ast2": {
