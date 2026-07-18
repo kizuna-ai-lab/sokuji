@@ -115,6 +115,16 @@ describe('SonioxClient connect', () => {
     const { client } = await connectedClient();
     expect(client.isConnected()).toBe(true);
   });
+
+  it('TTS connect failure emits exactly one tts.degraded event (no duplicate echo)', async () => {
+    MockTts.failConnect = true;
+    const client = new SonioxClient('key');
+    const realtimeEvents: Array<{ event: { type: string } }> = [];
+    client.setEventHandlers({ onRealtimeEvent: (e: any) => realtimeEvents.push(e) });
+    await client.connect(BASE_CONFIG);
+    const degraded = realtimeEvents.filter((e) => e.event.type === 'tts.degraded');
+    expect(degraded).toHaveLength(1);
+  });
 });
 
 describe('SonioxClient token handling', () => {
@@ -161,6 +171,18 @@ describe('SonioxClient token handling', () => {
     const userIds = new Set(updates.filter((u) => u.item.role === 'user').map((u) => u.item.id));
     expect(userIds.size).toBe(2);
   });
+
+  it('filters <fin> from display and never feeds it to TTS', async () => {
+    const { updates, stt, tts } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('<fin>'),
+      tok('Hi', { is_final: true, translation_status: 'original' }),
+    ] });
+    expect(updates.some((u) => u.item.formatted?.text?.includes('<fin>'))).toBe(false);
+    const user = updates.find((u) => u.item.role === 'user')!;
+    expect(user.item.formatted?.text).toBe('Hi');
+    expect(tts!.sent).toEqual([]);
+  });
 });
 
 describe('SonioxClient TTS feeding', () => {
@@ -198,6 +220,31 @@ describe('SonioxClient TTS feeding', () => {
     const { stt } = await connectedClient({ textOnly: true });
     stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation' }), tok('<end>')] });
     expect(ttsInstances).toHaveLength(0);
+  });
+
+  it('trailing audio after <end> keeps the completed utterance\'s item id, not a fresh one', async () => {
+    const { updates, stt, tts } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('Hello', { is_final: true, translation_status: 'translation', language: 'en' }),
+      tok('<end>'),
+    ] });
+    const completedAssistant = updates.find((u) => u.item.role === 'assistant' && u.item.status === 'completed')!;
+    expect(completedAssistant).toBeDefined();
+    const completedId = completedAssistant.item.id;
+
+    // Trailing TTS audio for the utterance that was just completed by <end>.
+    tts!.handlers.onAudio!(new Int16Array([1]));
+    const audioUpdate = updates.find((u) => u.delta?.audio)!;
+    expect(audioUpdate).toBeDefined();
+    expect(audioUpdate.item.id).toBe(completedId);
+
+    // The next utterance's assistant text item must NOT adopt that audio id.
+    stt.emit({ tokens: [tok('Bye', { is_final: true, translation_status: 'translation', language: 'en' })] });
+    const nextAssistant = updates.find(
+      (u) => u.item.role === 'assistant' && u.item.formatted?.text === 'Bye'
+    )!;
+    expect(nextAssistant).toBeDefined();
+    expect(nextAssistant.item.id).not.toBe(audioUpdate.item.id);
   });
 });
 

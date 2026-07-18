@@ -53,6 +53,12 @@ export class SonioxClient implements IClient {
   // translation token; one_way: always the target language)
   private utteranceTtsLanguage: string | null = null;
   private ttsFailedOnce = false;
+  // Tracks which utterance's audio is currently streaming back from TTS.
+  // Deliberately independent of currentAssistantItemId: text_end is sent on
+  // <end> (which clears currentAssistantItemId), but the trailing audio for
+  // that same utterance keeps arriving afterward — it must still land on the
+  // completed utterance's item, not mint a new one.
+  private audioItemId: string | null = null;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -162,6 +168,11 @@ export class SonioxClient implements IClient {
         // TTS is best-effort: never fail the session because audio is unavailable.
         console.error('[SonioxClient] TTS connect failed — continuing text-only:', error);
         this.emitRealtime('client', 'tts.degraded', { reason: String(error) });
+        // The hardened stream may ALSO fire onError('socket_closed', ...) for
+        // this same failure (e.g. a real underlying socket closing after the
+        // connect() promise already rejected) — suppress that echo so we
+        // don't log/emit tts.degraded twice for one failure.
+        this.ttsFailedOnce = true;
         this.tts = null;
       }
     }
@@ -215,6 +226,11 @@ export class SonioxClient implements IClient {
     if (this.utteranceTtsLanguage === null) {
       this.utteranceTtsLanguage = token.language || this.currentConfig?.targetLanguage || 'en';
     }
+    // Mint (or reuse) this utterance's assistant item id up front, and pin it
+    // as the audio target — audio for this utterance keeps arriving after
+    // <end> clears currentAssistantItemId, so it needs its own anchor.
+    if (!this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
+    this.audioItemId = this.currentAssistantItemId;
     this.tts.sendText(text, this.utteranceTtsLanguage);
   }
 
@@ -261,6 +277,9 @@ export class SonioxClient implements IClient {
     complete('assistant', this.currentAssistantItemId, this.assistantFinal);
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
+    // audioItemId is intentionally NOT cleared here: trailing TTS audio for
+    // this just-completed utterance keeps streaming in after <end> and must
+    // still attach to it (MainPanel's audio-delta path ignores item status).
     this.userFinal = '';
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
@@ -269,9 +288,15 @@ export class SonioxClient implements IClient {
 
   /** TTS audio chunk → audio-only delta on the assistant item (MainPanel plays it). */
   private emitAssistantAudio(audio: Int16Array): void {
-    if (!this.currentAssistantItemId) this.currentAssistantItemId = this.generateItemId('assistant');
+    // Pure-audio edge case that shouldn't happen in practice (audio always
+    // follows feedTts, which sets audioItemId) — fall back to minting rather
+    // than dropping the chunk.
+    if (!this.audioItemId) this.audioItemId = this.generateItemId('assistant');
+    // keepReplayAudio (per-item formatted.audio accumulation for the inline
+    // replay button) is deliberately NOT implemented in v1 — plan scopes it
+    // out; live playback via the audio-only delta below is the v1 contract.
     const item: ConversationItem = {
-      id: this.currentAssistantItemId,
+      id: this.audioItemId,
       role: 'assistant',
       type: 'message',
       status: 'in_progress',
@@ -338,6 +363,7 @@ export class SonioxClient implements IClient {
     this.conversationItems = [];
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
+    this.audioItemId = null;
     this.userFinal = '';
     this.assistantFinal = '';
     this.utteranceTtsLanguage = null;
