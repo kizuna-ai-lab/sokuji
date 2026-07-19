@@ -13,6 +13,16 @@ export interface ConversationItem {
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
   source?: 'speaker' | 'participant'; // Source of the conversation item (speaker's mic or participant's system audio)
   createdAt?: number; // Timestamp for accurate sorting
+  /**
+   * The language actually detected for THIS item's text (e.g. Soniox reports
+   * a per-token `language`), as an ISO code. When present, the conversation
+   * bubble's language badge shows this instead of the configured
+   * source/target — correct for two-way translation and auto-detect, where the
+   * configured pair doesn't match what was spoken. Clients that don't receive
+   * per-item language leave it undefined and the badge falls back to the
+   * configured value.
+   */
+  detectedLanguage?: string;
   formatted?: {
     text?: string;
     transcript?: string;

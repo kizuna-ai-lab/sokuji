@@ -6,12 +6,13 @@ import './ConversationRow.scss';
 import '../../styles/karaoke.scss';
 
 interface ConversationRowProps {
+  // sourceLanguage/targetLanguage are display-only fields attached by MainPanel's
+  // tag(); source and detectedLanguage already live on ConversationItem.
   item: ConversationItem & {
-    source?: 'speaker' | 'participant';
     sourceLanguage?: string;
     targetLanguage?: string;
   };
-  prevItem?: (ConversationItem & { source?: 'speaker' | 'participant' }) | null;
+  prevItem?: ConversationItem | null;
   sourceLanguage: string;
   targetLanguage: string;
   isPlaying: boolean;
@@ -72,9 +73,17 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   // or for transient cases where the snapshot hasn't been attached yet.
   const itemSourceLanguage = item.sourceLanguage ?? sourceLanguage;
   const itemTargetLanguage = item.targetLanguage ?? targetLanguage;
+  // Prefer the language actually detected for this item's text (Soniox and
+  // other providers with per-item language identification supply it) over the
+  // configured source/target pair — the configured pair is wrong for two-way
+  // translation and auto-detect. Falls back to the configured mapping.
+  // `||` (not `??`): an empty-string detectedLanguage from a future provider
+  // must fall back to the configured mapping rather than render a blank badge —
+  // a language code is never legitimately falsy.
+  const detectedLanguage = item.detectedLanguage;
   const lang = useMemo(
-    () => languageForItem(source, role, itemSourceLanguage, itemTargetLanguage),
-    [source, role, itemSourceLanguage, itemTargetLanguage],
+    () => detectedLanguage || languageForItem(source, role, itemSourceLanguage, itemTargetLanguage),
+    [detectedLanguage, source, role, itemSourceLanguage, itemTargetLanguage],
   );
 
   const scopeName = t(

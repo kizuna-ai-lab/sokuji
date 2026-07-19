@@ -60,6 +60,14 @@ export class SonioxClient implements IClient {
   private currentAssistantItemId: string | null = null;
   private userFinal = '';
   private assistantFinal = '';
+  // Detected language of the in-flight utterance's text, per side, from the
+  // tokens themselves: the transcript (original) token's `language` is the
+  // spoken language; the translation token's `language` is the language it was
+  // translated into. Surfaced as ConversationItem.detectedLanguage so the
+  // bubble badge shows what was actually spoken/produced, not the configured
+  // pair (which is wrong for two_way and auto-detect). Reset per utterance.
+  private userLanguage: string | null = null;
+  private assistantLanguage: string | null = null;
   // TTS language for the in-flight utterance (two_way: from the first final
   // translation token; one_way: always the target language)
   private utteranceTtsLanguage: string | null = null;
@@ -256,6 +264,7 @@ export class SonioxClient implements IClient {
         }
       }
       if (isTranslation) {
+        if (token.language) this.assistantLanguage = token.language; // translated-into language
         if (token.is_final) {
           this.assistantFinal += text;
           this.feedTts(text, token);
@@ -263,6 +272,7 @@ export class SonioxClient implements IClient {
           assistantPartial += text;
         }
       } else {
+        if (token.language) this.userLanguage = token.language; // spoken language
         if (token.is_final) {
           this.userFinal += text;
         } else {
@@ -404,7 +414,7 @@ export class SonioxClient implements IClient {
   private upsertItem(
     role: 'user' | 'assistant',
     currentId: string | null,
-    patch: Pick<ConversationItem, 'status' | 'formatted' | 'content'>
+    patch: Pick<ConversationItem, 'status' | 'formatted' | 'content' | 'detectedLanguage'>
   ): ConversationItem {
     const idx = currentId ? this.conversationItems.findIndex((i) => i.id === currentId) : -1;
     const previous = idx !== -1 ? this.conversationItems[idx] : undefined;
@@ -424,10 +434,12 @@ export class SonioxClient implements IClient {
     const text = finalText + partialText;
     if (!text) return;
     const currentId = role === 'user' ? this.currentUserItemId : this.currentAssistantItemId;
+    const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
     const item = this.upsertItem(role, currentId, {
       status: 'in_progress',
       formatted: { text, transcript: text },
       content: [{ type: 'text', text }],
+      ...(detected ? { detectedLanguage: detected } : {}),
     });
     if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
     if (role === 'user') this.currentUserItemId = item.id; else this.currentAssistantItemId = item.id;
@@ -448,10 +460,12 @@ export class SonioxClient implements IClient {
       // (keepReplayAudio only — undefined otherwise, a no-op).
       const prev = existingId ? this.conversationItems.find((i) => i.id === existingId) : undefined;
       const audio = prev?.formatted?.audio as Int16Array | undefined;
+      const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
       const item = this.upsertItem(role, existingId, {
         status: 'completed',
         formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
         content: [{ type: 'text', text }],
+        ...(detected ? { detectedLanguage: detected } : {}),
       });
       if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
       this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
@@ -465,6 +479,8 @@ export class SonioxClient implements IClient {
     // still attach to it (MainPanel's audio-delta path ignores item status).
     this.userFinal = '';
     this.assistantFinal = '';
+    this.userLanguage = null;
+    this.assistantLanguage = null;
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
     // Debug-timeline milestone: the text this utterance sent to TTS to be
@@ -642,6 +658,8 @@ export class SonioxClient implements IClient {
     this.audioItemSide = null;
     this.userFinal = '';
     this.assistantFinal = '';
+    this.userLanguage = null;
+    this.assistantLanguage = null;
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
     this.ttsSpokenText = '';
