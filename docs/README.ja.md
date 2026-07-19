@@ -30,7 +30,7 @@
 
 [Kizuna AI Lab](https://github.com/kizuna-ai-lab) が開発 — AIを活用して言語とアクセシビリティの壁を打ち破り、人と人との真のつながりを創造します。「絆」は日本語で「bond」、即時（Sokuji）はリアルタイムコミュニケーションを可能にするフラッグシップツールです。
 
-Sokujiは、デスクトップとブラウザに対応したクロスプラットフォームのリアルタイム音声翻訳アプリです。**ローカル推論**をサポート — WASMとWebGPUによるオンデバイスASR・翻訳・TTSで、APIキー不要、高価なGPU不要、完全オフライン、プライバシー完全保護。OpenAI、Google Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、OpenAI互換APIなどのクラウドプロバイダーにも対応。
+Sokujiは、デスクトップとブラウザに対応したクロスプラットフォームのリアルタイム音声翻訳アプリです。**ローカル推論**をサポート — WASMとWebGPUによるオンデバイスASR・翻訳・TTSで、APIキー不要、高価なGPU不要、完全オフライン、プライバシー完全保護。OpenAI、Google Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI互換APIなどのクラウドプロバイダーにも対応。
 
 ---
 
@@ -57,7 +57,7 @@ graph LR
 
 | | |
 |---|---|
-| **プロバイダー** | 7 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、OpenAI互換、ローカル推論 |
+| **プロバイダー** | 9 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI互換、ローカル推論 |
 | **ローカルモデル** | ASR 50モデル、翻訳 55以上の言語ペア、TTS 136ボイス |
 | **言語** | 99以上（音声認識）· 55以上（翻訳）· 53（音声合成） |
 | **プラットフォーム** | Linux · Windows · macOS · Chrome · Edge |
@@ -146,6 +146,8 @@ npm run electron:build      # 本番ビルド
 | **Palabra.ai** | WebRTC低遅延 · ボイスクローニング · 自動文分割 · 部分転写翻訳 · 60以上のソース / 40以上のターゲット言語 |
 | **Kizuna AI** | サインインするだけ — APIキーはバックエンド管理 · OpenAIモデルを最適化されたデフォルトで |
 | **豆包 AST 2.0** | 話者ボイスクローニング付き音声翻訳 · 中国語↔英語双方向 · Ogg Opus音声出力 |
+| **Soniox** | リアルタイム音声間翻訳 · 一方向＆双方向翻訳 · 60以上の言語 / 3,600以上のペア · 自動言語識別 · 12ボイス · APIキー持ち込み |
+| **Zoom AI Services** | テキストのみのライブ字幕 · Zoom Build Platform キーを持ち込み · Zoom以外のあらゆるサイトで動作 · Zoomのネイティブ言語ペア |
 | **OpenAI互換** | 独自エンドポイント対応 — OpenAI Realtime API互換サービス（Electronのみ） |
 | **ローカル推論** | 完全オフライン · ASR → 翻訳 → TTSをオンデバイスで · APIキー不要 · GPU不要 |
 
