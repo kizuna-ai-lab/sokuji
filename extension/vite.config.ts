@@ -4,6 +4,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
+import { dropDuplicateOrtWasm } from '../vite.drop-duplicate-ort-wasm'
 import { workerManualChunks } from '../vite.worker-chunks'
 import { serializePlatformsForVanilla } from './platforms'
 
@@ -23,25 +24,6 @@ function emitGeneratedPlatforms(): Plugin {
         fileName: 'platforms.generated.js',
         source: serializePlatformsForVanilla(),
       })
-    },
-  }
-}
-
-/**
- * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
- * `new URL('...wasm', import.meta.url)`. All workers set wasmPaths to load
- * from wasm/ort/ (copied via viteStaticCopy), so the assets/ copies are
- * never fetched at runtime. Drop them to avoid ~50 MB duplication.
- */
-function dropDuplicateOrtWasm(): Plugin {
-  return {
-    name: 'drop-duplicate-ort-wasm',
-    generateBundle(_, bundle) {
-      for (const key of Object.keys(bundle)) {
-        if (key.includes('ort-wasm') && key.endsWith('.wasm')) {
-          delete bundle[key]
-        }
-      }
     },
   }
 }
