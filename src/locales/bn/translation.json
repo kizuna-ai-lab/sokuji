@@ -209,7 +209,10 @@
     "localNativeStarting": "স্থানীয় ইঞ্জিন শুরু হচ্ছে",
     "localNativeTranslationIncompatible": "এই ভাষা জোড়ার জন্য একটি অনুবাদ মডেল নির্বাচন করুন",
     "localNativeUnavailable": "নেটিভ ইঞ্জিন উপলব্ধ নয় — সেটিংসে পুনরায় চেষ্টা করুন",
-    "simpleMode": "দ্রুত"
+    "simpleMode": "দ্রুত",
+    "sonioxSharedSession": "উভয় মোডে ভাগ করা সেশন",
+    "sonioxSharedSessionTooltip": "উভয় মোড একটি ভাগ করা Soniox সেশন বা প্রতিটি দিকের জন্য পৃথক সেশন ব্যবহার করতে পারে।\n\nসক্রিয়: একটি সেশন স্বয়ংক্রিয় বক্তা পৃথকীকরণের সাথে উভয় পক্ষ অনুবাদ করে — কম খরচ ও বিলম্ব।\n\nনিষ্ক্রিয়: প্রতিটি দিকের জন্য পৃথক সেশন — উভয়ে একসাথে কথা বললে বেশি নির্ভরযোগ্য, তবে খরচ প্রায় দ্বিগুণ।\n\nশুধুমাত্র উভয় মোডকে প্রভাবিত করে।",
+    "sonioxAutoParticipantWarning": "একটি নির্দিষ্ট উৎস ভাষা বেছে নিন — স্বয়ংক্রিয় শনাক্তকরণে অন্য পক্ষের কথা আপনার ভাষায় অনুবাদ করা যায় না।"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -366,6 +369,11 @@
       "description": "ByteDance স্পিচ ট্রান্সলেশন",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "৬০+ ভাষার মধ্যে যেকোনো-থেকে-যেকোনো অনুবাদ, একমুখী বা দ্বিমুখী",
+      "apiKeyPlaceholder": "আপনার Soniox API কী লিখুন"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

@@ -16,6 +16,7 @@ import {
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
+  useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
   useLocalInferenceSettings,
@@ -33,6 +34,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateLocalInference,
@@ -54,6 +56,7 @@ import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
+import { useMode } from '../../../stores/audioStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
@@ -109,6 +112,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
+  const sonioxSettings = useSonioxSettings();
+  const mode = useMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
@@ -135,6 +140,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -280,6 +286,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineAST2Settings({ [key]: value });
     } else if (provider === Provider.ZOOM_AI) {
       updateZoomAISettings({ [key]: value });
+    } else if (provider === Provider.SONIOX) {
+      updateSonioxSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
@@ -1720,6 +1728,49 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderSonioxSettings = () => {
+    if (provider !== Provider.SONIOX) return null;
+
+    // The shared-session toggle only means anything in Both mode — Soniox
+    // runs a single You/Others session there instead of two separate ones.
+    // In You-only or Others-only mode there's nothing to share, so the pill
+    // is greyed out (still shows the persisted preference, just inert).
+    const inBoth = mode === 'both';
+    const shared = sonioxSettings.bothModeSharedSession;
+
+    return (
+      <div className="settings-section" id="soniox-settings-section">
+        <h2>
+          {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
+          <Tooltip
+            content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <div className="turn-detection-options">
+            <button
+              className={`option-button ${shared ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ bothModeSharedSession: true })}
+              disabled={isSessionActive || !inBoth}
+            >
+              {t('settings.enabled', 'Enabled')}
+            </button>
+            <button
+              className={`option-button ${!shared ? 'active' : ''}`}
+              onClick={() => updateSonioxSettings({ bothModeSharedSession: false })}
+              disabled={isSessionActive || !inBoth}
+            >
+              {t('settings.disabled', 'Disabled')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderLocalNativeSettings = () => {
     if (provider !== Provider.LOCAL_NATIVE) {
       return null;
@@ -2017,6 +2068,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
       {renderZoomAISettings()}
+      {renderSonioxSettings()}
       {renderLocalInferenceSettings()}
       {renderLocalNativeSettings()}
     </Fragment>

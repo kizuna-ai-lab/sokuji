@@ -209,7 +209,10 @@
     "localNativeStarting": "Đang khởi động công cụ cục bộ",
     "localNativeTranslationIncompatible": "Chọn mô hình dịch cho cặp ngôn ngữ này",
     "localNativeUnavailable": "Công cụ native không khả dụng — thử lại trong cài đặt",
-    "simpleMode": "Nhanh"
+    "simpleMode": "Nhanh",
+    "sonioxSharedSession": "Phiên dùng chung ở chế độ Cả hai",
+    "sonioxSharedSessionTooltip": "Chế độ Cả hai có thể dùng một phiên Soniox chung hoặc một phiên riêng cho mỗi chiều.\n\nĐã bật: một phiên dịch cả hai chiều với tự động tách người nói — chi phí và độ trễ thấp hơn.\n\nĐã tắt: một phiên riêng cho mỗi chiều — đáng tin cậy hơn khi cả hai cùng nói, nhưng chi phí khoảng gấp đôi.\n\nChỉ ảnh hưởng đến chế độ Cả hai.",
+    "sonioxAutoParticipantWarning": "Hãy chọn một ngôn ngữ nguồn cụ thể — khi dùng nhận diện tự động, không thể dịch lời của người kia sang ngôn ngữ của bạn."
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
@@ -366,6 +369,11 @@
       "description": "Dịch giọng nói ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Dịch giữa hai ngôn ngữ bất kỳ trong hơn 60 ngôn ngữ, một chiều hoặc hai chiều",
+      "apiKeyPlaceholder": "Nhập Soniox API Key của bạn"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

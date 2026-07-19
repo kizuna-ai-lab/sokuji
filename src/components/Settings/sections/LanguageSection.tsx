@@ -24,6 +24,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useNavigateToSettings,
   useSetUIMode,
   useTextOnly,
@@ -97,6 +98,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
   // read/write the kizuna slices. `effectiveProvider` drives base-keyed logic
@@ -215,6 +217,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         });
         break;
       }
+      case Provider.SONIOX:
+        updateSonioxSettings({ sourceLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -284,6 +289,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.ZOOM_AI:
         updateZoomAISettings({ targetLanguage: value });
+        break;
+      case Provider.SONIOX:
+        updateSonioxSettings({ targetLanguage: value });
         break;
     }
     trackEvent('language_changed', {
@@ -360,6 +368,17 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     if (!isParticipantChannelInScope) return false;
     const supportedTargets = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).resolveTargetLanguages(currentProviderSettings.sourceLanguage);
     return !supportedTargets.some(t => t.value === currentProviderSettings.sourceLanguage);
+  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
+
+  // Soniox carries direction in source/target and reverses them for the
+  // participant client (Others / Both-unshared). 'auto' source can't be
+  // reversed — it would make the participant's translate target 'auto', which
+  // Soniox one_way rejects — so require a concrete source language whenever a
+  // participant channel is in scope.
+  const showSonioxAutoParticipantWarning = useMemo(() => {
+    return effectiveProvider === Provider.SONIOX
+      && isParticipantChannelInScope
+      && currentProviderSettings.sourceLanguage === 'auto';
   }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
@@ -559,6 +578,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             <div className="language-warning">
               <AlertTriangle size={12} />
               <span>{t('settings.translateSourceParticipantWarning')}</span>
+            </div>
+          )}
+
+          {showSonioxAutoParticipantWarning && (
+            <div className="language-warning">
+              <AlertTriangle size={12} />
+              <span>{t('settings.sonioxAutoParticipantWarning')}</span>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
-import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon } from '../../Icons/ProviderIcons';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -20,6 +20,7 @@ import {
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
+  useUpdateSoniox,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -69,6 +70,7 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.VOLCENGINE_ST]: VolcengineIcon,
   [Provider.VOLCENGINE_AST2]: VolcengineIcon,
   [Provider.ZOOM_AI]: ZoomIcon,
+  [Provider.SONIOX]: SonioxIcon,
   [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
   [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
   [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
@@ -82,6 +84,7 @@ const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.PALABRA_AI]: 'https://sokuji.kizuna.ai/docs/tutorials/palabraai-setup',
   [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
   [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
+  [Provider.SONIOX]: 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup',
   [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
   [Provider.LOCAL_NATIVE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
 };
@@ -120,6 +123,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
+  const updateSonioxSettings = useUpdateSoniox();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -310,6 +314,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.ZOOM_AI:
         updateZoomAISettings({ apiKey: value });
+        break;
+      case Provider.SONIOX:
+        updateSonioxSettings({ apiKey: value });
         break;
     }
   };

@@ -36,6 +36,7 @@ const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updateVolcengineAST2', 'volcengineAST2', { appId: 'p1' }],
   ['updateLocalInference', 'localInference', { asrModel: 'm1' }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
+  ['updateSoniox', 'soniox', { apiKey: 's1' }],
 ];
 
 beforeEach(() => {

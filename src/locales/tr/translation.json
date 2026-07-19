@@ -209,7 +209,10 @@
     "localNativeStarting": "Yerel motor başlatılıyor",
     "localNativeTranslationIncompatible": "Bu dil çifti için bir çeviri modeli seçin",
     "localNativeUnavailable": "Native motor kullanılamıyor — ayarlardan yeniden deneyin",
-    "simpleMode": "Hızlı"
+    "simpleMode": "Hızlı",
+    "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
+    "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum, otomatik konuşmacı ayrımıyla her iki tarafı da çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak yaklaşık iki kat maliyet.\n\nYalnızca Her ikisi modunu etkiler.",
+    "sonioxAutoParticipantWarning": "Belirli bir kaynak dil seçin — otomatik algılamayla karşı tarafın konuşması sizin dilinize çevrilemez."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -366,6 +369,11 @@
       "description": "ByteDance konuşma çevirisi",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "60+ dil arasında istediğiniz kombinasyonda çeviri, tek veya iki yönlü",
+      "apiKeyPlaceholder": "Soniox API Anahtarınızı girin"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

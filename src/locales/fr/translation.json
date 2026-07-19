@@ -209,7 +209,10 @@
     "localNativeStarting": "Démarrage du moteur local",
     "localNativeTranslationIncompatible": "Sélectionnez un modèle de traduction pour cette paire de langues",
     "localNativeUnavailable": "Moteur natif indisponible — réessayez dans les paramètres",
-    "simpleMode": "Rapide"
+    "simpleMode": "Rapide",
+    "sonioxSharedSession": "Session partagée en mode Les deux",
+    "sonioxSharedSessionTooltip": "Le mode Les deux peut utiliser une seule session Soniox partagée ou une session distincte par direction.\n\nActivé : une seule session traduit les deux côtés avec séparation automatique des locuteurs — coût et latence réduits.\n\nDésactivé : une session distincte par direction — plus fiable lorsque les deux personnes parlent en même temps, mais environ deux fois plus coûteux.\n\nN’affecte que le mode Les deux.",
+    "sonioxAutoParticipantWarning": "Choisissez une langue source spécifique — avec la détection automatique, la parole de l'autre participant ne peut pas être traduite dans votre langue."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -366,6 +369,11 @@
       "description": "Traduction vocale ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Traduction entre n'importe quelles langues parmi plus de 60, unidirectionnelle ou bidirectionnelle",
+      "apiKeyPlaceholder": "Entrez votre clé API Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

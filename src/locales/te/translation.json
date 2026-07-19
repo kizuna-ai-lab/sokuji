@@ -209,7 +209,10 @@
     "localNativeStarting": "లోకల్ ఇంజిన్ ప్రారంభమవుతోంది",
     "localNativeTranslationIncompatible": "ఈ భాషా జంట కోసం అనువాద మోడల్‌ను ఎంచుకోండి",
     "localNativeUnavailable": "నేటివ్ ఇంజిన్ అందుబాటులో లేదు — సెట్టింగ్‌లలో మళ్ళీ ప్రయత్నించండి",
-    "simpleMode": "శీఘ్ర"
+    "simpleMode": "శీఘ్ర",
+    "sonioxSharedSession": "రెండూ మోడ్‌లో భాగస్వామ్య సెషన్",
+    "sonioxSharedSessionTooltip": "రెండూ మోడ్ ఒక భాగస్వామ్య Soniox సెషన్‌ను లేదా ప్రతి దిశకు వేర్వేరు సెషన్‌ను ఉపయోగించవచ్చు.\n\nప్రారంభించబడింది: ఒకే సెషన్ స్వయంచాలక వక్త విభజనతో రెండు వైపులా అనువదిస్తుంది — తక్కువ ఖర్చు మరియు ఆలస్యం.\n\nనిష్క్రియం: ప్రతి దిశకు వేర్వేరు సెషన్ — ఇద్దరూ ఒకేసారి మాట్లాడేటప్పుడు మరింత నమ్మదగినది, కానీ దాదాపు రెట్టింపు ఖర్చు.\n\nరెండూ మోడ్‌ను మాత్రమే ప్రభావితం చేస్తుంది.",
+    "sonioxAutoParticipantWarning": "నిర్దిష్ట మూల భాషను ఎంచుకోండి — స్వయంచాలక గుర్తింపుతో అవతలి వ్యక్తి మాటను మీ భాషలోకి అనువదించలేము."
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
@@ -366,6 +369,11 @@
       "description": "ByteDance స్పీచ్ ట్రాన్స్‌లేషన్",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "60+ భాషలలో ఏ భాష నుండి ఏ భాషకైనా అనువాదం, ఏకదిశ లేదా ద్విదిశ",
+      "apiKeyPlaceholder": "మీ Soniox API కీని నమోదు చేయండి"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

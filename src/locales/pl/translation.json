@@ -209,7 +209,10 @@
     "localNativeStarting": "Uruchamianie lokalnego silnika",
     "localNativeTranslationIncompatible": "Wybierz model tłumaczenia dla tej pary językowej",
     "localNativeUnavailable": "Silnik natywny niedostępny — ponów próbę w ustawieniach",
-    "simpleMode": "Szybki"
+    "simpleMode": "Szybki",
+    "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
+    "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem mówców — niższy koszt i opóźnienie.\n\nWyłączony: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt około dwukrotnie wyższy.\n\nDotyczy tylko trybu Oba.",
+    "sonioxAutoParticipantWarning": "Wybierz konkretny język źródłowy — przy automatycznym wykrywaniu nie można przetłumaczyć wypowiedzi drugiej osoby na Twój język."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
@@ -366,6 +369,11 @@
       "description": "Tłumaczenie mowy ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Tłumaczenie między dowolnymi z ponad 60 języków, jedno- lub dwukierunkowe",
+      "apiKeyPlaceholder": "Wprowadź swój klucz API Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

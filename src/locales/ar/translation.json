@@ -209,7 +209,10 @@
     "localNativeStarting": "جاري تشغيل المحرك المحلي",
     "localNativeTranslationIncompatible": "اختر نموذج ترجمة لزوج اللغات هذا",
     "localNativeUnavailable": "المحرك الأصلي غير متاح — أعد المحاولة من الإعدادات",
-    "simpleMode": "سريع"
+    "simpleMode": "سريع",
+    "sonioxSharedSession": "جلسة مشتركة في وضع الكل",
+    "sonioxSharedSessionTooltip": "يمكن لوضع الكل استخدام جلسة Soniox مشتركة واحدة أو جلسة منفصلة لكل اتجاه.\n\nمفعل: جلسة واحدة تترجم كلا الجانبين مع فصل تلقائي للمتحدثين — تكلفة وزمن استجابة أقل.\n\nمعطل: جلسة منفصلة لكل اتجاه — أكثر موثوقية عندما يتحدث الشخصان معًا، لكن التكلفة تقارب الضعف.\n\nيؤثر في وضع الكل فقط.",
+    "sonioxAutoParticipantWarning": "اختر لغة مصدر محددة — عند استخدام الكشف التلقائي، لا يمكن ترجمة كلام الطرف الآخر إلى لغتك."
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -366,6 +369,11 @@
       "description": "ترجمة الكلام من ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "ترجمة بين أي لغتين من بين أكثر من 60 لغة، باتجاه واحد أو اتجاهين",
+      "apiKeyPlaceholder": "أدخل مفتاح API الخاص بـ Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

@@ -209,7 +209,10 @@
     "localNativeStarting": "De lokale engine wordt gestart",
     "localNativeTranslationIncompatible": "Selecteer een vertaalmodel voor dit taalpaar",
     "localNativeUnavailable": "Native engine niet beschikbaar — probeer opnieuw in Instellingen",
-    "simpleMode": "Snel"
+    "simpleMode": "Snel",
+    "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
+    "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
+    "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de andere deelnemer niet naar jouw taal worden vertaald."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -366,6 +369,11 @@
       "description": "ByteDance spraakvertaling",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Vertaling tussen willekeurige talen uit 60+ talen, in één of twee richtingen",
+      "apiKeyPlaceholder": "Voer uw Soniox API-sleutel in"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

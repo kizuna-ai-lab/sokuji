@@ -209,7 +209,10 @@
     "localNativeStarting": "מפעיל את המנוע המקומי",
     "localNativeTranslationIncompatible": "בחר מודל תרגום עבור צמד שפות זה",
     "localNativeUnavailable": "מנוע ה-Native אינו זמין — נסה שוב בהגדרות",
-    "simpleMode": "מהיר"
+    "simpleMode": "מהיר",
+    "sonioxSharedSession": "מפגש משותף במצב שניהם",
+    "sonioxSharedSessionTooltip": "מצב שניהם יכול להשתמש במפגש Soniox משותף אחד או במפגש נפרד לכל כיוון.\n\nמופעל: מפגש אחד מתרגם את שני הצדדים עם הפרדת דוברים אוטומטית — עלות והשהיה נמוכות יותר.\n\nמבוטל: מפגש נפרד לכל כיוון — אמין יותר כששניהם מדברים בו-זמנית, אך בעלות כפולה בקירוב.\n\nמשפיע רק על מצב שניהם.",
+    "sonioxAutoParticipantWarning": "בחר שפת מקור מסוימת — עם זיהוי אוטומטי לא ניתן לתרגם את דברי הצד השני לשפה שלך."
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
@@ -366,6 +369,11 @@
       "description": "תרגום דיבור ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "תרגום בין כל זוג שפות מתוך יותר מ-60 שפות, חד-כיווני או דו-כיווני",
+      "apiKeyPlaceholder": "הזן את מפתח ה-API של Soniox שלך"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

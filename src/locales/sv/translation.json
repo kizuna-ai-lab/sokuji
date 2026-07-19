@@ -209,7 +209,10 @@
     "localNativeStarting": "Startar den lokala motorn",
     "localNativeTranslationIncompatible": "Välj en översättningsmodell för detta språkpar",
     "localNativeUnavailable": "Native-motorn är inte tillgänglig — försök igen i inställningarna",
-    "simpleMode": "Snabb"
+    "simpleMode": "Snabb",
+    "sonioxSharedSession": "Delad session i läget Båda",
+    "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk talarseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
+    "sonioxAutoParticipantWarning": "Välj ett specifikt källspråk — med automatisk identifiering kan den andra deltagarens tal inte översättas till ditt språk."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -366,6 +369,11 @@
       "description": "ByteDance röstöversättning",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Översättning mellan valfria av 60+ språk, enkel- eller dubbelriktad",
+      "apiKeyPlaceholder": "Ange din Soniox API-nyckel"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

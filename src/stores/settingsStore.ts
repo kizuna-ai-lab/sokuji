@@ -52,6 +52,9 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+import {
+  SonioxSettings, defaultSonioxSettings,
+} from '../services/providers/SonioxProviderConfig';
 
 /** Map a native readiness reason to its user-facing message. Verbatim port of
  * the messages the inline LOCAL_NATIVE gate produced. */
@@ -73,7 +76,7 @@ export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
   VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
-  LocalNativeSettings,
+  LocalNativeSettings, SonioxSettings,
 };
 
 // Union of every provider's settings slice — the return type of
@@ -81,7 +84,7 @@ export type {
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings
-  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings;
+  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
 
@@ -199,6 +202,7 @@ export interface SettingsStore {
   volcengineST: VolcengineSTSettings;
   zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
+  soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
@@ -283,6 +287,7 @@ export interface SettingsStore {
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
+  updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
@@ -566,6 +571,7 @@ const PROVIDER_SLICE_REGISTRY = {
   volcengineST: { defaults: defaultVolcengineSTSettings, persistErrors: 'swallow' },
   zoomAI: { defaults: defaultZoomAISettings, persistErrors: 'swallow' },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings, persistErrors: 'swallow' },
+  soniox: { defaults: defaultSonioxSettings, persistErrors: 'swallow' },
   // Relay twins authenticate through the relay with a short-lived Better Auth
   // session token; the user-managed credential fields must never be persisted
   // (stale/sensitive values). See each descriptor's extractCredentials.
@@ -619,6 +625,7 @@ const useSettingsStore = create<SettingsStore>()(
     volcengineST: defaultVolcengineSTSettings,
     zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
+    soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
@@ -841,6 +848,7 @@ const useSettingsStore = create<SettingsStore>()(
     updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
     updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
+    updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
     updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
@@ -1271,6 +1279,7 @@ export const useOpenAITranslateSettings = () => useSettingsStore((state) => stat
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
+export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
@@ -1322,6 +1331,7 @@ export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
+export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);

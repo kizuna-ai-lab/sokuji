@@ -209,7 +209,10 @@
     "localNativeStarting": "Запуск локального рушія",
     "localNativeTranslationIncompatible": "Виберіть модель перекладу для цієї мовної пари",
     "localNativeUnavailable": "Нативний рушій недоступний — повторіть спробу в налаштуваннях",
-    "simpleMode": "Швидкий"
+    "simpleMode": "Швидкий",
+    "sonioxSharedSession": "Спільний сеанс у режимі «Обидва»",
+    "sonioxSharedSessionTooltip": "У режимі «Обидва» можна використовувати один спільний сеанс Soniox або окремий сеанс для кожного напрямку.\n\nУвімкнено: один сеанс перекладає обидві сторони з автоматичним розділенням мовців — нижчі витрати та затримка.\n\nВимкнено: окремий сеанс для кожного напрямку — надійніше, коли обидва говорять одночасно, але приблизно вдвічі дорожче.\n\nВпливає лише на режим «Обидва».",
+    "sonioxAutoParticipantWarning": "Виберіть конкретну вихідну мову — за автоматичного визначення мовлення співрозмовника не можна перекласти вашою мовою."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
@@ -366,6 +369,11 @@
       "description": "Голосовий переклад ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Переклад між будь-якими з 60+ мов, односторонній або двосторонній",
+      "apiKeyPlaceholder": "Введіть свій API-ключ Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

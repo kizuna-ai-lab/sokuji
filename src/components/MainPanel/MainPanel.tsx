@@ -43,7 +43,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -410,12 +410,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return null;
   }, [currentMode, selectedInputDevice?.deviceId]);
 
+  // Soniox carries direction in source/target and reverses them for the
+  // participant client. An 'auto' source can't be reversed — the participant's
+  // translate target would become 'auto', which Soniox one_way rejects — so
+  // Others/Both with an 'auto' source can't start. Matches the LanguageSection
+  // warning (`showSonioxAutoParticipantWarning`); the user must pick a concrete
+  // source first. `participantWillStart` === isParticipantChannelInScope.
+  const sonioxSourceLanguage = useSettingsStore((s) => s.soniox.sourceLanguage);
+  const sonioxAutoParticipantBlocked =
+    provider === Provider.SONIOX && participantWillStart && sonioxSourceLanguage === 'auto';
+
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
   // values: 'speaker', 'participant', or 'both'.
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
     !loadingModels && !isInitializing && hasValidBalance &&
-    missingDeviceForMode === null;
+    missingDeviceForMode === null && !sonioxAutoParticipantBlocked;
 
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
@@ -640,6 +650,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (config.provider === 'volcengine_ast2') {
       const ast2 = config as VolcengineAST2SessionConfig;
       [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    } else if (config.provider === 'soniox') {
+      // Soniox carries direction in sourceLanguage/targetLanguage; reverse it so the
+      // participant translates the other party's speech into the user's language.
+      const sx = config as SonioxSessionConfig;
+      [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
     } else if (config.provider === 'local_native') {
       // Native ASR/translate carry the translation direction in
       // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
@@ -1475,6 +1490,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // inside createAIClient via the active provider's descriptor, so the old
       // per-provider apiKey switch and modelName lookup that lived here are gone.
 
+      // Both mode uses ONE shared Soniox two_way session (mic+system mixed) when the
+      // shared-session toggle is on and the source language is concrete; else 2 clients.
+      const sonioxSharedBoth =
+        provider === Provider.SONIOX &&
+        effectiveMode === 'both' &&
+        (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
+        useSettingsStore.getState().soniox.sourceLanguage !== 'auto';
+
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
       // client is created — saves a WebSocket and, for Kizuna AI, token cost.
@@ -1516,6 +1539,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Get session configuration
         const sessionConfig = getSessionConfig();
+        // Both single-session (Soniox): flip the speaker config to a bidirectional
+        // two_way session so one core handles both directions. sonioxSharedBoth
+        // already guarantees provider === 'soniox', shared toggle on, and a
+        // concrete source language; otherwise fall through to the normal
+        // two-client path.
+        if (sonioxSharedBoth) {
+          (sessionConfig as SonioxSessionConfig).bidirectional = true;
+        }
 
         // Track connection attempt and measure latency
         const connectionStartTime = Date.now();
@@ -1724,8 +1755,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
 
           if (electronAcquireOk) {
-            // Create participant client using helper
-            participantClientRef.current = await createAIClient();
+            // Create participant client. In Both single-session (Soniox, shared
+            // toggle on, concrete source language), reuse the speaker core as
+            // channel B via its inert secondary port instead of opening a second
+            // session. Otherwise create an independent participant client.
+            const speakerCore = speakerClientRef.current;
+            if (
+              speakerWillStart &&
+              sonioxSharedBoth &&
+              speakerCore && typeof speakerCore.createSecondaryPort === 'function'
+            ) {
+              participantClientRef.current = speakerCore.createSecondaryPort();
+            } else {
+              participantClientRef.current = await createAIClient();
+            }
 
             // Setup event handlers using helper
             const participantClient = participantClientRef.current;

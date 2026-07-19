@@ -209,7 +209,10 @@
     "localNativeStarting": "Memulai mesin lokal",
     "localNativeTranslationIncompatible": "Pilih model terjemahan untuk pasangan bahasa ini",
     "localNativeUnavailable": "Mesin native tidak tersedia — coba lagi di pengaturan",
-    "simpleMode": "Cepat"
+    "simpleMode": "Cepat",
+    "sonioxSharedSession": "Sesi bersama dalam mode Keduanya",
+    "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nDiaktifkan: satu sesi menerjemahkan kedua sisi dengan pemisahan pembicara otomatis — biaya dan latensi lebih rendah.\n\nDinonaktifkan: sesi terpisah untuk tiap arah — lebih andal saat keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
+    "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan deteksi otomatis, ucapan peserta lain tidak dapat diterjemahkan ke bahasa Anda."
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
@@ -366,6 +369,11 @@
       "description": "Terjemahan ucapan ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Terjemahan antar bahasa apa pun dari 60+ bahasa, satu arah atau dua arah",
+      "apiKeyPlaceholder": "Masukkan Soniox API Key Anda"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

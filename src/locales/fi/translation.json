@@ -209,7 +209,10 @@
     "localNativeStarting": "Käynnistetään paikallista moottoria",
     "localNativeTranslationIncompatible": "Valitse käännösmalli tälle kieliparille",
     "localNativeUnavailable": "Natiivimoottori ei ole käytettävissä — yritä uudelleen asetuksista",
-    "simpleMode": "Pika"
+    "simpleMode": "Pika",
+    "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
+    "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella puhujien erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
+    "sonioxAutoParticipantWarning": "Valitse tietty lähdekieli — automaattisella tunnistuksella toisen osallistujan puhetta ei voi kääntää omalle kielellesi."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -366,6 +369,11 @@
       "description": "ByteDance puheenkääntäminen",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Käännös minkä tahansa yli 60 kielen välillä, yksi- tai kaksisuuntaisesti",
+      "apiKeyPlaceholder": "Anna Soniox API -avaimesi"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",

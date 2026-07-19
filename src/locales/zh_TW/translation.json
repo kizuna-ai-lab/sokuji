@@ -209,7 +209,10 @@
     "localNativeStarting": "正在啟動本機引擎",
     "localNativeTranslationIncompatible": "請為此語言對選擇翻譯模型",
     "localNativeUnavailable": "本機引擎不可用 — 請在設定中重試",
-    "simpleMode": "快捷"
+    "simpleMode": "快捷",
+    "sonioxSharedSession": "「兩者」模式下共用工作階段",
+    "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段,也可以每個方向各用一個獨立的工作階段。\n\n已啟用:單一工作階段同時翻譯雙方,並自動區分說話者——成本與延遲更低。\n\n停用:每個方向各一個獨立工作階段——兩人同時說話時更可靠,但成本約為兩倍。\n\n僅影響「兩者」模式。",
+    "sonioxAutoParticipantWarning": "請選擇具體的來源語言——使用自動偵測時,無法把對方的語音翻譯成你的語言。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",
@@ -366,6 +369,11 @@
       "description": "字節跳動即時語音翻譯",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "60+ 種語言任意互譯,支援單向或雙向",
+      "apiKeyPlaceholder": "輸入您的 Soniox API 金鑰"
     },
     "volcengine_ast2": {
       "name": "豆包同聲傳譯 2.0",

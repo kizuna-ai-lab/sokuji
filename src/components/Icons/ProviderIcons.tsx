@@ -153,3 +153,26 @@ export const ZoomIcon: React.FC<IconProps> = ({ size = 24, className, style }) =
     />
   </svg>
 );
+
+/**
+ * Official Soniox brand mark — the navy "S" on a white rounded square, taken
+ * verbatim from soniox.com/icons/favicon.svg. The white badge keeps the navy
+ * glyph legible on the dark provider list (a bare navy S would sink into it).
+ */
+export const SonioxIcon: React.FC<IconProps> = ({ size = 18, className, style }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 1024 1024"
+    fill="none"
+    className={className}
+    style={style}
+  >
+    <rect width="1024" height="1024" rx="212" fill="#fff" />
+    <path
+      d="M221 759.071L307.504 618.58C383.282 668.755 466.326 694.362 534.491 694.362C574.629 694.362 592.968 682.251 592.968 659.066V656.644C592.968 631.037 556.29 619.964 486.741 600.24C356.293 565.982 252.488 522.035 252.488 388.81V386.042C252.488 245.551 364.943 167 517.19 167C613.729 167 713.728 195.029 789.505 244.167L710.268 390.887C641.756 352.822 567.363 329.638 515.114 329.638C479.82 329.638 461.482 343.133 461.482 361.473V363.896C461.482 389.503 499.197 401.96 568.747 422.722C699.195 459.402 803 504.733 803 633.113V635.536C803 781.218 694.351 857 533.107 857C422.382 856.654 312.694 825.164 221 759.071Z"
+      fill="#263971"
+    />
+  </svg>
+);
