@@ -211,7 +211,8 @@
     "localNativeUnavailable": "本機引擎不可用 — 請在設定中重試",
     "simpleMode": "快捷",
     "sonioxSharedSession": "「兩者」模式下共用工作階段",
-    "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段,也可以每個方向各用一個獨立的工作階段。\n\n已啟用:單一工作階段同時翻譯雙方,並自動區分說話者——成本與延遲更低。\n\n停用:每個方向各一個獨立工作階段——兩人同時說話時更可靠,但成本約為兩倍。\n\n僅影響「兩者」模式。"
+    "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段,也可以每個方向各用一個獨立的工作階段。\n\n已啟用:單一工作階段同時翻譯雙方,並自動區分說話者——成本與延遲更低。\n\n停用:每個方向各一個獨立工作階段——兩人同時說話時更可靠,但成本約為兩倍。\n\n僅影響「兩者」模式。",
+    "sonioxAutoParticipantWarning": "請選擇具體的來源語言——使用自動偵測時,無法把對方的語音翻譯成你的語言。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",

@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Native engine unavailable — retry in settings",
     "simpleMode": "Quick",
     "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode."
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
+    "sonioxAutoParticipantWarning": "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

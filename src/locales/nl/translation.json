@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Native engine niet beschikbaar — probeer opnieuw in Instellingen",
     "simpleMode": "Snel",
     "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
-    "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide."
+    "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
+    "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de andere deelnemer niet naar jouw taal worden vertaald."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",

@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Enjin native tidak tersedia — cuba lagi dalam tetapan",
     "simpleMode": "Cepat",
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
-    "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan penutur automatik — kos dan latensi lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih dipercayai apabila kedua-duanya bercakap serentak, tetapi kira-kira dua kali ganda kos.\n\nHanya menjejaskan mod Kedua-duanya."
+    "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan penutur automatik — kos dan latensi lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih dipercayai apabila kedua-duanya bercakap serentak, tetapi kira-kira dua kali ganda kos.\n\nHanya menjejaskan mod Kedua-duanya.",
+    "sonioxAutoParticipantWarning": "Pilih bahasa sumber yang tertentu — dengan pengesanan automatik, pertuturan peserta lain tidak boleh diterjemahkan ke bahasa anda."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",

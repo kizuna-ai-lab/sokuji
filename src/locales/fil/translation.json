@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Hindi available ang native engine — subukang muli sa mga setting",
     "simpleMode": "Mabilis",
     "sonioxSharedSession": "Nakabahaging session sa mode na Pareho",
-    "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho."
+    "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho.",
+    "sonioxAutoParticipantWarning": "Pumili ng tiyak na pinagmulang wika — sa awtomatikong pagtukoy, hindi maisasalin ang sinasabi ng ibang kalahok sa iyong wika."
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",

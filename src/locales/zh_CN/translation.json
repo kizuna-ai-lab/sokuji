@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Native 引擎不可用 — 请在设置中重试",
     "simpleMode": "快捷",
     "sonioxSharedSession": "「两者」模式下共享会话",
-    "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话,也可以每个方向各用一个独立会话。\n\n已启用:单个会话同时翻译双方,并自动区分说话人——成本和延迟更低。\n\n禁用:每个方向各一个独立会话——两人同时说话时更可靠,但成本约为两倍。\n\n仅影响「两者」模式。"
+    "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话,也可以每个方向各用一个独立会话。\n\n已启用:单个会话同时翻译双方,并自动区分说话人——成本和延迟更低。\n\n禁用:每个方向各一个独立会话——两人同时说话时更可靠,但成本约为两倍。\n\n仅影响「两者」模式。",
+    "sonioxAutoParticipantWarning": "请选择具体的源语言——使用自动检测时,无法把对方的语音翻译成你的语言。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",

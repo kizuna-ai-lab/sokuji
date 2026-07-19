@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Native motor kullanılamıyor — ayarlardan yeniden deneyin",
     "simpleMode": "Hızlı",
     "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
-    "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum, otomatik konuşmacı ayrımıyla her iki tarafı da çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak yaklaşık iki kat maliyet.\n\nYalnızca Her ikisi modunu etkiler."
+    "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum, otomatik konuşmacı ayrımıyla her iki tarafı da çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak yaklaşık iki kat maliyet.\n\nYalnızca Her ikisi modunu etkiler.",
+    "sonioxAutoParticipantWarning": "Belirli bir kaynak dil seçin — otomatik algılamayla karşı tarafın konuşması sizin dilinize çevrilemez."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",

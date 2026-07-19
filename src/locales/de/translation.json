@@ -211,7 +211,8 @@
     "localNativeUnavailable": "Native Engine nicht verfügbar — in den Einstellungen erneut versuchen",
     "simpleMode": "Schnell",
     "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
-    "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Sprechertrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“."
+    "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Sprechertrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
+    "sonioxAutoParticipantWarning": "Wählen Sie eine konkrete Ausgangssprache – bei automatischer Erkennung kann die Sprache des Gegenübers nicht in Ihre Sprache übersetzt werden."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
