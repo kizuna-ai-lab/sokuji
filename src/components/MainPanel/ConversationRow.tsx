@@ -10,6 +10,7 @@ interface ConversationRowProps {
     source?: 'speaker' | 'participant';
     sourceLanguage?: string;
     targetLanguage?: string;
+    detectedLanguage?: string;
   };
   prevItem?: (ConversationItem & { source?: 'speaker' | 'participant' }) | null;
   sourceLanguage: string;
@@ -72,9 +73,14 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   // or for transient cases where the snapshot hasn't been attached yet.
   const itemSourceLanguage = item.sourceLanguage ?? sourceLanguage;
   const itemTargetLanguage = item.targetLanguage ?? targetLanguage;
+  // Prefer the language actually detected for this item's text (Soniox and
+  // other providers with per-item language identification supply it) over the
+  // configured source/target pair — the configured pair is wrong for two-way
+  // translation and auto-detect. Falls back to the configured mapping.
+  const detectedLanguage = item.detectedLanguage;
   const lang = useMemo(
-    () => languageForItem(source, role, itemSourceLanguage, itemTargetLanguage),
-    [source, role, itemSourceLanguage, itemTargetLanguage],
+    () => detectedLanguage ?? languageForItem(source, role, itemSourceLanguage, itemTargetLanguage),
+    [detectedLanguage, source, role, itemSourceLanguage, itemTargetLanguage],
   );
 
   const scopeName = t(

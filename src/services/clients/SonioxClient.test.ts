@@ -356,6 +356,40 @@ describe('SonioxClient keepReplayAudio (per-item audio accumulation for the inli
   });
 });
 
+describe('SonioxClient detectedLanguage (bubble badge shows the actual per-item language, not the configured pair)', () => {
+  const user = (c: SonioxClient) => c.getConversationItems().find((i) => i.role === 'user');
+  const asst = (c: SonioxClient) => c.getConversationItems().find((i) => i.role === 'assistant');
+
+  it('tags each item with the token language — even when it contradicts the configured pair (backwards two-way case)', async () => {
+    // Configured zh→en, but the person actually spoke English.
+    const { client, stt } = await connectedClient({ sourceLanguage: 'zh', targetLanguage: 'en' });
+    stt.emit({ tokens: [
+      tok('Hello', { is_final: true, translation_status: 'original', language: 'en' }),     // spoken English
+      tok('你好', { is_final: true, translation_status: 'translation', language: 'zh' }),    // translated to Chinese
+    ] });
+    expect(user(client)!.detectedLanguage).toBe('en');   // NOT the configured 'zh'
+    expect(asst(client)!.detectedLanguage).toBe('zh');    // NOT the configured 'en'
+  });
+
+  it('carries detectedLanguage through <end> completion', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [
+      tok('Hi', { is_final: true, translation_status: 'original', language: 'de' }),
+      tok('Hallo', { is_final: true, translation_status: 'translation', language: 'fr' }),
+      tok('<end>'),
+    ] });
+    expect(user(client)!.status).toBe('completed');
+    expect(user(client)!.detectedLanguage).toBe('de');
+    expect(asst(client)!.detectedLanguage).toBe('fr');
+  });
+
+  it('leaves detectedLanguage undefined when the tokens carry no language (badge falls back to configured)', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [tok('x', { is_final: true, translation_status: 'original' })] });
+    expect(user(client)!.detectedLanguage).toBeUndefined();
+  });
+});
+
 describe('SonioxClient disconnect race (a socket that connects after Stop must be discarded)', () => {
   const tick = () => new Promise((r) => setTimeout(r, 0));
 
