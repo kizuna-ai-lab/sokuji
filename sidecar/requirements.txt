@@ -28,7 +28,7 @@ nltk==3.10.0
 # (kanji homograph readings); quality follow-up tracked in issue #322.
 pyopenjtalk-plus==0.4.1.post8
 # ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
-transcribe-cpp==0.1.1
+transcribe-cpp==0.1.3
 # macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
 # environment marker keeps it out of the Linux/Windows venvs (mlx_tts.py
 # lazy-imports mlx_audio, so those platforms stay importable). Metal-only.
