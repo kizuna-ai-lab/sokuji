@@ -416,9 +416,14 @@ export class SonioxClient implements IClient {
       // id for this batch (e.g. a user-side final with no preceding TTS
       // mint). upsertItem() mints+lists one lazily rather than dropping the
       // completed item.
+      // Preserve any replay audio already accumulated on this item: this
+      // rebuild would otherwise drop TTS audio that arrived before <end>
+      // (keepReplayAudio only — undefined otherwise, a no-op).
+      const prev = existingId ? this.conversationItems.find((i) => i.id === existingId) : undefined;
+      const audio = prev?.formatted?.audio as Int16Array | undefined;
       const item = this.upsertItem(role, existingId, {
         status: 'completed',
-        formatted: { text, transcript: text },
+        formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
         content: [{ type: 'text', text }],
       });
       if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
@@ -457,9 +462,6 @@ export class SonioxClient implements IClient {
     // follows feedTts, which sets audioItemId) — fall back to minting (and
     // listing) rather than dropping the chunk.
     if (!this.audioItemId) this.audioItemId = this.ensureItem('assistant').id;
-    // keepReplayAudio (per-item formatted.audio accumulation for the inline
-    // replay button) is deliberately NOT implemented in v1 — plan scopes it
-    // out; live playback via the audio-only delta below is the v1 contract.
     // Never mutate the stored entry in place (same discipline as upsertItem):
     // build a fresh object and, if one was already tracked, replace it in
     // conversationItems rather than rewriting fields on the shared reference —
@@ -476,9 +478,28 @@ export class SonioxClient implements IClient {
         formatted: {},
       }),
     };
+    // keepReplayAudio: accumulate this utterance's TTS audio into
+    // formatted.audio so the inline replay button has bytes to play (parity
+    // with every other client). Off (default) → live-only via the delta below,
+    // the item stays audio-free and the button is hidden. Build formatted fresh
+    // (never mutate the shared reference) and grow the running buffer off the
+    // previous entry, so it self-heals across the <end> complete() rebuild.
+    if (this.currentConfig?.keepReplayAudio) {
+      const prevAudio = previous?.formatted?.audio as Int16Array | undefined;
+      item.formatted = { ...item.formatted, audio: SonioxClient.concatAudio(prevAudio, audio) };
+    }
     if (this.bidirectional && this.audioItemSide) item.source = this.audioItemSide;
     if (idx !== -1) this.conversationItems[idx] = item;
     this.eventHandlers.onConversationUpdated?.({ item, delta: { audio } });
+  }
+
+  /** Grow a running Int16 replay buffer by one chunk — fresh array, never mutates its inputs. */
+  private static concatAudio(prev: Int16Array | undefined, next: Int16Array): Int16Array {
+    if (!prev || prev.length === 0) return next.slice();
+    const out = new Int16Array(prev.length + next.length);
+    out.set(prev, 0);
+    out.set(next, prev.length);
+    return out;
   }
 
   private handleSttError(code: string, message: string): void {

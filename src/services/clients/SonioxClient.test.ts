@@ -317,6 +317,40 @@ describe('SonioxClient TTS feeding', () => {
   });
 });
 
+describe('SonioxClient keepReplayAudio (per-item audio accumulation for the inline replay button)', () => {
+  const asstItem = (client: SonioxClient) =>
+    client.getConversationItems().find((i) => i.role === 'assistant');
+
+  it('default (off): assistant item never gets formatted.audio — live-only, replay button stays hidden', async () => {
+    const { client, stt, tts } = await connectedClient(); // BASE_CONFIG has no keepReplayAudio
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en' })] });
+    tts!.handlers.onAudio!(new Int16Array([5, 6]));
+    tts!.handlers.onAudio!(new Int16Array([7, 8]));
+    expect(asstItem(client)!.formatted?.audio).toBeUndefined();
+  });
+
+  it('on: TTS audio chunks accumulate into the assistant item\'s formatted.audio (Int16Array, in order)', async () => {
+    const { client, stt, tts } = await connectedClient({ keepReplayAudio: true });
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en' })] });
+    tts!.handlers.onAudio!(new Int16Array([5, 6]));
+    tts!.handlers.onAudio!(new Int16Array([7, 8]));
+    const audio = asstItem(client)!.formatted?.audio as Int16Array;
+    expect(audio).toBeInstanceOf(Int16Array);
+    expect(Array.from(audio)).toEqual([5, 6, 7, 8]);
+  });
+
+  it('on: audio arriving both before and after <end> is all preserved (complete() rebuild must not drop it)', async () => {
+    const { client, stt, tts } = await connectedClient({ keepReplayAudio: true });
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en' })] });
+    tts!.handlers.onAudio!(new Int16Array([1, 2])); // before <end>
+    stt.emit({ tokens: [tok('<end>')] });           // completes the assistant item
+    tts!.handlers.onAudio!(new Int16Array([3, 4])); // trailing, after <end>
+    const item = asstItem(client)!;
+    expect(item.status).toBe('completed');
+    expect(Array.from(item.formatted?.audio as Int16Array)).toEqual([1, 2, 3, 4]);
+  });
+});
+
 describe('SonioxClient lifecycle and IClient contract', () => {
   it('forwards mic audio to the STT stream', async () => {
     const { client, stt } = await connectedClient();
