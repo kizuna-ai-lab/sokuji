@@ -410,12 +410,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return null;
   }, [currentMode, selectedInputDevice?.deviceId]);
 
+  // Soniox carries direction in source/target and reverses them for the
+  // participant client. An 'auto' source can't be reversed — the participant's
+  // translate target would become 'auto', which Soniox one_way rejects — so
+  // Others/Both with an 'auto' source can't start. Matches the LanguageSection
+  // warning (`showSonioxAutoParticipantWarning`); the user must pick a concrete
+  // source first. `participantWillStart` === isParticipantChannelInScope.
+  const sonioxSourceLanguage = useSettingsStore((s) => s.soniox.sourceLanguage);
+  const sonioxAutoParticipantBlocked =
+    provider === Provider.SONIOX && participantWillStart && sonioxSourceLanguage === 'auto';
+
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
   // values: 'speaker', 'participant', or 'both'.
   const canStartSession = isApiKeyValid && availableModels.length > 0 &&
     !loadingModels && !isInitializing && hasValidBalance &&
-    missingDeviceForMode === null;
+    missingDeviceForMode === null && !sonioxAutoParticipantBlocked;
 
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
