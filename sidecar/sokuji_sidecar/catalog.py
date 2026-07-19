@@ -47,6 +47,11 @@ class AsrModel(_ModelBase):
 
 
 _TC_TIERS = ("gpu-vulkan", "gpu-metal", "cpu")
+# GPU-only tier set for cards too large to run on CPU in practice (the 24B
+# Voxtral). Dropping "cpu" makes the renderer hardware-gate the card off
+# CPU-only machines (hardwareGated = no available non-cpu tier) instead of
+# advertising an unusable multi-GB CPU download.
+_TC_GPU_TIERS = ("gpu-vulkan", "gpu-metal")
 
 
 def _tc_quant(fname):
@@ -63,7 +68,7 @@ _TC_CURATED_MIN_RANK = 1.0
 
 
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
-            recommended=False, backend="transcribe_cpp"):
+            recommended=False, backend="transcribe_cpp", tiers=_TC_TIERS):
     """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
     QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
     curated default. The same GGUF serves every tier. Deployments are ordered
@@ -77,7 +82,7 @@ def _tc_row(mid, name, langs, repo, base, order, quants, default,
         quant = q.lower()
         rank = 2.0 if q == default else (1.0 if quant in curated else 0.5)
         deps += [Deployment(backend, tier, quant, f"{repo}/{base}-{q}.gguf", rank,
-                            est_bytes=quants[q]) for tier in _TC_TIERS]
+                            est_bytes=quants[q]) for tier in tiers]
     return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
                     sort_order=order, size_bytes=quants[default])
 
@@ -240,10 +245,10 @@ ASR_MODELS: list[AsrModel] = [
     # --- Expanded roster (2026-07-20): the rest of the transcribe.cpp
     # family. Excludes canary-1b (CC-BY-NC, non-commercial) and medasr
     # (gated). All recommended=False; ordered via asr_models() sort.
-    # WER 1.25 (q5_k_m best) — NAR editor, ASR-only, quant-robust
+    # WER 1.25 (q5_k_m = best rung & default; q4_k_m 1.35 worst) — NAR editor, ASR-only
     _tc_row("granite-speech-4.1-2b-nar", "Granite Speech 4.1 (2B NAR)", ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-nar-gguf", "granite-speech-4.1-2b-nar",
-            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q4_K_M"),
+            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q5_K_M"),
     # Russian (FLEURS-ru 5.50) — e2e w/ punct; slotted in RU view
     _tc_row("gigaam-v3-e2e-ctc", "GigaAM v3 E2E-CTC (Russian)", ("ru",),
             "handy-computer/gigaam-v3-e2e-ctc-gguf", "gigaam-v3-e2e-ctc",
@@ -260,10 +265,14 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("granite-4.0-1b-speech", "Granite Speech 4.0 (1B)", ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-4.0-1b-speech-gguf", "granite-4.0-1b-speech",
             27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
-    # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff)
+    # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff).
+    # GPU-only tiers: hardware-gated off CPU-only machines (a 17GB CPU download
+    # for a 24B is unusable); big-GPU machines still see it, small-GPU ones get
+    # the "needs ~17GB" variant reason string.
     _tc_row("voxtral-small-24b", "Voxtral Small 24B", ("en", "fr", "de", "es", "it", "pt", "nl", "hi"),
             "handy-computer/Voxtral-Small-24B-2507-gguf", "Voxtral-Small-24B-2507",
-            31, {"F16": 48548098528, "Q8_0": 25810383328, "Q6_K": 19936473568, "Q5_K_M": 17138659808}, default="Q5_K_M"),
+            31, {"F16": 48548098528, "Q8_0": 25810383328, "Q6_K": 19936473568, "Q5_K_M": 17138659808},
+            default="Q5_K_M", tiers=_TC_GPU_TIERS),
     # WER 1.58 offline — run batch (zero-lookahead streaming collapses to 5.76)
     _tc_row("parakeet-unified-en-0.6b", "Parakeet Unified 0.6B (en)", ("en",),
             "handy-computer/parakeet-unified-en-0.6b-gguf", "parakeet-unified-en-0.6b",
