@@ -224,7 +224,7 @@ ASR_MODELS: list[AsrModel] = [
              "ja", "ko", "vi", "uk", "pl", "sv", "cs", "nb", "da", "bg", "fi",
              "hr", "sk", "zh", "hu", "ro", "et"),
             "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf", "nemotron-3.5-asr-streaming-0.6b",
-            120, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
+            128, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
                   "Q5_K_M": 559647200, "Q4_K_M": 495831520},
             default="Q8_0", recommended=True, backend="transcribe_cpp_stream"),
     # WER 3.13 at RTF 289 (metal) — fastest/lightest CJK+yue (no ITN/punct).
@@ -237,11 +237,181 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/whisper-base-gguf", "whisper-base",
             140, {"F16": 151145760, "Q8_0": 84962880, "Q6_K": 67865664,
                   "Q5_K_M": 63786048, "Q4_K_M": 58870848}, default="Q8_0"),
+    # --- Expanded roster (2026-07-20): the rest of the transcribe.cpp
+    # family. Excludes canary-1b (CC-BY-NC, non-commercial) and medasr
+    # (gated). All recommended=False; ordered via asr_models() sort.
+    # WER 1.25 (q5_k_m best) — NAR editor, ASR-only, quant-robust
+    _tc_row("granite-speech-4.1-2b-nar", "Granite Speech 4.1 (2B NAR)", ("en", "fr", "de", "es", "pt"),
+            "handy-computer/granite-speech-4.1-2b-nar-gguf", "granite-speech-4.1-2b-nar",
+            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q4_K_M"),
+    # Russian (FLEURS-ru 5.50) — e2e w/ punct; slotted in RU view
+    _tc_row("gigaam-v3-e2e-ctc", "GigaAM v3 E2E-CTC (Russian)", ("ru",),
+            "handy-computer/gigaam-v3-e2e-ctc-gguf", "gigaam-v3-e2e-ctc",
+            17, {"F16": 449098336, "Q8_0": 272151136, "Q6_K": 226439776, "Q5_K_M": 204911200, "Q4_K_M": 182497888}, default="Q8_0"),
+    # Russian (FLEURS-ru 8.29) — plain CTC, lowercase/no-punct; RU view
+    _tc_row("gigaam-v3-ctc", "GigaAM v3 CTC (Russian)", ("ru",),
+            "handy-computer/gigaam-v3-ctc-gguf", "gigaam-v3-ctc",
+            18, {"F16": 448750528, "Q8_0": 271803328, "Q6_K": 226091968, "Q5_K_M": 204563392, "Q4_K_M": 182150080}, default="Q8_0"),
+    # WER 1.41 — en, lowercase/no-punct
+    _tc_row("parakeet-rnnt-1.1b", "Parakeet RNNT 1.1B", ("en",),
+            "handy-computer/parakeet-rnnt-1.1b-gguf", "parakeet-rnnt-1.1b",
+            26, {"F16": 2145156480, "Q8_0": 1267285248, "Q6_K": 1042505984, "Q5_K_M": 935755008, "Q4_K_M": 825244928}, default="Q8_0"),
+    # WER 1.41 — en+EU speech-LLM
+    _tc_row("granite-4.0-1b-speech", "Granite Speech 4.0 (1B)", ("en", "fr", "de", "es", "pt", "ja"),
+            "handy-computer/granite-4.0-1b-speech-gguf", "granite-4.0-1b-speech",
+            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
+    # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff)
+    _tc_row("voxtral-small-24b", "Voxtral Small 24B", ("en", "fr", "de", "es", "it", "pt", "nl", "hi"),
+            "handy-computer/Voxtral-Small-24B-2507-gguf", "Voxtral-Small-24B-2507",
+            31, {"F16": 48548098528, "Q8_0": 25810383328, "Q6_K": 19936473568, "Q5_K_M": 17138659808}, default="Q5_K_M"),
+    # WER 1.58 offline — run batch (zero-lookahead streaming collapses to 5.76)
+    _tc_row("parakeet-unified-en-0.6b", "Parakeet Unified 0.6B (en)", ("en",),
+            "handy-computer/parakeet-unified-en-0.6b-gguf", "parakeet-unified-en-0.6b",
+            32, {"F16": 1239114240, "Q8_0": 731357568, "Q6_K": 602191232, "Q5_K_M": 540795264, "Q4_K_M": 477274496}, default="Q8_0"),
+    # WER 1.59 — en, lowercase/no-punct
+    _tc_row("parakeet-rnnt-0.6b", "Parakeet RNNT 0.6B", ("en",),
+            "handy-computer/parakeet-rnnt-0.6b-gguf", "parakeet-rnnt-0.6b",
+            34, {"F16": 1235969568, "Q8_0": 729687456, "Q6_K": 600902048, "Q5_K_M": 539714976, "Q4_K_M": 476390816}, default="Q8_0"),
+    # WER 1.63 — SALM audio-LLM, en-only (all quants 1.63)
+    _tc_row("canary-qwen-2.5b", "Canary-Qwen 2.5B", ("en",),
+            "handy-computer/canary-qwen-2.5b-gguf", "canary-qwen-2.5b",
+            41, {"F16": 5076972928, "Q8_0": 2797548928, "Q6_K": 2208697728, "Q5_K_M": 1983729024, "Q4_K_M": 1737575808}, default="Q4_K_M"),
+    # WER 1.68 — en, cased+punct+timestamps (v3 is multilingual)
+    _tc_row("parakeet-tdt-0.6b-v2", "Parakeet TDT 0.6B v2", ("en",),
+            "handy-computer/parakeet-tdt-0.6b-v2-gguf", "parakeet-tdt-0.6b-v2",
+            42, {"F16": 1237334592, "Q8_0": 729574912, "Q6_K": 600408576, "Q5_K_M": 539012608, "Q4_K_M": 475491840}, default="Q8_0"),
+    # WER 1.84 — en, fastest 0.6B head, lowercase/no-punct
+    _tc_row("parakeet-ctc-0.6b", "Parakeet CTC 0.6B", ("en",),
+            "handy-computer/parakeet-ctc-0.6b-gguf", "parakeet-ctc-0.6b",
+            61, {"F16": 1220181184, "Q8_0": 722271424, "Q6_K": 593644736, "Q5_K_M": 532544704, "Q4_K_M": 469302464}, default="Q8_0"),
+    # WER 1.84 — en, lowercase/no-punct
+    _tc_row("parakeet-ctc-1.1b", "Parakeet CTC 1.1B", ("en",),
+            "handy-computer/parakeet-ctc-1.1b-gguf", "parakeet-ctc-1.1b",
+            62, {"F16": 2129368096, "Q8_0": 1259869216, "Q6_K": 1035248672, "Q5_K_M": 928584736, "Q4_K_M": 818156576}, default="Q8_0"),
+    # WER 1.87 — en, hybrid TDT+CTC, cased+punct
+    _tc_row("parakeet-tdt_ctc-1.1b", "Parakeet TDT-CTC 1.1B", ("en",),
+            "handy-computer/parakeet-tdt_ctc-1.1b-gguf", "parakeet-tdt_ctc-1.1b",
+            63, {"F16": 2145162560, "Q8_0": 1267288320, "Q6_K": 1042509056, "Q5_K_M": 935758080, "Q4_K_M": 825248000}, default="Q8_0"),
+    # WER 1.87 — offline audio-LLM (q4_k_m 2.98GB)
+    _tc_row("voxtral-mini-3b", "Voxtral Mini 3B", ("en", "fr", "de", "es", "it", "pt", "nl", "hi"),
+            "handy-computer/Voxtral-Mini-3B-2507-gguf", "Voxtral-Mini-3B-2507",
+            64, {"F16": 9376578208, "Q8_0": 5000084128, "Q6_K": 3869489824, "Q5_K_M": 3464182432, "Q4_K_M": 2984721056}, default="Q4_K_M"),
+    # WER 2.29 — en-only cache-aware STREAMING (NVIDIA Open Model License)
+    _tc_row("nemotron-speech-streaming-en", "Nemotron Speech Streaming (en)", ("en",),
+            "handy-computer/nemotron-speech-streaming-en-0.6b-gguf", "nemotron-speech-streaming-en-0.6b",
+            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="transcribe_cpp_stream"),
+    # WER 2.43 — en, small/fast, cased+punct
+    _tc_row("parakeet-tdt_ctc-110m", "Parakeet TDT-CTC 110M", ("en",),
+            "handy-computer/parakeet-tdt_ctc-110m-gguf", "parakeet-tdt_ctc-110m",
+            118, {"F16": 229334560, "Q8_0": 135373280, "Q6_K": 112311264, "Q5_K_M": 101335520, "Q4_K_M": 89989600}, default="Q8_0"),
+    # WER 2.46 — 99-lang 1.55B (pre-v3)
+    _tc_row("whisper-large-v2", "Whisper large-v2", ("multi",),
+            "handy-computer/whisper-large-v2-gguf", "whisper-large-v2",
+            119, {"F16": 3106458208, "Q8_0": 1667964224, "Q6_K": 1296353280, "Q5_K_M": 1160366080, "Q4_K_M": 996526080}, default="Q8_0"),
+    # WER 2.53 — en STREAMING 123M (F16/Q8_0 only)
+    _tc_row("moonshine-streaming-small", "Moonshine Streaming Small", ("en",),
+            "handy-computer/moonshine-streaming-small-gguf", "moonshine-streaming-small",
+            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="transcribe_cpp_stream"),
+    # WER 2.59 — 99-lang 769M
+    _tc_row("whisper-medium", "Whisper medium", ("multi",),
+            "handy-computer/whisper-medium-gguf", "whisper-medium",
+            122, {"F16": 1541931424, "Q8_0": 831538144, "Q6_K": 648019904, "Q5_K_M": 582746048, "Q4_K_M": 504102848}, default="Q8_0"),
+    # WER 2.62 — 99-lang 1.55B (v1)
+    _tc_row("whisper-large", "Whisper large", ("multi",),
+            "handy-computer/whisper-large-gguf", "whisper-large",
+            123, {"F16": 3106458176, "Q8_0": 1667964192, "Q6_K": 1296353248, "Q5_K_M": 1160366048, "Q4_K_M": 996526048}, default="Q8_0"),
+    # WER 2.72 — en-only 769M
+    _tc_row("whisper-medium.en", "Whisper medium.en", ("en",),
+            "handy-computer/whisper-medium.en-gguf", "whisper-medium.en",
+            124, {"F16": 1541853248, "Q8_0": 831460928, "Q6_K": 647942912, "Q5_K_M": 582669056, "Q4_K_M": 504025856}, default="Q8_0"),
+    # WER 2.97 — en-only 244M
+    _tc_row("whisper-small.en", "Whisper small.en", ("en",),
+            "handy-computer/whisper-small.en-gguf", "whisper-small.en",
+            125, {"F16": 492810784, "Q8_0": 269674144, "Q6_K": 212030528, "Q5_K_M": 193672256, "Q4_K_M": 171553856}, default="Q8_0"),
+    # WER 3.26 — en OFFLINE 61M (F16/Q8_0 only)
+    _tc_row("moonshine-base", "Moonshine Base", ("en",),
+            "handy-computer/moonshine-base-gguf", "moonshine-base",
+            131, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+    # WER 3.33 — 99-lang 244M
+    _tc_row("whisper-small", "Whisper small", ("multi",),
+            "handy-computer/whisper-small-gguf", "whisper-small",
+            132, {"F16": 492888480, "Q8_0": 269751136, "Q6_K": 212107328, "Q5_K_M": 193749056, "Q4_K_M": 171630656}, default="Q8_0"),
+    # WER 4.13 — en-only 74M
+    _tc_row("whisper-base.en", "Whisper base.en", ("en",),
+            "handy-computer/whisper-base.en-gguf", "whisper-base.en",
+            133, {"F16": 151068608, "Q8_0": 84886208, "Q6_K": 67789088, "Q5_K_M": 63709472, "Q4_K_M": 58794272}, default="Q8_0"),
+    # WER 4.52 — en STREAMING 34M (F16/Q8_0 only)
+    _tc_row("moonshine-streaming-tiny", "Moonshine Streaming Tiny", ("en",),
+            "handy-computer/moonshine-streaming-tiny-gguf", "moonshine-streaming-tiny",
+            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="transcribe_cpp_stream"),
+    # WER 4.58 — en OFFLINE 27M (F16/Q8_0 only)
+    _tc_row("moonshine-tiny", "Moonshine Tiny", ("en",),
+            "handy-computer/moonshine-tiny-gguf", "moonshine-tiny",
+            135, {"F16": 59244192, "Q8_0": 35466912}, default="Q8_0"),
+    # WER 5.72 — en-only 39M
+    _tc_row("whisper-tiny.en", "Whisper tiny.en", ("en",),
+            "handy-computer/whisper-tiny.en-gguf", "whisper-tiny.en",
+            141, {"F16": 80058464, "Q8_0": 45904544, "Q6_K": 44761760, "Q5_K_M": 44135072, "Q4_K_M": 43545248}, default="Q8_0"),
+    # WER 7.49 — 99-lang 39M (least accurate whisper)
+    _tc_row("whisper-tiny", "Whisper tiny", ("multi",),
+            "handy-computer/whisper-tiny-gguf", "whisper-tiny",
+            142, {"F16": 80135360, "Q8_0": 45981088, "Q6_K": 44838304, "Q5_K_M": 44211616, "Q4_K_M": 43621792}, default="Q8_0"),
+    # per-language fine-tune (ar); no upstream WER/doc
+    _tc_row("moonshine-base-ar", "Moonshine Base (ar)", ("ar",),
+            "handy-computer/moonshine-base-ar-gguf", "moonshine-base-ar",
+            150, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+    # per-language fine-tune (ja); no upstream WER/doc
+    _tc_row("moonshine-base-ja", "Moonshine Base (ja)", ("ja",),
+            "handy-computer/moonshine-base-ja-gguf", "moonshine-base-ja",
+            151, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+    # per-language fine-tune (ko); no upstream WER/doc
+    _tc_row("moonshine-base-ko", "Moonshine Base (ko)", ("ko",),
+            "handy-computer/moonshine-base-ko-gguf", "moonshine-base-ko",
+            152, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+    # per-language fine-tune (uk); no upstream WER/doc
+    _tc_row("moonshine-base-uk", "Moonshine Base (uk)", ("uk",),
+            "handy-computer/moonshine-base-uk-gguf", "moonshine-base-uk",
+            153, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0"),
+    # per-language fine-tune (vi); no upstream WER/doc
+    _tc_row("moonshine-base-vi", "Moonshine Base (vi)", ("vi",),
+            "handy-computer/moonshine-base-vi-gguf", "moonshine-base-vi",
+            154, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0"),
+    # per-language fine-tune (zh); no upstream WER/doc
+    _tc_row("moonshine-base-zh", "Moonshine Base (zh)", ("zh",),
+            "handy-computer/moonshine-base-zh-gguf", "moonshine-base-zh",
+            155, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+    # per-language fine-tune (ar); no upstream WER/doc
+    _tc_row("moonshine-tiny-ar", "Moonshine Tiny (ar)", ("ar",),
+            "handy-computer/moonshine-tiny-ar-gguf", "moonshine-tiny-ar",
+            156, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+    # per-language fine-tune (ja); no upstream WER/doc
+    _tc_row("moonshine-tiny-ja", "Moonshine Tiny (ja)", ("ja",),
+            "handy-computer/moonshine-tiny-ja-gguf", "moonshine-tiny-ja",
+            157, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+    # per-language fine-tune (ko); no upstream WER/doc
+    _tc_row("moonshine-tiny-ko", "Moonshine Tiny (ko)", ("ko",),
+            "handy-computer/moonshine-tiny-ko-gguf", "moonshine-tiny-ko",
+            158, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+    # per-language fine-tune (uk); no upstream WER/doc
+    _tc_row("moonshine-tiny-uk", "Moonshine Tiny (uk)", ("uk",),
+            "handy-computer/moonshine-tiny-uk-gguf", "moonshine-tiny-uk",
+            159, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+    # per-language fine-tune (vi); no upstream WER/doc
+    _tc_row("moonshine-tiny-vi", "Moonshine Tiny (vi)", ("vi",),
+            "handy-computer/moonshine-tiny-vi-gguf", "moonshine-tiny-vi",
+            160, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+    # per-language fine-tune (zh); no upstream WER/doc
+    _tc_row("moonshine-tiny-zh", "Moonshine Tiny (zh)", ("zh",),
+            "handy-computer/moonshine-tiny-zh-gguf", "moonshine-tiny-zh",
+            161, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
 ]
 
 
 def asr_models() -> list[AsrModel]:
-    return list(ASR_MODELS)
+    # Rank-ordered (sort_order asc) regardless of source arrangement, so the
+    # 2026-07-20 expansion block can be appended to ASR_MODELS without
+    # hand-positioning every row.
+    return sorted(ASR_MODELS, key=lambda m: m.sort_order)
 
 
 def asr_model(model_id: str) -> AsrModel | None:

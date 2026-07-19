@@ -92,7 +92,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 23
+    assert len(ids) == 64
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
