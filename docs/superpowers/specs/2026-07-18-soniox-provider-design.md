@@ -231,3 +231,16 @@ v1 uses the **single existing `ai-assistant` sink** (→ virtual mic, exactly as
 ## Superseded
 
 The 2026-07-18 base plan's `twoWayTranslation` toggle (Task 6) and the direction-tooltip proposals (①②③ in the v1-proposals artifact) are obsolete. The only surviving tooltip is this addendum's fallback-toggle tooltip.
+
+## Known limitations (2026-07-19 review)
+
+- **Trailing-audio attribution across back-to-back utterances (codex P2, accepted).**
+  `feedTts` re-points the single `audioItemId` at the new utterance's assistant
+  item as soon as the next utterance's first translation final arrives. If the
+  previous utterance's TTS stream is still draining (`SonioxTtsStream` keeps
+  forwarding the old `drainingStreamId`'s audio while the next stream is
+  queued), those trailing chunks attribute to the *next* item. Harmless for
+  live playback; for `keepReplayAudio` it means a few boundary chunks land on
+  the wrong item's `formatted.audio`. Only manifests on rapid, overlapping
+  utterances. **Deliberately not fixed in v1** (user decision 2026-07-19) — the
+  correct fix ties `audioItemId` to the TTS `stream_id` and is deferred.

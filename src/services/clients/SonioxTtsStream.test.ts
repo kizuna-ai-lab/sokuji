@@ -49,6 +49,13 @@ function pcmB64(): string {
 }
 
 describe('SonioxTtsStream', () => {
+  it('rejects connect() when the socket closes before it opens (fail fast, not on timeout)', async () => {
+    const t = new SonioxTtsStream(OPTS);
+    const p = t.connect();
+    MockWebSocket.instances[0].close(); // closed before open()
+    await expect(p).rejects.toThrow(/closed before opening/);
+  });
+
   it('lazily opens a per-utterance stream with full config, then streams text', async () => {
     const { t, ws } = await openTts();
     t.sendText('Hello ', 'en');

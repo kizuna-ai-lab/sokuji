@@ -45,6 +45,13 @@ async function openStream(config = CONFIG) {
 }
 
 describe('SonioxSttStream', () => {
+  it('rejects connect() when the socket closes before it opens (fail fast, not on timeout)', async () => {
+    const s = new SonioxSttStream();
+    const p = s.connect(CONFIG);
+    MockWebSocket.instances[0].close(); // closed before open()
+    await expect(p).rejects.toThrow(/closed before opening/);
+  });
+
   it('sends explicit raw-PCM config as the first frame', async () => {
     const { ws } = await openStream({ ...CONFIG, languageHints: ['zh'] });
     const first = JSON.parse(ws.sent[0] as string);

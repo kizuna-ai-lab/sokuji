@@ -77,8 +77,11 @@ export class SonioxTtsStream {
       let opened = false;
       const timer = setTimeout(() => {
         if (!opened) {
-          ws.close();
+          // Reject with the timeout reason BEFORE closing: ws.close() triggers
+          // onclose, whose pre-open branch would otherwise settle the promise
+          // first and mask the timeout reason.
           reject(new Error('Soniox TTS connection timeout'));
+          ws.close();
         }
       }, CONNECTION_TIMEOUT_MS);
 
@@ -125,6 +128,13 @@ export class SonioxTtsStream {
       ws.onclose = () => {
         clearTimeout(timer);
         this.stopKeepalive();
+        if (!opened) {
+          // Closed before it ever opened → settle connect() now rather than
+          // hang until the connection timeout fires. Covers intentional
+          // cancellation too (a close() during connect).
+          reject(new Error('Soniox TTS socket closed before opening'));
+          return;
+        }
         if (!this.intentionalClose) {
           this.activeStreamId = null;
           this.activeLanguage = null;

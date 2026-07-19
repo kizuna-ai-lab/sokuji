@@ -42,6 +42,12 @@ export class SonioxClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
+  // Monotonic session generation. connect() stamps a new one; disconnect()
+  // bumps it to invalidate any in-flight connect()/ensureTts() whose awaited
+  // socket resolves after the session was already stopped — without this a
+  // late reconnect installs a live socket and flushes speech after Stop
+  // (audio-after-stop) and leaks the socket.
+  private generation = 0;
   private instanceId: string;
   private currentConfig: SonioxSessionConfig | null = null;
   private bidirectional = false;
@@ -148,6 +154,7 @@ export class SonioxClient implements IClient {
     }
     this.currentConfig = config as SonioxSessionConfig;
     this.reset();
+    const gen = ++this.generation;
 
     const cfg = this.currentConfig;
     // two_way needs a concrete source; degrade to one_way on 'auto'
@@ -178,6 +185,9 @@ export class SonioxClient implements IClient {
       languageHints,
       translation,
     });
+    // If disconnect() ran during the STT connect await, this attempt is stale:
+    // close the socket we just opened and bail before wiring anything up.
+    if (gen !== this.generation) { this.stt?.close(); this.stt = null; return; }
     this.isConnectedState = true;
 
     if (this.bidirectional) {
@@ -192,8 +202,12 @@ export class SonioxClient implements IClient {
 
     if (!cfg.textOnly) {
       try {
-        this.tts = this.createTtsStream();
-        await this.tts.connect();
+        const stream = this.createTtsStream();
+        await stream.connect();
+        // Stale attempt guard: if disconnect() ran during the connect await,
+        // discard the socket instead of installing it (would leak + speak after Stop).
+        if (gen !== this.generation) { stream.close(); return; }
+        this.tts = stream;
         // No prewarm: a config-only TTS stream with no text is 408'd by the
         // server in ~5 s. And an idle socket with no active stream is closed at
         // ~11 s (code 1001) regardless of keep_alive — so this socket may die
@@ -207,6 +221,8 @@ export class SonioxClient implements IClient {
       }
     }
 
+    // Final stale-attempt guard before announcing the session is open.
+    if (gen !== this.generation) return;
     this.emitRealtime('client', 'session.opened', {
       provider: 'soniox',
       translation,
@@ -283,9 +299,20 @@ export class SonioxClient implements IClient {
     if (this.ttsConnecting) return;
     if (!this.currentConfig || this.currentConfig.textOnly) return;
     this.ttsConnecting = true;
+    const gen = this.generation;
     try {
+      // Close any stale stream before replacing it — its socket and keepalive
+      // interval may still be live. (ensureTts only runs when the old one is
+      // already dead/closed, but close() is idempotent and this prevents a leak
+      // if that ever changes.)
+      this.tts?.close();
+      this.tts = null;
       const stream = this.createTtsStream();
       await stream.connect();
+      // Stale attempt guard: the session was stopped while we were connecting —
+      // discard the socket instead of installing it and flushing speech (would
+      // produce audio after Stop and leak the socket).
+      if (gen !== this.generation) { stream.close(); this.ttsPending = []; return; }
       this.tts = stream;
       this.ttsFailedOnce = false; // recovered
       const pending = this.ttsPending;
@@ -297,7 +324,7 @@ export class SonioxClient implements IClient {
     } catch (error) {
       // Reconnect itself failed → spoken output genuinely unavailable now.
       this.ttsPending = [];
-      this.handleTtsError('connect_failed', String(error));
+      if (gen === this.generation) this.handleTtsError('connect_failed', String(error));
     } finally {
       this.ttsConnecting = false;
     }
@@ -580,6 +607,9 @@ export class SonioxClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Invalidate any in-flight connect()/ensureTts(): a socket whose connect
+    // await resolves after this point must not be installed or fed.
+    this.generation++;
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     if (this.stt) {
       this.stt.end();   // empty text frame: server flushes and closes

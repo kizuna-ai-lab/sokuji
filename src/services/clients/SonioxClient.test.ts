@@ -33,9 +33,13 @@ class MockTts {
   utteranceEnds = 0;
   closed = false;
   static failConnect = false;
+  static gate: Promise<void> | null = null; // when set, connect() awaits it (race tests)
   constructor(options: unknown) { this.options = options; ttsInstances.push(this); }
   setHandlers(h: MockTts['handlers']) { this.handlers = h; }
-  connect() { return MockTts.failConnect ? Promise.reject(new Error('boom')) : Promise.resolve(); }
+  connect() {
+    if (MockTts.failConnect) return Promise.reject(new Error('boom'));
+    return MockTts.gate ? MockTts.gate.then(() => undefined) : Promise.resolve();
+  }
   prewarm(lang: string) { this.prewarmed.push(lang); }
   sendText(text: string, language: string) { this.sent.push({ text, language }); }
   endUtterance() { this.utteranceEnds += 1; }
@@ -74,6 +78,7 @@ beforeEach(() => {
   sttInstances.length = 0;
   ttsInstances.length = 0;
   MockTts.failConnect = false;
+  MockTts.gate = null;
 });
 
 describe('SonioxClient connect', () => {
@@ -348,6 +353,42 @@ describe('SonioxClient keepReplayAudio (per-item audio accumulation for the inli
     const item = asstItem(client)!;
     expect(item.status).toBe('completed');
     expect(Array.from(item.formatted?.audio as Int16Array)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('SonioxClient disconnect race (a socket that connects after Stop must be discarded)', () => {
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  it('a TTS reconnect that finishes after disconnect() is discarded — not installed, speech not flushed (no audio after Stop)', async () => {
+    const { client, tts } = await connectedClient(); // tts open
+    (tts as any).closed = true; // kill the socket so the next translation reconnects
+    let release!: () => void;
+    MockTts.gate = new Promise<void>((r) => { release = r; });
+    // A translation → feedTts queues text and kicks ensureTts (awaits the gate).
+    sttInstances.at(-1)!.emit({ tokens: [tok('Hi', { is_final: true, translation_status: 'translation', language: 'en' })] });
+    await tick(); // let ensureTts reach the gated connect await
+    await client.disconnect(); // Stop while the reconnect is in flight
+    release(); // now let the gated connect resolve
+    await tick();
+    const reconnected = ttsInstances.at(-1)!;
+    expect(reconnected).not.toBe(tts);
+    expect(reconnected.closed).toBe(true); // discarded, not installed
+    expect(reconnected.sent).toEqual([]);  // buffered speech NOT flushed after Stop
+  });
+
+  it('a connect() whose TTS socket opens after disconnect() never announces the session (no session.opened after Stop)', async () => {
+    const client = new SonioxClient('key');
+    const events: Array<{ event: { type: string } }> = [];
+    client.setEventHandlers({ onRealtimeEvent: (e) => events.push(e as any) });
+    let release!: () => void;
+    MockTts.gate = new Promise<void>((r) => { release = r; });
+    const p = client.connect({ ...BASE_CONFIG, textOnly: false });
+    await tick(); // STT connects immediately; the TTS connect is gated
+    await client.disconnect();
+    release();
+    await p;
+    await tick();
+    expect(events.filter((e) => e.event?.type === 'session.opened')).toHaveLength(0);
   });
 });
 

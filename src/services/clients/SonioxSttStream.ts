@@ -79,8 +79,11 @@ export class SonioxSttStream {
       let opened = false;
       const timer = setTimeout(() => {
         if (!opened) {
-          ws.close();
+          // Reject with the timeout reason BEFORE closing: ws.close() triggers
+          // onclose, whose pre-open branch would otherwise settle the promise
+          // first and mask the timeout reason.
           reject(new Error('Soniox STT connection timeout'));
+          ws.close();
         }
       }, CONNECTION_TIMEOUT_MS);
 
@@ -131,6 +134,12 @@ export class SonioxSttStream {
       ws.onclose = (event) => {
         clearTimeout(timer);
         this.stopKeepalive();
+        if (!opened) {
+          // Closed before it ever opened → settle connect() now rather than
+          // hang until the connection timeout fires.
+          reject(new Error('Soniox STT socket closed before opening'));
+          return;
+        }
         this.handlers.onClose?.({ code: (event as CloseEvent).code, reason: (event as CloseEvent).reason });
       };
     });
