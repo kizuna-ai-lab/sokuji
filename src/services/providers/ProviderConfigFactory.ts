@@ -20,13 +20,31 @@ export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
 
   static {
-    // Initialize configurations
+    // Registration order here defines the order providers appear in the UI
+    // list (the configs Map preserves insertion order). Each provider keeps
+    // its own environment / feature-flag guard.
+
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
-    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
     // Local inference is always available (no API key or feature flag required)
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
+
+    // Native (Electron sidecar) local inference — Electron only, behind feature flag
+    if (isElectron() && isLocalNativeEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
+    }
+
+    // Soniox speech-to-speech translation — always available (BYOK)
+    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
+
+    // Volcengine AST 2.0 — always available, but only in Electron (IPC proxy) and
+    // Extension (declarativeNetRequest header injection), which it technically requires
+    if (isElectron() || isExtension()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
+    }
+
+    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
     // Only register Palabra AI if the feature flag is enabled
     if (isPalabraAIEnabled()) {
@@ -42,26 +60,13 @@ export class ProviderConfigFactory {
     // Only register OpenAI Compatible provider in Electron environment
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
-      // Native (Electron sidecar) local inference — Electron only, behind feature flag
-      if (isLocalNativeEnabled()) {
-        ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
-      }
     }
 
     // Volcengine Speech Translate — always available (stable)
     ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
 
-    // Volcengine AST 2.0 — always available, but only in Electron (IPC proxy) and
-    // Extension (declarativeNetRequest header injection), which it technically requires
-    if (isElectron() || isExtension()) {
-      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
-    }
-
     // Zoom AI Services — always available (stable)
     ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
-
-    // Soniox speech-to-speech translation — always available (BYOK)
-    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
   }
 
   /**
