@@ -4,6 +4,7 @@ import electron from 'vite-plugin-electron/simple'
 import path from 'path'
 import fs from 'fs'
 import pkg from './package.json' with { type: 'json' }
+import { dropDuplicateOrtWasm } from './vite.drop-duplicate-ort-wasm'
 import { workerManualChunks } from './vite.worker-chunks'
 
 /**
@@ -128,6 +129,7 @@ export default defineConfig(({ command, mode }) => {
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
+      dropDuplicateOrtWasm(),
       electron({
         main: {
           // Entry points for the main process
@@ -246,4 +248,4 @@ export default defineConfig(({ command, mode }) => {
       include: ['@huggingface/transformers', 'onnxruntime-web'],
     }
   }
-}) 
+})
