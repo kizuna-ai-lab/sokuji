@@ -743,6 +743,7 @@
     "download": "Download",
     "cancel": "Cancel",
     "downloaded": "Downloaded",
+    "active": "Active",
     "delete": "Delete",
     "error": "Error",
     "retry": "Retry",

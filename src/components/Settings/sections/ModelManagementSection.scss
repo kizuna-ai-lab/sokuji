@@ -152,24 +152,27 @@
   transition: border-color 0.2s, opacity 0.2s, background 0.2s;
   cursor: pointer;
 
-  &:hover:not(&--incompatible):not(&--disabled) {
+  // Exclude --selected: selected cards have their own hover (below). Without this
+  // the base hover's higher specificity would wipe the selected tint back to the
+  // plain surface on hover.
+  &:hover:not(&--incompatible):not(&--disabled):not(&--selected) {
     border-color: vars.$border-strong;
     background: vars.$bg-surface;
   }
 
+  // Selected = the in-use model. A subtle filled tint + a full 1px accent ring
+  // (all four corners live) — the app's "segmented → fill" selection form. No
+  // left accent bar, no radio: state is carried by the fill and the Active pill.
   &--selected {
-    border-color: rgba(vars.$color-primary, 0.5);
-    border-left: 3px solid vars.$color-primary;
+    background: rgba(vars.$color-primary, 0.08);
+    border-color: rgba(vars.$color-primary, 0.45);
 
     &:hover:not(&--disabled) {
-      border-color: rgba(vars.$color-primary, 0.7);
-      border-left-color: vars.$color-primary;
+      border-color: rgba(vars.$color-primary, 0.6);
     }
   }
 
-  &--downloaded:not(&--selected) {
-    border-color: rgba(vars.$color-primary, 0.3);
-  }
+  // Downloaded-but-idle cards stay neutral — green is reserved for the active one.
 
   &--error {
     border-color: rgba(vars.$color-error, 0.3);
@@ -213,50 +216,31 @@
     padding-top: 8px;
   }
 
-  &__radio {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    margin-top: 1px;
-    border: 2px solid vars.$border-strong;
-    border-radius: 50%;
-    transition: border-color vars.$transition-fast;
-
-    &::after {
-      content: '';
-      display: block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: transparent;
-      transition: background vars.$transition-fast;
-    }
-
-    .model-card--selected & {
-      border-color: vars.$color-primary;
-
-      &::after {
-        background: vars.$color-primary;
-      }
-    }
-
-    .model-card--incompatible & {
-      border-color: vars.$border-default;
-    }
-  }
-
   &__content {
     flex: 1;
     min-width: 0;
     display: flex;
+
+    // Info on the left, status + action buttons on the right of the SAME row,
+    // aligned to the model-name line. Downloading/error revert to a stacked
+    // column (below) so the progress bar and error message keep full width.
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  // Full-width states stay stacked: progress bar, multi-button + error message.
+  &--downloading &__content,
+  &--error &__content {
     flex-direction: column;
+    align-items: stretch;
     gap: 6px;
   }
 
   &__info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -264,8 +248,8 @@
 
   &__header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
 
   &__name {
@@ -354,6 +338,7 @@
   }
 
   &__actions {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -453,9 +438,26 @@
   &__downloaded {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-size: vars.$font-caption;
-    color: vars.$color-primary;
+  }
+
+  // Status label sits where the old green "Downloaded" text did. Idle = quiet muted
+  // text; --active = a filled tint pill (the one model currently in use).
+  &__status-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: vars.$text-muted;
+
+    &--active {
+      color: vars.$color-primary;
+      background: rgba(vars.$color-primary, 0.15);
+      border: 1px solid rgba(vars.$color-primary, 0.32);
+      border-radius: vars.$radius-sm;
+      padding: 3px 8px;
+      font-weight: vars.$weight-semibold;
+    }
   }
 
   &__error {
