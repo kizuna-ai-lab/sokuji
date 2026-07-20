@@ -218,11 +218,26 @@
     flex: 1;
     min-width: 0;
     display: flex;
+    // Info on the left, status + action buttons on the right of the SAME row,
+    // aligned to the model-name line. Downloading/error revert to a stacked
+    // column (below) so the progress bar and error message keep full width.
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  // Full-width states stay stacked: progress bar, multi-button + error message.
+  &--downloading &__content,
+  &--error &__content {
     flex-direction: column;
+    align-items: stretch;
     gap: 6px;
   }
 
   &__info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -230,8 +245,8 @@
 
   &__header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
 
   &__name {
@@ -320,6 +335,7 @@
   }
 
   &__actions {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 6px;
