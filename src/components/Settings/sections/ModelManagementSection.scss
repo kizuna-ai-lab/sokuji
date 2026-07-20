@@ -168,7 +168,6 @@
     border-color: rgba(vars.$color-primary, 0.45);
 
     &:hover:not(&--disabled) {
-      background: rgba(vars.$color-primary, 0.08);
       border-color: rgba(vars.$color-primary, 0.6);
     }
   }
@@ -221,6 +220,7 @@
     flex: 1;
     min-width: 0;
     display: flex;
+
     // Info on the left, status + action buttons on the right of the SAME row,
     // aligned to the model-name line. Downloading/error revert to a stacked
     // column (below) so the progress bar and error message keep full width.
