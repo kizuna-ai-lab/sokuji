@@ -152,7 +152,10 @@
   transition: border-color 0.2s, opacity 0.2s, background 0.2s;
   cursor: pointer;
 
-  &:hover:not(&--incompatible):not(&--disabled) {
+  // Exclude --selected: selected cards have their own hover (below). Without this
+  // the base hover's higher specificity would wipe the selected tint back to the
+  // plain surface on hover.
+  &:hover:not(&--incompatible):not(&--disabled):not(&--selected) {
     border-color: vars.$border-strong;
     background: vars.$bg-surface;
   }
