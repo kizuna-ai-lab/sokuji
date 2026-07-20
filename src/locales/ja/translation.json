@@ -743,6 +743,7 @@
     "download": "ダウンロード",
     "cancel": "キャンセル",
     "downloaded": "ダウンロード済み",
+    "active": "使用中",
     "delete": "削除",
     "error": "エラー",
     "retry": "再試行",

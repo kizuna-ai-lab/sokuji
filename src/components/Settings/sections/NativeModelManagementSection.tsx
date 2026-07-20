@@ -248,7 +248,6 @@ const NativeModelCard: React.FC<{
   return (
     <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
       <div className="model-card__top-row">
-        <div className="model-card__radio" />
         <div className="model-card__content">
           <div className="model-card__info">
             <div className="model-card__header">
@@ -387,8 +386,10 @@ const NativeModelCard: React.FC<{
               </div>
             ) : status === 'ready' ? (
               <div className="model-card__downloaded">
-                <span className="model-card__status-icon"><CheckCircle size={14} /></span>
-                <span>{t('models.downloaded', 'Downloaded')}</span>
+                <span className={`model-card__status-label${selected ? ' model-card__status-label--active' : ''}`}>
+                  <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+                  <span>{selected ? t('models.active', 'Active') : t('models.downloaded', 'Downloaded')}</span>
+                </span>
                 <button
                   className="model-card__btn model-card__btn--delete"
                   onClick={(e) => { e.stopPropagation(); deleteModel(spec.downloadId as string, chosenVariant?.repo); }}
