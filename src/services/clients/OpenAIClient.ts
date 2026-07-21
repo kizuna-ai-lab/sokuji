@@ -172,7 +172,7 @@ export class OpenAIClient implements IClient {
     }
     
     // Fallback to default if no realtime models found
-    return 'gpt-realtime-mini';
+    return 'gpt-realtime-2.1-mini';
   }
 
   /**

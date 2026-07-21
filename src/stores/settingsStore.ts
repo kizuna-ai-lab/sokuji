@@ -318,6 +318,40 @@ export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
   return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
 }
 
+/** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
+ *  current replacement. OpenAI notified (2026-07-20) that the pre-2.1 realtime
+ *  and audio model families/snapshots are removed from the API on 2027-01-20;
+ *  the former default `gpt-realtime-mini` is among them. Prefix-matched so dated
+ *  snapshots (e.g. `-preview-2024-12-17`) are also caught. Applied only to the
+ *  `openai` slice's `model`, which only ever holds voice-agent realtime ids.
+ *  Translate/whisper realtime variants (their own provider slices) and current
+ *  or future (>= 2.1) versioned models are left untouched. */
+export function migrateDeprecatedOpenAIModel(model: string): string {
+  const m = (model ?? '').toLowerCase();
+  // Preserve current AND future versioned voice-agent models: any
+  // gpt-realtime-<major>.<minor> at >= 2.1 is kept as-is (2.1, 2.2, 3, ...), so
+  // a user who later selects a newer 2.x model isn't silently downgraded on the
+  // next settings load. Only the pre-2.1 families below are deprecated.
+  const version = m.match(/^gpt-realtime-(\d+)(?:\.(\d+))?/);
+  if (version) {
+    const major = parseInt(version[1], 10);
+    const minor = parseInt(version[2] ?? '0', 10);
+    if (major > 2 || (major === 2 && minor >= 1)) return model;
+  }
+  // Non-voice-agent realtime families live in their own provider slices.
+  if (m.startsWith('gpt-realtime-translate')) return model;
+  if (m.startsWith('gpt-realtime-whisper')) return model;
+  // Deprecated mini realtime families → gpt-realtime-2.1-mini.
+  if (m.startsWith('gpt-realtime-mini') || m.startsWith('gpt-4o-mini-realtime')) {
+    return 'gpt-realtime-2.1-mini';
+  }
+  // Deprecated full realtime families (incl. stale gpt-realtime-1.5 / -2) → 2.1.
+  if (m.startsWith('gpt-realtime') || m.startsWith('gpt-4o-realtime')) {
+    return 'gpt-realtime-2.1';
+  }
+  return model;
+}
+
 /**
  * Resolve the worker type for a specific translation model id.
  * Returns 'opus-mt' when the id is missing or not in the manifest.
@@ -1133,6 +1167,14 @@ const useSettingsStore = create<SettingsStore>()(
             await loadProviderSettings(`settings.${sliceKey}`, PROVIDER_SLICE_REGISTRY[sliceKey].defaults),
           ] as const),
         )) as Partial<SettingsStore>;
+
+        // Migrate a persisted deprecated OpenAI realtime model (pre-2.1 family,
+        // removed from the API 2027-01-20) to its current replacement so
+        // existing users don't reconnect onto a dead model.
+        const openaiSlice = loadedSlices.openai as OpenAISettings | undefined;
+        if (openaiSlice?.model) {
+          openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
+        }
 
         set({
           provider: validProvider,
