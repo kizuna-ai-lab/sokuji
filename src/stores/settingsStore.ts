@@ -325,11 +325,20 @@ export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
  *  snapshots (e.g. `-preview-2024-12-17`) are also caught. Applied only to the
  *  `openai` slice's `model`, which only ever holds voice-agent realtime ids.
  *  Translate/whisper realtime variants (their own provider slices) and current
- *  2.1 models are left untouched. */
+ *  or future (>= 2.1) versioned models are left untouched. */
 export function migrateDeprecatedOpenAIModel(model: string): string {
   const m = (model ?? '').toLowerCase();
-  // Current models and non-voice-agent realtime families: leave as-is.
-  if (m.startsWith('gpt-realtime-2.1')) return model;
+  // Preserve current AND future versioned voice-agent models: any
+  // gpt-realtime-<major>.<minor> at >= 2.1 is kept as-is (2.1, 2.2, 3, ...), so
+  // a user who later selects a newer 2.x model isn't silently downgraded on the
+  // next settings load. Only the pre-2.1 families below are deprecated.
+  const version = m.match(/^gpt-realtime-(\d+)(?:\.(\d+))?/);
+  if (version) {
+    const major = parseInt(version[1], 10);
+    const minor = parseInt(version[2] ?? '0', 10);
+    if (major > 2 || (major === 2 && minor >= 1)) return model;
+  }
+  // Non-voice-agent realtime families live in their own provider slices.
   if (m.startsWith('gpt-realtime-translate')) return model;
   if (m.startsWith('gpt-realtime-whisper')) return model;
   // Deprecated mini realtime families → gpt-realtime-2.1-mini.

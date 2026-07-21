@@ -17,9 +17,14 @@ describe("deprecated OpenAI realtime model migration", () => {
     expect(migrateDeprecatedOpenAIModel("gpt-realtime-2")).toBe("gpt-realtime-2.1");
   });
 
-  it("leaves current 2.1 models unchanged", () => {
+  it("leaves current and future (>= 2.1) versioned models unchanged", () => {
     expect(migrateDeprecatedOpenAIModel("gpt-realtime-2.1")).toBe("gpt-realtime-2.1");
     expect(migrateDeprecatedOpenAIModel("gpt-realtime-2.1-mini")).toBe("gpt-realtime-2.1-mini");
+    // Forward-compat: newer versions must NOT be downgraded to 2.1.
+    expect(migrateDeprecatedOpenAIModel("gpt-realtime-2.2")).toBe("gpt-realtime-2.2");
+    expect(migrateDeprecatedOpenAIModel("gpt-realtime-2.2-mini")).toBe("gpt-realtime-2.2-mini");
+    expect(migrateDeprecatedOpenAIModel("gpt-realtime-3")).toBe("gpt-realtime-3");
+    expect(migrateDeprecatedOpenAIModel("gpt-realtime-10.4")).toBe("gpt-realtime-10.4");
   });
 
   it("leaves non-voice-agent realtime variants (translate/whisper) unchanged", () => {
