@@ -139,3 +139,18 @@ def test_prepare_reference_trims_caps_and_normalizes():
     # all-silence clip: no voiced frames, no peak -> returned unchanged, no crash
     out_sil = higgs.prepare_reference(np.zeros(sr, np.float32), sr)
     assert out_sil.size == sr and float(np.abs(out_sil).max()) == 0.0
+
+
+def test_prepare_reference_caps_at_a_pause_not_mid_word():
+    """A clip over the cap must be cut at a PAUSE, not hard-cut mid-sound: a
+    hard mid-word cut makes the model emit an "eh"-like completion artifact at
+    the start of every generated chunk."""
+    sr = 16000
+    tone = (0.2 * np.sin(2 * np.pi * 220 * np.arange(sr) / sr)).astype(np.float32)
+    # 6s tone + 0.3s pause + 4s tone = 10.3s > 8s cap; the pause sits inside
+    # the second half of the cap window [4s, 8s) -> cut lands there, not at 8s
+    clip = np.concatenate([np.tile(tone, 6), np.zeros(int(sr * 0.3), np.float32), np.tile(tone, 4)])
+    out = higgs.prepare_reference(clip, sr)
+    assert 5.8 * sr <= out.size <= 6.5 * sr   # ends at the pause (~6.0-6.3s)
+    # and the tail of the returned clip is the quiet region, not cut mid-tone
+    assert float(np.abs(out[-int(sr * 0.05):]).max()) < 0.05

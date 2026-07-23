@@ -48,27 +48,30 @@ def _load_mono(wav_path: str):
     return wav, sr
 
 
-MAX_REF_SECONDS = 3.0        # cap the reference clip length (see prepare_reference)
+MAX_REF_SECONDS = 8.0        # cap the reference clip length (see prepare_reference)
 
 
 def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
     """Condition a reference clip before encoding so voice cloning stays correct.
     OmniVoice's non-autoregressive decode grows a reference-code PREFIX from the
-    clip, and a LONG reference degrades the clone two ways: past ~T=300 (~12 s)
-    the decode intermittently collapses to near-silence, and well before that —
-    from ~4 s on — the model over-attends to the reference and GARBLES the target
-    text (produces wrong words, not the sentence). The curated presets are ~3.5 s
-    and clone perfectly; a real recording capped to ~3 s clones the target,
-    while the same clip at 6-8 s returns garbage. So cap SHORT (≈ preset length),
-    not just short-enough-to-avoid-collapse.
+    clip; past ~T=300 (~12 s) the decode intermittently collapses/garbles, so
+    long clips must be capped. But the CUT MUST LAND ON A PAUSE: a hard cut
+    mid-word leaves the reference codes ending in half a phoneme, and the model
+    "completes" that cut sound at the start of every generated chunk — an
+    audible "eh"-like grunt (ASR literally transcribed the artifacts: "Day.",
+    "fair.", "Say," prepended to sentences when a 6.5 s clip was hard-cut at
+    3 s). A clean clip UNDER the cap passes through whole and clones at preset
+    quality (the 6.5 s sarah preset == importing sarah uncut).
 
-    Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of peak
-    frame energy), (2) cap to `max_seconds`, (3) peak-normalize to 0.95 (a quiet
+    Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of
+    peak frame energy), (2) cap to `max_seconds`, cutting at the last
+    low-energy frame in the second half of the cap window (hard cut only if
+    the clip has no pause there), (3) peak-normalize to 0.95 (a quiet
     recording otherwise clones to near-inaudible output). Returns 1-D float32.
     """
     wav = np.asarray(wav, dtype=np.float32).ravel()
+    win = max(1, int(sr * 0.02))
     if wav.size:
-        win = max(1, int(sr * 0.02))
         n = wav.size // win
         if n:
             energy = np.sqrt((wav[:n * win].reshape(n, win) ** 2).mean(axis=1))
@@ -78,7 +81,14 @@ def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
                 wav = wav[voiced[0] * win: min(wav.size, (voiced[-1] + 1) * win)]
     cap = int(sr * max_seconds)
     if wav.size > cap:
-        wav = wav[:cap]
+        # pause-aware cut: last sub-threshold 20 ms frame in the second half
+        # of the cap window, so the reference never ends mid-word
+        n = cap // win
+        energy = np.sqrt((wav[:n * win].reshape(n, win) ** 2).mean(axis=1))
+        thr = max(1e-4, float(energy.max()) * 0.10)
+        quiet = np.where(energy[n // 2:] < thr)[0]
+        end = (n // 2 + int(quiet[-1])) * win if quiet.size else cap
+        wav = wav[:end]
     peak = float(np.abs(wav).max()) if wav.size else 0.0
     if peak > 1e-5:
         wav = wav * (0.95 / peak)
