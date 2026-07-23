@@ -624,6 +624,14 @@ _GPT_SOVITS_REPO = os.environ.get(
 _COSYVOICE3_REPO = os.environ.get(
     "SOKUJI_COSYVOICE3_REPO", "jiangzhuo9357/cosyvoice3-0.5b-onnx")
 
+# OmniVoice (issue #351): corrected bidirectional re-export of k2-fsa/OmniVoice
+# (the community onnx-community/OmniVoice-Onnx export bakes a causal mask into
+# llm_decoder, which produces noise under this model's non-autoregressive
+# iterative-unmasking decode — see scripts/reexport-omnivoice/out/README.md).
+# 600+ language zero-shot cloning, transcript-free (no ICL reference text).
+_OMNIVOICE_REPO = os.environ.get(
+    "SOKUJI_OMNIVOICE_REPO", "jiangzhuo9357/omnivoice-onnx-bidi")
+
 # macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
 # same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
 _MOSS_NANO_MLX_REPO = os.environ.get(
@@ -736,6 +744,27 @@ TTS_MODELS: list[TtsModel] = [
              # HF-generated .gitattributes the downloader also fetches)
              size_bytes=3_721_012_656,
              sort_order=9),
+    # OmniVoice (issue #351): 600+ language zero-shot cloning, Qwen3-0.6B
+    # backbone + Higgs Audio V2 codec, 32-step non-autoregressive iterative
+    # unmasking. Transcript-free cloning (no ICL reference text needed) —
+    # unlike CosyVoice3/Qwen3-TTS/GPT-SoVITS above. GPU-only by design: the
+    # int4/fp16 backbone variants are CUDA-tuned and no cpu row is shipped.
+    # download_ignore drops fp16/* — only the int4 default variant + the
+    # shared audio_tokenizer/ codec download.
+    TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
+             (Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0),),
+             repos=(_OMNIVOICE_REPO,),
+             clones=True, named_voices=False, transcript_required=False,
+             streaming=False, sample_rate=24000, num_speakers=1,
+             download_ignore=("fp16/*",),
+             # local build-output measurement (repo not yet uploaded):
+             # int4/*(937_884_440) + audio_tokenizer/*(740_847_327) +
+             # omnivoice_onnx_manifest.json/README.md/PROVENANCE.md
+             # (4_546 bytes) from scripts/reexport-omnivoice/out/, excluding
+             # fp16/ per download_ignore. Re-measure against the live HF repo
+             # once uploaded (mirrors the cosyvoice3-0.5b note above).
+             size_bytes=1_678_736_313,
+             sort_order=66),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
     # x86 discrete-GPU benefit unverified (per-step KV round-trip). The bench

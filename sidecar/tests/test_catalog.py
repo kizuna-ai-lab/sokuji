@@ -135,12 +135,15 @@ def test_tts_models_have_deployments_languages_and_repos():
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
                                  "qwen3tts_onnx", "mlx_audio_tts",
-                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx"}
+                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx",
+                                 "omnivoice_onnx"}
 
 
 # The realtime bar decides which tiers exist (issue #323): CosyVoice3's CPU
 # RTF ~3.5 is unusable, so it is the first deliberately GPU-only TTS card.
-GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b"}
+# OmniVoice (issue #351) is GPU-only for the same reason (fp16/int4 backbone
+# tuned for CUDA; no cpu deployment row is shipped).
+GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b", "omnivoice-0.6b"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -165,6 +168,20 @@ def test_cosyvoice3_card_shape():
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "cosyvoice3_onnx" for d in m.deployments)
     assert m.size_bytes > 3_000_000_000
+
+
+def test_omnivoice_card_shape():
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    assert m.languages == ("multi",)
+    assert m.clones
+    assert m.transcript_required is False
+    assert not m.streaming
+    assert m.sample_rate == 24000 and m.num_speakers == 1
+    tiers = {d.tier for d in m.deployments}
+    assert tiers == {"gpu-cuda"}
+    assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
+    assert m.size_bytes > 0
 
 
 def test_tts_moss_nano_is_streaming_cloning():

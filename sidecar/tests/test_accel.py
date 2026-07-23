@@ -546,6 +546,26 @@ def test_cosyvoice3_backend_installed_and_resolvable():
     assert plans[0].backend == "cosyvoice3_onnx" and plans[0].tier == "gpu-cuda"
 
 
+def test_omnivoice_backend_installed_and_resolvable():
+    """Catches the three-site registration gotcha: a backend missing from
+    accel._installed() renders in the catalog but NoUsablePlan everywhere."""
+    from sokuji_sidecar import planner
+
+    installed = accel._installed()          # REAL probe of this host's venv
+    assert "omnivoice_onnx" in installed
+
+    # Resolution needs an NVIDIA machine; synthesize one but keep the REAL
+    # installed set so a missing mods entry still fails this test.
+    machine = accel.Machine(
+        os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
+        dml_adapters=(), installed=frozenset(installed), fingerprint="t",
+        tc_kinds=("cuda",), gpus=(("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),),
+        ort_cuda=True)
+    plans = planner.resolve_tts("omnivoice-0.6b", machine=machine, platform="linux", cache={})
+    assert plans, "omnivoice-0.6b resolved to no usable plan"
+    assert plans[0].backend == "omnivoice_onnx" and plans[0].tier == "gpu-cuda"
+
+
 # ── select_variant tests ────────────────────────────────────────────────────
 
 
