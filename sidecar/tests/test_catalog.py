@@ -177,13 +177,18 @@ def test_omnivoice_card_shape():
     assert m.clones
     assert m.transcript_required is False
     assert m.named_voices is True  # curated presets (voices/manifest.json) — issue #351 follow-up
-    assert m.download_ignore == ("fp16/*",)  # only the int4 variant + Higgs download
     assert not m.streaming
     assert m.sample_rate == 24000 and m.num_speakers == 1
     tiers = {d.tier for d in m.deployments}
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
-    assert m.size_bytes == 1_679_680_800  # exact live-repo downloadable total (incl. voices/)
+    # Three llm precisions in ONE shared repo; bf16 is the default (highest rank).
+    cts = [d.compute_type for d in m.deployments]
+    assert set(cts) == {"bf16", "fp32", "int4"}
+    assert "fp16" not in cts  # naive fp16 is CUDA-broken (RMSNorm x^2 overflow) — intentionally absent
+    assert max(m.deployments, key=lambda d: d.rank).compute_type == "bf16"
+    assert all(d.artifact == m.deployments[0].artifact for d in m.deployments)  # shared repo
+    assert m.size_bytes == 5_399_144_933  # whole-repo download (all variants share the repo)
 
 
 def test_omnivoice_license():

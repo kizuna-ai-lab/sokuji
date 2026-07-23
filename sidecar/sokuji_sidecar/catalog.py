@@ -787,18 +787,29 @@ TTS_MODELS: list[TtsModel] = [
     # voices/{classic-zh,classic-ja,sarah}.wav (transcript-free — no .txt,
     # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices
     # is True here.
+    # Three llm_decoder precisions in ONE repo (unified-repo by choice). The
+    # variant picker is driven by compute_type (accel serializes variantIds =
+    # the deployments' compute_types), NOT by distinct repos — all three share
+    # _OMNIVOICE_REPO, so the repo downloads once as a whole and the variant is
+    # chosen at LOAD time (the backend loads d/{compute_type}). rank order sets
+    # the default via planner._tts_pick_quant: bf16 > fp32 > int4.
+    #   bf16 — DEFAULT: fastest AND clean on CUDA (RTF 0.198 vs fp32 0.258 /
+    #     int4 0.334, GB10). bf16's fp32-range exponent avoids the deep-layer
+    #     RMSNorm x^2 overflow that makes a naive fp16 export emit an all-zero
+    #     llm output on the CUDA EP — so there is deliberately no fp16 variant.
+    #     Its audio_embeddings is also bf16 (verified lossless, embeds cos 1.0).
+    #   fp32 — un-quantized reference. int4 — smallest weights / low-VRAM.
+    # Every est_bytes is the WHOLE-REPO download (5.40 GB, HF files_metadata
+    # 2026-07-23: bf16/ + fp32/ + int4/ + audio_tokenizer/ + voices/ + root),
+    # since picking any variant fetches the shared repo in full.
     TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
-             (Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0),),
+             (Deployment("omnivoice_onnx", "gpu-cuda", "bf16", _OMNIVOICE_REPO, 3.0, est_bytes=5_399_144_933),
+              Deployment("omnivoice_onnx", "gpu-cuda", "fp32", _OMNIVOICE_REPO, 2.0, est_bytes=5_399_144_933),
+              Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0, est_bytes=5_399_144_933)),
              repos=(_OMNIVOICE_REPO,),
              clones=True, named_voices=True, transcript_required=False,
              streaming=False, sample_rate=24000, num_speakers=1,
-             download_ignore=("fp16/*",),
-             # exact live-repo total (HF files_metadata 2026-07-23): every file
-             # except fp16/* (per download_ignore) — int4/ + audio_tokenizer/ +
-             # voices/ (curated presets + manifest.json) + manifest/README/
-             # PROVENANCE + the HF-generated .gitattributes the downloader
-             # also fetches (mirrors the cosyvoice3-0.5b note above).
-             size_bytes=1_679_680_800,
+             size_bytes=5_399_144_933,
              sort_order=66,
              # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
              # This descriptor is DATA the download gate (Task 2) reads
