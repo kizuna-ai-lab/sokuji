@@ -283,6 +283,15 @@ def estimate_target_tokens(text: str, *, speed: float = 1.0,
 # into short phrases and synthesizes chunk-by-chunk, concatenating the audio.
 TTS_MAX_CHUNK_WORDS = 7
 
+# Duration-budget slack multiplier applied to estimate_target_tokens by the
+# backend. The estimate is a tight average-pace budget, but the decode's
+# prosody is stochastic: a slower-than-average draw runs out of frames and the
+# SENTENCE TAIL gets truncated or garbled ("The cost is absolutely" — end
+# missing). ASR-verified on a tail-failing sentence: x1.0 completed 3/6 runs,
+# x1.25 and x1.4 completed 6/6. Keep the slack modest — ~1.8x+ over-length
+# makes the model stretch/garble words instead.
+TTS_TARGET_SLACK = 1.25
+
 
 def split_for_tts(text: str, max_words: int = TTS_MAX_CHUNK_WORDS) -> list:
     """Split text into short phrases for chunked synthesis. Breaks at clause /

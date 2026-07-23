@@ -910,7 +910,10 @@ class OmniVoiceOnnxBackend:
 
     def _generate_one(self, text, speed):
         """Synthesize a single short phrase -> float32 waveform (24 kHz)."""
-        n = _omnivoice_frontend.estimate_target_tokens(text, speed=float(speed))
+        # +25% duration slack so a slow prosody draw doesn't truncate the
+        # sentence tail — see frontend.TTS_TARGET_SLACK.
+        n = int(_omnivoice_frontend.estimate_target_tokens(text, speed=float(speed))
+                * _omnivoice_frontend.TTS_TARGET_SLACK)
         has_ref = self._ref_codes is not None
         ids, amask, _ = _omnivoice_frontend.build_input_ids(
             self._tok, text, lang=None, ref_codes=self._ref_codes,
