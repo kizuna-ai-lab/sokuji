@@ -825,6 +825,11 @@ class OmniVoiceOnnxBackend:
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             model_dir = f"{d}/{compute_type}"
             higgs_dir = f"{d}/audio_tokenizer"
+            # sbsa/aarch64: onnxruntime 1.24 rejects the HF-cache symlinked
+            # .onnx.data files ("escapes model directory") — deref both dirs
+            # before building sessions, same as every other ONNX backend.
+            _hf_symlinks.materialize_symlinks(model_dir)
+            _hf_symlinks.materialize_symlinks(higgs_dir)
             self._tok = _omnivoice_frontend.load_tokenizer(model_dir)
             self._sessions = _omnivoice_runtime.build_sessions(
                 model_dir, higgs_dir, device, threads)
