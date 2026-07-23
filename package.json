@@ -116,7 +116,9 @@
     "brace-expansion@1": "^1.1.16",
     "brace-expansion@2": "^2.1.2",
     "brace-expansion@5": "^5.0.7",
-    "undici": "^6.27.0"
+    "undici": "^6.27.0",
+    "@electron/rebuild": "^4.2.0",
+    "tar@7": "^7.5.21"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
@@ -128,7 +130,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron/fuses": "^2.0.0",
-    "@electron/rebuild": "^4.0.3",
+    "@electron/rebuild": "^4.2.0",
     "@floating-ui/react": "^0.27.15",
     "@google/genai": "^1.46.0",
     "@huggingface/transformers": "^4.2.0",
@@ -151,7 +153,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "40.8.5",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "fake-indexeddb": "^6.2.5",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
