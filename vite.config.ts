@@ -141,6 +141,7 @@ export default defineConfig(({ command, mode }) => {
             'sidecar-sku': 'electron/sidecar-sku.js',
             'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
+            'sandbox-recovery': 'electron/sandbox-recovery.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
