@@ -118,3 +118,24 @@ def test_encode_reference_truncates_mismatched_feature_lengths_to_min_t():
 def test_decode_rejects_wrong_codes_shape():
     with pytest.raises(ValueError):
         higgs.decode({}, np.zeros((7, 5), dtype=np.int64))
+
+
+def test_prepare_reference_trims_caps_and_normalizes():
+    """prepare_reference conditions a user recording so cloning stays stable:
+    trims leading/trailing silence, caps to MAX_REF_SECONDS, peak-normalizes."""
+    sr = 16000
+    tone = (0.2 * np.sin(2 * np.pi * 220 * np.arange(sr) / sr)).astype(np.float32)
+    # 1s silence + 1s tone + 1s silence -> trimmed to ~the 1s tone
+    clip = np.concatenate([np.zeros(sr, np.float32), tone, np.zeros(sr, np.float32)])
+    out = higgs.prepare_reference(clip, sr)
+    assert out.ndim == 1
+    assert 0.7 * sr <= out.size <= 1.3 * sr             # leading/trailing silence trimmed
+    assert abs(float(np.abs(out).max()) - 0.95) < 0.02  # peak-normalized
+
+    # a long clip is capped to MAX_REF_SECONDS
+    capped = higgs.prepare_reference(np.tile(tone, 20), sr)  # 20 s of tone
+    assert capped.size == int(sr * higgs.MAX_REF_SECONDS)
+
+    # all-silence clip: no voiced frames, no peak -> returned unchanged, no crash
+    out_sil = higgs.prepare_reference(np.zeros(sr, np.float32), sr)
+    assert out_sil.size == sr and float(np.abs(out_sil).max()) == 0.0

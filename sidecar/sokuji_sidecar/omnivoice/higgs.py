@@ -48,6 +48,42 @@ def _load_mono(wav_path: str):
     return wav, sr
 
 
+MAX_REF_SECONDS = 8.0        # cap the reference clip length (see prepare_reference)
+
+
+def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
+    """Condition a user-recorded reference clip before encoding so cloning stays
+    stable. OmniVoice's non-autoregressive decode grows a reference-code PREFIX
+    from the clip; a long or silence-padded clip pushes that prefix past ~T=300,
+    where the decode intermittently collapses the generated audio to
+    near-silence ("no discernible syllables" — verified: an uncapped ~14 s clip
+    collapsed 2/6 runs, every <=10 s cap 0/6). Preset clips are short + curated,
+    so this is a no-op for them; it protects recordings.
+
+    Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of peak
+    frame energy), (2) cap to `max_seconds`, (3) peak-normalize to 0.95 (a quiet
+    mic recording otherwise clones to near-inaudible output). Returns 1-D
+    float32.
+    """
+    wav = np.asarray(wav, dtype=np.float32).ravel()
+    if wav.size:
+        win = max(1, int(sr * 0.02))
+        n = wav.size // win
+        if n:
+            energy = np.sqrt((wav[:n * win].reshape(n, win) ** 2).mean(axis=1))
+            thr = max(1e-4, float(energy.max()) * 0.06)
+            voiced = np.where(energy > thr)[0]
+            if voiced.size:
+                wav = wav[voiced[0] * win: min(wav.size, (voiced[-1] + 1) * win)]
+    cap = int(sr * max_seconds)
+    if wav.size > cap:
+        wav = wav[:cap]
+    peak = float(np.abs(wav).max()) if wav.size else 0.0
+    if peak > 1e-5:
+        wav = wav * (0.95 / peak)
+    return wav.astype(np.float32)
+
+
 def _align_to_min_t(acoustic_features: np.ndarray, semantic_features: np.ndarray):
     """Split-graph contract: acoustic_encoder and semantic_encoder are
     independent conv stacks over 24 kHz/16 kHz resamples of the same clip

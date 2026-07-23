@@ -75,8 +75,12 @@ def test_set_voice_downmixes_channel_first_multichannel(monkeypatch):
     stereo = np.stack([np.ones(100, np.float32), np.zeros(100, np.float32)])
     b.set_voice(stereo, 16000)
 
-    assert seen_written["data"].ndim == 1
-    assert np.allclose(seen_written["data"], 0.5)
+    # 100 uniform samples confirms the downmix was over channels (axis 0) — an
+    # axis-1 (time) mean would collapse to 2 samples. prepare_reference then
+    # peak-normalizes the uniform 0.5 downmix to 0.95 (energy is uniform, so no
+    # frame is trimmed and nothing is capped).
+    assert seen_written["data"].ndim == 1 and seen_written["data"].shape == (100,)
+    assert np.allclose(seen_written["data"], 0.95)
 
 
 def test_generate_defaults_to_builtin_preset_voice_when_no_reference_set(monkeypatch):

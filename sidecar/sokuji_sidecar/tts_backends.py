@@ -863,6 +863,11 @@ class OmniVoiceOnnxBackend:
             # samples]), matching MOSS._encode_reference / mlx_tts.set_voice —
             # average over the CHANNEL axis (0), not the sample/time axis.
             wav = wav.mean(axis=0).astype(np.float32)
+        # Trim silence + cap length + loudness-normalize: a long or silence-
+        # padded or quiet user recording otherwise clones to near-silence
+        # (the ref-code prefix destabilizes the non-AR decode). No-op for the
+        # short curated presets. See higgs.prepare_reference.
+        wav = _omnivoice_higgs.prepare_reference(wav, int(sr))
         # higgs.encode_reference is path-only (reads the clip from disk), so
         # stage it to a temp wav and remove it once encoding is done.
         fd, path = tempfile.mkstemp(prefix="sokuji_omnivoice_ref_", suffix=".wav")
