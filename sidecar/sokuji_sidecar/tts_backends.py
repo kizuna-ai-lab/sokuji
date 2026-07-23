@@ -800,12 +800,13 @@ _OMNIVOICE_DECODE_CFG = _omnivoice_decode.DecodeConfig()
 class OmniVoiceOnnxBackend:
     """OmniVoice zero-shot voice cloning TTS, transcript-free.
 
-    Two ONNX directories per snapshot: the backbone variant (`<compute_type>/`
-    — e.g. `int4/` or `fp16/`, holding the 3 HOT backbone graphs + tokenizer)
-    and the shared `audio_tokenizer/` (the 4 COLD Higgs codec graphs, not
-    duplicated per variant). `runtime.build_sessions` applies the per-graph
-    execution-provider policy (HOT graphs on the requested device, COLD
-    graphs always CPU).
+    Self-contained per-variant repo: the 3 HOT backbone graphs (audio_embeddings
+    / llm_decoder / audio_heads) + tokenizer live at the repo ROOT, and the
+    shared Higgs codec graphs in `audio_tokenizer/` (the 4 COLD graphs). Each
+    precision (bf16 / fp32 / int4) is its own repo, so only the chosen variant
+    downloads; `compute_type` is informational here (the repo IS the variant).
+    `runtime.build_sessions` applies the per-graph execution-provider policy
+    (HOT graphs on the requested device, COLD graphs always CPU).
     """
 
     NAME = "omnivoice_onnx"
@@ -832,7 +833,7 @@ class OmniVoiceOnnxBackend:
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
             self._dir = d
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
-            model_dir = f"{d}/{compute_type}"
+            model_dir = d              # backbone at the repo root (self-contained variant repo)
             higgs_dir = f"{d}/audio_tokenizer"
             # sbsa/aarch64: onnxruntime 1.24 rejects the HF-cache symlinked
             # .onnx.data files ("escapes model directory") — deref both dirs

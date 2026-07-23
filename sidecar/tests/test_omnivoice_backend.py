@@ -167,7 +167,7 @@ def test_load_clears_stale_ref_codes(monkeypatch):
     assert b._ref_codes is None
 
 
-def test_load_picks_variant_dir_from_compute_type(monkeypatch):
+def test_load_reads_backbone_from_repo_root(monkeypatch):
     b = make_backend("omnivoice_onnx")
     monkeypatch.setattr(tts_backends, "snapshot_download", lambda **k: "/snap")
     seen = {}
@@ -181,11 +181,13 @@ def test_load_picks_variant_dir_from_compute_type(monkeypatch):
     monkeypatch.setattr(tts_backends._omnivoice_runtime, "build_sessions",
                         fake_build_sessions)
 
-    b.load("repo", "cuda", "int4")
+    b.load("repo", "cuda", "bf16")
 
-    assert seen["model_dir"] == "/snap/int4"
+    # Self-contained per-variant repo: the backbone lives at the repo ROOT
+    # (compute_type is informational here — the repo IS the variant).
+    assert seen["model_dir"] == "/snap"
     assert seen["higgs_dir"] == "/snap/audio_tokenizer"
-    assert seen["tok_dir"] == "/snap/int4"
+    assert seen["tok_dir"] == "/snap"
     assert seen["device"] == "cuda"
 
 

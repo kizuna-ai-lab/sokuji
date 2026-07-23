@@ -182,13 +182,20 @@ def test_omnivoice_card_shape():
     tiers = {d.tier for d in m.deployments}
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
-    # Three llm precisions in ONE shared repo; bf16 is the default (highest rank).
+    # Three llm precisions, each in its OWN self-contained repo; bf16 default.
     cts = [d.compute_type for d in m.deployments]
     assert set(cts) == {"bf16", "fp32", "int4"}
     assert "fp16" not in cts  # naive fp16 is CUDA-broken (RMSNorm x^2 overflow) — intentionally absent
     assert max(m.deployments, key=lambda d: d.rank).compute_type == "bf16"
-    assert all(d.artifact == m.deployments[0].artifact for d in m.deployments)  # shared repo
-    assert m.size_bytes == 5_399_144_933  # whole-repo download (all variants share the repo)
+    # distinct per-variant repos → only the chosen variant downloads
+    arts = [d.artifact for d in m.deployments]
+    assert len(set(arts)) == 3
+    assert all(a.startswith("jiangzhuo9357/omnivoice-onnx-bidi-") for a in arts)
+    by_ct = {d.compute_type: d for d in m.deployments}
+    assert by_ct["bf16"].artifact == m.repos[0]  # default repo = bf16 variant
+    assert (by_ct["bf16"].est_bytes, by_ct["fp32"].est_bytes, by_ct["int4"].est_bytes) == \
+        (1_995_363_769, 3_207_687_266, 1_352_217_204)
+    assert m.size_bytes == 1_995_363_769  # default (bf16) variant download
 
 
 def test_omnivoice_license():
@@ -201,14 +208,14 @@ def test_omnivoice_license():
     assert lic is not None
     assert lic.spdx == "CC-BY-NC-4.0"
     assert lic.non_commercial is True
-    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi"
+    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi-bf16"
     assert lic.attribution == "k2-fsa/OmniVoice"
     assert catalog.license_dict(m) == {
         "spdx": "CC-BY-NC-4.0",
         "name": "Creative Commons Attribution-NonCommercial 4.0 International",
         "url": "https://creativecommons.org/licenses/by-nc/4.0/",
         "nonCommercial": True,
-        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi",
+        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi-bf16",
         "attribution": "k2-fsa/OmniVoice",
     }
     # Every other card has no license — license_dict is a plain pass-through

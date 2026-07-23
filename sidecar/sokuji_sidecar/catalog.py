@@ -661,8 +661,13 @@ _COSYVOICE3_REPO = os.environ.get(
 # llm_decoder, which produces noise under this model's non-autoregressive
 # iterative-unmasking decode — see scripts/reexport-omnivoice/out/README.md).
 # 600+ language zero-shot cloning, transcript-free (no ICL reference text).
-_OMNIVOICE_REPO = os.environ.get(
-    "SOKUJI_OMNIVOICE_REPO", "jiangzhuo9357/omnivoice-onnx-bidi")
+# Three self-contained per-variant repos (backbone at the repo ROOT + shared
+# audio_tokenizer/ + voices/): only the CHOSEN precision downloads (qwen3-tts
+# pattern). bf16 is the default (fastest + clean on CUDA); a naive fp16 export
+# is CUDA-broken (RMSNorm x^2 overflow -> all-zero llm), so no fp16 variant.
+_OMNIVOICE_BF16 = os.environ.get("SOKUJI_OMNIVOICE_BF16_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-bf16")
+_OMNIVOICE_FP32 = os.environ.get("SOKUJI_OMNIVOICE_FP32_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-fp32")
+_OMNIVOICE_INT4 = os.environ.get("SOKUJI_OMNIVOICE_INT4_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-int4")
 
 # macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
 # same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
@@ -780,36 +785,34 @@ TTS_MODELS: list[TtsModel] = [
     # backbone + Higgs Audio V2 codec, 32-step non-autoregressive iterative
     # unmasking. Transcript-free cloning (no ICL reference text needed) —
     # unlike CosyVoice3/Qwen3-TTS/GPT-SoVITS above. GPU-only by design: the
-    # int4/fp16 backbone variants are CUDA-tuned and no cpu row is shipped.
-    # download_ignore drops fp16/* — only the int4 default variant + the
-    # shared audio_tokenizer/ codec download.
-    # Curated presets (issue #351 follow-up): the repo also ships
+    # backbone variants are CUDA-tuned and no cpu row is shipped. Curated
+    # presets (issue #351 follow-up): each variant repo ships
     # voices/{classic-zh,classic-ja,sarah}.wav (transcript-free — no .txt,
-    # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices
-    # is True here.
-    # Three llm_decoder precisions in ONE repo (unified-repo by choice). The
-    # variant picker is driven by compute_type (accel serializes variantIds =
-    # the deployments' compute_types), NOT by distinct repos — all three share
-    # _OMNIVOICE_REPO, so the repo downloads once as a whole and the variant is
-    # chosen at LOAD time (the backend loads d/{compute_type}). rank order sets
-    # the default via planner._tts_pick_quant: bf16 > fp32 > int4.
+    # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices.
+    # The variant picker is driven by compute_type (variantIds = seen_cts);
+    # rank order sets the default via planner._tts_pick_quant: bf16 > fp32 > int4.
     #   bf16 — DEFAULT: fastest AND clean on CUDA (RTF 0.198 vs fp32 0.258 /
     #     int4 0.334, GB10). bf16's fp32-range exponent avoids the deep-layer
     #     RMSNorm x^2 overflow that makes a naive fp16 export emit an all-zero
     #     llm output on the CUDA EP — so there is deliberately no fp16 variant.
-    #     Its audio_embeddings is also bf16 (verified lossless, embeds cos 1.0).
-    #   fp32 — un-quantized reference. int4 — smallest weights / low-VRAM.
-    # Every est_bytes is the WHOLE-REPO download (5.40 GB, HF files_metadata
-    # 2026-07-23: bf16/ + fp32/ + int4/ + audio_tokenizer/ + voices/ + root),
-    # since picking any variant fetches the shared repo in full.
+    #     bf16 + int4 also ship a bf16 audio_embeddings (verified lossless).
+    #   fp32 — un-quantized reference. int4 — smallest download / low-VRAM.
+    # THREE self-contained per-variant repos (qwen3-tts pattern) — DISTINCT
+    # artifacts, so only the chosen precision downloads and the picker/status
+    # flow (accel._downloaded_tts_variants / native_models.model_status's
+    # any-variant-repo-cached branch) works with zero infra changes. Backend
+    # loads the backbone from the repo ROOT (each repo IS one variant).
+    # est_bytes = each repo's live total (HF files_metadata 2026-07-23):
+    #   bf16 1.995 GB, fp32 3.208 GB, int4 1.352 GB (backbone + shared
+    #   audio_tokenizer/ + voices/).
     TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
-             (Deployment("omnivoice_onnx", "gpu-cuda", "bf16", _OMNIVOICE_REPO, 3.0, est_bytes=5_399_144_933),
-              Deployment("omnivoice_onnx", "gpu-cuda", "fp32", _OMNIVOICE_REPO, 2.0, est_bytes=5_399_144_933),
-              Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0, est_bytes=5_399_144_933)),
-             repos=(_OMNIVOICE_REPO,),
+             (Deployment("omnivoice_onnx", "gpu-cuda", "bf16", _OMNIVOICE_BF16, 3.0, est_bytes=1_995_363_769),
+              Deployment("omnivoice_onnx", "gpu-cuda", "fp32", _OMNIVOICE_FP32, 2.0, est_bytes=3_207_687_266),
+              Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_INT4, 1.0, est_bytes=1_352_217_204)),
+             repos=(_OMNIVOICE_BF16,),   # default-variant (bf16) download repo
              clones=True, named_voices=True, transcript_required=False,
              streaming=False, sample_rate=24000, num_speakers=1,
-             size_bytes=5_399_144_933,
+             size_bytes=1_995_363_769,   # default (bf16) variant download
              sort_order=66,
              # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
              # This descriptor is DATA the download gate (Task 2) reads
@@ -819,7 +822,7 @@ TTS_MODELS: list[TtsModel] = [
                  name="Creative Commons Attribution-NonCommercial 4.0 International",
                  url="https://creativecommons.org/licenses/by-nc/4.0/",
                  non_commercial=True,
-                 source_repo="jiangzhuo9357/omnivoice-onnx-bidi",
+                 source_repo="jiangzhuo9357/omnivoice-onnx-bidi-bf16",
                  attribution="k2-fsa/OmniVoice")),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
