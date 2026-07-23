@@ -134,7 +134,10 @@ def test_prepare_reference_trims_caps_and_normalizes():
 
     # a long clip is capped to MAX_REF_SECONDS
     capped = higgs.prepare_reference(np.tile(tone, 20), sr)  # 20 s of tone
-    assert capped.size == int(sr * higgs.MAX_REF_SECONDS)
+    # no pause in a constant tone -> hard cut at the cap, then the hot tail
+    # gets a silence pad appended (the reference must end in silence)
+    assert capped.size == int(sr * higgs.MAX_REF_SECONDS) + int(sr * 0.25)
+    assert float(np.abs(capped[-int(sr * 0.1):]).max()) == 0.0
 
     # all-silence clip: no voiced frames, no peak -> returned unchanged, no crash
     out_sil = higgs.prepare_reference(np.zeros(sr, np.float32), sr)

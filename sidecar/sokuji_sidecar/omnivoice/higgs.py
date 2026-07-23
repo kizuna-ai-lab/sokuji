@@ -63,14 +63,25 @@ def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
     3 s). A clean clip UNDER the cap passes through whole and clones at preset
     quality (the 6.5 s sarah preset == importing sarah uncut).
 
+    The reference must END IN SILENCE: generation continues right after the
+    reference codes, and a reference that ends in active speech makes the model
+    "finish" that speech first — a short blip at the start of EVERY generated
+    chunk (measured: 30-40 milli-RMS leading transients on import vs 0-1 for
+    the untrimmed preset whose tail silence survived). So the trailing trim
+    keeps ~0.25 s of the clip's natural decay/room tone, and if the clip still
+    ends hot (e.g. a no-pause hard cap), literal silence is appended.
+
     Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of
-    peak frame energy), (2) cap to `max_seconds`, cutting at the last
-    low-energy frame in the second half of the cap window (hard cut only if
-    the clip has no pause there), (3) peak-normalize to 0.95 (a quiet
-    recording otherwise clones to near-inaudible output). Returns 1-D float32.
+    peak frame energy), keeping ~0.25 s of natural tail, (2) cap to
+    `max_seconds`, cutting at the last low-energy frame in the second half of
+    the cap window (hard cut only if the clip has no pause there),
+    (3) peak-normalize to 0.95 (a quiet recording otherwise clones to
+    near-inaudible output), (4) append silence if the tail is still hot.
+    Returns 1-D float32.
     """
     wav = np.asarray(wav, dtype=np.float32).ravel()
     win = max(1, int(sr * 0.02))
+    tail_keep = int(sr * 0.25)
     if wav.size:
         n = wav.size // win
         if n:
@@ -78,7 +89,10 @@ def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
             thr = max(1e-4, float(energy.max()) * 0.06)
             voiced = np.where(energy > thr)[0]
             if voiced.size:
-                wav = wav[voiced[0] * win: min(wav.size, (voiced[-1] + 1) * win)]
+                # keep ~0.25s of natural decay/room tone after the last voiced
+                # frame so the reference ends in silence, not mid-breath
+                wav = wav[voiced[0] * win:
+                          min(wav.size, (voiced[-1] + 1) * win + tail_keep)]
     cap = int(sr * max_seconds)
     if wav.size > cap:
         # pause-aware cut: last sub-threshold 20 ms frame in the second half
@@ -92,6 +106,12 @@ def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
     peak = float(np.abs(wav).max()) if wav.size else 0.0
     if peak > 1e-5:
         wav = wav * (0.95 / peak)
+    # guarantee a quiet tail: if the clip still ends in speech (no-pause hard
+    # cap, or a recording stopped mid-word), append silence
+    if wav.size >= win:
+        tail_rms = float(np.sqrt((wav[-int(sr * 0.1):] ** 2).mean()))
+        if tail_rms > 0.02:
+            wav = np.concatenate([wav, np.zeros(tail_keep, np.float32)])
     return wav.astype(np.float32)
 
 
