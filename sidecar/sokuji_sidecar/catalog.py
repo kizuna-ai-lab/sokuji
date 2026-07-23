@@ -757,13 +757,11 @@ TTS_MODELS: list[TtsModel] = [
              clones=True, named_voices=False, transcript_required=False,
              streaming=False, sample_rate=24000, num_speakers=1,
              download_ignore=("fp16/*",),
-             # local build-output measurement (repo not yet uploaded):
-             # int4/*(937_884_440) + audio_tokenizer/*(740_847_327) +
-             # omnivoice_onnx_manifest.json/README.md/PROVENANCE.md
-             # (4_546 bytes) from scripts/reexport-omnivoice/out/, excluding
-             # fp16/ per download_ignore. Re-measure against the live HF repo
-             # once uploaded (mirrors the cosyvoice3-0.5b note above).
-             size_bytes=1_678_736_313,
+             # exact live-repo total (HF files_metadata 2026-07-23): every file
+             # except fp16/* (per download_ignore) — int4/ + audio_tokenizer/ +
+             # manifest/README/PROVENANCE + the HF-generated .gitattributes the
+             # downloader also fetches (mirrors the cosyvoice3-0.5b note above).
+             size_bytes=1_678_738_364,
              sort_order=66),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);

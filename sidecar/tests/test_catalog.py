@@ -176,12 +176,14 @@ def test_omnivoice_card_shape():
     assert m.languages == ("multi",)
     assert m.clones
     assert m.transcript_required is False
+    assert m.named_voices is False  # no bundled presets — clip cloning + auto-voice only
+    assert m.download_ignore == ("fp16/*",)  # only the int4 variant + Higgs download
     assert not m.streaming
     assert m.sample_rate == 24000 and m.num_speakers == 1
     tiers = {d.tier for d in m.deployments}
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
-    assert m.size_bytes > 0
+    assert m.size_bytes == 1_678_738_364  # exact live-repo downloadable total
 
 
 def test_tts_moss_nano_is_streaming_cloning():
