@@ -8,6 +8,12 @@ import {
   scanDirectory,
   repairDirectory,
   buildBackupLog,
+  getScanDirectories,
+  applyNoSandboxFlag,
+  registerCrashDetection,
+  handleRecoveryMode,
+  CRASH_MARKER,
+  FALLBACK_MARKER,
 } from './sandbox-recovery.js';
 
 // A realistic orphan AppContainer package SID: "S-1-15-2" followed by 7
@@ -307,5 +313,307 @@ describe('buildBackupLog', () => {
     expect(log).toContain(ORPHAN_A);
     expect(log).toContain('issues/352');
     expect(log).toContain(EXPLICIT_ORPHAN);
+  });
+});
+
+// ---- Orchestration test helpers (mock electron app/dialog + injected deps) --
+
+const CONFIRMED_DIR = 'C:/Install';
+
+function makeApp(over = {}) {
+  const handlers = {};
+  return {
+    _handlers: handlers,
+    getVersion: () => over.version || '0.34.1',
+    getPath: (k) =>
+      k === 'exe'
+        ? over.exe || 'C:/Install/sokuji.exe'
+        : k === 'userData'
+          ? over.userData || 'C:/UD'
+          : '',
+    commandLine: { appendSwitch: vi.fn() },
+    on: vi.fn((evt, cb) => {
+      handlers[evt] = cb;
+    }),
+    relaunch: vi.fn(),
+    exit: vi.fn(),
+  };
+}
+
+function makeDeps(over = {}) {
+  return {
+    platform: 'win32',
+    fs: over.fs || {
+      readFileSync: vi.fn(() => {
+        throw new Error('ENOENT');
+      }),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+    },
+    execFileSync: over.execFileSync || vi.fn(),
+    now: over.now || (() => 0),
+    env: over.env || { LOCALAPPDATA: 'C:/Users/j/AppData/Local', USERPROFILE: 'C:/Users/j' },
+    log: () => {},
+  };
+}
+
+describe('getScanDirectories', () => {
+  it('returns the exe dir, LOCALAPPDATA and USERPROFILE, deduped', () => {
+    const app = makeApp();
+    const dirs = getScanDirectories(app, {
+      LOCALAPPDATA: 'C:/Users/j/AppData/Local',
+      USERPROFILE: 'C:/Users/j',
+    });
+    expect(dirs).toEqual(['C:/Install', 'C:/Users/j/AppData/Local', 'C:/Users/j']);
+  });
+
+  it('skips missing env vars and dedupes overlaps', () => {
+    const app = makeApp({ exe: 'C:/Users/j/sokuji.exe' });
+    const dirs = getScanDirectories(app, { USERPROFILE: 'C:/Users/j' });
+    expect(dirs).toEqual(['C:/Users/j']);
+  });
+});
+
+describe('applyNoSandboxFlag', () => {
+  it('is a no-op on non-win32', () => {
+    const app = makeApp();
+    const deps = makeDeps();
+    deps.platform = 'linux';
+    expect(applyNoSandboxFlag(app, { deps, userDataDir: 'C:/UD' })).toBe(false);
+    expect(app.commandLine.appendSwitch).not.toHaveBeenCalled();
+  });
+
+  it('appends --no-sandbox when the marker version matches', () => {
+    const app = makeApp();
+    const deps = makeDeps({
+      fs: {
+        readFileSync: vi.fn(() => JSON.stringify({ appVersion: '0.34.1' })),
+        writeFileSync: vi.fn(),
+        unlinkSync: vi.fn(),
+      },
+    });
+    expect(applyNoSandboxFlag(app, { deps, userDataDir: 'C:/UD' })).toBe(true);
+    expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('no-sandbox');
+    expect(deps.fs.unlinkSync).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale marker and keeps the sandbox when the version changed', () => {
+    const app = makeApp({ version: '0.34.1' });
+    const deps = makeDeps({
+      fs: {
+        readFileSync: vi.fn(() => JSON.stringify({ appVersion: '0.34.0' })),
+        writeFileSync: vi.fn(),
+        unlinkSync: vi.fn(),
+      },
+    });
+    expect(applyNoSandboxFlag(app, { deps, userDataDir: 'C:/UD' })).toBe(false);
+    expect(app.commandLine.appendSwitch).not.toHaveBeenCalled();
+    expect(deps.fs.unlinkSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when there is no marker', () => {
+    const app = makeApp();
+    const deps = makeDeps();
+    expect(applyNoSandboxFlag(app, { deps, userDataDir: 'C:/UD' })).toBe(false);
+    expect(app.commandLine.appendSwitch).not.toHaveBeenCalled();
+    expect(deps.fs.unlinkSync).not.toHaveBeenCalled();
+  });
+});
+
+describe('registerCrashDetection', () => {
+  const gpuCrash = { type: 'GPU', reason: 'crashed', exitCode: -2147483645 };
+
+  it('does not register the listener on non-win32', () => {
+    const app = makeApp();
+    const deps = makeDeps();
+    deps.platform = 'darwin';
+    registerCrashDetection(app, { deps, userDataDir: 'C:/UD' });
+    expect(app.on).not.toHaveBeenCalled();
+  });
+
+  it('writes a crash marker and relaunches on the first GPU sandbox crash', () => {
+    const app = makeApp();
+    const deps = makeDeps();
+    registerCrashDetection(app, { deps, userDataDir: 'C:/UD' });
+    expect(app.on).toHaveBeenCalledWith('child-process-gone', expect.any(Function));
+    app._handlers['child-process-gone']({}, gpuCrash);
+    expect(deps.fs.writeFileSync).toHaveBeenCalledTimes(1);
+    const json = deps.fs.writeFileSync.mock.calls[0][1];
+    expect(JSON.parse(json).timestamps).toHaveLength(1);
+    expect(app.relaunch).toHaveBeenCalled();
+    expect(app.exit).toHaveBeenCalledWith(0);
+  });
+
+  it('ignores unrelated child-process-gone events', () => {
+    const app = makeApp();
+    const deps = makeDeps();
+    registerCrashDetection(app, { deps, userDataDir: 'C:/UD' });
+    app._handlers['child-process-gone'](
+      {},
+      { type: 'Utility', reason: 'crashed', exitCode: -2147483645 }
+    );
+    expect(deps.fs.writeFileSync).not.toHaveBeenCalled();
+    expect(app.relaunch).not.toHaveBeenCalled();
+  });
+
+  it('records the crash but does NOT relaunch once the hourly cap is hit', () => {
+    const app = makeApp();
+    const deps = makeDeps({
+      now: () => 1_000_000,
+      fs: {
+        readFileSync: vi.fn(() =>
+          JSON.stringify({ timestamps: [999_000, 999_500], appVersion: '0.34.1' })
+        ),
+        writeFileSync: vi.fn(),
+        unlinkSync: vi.fn(),
+      },
+    });
+    registerCrashDetection(app, { deps, userDataDir: 'C:/UD' });
+    app._handlers['child-process-gone']({}, gpuCrash);
+    expect(deps.fs.writeFileSync).toHaveBeenCalledTimes(1);
+    expect(app.relaunch).not.toHaveBeenCalled();
+    expect(app.exit).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleRecoveryMode', () => {
+  function crashMarkerFs(over = {}) {
+    return {
+      readFileSync: vi.fn(() => JSON.stringify({ timestamps: [0], appVersion: '0.34.1' })),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+      ...over,
+    };
+  }
+
+  it('proceeds normally on non-win32', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn() };
+    const deps = makeDeps();
+    deps.platform = 'linux';
+    expect(handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' })).toBe(true);
+    expect(dialog.showMessageBoxSync).not.toHaveBeenCalled();
+  });
+
+  it('proceeds normally when there is no crash marker', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn() };
+    const deps = makeDeps(); // default fs.readFileSync throws
+    expect(handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' })).toBe(true);
+    expect(dialog.showMessageBoxSync).not.toHaveBeenCalled();
+  });
+
+  it('confirmed + Repair success: removes ACE, deletes marker, relaunches', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn(() => 0) }; // Repair
+    const repaired = new Set();
+    const execFileSync = vi.fn((cmd, args) => {
+      const dir = args[0];
+      if (args.includes('/remove')) {
+        repaired.add(dir);
+        return;
+      }
+      if (dir === CONFIRMED_DIR && !repaired.has(dir)) return EXPLICIT_ORPHAN;
+      return CLEAN;
+    });
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    expect(dialog.showMessageBoxSync.mock.calls[0][0].buttons[0]).toMatch(/Repair/);
+    expect(execFileSync).toHaveBeenCalledWith(
+      'icacls',
+      [CONFIRMED_DIR, '/remove', `*${ORPHAN_A}`],
+      expect.objectContaining({ windowsHide: true })
+    );
+    expect(fs.writeFileSync).toHaveBeenCalled();
+    expect(fs.unlinkSync).toHaveBeenCalled();
+    expect(app.relaunch).toHaveBeenCalled();
+    expect(proceed).toBe(false);
+  });
+
+  it('confirmed + Continue without sandbox: writes fallback marker, relaunches', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn(() => 1) }; // Continue
+    const execFileSync = vi.fn((cmd, args) =>
+      args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN
+    );
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const fallbackWrite = fs.writeFileSync.mock.calls.find((c) =>
+      String(c[0]).includes(FALLBACK_MARKER)
+    );
+    expect(fallbackWrite).toBeTruthy();
+    expect(JSON.parse(fallbackWrite[1])).toEqual({ appVersion: '0.34.1' });
+    expect(app.relaunch).toHaveBeenCalled();
+    expect(proceed).toBe(false);
+  });
+
+  it('confirmed + Quit: deletes marker, exits, no fallback written', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn(() => 2) }; // Quit
+    const execFileSync = vi.fn((cmd, args) =>
+      args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN
+    );
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const fallbackWrite = fs.writeFileSync.mock.calls.find((c) =>
+      String(c[0]).includes(FALLBACK_MARKER)
+    );
+    expect(fallbackWrite).toBeFalsy();
+    expect(app.exit).toHaveBeenCalledWith(0);
+    expect(app.relaunch).not.toHaveBeenCalled();
+    expect(proceed).toBe(false);
+  });
+
+  it('confirmed + Repair fails: shows fallback dialog, then no-sandbox continue', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn() };
+    dialog.showMessageBoxSync.mockReturnValueOnce(0); // Repair
+    dialog.showMessageBoxSync.mockReturnValueOnce(0); // Continue without sandbox
+    const execFileSync = vi.fn((cmd, args) => {
+      if (args.includes('/remove')) throw new Error('Access is denied.');
+      return args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN;
+    });
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    expect(dialog.showMessageBoxSync).toHaveBeenCalledTimes(2);
+    const fallbackWrite = fs.writeFileSync.mock.calls.find((c) =>
+      String(c[0]).includes(FALLBACK_MARKER)
+    );
+    expect(fallbackWrite).toBeTruthy();
+    expect(app.relaunch).toHaveBeenCalled();
+    expect(proceed).toBe(false);
+  });
+
+  it('unconfirmed (clean scan): offers no Repair button', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn(() => 1) }; // Quit (index 1 of 2)
+    const execFileSync = vi.fn(() => CLEAN);
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const buttons = dialog.showMessageBoxSync.mock.calls[0][0].buttons;
+    expect(buttons.some((b) => /Repair/.test(b))).toBe(false);
+    expect(buttons).toHaveLength(2);
+    expect(app.exit).toHaveBeenCalledWith(0);
+    expect(proceed).toBe(false);
+  });
+
+  it('unconfirmed + Continue without sandbox: writes fallback, relaunches', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn(() => 0) }; // Continue (index 0 of 2)
+    const execFileSync = vi.fn(() => CLEAN);
+    const fs = crashMarkerFs();
+    const deps = makeDeps({ execFileSync, fs });
+    const proceed = handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const fallbackWrite = fs.writeFileSync.mock.calls.find((c) =>
+      String(c[0]).includes(FALLBACK_MARKER)
+    );
+    expect(fallbackWrite).toBeTruthy();
+    expect(app.relaunch).toHaveBeenCalled();
+    expect(proceed).toBe(false);
   });
 });

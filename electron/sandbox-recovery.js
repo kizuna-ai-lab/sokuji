@@ -215,10 +215,299 @@ function buildBackupLog(scanResults, isoStamp) {
   return log;
 }
 
+// ---------------------------------------------------------------------------
+// Orchestration (electron `app`/`dialog` passed in; all win32-gated).
+// State markers live in userData (%APPDATA%\sokuji, the Roaming tree), which is
+// unaffected by the corrupted Local-tree DACL.
+// ---------------------------------------------------------------------------
+
+const path = require('path');
+
+const CRASH_MARKER = 'sandbox-crash-marker.json';
+const FALLBACK_MARKER = 'no-sandbox-fallback.json';
+
+/** Real dependencies, overridable in tests via options.deps. */
+function defaultDeps() {
+  return {
+    platform: process.platform,
+    fs: require('fs'),
+    execFileSync: require('child_process').execFileSync,
+    now: () => Date.now(),
+    env: process.env,
+    log: (...a) => console.log('[Sokuji] [SandboxRecovery]', ...a),
+  };
+}
+
+function mergeDeps(deps) {
+  return { ...defaultDeps(), ...(deps || {}) };
+}
+
+function readJsonFile(fs, filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function safeUnlink(fs, filePath) {
+  try {
+    fs.unlinkSync(filePath);
+  } catch {
+    /* already gone */
+  }
+}
+
+/**
+ * Directories whose DACL can carry the inherited orphan ACE: the install dir,
+ * %LOCALAPPDATA% and %USERPROFILE%. Deduped; missing env vars skipped.
+ * @param {{getPath: Function}} app
+ * @param {Record<string,string>} env
+ * @returns {string[]}
+ */
+function getScanDirectories(app, env) {
+  const dirs = [];
+  try {
+    dirs.push(path.dirname(app.getPath('exe')));
+  } catch {
+    /* ignore */
+  }
+  if (env.LOCALAPPDATA) dirs.push(env.LOCALAPPDATA);
+  if (env.USERPROFILE) dirs.push(env.USERPROFILE);
+  return [...new Set(dirs)];
+}
+
+/**
+ * Wiring point #1 — at the very top of main.js, before app is ready.
+ * Reads the persistent no-sandbox fallback marker and, if it applies to the
+ * current version, appends the --no-sandbox switch. A version change clears the
+ * marker so the sandbox is retried (the ACL may have been fixed meanwhile).
+ * @returns {boolean} whether --no-sandbox was applied.
+ */
+function applyNoSandboxFlag(app, options = {}) {
+  const deps = mergeDeps(options.deps);
+  if (deps.platform !== 'win32') return false;
+  const userData = options.userDataDir || app.getPath('userData');
+  const filePath = path.join(userData, FALLBACK_MARKER);
+  const marker = readJsonFile(deps.fs, filePath);
+  const { noSandbox, clearMarker } = evaluateNoSandbox(marker, app.getVersion());
+  if (clearMarker) {
+    safeUnlink(deps.fs, filePath);
+    deps.log('fallback marker version changed; cleared, retrying with sandbox');
+  }
+  if (noSandbox) {
+    app.commandLine.appendSwitch('no-sandbox');
+    deps.log('applying --no-sandbox from persistent fallback marker');
+  }
+  return noSandbox;
+}
+
+/**
+ * Wiring point #3 — register the passive GPU-crash detector. On a matching
+ * crash it synchronously writes the crash marker (so recovery survives even if
+ * Chromium's FATAL kills us first) and relaunches into recovery mode, up to the
+ * hourly auto-relaunch cap.
+ */
+function registerCrashDetection(app, options = {}) {
+  const deps = mergeDeps(options.deps);
+  if (deps.platform !== 'win32') return;
+  const userData = options.userDataDir || app.getPath('userData');
+  const crashPath = path.join(userData, CRASH_MARKER);
+
+  app.on('child-process-gone', (event, details) => {
+    if (!isGpuSandboxCrash(details)) return;
+    deps.log('GPU sandbox crash detected:', JSON.stringify(details));
+    const existing = readJsonFile(deps.fs, crashPath);
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch(
+      existing,
+      deps.now(),
+      app.getVersion()
+    );
+    try {
+      deps.fs.writeFileSync(crashPath, JSON.stringify(marker));
+    } catch (e) {
+      deps.log('failed to write crash marker:', e && e.message);
+    }
+    if (shouldRelaunch) {
+      deps.log('relaunching into recovery mode');
+      app.relaunch();
+      app.exit(0);
+    } else {
+      deps.log('auto-relaunch cap reached; marker left for next manual launch');
+    }
+  });
+}
+
+function stampFromNow(now) {
+  // ISO-8601 with filename-safe separators, e.g. 2026-07-24T04-00-00-000Z.
+  return new Date(now).toISOString().replace(/[:.]/g, '-');
+}
+
+/**
+ * Back up, then remove the explicit orphan ACEs, then re-scan to verify.
+ * @returns {{success: boolean, remaining: object[], backupPath: string}}
+ */
+function performRepair(confirmed, userData, deps) {
+  const backupPath = path.join(userData, `sandbox-recovery-backup-${stampFromNow(deps.now())}.log`);
+  try {
+    deps.fs.writeFileSync(backupPath, buildBackupLog(confirmed, stampFromNow(deps.now())));
+    deps.log('wrote ACL backup to', backupPath);
+  } catch (e) {
+    deps.log('failed to write backup log:', e && e.message);
+  }
+
+  let hadErrors = false;
+  for (const r of confirmed) {
+    const result = repairDirectory(r.dir, r.sids, deps);
+    if (result.errors.length > 0) {
+      hadErrors = true;
+      deps.log('icacls /remove errors at', r.dir, JSON.stringify(result.errors));
+    }
+  }
+
+  const rescan = confirmed.map((r) => scanDirectory(r.dir, deps));
+  const remaining = rescan.filter((r) => r.sids.length > 0 || r.error);
+  return { success: remaining.length === 0 && !hadErrors, remaining, backupPath };
+}
+
+function writeFallbackAndRelaunch(app, deps, userData, crashPath) {
+  const fallbackPath = path.join(userData, FALLBACK_MARKER);
+  try {
+    deps.fs.writeFileSync(fallbackPath, JSON.stringify({ appVersion: app.getVersion() }));
+    deps.log('wrote no-sandbox fallback marker for', app.getVersion());
+  } catch (e) {
+    deps.log('failed to write fallback marker:', e && e.message);
+  }
+  safeUnlink(deps.fs, crashPath);
+  app.relaunch();
+  app.exit(0);
+}
+
+function quit(app, deps, crashPath) {
+  safeUnlink(deps.fs, crashPath);
+  app.exit(0);
+}
+
+function showConfirmedDialog(dialog, confirmed) {
+  const dirs = confirmed.map((r) => r.dir).join('\n');
+  return dialog.showMessageBoxSync({
+    type: 'warning',
+    title: 'Sokuji — Sandbox Startup Problem',
+    message:
+      "Another program corrupted Windows permissions, preventing Sokuji's security sandbox from starting.",
+    detail:
+      'This is a known problem caused by leftover sandbox permissions from tools such as ' +
+      'OpenAI Codex CLI or Google Antigravity. Sokuji can repair it without administrator ' +
+      'rights — only the orphaned permission entries are removed; nothing else is touched.\n\n' +
+      `Affected locations:\n${dirs}\n\n` +
+      `More details: ${ISSUE_URL}`,
+    buttons: ['Repair permissions (recommended)', 'Continue without sandbox', 'Quit'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+  });
+}
+
+function showUnconfirmedDialog(dialog) {
+  return dialog.showMessageBoxSync({
+    type: 'warning',
+    title: 'Sokuji — Sandbox Startup Problem',
+    message: "Sokuji's security sandbox process repeatedly failed to start.",
+    detail:
+      'The cause could not be confirmed automatically. It is often corrupted Windows ' +
+      'permissions or antivirus injection. You can continue with the sandbox disabled ' +
+      '(reduced isolation) or quit and investigate.\n\n' +
+      `More details: ${ISSUE_URL}`,
+    buttons: ['Continue without sandbox', 'Quit'],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true,
+  });
+}
+
+function showRepairFailedDialog(dialog, repairResult) {
+  const remaining = repairResult.remaining.map((r) => r.dir).join('\n');
+  return dialog.showMessageBoxSync({
+    type: 'error',
+    title: 'Sokuji — Repair Incomplete',
+    message: 'The permission repair did not fully succeed.',
+    detail:
+      'Some orphaned entries could not be removed (they may require different ownership).\n' +
+      (remaining ? `Still affected:\n${remaining}\n\n` : '\n') +
+      `A backup of the original permissions was saved to:\n${repairResult.backupPath}\n\n` +
+      `More details: ${ISSUE_URL}`,
+    buttons: ['Continue without sandbox', 'Quit'],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true,
+  });
+}
+
+/**
+ * Wiring point #2 — run inside whenReady BEFORE createWindow. The main window is
+ * transparent, so a dead renderer shows as an empty pane; the dialog must be
+ * shown from the (unsandboxed) browser process before any window exists.
+ *
+ * @returns {boolean} true => proceed to createWindow; false => we have already
+ *   relaunched or exited and the caller must NOT create a window.
+ */
+function handleRecoveryMode(app, dialog, options = {}) {
+  const deps = mergeDeps(options.deps);
+  if (deps.platform !== 'win32') return true;
+  const userData = options.userDataDir || app.getPath('userData');
+  const crashPath = path.join(userData, CRASH_MARKER);
+
+  const crashMarker = readJsonFile(deps.fs, crashPath);
+  if (!crashMarker) return true; // normal startup
+
+  deps.log('crash marker present; entering recovery mode');
+  const scanResults = getScanDirectories(app, deps.env).map((d) => scanDirectory(d, deps));
+  const confirmed = scanResults.filter((r) => r.sids.length > 0);
+
+  if (confirmed.length > 0) {
+    const choice = showConfirmedDialog(dialog, confirmed);
+    if (choice === 0) {
+      const repairResult = performRepair(confirmed, userData, deps);
+      if (repairResult.success) {
+        deps.log('repair verified clean; relaunching with sandbox');
+        safeUnlink(deps.fs, crashPath);
+        app.relaunch();
+        app.exit(0);
+        return false;
+      }
+      const followUp = showRepairFailedDialog(dialog, repairResult);
+      if (followUp === 0) {
+        writeFallbackAndRelaunch(app, deps, userData, crashPath);
+      } else {
+        quit(app, deps, crashPath);
+      }
+      return false;
+    }
+    if (choice === 1) {
+      writeFallbackAndRelaunch(app, deps, userData, crashPath);
+    } else {
+      quit(app, deps, crashPath);
+    }
+    return false;
+  }
+
+  // Unconfirmed: crash signature fired but the ACL scan is clean. Never offer
+  // to modify ACLs without a confirmed diagnosis.
+  const choice = showUnconfirmedDialog(dialog);
+  if (choice === 0) {
+    writeFallbackAndRelaunch(app, deps, userData, crashPath);
+  } else {
+    quit(app, deps, crashPath);
+  }
+  return false;
+}
+
 module.exports = {
   ORPHAN_SID_RE,
   ISSUE_URL,
   UPSTREAM_URL,
+  CRASH_MARKER,
+  FALLBACK_MARKER,
   parseIcaclsAces,
   findExplicitOrphanSids,
   isGpuSandboxCrash,
@@ -227,4 +516,8 @@ module.exports = {
   scanDirectory,
   repairDirectory,
   buildBackupLog,
+  getScanDirectories,
+  applyNoSandboxFlag,
+  registerCrashDetection,
+  handleRecoveryMode,
 };
