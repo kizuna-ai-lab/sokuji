@@ -788,17 +788,25 @@ TTS_MODELS: list[TtsModel] = [
     # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices
     # is True here.
     TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
-             (Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0),),
+             # fp16 default (not int4): on GB10 CUDA the int4 MatMulNBits dequant
+             # per step x 64 forwards is ~2x SLOWER than fp16 matmul (benchmarked
+             # 2026-07-23: short-sentence RTF int4 0.98 vs fp16 0.46), and fp16 is
+             # also more accurate (parity cos 0.99999997 vs int4 0.998). int4's
+             # only edge is download size, so it is not shipped. num_step/guidance
+             # stay at the DecodeConfig defaults (32/2.0): the spike + user listen
+             # confirmed reducing either collapses quality (16 steps drops words /
+             # noise; guidance 0 leaves one word).
+             (Deployment("omnivoice_onnx", "gpu-cuda", "fp16", _OMNIVOICE_REPO, 1.0),),
              repos=(_OMNIVOICE_REPO,),
              clones=True, named_voices=True, transcript_required=False,
              streaming=False, sample_rate=24000, num_speakers=1,
-             download_ignore=("fp16/*",),
+             download_ignore=("int4/*",),
              # exact live-repo total (HF files_metadata 2026-07-23): every file
-             # except fp16/* (per download_ignore) — int4/ + audio_tokenizer/ +
+             # except int4/* (per download_ignore) — fp16/ + audio_tokenizer/ +
              # voices/ (curated presets + manifest.json) + manifest/README/
              # PROVENANCE + the HF-generated .gitattributes the downloader
              # also fetches (mirrors the cosyvoice3-0.5b note above).
-             size_bytes=1_679_680_800,
+             size_bytes=2_326_751_157,
              sort_order=66,
              # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
              # This descriptor is DATA the download gate (Task 2) reads
