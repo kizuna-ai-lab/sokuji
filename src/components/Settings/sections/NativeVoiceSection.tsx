@@ -168,6 +168,17 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     onCustomChanged();
   }, [store, reloadCustomVoices, onCustomChanged]);
 
+  // Fetch a custom clip's audio so the user can play it back and check clarity.
+  const handlePreview = useCallback(async (id: string) => {
+    if (!store || !id.startsWith('custom:')) return null;
+    const numId = Number(id.slice('custom:'.length));
+    if (!Number.isFinite(numId)) return null;
+    const payload = await store.resolveApply(numId);
+    return payload && payload.kind === 'clip'
+      ? { audio: payload.audio, sampleRate: payload.sampleRate }
+      : null;
+  }, [store]);
+
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
     const toBuiltin = (v: NativeVoiceInfo, isCurated: boolean): VoiceEntry => ({
@@ -236,6 +247,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         onRecord={store?.onRecord ? handleRecord : undefined}
         onRename={handleRename}
         onDelete={handleDelete}
+        onPreview={handlePreview}
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />

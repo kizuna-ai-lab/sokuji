@@ -10,7 +10,7 @@
  *   2. Supertonic capability (`upload` only) hides the Record button.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import VoiceLibrarySection from './VoiceLibrarySection';
 
 const base = {
@@ -37,6 +37,54 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getByText('Ava')).toBeInTheDocument();
     expect(screen.getByText('Mine')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record/i })).toBeInTheDocument();
+  });
+
+  it('plays back a removable clip via onPreview and toggles play/stop', async () => {
+    // jsdom has no Web Audio — mock it.
+    const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
+    const mockCtx: any = {
+      state: 'running',
+      resume: vi.fn().mockResolvedValue(undefined),
+      destination: {},
+      createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
+      createBufferSource: vi.fn(() => mockSource),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    // regular function (not an arrow) so `new AudioContext()` is constructable
+    (window as any).AudioContext = function AudioContext() { return mockCtx; };
+    const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record', 'upload'], curation: false }}
+        onPreview={onPreview}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(onPreview).toHaveBeenCalledWith('custom:1'));
+    await waitFor(() => expect(mockSource.start).toHaveBeenCalled());
+    expect(mockSource.connect).toHaveBeenCalledWith(mockCtx.destination);
+    // now shows a Stop control; clicking it stops playback
+    const stopBtn = await screen.findByRole('button', { name: /^stop$/i });
+    fireEvent.click(stopBtn);
+    expect(mockSource.stop).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+  });
+
+  it('shows no preview control when onPreview is not provided', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['upload'], curation: false }}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
   });
 
   it('hides the record button when record is not an import mode (Supertonic)', () => {

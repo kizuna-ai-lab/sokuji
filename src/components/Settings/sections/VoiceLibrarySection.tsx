@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Plus, Upload } from 'lucide-react';
+import { Mic, Play, Plus, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
@@ -46,6 +46,10 @@ export interface VoiceLibrarySectionProps {
   onRename: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
+  /** Fetch a removable voice's stored clip so the user can play it back and
+   *  check their recording is clear. Returns null when the voice has no
+   *  playable clip. Preview controls only render when this is provided. */
+  onPreview?: (id: string) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -62,10 +66,67 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRecord,
   onRename,
   onDelete,
+  onPreview,
   capability,
   isSessionActive = false,
 }) => {
   const { t } = useTranslation();
+
+  // ---- local playback (listen back to a recorded/imported clip) -----------
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  const stopPreview = useCallback(() => {
+    const src = sourceRef.current;
+    if (src) {
+      src.onended = null;
+      try { src.stop(); } catch { /* already stopped/ended */ }
+      sourceRef.current = null;
+    }
+    setPlayingId(null);
+  }, []);
+
+  const togglePreview = useCallback(async (id: string) => {
+    if (playingId === id) { stopPreview(); return; }
+    stopPreview();
+    if (!onPreview) return;
+    let payload: { audio: Float32Array; sampleRate: number } | null = null;
+    try { payload = await onPreview(id); } catch { payload = null; }
+    if (!payload || payload.audio.length === 0) return;
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = audioCtxRef.current ?? (audioCtxRef.current = new AudioCtx());
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* ignore */ } }
+    const buffer = ctx.createBuffer(1, payload.audio.length, payload.sampleRate);
+    buffer.copyToChannel(payload.audio, 0);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.onended = () => { if (sourceRef.current === src) { sourceRef.current = null; setPlayingId(null); } };
+    sourceRef.current = src;
+    setPlayingId(id);
+    src.start();
+  }, [playingId, onPreview, stopPreview]);
+
+  // Stop playback + release the context on unmount.
+  useEffect(() => () => {
+    stopPreview();
+    void audioCtxRef.current?.close().catch(() => {});
+  }, [stopPreview]);
+
+  const renderPreviewButton = (v: VoiceEntry) => (
+    onPreview && v.removable ? (
+      <button
+        type="button"
+        className="voice-row-btn"
+        onClick={() => void togglePreview(v.id)}
+        aria-label={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+        title={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+      >
+        {playingId === v.id ? <Square size={12} /> : <Play size={12} />}
+      </button>
+    ) : null
+  );
 
   const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -278,6 +339,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         )}
         {v.removable && !isEditing && (
           <>
+            {renderPreviewButton(v)}
             <button
               type="button"
               className="voice-row-btn"
@@ -320,6 +382,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         ) : (
           <span className="voice-name">{v.label}</span>
         )}
+        {!isEditing && renderPreviewButton(v)}
         <button
           type="button"
           className="voice-row-btn"

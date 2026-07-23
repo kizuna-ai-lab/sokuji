@@ -223,6 +223,9 @@
 }
 
 .voice-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 2px 8px;
   font-size: 11px;
   background: transparent;
