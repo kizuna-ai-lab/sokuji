@@ -56,7 +56,7 @@ export interface NativeVoiceStore {
 export const MIN_CLIP_SECONDS = 3;
 export const MAX_CLIP_SECONDS = 20;
 /** Mean absolute amplitude below this is treated as silence (a muted mic / empty file). */
-const SILENCE_RMS_THRESHOLD = 0.005;
+const SILENCE_PEAK_THRESHOLD = 0.01;   // peak below this = no real signal (true silence)
 
 export type ClipValidationError = 'too_short' | 'too_long' | 'silent';
 
@@ -66,11 +66,34 @@ export function validateVoiceClip(clip: Float32Array, sampleRate: number): ClipV
   const seconds = sampleRate > 0 ? clip.length / sampleRate : 0;
   if (seconds < MIN_CLIP_SECONDS) return 'too_short';
   if (seconds > MAX_CLIP_SECONDS) return 'too_long';
-  let sum = 0;
-  for (let i = 0; i < clip.length; i++) sum += Math.abs(clip[i]);
-  const meanAbs = clip.length > 0 ? sum / clip.length : 0;
-  if (meanAbs < SILENCE_RMS_THRESHOLD) return 'silent';
+  // Silence = no real signal. Use PEAK amplitude, not mean-abs over the whole
+  // clip: a genuine but QUIET recording (a low-gain phone / web recorder peaks
+  // ~0.06 vs ~0.5 for normal speech) or one with long pauses has a tiny mean-abs
+  // yet is clearly not silent — mean-abs wrongly rejected such clips as "No
+  // voice detected". Loudness is fixed by normalizePeak on store (+ the sidecar's
+  // prepare_reference); validation only needs to reject TRUE silence.
+  let peak = 0;
+  for (let i = 0; i < clip.length; i++) {
+    const a = Math.abs(clip[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < SILENCE_PEAK_THRESHOLD) return 'silent';
   return null;
+}
+
+/** Peak-normalize a clip to `target` so a quiet recording is stored, previewed,
+ *  and cloned at a usable level. No-op for a (near-)silent clip. */
+export function normalizePeak(clip: Float32Array, target = 0.95): Float32Array {
+  let peak = 0;
+  for (let i = 0; i < clip.length; i++) {
+    const a = Math.abs(clip[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < 1e-5) return clip;
+  const gain = target / peak;
+  const out = new Float32Array(clip.length);
+  for (let i = 0; i < clip.length; i++) out[i] = clip[i] * gain;
+  return out;
 }
 
 /** Downmix an AudioBuffer to a single mono Float32Array (channel average). */
@@ -137,7 +160,10 @@ class ClipVoiceStore implements NativeVoiceStore {
     if (reason) {
       throw new VoiceCaptureError(reason, `Voice clip failed validation: ${reason}`);
     }
-    await addNativeVoice(name, clip, sampleRate, transcript);
+    // Store at a usable loudness so a quiet recording isn't near-inaudible on
+    // preview and clones well (the sidecar re-normalizes too, but this keeps the
+    // stored + previewed clip correct).
+    await addNativeVoice(name, normalizePeak(clip), sampleRate, transcript);
   }
 
   async rename(id: number, name: string): Promise<void> {
