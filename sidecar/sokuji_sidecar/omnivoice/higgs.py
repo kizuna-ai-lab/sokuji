@@ -48,22 +48,23 @@ def _load_mono(wav_path: str):
     return wav, sr
 
 
-MAX_REF_SECONDS = 8.0        # cap the reference clip length (see prepare_reference)
+MAX_REF_SECONDS = 3.0        # cap the reference clip length (see prepare_reference)
 
 
 def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
-    """Condition a user-recorded reference clip before encoding so cloning stays
-    stable. OmniVoice's non-autoregressive decode grows a reference-code PREFIX
-    from the clip; a long or silence-padded clip pushes that prefix past ~T=300,
-    where the decode intermittently collapses the generated audio to
-    near-silence ("no discernible syllables" — verified: an uncapped ~14 s clip
-    collapsed 2/6 runs, every <=10 s cap 0/6). Preset clips are short + curated,
-    so this is a no-op for them; it protects recordings.
+    """Condition a reference clip before encoding so voice cloning stays correct.
+    OmniVoice's non-autoregressive decode grows a reference-code PREFIX from the
+    clip, and a LONG reference degrades the clone two ways: past ~T=300 (~12 s)
+    the decode intermittently collapses to near-silence, and well before that —
+    from ~4 s on — the model over-attends to the reference and GARBLES the target
+    text (produces wrong words, not the sentence). The curated presets are ~3.5 s
+    and clone perfectly; a real recording capped to ~3 s clones the target,
+    while the same clip at 6-8 s returns garbage. So cap SHORT (≈ preset length),
+    not just short-enough-to-avoid-collapse.
 
     Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of peak
     frame energy), (2) cap to `max_seconds`, (3) peak-normalize to 0.95 (a quiet
-    mic recording otherwise clones to near-inaudible output). Returns 1-D
-    float32.
+    recording otherwise clones to near-inaudible output). Returns 1-D float32.
     """
     wav = np.asarray(wav, dtype=np.float32).ravel()
     if wav.size:
