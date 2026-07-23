@@ -39,6 +39,17 @@ def _default_factory(path, providers, sess_options):
 
 def _providers(device: str):
     if device == "cuda":
+        import onnxruntime as ort
+        # Resolve the pip-wheel cuDNN/cuBLAS libs before any CUDA session is
+        # created (spec D8), mirroring gpt_sovits/runtime.py:providers_for and
+        # moss_tts/ort_runtime.py:_resolve_ort_providers. `__main__.py` also
+        # calls this once at process startup, but that only covers the real
+        # server process -- standalone scripts/tests that import this module
+        # directly (e.g. the CUDA smoke test) never get it, so the CUDA EP
+        # silently loses every node to CPU without this redundant call.
+        preload = getattr(ort, "preload_dlls", None)
+        if callable(preload):
+            preload()
         return [("CUDAExecutionProvider", {"device_id": 0}),
                 "CPUExecutionProvider"]
     return ["CPUExecutionProvider"]
