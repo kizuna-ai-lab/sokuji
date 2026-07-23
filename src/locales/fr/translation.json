@@ -780,7 +780,18 @@
     "initFailed": "Échec de l'initialisation du stockage des modèles : {{message}}",
     "othersGroup": "Autres",
     "requiresGpu": "Nécessite un GPU",
-    "upgradeVariant": "Votre appareil prend en charge un format de modèle plus rapide. Supprimez-le et téléchargez-le à nouveau pour de meilleures performances."
+    "upgradeVariant": "Votre appareil prend en charge un format de modèle plus rapide. Supprimez-le et téléchargez-le à nouveau pour de meilleures performances.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "Nouvelle version v{{version}} disponible",

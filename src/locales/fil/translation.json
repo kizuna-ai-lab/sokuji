@@ -780,7 +780,18 @@
     "initFailed": "Nabigong mag-initialize ang storage ng modelo: {{message}}",
     "othersGroup": "Iba pa",
     "requiresGpu": "Nangangailangan ng GPU",
-    "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance."
+    "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",

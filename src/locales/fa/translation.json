@@ -780,7 +780,18 @@
     "initFailed": "راه‌اندازی حافظه مدل‌ها ناموفق بود: {{message}}",
     "othersGroup": "سایر",
     "requiresGpu": "به GPU نیاز دارد",
-    "upgradeVariant": "دستگاه شما از قالب مدل سریع‌تری پشتیبانی می‌کند. برای عملکرد بهتر، حذف و دوباره دانلود کنید."
+    "upgradeVariant": "دستگاه شما از قالب مدل سریع‌تری پشتیبانی می‌کند. برای عملکرد بهتر، حذف و دوباره دانلود کنید.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "نسخه جدید v{{version}} موجود است",

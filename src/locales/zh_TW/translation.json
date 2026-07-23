@@ -780,7 +780,18 @@
     "initFailed": "模型儲存空間初始化失敗：{{message}}",
     "othersGroup": "其他",
     "requiresGpu": "需要 GPU",
-    "upgradeVariant": "您的裝置支援更快的模型格式。刪除後重新下載可獲得更佳效能。"
+    "upgradeVariant": "您的裝置支援更快的模型格式。刪除後重新下載可獲得更佳效能。",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

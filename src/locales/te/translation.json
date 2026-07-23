@@ -780,7 +780,18 @@
     "initFailed": "మోడల్ నిల్వను ప్రారంభించడం విఫలమైంది: {{message}}",
     "othersGroup": "ఇతరాలు",
     "requiresGpu": "GPU అవసరం",
-    "upgradeVariant": "మీ పరికరం వేగవంతమైన మోడల్ ఫార్మాట్‌కు మద్దతు ఇస్తుంది. మెరుగైన పనితీరు కోసం తొలగించి మళ్ళీ డౌన్‌లోడ్ చేయండి."
+    "upgradeVariant": "మీ పరికరం వేగవంతమైన మోడల్ ఫార్మాట్‌కు మద్దతు ఇస్తుంది. మెరుగైన పనితీరు కోసం తొలగించి మళ్ళీ డౌన్‌లోడ్ చేయండి.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "కొత్త వెర్షన్ v{{version}} అందుబాటులో ఉంది",

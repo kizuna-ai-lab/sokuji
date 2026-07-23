@@ -780,7 +780,18 @@
     "initFailed": "মডেল স্টোরেজ চালু করতে ব্যর্থ: {{message}}",
     "othersGroup": "অন্যান্য",
     "requiresGpu": "একটি GPU প্রয়োজন",
-    "upgradeVariant": "আপনার ডিভাইস একটি দ্রুততর মডেল ফরম্যাট সমর্থন করে। ভালো পারফরম্যান্সের জন্য মুছে পুনরায় ডাউনলোড করুন।"
+    "upgradeVariant": "আপনার ডিভাইস একটি দ্রুততর মডেল ফরম্যাট সমর্থন করে। ভালো পারফরম্যান্সের জন্য মুছে পুনরায় ডাউনলোড করুন।",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "নতুন সংস্করণ v{{version}} উপলব্ধ",

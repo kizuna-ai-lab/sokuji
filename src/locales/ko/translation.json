@@ -780,7 +780,18 @@
     "initFailed": "모델 저장소 초기화에 실패했습니다: {{message}}",
     "othersGroup": "기타",
     "requiresGpu": "GPU 필요",
-    "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요."
+    "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",
