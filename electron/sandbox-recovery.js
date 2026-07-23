@@ -235,6 +235,11 @@ function defaultDeps() {
     now: () => Date.now(),
     env: process.env,
     log: (...a) => console.log('[Sokuji] [SandboxRecovery]', ...a),
+    // Runs before every app.exit()/relaunch this module triggers. app.exit()
+    // skips before-quit/will-quit, so main.js's cleanupAndExit (which stops the
+    // native sidecar and releases its Windows file locks) would otherwise never
+    // run, orphaning the sidecar process. main.js injects the real teardown.
+    beforeExit: () => {},
   };
 }
 
@@ -330,6 +335,7 @@ function registerCrashDetection(app, options = {}) {
     }
     if (shouldRelaunch) {
       deps.log('relaunching into recovery mode');
+      deps.beforeExit();
       app.relaunch();
       app.exit(0);
     } else {
@@ -349,8 +355,10 @@ function stampFromNow(now) {
  */
 function performRepair(confirmed, userData, deps) {
   const backupPath = path.join(userData, `sandbox-recovery-backup-${stampFromNow(deps.now())}.log`);
+  let backupWritten = false;
   try {
     deps.fs.writeFileSync(backupPath, buildBackupLog(confirmed, stampFromNow(deps.now())));
+    backupWritten = true;
     deps.log('wrote ACL backup to', backupPath);
   } catch (e) {
     deps.log('failed to write backup log:', e && e.message);
@@ -367,7 +375,7 @@ function performRepair(confirmed, userData, deps) {
 
   const rescan = confirmed.map((r) => scanDirectory(r.dir, deps));
   const remaining = rescan.filter((r) => r.sids.length > 0 || r.error);
-  return { success: remaining.length === 0 && !hadErrors, remaining, backupPath };
+  return { success: remaining.length === 0 && !hadErrors, remaining, backupPath, backupWritten };
 }
 
 function writeFallbackAndRelaunch(app, deps, userData, crashPath) {
@@ -379,12 +387,14 @@ function writeFallbackAndRelaunch(app, deps, userData, crashPath) {
     deps.log('failed to write fallback marker:', e && e.message);
   }
   safeUnlink(deps.fs, crashPath);
+  deps.beforeExit();
   app.relaunch();
   app.exit(0);
 }
 
 function quit(app, deps, crashPath) {
   safeUnlink(deps.fs, crashPath);
+  deps.beforeExit();
   app.exit(0);
 }
 
@@ -427,6 +437,9 @@ function showUnconfirmedDialog(dialog) {
 
 function showRepairFailedDialog(dialog, repairResult) {
   const remaining = repairResult.remaining.map((r) => r.dir).join('\n');
+  const backupLine = repairResult.backupWritten
+    ? `A backup of the original permissions was saved to:\n${repairResult.backupPath}\n\n`
+    : '';
   return dialog.showMessageBoxSync({
     type: 'error',
     title: 'Sokuji — Repair Incomplete',
@@ -434,7 +447,7 @@ function showRepairFailedDialog(dialog, repairResult) {
     detail:
       'Some orphaned entries could not be removed (they may require different ownership).\n' +
       (remaining ? `Still affected:\n${remaining}\n\n` : '\n') +
-      `A backup of the original permissions was saved to:\n${repairResult.backupPath}\n\n` +
+      backupLine +
       `More details: ${ISSUE_URL}`,
     buttons: ['Continue without sandbox', 'Quit'],
     defaultId: 0,
@@ -471,6 +484,7 @@ function handleRecoveryMode(app, dialog, options = {}) {
       if (repairResult.success) {
         deps.log('repair verified clean; relaunching with sandbox');
         safeUnlink(deps.fs, crashPath);
+        deps.beforeExit();
         app.relaunch();
         app.exit(0);
         return false;

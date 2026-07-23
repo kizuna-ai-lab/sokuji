@@ -617,3 +617,104 @@ describe('handleRecoveryMode', () => {
     expect(proceed).toBe(false);
   });
 });
+
+describe('beforeExit cleanup hook (sidecar teardown before exit)', () => {
+  const gpuCrash = { type: 'GPU', reason: 'crashed', exitCode: -2147483645 };
+
+  it('runs beforeExit before app.exit on the passive crash relaunch', () => {
+    const app = makeApp();
+    const order = [];
+    app.relaunch = vi.fn(() => order.push('relaunch'));
+    app.exit = vi.fn(() => order.push('exit'));
+    const beforeExit = vi.fn(() => order.push('cleanup'));
+    const deps = makeDeps();
+    deps.beforeExit = beforeExit;
+    registerCrashDetection(app, { deps, userDataDir: 'C:/UD' });
+    app._handlers['child-process-gone']({}, gpuCrash);
+    expect(beforeExit).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['cleanup', 'relaunch', 'exit']);
+  });
+
+  it('runs beforeExit before app.exit on the recovery Quit path', () => {
+    const app = makeApp();
+    const order = [];
+    app.exit = vi.fn(() => order.push('exit'));
+    const beforeExit = vi.fn(() => order.push('cleanup'));
+    const dialog = { showMessageBoxSync: vi.fn(() => 2) }; // Quit (confirmed)
+    const execFileSync = vi.fn((cmd, args) =>
+      args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN
+    );
+    const fs = {
+      readFileSync: vi.fn(() => JSON.stringify({ timestamps: [0], appVersion: '0.34.1' })),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+    };
+    const deps = makeDeps({ execFileSync, fs });
+    deps.beforeExit = beforeExit;
+    handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    expect(order).toEqual(['cleanup', 'exit']);
+  });
+
+  it('runs beforeExit before relaunch on the continue-without-sandbox path', () => {
+    const app = makeApp();
+    const order = [];
+    app.relaunch = vi.fn(() => order.push('relaunch'));
+    app.exit = vi.fn(() => order.push('exit'));
+    const beforeExit = vi.fn(() => order.push('cleanup'));
+    const dialog = { showMessageBoxSync: vi.fn(() => 0) }; // Continue (unconfirmed)
+    const execFileSync = vi.fn(() => CLEAN);
+    const fs = {
+      readFileSync: vi.fn(() => JSON.stringify({ timestamps: [0], appVersion: '0.34.1' })),
+      writeFileSync: vi.fn(),
+      unlinkSync: vi.fn(),
+    };
+    const deps = makeDeps({ execFileSync, fs });
+    deps.beforeExit = beforeExit;
+    handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    expect(order).toEqual(['cleanup', 'relaunch', 'exit']);
+  });
+});
+
+describe('repair-failed dialog does not overclaim a backup', () => {
+  it('omits the "saved to" line when the backup write failed', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn() };
+    dialog.showMessageBoxSync.mockReturnValueOnce(0); // Repair
+    dialog.showMessageBoxSync.mockReturnValueOnce(1); // Quit at repair-failed dialog
+    const execFileSync = vi.fn((cmd, args) => {
+      if (args.includes('/remove')) throw new Error('Access is denied.');
+      return args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN;
+    });
+    const fs = {
+      readFileSync: vi.fn(() => JSON.stringify({ timestamps: [0], appVersion: '0.34.1' })),
+      writeFileSync: vi.fn(() => {
+        throw new Error('disk full');
+      }), // backup write fails
+      unlinkSync: vi.fn(),
+    };
+    const deps = makeDeps({ execFileSync, fs });
+    handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const failDetail = dialog.showMessageBoxSync.mock.calls[1][0].detail;
+    expect(failDetail).not.toMatch(/was saved to/);
+  });
+
+  it('still reports the backup path when the backup write succeeded', () => {
+    const app = makeApp();
+    const dialog = { showMessageBoxSync: vi.fn() };
+    dialog.showMessageBoxSync.mockReturnValueOnce(0); // Repair
+    dialog.showMessageBoxSync.mockReturnValueOnce(1); // Quit at repair-failed dialog
+    const execFileSync = vi.fn((cmd, args) => {
+      if (args.includes('/remove')) throw new Error('Access is denied.');
+      return args[0] === CONFIRMED_DIR ? EXPLICIT_ORPHAN : CLEAN;
+    });
+    const fs = {
+      readFileSync: vi.fn(() => JSON.stringify({ timestamps: [0], appVersion: '0.34.1' })),
+      writeFileSync: vi.fn(), // backup write succeeds
+      unlinkSync: vi.fn(),
+    };
+    const deps = makeDeps({ execFileSync, fs });
+    handleRecoveryMode(app, dialog, { deps, userDataDir: 'C:/UD' });
+    const failDetail = dialog.showMessageBoxSync.mock.calls[1][0].detail;
+    expect(failDetail).toMatch(/was saved to/);
+  });
+});

@@ -88,9 +88,13 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 // ready, and register the passive GPU-crash detector. Recovery mode itself runs
 // in whenReady (below), before the transparent main window is created.
 const sandboxRecovery = process.platform === 'win32' ? require('./sandbox-recovery') : null;
+// sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,
+// so it must run the sidecar teardown itself or the native sidecar orphans and
+// keeps its Windows file locks. (removeVirtualAudioDevices is a Linux-only no-op.)
+const sandboxRecoveryOptions = { deps: { beforeExit: () => { try { nativeHost.stop(); } catch (_) {} } } };
 if (sandboxRecovery) {
-  sandboxRecovery.applyNoSandboxFlag(app);
-  sandboxRecovery.registerCrashDetection(app);
+  sandboxRecovery.applyNoSandboxFlag(app, sandboxRecoveryOptions);
+  sandboxRecovery.registerCrashDetection(app, sandboxRecoveryOptions);
 }
 
 // Keep a global reference of the window object to prevent garbage collection
@@ -395,7 +399,7 @@ app.whenReady().then(async () => {
   // Windows sandbox recovery (issue #352): if a prior run left a crash marker,
   // scan ACLs and show the native recovery dialog BEFORE creating the (transparent)
   // main window. May relaunch or exit; if so, do not proceed to createWindow().
-  if (sandboxRecovery && !sandboxRecovery.handleRecoveryMode(app, dialog)) {
+  if (sandboxRecovery && !sandboxRecovery.handleRecoveryMode(app, dialog, sandboxRecoveryOptions)) {
     return;
   }
 
