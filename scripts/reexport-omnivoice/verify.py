@@ -6,6 +6,7 @@ tokenizer all stay native PyTorch — only the bidirectional LLM backbone is swa
 
 Ported from the proven .spike/reexport.py OnnxLLMShim/hybrid-generate spike.
 """
+import time
 import numpy as np
 import torch
 import onnxruntime as ort
@@ -37,6 +38,7 @@ def hybrid_generate(model_dir, backbone_dir, higgs_dir, text, language, provider
     """
     m = load_model(model_dir)
     sess = ort.InferenceSession(f"{backbone_dir}/llm_decoder.onnx", providers=[provider])
+    assert provider in sess.get_providers(), f"requested {provider} not available; got {sess.get_providers()}"
     real = m.llm
     del m._modules["llm"]           # deregister the nn.Module so a plain shim can take its place
     m.llm = _OnnxLLMShim(sess, real)
@@ -50,7 +52,6 @@ def cuda_rtf(model_dir, backbone_dir, text="This is a real time factor measureme
     returned rtf is an UPPER BOUND on the pure-ONNX pipeline planned for Plan 2 —
     re-confirm there once embeddings/heads/decode are also ONNX.
     """
-    import time
     if "CUDAExecutionProvider" in ort.get_available_providers():
         ort.preload_dlls()
     t = time.time()

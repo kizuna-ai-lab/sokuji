@@ -17,7 +17,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=".spike/models/omnivoice_pt")
     ap.add_argument("--out", default="./out")
-    ap.add_argument("--repo", default="jiangzhuo9357/omnivoice-onnx-bidi")
     args = ap.parse_args()
 
     m = load_model(args.src)
