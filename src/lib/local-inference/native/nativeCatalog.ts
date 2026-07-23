@@ -397,6 +397,7 @@ export interface NativeModelCardSpec {
   streaming?: boolean;
   clones?: boolean;
   variantIds?: string[];
+  license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };
 }
 
 /** Map a catalog NativeModelInfo entry to a NativeModelCardSpec. */
@@ -405,6 +406,7 @@ export function infoToCard(m: NativeModelInfo): NativeModelCardSpec {
     selectId: m.id, downloadId: m.id, name: m.name, languages: m.languages,
     recommended: m.recommended, sortOrder: m.order,
     streaming: m.streaming, clones: m.clones, variantIds: m.variantIds,
+    license: m.license,
   };
 }
 

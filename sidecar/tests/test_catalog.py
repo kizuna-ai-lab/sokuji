@@ -186,6 +186,32 @@ def test_omnivoice_card_shape():
     assert m.size_bytes == 1_678_738_364  # exact live-repo downloadable total
 
 
+def test_omnivoice_license():
+    # Non-commercial license descriptor (issue #351 follow-up): the catalog
+    # carries it as DATA so the renderer/downloader can gate on it generically
+    # rather than special-casing "omnivoice" by id.
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    lic = m.license
+    assert lic is not None
+    assert lic.spdx == "CC-BY-NC-4.0"
+    assert lic.non_commercial is True
+    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi"
+    assert lic.attribution == "k2-fsa/OmniVoice"
+    assert catalog.license_dict(m) == {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "nonCommercial": True,
+        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi",
+        "attribution": "k2-fsa/OmniVoice",
+    }
+    # Every other card has no license — license_dict is a plain pass-through
+    # None, not a default-constructed License.
+    assert catalog.tts_model("cosyvoice3-0.5b").license is None
+    assert catalog.license_dict(catalog.tts_model("cosyvoice3-0.5b")) is None
+
+
 def test_tts_moss_nano_is_streaming_cloning():
     m = catalog.tts_model("moss-tts-nano")
     assert m is not None and m.streaming and m.clones

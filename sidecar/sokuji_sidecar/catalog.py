@@ -567,6 +567,21 @@ def translate_model(model_id: str) -> TranslateModel | None:
 
 
 @dataclass(frozen=True)
+class License:
+    """Non-standard license terms attached to a model card (e.g. CC-BY-NC).
+    Generic DATA, not hardcoded UI: most cards carry no restriction and leave
+    TtsModel.license as None; only a card that needs it (OmniVoice, issue
+    #351) sets one, and the download gate (Task 2) reads this rather than
+    special-casing a model id."""
+    spdx: str             # SPDX identifier ("CC-BY-NC-4.0")
+    name: str             # human-readable license name
+    url: str              # license text URL
+    non_commercial: bool  # True gates commercial use
+    source_repo: str      # upstream repo this license traces back to
+    attribution: str      # required attribution string (author/project)
+
+
+@dataclass(frozen=True)
 class TtsModel(_ModelBase):
     repos: tuple[str, ...] = ()      # HF repos to download
     urls: tuple[str, ...] = ()       # extra files (e.g. a vocoder .onnx)
@@ -577,6 +592,7 @@ class TtsModel(_ModelBase):
     named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
     style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
     transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
+    license: License | None = None   # non-standard license terms; None = no restriction
 
 
 def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
@@ -600,6 +616,22 @@ def voice_capability(model: "TtsModel") -> dict:
     if custom == "clip" and getattr(model, "transcript_required", False):
         out["transcriptRequired"] = True
     return out
+
+
+def license_dict(model: "TtsModel") -> dict | None:
+    """Wire-format (camelCase) serialization of TtsModel.license, or None when
+    the card carries no non-standard license terms."""
+    lic = model.license
+    if lic is None:
+        return None
+    return {
+        "spdx": lic.spdx,
+        "name": lic.name,
+        "url": lic.url,
+        "nonCommercial": lic.non_commercial,
+        "sourceRepo": lic.source_repo,
+        "attribution": lic.attribution,
+    }
 
 
 _MOSS_NANO_LM_REPO = os.environ.get(
@@ -762,7 +794,17 @@ TTS_MODELS: list[TtsModel] = [
              # manifest/README/PROVENANCE + the HF-generated .gitattributes the
              # downloader also fetches (mirrors the cosyvoice3-0.5b note above).
              size_bytes=1_678_738_364,
-             sort_order=66),
+             sort_order=66,
+             # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
+             # This descriptor is DATA the download gate (Task 2) reads
+             # generically; it isn't a Sokuji-specific restriction.
+             license=License(
+                 spdx="CC-BY-NC-4.0",
+                 name="Creative Commons Attribution-NonCommercial 4.0 International",
+                 url="https://creativecommons.org/licenses/by-nc/4.0/",
+                 non_commercial=True,
+                 source_repo="jiangzhuo9357/omnivoice-onnx-bidi",
+                 attribution="k2-fsa/OmniVoice")),
     # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
     # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
     # x86 discrete-GPU benefit unverified (per-step KV round-trip). The bench
