@@ -107,3 +107,25 @@ describe('normalizePeak', () => {
     expect(Array.from(normalizePeak(silence))).toEqual(Array.from(silence));
   });
 });
+
+describe('per-model clip limits', () => {
+  it('OmniVoice declares an 8s max; unlisted models keep the 20s default', () => {
+    const omni = voiceStoreFor('clip', 'omnivoice-0.6b')!;
+    expect(omni.capability.maxClipSeconds).toBe(8);
+    expect(omni.capability.minClipSeconds).toBe(3);
+    const other = voiceStoreFor('clip', 'qwen3-tts-0.6b')!;
+    expect(other.capability.maxClipSeconds).toBe(20);
+  });
+
+  it('validateVoiceClip enforces the passed-in max (a 10s clip: ok at 20s, too_long at 8s)', () => {
+    const clip = new Float32Array(16000 * 10).fill(0.3); // 10s
+    expect(validateVoiceClip(clip, 16000)).toBeNull();
+    expect(validateVoiceClip(clip, 16000, 8)).toBe('too_long');
+  });
+
+  it('the omnivoice clip store rejects a 10s recording as too_long', async () => {
+    const s = voiceStoreFor('clip', 'omnivoice-0.6b')!;
+    await expect(s.onRecord!(new Float32Array(16000 * 10).fill(0.3), 16000))
+      .rejects.toMatchObject({ code: 'too_long' });
+  });
+});

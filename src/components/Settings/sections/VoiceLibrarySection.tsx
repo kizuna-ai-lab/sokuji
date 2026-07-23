@@ -133,6 +133,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const [editName, setEditName] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
   const [transcript, setTranscript] = useState('');
   const transcriptInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +144,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     processor: ScriptProcessorNode;
     chunks: Float32Array[];
   } | null>(null);
+  const recTimerRef = useRef<number | null>(null);
+  // stopRecording is defined below startRecording; the countdown interval
+  // reaches it through a ref so the auto-stop always calls the latest closure.
+  const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+  const clearRecTimer = () => {
+    if (recTimerRef.current !== null) {
+      window.clearInterval(recTimerRef.current);
+      recTimerRef.current = null;
+    }
+  };
 
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
@@ -241,6 +252,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const recGenerationRef = useRef(0);
   useEffect(() => () => {
     recGenerationRef.current += 1;
+    clearRecTimer();
     const rec = recRef.current;
     if (!rec) return;
     recRef.current = null;
@@ -271,12 +283,24 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       processor.connect(ctx.destination);
       recRef.current = { ctx, stream, source, processor, chunks };
       setIsRecording(true);
+      // Countdown to the model's clip limit; auto-stop at 0 so the capture
+      // can never exceed what the model can actually use.
+      const limit = capability.maxClipSeconds ?? 20;
+      setRecordSecondsLeft(limit);
+      const startedAt = Date.now();
+      recTimerRef.current = window.setInterval(() => {
+        const left = limit - (Date.now() - startedAt) / 1000;
+        setRecordSecondsLeft(Math.max(0, Math.ceil(left)));
+        if (left <= 0) void stopRecordingRef.current?.();
+      }, 250);
     } catch (err) {
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord, transcriptMissing]);
+  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
 
   const stopRecording = useCallback(async () => {
+    clearRecTimer();
+    setRecordSecondsLeft(null);
     const rec = recRef.current;
     recRef.current = null;
     setIsRecording(false);
@@ -303,6 +327,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       }
     } catch (err) { console.warn('Recording handler failed:', err); }
   }, [onRecord, capability.transcriptRequired, transcript]);
+  stopRecordingRef.current = stopRecording;
 
   const renderRow = (v: VoiceEntry) => {
     const isSelected = v.id === selectedId;
@@ -447,7 +472,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         >
           <Mic size={14} />
           {isRecording
-            ? t('voiceLibrary.stopRecording', 'Stop recording')
+            ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
             : t('voiceLibrary.recordVoice', 'Record voice…')}
         </button>
       )}

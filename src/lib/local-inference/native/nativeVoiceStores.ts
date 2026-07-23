@@ -55,17 +55,33 @@ export interface NativeVoiceStore {
  *  Exported so callers can interpolate these into a user-facing message. */
 export const MIN_CLIP_SECONDS = 3;
 export const MAX_CLIP_SECONDS = 20;
+
+/** Per-model reference-clip limits (seconds). Cloning models tolerate very
+ *  different reference lengths, so the limit is data here and travels to the
+ *  UI via `VoiceLibraryCapability.maxClipSeconds` (recording countdown +
+ *  auto-stop, import rejection). Models not listed use the defaults above. */
+const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
+  // OmniVoice's non-AR decode degrades past ~8s of reference (garbled words,
+  // then collapse) — the sidecar caps at 8s (higgs.MAX_REF_SECONDS), so let
+  // users record/import only what will actually be used.
+  'omnivoice-0.6b': { max: 8 },
+};
+
 /** Mean absolute amplitude below this is treated as silence (a muted mic / empty file). */
 const SILENCE_PEAK_THRESHOLD = 0.01;   // peak below this = no real signal (true silence)
 
 export type ClipValidationError = 'too_short' | 'too_long' | 'silent';
 
 /** Pure validation for a captured/decoded reference clip. Returns the failure
- *  reason or null when the clip is usable. Exported for direct unit testing. */
-export function validateVoiceClip(clip: Float32Array, sampleRate: number): ClipValidationError | null {
+ *  reason or null when the clip is usable. Exported for direct unit testing.
+ *  Limits default to the global bounds; clip stores pass their model's. */
+export function validateVoiceClip(
+  clip: Float32Array, sampleRate: number,
+  maxSeconds: number = MAX_CLIP_SECONDS, minSeconds: number = MIN_CLIP_SECONDS,
+): ClipValidationError | null {
   const seconds = sampleRate > 0 ? clip.length / sampleRate : 0;
-  if (seconds < MIN_CLIP_SECONDS) return 'too_short';
-  if (seconds > MAX_CLIP_SECONDS) return 'too_long';
+  if (seconds < minSeconds) return 'too_short';
+  if (seconds > maxSeconds) return 'too_long';
   // Silence = no real signal. Use PEAK amplitude, not mean-abs over the whole
   // clip: a genuine but QUIET recording (a low-gain phone / web recorder peaks
   // ~0.06 vs ~0.5 for normal speech) or one with long pauses has a tiny mean-abs
@@ -125,12 +141,19 @@ export class VoiceCaptureError extends Error {
 
 class ClipVoiceStore implements NativeVoiceStore {
   readonly kind = 'clip' as const;
-  readonly capability: VoiceLibraryCapability = {
-    importModes: ['record', 'upload'],
-    accept: 'audio/*',
-    curation: false,
-    presentation: 'dropdown',
-  };
+  readonly capability: VoiceLibraryCapability;
+
+  constructor(modelId: string) {
+    const limits = MODEL_CLIP_LIMITS[modelId] ?? {};
+    this.capability = {
+      importModes: ['record', 'upload'],
+      accept: 'audio/*',
+      curation: false,
+      presentation: 'dropdown',
+      maxClipSeconds: limits.max ?? MAX_CLIP_SECONDS,
+      minClipSeconds: limits.min ?? MIN_CLIP_SECONDS,
+    };
+  }
 
   async list(): Promise<NativeCustomVoice[]> {
     const voices = await listNativeVoices();
@@ -156,7 +179,10 @@ class ClipVoiceStore implements NativeVoiceStore {
   }
 
   private async storeClip(name: string, clip: Float32Array, sampleRate: number, transcript?: string): Promise<void> {
-    const reason = validateVoiceClip(clip, sampleRate);
+    const reason = validateVoiceClip(
+      clip, sampleRate,
+      this.capability.maxClipSeconds ?? MAX_CLIP_SECONDS,
+      this.capability.minClipSeconds ?? MIN_CLIP_SECONDS);
     if (reason) {
       throw new VoiceCaptureError(reason, `Voice clip failed validation: ${reason}`);
     }
@@ -252,7 +278,7 @@ function readBlobAsText(blob: Blob): Promise<string> {
 export function voiceStoreFor(custom: VoiceCustom, modelId: string): NativeVoiceStore | null {
   switch (custom) {
     case 'clip':
-      return new ClipVoiceStore();
+      return new ClipVoiceStore(modelId);
     case 'style':
       return new StyleVoiceStore(modelId);
     case 'none':
