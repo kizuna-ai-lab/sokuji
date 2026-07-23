@@ -83,6 +83,16 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
+// Windows sandbox crash self-healing (issue #352). On win32 only: apply the
+// persistent --no-sandbox fallback (if a prior recovery set it) BEFORE app is
+// ready, and register the passive GPU-crash detector. Recovery mode itself runs
+// in whenReady (below), before the transparent main window is created.
+const sandboxRecovery = process.platform === 'win32' ? require('./sandbox-recovery') : null;
+if (sandboxRecovery) {
+  sandboxRecovery.applyNoSandboxFlag(app);
+  sandboxRecovery.registerCrashDetection(app);
+}
+
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
@@ -382,6 +392,13 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
+  // Windows sandbox recovery (issue #352): if a prior run left a crash marker,
+  // scan ACLs and show the native recovery dialog BEFORE creating the (transparent)
+  // main window. May relaunch or exit; if so, do not proceed to createWindow().
+  if (sandboxRecovery && !sandboxRecovery.handleRecoveryMode(app, dialog)) {
+    return;
+  }
+
   const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
 
   // Initialize Better Auth adapter
