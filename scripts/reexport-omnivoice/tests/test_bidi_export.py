@@ -42,8 +42,7 @@ def test_bidi_llm_is_bidirectional_and_matches_pytorch(tmp_path):
 
 @pytest.mark.skipif(not os.path.isdir(MODEL_DIR), reason="source model not downloaded")
 def test_audio_embeddings_and_heads_parity(tmp_path):
-    import numpy as np, onnxruntime as ort, sys
-    sys.path.insert(0, ".spike/models/repo")  # authors' codes/ + user_script
+    import numpy as np, onnxruntime as ort
     from exporters import load_model, export_audio_embeddings, export_audio_heads
     m = load_model(MODEL_DIR)
     out = tmp_path / "bb"; out.mkdir()
