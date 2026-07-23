@@ -58,3 +58,89 @@ def export_audio_heads(model, out_path):
             input_names=["hidden_states"], output_names=["logits"],
             dynamic_axes={"hidden_states": {0: "b", 1: "s"}, "logits": {0: "b", 2: "s"}},
             opset_version=20)
+
+
+def export_higgs(model_dir, out_path):
+    """Re-export the four Higgs Audio V2 Tokenizer ONNX graphs (fp32) from source.
+
+    Loads HiggsAudioV2TokenizerModel from <model_dir>/audio_tokenizer, strips weight_norm via
+    the committed _prepare_tok, then writes acoustic_encoder / semantic_encoder /
+    quantizer_encoder / higgs_decoder .onnx into <out_path>/audio_tokenizer/. fp32 only — the
+    fp16 semantic_encoder is a known-broken export, so no dtype conversion happens here.
+
+    Uses only committed code (codes.model_wrappers); no dependency on user_script or .spike.
+    """
+    from codes.model_wrappers import (
+        _prepare_tok,
+        HiggsAcousticEncoderWrapper, HiggsSemanticEncoderWrapper,
+        HiggsQuantizerEncoderWrapper, HiggsDecoderWrapper,
+        SR_24K, SR_16K, DOWNSAMPLE_FACTOR,
+        HIGGS_D_ACOUSTIC, HIGGS_D_SEMANTIC, HIGGS_N_CB, HIGGS_CB_SIZE,
+    )
+    audio_tok_dir = os.path.join(model_dir, "audio_tokenizer")
+    tok = AutoModel.from_pretrained(audio_tok_dir, dtype=torch.float32,
+                                    attn_implementation="eager")
+    tok = _prepare_tok(tok)
+
+    d = os.path.join(out_path, "audio_tokenizer")
+    os.makedirs(d, exist_ok=True)
+    ds = int(getattr(tok.config, "semantic_downsample_factor", 2))
+    T = SR_24K // DOWNSAMPLE_FACTOR  # 25 frames ~= 1 s of dummy features/codes
+
+    # 1. acoustic_encoder: (B, 1, T_samples) -> (B, 256, T_frames)
+    # The DAC residual units have a shape-dependent `if padding > 0` branch, so jit.trace the
+    # wrapper first (resolves the branch to a no-op) and hand the ScriptModule straight to the
+    # legacy TorchScript exporter (dynamo=False). This mirrors the authors' get_higgs_acoustic_model
+    # returning a torch.jit.trace() result. Length stays dynamic despite tracing on a 1 s example.
+    acoustic_wav = torch.randn(1, 1, SR_24K)
+    acoustic = HiggsAcousticEncoderWrapper(tok.acoustic_encoder).eval()
+    with torch.no_grad():
+        acoustic = torch.jit.trace(acoustic, (acoustic_wav,), check_trace=False)
+        torch.onnx.export(
+            acoustic, (acoustic_wav,),
+            os.path.join(d, "acoustic_encoder.onnx"),
+            input_names=["waveform_24k"], output_names=["acoustic_features"],
+            dynamic_axes={"waveform_24k": {0: "batch", 2: "samples"},
+                          "acoustic_features": {0: "batch", 2: "frames"}},
+            opset_version=20, dynamo=False)
+
+    # 2. semantic_encoder: (B, T_samples) -> (B, 768, T_frames)
+    semantic = HiggsSemanticEncoderWrapper(
+        tok.semantic_model, tok.encoder_semantic, downsample_factor=ds).eval()
+    with torch.no_grad():
+        torch.onnx.export(
+            semantic, (torch.randn(1, SR_16K),),
+            os.path.join(d, "semantic_encoder.onnx"),
+            input_names=["waveform_16k"], output_names=["semantic_features"],
+            dynamic_axes={"waveform_16k": {0: "batch", 1: "samples"},
+                          "semantic_features": {0: "batch", 2: "frames"}},
+            opset_version=20, dynamo=False)
+
+    # 3. quantizer_encoder: acoustic (B,256,T) + semantic (B,768,T) -> codes (num_q, B, T)
+    quantizer = HiggsQuantizerEncoderWrapper(tok.fc, tok.quantizer, merge_mode="concat").eval()
+    with torch.no_grad():
+        torch.onnx.export(
+            quantizer,
+            (torch.randn(1, HIGGS_D_ACOUSTIC, T), torch.randn(1, HIGGS_D_SEMANTIC, T)),
+            os.path.join(d, "quantizer_encoder.onnx"),
+            input_names=["acoustic_features", "semantic_features"], output_names=["codes"],
+            dynamic_axes={"acoustic_features": {0: "batch", 2: "frames"},
+                          "semantic_features": {0: "batch", 2: "frames"},
+                          "codes": {1: "batch", 2: "frames"}},
+            opset_version=20, dynamo=False)
+
+    # 4. higgs_decoder: codes (num_q, B, T) -> waveform_24k (B, 1, T_samples)
+    # Same DAC branch in acoustic_decoder -> jit.trace the whole composite decoder wrapper before
+    # export (mirrors the authors' get_higgs_decoder_model). Tracing as one unit unrolls RVQ.decode's
+    # fixed num-quantizers loop while resolving the DAC branch; num_quantizers (codes axis 0) is static.
+    codes_dummy = torch.randint(0, HIGGS_CB_SIZE, (HIGGS_N_CB, 1, T), dtype=torch.int64)
+    decoder = HiggsDecoderWrapper(tok.quantizer, tok.fc2, tok.acoustic_decoder).eval()
+    with torch.no_grad():
+        decoder = torch.jit.trace(decoder, (codes_dummy,), check_trace=False)
+        torch.onnx.export(
+            decoder, (codes_dummy,),
+            os.path.join(d, "higgs_decoder.onnx"),
+            input_names=["codes"], output_names=["waveform_24k"],
+            dynamic_axes={"codes": {1: "batch", 2: "frames"},
+                          "waveform_24k": {0: "batch", 2: "samples"}},
+            opset_version=20, dynamo=False)

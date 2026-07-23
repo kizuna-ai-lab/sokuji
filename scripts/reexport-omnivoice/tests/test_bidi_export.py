@@ -65,3 +65,34 @@ def test_audio_embeddings_and_heads_parity(tmp_path):
     sess2 = ort.InferenceSession(str(out/"audio_heads_decoder.onnx"), providers=["CPUExecutionProvider"])
     got_h = sess2.run(["logits"], {"hidden_states": hid.numpy().astype(np.float32)})[0]
     assert np.abs(ref_h - got_h).max() < 1e-2
+
+
+@pytest.mark.skipif(not os.path.isdir(MODEL_DIR), reason="source model not downloaded")
+def test_higgs_export_roundtrip(tmp_path):
+    import numpy as np, onnxruntime as ort, soundfile as sf, soxr
+    from exporters import export_higgs
+    out = tmp_path / "hg"; out.mkdir()
+    export_higgs(MODEL_DIR, str(out))
+    d = str(out / "audio_tokenizer")
+    ac = ort.InferenceSession(f"{d}/acoustic_encoder.onnx", providers=["CPUExecutionProvider"])
+    se = ort.InferenceSession(f"{d}/semantic_encoder.onnx", providers=["CPUExecutionProvider"])
+    qe = ort.InferenceSession(f"{d}/quantizer_encoder.onnx", providers=["CPUExecutionProvider"])
+    de = ort.InferenceSession(f"{d}/higgs_decoder.onnx", providers=["CPUExecutionProvider"])
+
+    wav, sr = sf.read("scripts/assets/gpt-sovits-voices/classic-zh.wav")
+    wav = wav.astype(np.float32)
+    if wav.ndim > 1:
+        wav = wav[:, 0]
+    w24 = soxr.resample(wav, sr, 24000).astype(np.float32)
+    w16 = soxr.resample(wav, sr, 16000).astype(np.float32)
+
+    af = ac.run(["acoustic_features"], {"waveform_24k": w24[None, None, :]})[0]
+    sf_ = se.run(["semantic_features"], {"waveform_16k": w16[None, :]})[0]
+    T = min(af.shape[2], sf_.shape[2]); af, sf_ = af[:, :, :T], sf_[:, :, :T]
+    codes = qe.run(["codes"], {"acoustic_features": af, "semantic_features": sf_})[0]
+    out_wav = de.run(["waveform_24k"], {"codes": codes})[0].squeeze()
+
+    rms = float(np.sqrt(np.mean(out_wav.astype(np.float32) ** 2)))
+    assert 0.02 < rms < 0.35, f"round-trip rms {rms} not speech-like"
+    # codes must be diverse (real audio), not collapsed to a few entries
+    assert len(np.unique(codes[0])) > 30
