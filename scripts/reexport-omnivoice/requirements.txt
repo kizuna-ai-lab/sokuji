@@ -1,0 +1,11 @@
+# torch/torchaudio come from the CPU index — see README (must match versions).
+torch==2.13.0
+torchaudio==2.11.0
+transformers>=5.4,<6
+omnivoice==0.2.1
+onnx==1.22.0
+onnxscript
+onnxruntime==1.27.0
+huggingface_hub>=0.26
+soundfile
+numpy
