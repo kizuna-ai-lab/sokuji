@@ -96,3 +96,32 @@ def test_higgs_export_roundtrip(tmp_path):
     assert 0.02 < rms < 0.35, f"round-trip rms {rms} not speech-like"
     # codes must be diverse (real audio), not collapsed to a few entries
     assert len(np.unique(codes[0])) > 30
+
+
+@pytest.mark.skipif(not os.path.isdir(MODEL_DIR), reason="source model not downloaded")
+@pytest.mark.parametrize("mode", ["fp16", "int4"])
+def test_llm_quant_parity_and_audio(tmp_path, mode):
+    import numpy as np, onnxruntime as ort
+    from exporters import load_model, export_llm, export_audio_embeddings, export_audio_heads, quantize_llm
+    import verify
+    m = load_model(MODEL_DIR)
+    base = tmp_path / "fp32"; base.mkdir(); export_llm(m, str(base), "fp32")
+    q = tmp_path / mode; q.mkdir()
+    quantize_llm(str(base / "llm_decoder.onnx"), str(q), mode)
+    export_audio_embeddings(m, str(q)); export_audio_heads(m, str(q))
+
+    # parity of quantized LLM vs PyTorch (looser bound for int4)
+    from exporters import BidiLLM
+    H = m.llm.config.hidden_size; wrap = BidiLLM(m.llm).eval()
+    e = torch.randn(1, 20, H); msk = torch.ones(1, 1, 20, 20, dtype=torch.bool)
+    with torch.no_grad(): ref = wrap(e, msk).numpy()
+    sess = ort.InferenceSession(str(q / "llm_decoder.onnx"), providers=["CPUExecutionProvider"])
+    got = sess.run(["hidden_states"], {"inputs_embeds": e.numpy().astype(np.float32),
+                                       "attention_mask": msk.numpy()})[0]
+    cos = float(np.dot(ref.ravel(), got.ravel()) / (np.linalg.norm(ref) * np.linalg.norm(got) + 1e-9))
+    assert cos >= (0.999 if mode == "fp16" else 0.99), f"{mode} cos={cos}"
+
+    # end-to-end: the ONNX-backed real pipeline produces speech-level audio
+    wav = verify.hybrid_generate(MODEL_DIR, str(q), None, "Hello from the re-export.", "English")
+    rms = float(np.sqrt(np.mean(np.asarray(wav, np.float32) ** 2)))
+    assert 0.02 < rms < 0.35, f"{mode} audio rms {rms} not speech-like"

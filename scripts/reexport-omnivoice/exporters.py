@@ -1,5 +1,6 @@
 # scripts/reexport-omnivoice/exporters.py
 import os
+import onnx
 import torch, omnivoice  # noqa: F401
 from transformers import AutoModel
 
@@ -31,6 +32,32 @@ def export_llm(model, out_path, dtype="fp32"):
                           "hidden_states": {0: "b", 1: "s"}},
             opset_version=20, do_constant_folding=True)
     # dtype conversion (fp16/int4) is handled in Task 5; fp32 is the base export.
+
+
+def quantize_llm(fp32_llm_path, out_path, mode):
+    """Quantize a fp32 llm_decoder.onnx (from export_llm) to fp16 or int4, writing
+    <out_path>/llm_decoder.onnx (+.data). mode in {"fp16", "int4"}.
+
+    fp16 via onnxruntime.transformers.float16.convert_float_to_float16(keep_io_types=True)
+    (fp32 IO, internal fp16 weights/activations); int4 via
+    onnxruntime.quantization.matmul_nbits_quantizer.MatMulNBitsQuantizer (block-wise
+    4-bit weight-only quantization of MatMul nodes). Both are the built-in onnxruntime
+    1.27 APIs — no onnxconverter_common / MatMul4BitsQuantizer, which no longer exist.
+    """
+    os.makedirs(out_path, exist_ok=True)
+    dst = os.path.join(out_path, "llm_decoder.onnx")
+    model = onnx.load(fp32_llm_path)
+    if mode == "fp16":
+        from onnxruntime.transformers.float16 import convert_float_to_float16
+        onnx.save(convert_float_to_float16(model, keep_io_types=True), dst,
+                  save_as_external_data=True, location="llm_decoder.onnx.data")
+    elif mode == "int4":
+        from onnxruntime.quantization.matmul_nbits_quantizer import MatMulNBitsQuantizer
+        q = MatMulNBitsQuantizer(model, bits=4, block_size=128, is_symmetric=True)
+        q.process()
+        onnx.save(q.model.model, dst, save_as_external_data=True, location="llm_decoder.onnx.data")
+    else:
+        raise ValueError(mode)
 
 
 def export_audio_embeddings(model, out_path):
