@@ -26,16 +26,35 @@ class _OnnxLLMShim:
         return getattr(self._r, n)
 
 
-def hybrid_generate(model_dir, backbone_dir, higgs_dir, text, language):
+def hybrid_generate(model_dir, backbone_dir, higgs_dir, text, language, provider="CPUExecutionProvider"):
     """Load the model fresh, swap model.llm for an ONNX session at
     <backbone_dir>/llm_decoder.onnx, and run the real model.generate(). higgs_dir is
     accepted for interface symmetry with the other export stages but unused here: the
     model's own native Higgs (PyTorch) audio tokenizer handles decode, not our exported
-    Higgs graphs.
+    Higgs graphs. `provider` selects the ONNX Runtime execution provider for the
+    llm_decoder session (default CPU; pass "CUDAExecutionProvider" to run the
+    bidirectional LLM backbone on GPU — see cuda_rtf below).
     """
     m = load_model(model_dir)
-    sess = ort.InferenceSession(f"{backbone_dir}/llm_decoder.onnx", providers=["CPUExecutionProvider"])
+    sess = ort.InferenceSession(f"{backbone_dir}/llm_decoder.onnx", providers=[provider])
     real = m.llm
     del m._modules["llm"]           # deregister the nn.Module so a plain shim can take its place
     m.llm = _OnnxLLMShim(sess, real)
     return np.asarray(m.generate(text=text, language=language)[0], dtype=np.float32).squeeze()
+
+
+def cuda_rtf(model_dir, backbone_dir, text="This is a real time factor measurement.", language="English"):
+    """Measure end-to-end RTF with the bidirectional llm_decoder.onnx running on
+    CUDAExecutionProvider (GB10 GPU). Everything else in hybrid_generate (audio
+    embeddings/heads, Higgs tokenizer decode) still runs in PyTorch on CPU, so the
+    returned rtf is an UPPER BOUND on the pure-ONNX pipeline planned for Plan 2 —
+    re-confirm there once embeddings/heads/decode are also ONNX.
+    """
+    import time
+    if "CUDAExecutionProvider" in ort.get_available_providers():
+        ort.preload_dlls()
+    t = time.time()
+    wav = hybrid_generate(model_dir, backbone_dir, None, text, language, provider="CUDAExecutionProvider")
+    gen = time.time() - t
+    dur = len(wav) / 24000
+    return {"gen_s": round(gen, 2), "audio_s": round(dur, 2), "rtf": round(gen / dur, 3)}
