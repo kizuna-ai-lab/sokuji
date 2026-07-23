@@ -849,6 +849,7 @@ class OmniVoiceOnnxBackend:
     def unload(self) -> None:
         self._sessions = None
         self._tok = None
+        self._dir = None
         self._ref_codes = None
         self._voice_cache = {}
 

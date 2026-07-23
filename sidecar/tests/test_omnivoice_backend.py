@@ -204,9 +204,11 @@ def test_load_wraps_failures_in_backend_load_error(monkeypatch):
 def test_unload_clears_all_state():
     b = make_backend("omnivoice_onnx")
     b._sessions, b._tok, b._ref_codes = {}, object(), np.ones((8, 4))
+    b._dir = "/snap"
     b._voice_cache = {"classic-zh": np.ones((8, 4))}
     b.unload()
     assert b._sessions is None and b._tok is None and b._ref_codes is None
+    assert b._dir is None  # snapshot root cleared too (parity with CosyVoice3)
     assert b._voice_cache == {}
     assert not b.is_loaded
 
@@ -231,14 +233,24 @@ def test_set_builtin_voice_requires_loaded_backend():
         b.set_builtin_voice("classic-zh")
 
 
-def test_set_builtin_voice_rejects_path_traversal(tmp_path):
+def test_set_builtin_voice_rejects_path_traversal(monkeypatch, tmp_path):
+    # Isolate the guard: stage a real .wav that a traversal name WOULD resolve to
+    # (`../escaped` → <dir>/voices/../escaped.wav → <dir>/escaped.wav, which exists),
+    # and make encode_reference loud. The guard must reject every bad name BEFORE
+    # any file I/O, so encode_reference is never reached.
+    import soundfile as sf
     b = make_backend("omnivoice_onnx")
     b._sessions, b._tok = {}, object()
     b._dir = str(tmp_path)
-    with pytest.raises(BackendLoadError):
-        b.set_builtin_voice("../x")
-    with pytest.raises(BackendLoadError):
-        b.set_builtin_voice("a/b")
+    (tmp_path / "voices").mkdir()
+    sf.write(str(tmp_path / "escaped.wav"), np.zeros(1600, dtype=np.float32), 16000)
+    called = []
+    monkeypatch.setattr(tts_backends._omnivoice_higgs, "encode_reference",
+                        lambda *a, **k: called.append(a) or np.ones((8, 4), dtype=np.int64))
+    for bad in ["../escaped", "a/b", "..", "with space", "", "voices/../../x"]:
+        with pytest.raises(BackendLoadError):
+            b.set_builtin_voice(bad)
+    assert called == []  # blocked by the allow-list, not by a missing file
 
 
 def test_set_builtin_voice_unknown_name_raises(tmp_path):
