@@ -67,8 +67,8 @@ const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
   'omnivoice-0.6b': { max: 8 },
 };
 
-/** Mean absolute amplitude below this is treated as silence (a muted mic / empty file). */
-const SILENCE_PEAK_THRESHOLD = 0.01;   // peak below this = no real signal (true silence)
+/** Peak amplitude below this is treated as silence (a muted mic / empty file). */
+const SILENCE_PEAK_THRESHOLD = 0.01;
 
 export type ClipValidationError = 'too_short' | 'too_long' | 'silent';
 

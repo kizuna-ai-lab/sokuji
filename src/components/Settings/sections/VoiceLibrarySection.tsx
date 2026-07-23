@@ -77,7 +77,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+  // Monotonic token: a toggle invalidates any earlier onPreview still in
+  // flight, so a stale resolution can't start playback over a newer one.
+  const previewTokenRef = useRef(0);
+
   const stopPreview = useCallback(() => {
+    previewTokenRef.current += 1;
     const src = sourceRef.current;
     if (src) {
       src.onended = null;
@@ -91,8 +96,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     if (playingId === id) { stopPreview(); return; }
     stopPreview();
     if (!onPreview) return;
+    const token = previewTokenRef.current;
     let payload: { audio: Float32Array; sampleRate: number } | null = null;
     try { payload = await onPreview(id); } catch { payload = null; }
+    if (token !== previewTokenRef.current) return; // superseded by a newer toggle
     if (!payload || payload.audio.length === 0) return;
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = audioCtxRef.current ?? (audioCtxRef.current = new AudioCtx());
@@ -123,7 +130,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         aria-label={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
         title={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
       >
-        {playingId === v.id ? <Square size={12} /> : <Play size={12} />}
+        {playingId === v.id ? <Square size={14} /> : <Play size={14} />}
       </button>
     ) : null
   );
@@ -327,7 +334,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       }
     } catch (err) { console.warn('Recording handler failed:', err); }
   }, [onRecord, capability.transcriptRequired, transcript]);
-  stopRecordingRef.current = stopRecording;
+  // Keep the auto-stop ref pointing at the latest committed closure — written
+  // in an effect, not the render body (renders can be replayed/discarded,
+  // e.g. under an <Activity> boundary).
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
 
   const renderRow = (v: VoiceEntry) => {
     const isSelected = v.id === selectedId;

@@ -277,10 +277,15 @@ def estimate_target_tokens(text: str, *, speed: float = 1.0,
     return max(1, int(est))
 
 
-# Max words per synthesized chunk. OmniVoice's single-shot non-autoregressive
-# decode garbles long inputs (verified with ASR: a 15-word sentence returns
-# near-noise while 6-7-word phrases are clean), so the backend splits long text
-# into short phrases and synthesizes chunk-by-chunk, concatenating the audio.
+# Soft cap on words per synthesized chunk. OmniVoice's single-shot
+# non-autoregressive decode garbles long inputs (verified with ASR: a 15-word
+# sentence returns near-noise while 6-7-word phrases are clean), so the backend
+# splits long text into short phrases and synthesizes chunk-by-chunk,
+# concatenating the audio. SOFT: split_for_tts may exceed this by up to 2 words
+# when absorbing a 1-2 word list fragment ("talent," / "research,") into the
+# previous phrase — a bare 1-2 word chunk synthesizes far worse than an
+# 8-9 word one, so the merge deliberately trades a slightly longer chunk for
+# never emitting fragment-only chunks.
 TTS_MAX_CHUNK_WORDS = 7
 
 # Duration-budget slack multiplier applied to estimate_target_tokens by the
