@@ -908,6 +908,27 @@ class OmniVoiceOnnxBackend:
     # run together (24 kHz).
     _CHUNK_GAP = 2400
 
+    @staticmethod
+    def _trim_edges(audio, sr=24000, keep=0.1):
+        """Trim leading/trailing silence from a synthesized chunk, keeping
+        ~`keep` seconds of natural margin. The duration-slack budget (see
+        frontend.TTS_TARGET_SLACK) is mostly emitted as LEADING silence
+        (measured 0.7-0.9s per chunk) — dead air that delays time-to-speech
+        in a live translation session."""
+        win = max(1, int(sr * 0.02))
+        n = audio.size // win
+        if not n:
+            return audio
+        energy = np.sqrt((audio[:n * win].reshape(n, win) ** 2).mean(axis=1))
+        thr = max(1e-3, float(energy.max()) * 0.05)
+        voiced = np.where(energy > thr)[0]
+        if not voiced.size:
+            return audio
+        margin = int(sr * keep)
+        start = max(0, voiced[0] * win - margin)
+        end = min(audio.size, (voiced[-1] + 1) * win + margin)
+        return audio[start:end]
+
     def _generate_one(self, text, speed):
         """Synthesize a single short phrase -> float32 waveform (24 kHz)."""
         # +25% duration slack so a slow prosody draw doesn't truncate the
@@ -920,7 +941,8 @@ class OmniVoiceOnnxBackend:
             num_target_tokens=n, denoise=has_ref)
         codes = _omnivoice_decode.generate_codes(
             self._sessions, ids, amask, n, cfg=_OMNIVOICE_DECODE_CFG)
-        return np.asarray(_omnivoice_higgs.decode(self._sessions, codes), np.float32)
+        audio = np.asarray(_omnivoice_higgs.decode(self._sessions, codes), np.float32)
+        return self._trim_edges(audio)
 
     def generate(self, text, speed=1.0):
         if self._ref_codes is None:
