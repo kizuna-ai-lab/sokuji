@@ -307,3 +307,18 @@ def test_build_input_ids_matches_pytorch_fixture_chinese():
     assert cond_audio_start == 15
     assert audio_mask[0].tolist() == [False] * 15 + [True] * 64
     assert int(audio_mask.sum()) == 64
+
+
+def test_split_for_tts_chunks_long_text_preserving_words():
+    from sokuji_sidecar.omnivoice.frontend import split_for_tts
+    assert split_for_tts("Hello there friend.") == ["Hello there friend."]  # short -> unchanged
+    assert split_for_tts("   ") == []
+    long = ("I've spent much of my career studying how the Chinese "
+            "Communist Party thinks about competition.")
+    chunks = split_for_tts(long)
+    assert len(chunks) >= 2                             # long sentence is split
+    assert all(len(c.split()) <= 9 for c in chunks)    # each chunk short (max_words + merge slack)
+    assert " ".join(chunks).split() == long.split()    # every word preserved, in order
+    # comma-separated list items are merged, not left as bare 1-word chunks
+    for c in split_for_tts("It's over technology, talent, research, and influence."):
+        assert len(c.split()) >= 2

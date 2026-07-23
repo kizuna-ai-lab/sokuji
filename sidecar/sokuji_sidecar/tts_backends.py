@@ -904,13 +904,12 @@ class OmniVoiceOnnxBackend:
         self._voice_cache[name] = codes
         self._ref_codes = codes
 
-    def generate(self, text, speed=1.0):
-        if self._ref_codes is None:
-            # STABLE default voice out of the box (replaces the previous
-            # random auto-voice default) — issue #351 follow-up.
-            self.set_builtin_voice(
-                os.environ.get("SOKUJI_OMNIVOICE_PRESET_VOICE", "classic-zh"))
-        t0 = time.time()
+    # ~0.1s of silence stitched between synthesized chunks so phrases don't
+    # run together (24 kHz).
+    _CHUNK_GAP = 2400
+
+    def _generate_one(self, text, speed):
+        """Synthesize a single short phrase -> float32 waveform (24 kHz)."""
         n = _omnivoice_frontend.estimate_target_tokens(text, speed=float(speed))
         has_ref = self._ref_codes is not None
         ids, amask, _ = _omnivoice_frontend.build_input_ids(
@@ -918,7 +917,26 @@ class OmniVoiceOnnxBackend:
             num_target_tokens=n, denoise=has_ref)
         codes = _omnivoice_decode.generate_codes(
             self._sessions, ids, amask, n, cfg=_OMNIVOICE_DECODE_CFG)
-        audio = _omnivoice_higgs.decode(self._sessions, codes)
+        return np.asarray(_omnivoice_higgs.decode(self._sessions, codes), np.float32)
+
+    def generate(self, text, speed=1.0):
+        if self._ref_codes is None:
+            # STABLE default voice out of the box (replaces the previous
+            # random auto-voice default) — issue #351 follow-up.
+            self.set_builtin_voice(
+                os.environ.get("SOKUJI_OMNIVOICE_PRESET_VOICE", "classic-zh"))
+        t0 = time.time()
+        # OmniVoice's single-shot decode garbles long inputs (a 15-word sentence
+        # returns near-noise), so split long text into short phrases and stitch
+        # the per-chunk audio. Short text -> one chunk (unchanged).
+        chunks = _omnivoice_frontend.split_for_tts(text)
+        parts = []
+        gap = np.zeros(self._CHUNK_GAP, np.float32)
+        for i, chunk in enumerate(chunks):
+            if i:
+                parts.append(gap)
+            parts.append(self._generate_one(chunk, speed))
+        audio = np.concatenate(parts) if parts else np.zeros(0, np.float32)
         return audio.astype(np.float32), int((time.time() - t0) * 1000)
 
     @staticmethod

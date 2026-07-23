@@ -275,3 +275,38 @@ def estimate_target_tokens(text: str, *, speed: float = 1.0,
     if speed > 0 and speed != 1.0:
         est = est / speed
     return max(1, int(est))
+
+
+# Max words per synthesized chunk. OmniVoice's single-shot non-autoregressive
+# decode garbles long inputs (verified with ASR: a 15-word sentence returns
+# near-noise while 6-7-word phrases are clean), so the backend splits long text
+# into short phrases and synthesizes chunk-by-chunk, concatenating the audio.
+TTS_MAX_CHUNK_WORDS = 7
+
+
+def split_for_tts(text: str, max_words: int = TTS_MAX_CHUNK_WORDS) -> list:
+    """Split text into short phrases for chunked synthesis. Breaks at clause /
+    sentence punctuation (``. ! ? ; : ,`` and em/en dashes, delimiter kept),
+    hard-wraps any piece still over ``max_words`` by word count, then merges
+    1-2 word fragments (e.g. list items like "talent," "research,") into the
+    previous phrase. Text already within ``max_words`` returns a single chunk,
+    so short utterances are unchanged."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    parts = [p.strip() for p in re.split(r"(?<=[.!?;:,—–])\s+", text) if p.strip()]
+    out = []
+    for p in parts:
+        words = p.split()
+        if len(words) <= max_words:
+            out.append(p)
+        else:
+            for i in range(0, len(words), max_words):
+                out.append(" ".join(words[i:i + max_words]))
+    merged = []
+    for c in out:
+        if merged and len(c.split()) <= 2 and len((merged[-1] + " " + c).split()) <= max_words + 2:
+            merged[-1] = merged[-1] + " " + c
+        else:
+            merged.append(c)
+    return merged
