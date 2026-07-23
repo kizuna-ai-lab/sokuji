@@ -299,3 +299,36 @@ def test_cosyvoice3_real_model_smoke():
     assert audio.dtype == np.float32
     assert 1.0 < len(audio) / 24000 < 10.0
     assert float(np.sqrt((audio ** 2).mean())) > 0.01
+
+
+# `classic-zh.wav` is the committed reference clip also used by
+# test_omnivoice_higgs.py's round-trip test (repo-root relative, since this
+# suite runs with cwd=sidecar/).
+_OMNIVOICE_WAV_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), "..", "..",
+    "scripts", "assets", "gpt-sovits-voices", "classic-zh.wav"))
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (CUDA + OmniVoice ONNX assets)")
+def test_omnivoice_onnx_cuda_smoke():
+    """Real-model end-to-end smoke: load the bf16 variant repo on CUDA, clone a
+    reference voice, and synthesize speech. `build_sessions` (runtime.py)
+    fail-fasts if a hot graph doesn't land on CUDAExecutionProvider, so a
+    passing `.load()` already confirms the LLM ran on CUDA -- no separate
+    provider assertion is needed here. The backbone lives at the repo ROOT
+    (self-contained per-variant repo)."""
+    from huggingface_hub import snapshot_download
+    repo = os.environ.get("SOKUJI_OMNIVOICE_BF16_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-bf16")
+    snapshot_download(repo)  # self-contained variant repo (backbone + higgs + voices)
+    b = backends.make_backend("omnivoice_onnx")
+    b.load(repo, "cuda", "bf16")
+    import soundfile as sf
+    audio, sr = sf.read(_OMNIVOICE_WAV_PATH, dtype="float32", always_2d=False)
+    b.set_voice(audio, sr)
+    out, gen_ms = b.generate("你好，这是一个测试。")
+    assert out.dtype == np.float32 and len(out) > 0
+    rms = float(np.sqrt(np.mean(out ** 2)))
+    assert 0.02 < rms < 0.6
+    b.unload()
+    assert b.is_loaded is False

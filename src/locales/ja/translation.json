@@ -780,7 +780,18 @@
     "initFailed": "モデルストレージの初期化に失敗しました: {{message}}",
     "othersGroup": "その他",
     "requiresGpu": "GPUが必要です",
-    "upgradeVariant": "お使いのデバイスはより高速なモデル形式に対応しています。削除して再ダウンロードするとパフォーマンスが向上します。"
+    "upgradeVariant": "お使いのデバイスはより高速なモデル形式に対応しています。削除して再ダウンロードするとパフォーマンスが向上します。",
+    "licenseConsent": {
+      "title": "非商用ライセンス",
+      "modelRepo": "{{model}} は {{repo}} からダウンロードされます。",
+      "licenseName": "このモデルは {{name}}({{spdx}})の下で配布されています。",
+      "viewLicense": "ライセンス全文を表示",
+      "nonCommercial": "このライセンスは非商用利用のみを許可しています。商用の製品やサービスでこのモデルを使用しないでください。",
+      "disclaimer": "Sokuji はモデルの作者と提携しておらず、いかなる関係もありません。この統合は非公式であり、現状のまま、いかなる保証もなく提供されます。",
+      "attribution": "帰属表示:{{attribution}}",
+      "cancel": "キャンセル",
+      "accept": "理解しました — 非商用のみ"
+    }
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",
@@ -865,12 +876,14 @@
     "manageImported": "インポートした音声を管理",
     "myVoices": "マイ音声",
     "openVoiceBuilder": "Voice Builder で作成する",
+    "play": "再生",
     "presets": "プリセット",
     "recordVoice": "音声を録音…",
     "rename": "名前を変更",
     "restartHint": "インポートした音声の変更を適用するにはセッションを再開してください。",
     "showAll": "すべての音声を表示",
     "showFewer": "表示する音声を減らす",
+    "stopPreview": "停止",
     "stopRecording": "録音を停止",
     "transcript": "文字起こし",
     "transcriptHint": "クリップ内で話された言葉と一致している必要があります。",

@@ -780,7 +780,18 @@
     "initFailed": "فشل تهيئة تخزين النماذج: {{message}}",
     "othersGroup": "أخرى",
     "requiresGpu": "يتطلب GPU",
-    "upgradeVariant": "جهازك يدعم تنسيق نموذج أسرع. احذفه وأعد تنزيله لأداء أفضل."
+    "upgradeVariant": "جهازك يدعم تنسيق نموذج أسرع. احذفه وأعد تنزيله لأداء أفضل.",
+    "licenseConsent": {
+      "title": "ترخيص غير تجاري",
+      "modelRepo": "سيتم تنزيل {{model}} من {{repo}}.",
+      "licenseName": "يُوزَّع بموجب {{name}} ({{spdx}}).",
+      "viewLicense": "عرض نص الترخيص الكامل",
+      "nonCommercial": "يسمح هذا الترخيص بالاستخدام غير التجاري فقط — لا تستخدم هذا النموذج في أي منتج أو خدمة تجارية.",
+      "disclaimer": "Sokuji غير مرتبط بمؤلفي النموذج ولا تربطه بهم أي علاقة. هذا التكامل غير رسمي ويُقدَّم كما هو دون أي ضمان من أي نوع.",
+      "attribution": "الإسناد: {{attribution}}",
+      "cancel": "إلغاء",
+      "accept": "فهمت — للاستخدام غير التجاري فقط"
+    }
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",
@@ -865,12 +876,14 @@
     "manageImported": "إدارة الأصوات المستوردة",
     "myVoices": "أصواتي",
     "openVoiceBuilder": "أنشئ واحدًا في Voice Builder",
+    "play": "تشغيل",
     "presets": "الإعدادات المسبقة",
     "recordVoice": "تسجيل صوت…",
     "rename": "إعادة تسمية",
     "restartHint": "أعد تشغيل الجلسة لتطبيق تغييرات الأصوات المستوردة.",
     "showAll": "عرض جميع الأصوات",
     "showFewer": "عرض أصوات أقل",
+    "stopPreview": "إيقاف",
     "stopRecording": "إيقاف التسجيل",
     "transcript": "النص",
     "transcriptHint": "يجب أن يطابق الكلمات المنطوقة في المقطع.",

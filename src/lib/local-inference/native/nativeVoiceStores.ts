@@ -55,22 +55,61 @@ export interface NativeVoiceStore {
  *  Exported so callers can interpolate these into a user-facing message. */
 export const MIN_CLIP_SECONDS = 3;
 export const MAX_CLIP_SECONDS = 20;
-/** Mean absolute amplitude below this is treated as silence (a muted mic / empty file). */
-const SILENCE_RMS_THRESHOLD = 0.005;
+
+/** Per-model reference-clip limits (seconds). Cloning models tolerate very
+ *  different reference lengths, so the limit is data here and travels to the
+ *  UI via `VoiceLibraryCapability.maxClipSeconds` (recording countdown +
+ *  auto-stop, import rejection). Models not listed use the defaults above. */
+const MODEL_CLIP_LIMITS: Record<string, { min?: number; max?: number }> = {
+  // OmniVoice's non-AR decode degrades past ~8s of reference (garbled words,
+  // then collapse) — the sidecar caps at 8s (higgs.MAX_REF_SECONDS), so let
+  // users record/import only what will actually be used.
+  'omnivoice-0.6b': { max: 8 },
+};
+
+/** Peak amplitude below this is treated as silence (a muted mic / empty file). */
+const SILENCE_PEAK_THRESHOLD = 0.01;
 
 export type ClipValidationError = 'too_short' | 'too_long' | 'silent';
 
 /** Pure validation for a captured/decoded reference clip. Returns the failure
- *  reason or null when the clip is usable. Exported for direct unit testing. */
-export function validateVoiceClip(clip: Float32Array, sampleRate: number): ClipValidationError | null {
+ *  reason or null when the clip is usable. Exported for direct unit testing.
+ *  Limits default to the global bounds; clip stores pass their model's. */
+export function validateVoiceClip(
+  clip: Float32Array, sampleRate: number,
+  maxSeconds: number = MAX_CLIP_SECONDS, minSeconds: number = MIN_CLIP_SECONDS,
+): ClipValidationError | null {
   const seconds = sampleRate > 0 ? clip.length / sampleRate : 0;
-  if (seconds < MIN_CLIP_SECONDS) return 'too_short';
-  if (seconds > MAX_CLIP_SECONDS) return 'too_long';
-  let sum = 0;
-  for (let i = 0; i < clip.length; i++) sum += Math.abs(clip[i]);
-  const meanAbs = clip.length > 0 ? sum / clip.length : 0;
-  if (meanAbs < SILENCE_RMS_THRESHOLD) return 'silent';
+  if (seconds < minSeconds) return 'too_short';
+  if (seconds > maxSeconds) return 'too_long';
+  // Silence = no real signal. Use PEAK amplitude, not mean-abs over the whole
+  // clip: a genuine but QUIET recording (a low-gain phone / web recorder peaks
+  // ~0.06 vs ~0.5 for normal speech) or one with long pauses has a tiny mean-abs
+  // yet is clearly not silent — mean-abs wrongly rejected such clips as "No
+  // voice detected". Loudness is fixed by normalizePeak on store (+ the sidecar's
+  // prepare_reference); validation only needs to reject TRUE silence.
+  let peak = 0;
+  for (let i = 0; i < clip.length; i++) {
+    const a = Math.abs(clip[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < SILENCE_PEAK_THRESHOLD) return 'silent';
   return null;
+}
+
+/** Peak-normalize a clip to `target` so a quiet recording is stored, previewed,
+ *  and cloned at a usable level. No-op for a (near-)silent clip. */
+export function normalizePeak(clip: Float32Array, target = 0.95): Float32Array {
+  let peak = 0;
+  for (let i = 0; i < clip.length; i++) {
+    const a = Math.abs(clip[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < 1e-5) return clip;
+  const gain = target / peak;
+  const out = new Float32Array(clip.length);
+  for (let i = 0; i < clip.length; i++) out[i] = clip[i] * gain;
+  return out;
 }
 
 /** Downmix an AudioBuffer to a single mono Float32Array (channel average). */
@@ -102,12 +141,19 @@ export class VoiceCaptureError extends Error {
 
 class ClipVoiceStore implements NativeVoiceStore {
   readonly kind = 'clip' as const;
-  readonly capability: VoiceLibraryCapability = {
-    importModes: ['record', 'upload'],
-    accept: 'audio/*',
-    curation: false,
-    presentation: 'dropdown',
-  };
+  readonly capability: VoiceLibraryCapability;
+
+  constructor(modelId: string) {
+    const limits = MODEL_CLIP_LIMITS[modelId] ?? {};
+    this.capability = {
+      importModes: ['record', 'upload'],
+      accept: 'audio/*',
+      curation: false,
+      presentation: 'dropdown',
+      maxClipSeconds: limits.max ?? MAX_CLIP_SECONDS,
+      minClipSeconds: limits.min ?? MIN_CLIP_SECONDS,
+    };
+  }
 
   async list(): Promise<NativeCustomVoice[]> {
     const voices = await listNativeVoices();
@@ -133,11 +179,17 @@ class ClipVoiceStore implements NativeVoiceStore {
   }
 
   private async storeClip(name: string, clip: Float32Array, sampleRate: number, transcript?: string): Promise<void> {
-    const reason = validateVoiceClip(clip, sampleRate);
+    const reason = validateVoiceClip(
+      clip, sampleRate,
+      this.capability.maxClipSeconds ?? MAX_CLIP_SECONDS,
+      this.capability.minClipSeconds ?? MIN_CLIP_SECONDS);
     if (reason) {
       throw new VoiceCaptureError(reason, `Voice clip failed validation: ${reason}`);
     }
-    await addNativeVoice(name, clip, sampleRate, transcript);
+    // Store at a usable loudness so a quiet recording isn't near-inaudible on
+    // preview and clones well (the sidecar re-normalizes too, but this keeps the
+    // stored + previewed clip correct).
+    await addNativeVoice(name, normalizePeak(clip), sampleRate, transcript);
   }
 
   async rename(id: number, name: string): Promise<void> {
@@ -226,7 +278,7 @@ function readBlobAsText(blob: Blob): Promise<string> {
 export function voiceStoreFor(custom: VoiceCustom, modelId: string): NativeVoiceStore | null {
   switch (custom) {
     case 'clip':
-      return new ClipVoiceStore();
+      return new ClipVoiceStore(modelId);
     case 'style':
       return new StyleVoiceStore(modelId);
     case 'none':

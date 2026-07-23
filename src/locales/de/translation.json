@@ -780,7 +780,18 @@
     "initFailed": "Modellspeicher konnte nicht initialisiert werden: {{message}}",
     "othersGroup": "Andere",
     "requiresGpu": "Erfordert eine GPU",
-    "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung."
+    "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung.",
+    "licenseConsent": {
+      "title": "Nichtkommerzielle Lizenz",
+      "modelRepo": "{{model}} wird von {{repo}} heruntergeladen.",
+      "licenseName": "Es wird unter {{name}} ({{spdx}}) vertrieben.",
+      "viewLicense": "Vollständigen Lizenztext ansehen",
+      "nonCommercial": "Diese Lizenz erlaubt nur nichtkommerzielle Nutzung — verwenden Sie dieses Modell nicht in kommerziellen Produkten oder Diensten.",
+      "disclaimer": "Sokuji ist nicht mit den Modellautoren verbunden und steht in keiner Beziehung zu ihnen. Diese Integration ist inoffiziell und wird ohne jegliche Gewährleistung bereitgestellt.",
+      "attribution": "Namensnennung: {{attribution}}",
+      "cancel": "Abbrechen",
+      "accept": "Verstanden — nur nichtkommerziell"
+    }
   },
   "update": {
     "available": "Neue Version v{{version}} verfügbar",
@@ -865,12 +876,14 @@
     "manageImported": "Importierte Stimmen verwalten",
     "myVoices": "Meine Stimmen",
     "openVoiceBuilder": "Im Voice Builder erstellen",
+    "play": "Abspielen",
     "presets": "Voreinstellungen",
     "recordVoice": "Stimme aufnehmen…",
     "rename": "Umbenennen",
     "restartHint": "Starten Sie die Sitzung neu, um Änderungen an importierten Stimmen zu übernehmen.",
     "showAll": "Alle Stimmen anzeigen",
     "showFewer": "Weniger Stimmen anzeigen",
+    "stopPreview": "Stopp",
     "stopRecording": "Aufnahme stoppen",
     "transcript": "Transkript",
     "transcriptHint": "Muss mit den im Clip gesprochenen Worten übereinstimmen.",

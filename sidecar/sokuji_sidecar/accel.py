@@ -129,6 +129,7 @@ def _installed() -> frozenset:
             "supertonic": "onnxruntime",
             "qwen3tts_onnx": "onnxruntime",
             "cosyvoice3_onnx": "onnxruntime",
+            "omnivoice_onnx": "onnxruntime",
             "gpt_sovits_onnx": "onnxruntime",
             "pocket_onnx": ("onnxruntime", "sentencepiece"),
             "mlx_audio_tts": ("mlx_audio",),
@@ -765,6 +766,9 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
+            lic = catalog.license_dict(mdl)
+            if lic:
+                entry["license"] = lic
         seen_cts = []
         sizes_by_ct = {}
         artifact_by_ct = {}

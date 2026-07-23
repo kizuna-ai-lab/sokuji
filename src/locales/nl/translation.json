@@ -780,7 +780,18 @@
     "initFailed": "Initialiseren van modelopslag mislukt: {{message}}",
     "othersGroup": "Overige",
     "requiresGpu": "Vereist een GPU",
-    "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties."
+    "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties.",
+    "licenseConsent": {
+      "title": "Niet-commerciële licentie",
+      "modelRepo": "{{model}} wordt gedownload van {{repo}}.",
+      "licenseName": "Het wordt verspreid onder {{name}} ({{spdx}}).",
+      "viewLicense": "Bekijk de volledige licentietekst",
+      "nonCommercial": "Deze licentie staat alleen niet-commercieel gebruik toe — gebruik dit model niet in commerciële producten of diensten.",
+      "disclaimer": "Sokuji is niet gelieerd aan de auteurs van het model en heeft geen relatie met hen. Deze integratie is onofficieel en wordt geleverd zoals ze is, zonder enige garantie.",
+      "attribution": "Naamsvermelding: {{attribution}}",
+      "cancel": "Annuleren",
+      "accept": "Begrepen — alleen niet-commercieel"
+    }
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",
@@ -865,12 +876,14 @@
     "manageImported": "Geïmporteerde stemmen beheren",
     "myVoices": "Mijn stemmen",
     "openVoiceBuilder": "Maak er een in Voice Builder",
+    "play": "Afspelen",
     "presets": "Presets",
     "recordVoice": "Stem opnemen…",
     "rename": "Hernoemen",
     "restartHint": "Start de sessie opnieuw om de wijzigingen aan geïmporteerde stemmen toe te passen.",
     "showAll": "Alle stemmen tonen",
     "showFewer": "Minder stemmen tonen",
+    "stopPreview": "Stoppen",
     "stopRecording": "Opname stoppen",
     "transcript": "Transcript",
     "transcriptHint": "Moet overeenkomen met de woorden die in de clip worden gesproken.",

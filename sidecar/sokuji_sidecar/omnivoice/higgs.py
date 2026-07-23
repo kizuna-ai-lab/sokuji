@@ -1,0 +1,172 @@
+# Apache License 2.0
+"""Higgs Audio Tokenizer codec glue: reference-clip voice-cloning encode and
+codes -> waveform decode, driving four of the seven sessions from
+`runtime.build_sessions` (`acoustic_encoder`, `semantic_encoder`,
+`quantizer_encoder`, `higgs_decoder` -- the COLD graphs). Torch-free -- numpy
++ `soxr` for resampling + `soundfile` to read the reference clip.
+
+Ports the exact ONNX-pipeline logic from `.spike/models/repo/inference.py`'s
+`higgs_encode`/`higgs_decode` (the same pipeline independently verified
+end-to-end, including an eager-vs-ONNX numeric parity check against the
+PyTorch HiggsAudioV2TokenizerModel, in
+`scripts/reexport-omnivoice/tests/test_bidi_export.py::
+test_higgs_export_roundtrip`: code_match=0.9838, wav_cos=0.9989 on
+`scripts/assets/gpt-sovits-voices/classic-zh.wav`), with one API change:
+`encode_reference` here drops the leading batch axis on its returned codes
+(`(8, T)` instead of the spike's `(8, 1, T)`) since this backend only ever
+encodes one reference clip at a time.
+
+Pipeline (encode_reference):
+  ref_audio @ 24 kHz -> acoustic_encoder -> acoustic_features (1, 256, Ta)
+  ref_audio @ 16 kHz -> semantic_encoder -> semantic_features (1, 768, Ts)
+  T = min(Ta, Ts); truncate BOTH streams to T (split-graph contract -- the
+    two encoders are independent conv stacks over different sample rates
+    and can disagree by a frame or two on non-multiple clip lengths)
+  acoustic_features[:, :, :T] + semantic_features[:, :, :T]
+    -> quantizer_encoder -> codes (8, 1, T) int64 -> drop batch -> (8, T)
+
+Pipeline (decode):
+  codes (8, T) -> add batch axis -> (8, 1, T) -> higgs_decoder
+    -> waveform_24k (1, 1, samples) -> squeeze -> (samples,) float32
+"""
+import numpy as np
+import soundfile as sf
+import soxr
+
+SR_24K = 24_000
+SR_16K = 16_000
+
+
+def _load_mono(wav_path: str):
+    """Load a clip and return (samples float32, sample_rate). Stereo clips
+    are reduced to their first channel (matches the reference pipeline in
+    test_bidi_export.py::test_higgs_export_roundtrip)."""
+    wav, sr = sf.read(wav_path)
+    wav = np.asarray(wav, dtype=np.float32)
+    if wav.ndim > 1:
+        wav = wav[:, 0]
+    return wav, sr
+
+
+MAX_REF_SECONDS = 8.0        # cap the reference clip length (see prepare_reference)
+
+
+def prepare_reference(wav, sr, max_seconds: float = MAX_REF_SECONDS):
+    """Condition a reference clip before encoding so voice cloning stays correct.
+    OmniVoice's non-autoregressive decode grows a reference-code PREFIX from the
+    clip; past ~T=300 (~12 s) the decode intermittently collapses/garbles, so
+    long clips must be capped. But the CUT MUST LAND ON A PAUSE: a hard cut
+    mid-word leaves the reference codes ending in half a phoneme, and the model
+    "completes" that cut sound at the start of every generated chunk — an
+    audible "eh"-like grunt (ASR literally transcribed the artifacts: "Day.",
+    "fair.", "Say," prepended to sentences when a 6.5 s clip was hard-cut at
+    3 s). A clean clip UNDER the cap passes through whole and clones at preset
+    quality (the 6.5 s sarah preset == importing sarah uncut).
+
+    The reference must END IN SILENCE: generation continues right after the
+    reference codes, and a reference that ends in active speech makes the model
+    "finish" that speech first — a short blip at the start of EVERY generated
+    chunk (measured: 30-40 milli-RMS leading transients on import vs 0-1 for
+    the untrimmed preset whose tail silence survived). So the trailing trim
+    keeps ~0.25 s of the clip's natural decay/room tone, and if the clip still
+    ends hot (e.g. a no-pause hard cap), literal silence is appended.
+
+    Steps: (1) trim leading/trailing near-silence (20 ms frames below 6% of
+    peak frame energy), keeping ~0.25 s of natural tail, (2) cap to
+    `max_seconds`, cutting at the last low-energy frame in the second half of
+    the cap window (hard cut only if the clip has no pause there),
+    (3) peak-normalize to 0.95 (a quiet recording otherwise clones to
+    near-inaudible output), (4) append silence if the tail is still hot.
+    Returns 1-D float32.
+    """
+    wav = np.asarray(wav, dtype=np.float32).ravel()
+    win = max(1, int(sr * 0.02))
+    tail_keep = int(sr * 0.25)
+    if wav.size:
+        n = wav.size // win
+        if n:
+            energy = np.sqrt((wav[:n * win].reshape(n, win) ** 2).mean(axis=1))
+            thr = max(1e-4, float(energy.max()) * 0.06)
+            voiced = np.where(energy > thr)[0]
+            if voiced.size:
+                # keep ~0.25s of natural decay/room tone after the last voiced
+                # frame so the reference ends in silence, not mid-breath
+                wav = wav[voiced[0] * win:
+                          min(wav.size, (voiced[-1] + 1) * win + tail_keep)]
+    cap = int(sr * max_seconds)
+    if wav.size > cap:
+        # pause-aware cut: last sub-threshold 20 ms frame in the second half
+        # of the cap window, so the reference never ends mid-word
+        n = cap // win
+        energy = np.sqrt((wav[:n * win].reshape(n, win) ** 2).mean(axis=1))
+        thr = max(1e-4, float(energy.max()) * 0.10)
+        quiet = np.where(energy[n // 2:] < thr)[0]
+        end = (n // 2 + int(quiet[-1])) * win if quiet.size else cap
+        wav = wav[:end]
+    peak = float(np.abs(wav).max()) if wav.size else 0.0
+    if peak > 1e-5:
+        wav = wav * (0.95 / peak)
+    # guarantee a quiet tail: if the clip still ends in speech (no-pause hard
+    # cap, or a recording stopped mid-word), append silence
+    if wav.size >= win:
+        tail_rms = float(np.sqrt((wav[-int(sr * 0.1):] ** 2).mean()))
+        if tail_rms > 0.02:
+            wav = np.concatenate([wav, np.zeros(tail_keep, np.float32)])
+    return wav.astype(np.float32)
+
+
+def _align_to_min_t(acoustic_features: np.ndarray, semantic_features: np.ndarray):
+    """Split-graph contract: acoustic_encoder and semantic_encoder are
+    independent conv stacks over 24 kHz/16 kHz resamples of the same clip
+    and can disagree on frame count by a frame or two (non-multiple clip
+    lengths, differing internal padding). Truncate BOTH to
+    T = min(Ta, Ts) along the trailing time axis before quantizer_encoder,
+    which requires matching T on its two inputs."""
+    t = min(acoustic_features.shape[2], semantic_features.shape[2])
+    return acoustic_features[:, :, :t], semantic_features[:, :, :t]
+
+
+def encode_reference(sessions: dict, wav_path: str) -> np.ndarray:
+    """Encode a reference clip to Higgs codec codes for voice cloning.
+
+    `sessions` is the dict from `runtime.build_sessions(...)` (or any dict
+    exposing `acoustic_encoder`/`semantic_encoder`/`quantizer_encoder` ORT
+    sessions with matching `run(output_names, feed) -> [array]`).
+
+    Returns `np.int64` of shape `(8, T)` -- the 8 codebooks, with the batch
+    axis dropped (this backend encodes exactly one reference clip at a
+    time).
+    """
+    wav, sr = _load_mono(wav_path)
+    w24 = soxr.resample(wav, sr, SR_24K).astype(np.float32)
+    w16 = soxr.resample(wav, sr, SR_16K).astype(np.float32)
+
+    acoustic_features = sessions["acoustic_encoder"].run(
+        ["acoustic_features"], {"waveform_24k": w24[None, None, :]})[0]
+    semantic_features = sessions["semantic_encoder"].run(
+        ["semantic_features"], {"waveform_16k": w16[None, :]})[0]
+
+    acoustic_features, semantic_features = _align_to_min_t(
+        acoustic_features, semantic_features)
+
+    codes = sessions["quantizer_encoder"].run(
+        ["codes"],
+        {"acoustic_features": acoustic_features,
+         "semantic_features": semantic_features})[0]  # (8, 1, T) int64
+
+    return codes[:, 0, :].astype(np.int64)
+
+
+def decode(sessions: dict, codes: np.ndarray) -> np.ndarray:
+    """Decode Higgs codec codes (`(8, T)`) to a 24 kHz waveform via
+    `sessions["higgs_decoder"]`. Returns `np.float32` of shape `(samples,)`.
+    """
+    codes = np.asarray(codes, dtype=np.int64)
+    if codes.ndim != 2 or codes.shape[0] != 8:
+        raise ValueError(f"codes must have shape (8, T), got {codes.shape}")
+    codes_3d = codes[:, None, :]  # (8, 1, T)
+
+    waveform = sessions["higgs_decoder"].run(
+        ["waveform_24k"], {"codes": codes_3d})[0]  # (1, 1, samples)
+
+    return np.asarray(waveform, dtype=np.float32).squeeze()

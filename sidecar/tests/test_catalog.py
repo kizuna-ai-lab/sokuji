@@ -135,12 +135,15 @@ def test_tts_models_have_deployments_languages_and_repos():
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
                                  "qwen3tts_onnx", "mlx_audio_tts",
-                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx"}
+                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx",
+                                 "omnivoice_onnx"}
 
 
 # The realtime bar decides which tiers exist (issue #323): CosyVoice3's CPU
 # RTF ~3.5 is unusable, so it is the first deliberately GPU-only TTS card.
-GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b"}
+# OmniVoice (issue #351) is GPU-only for the same reason (fp16/int4 backbone
+# tuned for CUDA; no cpu deployment row is shipped).
+GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b", "omnivoice-0.6b"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
@@ -165,6 +168,60 @@ def test_cosyvoice3_card_shape():
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "cosyvoice3_onnx" for d in m.deployments)
     assert m.size_bytes > 3_000_000_000
+
+
+def test_omnivoice_card_shape():
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    assert m.languages == ("multi",)
+    assert m.clones
+    assert m.transcript_required is False
+    assert m.named_voices is True  # curated presets (voices/manifest.json) — issue #351 follow-up
+    assert not m.streaming
+    assert m.sample_rate == 24000 and m.num_speakers == 1
+    tiers = {d.tier for d in m.deployments}
+    assert tiers == {"gpu-cuda"}
+    assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
+    # Three llm precisions, each in its OWN self-contained repo; bf16 default.
+    cts = [d.compute_type for d in m.deployments]
+    assert set(cts) == {"bf16", "fp32", "int4"}
+    assert "fp16" not in cts  # naive fp16 is CUDA-broken (RMSNorm x^2 overflow) — intentionally absent
+    assert max(m.deployments, key=lambda d: d.rank).compute_type == "bf16"
+    # distinct per-variant repos → only the chosen variant downloads
+    arts = [d.artifact for d in m.deployments]
+    assert len(set(arts)) == 3
+    assert all(a.startswith("jiangzhuo9357/omnivoice-onnx-bidi-") for a in arts)
+    by_ct = {d.compute_type: d for d in m.deployments}
+    assert by_ct["bf16"].artifact == m.repos[0]  # default repo = bf16 variant
+    assert (by_ct["bf16"].est_bytes, by_ct["fp32"].est_bytes, by_ct["int4"].est_bytes) == \
+        (1_995_363_769, 3_207_687_266, 1_352_217_204)
+    assert m.size_bytes == 1_995_363_769  # default (bf16) variant download
+
+
+def test_omnivoice_license():
+    # Non-commercial license descriptor (issue #351 follow-up): the catalog
+    # carries it as DATA so the renderer/downloader can gate on it generically
+    # rather than special-casing "omnivoice" by id.
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    lic = m.license
+    assert lic is not None
+    assert lic.spdx == "CC-BY-NC-4.0"
+    assert lic.non_commercial is True
+    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi-bf16"
+    assert lic.attribution == "k2-fsa/OmniVoice"
+    assert catalog.license_dict(m) == {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "nonCommercial": True,
+        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi-bf16",
+        "attribution": "k2-fsa/OmniVoice",
+    }
+    # Every other card has no license — license_dict is a plain pass-through
+    # None, not a default-constructed License.
+    assert catalog.tts_model("cosyvoice3-0.5b").license is None
+    assert catalog.license_dict(catalog.tts_model("cosyvoice3-0.5b")) is None
 
 
 def test_tts_moss_nano_is_streaming_cloning():

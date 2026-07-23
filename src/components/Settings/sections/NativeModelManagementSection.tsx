@@ -25,6 +25,8 @@ import {
 } from '../../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { TierIcon } from './TierIcon';
+import LicenseConsentModal from '../shared/LicenseConsentModal';
+import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
 import {
   useNativeModelStore,
   useNativeCatalog,
@@ -238,11 +240,33 @@ const NativeModelCard: React.FC<{
     return `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
   }, [chosenVariant, ready, sizeMb]);
 
+  // Non-commercial-licensed cards (spec.license.nonCommercial) gate the first
+  // download behind an acknowledge modal — remembered per model id (Task 2 of
+  // the OmniVoice license-consent plan). Everything else downloads immediately,
+  // as before.
+  const [consentOpen, setConsentOpen] = useState(false);
+
   // The download button fetches the chosen variant's repo (undefined → default repo,
   // for single-variant cards). Keeps download in lock-step with the variant load.
+  const startDownload = () => download(spec.downloadId as string, chosenVariant?.repo);
+
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    download(spec.downloadId as string, chosenVariant?.repo);
+    if (spec.license?.nonCommercial && !hasAcceptedLicense(spec.downloadId as string)) {
+      setConsentOpen(true);
+      return;
+    }
+    startDownload();
+  };
+
+  const handleAcceptLicense = () => {
+    acceptLicense(spec.downloadId as string);
+    setConsentOpen(false);
+    // Re-check eligibility: state may have changed while the modal was open
+    // (hardware gate flipped, another surface started/completed the download).
+    // Mirrors the download button's own gating.
+    if (disabled || hwGated || status === 'downloading' || status === 'ready') return;
+    startDownload();
   };
 
   return (
@@ -422,6 +446,15 @@ const NativeModelCard: React.FC<{
         <div className="model-card__body" onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
+      )}
+      {spec.license && (
+        <LicenseConsentModal
+          isOpen={consentOpen}
+          license={spec.license}
+          modelName={spec.name}
+          onAccept={handleAcceptLicense}
+          onClose={() => setConsentOpen(false)}
+        />
       )}
     </div>
   );

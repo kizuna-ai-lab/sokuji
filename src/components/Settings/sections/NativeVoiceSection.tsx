@@ -92,18 +92,23 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [reloadCustomVoices]);
 
   const clipErrorMessage = useCallback((reason: ClipValidationError): string => {
+    // The limits are per-model (VoiceLibraryCapability) — e.g. OmniVoice
+    // accepts at most 8s while others take 20s — so the message must quote
+    // the store's actual bound, not the global default.
+    const minS = store?.capability.minClipSeconds ?? MIN_CLIP_SECONDS;
+    const maxS = store?.capability.maxClipSeconds ?? MAX_CLIP_SECONDS;
     switch (reason) {
       case 'too_short':
         return t('voiceLibrary.clipTooShort', 'Recording is too short — speak for at least {seconds} seconds.')
-          .replace('{seconds}', String(MIN_CLIP_SECONDS));
+          .replace('{seconds}', String(minS));
       case 'too_long':
         return t('voiceLibrary.clipTooLong', 'Recording is too long — keep it under {seconds} seconds.')
-          .replace('{seconds}', String(MAX_CLIP_SECONDS));
+          .replace('{seconds}', String(maxS));
       case 'silent':
       default:
         return t('voiceLibrary.clipSilent', 'No voice detected — check your microphone and try again.');
     }
-  }, [t]);
+  }, [t, store]);
 
   // Turn a capture failure into a user-facing message: clip validation errors
   // (record/upload on the clip store) map by code; style-import failures
@@ -167,6 +172,17 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     reloadCustomVoices();
     onCustomChanged();
   }, [store, reloadCustomVoices, onCustomChanged]);
+
+  // Fetch a custom clip's audio so the user can play it back and check clarity.
+  const handlePreview = useCallback(async (id: string) => {
+    if (!store || !id.startsWith('custom:')) return null;
+    const numId = Number(id.slice('custom:'.length));
+    if (!Number.isFinite(numId)) return null;
+    const payload = await store.resolveApply(numId);
+    return payload && payload.kind === 'clip'
+      ? { audio: payload.audio, sampleRate: payload.sampleRate }
+      : null;
+  }, [store]);
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
@@ -236,6 +252,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         onRecord={store?.onRecord ? handleRecord : undefined}
         onRename={handleRename}
         onDelete={handleDelete}
+        onPreview={handlePreview}
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />

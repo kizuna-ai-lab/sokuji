@@ -108,3 +108,12 @@ public/wasm/*
 /.playwright-mcp/page-2026-05-08T16-04-45-831Z.yml
 /.playwright-mcp/page-2026-05-08T16-04-59-713Z.yml
 /pocket-mirrors/
+
+# OmniVoice TTS spike scratch (models, samples) — not committed
+.spike/
+
+# OmniVoice re-export toolchain venv (build-time, not committed)
+scripts/reexport-omnivoice/.venv/
+scripts/reexport-omnivoice/out/
+scripts/reexport-omnivoice/.venv
+__pycache__/

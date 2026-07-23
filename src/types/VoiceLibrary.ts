@@ -24,4 +24,12 @@ export interface VoiceLibraryCapability {
    *  transcript input in the manage toolbar and disables Import/Record until
    *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
   transcriptRequired?: boolean;
+  /** Longest usable reference clip in seconds for THIS model. Cloning models
+   *  differ (e.g. OmniVoice's decode degrades past ~8 s while others accept
+   *  20 s), so the limit is provider-declared: recording shows a countdown and
+   *  auto-stops at it; imports longer than it are rejected. Unset → the
+   *  store/UI default. */
+  maxClipSeconds?: number;
+  /** Shortest usable reference clip in seconds. Unset → the store/UI default. */
+  minClipSeconds?: number;
 }

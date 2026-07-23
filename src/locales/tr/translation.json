@@ -780,7 +780,18 @@
     "initFailed": "Model deposu başlatılamadı: {{message}}",
     "othersGroup": "Diğerleri",
     "requiresGpu": "GPU gerektirir",
-    "upgradeVariant": "Cihazınız daha hızlı bir model formatını destekliyor. Daha iyi performans için silip yeniden indirin."
+    "upgradeVariant": "Cihazınız daha hızlı bir model formatını destekliyor. Daha iyi performans için silip yeniden indirin.",
+    "licenseConsent": {
+      "title": "Ticari olmayan lisans",
+      "modelRepo": "{{model}}, {{repo}} adresinden indirilecek.",
+      "licenseName": "{{name}} ({{spdx}}) lisansı altında dağıtılmaktadır.",
+      "viewLicense": "Lisans metninin tamamını görüntüle",
+      "nonCommercial": "Bu lisans yalnızca ticari olmayan kullanıma izin verir — bu modeli hiçbir ticari ürün veya hizmette kullanmayın.",
+      "disclaimer": "Sokuji, model yazarlarıyla bağlantılı değildir ve onlarla hiçbir ilişkisi yoktur. Bu entegrasyon resmî değildir ve hiçbir garanti olmaksızın olduğu gibi sunulur.",
+      "attribution": "Atıf: {{attribution}}",
+      "cancel": "İptal",
+      "accept": "Anladım — yalnızca ticari olmayan kullanım"
+    }
   },
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",
@@ -865,12 +876,14 @@
     "manageImported": "İçe aktarılan sesleri yönet",
     "myVoices": "Seslerim",
     "openVoiceBuilder": "Voice Builder'da oluşturun",
+    "play": "Oynat",
     "presets": "Hazır ayarlar",
     "recordVoice": "Ses kaydet…",
     "rename": "Yeniden adlandır",
     "restartHint": "İçe aktarılan ses değişikliklerini uygulamak için oturumu yeniden başlatın.",
     "showAll": "Tüm sesleri göster",
     "showFewer": "Daha az ses göster",
+    "stopPreview": "Durdur",
     "stopRecording": "Kaydı durdur",
     "transcript": "Metin dökümü",
     "transcriptHint": "Klipte söylenen kelimelerle eşleşmelidir.",

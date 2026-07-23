@@ -780,7 +780,18 @@
     "initFailed": "모델 저장소 초기화에 실패했습니다: {{message}}",
     "othersGroup": "기타",
     "requiresGpu": "GPU 필요",
-    "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요."
+    "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요.",
+    "licenseConsent": {
+      "title": "비상업 라이선스",
+      "modelRepo": "{{model}}은(는) {{repo}}에서 다운로드됩니다.",
+      "licenseName": "이 모델은 {{name}}({{spdx}}) 라이선스로 배포됩니다.",
+      "viewLicense": "전체 라이선스 보기",
+      "nonCommercial": "이 라이선스는 비상업적 사용만 허용합니다. 상업용 제품이나 서비스에 이 모델을 사용하지 마세요.",
+      "disclaimer": "Sokuji는 모델 제작자와 아무런 제휴 관계가 없습니다. 이 통합은 비공식이며 어떠한 보증도 없이 있는 그대로 제공됩니다.",
+      "attribution": "저작자 표시: {{attribution}}",
+      "cancel": "취소",
+      "accept": "이해했습니다 — 비상업적 사용만"
+    }
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",
@@ -865,12 +876,14 @@
     "manageImported": "가져온 음성 관리",
     "myVoices": "내 음성",
     "openVoiceBuilder": "Voice Builder에서 만들기",
+    "play": "재생",
     "presets": "프리셋",
     "recordVoice": "음성 녹음…",
     "rename": "이름 변경",
     "restartHint": "가져온 음성 변경 사항을 적용하려면 세션을 다시 시작하세요.",
     "showAll": "모든 음성 표시",
     "showFewer": "음성 적게 표시",
+    "stopPreview": "정지",
     "stopRecording": "녹음 중지",
     "transcript": "전사",
     "transcriptHint": "클립에서 말한 내용과 일치해야 합니다.",

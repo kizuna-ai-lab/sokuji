@@ -780,7 +780,18 @@
     "initFailed": "Nie udało się zainicjować pamięci modeli: {{message}}",
     "othersGroup": "Inne",
     "requiresGpu": "Wymaga GPU",
-    "upgradeVariant": "Twoje urządzenie obsługuje szybszy format modelu. Usuń i pobierz ponownie, aby uzyskać lepszą wydajność."
+    "upgradeVariant": "Twoje urządzenie obsługuje szybszy format modelu. Usuń i pobierz ponownie, aby uzyskać lepszą wydajność.",
+    "licenseConsent": {
+      "title": "Licencja niekomercyjna",
+      "modelRepo": "{{model}} zostanie pobrany z {{repo}}.",
+      "licenseName": "Jest rozpowszechniany na licencji {{name}} ({{spdx}}).",
+      "viewLicense": "Zobacz pełny tekst licencji",
+      "nonCommercial": "Ta licencja zezwala wyłącznie na użytek niekomercyjny — nie używaj tego modelu w żadnym komercyjnym produkcie ani usłudze.",
+      "disclaimer": "Sokuji nie jest powiązany z autorami modelu i nie ma z nimi żadnych relacji. Ta integracja jest nieoficjalna i dostarczana w stanie takim, w jakim jest, bez jakiejkolwiek gwarancji.",
+      "attribution": "Autorstwo: {{attribution}}",
+      "cancel": "Anuluj",
+      "accept": "Rozumiem — tylko użytek niekomercyjny"
+    }
   },
   "update": {
     "available": "Nowa wersja v{{version}} dostępna",
@@ -865,12 +876,14 @@
     "manageImported": "Zarządzaj zaimportowanymi głosami",
     "myVoices": "Moje Głosy",
     "openVoiceBuilder": "Utwórz go w Voice Builder",
+    "play": "Odtwórz",
     "presets": "Presety",
     "recordVoice": "Nagraj głos…",
     "rename": "Zmień nazwę",
     "restartHint": "Uruchom ponownie sesję, aby zastosować zmiany zaimportowanych głosów.",
     "showAll": "Pokaż wszystkie głosy",
     "showFewer": "Pokaż mniej głosów",
+    "stopPreview": "Zatrzymaj",
     "stopRecording": "Zatrzymaj nagrywanie",
     "transcript": "Transkrypcja",
     "transcriptHint": "Musi odpowiadać słowom wypowiedzianym w nagraniu.",

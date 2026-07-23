@@ -780,7 +780,18 @@
     "initFailed": "Storan model gagal dimulakan: {{message}}",
     "othersGroup": "Lain-lain",
     "requiresGpu": "Memerlukan GPU",
-    "upgradeVariant": "Peranti anda menyokong format model yang lebih pantas. Padam dan muat turun semula untuk prestasi lebih baik."
+    "upgradeVariant": "Peranti anda menyokong format model yang lebih pantas. Padam dan muat turun semula untuk prestasi lebih baik.",
+    "licenseConsent": {
+      "title": "Lesen bukan komersial",
+      "modelRepo": "{{model}} akan dimuat turun dari {{repo}}.",
+      "licenseName": "Diedarkan di bawah {{name}} ({{spdx}}).",
+      "viewLicense": "Lihat teks lesen penuh",
+      "nonCommercial": "Lesen ini hanya membenarkan penggunaan bukan komersial — jangan gunakan model ini dalam mana-mana produk atau perkhidmatan komersial.",
+      "disclaimer": "Sokuji tidak bergabung dengan pengarang model dan tiada sebarang hubungan dengan mereka. Integrasi ini tidak rasmi dan disediakan sebagaimana adanya, tanpa sebarang jaminan.",
+      "attribution": "Atribusi: {{attribution}}",
+      "cancel": "Batal",
+      "accept": "Saya faham — bukan komersial sahaja"
+    }
   },
   "update": {
     "available": "Versi baharu v{{version}} tersedia",
@@ -865,12 +876,14 @@
     "manageImported": "Urus suara yang diimport",
     "myVoices": "Suara Saya",
     "openVoiceBuilder": "Cipta satu di Voice Builder",
+    "play": "Main",
     "presets": "Pratetap",
     "recordVoice": "Rakam suara…",
     "rename": "Namakan semula",
     "restartHint": "Mulakan semula sesi untuk menggunakan perubahan suara yang diimport.",
     "showAll": "Tunjukkan semua suara",
     "showFewer": "Tunjukkan kurang suara",
+    "stopPreview": "Berhenti",
     "stopRecording": "Henti rakaman",
     "transcript": "Transkrip",
     "transcriptHint": "Mesti sepadan dengan perkataan yang dituturkan dalam klip.",

@@ -780,7 +780,18 @@
     "initFailed": "Khởi tạo bộ nhớ mô hình thất bại: {{message}}",
     "othersGroup": "Khác",
     "requiresGpu": "Yêu cầu GPU",
-    "upgradeVariant": "Thiết bị của bạn hỗ trợ định dạng mô hình nhanh hơn. Xóa và tải lại để có hiệu năng tốt hơn."
+    "upgradeVariant": "Thiết bị của bạn hỗ trợ định dạng mô hình nhanh hơn. Xóa và tải lại để có hiệu năng tốt hơn.",
+    "licenseConsent": {
+      "title": "Giấy phép phi thương mại",
+      "modelRepo": "{{model}} sẽ được tải xuống từ {{repo}}.",
+      "licenseName": "Được phân phối theo giấy phép {{name}} ({{spdx}}).",
+      "viewLicense": "Xem toàn văn giấy phép",
+      "nonCommercial": "Giấy phép này chỉ cho phép sử dụng phi thương mại — không sử dụng mô hình này trong bất kỳ sản phẩm hoặc dịch vụ thương mại nào.",
+      "disclaimer": "Sokuji không liên kết với các tác giả của mô hình và không có bất kỳ quan hệ nào với họ. Tích hợp này không chính thức và được cung cấp nguyên trạng, không kèm bất kỳ bảo đảm nào.",
+      "attribution": "Ghi công: {{attribution}}",
+      "cancel": "Hủy",
+      "accept": "Tôi hiểu — chỉ dùng phi thương mại"
+    }
   },
   "update": {
     "available": "Phiên bản mới v{{version}} khả dụng",
@@ -865,12 +876,14 @@
     "manageImported": "Quản lý giọng nói đã nhập",
     "myVoices": "Giọng nói của tôi",
     "openVoiceBuilder": "Tạo một giọng tại Voice Builder",
+    "play": "Phát",
     "presets": "Mẫu có sẵn",
     "recordVoice": "Ghi giọng nói…",
     "rename": "Đổi tên",
     "restartHint": "Khởi động lại phiên để áp dụng thay đổi giọng nói đã nhập.",
     "showAll": "Hiện tất cả giọng nói",
     "showFewer": "Hiện ít giọng nói hơn",
+    "stopPreview": "Dừng",
     "stopRecording": "Dừng ghi",
     "transcript": "Bản ghi lời",
     "transcriptHint": "Phải khớp với các từ được nói trong đoạn ghi.",

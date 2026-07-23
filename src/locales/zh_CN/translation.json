@@ -780,7 +780,18 @@
     "initFailed": "模型存储初始化失败：{{message}}",
     "othersGroup": "其他",
     "requiresGpu": "需要 GPU",
-    "upgradeVariant": "您的设备支持更快的模型格式。删除后重新下载可获得更好的性能。"
+    "upgradeVariant": "您的设备支持更快的模型格式。删除后重新下载可获得更好的性能。",
+    "licenseConsent": {
+      "title": "非商业许可",
+      "modelRepo": "{{model}} 将从 {{repo}} 下载。",
+      "licenseName": "该模型以 {{name}}({{spdx}})许可分发。",
+      "viewLicense": "查看完整许可文本",
+      "nonCommercial": "该许可仅允许非商业用途——请勿在任何商业产品或服务中使用此模型。",
+      "disclaimer": "Sokuji 与模型作者无任何关联或合作关系。此集成为非官方提供,按现状提供,不附带任何形式的保证。",
+      "attribution": "署名:{{attribution}}",
+      "cancel": "取消",
+      "accept": "我已了解——仅限非商业用途"
+    }
   },
   "update": {
     "available": "新版本 v{{version}} 可用",
@@ -865,12 +876,14 @@
     "manageImported": "管理导入的声音",
     "myVoices": "我的声音",
     "openVoiceBuilder": "前往 Voice Builder 创建",
+    "play": "播放",
     "presets": "预设",
     "recordVoice": "录制声音…",
     "rename": "重命名",
     "restartHint": "重启会话以应用导入声音的更改。",
     "showAll": "显示所有声音",
     "showFewer": "收起部分声音",
+    "stopPreview": "停止",
     "stopRecording": "停止录制",
     "transcript": "转录文本",
     "transcriptHint": "必须与音频中说的内容一致。",

@@ -29,6 +29,10 @@ from . import supertonic_frontend as _sf
 from .cosyvoice3 import frontend as _cv3_frontend
 from .cosyvoice3 import pipeline as _cv3_pipeline
 from .cosyvoice3 import runtime as _cv3_runtime
+from .omnivoice import decode as _omnivoice_decode
+from .omnivoice import frontend as _omnivoice_frontend
+from .omnivoice import higgs as _omnivoice_higgs
+from .omnivoice import runtime as _omnivoice_runtime
 from .qwen3_tts import codec as _q3_codec
 from .qwen3_tts import config as _q3_config
 from .qwen3_tts import mel as _q3_mel
@@ -766,6 +770,198 @@ class CosyVoice3OnnxBackend:
         audio = _cv3_pipeline.synthesize(
             self._sessions, self._tok, text, self._prompt, self._rng,
             speed=float(speed))
+        return audio.astype(np.float32), int((time.time() - t0) * 1000)
+
+    @staticmethod
+    def list_builtin_voices():
+        return []  # descriptors come from voices/manifest.json (tts_voices)
+
+
+# ---------------------------------------------------------------------------
+# OmniVoice (k2-fsa/OmniVoice, corrected bidirectional re-export) — issue #351.
+# 600+ language zero-shot cloning: Qwen3-0.6B backbone + Higgs Audio V2 codec,
+# 32-step non-autoregressive iterative unmasking (sokuji_sidecar.omnivoice).
+# Transcript-free cloning (no ICL reference text, unlike CosyVoice3/Qwen3-TTS/
+# GPT-SoVITS above) — set_voice takes only (audio, sr); the engine's
+# inspect.signature introspection (tts_engine.py:66-73) calls it without
+# ref_text. GPU-CUDA-only card: the fp16/int4 backbone variants are CUDA-tuned
+# and no cpu deployment is shipped.
+# Curated presets (issue #351 follow-up): the repo ships
+# voices/{classic-zh,classic-ja,sarah}.wav + voices/manifest.json
+# (classic-zh is the default) — set_builtin_voice() reads only the .wav
+# (still transcript-free) and generate() falls back to the "classic-zh"
+# preset when no reference voice has been set, replacing the previous
+# random-init auto-voice default with a stable one.
+
+_OMNIVOICE_DECODE_CFG = _omnivoice_decode.DecodeConfig()
+
+
+@register_backend
+class OmniVoiceOnnxBackend:
+    """OmniVoice zero-shot voice cloning TTS, transcript-free.
+
+    Self-contained per-variant repo: the 3 HOT backbone graphs (audio_embeddings
+    / llm_decoder / audio_heads) + tokenizer live at the repo ROOT, and the
+    shared Higgs codec graphs in `audio_tokenizer/` (the 4 COLD graphs). Each
+    precision (bf16 / fp32 / int4) is its own repo, so only the chosen variant
+    downloads; `compute_type` is informational here (the repo IS the variant).
+    `runtime.build_sessions` applies the per-graph execution-provider policy
+    (HOT graphs on the requested device, COLD graphs always CPU).
+    """
+
+    NAME = "omnivoice_onnx"
+    STREAMING = False
+    CLONES = True
+
+    def __init__(self):
+        self.sample_rate = 24000
+        self._sessions = None
+        self._tok = None
+        self._ref_codes = None
+        self._dir = None
+        self._voice_cache = {}
+
+    @property
+    def is_loaded(self):
+        return self._sessions is not None
+
+    def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
+        try:
+            # a reload (e.g. switching deployments) must not keep a reference
+            # voice encoded with the previous sessions
+            self.unload()
+            d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            self._dir = d
+            threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
+            model_dir = d              # backbone at the repo root (self-contained variant repo)
+            higgs_dir = f"{d}/audio_tokenizer"
+            # sbsa/aarch64: onnxruntime 1.24 rejects the HF-cache symlinked
+            # .onnx.data files ("escapes model directory") — deref both dirs
+            # before building sessions, same as every other ONNX backend.
+            _hf_symlinks.materialize_symlinks(model_dir)
+            _hf_symlinks.materialize_symlinks(higgs_dir)
+            self._tok = _omnivoice_frontend.load_tokenizer(model_dir)
+            self._sessions = _omnivoice_runtime.build_sessions(
+                model_dir, higgs_dir, device, threads)
+        except Exception as e:
+            self.unload()
+            raise BackendLoadError(str(e))
+
+    def unload(self) -> None:
+        self._sessions = None
+        self._tok = None
+        self._dir = None
+        self._ref_codes = None
+        self._voice_cache = {}
+
+    def set_voice(self, audio, sr) -> None:
+        if not self.is_loaded:
+            raise BackendLoadError("omnivoice backend is not loaded")
+        wav = np.asarray(audio, dtype=np.float32)
+        if wav.ndim > 1:
+            # Reference clips reach set_voice channel-first ([channels,
+            # samples]), matching MOSS._encode_reference / mlx_tts.set_voice —
+            # average over the CHANNEL axis (0), not the sample/time axis.
+            wav = wav.mean(axis=0).astype(np.float32)
+        # Trim silence + cap length + loudness-normalize: a long or silence-
+        # padded or quiet user recording otherwise clones to near-silence
+        # (the ref-code prefix destabilizes the non-AR decode). No-op for the
+        # short curated presets. See higgs.prepare_reference.
+        wav = _omnivoice_higgs.prepare_reference(wav, int(sr))
+        # higgs.encode_reference is path-only (reads the clip from disk), so
+        # stage it to a temp wav and remove it once encoding is done.
+        fd, path = tempfile.mkstemp(prefix="sokuji_omnivoice_ref_", suffix=".wav")
+        os.close(fd)
+        try:
+            sf.write(path, wav, int(sr))
+            self._ref_codes = _omnivoice_higgs.encode_reference(self._sessions, path)
+        finally:
+            try:
+                os.remove(path)
+            except OSError:
+                pass  # best-effort temp-file cleanup; nothing to recover
+
+    def set_builtin_voice(self, name: str) -> None:
+        """Select one of the bundled curated preset voices (voices/<name>.wav
+        in the model snapshot) — issue #351 follow-up. OmniVoice cloning is
+        transcript-free (unlike CosyVoice3's ICL presets), so only the .wav
+        is read: no transcript, no denoise-vs-ref distinction beyond what
+        set_voice() already does. Unknown name -> BackendLoadError (mirrors
+        CosyVoice3OnnxBackend.set_builtin_voice)."""
+        if not self.is_loaded:
+            raise BackendLoadError("omnivoice backend is not loaded")
+        # names come over the wire: allow-list the charset so a crafted name
+        # like "../../etc/x" can never resolve outside the voices/ directory
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or ".." in name:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        if name in self._voice_cache:
+            self._ref_codes = self._voice_cache[name]
+            return
+        wav_path = f"{self._dir}/voices/{name}.wav"
+        if not os.path.exists(wav_path):
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        codes = _omnivoice_higgs.encode_reference(self._sessions, wav_path)
+        self._voice_cache[name] = codes
+        self._ref_codes = codes
+
+    # ~0.1s of silence stitched between synthesized chunks so phrases don't
+    # run together (24 kHz).
+    _CHUNK_GAP = 2400
+
+    @staticmethod
+    def _trim_edges(audio, sr=24000, keep=0.1):
+        """Trim leading/trailing silence from a synthesized chunk, keeping
+        ~`keep` seconds of natural margin. The duration-slack budget (see
+        frontend.TTS_TARGET_SLACK) is mostly emitted as LEADING silence
+        (measured 0.7-0.9s per chunk) — dead air that delays time-to-speech
+        in a live translation session."""
+        win = max(1, int(sr * 0.02))
+        n = audio.size // win
+        if not n:
+            return audio
+        energy = np.sqrt((audio[:n * win].reshape(n, win) ** 2).mean(axis=1))
+        thr = max(1e-3, float(energy.max()) * 0.05)
+        voiced = np.where(energy > thr)[0]
+        if not voiced.size:
+            return audio
+        margin = int(sr * keep)
+        start = max(0, voiced[0] * win - margin)
+        end = min(audio.size, (voiced[-1] + 1) * win + margin)
+        return audio[start:end]
+
+    def _generate_one(self, text, speed):
+        """Synthesize a single short phrase -> float32 waveform (24 kHz)."""
+        # +25% duration slack so a slow prosody draw doesn't truncate the
+        # sentence tail — see frontend.TTS_TARGET_SLACK.
+        n = int(_omnivoice_frontend.estimate_target_tokens(text, speed=float(speed))
+                * _omnivoice_frontend.TTS_TARGET_SLACK)
+        has_ref = self._ref_codes is not None
+        ids, amask, _ = _omnivoice_frontend.build_input_ids(
+            self._tok, text, lang=None, ref_codes=self._ref_codes,
+            num_target_tokens=n, denoise=has_ref)
+        codes = _omnivoice_decode.generate_codes(
+            self._sessions, ids, amask, n, cfg=_OMNIVOICE_DECODE_CFG)
+        audio = np.asarray(_omnivoice_higgs.decode(self._sessions, codes), np.float32)
+        return self._trim_edges(audio)
+
+    def generate(self, text, speed=1.0):
+        if self._ref_codes is None:
+            # STABLE default voice out of the box (replaces the previous
+            # random auto-voice default) — issue #351 follow-up.
+            self.set_builtin_voice(
+                os.environ.get("SOKUJI_OMNIVOICE_PRESET_VOICE", "classic-zh"))
+        t0 = time.time()
+        # OmniVoice's single-shot decode garbles long inputs (a 15-word sentence
+        # returns near-noise), so split long text into short phrases and stitch
+        # the per-chunk audio. Short text -> one chunk (unchanged).
+        chunks = _omnivoice_frontend.split_for_tts(text)
+        parts = []
+        gap = np.zeros(self._CHUNK_GAP, np.float32)
+        for i, chunk in enumerate(chunks):
+            if i:
+                parts.append(gap)
+            parts.append(self._generate_one(chunk, speed))
+        audio = np.concatenate(parts) if parts else np.zeros(0, np.float32)
         return audio.astype(np.float32), int((time.time() - t0) * 1000)
 
     @staticmethod

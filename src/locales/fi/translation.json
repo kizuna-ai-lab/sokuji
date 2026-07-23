@@ -780,7 +780,18 @@
     "initFailed": "Mallien tallennustilan alustus epäonnistui: {{message}}",
     "othersGroup": "Muut",
     "requiresGpu": "Vaatii GPU:n",
-    "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi."
+    "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi.",
+    "licenseConsent": {
+      "title": "Ei-kaupallinen lisenssi",
+      "modelRepo": "{{model}} ladataan lähteestä {{repo}}.",
+      "licenseName": "Se jaellaan lisenssillä {{name}} ({{spdx}}).",
+      "viewLicense": "Näytä koko lisenssiteksti",
+      "nonCommercial": "Tämä lisenssi sallii vain ei-kaupallisen käytön — älä käytä tätä mallia kaupallisissa tuotteissa tai palveluissa.",
+      "disclaimer": "Sokuji ei ole sidoksissa mallin tekijöihin eikä sillä ole heihin mitään suhdetta. Tämä integraatio on epävirallinen ja tarjotaan sellaisenaan ilman minkäänlaista takuuta.",
+      "attribution": "Tekijätiedot: {{attribution}}",
+      "cancel": "Peruuta",
+      "accept": "Ymmärrän — vain ei-kaupallinen käyttö"
+    }
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",
@@ -865,12 +876,14 @@
     "manageImported": "Hallitse tuotuja ääniä",
     "myVoices": "Omat äänet",
     "openVoiceBuilder": "Luo sellainen Voice Builderissa",
+    "play": "Toista",
     "presets": "Esiasetukset",
     "recordVoice": "Nauhoita ääni…",
     "rename": "Nimeä uudelleen",
     "restartHint": "Käynnistä istunto uudelleen ottaaksesi tuodut äänimuutokset käyttöön.",
     "showAll": "Näytä kaikki äänet",
     "showFewer": "Näytä vähemmän ääniä",
+    "stopPreview": "Pysäytä",
     "stopRecording": "Lopeta nauhoitus",
     "transcript": "Litterointi",
     "transcriptHint": "Täytyy vastata leikkeessä puhuttuja sanoja.",
