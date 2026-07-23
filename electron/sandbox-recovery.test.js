@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   parseIcaclsAces,
   findExplicitOrphanSids,
+  isGpuSandboxCrash,
+  evaluateCrashRelaunch,
+  evaluateNoSandbox,
 } from './sandbox-recovery.js';
 
 // A realistic orphan AppContainer package SID: "S-1-15-2" followed by 7
@@ -109,5 +112,109 @@ describe('findExplicitOrphanSids', () => {
       '',
     ].join('\r\n');
     expect(findExplicitOrphanSids(doubled)).toEqual([ORPHAN_A]);
+  });
+});
+
+describe('isGpuSandboxCrash', () => {
+  const base = { type: 'GPU', reason: 'crashed', exitCode: -2147483645 };
+
+  it('matches a GPU crash with signed STATUS_BREAKPOINT exit code', () => {
+    expect(isGpuSandboxCrash({ ...base, exitCode: -2147483645 })).toBe(true);
+  });
+
+  it('matches a GPU crash with unsigned STATUS_BREAKPOINT exit code', () => {
+    expect(isGpuSandboxCrash({ ...base, exitCode: 2147483651 })).toBe(true);
+  });
+
+  it('matches reason "abnormal-exit"', () => {
+    expect(isGpuSandboxCrash({ ...base, reason: 'abnormal-exit' })).toBe(true);
+  });
+
+  it('rejects non-GPU process types', () => {
+    expect(isGpuSandboxCrash({ ...base, type: 'Utility' })).toBe(false);
+  });
+
+  it('rejects unrelated reasons like clean-exit', () => {
+    expect(isGpuSandboxCrash({ ...base, reason: 'clean-exit' })).toBe(false);
+  });
+
+  it('rejects a GPU crash with a different exit code', () => {
+    expect(isGpuSandboxCrash({ ...base, exitCode: 1 })).toBe(false);
+  });
+
+  it('rejects null/undefined details', () => {
+    expect(isGpuSandboxCrash(null)).toBe(false);
+    expect(isGpuSandboxCrash(undefined)).toBe(false);
+  });
+});
+
+describe('evaluateCrashRelaunch', () => {
+  const V = '0.34.1';
+
+  it('relaunches on the first crash (no prior marker)', () => {
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch(null, 1000, V);
+    expect(shouldRelaunch).toBe(true);
+    expect(marker).toEqual({ timestamps: [1000], appVersion: V });
+  });
+
+  it('relaunches on the second crash within the hour', () => {
+    const prior = { timestamps: [1000], appVersion: V };
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch(prior, 2000, V);
+    expect(shouldRelaunch).toBe(true);
+    expect(marker.timestamps).toEqual([1000, 2000]);
+  });
+
+  it('does NOT relaunch on the third crash within the hour', () => {
+    const prior = { timestamps: [1000, 2000], appVersion: V };
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch(prior, 3000, V);
+    expect(shouldRelaunch).toBe(false);
+    // still records the crash so the next manual launch enters recovery
+    expect(marker.timestamps).toEqual([1000, 2000, 3000]);
+  });
+
+  it('drops timestamps older than one hour before counting', () => {
+    const now = 10_000_000;
+    const stale = now - 3_600_001; // just over an hour ago
+    const prior = { timestamps: [stale, stale], appVersion: V };
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch(prior, now, V);
+    // both stale entries dropped -> this counts as the first fresh crash
+    expect(shouldRelaunch).toBe(true);
+    expect(marker.timestamps).toEqual([now]);
+  });
+
+  it('tolerates a malformed marker (missing timestamps array)', () => {
+    const { marker, shouldRelaunch } = evaluateCrashRelaunch({}, 5000, V);
+    expect(shouldRelaunch).toBe(true);
+    expect(marker.timestamps).toEqual([5000]);
+  });
+});
+
+describe('evaluateNoSandbox', () => {
+  it('does nothing when there is no fallback marker', () => {
+    expect(evaluateNoSandbox(null, '0.34.1')).toEqual({
+      noSandbox: false,
+      clearMarker: false,
+    });
+  });
+
+  it('applies no-sandbox when the marker version matches', () => {
+    expect(evaluateNoSandbox({ appVersion: '0.34.1' }, '0.34.1')).toEqual({
+      noSandbox: true,
+      clearMarker: false,
+    });
+  });
+
+  it('clears the marker and retries the sandbox when the version changed', () => {
+    expect(evaluateNoSandbox({ appVersion: '0.34.0' }, '0.34.1')).toEqual({
+      noSandbox: false,
+      clearMarker: true,
+    });
+  });
+
+  it('ignores a marker with no appVersion string', () => {
+    expect(evaluateNoSandbox({}, '0.34.1')).toEqual({
+      noSandbox: false,
+      clearMarker: false,
+    });
   });
 });

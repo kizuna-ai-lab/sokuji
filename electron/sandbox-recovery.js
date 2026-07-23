@@ -75,8 +75,80 @@ function findExplicitOrphanSids(text) {
   return [...seen];
 }
 
+// STATUS_BREAKPOINT (0x80000003) is how a Chromium child process exits when a
+// startup CHECK fails — including CHECK(InitializeICU()), the first file op the
+// restricted-token child performs. Electron surfaces it as a signed int32
+// (-2147483645); some builds/paths report it unsigned (2147483651). This is a
+// generic "child died at a startup CHECK" signature, NOT proof of the ACL bug,
+// so it only triggers a diagnostic ACL scan — never a blind repair.
+const STATUS_BREAKPOINT_SIGNED = -2147483645;
+const STATUS_BREAKPOINT_UNSIGNED = 2147483651;
+
+/**
+ * Whether a `child-process-gone` event looks like the sandbox startup crash.
+ * @param {{type?: string, reason?: string, exitCode?: number} | null} details
+ * @returns {boolean}
+ */
+function isGpuSandboxCrash(details) {
+  if (!details || details.type !== 'GPU') return false;
+  if (details.reason !== 'crashed' && details.reason !== 'abnormal-exit') return false;
+  return (
+    details.exitCode === STATUS_BREAKPOINT_SIGNED ||
+    details.exitCode === STATUS_BREAKPOINT_UNSIGNED
+  );
+}
+
+const CRASH_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_AUTO_RELAUNCH = 2;
+
+/**
+ * Decide whether to auto-relaunch after a sandbox crash, and produce the next
+ * crash-marker contents. Caps automatic relaunches to avoid a crash loop; once
+ * the cap is hit the crash is still recorded so the next manual launch enters
+ * recovery mode.
+ *
+ * @param {{timestamps?: number[]} | null} existingMarker
+ * @param {number} now - current epoch ms.
+ * @param {string} appVersion
+ * @param {{windowMs?: number, maxAutoRelaunch?: number}} [opts]
+ * @returns {{marker: {timestamps: number[], appVersion: string}, shouldRelaunch: boolean}}
+ */
+function evaluateCrashRelaunch(existingMarker, now, appVersion, opts = {}) {
+  const windowMs = opts.windowMs ?? CRASH_WINDOW_MS;
+  const maxAutoRelaunch = opts.maxAutoRelaunch ?? MAX_AUTO_RELAUNCH;
+  const priorRaw = Array.isArray(existingMarker && existingMarker.timestamps)
+    ? existingMarker.timestamps
+    : [];
+  const prior = priorRaw.filter((t) => typeof t === 'number' && now - t < windowMs);
+  const marker = { timestamps: [...prior, now], appVersion };
+  const shouldRelaunch = prior.length < maxAutoRelaunch;
+  return { marker, shouldRelaunch };
+}
+
+/**
+ * Decide how to treat the persistent no-sandbox fallback marker at startup.
+ * Same version => keep running without the sandbox. Different version =>
+ * discard the marker and try the sandbox again (the ACL may have been fixed).
+ *
+ * @param {{appVersion?: string} | null} marker
+ * @param {string} currentVersion
+ * @returns {{noSandbox: boolean, clearMarker: boolean}}
+ */
+function evaluateNoSandbox(marker, currentVersion) {
+  if (!marker || typeof marker.appVersion !== 'string') {
+    return { noSandbox: false, clearMarker: false };
+  }
+  if (marker.appVersion === currentVersion) {
+    return { noSandbox: true, clearMarker: false };
+  }
+  return { noSandbox: false, clearMarker: true };
+}
+
 module.exports = {
   ORPHAN_SID_RE,
   parseIcaclsAces,
   findExplicitOrphanSids,
+  isGpuSandboxCrash,
+  evaluateCrashRelaunch,
+  evaluateNoSandbox,
 };
