@@ -115,3 +115,5 @@ public/wasm/*
 # OmniVoice re-export toolchain venv (build-time, not committed)
 scripts/reexport-omnivoice/.venv/
 scripts/reexport-omnivoice/out/
+scripts/reexport-omnivoice/.venv
+__pycache__/
