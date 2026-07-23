@@ -786,6 +786,12 @@ class CosyVoice3OnnxBackend:
 # inspect.signature introspection (tts_engine.py:66-73) calls it without
 # ref_text. GPU-CUDA-only card: the fp16/int4 backbone variants are CUDA-tuned
 # and no cpu deployment is shipped.
+# Curated presets (issue #351 follow-up): the repo ships
+# voices/{classic-zh,classic-ja,sarah}.wav + voices/manifest.json
+# (classic-zh is the default) — set_builtin_voice() reads only the .wav
+# (still transcript-free) and generate() falls back to the "classic-zh"
+# preset when no reference voice has been set, replacing the previous
+# random-init auto-voice default with a stable one.
 
 _OMNIVOICE_DECODE_CFG = _omnivoice_decode.DecodeConfig()
 
@@ -811,6 +817,8 @@ class OmniVoiceOnnxBackend:
         self._sessions = None
         self._tok = None
         self._ref_codes = None
+        self._dir = None
+        self._voice_cache = {}
 
     @property
     def is_loaded(self):
@@ -822,6 +830,7 @@ class OmniVoiceOnnxBackend:
             # voice encoded with the previous sessions
             self.unload()
             d = snapshot_download(repo_id=model_ref, local_files_only=True)
+            self._dir = d
             threads = int(os.environ.get("SOKUJI_TTS_THREADS", "4"))
             model_dir = f"{d}/{compute_type}"
             higgs_dir = f"{d}/audio_tokenizer"
@@ -841,6 +850,7 @@ class OmniVoiceOnnxBackend:
         self._sessions = None
         self._tok = None
         self._ref_codes = None
+        self._voice_cache = {}
 
     def set_voice(self, audio, sr) -> None:
         if not self.is_loaded:
@@ -864,7 +874,35 @@ class OmniVoiceOnnxBackend:
             except OSError:
                 pass
 
+    def set_builtin_voice(self, name: str) -> None:
+        """Select one of the bundled curated preset voices (voices/<name>.wav
+        in the model snapshot) — issue #351 follow-up. OmniVoice cloning is
+        transcript-free (unlike CosyVoice3's ICL presets), so only the .wav
+        is read: no transcript, no denoise-vs-ref distinction beyond what
+        set_voice() already does. Unknown name -> BackendLoadError (mirrors
+        CosyVoice3OnnxBackend.set_builtin_voice)."""
+        if not self.is_loaded:
+            raise BackendLoadError("omnivoice backend is not loaded")
+        # names come over the wire: allow-list the charset so a crafted name
+        # like "../../etc/x" can never resolve outside the voices/ directory
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or ".." in name:
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        if name in self._voice_cache:
+            self._ref_codes = self._voice_cache[name]
+            return
+        wav_path = f"{self._dir}/voices/{name}.wav"
+        if not os.path.exists(wav_path):
+            raise BackendLoadError(f"unknown builtin voice: {name}")
+        codes = _omnivoice_higgs.encode_reference(self._sessions, wav_path)
+        self._voice_cache[name] = codes
+        self._ref_codes = codes
+
     def generate(self, text, speed=1.0):
+        if self._ref_codes is None:
+            # STABLE default voice out of the box (replaces the previous
+            # random auto-voice default) — issue #351 follow-up.
+            self.set_builtin_voice(
+                os.environ.get("SOKUJI_OMNIVOICE_PRESET_VOICE", "classic-zh"))
         t0 = time.time()
         n = _omnivoice_frontend.estimate_target_tokens(text, speed=float(speed))
         has_ref = self._ref_codes is not None
@@ -878,7 +916,7 @@ class OmniVoiceOnnxBackend:
 
     @staticmethod
     def list_builtin_voices():
-        return []  # no bundled presets — every voice comes from a user clip
+        return []  # descriptors come from voices/manifest.json (tts_voices)
 
 
 # ---------------------------------------------------------------------------

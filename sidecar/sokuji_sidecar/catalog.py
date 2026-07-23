@@ -783,17 +783,22 @@ TTS_MODELS: list[TtsModel] = [
     # int4/fp16 backbone variants are CUDA-tuned and no cpu row is shipped.
     # download_ignore drops fp16/* — only the int4 default variant + the
     # shared audio_tokenizer/ codec download.
+    # Curated presets (issue #351 follow-up): the repo also ships
+    # voices/{classic-zh,classic-ja,sarah}.wav (transcript-free — no .txt,
+    # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices
+    # is True here.
     TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
              (Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_REPO, 1.0),),
              repos=(_OMNIVOICE_REPO,),
-             clones=True, named_voices=False, transcript_required=False,
+             clones=True, named_voices=True, transcript_required=False,
              streaming=False, sample_rate=24000, num_speakers=1,
              download_ignore=("fp16/*",),
              # exact live-repo total (HF files_metadata 2026-07-23): every file
              # except fp16/* (per download_ignore) — int4/ + audio_tokenizer/ +
-             # manifest/README/PROVENANCE + the HF-generated .gitattributes the
-             # downloader also fetches (mirrors the cosyvoice3-0.5b note above).
-             size_bytes=1_678_738_364,
+             # voices/ (curated presets + manifest.json) + manifest/README/
+             # PROVENANCE + the HF-generated .gitattributes the downloader
+             # also fetches (mirrors the cosyvoice3-0.5b note above).
+             size_bytes=1_679_680_800,
              sort_order=66,
              # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
              # This descriptor is DATA the download gate (Task 2) reads
