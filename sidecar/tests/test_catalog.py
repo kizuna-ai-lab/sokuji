@@ -177,14 +177,13 @@ def test_omnivoice_card_shape():
     assert m.clones
     assert m.transcript_required is False
     assert m.named_voices is True  # curated presets (voices/manifest.json) — issue #351 follow-up
-    assert m.download_ignore == ("int4/*",)  # fp16 default; int4 not shipped
+    assert m.download_ignore == ("fp16/*",)  # only the int4 variant + Higgs download
     assert not m.streaming
     assert m.sample_rate == 24000 and m.num_speakers == 1
     tiers = {d.tier for d in m.deployments}
     assert tiers == {"gpu-cuda"}
     assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
-    assert {d.compute_type for d in m.deployments} == {"fp16"}  # fp16 ~2x faster than int4 on GB10
-    assert m.size_bytes == 2_326_751_157  # exact live-repo downloadable total (fp16 + Higgs + voices/)
+    assert m.size_bytes == 1_679_680_800  # exact live-repo downloadable total (incl. voices/)
 
 
 def test_omnivoice_license():
