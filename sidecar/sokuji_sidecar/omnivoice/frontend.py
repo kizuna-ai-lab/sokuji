@@ -106,7 +106,7 @@ def _tokenize_with_nonverbal_tags(tok: Tokenizer, text: str) -> list:
             parts.append(ids)
 
     if not parts:
-        return list(tok.encode(text).ids)
+        return list(tok.encode(text, add_special_tokens=False).ids)
     combined = []
     for p in parts:
         combined.extend(p)

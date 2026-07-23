@@ -36,7 +36,7 @@ const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, licen
     >
       <div className="license-consent-modal">
         <div className="license-consent-modal__icon">
-          <AlertTriangle size={24} color="#f0ad4e" />
+          <AlertTriangle size={16} color="#f0ad4e" />
         </div>
         <p>
           <strong>
@@ -54,7 +54,7 @@ const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, licen
           {license.url && (
             <>
               {' '}
-              <a href={license.url} target="_blank" rel="noreferrer">
+              <a href={license.url} target="_blank" rel="noopener noreferrer">
                 {t('models.licenseConsent.viewLicense', 'View the full license text')}
               </a>
             </>

@@ -782,15 +782,15 @@
     "requiresGpu": "Kräver en GPU",
     "upgradeVariant": "Din enhet stöder ett snabbare modellformat. Radera och ladda ner igen för bättre prestanda.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "Icke-kommersiell licens",
+      "modelRepo": "{{model}} laddas ner från {{repo}}.",
+      "licenseName": "Den distribueras under {{name}} ({{spdx}}).",
+      "viewLicense": "Visa den fullständiga licenstexten",
+      "nonCommercial": "Denna licens tillåter endast icke-kommersiell användning — använd inte modellen i kommersiella produkter eller tjänster.",
+      "disclaimer": "Sokuji är inte anslutet till modellens upphovspersoner och har ingen relation till dem. Denna integration är inofficiell och tillhandahålls i befintligt skick utan någon garanti.",
+      "attribution": "Erkännande: {{attribution}}",
+      "cancel": "Avbryt",
+      "accept": "Jag förstår — endast icke-kommersiellt"
     }
   },
   "update": {

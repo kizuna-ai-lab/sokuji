@@ -782,15 +782,15 @@
     "requiresGpu": "GPU आवश्यक है",
     "upgradeVariant": "आपका डिवाइस तेज़ मॉडल प्रारूप का समर्थन करता है। बेहतर प्रदर्शन के लिए हटाकर फिर से डाउनलोड करें।",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "गैर-व्यावसायिक लाइसेंस",
+      "modelRepo": "{{model}} को {{repo}} से डाउनलोड किया जाएगा।",
+      "licenseName": "यह {{name}} ({{spdx}}) के अंतर्गत वितरित किया जाता है।",
+      "viewLicense": "पूरा लाइसेंस टेक्स्ट देखें",
+      "nonCommercial": "यह लाइसेंस केवल गैर-व्यावसायिक उपयोग की अनुमति देता है — इस मॉडल का उपयोग किसी भी व्यावसायिक उत्पाद या सेवा में न करें।",
+      "disclaimer": "Sokuji का मॉडल के लेखकों से कोई संबंध या संबद्धता नहीं है। यह एकीकरण अनौपचारिक है और बिना किसी वारंटी के, जैसा है वैसा ही प्रदान किया जाता है।",
+      "attribution": "श्रेय: {{attribution}}",
+      "cancel": "रद्द करें",
+      "accept": "मैं समझ गया/गई — केवल गैर-व्यावसायिक उपयोग"
     }
   },
   "update": {

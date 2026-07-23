@@ -262,6 +262,10 @@ const NativeModelCard: React.FC<{
   const handleAcceptLicense = () => {
     acceptLicense(spec.downloadId as string);
     setConsentOpen(false);
+    // Re-check eligibility: state may have changed while the modal was open
+    // (hardware gate flipped, another surface started/completed the download).
+    // Mirrors the download button's own gating.
+    if (disabled || hwGated || status === 'downloading' || status === 'ready') return;
     startDownload();
   };
 

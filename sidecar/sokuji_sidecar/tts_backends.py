@@ -879,7 +879,7 @@ class OmniVoiceOnnxBackend:
             try:
                 os.remove(path)
             except OSError:
-                pass
+                pass  # best-effort temp-file cleanup; nothing to recover
 
     def set_builtin_voice(self, name: str) -> None:
         """Select one of the bundled curated preset voices (voices/<name>.wav

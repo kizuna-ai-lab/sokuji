@@ -52,8 +52,11 @@ def cuda_rtf(model_dir, backbone_dir, text="This is a real time factor measureme
     returned rtf is an UPPER BOUND on the pure-ONNX pipeline planned for Plan 2 —
     re-confirm there once embeddings/heads/decode are also ONNX.
     """
-    if "CUDAExecutionProvider" in ort.get_available_providers():
-        ort.preload_dlls()
+    if "CUDAExecutionProvider" not in ort.get_available_providers():
+        raise RuntimeError(
+            "cuda_rtf requires an onnxruntime build with CUDAExecutionProvider "
+            "(the pinned CPU onnxruntime cannot measure CUDA RTF — see README)")
+    ort.preload_dlls()
     t = time.time()
     wav = hybrid_generate(model_dir, backbone_dir, None, text, language, provider="CUDAExecutionProvider")
     gen = time.time() - t

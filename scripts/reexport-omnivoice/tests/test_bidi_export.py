@@ -1,5 +1,7 @@
 # scripts/reexport-omnivoice/tests/test_bidi_export.py
-import os, pytest, torch
+import os, pytest
+# Toolchain-only deps: keep repo-root pytest collection working without them.
+torch = pytest.importorskip("torch")
 MODEL_DIR = os.environ.get("OMNIVOICE_SRC", ".spike/models/omnivoice_pt")
 
 @pytest.mark.skipif(not os.path.isdir(MODEL_DIR), reason="source model not downloaded")

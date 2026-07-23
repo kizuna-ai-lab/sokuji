@@ -782,15 +782,15 @@
     "requiresGpu": "GPU தேவை",
     "upgradeVariant": "உங்கள் சாதனம் வேகமான மாடல் வடிவத்தை ஆதரிக்கிறது. சிறந்த செயல்திறனுக்கு நீக்கி மீண்டும் பதிவிறக்கவும்.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "வணிகமற்ற உரிமம்",
+      "modelRepo": "{{model}} {{repo}} இலிருந்து பதிவிறக்கப்படும்.",
+      "licenseName": "இது {{name}} ({{spdx}}) உரிமத்தின் கீழ் விநியோகிக்கப்படுகிறது.",
+      "viewLicense": "முழு உரிம உரையைக் காண்க",
+      "nonCommercial": "இந்த உரிமம் வணிகமற்ற பயன்பாட்டை மட்டுமே அனுமதிக்கிறது — எந்த வணிகத் தயாரிப்பிலும் சேவையிலும் இந்த மாதிரியைப் பயன்படுத்த வேண்டாம்.",
+      "disclaimer": "Sokuji-க்கும் மாதிரியின் ஆசிரியர்களுக்கும் எந்தத் தொடர்பும் இல்லை. இந்த ஒருங்கிணைப்பு அதிகாரப்பூர்வமற்றது; எந்த உத்தரவாதமும் இன்றி உள்ளபடியே வழங்கப்படுகிறது.",
+      "attribution": "பங்களிப்பு: {{attribution}}",
+      "cancel": "ரத்துசெய்",
+      "accept": "புரிந்தது — வணிகமற்ற பயன்பாடு மட்டுமே"
     }
   },
   "update": {

@@ -782,15 +782,15 @@
     "requiresGpu": "GPU 필요",
     "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "비상업 라이선스",
+      "modelRepo": "{{model}}은(는) {{repo}}에서 다운로드됩니다.",
+      "licenseName": "이 모델은 {{name}}({{spdx}}) 라이선스로 배포됩니다.",
+      "viewLicense": "전체 라이선스 보기",
+      "nonCommercial": "이 라이선스는 비상업적 사용만 허용합니다. 상업용 제품이나 서비스에 이 모델을 사용하지 마세요.",
+      "disclaimer": "Sokuji는 모델 제작자와 아무런 제휴 관계가 없습니다. 이 통합은 비공식이며 어떠한 보증도 없이 있는 그대로 제공됩니다.",
+      "attribution": "저작자 표시: {{attribution}}",
+      "cancel": "취소",
+      "accept": "이해했습니다 — 비상업적 사용만"
     }
   },
   "update": {

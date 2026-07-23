@@ -782,15 +782,15 @@
     "requiresGpu": "Memerlukan GPU",
     "upgradeVariant": "Peranti anda menyokong format model yang lebih pantas. Padam dan muat turun semula untuk prestasi lebih baik.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "Lesen bukan komersial",
+      "modelRepo": "{{model}} akan dimuat turun dari {{repo}}.",
+      "licenseName": "Diedarkan di bawah {{name}} ({{spdx}}).",
+      "viewLicense": "Lihat teks lesen penuh",
+      "nonCommercial": "Lesen ini hanya membenarkan penggunaan bukan komersial — jangan gunakan model ini dalam mana-mana produk atau perkhidmatan komersial.",
+      "disclaimer": "Sokuji tidak bergabung dengan pengarang model dan tiada sebarang hubungan dengan mereka. Integrasi ini tidak rasmi dan disediakan sebagaimana adanya, tanpa sebarang jaminan.",
+      "attribution": "Atribusi: {{attribution}}",
+      "cancel": "Batal",
+      "accept": "Saya faham — bukan komersial sahaja"
     }
   },
   "update": {

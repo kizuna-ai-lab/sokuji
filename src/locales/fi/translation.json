@@ -782,15 +782,15 @@
     "requiresGpu": "Vaatii GPU:n",
     "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "Ei-kaupallinen lisenssi",
+      "modelRepo": "{{model}} ladataan lähteestä {{repo}}.",
+      "licenseName": "Se jaellaan lisenssillä {{name}} ({{spdx}}).",
+      "viewLicense": "Näytä koko lisenssiteksti",
+      "nonCommercial": "Tämä lisenssi sallii vain ei-kaupallisen käytön — älä käytä tätä mallia kaupallisissa tuotteissa tai palveluissa.",
+      "disclaimer": "Sokuji ei ole sidoksissa mallin tekijöihin eikä sillä ole heihin mitään suhdetta. Tämä integraatio on epävirallinen ja tarjotaan sellaisenaan ilman minkäänlaista takuuta.",
+      "attribution": "Tekijätiedot: {{attribution}}",
+      "cancel": "Peruuta",
+      "accept": "Ymmärrän — vain ei-kaupallinen käyttö"
     }
   },
   "update": {

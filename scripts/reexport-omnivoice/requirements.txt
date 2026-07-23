@@ -1,12 +1,17 @@
-# torch/torchaudio come from the CPU index — see README (must match versions).
+# torch/torchaudio come from the CPU index — see README. NOTE the version
+# numbers deliberately DIFFER: torchaudio's numbering no longer tracks torch's,
+# and 2.13.0(+cpu) / 2.11.0(+cpu) is the ABI-matched pair verified in the
+# working export environment (a same-number pair does not exist for 2.13).
 torch==2.13.0
 torchaudio==2.11.0
-transformers>=5.4,<6
+# Pinned to the exact versions the published artifacts were exported with.
+transformers==5.14.1
 omnivoice==0.2.1
 onnx==1.22.0
-onnxscript
+onnxscript==0.7.1
 onnxruntime==1.27.0
 huggingface_hub>=0.26
+# Non-critical I/O helpers for verify.py/tests; any recent version works.
 soundfile
 numpy
 soxr

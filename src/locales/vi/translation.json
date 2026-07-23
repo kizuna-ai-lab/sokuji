@@ -782,15 +782,15 @@
     "requiresGpu": "Yêu cầu GPU",
     "upgradeVariant": "Thiết bị của bạn hỗ trợ định dạng mô hình nhanh hơn. Xóa và tải lại để có hiệu năng tốt hơn.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "Giấy phép phi thương mại",
+      "modelRepo": "{{model}} sẽ được tải xuống từ {{repo}}.",
+      "licenseName": "Được phân phối theo giấy phép {{name}} ({{spdx}}).",
+      "viewLicense": "Xem toàn văn giấy phép",
+      "nonCommercial": "Giấy phép này chỉ cho phép sử dụng phi thương mại — không sử dụng mô hình này trong bất kỳ sản phẩm hoặc dịch vụ thương mại nào.",
+      "disclaimer": "Sokuji không liên kết với các tác giả của mô hình và không có bất kỳ quan hệ nào với họ. Tích hợp này không chính thức và được cung cấp nguyên trạng, không kèm bất kỳ bảo đảm nào.",
+      "attribution": "Ghi công: {{attribution}}",
+      "cancel": "Hủy",
+      "accept": "Tôi hiểu — chỉ dùng phi thương mại"
     }
   },
   "update": {

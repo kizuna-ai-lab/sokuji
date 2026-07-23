@@ -782,15 +782,15 @@
     "requiresGpu": "דורש GPU",
     "upgradeVariant": "ההתקן שלך תומך בפורמט מודל מהיר יותר. מחק והורד מחדש לביצועים טובים יותר.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "רישיון לא מסחרי",
+      "modelRepo": "{{model}} יורד מ-{{repo}}.",
+      "licenseName": "הוא מופץ תחת {{name}} ({{spdx}}).",
+      "viewLicense": "הצגת נוסח הרישיון המלא",
+      "nonCommercial": "רישיון זה מתיר שימוש לא מסחרי בלבד — אין להשתמש במודל זה במוצר או בשירות מסחרי כלשהו.",
+      "disclaimer": "Sokuji אינו קשור למחברי המודל ואין לו כל קשר אליהם. השילוב הזה אינו רשמי ומסופק כפי שהוא, ללא כל אחריות.",
+      "attribution": "ייחוס: {{attribution}}",
+      "cancel": "ביטול",
+      "accept": "הבנתי — שימוש לא מסחרי בלבד"
     }
   },
   "update": {

@@ -10,6 +10,8 @@ cd scripts/reexport-omnivoice
 python3 -m venv .venv
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install torch==2.13.0 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+# (the differing version numbers are correct: torchaudio's numbering no longer
+#  tracks torch's — 2.13.0/2.11.0 is the ABI-matched CPU pair)
 .venv/bin/pip install -r requirements.txt
 ```
 

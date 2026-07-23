@@ -113,22 +113,25 @@ def _strip_weight_norm(module: nn.Module) -> nn.Module:
     acoustic encoder/decoder; the HuBERT semantic model's `pos_conv_embed.conv` is
     parametrized too, so we also walk every submodule generically.
     """
+    # Each removal mechanism below is tried on every module; a failure just
+    # means "this module doesn't carry that weight_norm form", which is the
+    # common case — so the excepts intentionally swallow and move on.
     if hasattr(module, "remove_weight_norm"):
         try:
             module.remove_weight_norm()
         except Exception:
-            pass
+            pass  # model-level helper not applicable to this checkpoint
     for m in module.modules():
         try:  # legacy hook-based weight_norm
             torch.nn.utils.remove_weight_norm(m)
         except (ValueError, AttributeError, RuntimeError):
-            pass
+            pass  # module has no hook-based weight_norm
         params = getattr(m, "parametrizations", None)
         if params is not None and "weight" in params:  # parametrization-based weight_norm
             try:
                 torch.nn.utils.parametrize.remove_parametrizations(m, "weight", leave_parametrized=True)
             except Exception:
-                pass
+                pass  # parametrization exists but is not weight_norm
     return module
 
 

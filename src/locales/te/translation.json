@@ -782,15 +782,15 @@
     "requiresGpu": "GPU అవసరం",
     "upgradeVariant": "మీ పరికరం వేగవంతమైన మోడల్ ఫార్మాట్‌కు మద్దతు ఇస్తుంది. మెరుగైన పనితీరు కోసం తొలగించి మళ్ళీ డౌన్‌లోడ్ చేయండి.",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "వాణిజ్యేతర లైసెన్స్",
+      "modelRepo": "{{model}} {{repo}} నుండి డౌన్‌లోడ్ అవుతుంది.",
+      "licenseName": "ఇది {{name}} ({{spdx}}) కింద పంపిణీ చేయబడుతుంది.",
+      "viewLicense": "పూర్తి లైసెన్స్ చూడండి",
+      "nonCommercial": "ఈ లైసెన్స్ వాణిజ్యేతర వినియోగాన్ని మాత్రమే అనుమతిస్తుంది — ఏ వాణిజ్య ఉత్పత్తిలో లేదా సేవలో ఈ మోడల్‌ను ఉపయోగించవద్దు.",
+      "disclaimer": "Sokuji మోడల్ రచయితలతో అనుబంధం లేదు, వారితో ఎలాంటి సంబంధం లేదు. ఈ ఇంటిగ్రేషన్ అనధికారికం; ఎలాంటి హామీ లేకుండా యథాతథంగా అందించబడుతుంది.",
+      "attribution": "గుర్తింపు: {{attribution}}",
+      "cancel": "రద్దు చేయి",
+      "accept": "అర్థమైంది — వాణిజ్యేతర వినియోగం మాత్రమే"
     }
   },
   "update": {

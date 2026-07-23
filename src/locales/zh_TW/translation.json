@@ -782,15 +782,15 @@
     "requiresGpu": "需要 GPU",
     "upgradeVariant": "您的裝置支援更快的模型格式。刪除後重新下載可獲得更佳效能。",
     "licenseConsent": {
-      "title": "Non-commercial license",
-      "modelRepo": "{{model}} downloads from {{repo}}.",
-      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
-      "viewLicense": "View the full license text",
-      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
-      "attribution": "Attribution: {{attribution}}",
-      "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "title": "非商業授權",
+      "modelRepo": "{{model}} 將從 {{repo}} 下載。",
+      "licenseName": "該模型以 {{name}}({{spdx}})授權散布。",
+      "viewLicense": "檢視完整授權條款",
+      "nonCommercial": "該授權僅允許非商業用途——請勿在任何商業產品或服務中使用此模型。",
+      "disclaimer": "Sokuji 與模型作者無任何關聯或合作關係。此整合為非官方提供,按現狀提供,不附帶任何形式的保證。",
+      "attribution": "署名:{{attribution}}",
+      "cancel": "取消",
+      "accept": "我已瞭解——僅限非商業用途"
     }
   },
   "update": {

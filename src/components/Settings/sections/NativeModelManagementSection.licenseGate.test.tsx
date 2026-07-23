@@ -8,6 +8,7 @@
  * plain ASR card without a license.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReactNode } from 'react';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -78,7 +79,7 @@ vi.mock('react-i18next', () => ({
 
 // Tooltip uses FloatingPortal which causes jsdom issues; replace with a passthrough.
 vi.mock('../../Tooltip/Tooltip', () => ({
-  default: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+  default: ({ children, content }: { children?: ReactNode; content?: ReactNode }) => (
     <>{children}{content}</>
   ),
 }));
