@@ -13,6 +13,12 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
+Download the source model (needed by `reexport.py --src` and the tests' `MODEL_DIR`,
+which both default to `.spike/models/omnivoice_pt`):
+```bash
+.venv/bin/huggingface-cli download k2-fsa/OmniVoice --local-dir .spike/models/omnivoice_pt
+```
+
 ## Build
 ```bash
 .venv/bin/python reexport.py --out ./out

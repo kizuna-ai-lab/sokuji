@@ -9,3 +9,5 @@ onnxruntime==1.27.0
 huggingface_hub>=0.26
 soundfile
 numpy
+soxr
+pytest

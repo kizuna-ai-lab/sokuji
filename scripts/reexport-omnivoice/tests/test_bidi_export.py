@@ -97,6 +97,38 @@ def test_higgs_export_roundtrip(tmp_path):
     # codes must be diverse (real audio), not collapsed to a few entries
     assert len(np.unique(codes[0])) > 30
 
+    # --- eager vs ONNX numeric parity ---
+    # Compares the exported ONNX graphs against the eager HiggsAudioV2TokenizerModel on the
+    # same clip. This catches subtly-wrong reconstructions (e.g. a wrong pad/downsample/
+    # aggregation choice) that the speech-level RMS/diversity checks above cannot: those pass
+    # for *any* plausible speech output, whereas a wrong intermediate step de-correlates the
+    # codes/waveform from the reference model entirely (see thresholds below).
+    from codes.model_wrappers import _prepare_tok
+    from transformers import AutoModel
+    tok = AutoModel.from_pretrained(os.path.join(MODEL_DIR, "audio_tokenizer"),
+                                    dtype=torch.float32, attn_implementation="eager")
+    tok = _prepare_tok(tok)
+    w24_t = torch.from_numpy(w24)[None, None, :]
+    with torch.no_grad():
+        codes_eager = tok.encode(w24_t, return_dict=False).numpy()          # (1, 8, T_e)
+        wav_eager = tok.decode(torch.from_numpy(codes_eager), return_dict=False)
+        wav_eager = wav_eager.squeeze().numpy()                             # (T_samples,)
+
+    codes_onnx_t = codes.transpose(1, 0, 2)  # (num_q, B, T) -> (B, num_q, T), eager's layout
+    Tc = min(codes_eager.shape[-1], codes_onnx_t.shape[-1])
+    code_match = float((codes_eager[:, :, :Tc] == codes_onnx_t[:, :, :Tc]).mean())
+
+    Tw = min(len(wav_eager), len(out_wav))
+    we = wav_eager[:Tw].astype(np.float64); wo = out_wav[:Tw].astype(np.float64)
+    wav_cos = float(np.dot(we, wo) / (np.linalg.norm(we) * np.linalg.norm(wo) + 1e-9))
+
+    # Observed on scripts/assets/gpt-sovits-voices/classic-zh.wav: code_match=0.9838,
+    # wav_cos=0.9989 (rms eager=0.09992 vs onnx=0.09984, matching prior manual spot-check).
+    # A 1-frame misalignment (e.g. an off-by-one pad) collapses code_match to ~0.01-0.03, so
+    # these thresholds have a wide margin below genuine agreement and well above a broken export.
+    assert code_match >= 0.95, f"eager/ONNX code agreement {code_match:.4f} too low"
+    assert wav_cos >= 0.99, f"eager/ONNX waveform cosine {wav_cos:.4f} too low"
+
 
 @pytest.mark.skipif(not os.path.isdir(MODEL_DIR), reason="source model not downloaded")
 @pytest.mark.parametrize("mode", ["fp16", "int4"])
