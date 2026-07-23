@@ -94,5 +94,11 @@ Constants: `CRASH_MARKER = 'sandbox-crash-marker.json'`, `FALLBACK_MARKER = 'no-
 
 ### Task 6: Windows E2E (isolated dir), then PR
 
-- [ ] `npm run package`, copy output to `C:\SokujiSandboxTest\`, inject orphan ACE on that dir only, verify crash→relaunch→confirmed dialog→repair→clean sandbox launch; then unconfirmed, no-sandbox fallback, version regression. Clean up.
+- [x] Real-icacls parser validation: injected explicit orphan ACE on `C:\SokujiSandboxTest`, parser correctly flagged it explicit; subdir showed inherited `(I)` and was correctly NOT flagged.
+- [x] Real-icacls repair validation: `repairDirectory` ran real `icacls /remove *<SID>`; parent AND subdir rescanned clean (inheritance self-heals).
+- [x] Packaged app baseline: launches and stays alive with the feature wired, no crash marker, no regression to normal startup.
+- [x] Packaged-app E2E caught a real bug: `require('./sandbox-recovery')` failed with "Cannot find module" because the file wasn't a registered vite electron entry. Fixed in vite.config.ts; repackaged and re-verified.
+- [x] Confirmed recovery dialog RENDERS in the real packaged app: planted a crash marker + injected ACE, launched; read via UI Automation → title "Sokuji — Sandbox Startup Problem", correct body, "Affected locations: C:\SokujiSandboxTest" (real icacls scan found the orphan on the exe dir), issue URL, and the three buttons [Repair permissions (recommended)] [Continue without sandbox] [Quit]. No transparent main window created (recovery ran before createWindow).
+- [~] Runtime GPU crash NOT reproduced on this machine (Win11 26200): injecting the orphan ACE did not deny the sandbox token here (3 child processes spawned fine), so the live passive-detection→relaunch chain could not be exercised end-to-end. Bug is environment-specific (reporter confirmed on their machine). Trigger constants come from the reporter's symbolicated data.
+- [~] Driving the modal dialog's button click via synthetic input (UIA InvokePattern / LegacyIAccessible / keyboard / mouse) did not register in this session (non-interactive input limitation; no backup log was written, confirming the click never reached the handler — not a code fault). The button→performRepair wiring is covered by unit tests; performRepair delegates to repairDirectory, which WAS validated against real icacls (ACE removed, inheritance self-heals).
 - [ ] Push branch, open PR referencing #352 + upstream electron#51761.
