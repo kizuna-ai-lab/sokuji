@@ -5,6 +5,9 @@ import {
   isGpuSandboxCrash,
   evaluateCrashRelaunch,
   evaluateNoSandbox,
+  scanDirectory,
+  repairDirectory,
+  buildBackupLog,
 } from './sandbox-recovery.js';
 
 // A realistic orphan AppContainer package SID: "S-1-15-2" followed by 7
@@ -216,5 +219,93 @@ describe('evaluateNoSandbox', () => {
       noSandbox: false,
       clearMarker: false,
     });
+  });
+});
+
+describe('scanDirectory', () => {
+  it('runs icacls on the directory and parses explicit orphan SIDs', () => {
+    const execFileSync = vi.fn(() => EXPLICIT_ORPHAN);
+    const result = scanDirectory('C:/SokujiSandboxTest', { execFileSync });
+    expect(execFileSync).toHaveBeenCalledWith(
+      'icacls',
+      ['C:/SokujiSandboxTest'],
+      expect.objectContaining({ windowsHide: true })
+    );
+    expect(result).toEqual({
+      dir: 'C:/SokujiSandboxTest',
+      sids: [ORPHAN_A],
+      rawOutput: EXPLICIT_ORPHAN,
+      error: null,
+    });
+  });
+
+  it('decodes a Buffer as latin1 (byte-safe against the OEM code page)', () => {
+    // Non-ASCII bytes around an ASCII SID must not corrupt SID extraction.
+    const buf = Buffer.from(EXPLICIT_ORPHAN, 'latin1');
+    const execFileSync = vi.fn(() => buf);
+    const result = scanDirectory('C:/x', { execFileSync });
+    expect(result.sids).toEqual([ORPHAN_A]);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns an error record when icacls throws', () => {
+    const execFileSync = vi.fn(() => {
+      throw new Error('The system cannot find the path specified.');
+    });
+    const result = scanDirectory('C:/missing', { execFileSync });
+    expect(result.sids).toEqual([]);
+    expect(result.rawOutput).toBe('');
+    expect(result.error).toMatch(/cannot find the path/);
+  });
+});
+
+describe('repairDirectory', () => {
+  it('removes each orphan SID via icacls /remove "*<SID>"', () => {
+    const execFileSync = vi.fn();
+    const result = repairDirectory('C:/SokujiSandboxTest', [ORPHAN_A, ORPHAN_B], {
+      execFileSync,
+    });
+    expect(execFileSync).toHaveBeenNthCalledWith(
+      1,
+      'icacls',
+      ['C:/SokujiSandboxTest', '/remove', `*${ORPHAN_A}`],
+      expect.objectContaining({ windowsHide: true })
+    );
+    expect(execFileSync).toHaveBeenNthCalledWith(
+      2,
+      'icacls',
+      ['C:/SokujiSandboxTest', '/remove', `*${ORPHAN_B}`],
+      expect.objectContaining({ windowsHide: true })
+    );
+    expect(result).toEqual({
+      dir: 'C:/SokujiSandboxTest',
+      removed: [ORPHAN_A, ORPHAN_B],
+      errors: [],
+    });
+  });
+
+  it('records per-SID errors without aborting the rest', () => {
+    const execFileSync = vi.fn((cmd, args) => {
+      if (args[2] === `*${ORPHAN_A}`) throw new Error('Access is denied.');
+    });
+    const result = repairDirectory('C:/x', [ORPHAN_A, ORPHAN_B], { execFileSync });
+    expect(result.removed).toEqual([ORPHAN_B]);
+    expect(result.errors).toEqual([
+      { sid: ORPHAN_A, error: expect.stringMatching(/Access is denied/) },
+    ]);
+  });
+});
+
+describe('buildBackupLog', () => {
+  it('records the directories, SIDs, raw output and issue URL', () => {
+    const scanResults = [
+      { dir: 'C:/SokujiSandboxTest', sids: [ORPHAN_A], rawOutput: EXPLICIT_ORPHAN, error: null },
+    ];
+    const log = buildBackupLog(scanResults, '2026-07-24T04-00-00-000Z');
+    expect(log).toContain('2026-07-24T04-00-00-000Z');
+    expect(log).toContain('C:/SokujiSandboxTest');
+    expect(log).toContain(ORPHAN_A);
+    expect(log).toContain('issues/352');
+    expect(log).toContain(EXPLICIT_ORPHAN);
   });
 });

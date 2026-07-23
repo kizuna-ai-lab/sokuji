@@ -144,11 +144,87 @@ function evaluateNoSandbox(marker, currentVersion) {
   return { noSandbox: false, clearMarker: true };
 }
 
+const ISSUE_URL = 'https://github.com/kizuna-ai-lab/sokuji/issues/352';
+const UPSTREAM_URL = 'https://github.com/electron/electron/issues/51761';
+
+/**
+ * Run `icacls <dir>` and return the explicit orphan SIDs it defines.
+ * icacls output is decoded as latin1 (byte-preserving) so an OEM code page and
+ * localized account names never break the ASCII SID/flag extraction.
+ *
+ * @param {string} dir
+ * @param {{execFileSync: Function}} deps
+ * @returns {{dir: string, sids: string[], rawOutput: string, error: string|null}}
+ */
+function scanDirectory(dir, deps) {
+  try {
+    const out = deps.execFileSync('icacls', [dir], { windowsHide: true });
+    const text = Buffer.isBuffer(out) ? out.toString('latin1') : String(out);
+    return { dir, sids: findExplicitOrphanSids(text), rawOutput: text, error: null };
+  } catch (err) {
+    return { dir, sids: [], rawOutput: '', error: (err && err.message) || String(err) };
+  }
+}
+
+/**
+ * Remove each given orphan SID's explicit ACE from a directory via
+ * `icacls <dir> /remove "*<SID>"`. The "*" prefix selects by raw SID; plain
+ * /remove strips both grant and deny ACEs. Never uses /reset. Continues past a
+ * failed SID and records it.
+ *
+ * @param {string} dir
+ * @param {string[]} sids
+ * @param {{execFileSync: Function}} deps
+ * @returns {{dir: string, removed: string[], errors: Array<{sid: string, error: string}>}}
+ */
+function repairDirectory(dir, sids, deps) {
+  const removed = [];
+  const errors = [];
+  for (const sid of sids) {
+    try {
+      deps.execFileSync('icacls', [dir, '/remove', `*${sid}`], { windowsHide: true });
+      removed.push(sid);
+    } catch (err) {
+      errors.push({ sid, error: (err && err.message) || String(err) });
+    }
+  }
+  return { dir, removed, errors };
+}
+
+/**
+ * Build the human-readable text backup written before any ACL change, so a
+ * removed ACE can be restored by hand with `icacls /grant` if ever needed.
+ *
+ * @param {Array<{dir: string, sids: string[], rawOutput: string}>} scanResults
+ * @param {string} isoStamp
+ * @returns {string}
+ */
+function buildBackupLog(scanResults, isoStamp) {
+  let log = `Sokuji sandbox recovery backup — ${isoStamp}\n`;
+  log += `Issue:    ${ISSUE_URL}\n`;
+  log += `Upstream: ${UPSTREAM_URL}\n`;
+  log += `\nThe explicit orphan AppContainer ACEs listed below were removed with\n`;
+  log += `"icacls <dir> /remove *<SID>". To restore one manually, grant it back\n`;
+  log += `with "icacls <dir> /grant *<SID>:(<perm>)".\n\n`;
+  for (const r of scanResults) {
+    log += `=== Directory: ${r.dir} ===\n`;
+    log += `Removed explicit orphan SIDs:\n`;
+    for (const sid of r.sids) log += `  - ${sid}\n`;
+    log += `\nFull icacls output before removal:\n${r.rawOutput}\n\n`;
+  }
+  return log;
+}
+
 module.exports = {
   ORPHAN_SID_RE,
+  ISSUE_URL,
+  UPSTREAM_URL,
   parseIcaclsAces,
   findExplicitOrphanSids,
   isGpuSandboxCrash,
   evaluateCrashRelaunch,
   evaluateNoSandbox,
+  scanDirectory,
+  repairDirectory,
+  buildBackupLog,
 };
