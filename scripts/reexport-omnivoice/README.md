@@ -33,3 +33,12 @@ RTF will be re-measured on the pure-ONNX pipeline in Plan 2.
 
 Note: measuring CUDA RTF requires an sbsa `onnxruntime-gpu` build — the pinned CPU
 `onnxruntime` in `requirements.txt` cannot use the CUDA EP.
+
+## Publish checklist (manual, requires explicit approval)
+- [ ] `out/` built and Task-5 tests green
+- [ ] GB10 CUDA RTF recorded
+- [ ] PROVENANCE.md copied into `out/`
+- [ ] human approval to distribute a CC-BY-NC derivative obtained
+```bash
+cp PROVENANCE.md out/ && .venv/bin/huggingface-cli upload jiangzhuo9357/omnivoice-onnx-bidi ./out . --repo-type model
+```
