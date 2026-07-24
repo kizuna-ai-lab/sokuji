@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ModernBrowserAudioService } from './ModernBrowserAudioService';
 
 // Regression tests for the reported failure: on a single fresh launch the UI
@@ -39,6 +39,12 @@ const UNLABELED = [
   { deviceId: 'mic-1', kind: 'audioinput', label: '', groupId: 'g1' },
   { deviceId: 'spk-1', kind: 'audiooutput', label: '', groupId: 'g2' },
 ];
+// A labeled OUTPUT must not mask an unlabeled INPUT: the warm-up unlocks mic
+// (input) labels, so it must still run here.
+const LABELED_OUTPUT_UNLABELED_INPUT = [
+  { deviceId: 'mic-1', kind: 'audioinput', label: '', groupId: 'g1' },
+  { deviceId: 'spk-1', kind: 'audiooutput', label: 'WR44-PLUS', groupId: 'g2' },
+];
 
 describe('ModernBrowserAudioService.getDevices', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -74,6 +80,21 @@ describe('ModernBrowserAudioService.getDevices', () => {
     expect(getUserMedia).toHaveBeenCalled();
     expect(devices.inputs.map(d => d.deviceId)).toEqual(['mic-1']);
     expect(devices.outputs.map(d => d.deviceId)).toEqual(['spk-1']);
+  });
+
+  it('warms up when an input lacks a label even if an output is labeled', async () => {
+    const getUserMedia = vi.fn(async () => makeStream());
+    let calls = 0;
+    const enumerateDevices = vi.fn(async () =>
+      ++calls === 1 ? LABELED_OUTPUT_UNLABELED_INPUT : LABELED
+    );
+    setMediaDevices(getUserMedia, enumerateDevices);
+
+    const service = new ModernBrowserAudioService();
+    await service.getDevices();
+
+    // Output label must not mask the unlabeled input — warm-up must still run.
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
   });
 
   it('opens the mic only once for concurrent getDevices() when a warm-up is needed', async () => {

@@ -776,10 +776,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
     window.addEventListener('pagehide', releaseMic);
 
-    // Clean up function
+    // Cleanup only detaches the listener. Do NOT release the mic on unmount:
+    // real teardown already goes through the non-persisted `pagehide` above,
+    // and releasing here would stop capture during a StrictMode remount or any
+    // future transition that unmounts MainPanel while a session is live.
     return () => {
       window.removeEventListener('pagehide', releaseMic);
-      releaseMic();
     };
   }, []);
 

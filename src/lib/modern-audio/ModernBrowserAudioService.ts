@@ -146,15 +146,19 @@ export class ModernBrowserAudioService implements IAudioService {
       // source of truth for the device list; the warm-up is best-effort.
       let devices = await navigator.mediaDevices.enumerateDevices();
 
-      const hasAudioLabels = devices.some(
-        d => (d.kind === 'audioinput' || d.kind === 'audiooutput') && d.label !== ''
+      // The warm-up exists to unlock MICROPHONE (input) labels, so key the
+      // decision on inputs only. A labeled audiooutput can otherwise mask
+      // unlabeled inputs and skip a warm-up the mic picker still needs. If
+      // there are no inputs at all, there is nothing to warm up.
+      const needsMicrophoneWarmup = devices.some(
+        d => d.kind === 'audioinput' && d.label === ''
       );
 
-      if (!hasAudioLabels) {
-        // Labels missing => permission not yet granted this session. Warm up to
-        // unlock them, but if the warm-up fails (e.g. broken default device),
-        // fall through with whatever enumerate already gave us instead of
-        // wiping the list.
+      if (needsMicrophoneWarmup) {
+        // Input labels missing => mic permission not yet granted this session.
+        // Warm up to unlock them, but if the warm-up fails (e.g. broken default
+        // device), fall through with whatever enumerate already gave us instead
+        // of wiping the list.
         try {
           await this.ensureMicrophonePermission();
           devices = await navigator.mediaDevices.enumerateDevices();
