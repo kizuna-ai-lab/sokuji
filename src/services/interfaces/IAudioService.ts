@@ -129,6 +129,13 @@ export interface IAudioService {
   stopRecording(): Promise<void>;
 
   /**
+   * Synchronously release the microphone device (stop capture tracks).
+   * Intended for page/window close so the OS capture endpoint is freed cleanly
+   * instead of on abrupt process teardown.
+   */
+  releaseMicrophone?(): void;
+
+  /**
    * Pause recording (keeps resources allocated)
    */
   pauseRecording(): Promise<void>;

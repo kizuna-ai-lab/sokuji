@@ -759,10 +759,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
     
     initAudioService();
-    
+
+    // Release the microphone the instant the window/page is going away, so the
+    // OS capture endpoint is freed cleanly rather than on abrupt process
+    // teardown. Without this, closing and quickly reopening can leave the mic
+    // stranded and the next launch's getUserMedia fails with
+    // "NotReadableError: Could not start audio source" (Windows especially).
+    // `pagehide` is more reliable than `beforeunload` for this and also fires
+    // on Electron window close.
+    const releaseMic = () => {
+      audioServiceRef.current?.releaseMicrophone?.();
+    };
+    window.addEventListener('pagehide', releaseMic);
+
     // Clean up function
     return () => {
-      // Any cleanup needed for the audio service
+      window.removeEventListener('pagehide', releaseMic);
+      releaseMic();
     };
   }, []);
 
