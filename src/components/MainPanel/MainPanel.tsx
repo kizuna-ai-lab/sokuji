@@ -759,10 +759,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
     
     initAudioService();
-    
-    // Clean up function
+
+    // Release the microphone the instant the window/page is going away, so the
+    // OS capture endpoint is freed cleanly rather than on abrupt process
+    // teardown. Without this, closing and quickly reopening can leave the mic
+    // stranded and the next launch's getUserMedia fails with
+    // "NotReadableError: Could not start audio source" (Windows especially).
+    // `pagehide` fires on window close / navigation / reload — but NOT on
+    // minimize/hide (that's `visibilitychange`), so this never releases the mic
+    // while the app is merely hidden. Guard against the bfcache case
+    // (event.persisted) where the page is frozen and may be restored via
+    // `pageshow` rather than torn down.
+    const releaseMic = (event?: PageTransitionEvent) => {
+      if (event?.persisted) return;
+      audioServiceRef.current?.releaseMicrophone?.();
+    };
+    window.addEventListener('pagehide', releaseMic);
+
+    // Cleanup only detaches the listener. Do NOT release the mic on unmount:
+    // real teardown already goes through the non-persisted `pagehide` above,
+    // and releasing here would stop capture during a StrictMode remount or any
+    // future transition that unmounts MainPanel while a session is live.
     return () => {
-      // Any cleanup needed for the audio service
+      window.removeEventListener('pagehide', releaseMic);
     };
   }, []);
 
