@@ -2,7 +2,7 @@
   <img width="200" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
 </p>
 
-<h3 align="center">Real-time speech translation — cloud or fully offline on your device</h3>
+<h3 align="center">Real-time two-way speech translation for bilingual meetings — cloud or fully offline on your device</h3>
 
 <p align="center">
   <a href="LICENSE" target="_blank">
@@ -126,6 +126,23 @@ npm run electron:build      # Production
 
 ---
 
+## Two-Way Translation for Bilingual Meetings
+
+Two people, two languages, one conversation. Sokuji auto-detects which
+language is being spoken and translates it into the other — in both
+directions, in real time. Set Language A and Language B, capture system
+audio and microphone together, and everyone follows along.
+
+- **Auto language detection** — no manual switching mid-conversation
+- **Both directions at once** — mic + system audio in a single session
+- **Live subtitles** — share your screen so the other side reads along too
+- Works in Zoom, Google Meet, Teams, Discord, or any app (desktop),
+  and directly inside web meeting platforms (browser extension)
+
+> Powered by Soniox two-way mode — 60+ languages, 3,600+ language pairs.
+
+---
+
 ## Features
 
 ### Local Inference (Edge AI)
@@ -146,7 +163,7 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 | **Palabra.ai** | WebRTC low-latency · voice cloning · auto sentence segmentation · partial transcription translation · 60+ source / 40+ target languages |
 | **Kizuna AI** | Sign in and go — API key managed by backend · same OpenAI models with optimized defaults |
 | **Doubao AST 2.0** | Speech-to-speech with speaker voice cloning · bidirectional Chinese↔English · Ogg Opus audio output |
-| **Soniox** | Real-time speech-to-speech · one-way & two-way translation · 60+ languages / 3,600+ pairs · auto language detection · 12 voices · bring-your-own-key |
+| **Soniox** | Real-time speech-to-speech · **one-way & two-way translation (auto-detects speaker language)** · 60+ languages / 3,600+ pairs · 12 voices · bring-your-own-key |
 | **Zoom AI Services** | Text-only live captions · bring your own Zoom Build Platform key · works on any site, not just Zoom · Zoom's native language pairs |
 | **OpenAI Compatible** | Bring your own endpoint — any OpenAI Realtime API-compatible service (Electron only) |
 | **Local Inference** | Fully offline · ASR → Translation → TTS on-device · no API key · no GPU required |
