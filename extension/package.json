@@ -17,5 +17,10 @@
     "eslint": "^8.50.0",
     "eslint-plugin-react": "^7.33.2",
     "vite-plugin-static-copy": "^3.0.0"
+  },
+  "overrides": {
+    "js-yaml@4": "^4.3.0",
+    "brace-expansion@1": "^1.1.16",
+    "vite@8": "^8.0.16"
   }
 }
