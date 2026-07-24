@@ -765,9 +765,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // teardown. Without this, closing and quickly reopening can leave the mic
     // stranded and the next launch's getUserMedia fails with
     // "NotReadableError: Could not start audio source" (Windows especially).
-    // `pagehide` is more reliable than `beforeunload` for this and also fires
-    // on Electron window close.
-    const releaseMic = () => {
+    // `pagehide` fires on window close / navigation / reload — but NOT on
+    // minimize/hide (that's `visibilitychange`), so this never releases the mic
+    // while the app is merely hidden. Guard against the bfcache case
+    // (event.persisted) where the page is frozen and may be restored via
+    // `pageshow` rather than torn down.
+    const releaseMic = (event?: PageTransitionEvent) => {
+      if (event?.persisted) return;
       audioServiceRef.current?.releaseMicrophone?.();
     };
     window.addEventListener('pagehide', releaseMic);
