@@ -17,10 +17,27 @@ interface Props {
   onStart: () => void;
   onFix: (reason: StartBlockReason, deviceScope?: DeviceScope) => void;
   onReturn: () => void;
+  // The extension-overlay surface doesn't mirror the start-gate fields or the
+  // start/stop request counters across the chrome.runtime port (see
+  // sessionPortMirror.ts), so start/retry/fix would be dead clicks there.
+  // When false, this renders only what the pre-#324 SubtitleSessionEnded
+  // component rendered: the ended message and a return button.
+  allowSessionControl: boolean;
 }
 
-const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn }) => {
+const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl }) => {
   const { t } = useTranslation();
+
+  if (!allowSessionControl) {
+    return (
+      <div className="subtitle-idle">
+        <p>{t('subtitle.sessionEnded', 'Session ended')}</p>
+        <button type="button" className="subtitle-idle__link" onClick={onReturn}>
+          {t('subtitle.backToMain', 'Return to main window')}
+        </button>
+      </div>
+    );
+  }
 
   if (state.kind === 'starting') {
     const label = state.total !== undefined && state.completed !== undefined

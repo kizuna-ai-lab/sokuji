@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const handlers = () => ({ onStart: vi.fn(), onFix: vi.fn(), onReturn: vi.fn() });
+const handlers = () => ({ onStart: vi.fn(), onFix: vi.fn(), onReturn: vi.fn(), allowSessionControl: true });
 
 beforeEach(cleanup);
 
@@ -117,5 +117,49 @@ describe('SubtitleIdle return affordance', () => {
     render(<SubtitleIdle state={{ kind: 'ready' }} {...h} />);
     fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
     expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The extension-overlay surface has no wiring for the new start-gate fields
+// or session-start/stop request counters (they're never mirrored across the
+// chrome.runtime port), so its buttons would be dead clicks. allowSessionControl
+// gates the interactive controls off, restoring the old SubtitleSessionEnded
+// presentation for that surface (issue #324 Task 6 finding).
+describe('SubtitleIdle with allowSessionControl=false', () => {
+  it('renders the ended message and a single return button, and calls onReturn on click', () => {
+    const h = handlers();
+    render(<SubtitleIdle state={{ kind: 'ended' }} {...h} allowSessionControl={false} />);
+    expect(screen.getByText(/session ended/i)).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
+    expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no start, retry, or fix control, and never calls onStart/onFix', () => {
+    const h = handlers();
+    render(<SubtitleIdle state={{ kind: 'ended' }} {...h} allowSessionControl={false} />);
+    expect(screen.queryByRole('button', { name: /start translating/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /configure/i })).toBeNull();
+    expect(h.onStart).not.toHaveBeenCalled();
+    expect(h.onFix).not.toHaveBeenCalled();
+  });
+
+  it('renders the static presentation instead of the fix action for an otherwise-interactive state', () => {
+    const h = handlers();
+    render(
+      <SubtitleIdle
+        state={{ kind: 'blocked', reason: 'api-key-invalid' }}
+        {...h}
+        allowSessionControl={false}
+      />,
+    );
+    expect(screen.getByText(/session ended/i)).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(h.onReturn).toHaveBeenCalledTimes(1);
+    expect(h.onFix).not.toHaveBeenCalled();
   });
 });

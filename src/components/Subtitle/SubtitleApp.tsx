@@ -385,6 +385,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           onStart={handleStart}
           onFix={handleFix}
           onReturn={requestExit}
+          allowSessionControl={surface === 'electron'}
         />
       )}
       {showResizeHandles && (
