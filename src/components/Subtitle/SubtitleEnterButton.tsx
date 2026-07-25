@@ -25,7 +25,13 @@ const SubtitleEnterButton: React.FC = () => {
   // it's the "Enter" affordance (disabled until a session starts).
   const enterLabel = t('subtitle.enterButton.label', 'Subtitle');
   const exitLabel = t('subtitle.exitButton.label', 'Exit subtitle');
-  const enterTooltip = isSessionActive
+
+  // The Electron subtitle window carries its own Start control, so it can be
+  // opened at any time — users position and size it before the meeting
+  // (issue #324). The extension overlay has no such control (the side panel
+  // owns session control there), so it stays session-gated.
+  const canEnter = isElectron() || isSessionActive;
+  const enterTooltip = canEnter
     ? t('subtitle.enterButton.title', 'Enter subtitle mode')
     : t('subtitle.enterButton.disabled', 'Start a session first');
   const exitTooltip = t('subtitle.exitButton.title', 'Exit subtitle mode');
@@ -56,8 +62,9 @@ const SubtitleEnterButton: React.FC = () => {
   const onClick = subtitleActive
     ? () => void exitSubtitleMode()
     : () => void handleEnter();
-  // Exit is always available while active; Enter is gated on isSessionActive.
-  const disabled = subtitleActive ? false : !isSessionActive;
+  // Exit is always available while active; Enter is gated only on the
+  // extension surface.
+  const disabled = subtitleActive ? false : !canEnter;
 
   return (
     <button
