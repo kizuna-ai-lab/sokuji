@@ -46,7 +46,10 @@ describe('mapWalletStatusToQuota', () => {
     }
   });
 
-  it('reads balanceMicroUsd when the backend sends the new shape', () => {
+  it('reads balanceMicroUsd when the backend sends ONLY the new shape (no legacy aliases)', () => {
+    // No `balance` / `usage` keys at all — this is what proves the new field
+    // names are actually read, rather than the mapper falling through to
+    // legacy aliases that happen to carry identical values.
     const q = mapWalletStatusToQuota({
       balanceMicroUsd: 3_420_000,
       balanceUsd: '3.42',
@@ -54,17 +57,31 @@ describe('mapWalletStatusToQuota', () => {
       last30DaysUsageMicroUsd: 1_580_000,
       last30DaysUsageUsd: '1.58',
       rates: { 'soniox:text_only': 0.6 },
-      balance: 3_420_000,
-      usage: 1_580_000,
     });
     expect(q.balance).toBe(3_420_000);
     expect(q.remaining).toBe(3_420_000);
     expect(q.last30DaysUsage).toBe(1_580_000);
   });
 
-  it('still accepts the legacy shape from an older backend', () => {
+  it('still accepts the legacy-only shape from an older backend (no new fields)', () => {
     const q = mapWalletStatusToQuota({ balance: 500, frozen: false, usage: 10 });
     expect(q.balance).toBe(500);
+    expect(q.remaining).toBe(500);
+    expect(q.last30DaysUsage).toBe(10);
+  });
+
+  it('throws when a payload carries neither the new nor legacy money fields', () => {
+    // Trust boundary: the payload is untyped JSON. If both money fields are
+    // absent, mapping must fail closed rather than produce a QuotaData with
+    // an undefined/NaN balance, which would silently disable the Start
+    // button's hasValidBalance gate for every user.
+    const payload = {
+      frozen: false,
+      balanceUsd: '0.00',
+      last30DaysUsageUsd: '0.00',
+      rates: {},
+    };
+    expect(() => mapWalletStatusToQuota(payload)).toThrow('Invalid wallet status payload');
   });
 });
 
