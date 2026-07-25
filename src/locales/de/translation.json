@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxServiceBusy": "Soniox ist derzeit ausgelastet. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxBudgetExhausted": "Ihr Sitzungsguthaben ist aufgebraucht. Laden Sie Ihr Guthaben auf, um weiter zu übersetzen.",
+    "sonioxTtsFailed": "Die gesprochene Übersetzung wurde beendet. Transkription und Textübersetzung laufen weiter.",
     "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf Start, um fortzufahren."
   },
   "modePicker": {

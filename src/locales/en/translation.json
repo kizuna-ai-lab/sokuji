@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",
     "sonioxServiceBusy": "Soniox is at capacity right now. Please try again shortly.",
     "sonioxBudgetExhausted": "Your session balance is used up. Top up your balance to keep translating.",
+    "sonioxTtsFailed": "Spoken translation has stopped. Transcription and text translation are still running.",
     "sonioxSegmentEnded": "This segment has ended — tap Start to continue."
   },
   "modePicker": {

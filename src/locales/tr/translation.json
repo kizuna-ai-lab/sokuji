@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
+    "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için Başlat'a dokunun."
   },
   "modePicker": {

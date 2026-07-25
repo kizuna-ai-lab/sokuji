@@ -137,6 +137,37 @@ describe('SonioxClient connect', () => {
     await new Promise((r) => setTimeout(r, 0)); // let ensureTts's async connect reject
     expect(realtimeEvents.filter((e) => e.event.type === 'tts.degraded')).toHaveLength(1);
   });
+
+  it('tells the USER spoken output stopped — not just the console — and only once per episode', async () => {
+    // A console.error plus a debug event is invisible: subtitles keep scrolling,
+    // the user never learns speech died, and a managed session goes on being
+    // billed at the speech-to-speech rate.
+    MockTts.failConnect = true;
+    const client = new SonioxClient('key');
+    const errors: Array<{ code: string; message: string }> = [];
+    client.setEventHandlers({ onError: (e: any) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    expect(errors).toHaveLength(0); // the recoverable eager-connect failure says nothing
+
+    const translate = () => sttInstances.at(-1)!.emit({ tokens: [
+      { text: 'Hi', is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' },
+    ] });
+
+    translate();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errors).toHaveLength(1);
+    // Namespaced so a UI branching on `code` cannot mistake it for an STT error.
+    expect(errors[0].code).toMatch(/^tts_/);
+    // Says what stopped AND what still works — the user must not read this as
+    // "the session is dead".
+    expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+    expect(errors[0].message).toMatch(/still running/i);
+
+    // Still one report per failure episode: it is a notice, not a per-utterance alarm.
+    translate();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errors).toHaveLength(1);
+  });
 });
 
 describe('SonioxClient token handling', () => {

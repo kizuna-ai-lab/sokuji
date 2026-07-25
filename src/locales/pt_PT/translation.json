@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "O Soniox está temporariamente indisponível. Tente novamente dentro de momentos.",
     "sonioxServiceBusy": "O Soniox está atualmente com capacidade esgotada. Tente novamente em breve.",
     "sonioxBudgetExhausted": "O saldo da sua sessão esgotou-se. Carregue o seu saldo para continuar a traduzir.",
+    "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam a funcionar.",
     "sonioxSegmentEnded": "Este segmento terminou — toque em Iniciar para continuar."
   },
   "modePicker": {

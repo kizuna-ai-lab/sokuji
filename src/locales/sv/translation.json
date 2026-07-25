@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
+    "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
     "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på Start för att fortsätta."
   },
   "modePicker": {

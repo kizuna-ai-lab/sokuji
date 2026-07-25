@@ -845,12 +845,30 @@ export class SonioxClient implements IClient {
     // Only a genuine failure (a reconnect that itself failed, or a wire-level
     // error code) degrades spoken output.
     if (code === 'socket_closed' || code === 'socket_error') return;
-    // TTS errors are non-fatal: log once, keep subtitles running. ttsFailedOnce
-    // is reset on a successful reconnect so a later genuine failure logs again.
+    // TTS errors are non-fatal to the SESSION — transcription and text
+    // translation carry on — but they are not invisible to the USER: spoken
+    // output has stopped, and (in managed mode) the session is still billed at
+    // the speech-to-speech rate. A console.error and a debug event reach
+    // neither. Surfaced through the same onError channel handleSttError and
+    // handleBudgetExhausted use, which puts a system bubble in the
+    // conversation and a session.error entry in the LogsPanel.
+    //
+    // Reported ONCE per failure episode: ttsFailedOnce is reset on a successful
+    // reconnect, so a later genuine failure reports again. The condition for
+    // raising the error is deliberately unchanged — only its visibility is.
     if (!this.ttsFailedOnce) {
       this.ttsFailedOnce = true;
       console.error(`[SonioxClient] TTS error ${code}: ${message} — spoken translation degraded`);
       this.emitRealtime('client', 'tts.degraded', { code, message });
+      this.eventHandlers.onError?.({
+        // Namespaced so a UI branching on `code` cannot confuse a degraded-TTS
+        // report with the STT error of the same wire code.
+        code: `tts_${code}`,
+        message: i18n.t(
+          'mainPanel.sonioxTtsFailed',
+          'Spoken translation has stopped. Transcription and text translation are still running.'
+        ),
+      });
     }
   }
 

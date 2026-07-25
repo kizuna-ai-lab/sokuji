@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
     "sonioxServiceBusy": "Soniox hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
     "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
+    "sonioxTtsFailed": "Bản dịch giọng nói đã dừng. Phiên âm và dịch văn bản vẫn đang hoạt động.",
     "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn Bắt đầu để tiếp tục."
   },
   "modePicker": {

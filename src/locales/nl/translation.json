@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",
     "sonioxServiceBusy": "Soniox zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
     "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
+    "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
     "sonioxSegmentEnded": "Dit segment is beëindigd — tik op Start om door te gaan."
   },
   "modePicker": {

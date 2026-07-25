@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox 暂时不可用。请稍后重试。",
     "sonioxServiceBusy": "Soniox 当前容量已满。请稍后重试。",
     "sonioxBudgetExhausted": "您的会话余额已用完。请充值以继续翻译。",
+    "sonioxTtsFailed": "语音翻译已停止。转录和文字翻译仍在继续。",
     "sonioxSegmentEnded": "本段已结束——点击“开始”以继续。"
   },
   "modePicker": {

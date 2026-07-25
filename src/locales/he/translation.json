@@ -496,6 +496,7 @@
     "sonioxServiceUnavailable": "Soniox אינו זמין באופן זמני. אנא נסו שוב בעוד רגע.",
     "sonioxServiceBusy": "Soniox פועל כרגע בקיבולת מלאה. אנא נסו שוב בקרוב.",
     "sonioxBudgetExhausted": "יתרת ההפעלה שלכם נוצלה במלואה. טענו את היתרה שלכם כדי להמשיך לתרגם.",
+    "sonioxTtsFailed": "התרגום המדובר הופסק. התמלול ותרגום הטקסט ממשיכים לפעול.",
     "sonioxSegmentEnded": "קטע זה הסתיים — הקישו על התחל כדי להמשיך."
   },
   "modePicker": {
