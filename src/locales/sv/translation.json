@@ -212,6 +212,7 @@
     "simpleMode": "Snabb",
     "sonioxSharedSession": "Delad session i läget Båda",
     "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk talarseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
+    "sonioxSharedSessionManaged": "Kizuna AI kör läget Båda som en enda delad session, så detta kan inte stängas av.",
     "sonioxAutoParticipantWarning": "Välj ett specifikt källspråk — med automatisk identifiering kan den andra deltagarens tal inte översättas till ditt språk."
   },
   "simpleSettings": {

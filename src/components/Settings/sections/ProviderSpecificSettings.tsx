@@ -56,6 +56,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } f
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
+import { sonioxUsesSharedBothSession } from '../../../services/providers/SonioxProviderConfig';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import { useMode } from '../../../stores/audioStore';
@@ -1755,37 +1756,59 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // In You-only or Others-only mode there's nothing to share, so the pill
     // is greyed out (still shows the persisted preference, just inert).
     const inBoth = mode === 'both';
-    const shared = activeSonioxSettings.bothModeSharedSession;
+    // Managed (Kizuna) Soniox has no choice to offer: the backend's session
+    // lease is account-scoped, so "Disabled" would open a second client that
+    // the backend refuses with 409 — You→Others would work while Others→You
+    // silently did not. Forced on and locked, with the reason shown, rather
+    // than letting the user pick a mode the backend cannot honour.
+    const managed = isKizunaManagedProvider(provider);
+    const shared = sonioxUsesSharedBothSession(provider, activeSonioxSettings);
+    const lockedOff = isSessionActive || !inBoth || managed;
 
     return (
       <div className="settings-section" id="soniox-settings-section">
         <h2>
           {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
-          <Tooltip
-            content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
+          {/* The Enabled/Disabled tooltip recommends "Disabled" for reliability,
+              which is advice a managed account cannot act on — the inline note
+              below replaces it there. */}
+          {!managed && (
+            <Tooltip
+              content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          )}
         </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
             <button
               className={`option-button ${shared ? 'active' : ''}`}
               onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: true })}
-              disabled={isSessionActive || !inBoth}
+              disabled={lockedOff}
             >
               {t('settings.enabled', 'Enabled')}
             </button>
             <button
               className={`option-button ${!shared ? 'active' : ''}`}
               onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: false })}
-              disabled={isSessionActive || !inBoth}
+              disabled={lockedOff}
             >
               {t('settings.disabled', 'Disabled')}
             </button>
           </div>
         </div>
+        {managed && (
+          <div className="setting-item">
+            <div className="setting-description">
+              {t(
+                'settings.sonioxSharedSessionManaged',
+                'Kizuna AI runs Both mode as one shared session, so this cannot be turned off.'
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

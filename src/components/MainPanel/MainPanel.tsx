@@ -26,6 +26,7 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -1581,10 +1582,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const sonioxActiveSettings = useSettingsStore.getState()[
         ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
       ] as { bothModeSharedSession?: boolean; sourceLanguage?: string };
+      // sonioxUsesSharedBothSession forces the shared path on for the managed
+      // twin whatever the stored preference says: the backend lease is
+      // account-scoped, so two clients means the second gets a 409 and
+      // Others→You silently never runs. The settings UI disables the control
+      // for the twin; this reads the same helper so a `false` persisted before
+      // that (or by BYOK use of the same account) cannot resurrect it.
       const sonioxSharedBoth =
         (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
         effectiveMode === 'both' &&
-        (sonioxActiveSettings.bothModeSharedSession ?? true) &&
+        sonioxUsesSharedBothSession(provider, sonioxActiveSettings) &&
         sonioxActiveSettings.sourceLanguage !== 'auto';
 
       // Speaker channel: only initialize when mic is selected + enabled.

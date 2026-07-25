@@ -212,6 +212,7 @@
     "simpleMode": "Nhanh",
     "sonioxSharedSession": "Phiên dùng chung ở chế độ Cả hai",
     "sonioxSharedSessionTooltip": "Chế độ Cả hai có thể dùng một phiên Soniox chung hoặc một phiên riêng cho mỗi chiều.\n\nĐã bật: một phiên dịch cả hai chiều với tự động tách người nói — chi phí và độ trễ thấp hơn.\n\nĐã tắt: một phiên riêng cho mỗi chiều — đáng tin cậy hơn khi cả hai cùng nói, nhưng chi phí khoảng gấp đôi.\n\nChỉ ảnh hưởng đến chế độ Cả hai.",
+    "sonioxSharedSessionManaged": "Kizuna AI chạy chế độ Cả hai trong một phiên dùng chung duy nhất, nên không thể tắt tùy chọn này.",
     "sonioxAutoParticipantWarning": "Hãy chọn một ngôn ngữ nguồn cụ thể — khi dùng nhận diện tự động, không thể dịch lời của người kia sang ngôn ngữ của bạn."
   },
   "simpleSettings": {

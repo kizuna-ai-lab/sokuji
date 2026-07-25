@@ -212,6 +212,7 @@
     "simpleMode": "Szybki",
     "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
     "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem mówców — niższy koszt i opóźnienie.\n\nWyłączony: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt około dwukrotnie wyższy.\n\nDotyczy tylko trybu Oba.",
+    "sonioxSharedSessionManaged": "Kizuna AI uruchamia tryb Oba w jednej wspólnej sesji, więc nie można tego wyłączyć.",
     "sonioxAutoParticipantWarning": "Wybierz konkretny język źródłowy — przy automatycznym wykrywaniu nie można przetłumaczyć wypowiedzi drugiej osoby na Twój język."
   },
   "simpleSettings": {
