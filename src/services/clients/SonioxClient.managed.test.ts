@@ -65,6 +65,10 @@ function speechToSpeechResponse() {
     rateUsdPerHour: 0.6,
     sku: 'soniox:speech_to_speech',
     leaseId: 'lease-abc-123',
+    // Distinct from leaseId on purpose — this is the namespaced string the
+    // backend bound to the temporary key(s); the tests below assert THIS
+    // exact value (not leaseId) reaches Soniox.
+    clientReferenceId: 'sokuji1:acct-1:lease-abc-123',
   };
 }
 
@@ -78,6 +82,7 @@ function textOnlyResponse() {
     rateUsdPerHour: 0.12,
     sku: 'soniox:text_only',
     leaseId: 'lease-text-only-1',
+    clientReferenceId: 'sokuji1:acct-1:lease-text-only-1',
   };
 }
 
@@ -160,6 +165,34 @@ describe('SonioxClient managed mode: key routing (never leaks the session token 
     const tts = ttsInstances.at(-1)!;
     expect(stt.config!.clientReferenceId).toBeTruthy();
     expect(stt.config!.clientReferenceId).toBe(tts.options.clientReferenceId);
+  });
+
+  it('both sockets send the backend-issued clientReferenceId verbatim — not leaseId, and not two different values', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    const stt = sttInstances.at(-1)!;
+    const tts = ttsInstances.at(-1)!;
+    // The exact string the backend computed and bound to the temporary keys —
+    // not the bare leaseId, which the reconciler's parseClientRefId rejects.
+    expect(stt.config!.clientReferenceId).toBe('sokuji1:acct-1:lease-abc-123');
+    expect(tts.options.clientReferenceId).toBe('sokuji1:acct-1:lease-abc-123');
+    expect(stt.config!.clientReferenceId).not.toBe('lease-abc-123');
+    expect(tts.options.clientReferenceId).not.toBe('lease-abc-123');
+  });
+});
+
+describe('SonioxClient managed mode: missing clientReferenceId is a backend contract break', () => {
+  it('rejects connect() rather than falling back to leaseId when clientReferenceId is absent from the response', async () => {
+    const response = speechToSpeechResponse() as Record<string, unknown>;
+    delete response.clientReferenceId;
+    mockFetchOnce(200, response);
+    const client = managedClient();
+
+    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.toThrow(/clientReferenceId/);
+    // No socket should have been opened with the known-to-be-rejected leaseId.
+    expect(sttInstances).toHaveLength(0);
   });
 });
 

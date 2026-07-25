@@ -56,6 +56,11 @@ interface SonioxSessionKeyResponse {
   rateUsdPerHour: number;
   sku: string;
   leaseId: string;
+  // The exact `sokuji1:<accountId>:<leaseId>` string the backend already
+  // bound to the temporary key(s) — see fetchManagedSession's docstring for
+  // why this, not leaseId, is what gets sent to Soniox as
+  // `client_reference_id`.
+  clientReferenceId: string;
 }
 
 export class SonioxClient implements IClient {
@@ -322,10 +327,22 @@ export class SonioxClient implements IClient {
     this.managedSttApiKey = data.sttApiKey;
     this.managedTtsApiKey = data.ttsApiKey ?? null;
     this.leaseId = data.leaseId;
-    // The session-key response carries no separate clientReferenceId field —
-    // leaseId is the only per-session identifier it returns, so both sockets
-    // are told to use it.
-    this.clientReferenceId = data.leaseId;
+    // The backend already bound `client_reference_id = sokuji1:<accountId>:
+    // <leaseId>` to the temporary key(s) it just minted (see session-lease.ts's
+    // `clientRefIdFor`). The reconciler that attributes usage logs back to a
+    // lease requires exactly that namespaced format — the bare leaseId fails
+    // its parse and the session goes unattributed (never charged, lease never
+    // released). Both sockets must echo back this EXACT string, not leaseId,
+    // and not recompute/reformat it here.
+    //
+    // No fallback to leaseId: a missing clientReferenceId is a backend
+    // contract break that must surface as a failed connect, not be silently
+    // papered over with a value already known to be rejected by the
+    // reconciler.
+    if (!data.clientReferenceId) {
+      throw new Error('Soniox session-key response is missing clientReferenceId');
+    }
+    this.clientReferenceId = data.clientReferenceId;
     this.costMeter = new SonioxCostMeter({
       budgetMicroUsd: data.budgetMicroUsd,
       rateUsdPerHour: data.rateUsdPerHour,
