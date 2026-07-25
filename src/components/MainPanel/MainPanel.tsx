@@ -1451,10 +1451,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             { type: 'session.init_error', data: { message: errorMessage } },
             'client', 'session.init_error'
           );
-          // Also surface this in the conversation items (not just the realtime
-          // event log) so the idle-state derivation (subtitleIdleState.ts) can
-          // detect the failure and the subtitle window shows why start didn't
-          // happen — see the equivalent append in the outer catch block below.
+          // Also surface this in the conversation items, not just the realtime
+          // event log, which is unreachable from the subtitle bar — see the
+          // equivalent append in the outer catch block below.
+          //
+          // The subtitle window will actually render this as `blocked`, not
+          // `failed`: validateApiKey has just set isApiKeyValid false, so the
+          // start gate is closed by the time the idle body re-derives, and
+          // blocked wins over failed (subtitleIdleState.ts). That is the more
+          // actionable of the two — it routes to the right settings section.
+          // The item still earns its keep in the main window's conversation.
           setItems(prevItems => [...prevItems, {
             id: `error-${Date.now()}`,
             role: 'system',
