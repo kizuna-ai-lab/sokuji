@@ -107,3 +107,65 @@ describe('SubtitleBar export button', () => {
     expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
   });
 });
+
+describe('SubtitleBar session pill', () => {
+  // Shaped by hand rather than derived from the component's props type — this
+  // test file does not import React.
+  interface SessionControl {
+    isSessionActive: boolean;
+    isInitializing: boolean;
+    canStart: boolean;
+    onStart: ReturnType<typeof vi.fn>;
+    onStop: ReturnType<typeof vi.fn>;
+  }
+  const control = (over: Partial<SessionControl> = {}): SessionControl => ({
+    isSessionActive: false,
+    isInitializing: false,
+    canStart: true,
+    onStart: vi.fn(),
+    onStop: vi.fn(),
+    ...over,
+  });
+
+  it('renders a start pill when idle and ready', () => {
+    const c = control();
+    render(<SubtitleBar {...baseProps} surface="electron" sessionControl={c} />);
+    const btn = screen.getByLabelText('Start session');
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    expect(c.onStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the start pill when the session cannot start', () => {
+    const c = control({ canStart: false });
+    render(<SubtitleBar {...baseProps} surface="electron" sessionControl={c} />);
+    expect(screen.getByLabelText('Start session')).toBeDisabled();
+  });
+
+  it('renders a stop pill during a session', () => {
+    const c = control({ isSessionActive: true });
+    render(<SubtitleBar {...baseProps} surface="electron" sessionControl={c} />);
+    const btn = screen.getByLabelText('Stop session');
+    fireEvent.click(btn);
+    expect(c.onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the pill while initializing', () => {
+    const c = control({ isInitializing: true });
+    render(<SubtitleBar {...baseProps} surface="electron" sessionControl={c} />);
+    expect(screen.getByLabelText('Start session')).toBeDisabled();
+  });
+
+  // Start/stop from the overlay is out of scope: the side panel is always
+  // visible there and owns session control.
+  it('does NOT render the pill on the extension-overlay surface', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" sessionControl={control()} />);
+    expect(screen.queryByLabelText('Start session')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Stop session')).not.toBeInTheDocument();
+  });
+
+  it('renders nothing when no session control is supplied', () => {
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    expect(screen.queryByLabelText('Start session')).not.toBeInTheDocument();
+  });
+});

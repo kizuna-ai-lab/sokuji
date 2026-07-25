@@ -126,4 +126,29 @@
     margin: 0 4px;
   }
 
+  .subtitle-bar__session {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 18px;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    cursor: pointer;
+    padding: 0;
+    -webkit-app-region: no-drag;
+    transition: background 120ms ease, opacity 120ms ease;
+
+    &.is-start { background: #10a37f; }
+    &.is-stop  { background: #e74c3c; }
+
+    &:disabled {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: default;
+    }
+  }
+
 }

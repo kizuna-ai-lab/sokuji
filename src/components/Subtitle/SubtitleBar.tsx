@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
   Pin, Lock, X, Settings, Trash2, Maximize, Minimize,
+  Play, Square, Loader,
 } from 'lucide-react';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
@@ -42,6 +43,17 @@ interface Props {
   participantActive: boolean;
   exportProps: React.ComponentProps<typeof ExportButton>;
   surface?: SubtitleSurfaceKind;
+  /**
+   * Session start/stop, Electron surface only. Absent on the extension
+   * overlay, where the side panel owns session control.
+   */
+  sessionControl?: {
+    isSessionActive: boolean;
+    isInitializing: boolean;
+    canStart: boolean;
+    onStart: () => void;
+    onStop: () => void;
+  };
 }
 
 function formatElapsed(ms: number): string {
@@ -61,6 +73,7 @@ const SubtitleBar: React.FC<Props> = ({
   participantActive,
   exportProps,
   surface = 'electron',
+  sessionControl,
 }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
@@ -115,6 +128,29 @@ const SubtitleBar: React.FC<Props> = ({
       {...dragHandleProps}
     >
       <div className="subtitle-bar__left">
+        {surface === 'electron' && sessionControl && (
+          <button
+            type="button"
+            className={`subtitle-bar__session ${sessionControl.isSessionActive ? 'is-stop' : 'is-start'}`}
+            onClick={sessionControl.isSessionActive ? sessionControl.onStop : sessionControl.onStart}
+            disabled={
+              sessionControl.isInitializing ||
+              (!sessionControl.isSessionActive && !sessionControl.canStart)
+            }
+            title={sessionControl.isSessionActive
+              ? t('subtitle.bar.stop', 'Stop session')
+              : t('subtitle.bar.start', 'Start session')}
+            aria-label={sessionControl.isSessionActive
+              ? t('subtitle.bar.stop', 'Stop session')
+              : t('subtitle.bar.start', 'Start session')}
+          >
+            {sessionControl.isInitializing
+              ? <Loader size={11} className="spinning" />
+              : sessionControl.isSessionActive
+                ? <Square size={11} />
+                : <Play size={11} />}
+          </button>
+        )}
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
       </div>
