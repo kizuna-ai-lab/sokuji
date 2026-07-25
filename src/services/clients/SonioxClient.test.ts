@@ -149,7 +149,7 @@ describe('SonioxClient connect', () => {
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
     expect(errors).toHaveLength(0); // the recoverable eager-connect failure says nothing
 
-    const translate = () => sttInstances.at(-1)!.emit({ tokens: [
+    const translate = () => sttInstances[sttInstances.length - 1].emit({ tokens: [
       { text: 'Hi', is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' },
     ] });
 

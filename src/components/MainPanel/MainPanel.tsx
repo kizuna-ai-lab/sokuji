@@ -22,11 +22,12 @@ import {
   useCurrentTurnDetectionMode,
   useSubtitleModeActive,
   useKeepReplayAudio,
+  useTextOnly,
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
+import { sonioxUsesSharedBothSession, sonioxManagedMinBalanceMicroUsd } from '../../services/providers/SonioxProviderConfig';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -346,11 +347,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
-  // Balance validation for Kizuna AI. Require a POSITIVE balance to start (a zero
-  // or negative balance can't begin a session); the relay enforces the same gate
-  // server-side, and cuts the session off if usage drives the balance negative.
+  // Balance validation for Kizuna AI. Require enough balance to actually START
+  // a session; the relay enforces the same gate server-side, and cuts the
+  // session off if usage drives the balance negative.
+  //
+  // Managed Soniox has a real floor rather than "any positive balance": the
+  // backend refuses to issue a session key below the price of its shortest
+  // session (60s) at the SKU's rate — $0.01 text-only, $0.025
+  // speech-to-speech. Gating on `> 0` showed a user in between a green Start
+  // and then a 402. The 402 stays as the backstop; this just stops the button
+  // lying about it.
+  const textOnly = useTextOnly();
+  const managedBalanceFloorMicroUsd = provider === Provider.KIZUNA_AI_SONIOX
+    ? sonioxManagedMinBalanceMicroUsd(textOnly)
+    : 1; // µUSD are integers, so `>= 1` is the old `> 0`.
+  const managedBalanceTooLow = isKizunaManagedProvider(provider) &&
+    !!quota && quota.balance !== undefined && quota.balance < managedBalanceFloorMicroUsd;
   const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
-    (quota && quota.balance !== undefined && quota.balance > 0 && !quota.frozen);
+    (quota && quota.balance !== undefined && quota.balance >= managedBalanceFloorMicroUsd && !quota.frozen);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
@@ -3436,8 +3450,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
                       : isKizunaManagedProvider(provider) && quota && quota.frozen
                         ? t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')
-                        : isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0
-                          ? t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota.balance ?? 0) })
+                        : managedBalanceTooLow
+                          ? t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota?.balance ?? 0) })
                           : provider === Provider.LOCAL_INFERENCE
                             ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
                             : undefined
@@ -3609,8 +3623,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
-                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0 && !quota.frozen && (
-                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota.balance ?? 0) })}</span>
+                    {missingDeviceForMode === null && isApiKeyValid && managedBalanceTooLow && !quota?.frozen && (
+                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota?.balance ?? 0) })}</span>
                     )}
                   </>
                 )}
