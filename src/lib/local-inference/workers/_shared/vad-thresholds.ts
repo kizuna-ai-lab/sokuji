@@ -33,9 +33,14 @@ export interface ResolvedVadThresholds {
 
 export function resolveVadThresholds(config?: Pick<VadWebConfig, 'threshold' | 'negativeThreshold'>): ResolvedVadThresholds {
   const positive = config?.threshold ?? DEFAULT_POSITIVE_THRESHOLD;
-  const requested = config?.negativeThreshold ?? positive - NEGATIVE_THRESHOLD_OFFSET;
-  const clamped = Math.max(Math.min(requested, positive), MIN_NEGATIVE_THRESHOLD);
-  // Thresholds are two-decimal knobs; keep the derived value out of float dust
-  // (0.2 - 0.15 = 0.05000000000000002) so logs and comparisons stay readable.
-  return { positive, negative: Math.round(clamped * 100) / 100 };
+  // Thresholds are two-decimal knobs; round the DERIVED value out of float dust
+  // (0.2 - 0.15 = 0.05000000000000002). An explicit value is passed through as
+  // given — and rounding after the clamp below could push it back above
+  // `positive`, which is the inversion this whole module exists to prevent.
+  const requested = config?.negativeThreshold
+    ?? Math.round((positive - NEGATIVE_THRESHOLD_OFFSET) * 100) / 100;
+  // The floor never wins over the positive threshold: a positive threshold below
+  // MIN_NEGATIVE_THRESHOLD would otherwise come back inverted.
+  const floor = Math.min(MIN_NEGATIVE_THRESHOLD, positive);
+  return { positive, negative: Math.min(Math.max(requested, floor), positive) };
 }

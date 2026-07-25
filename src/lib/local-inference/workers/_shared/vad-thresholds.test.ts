@@ -26,6 +26,13 @@ describe('resolveVadThresholds', () => {
     expect(resolveVadThresholds({ threshold: 0.1 })).toEqual({ positive: 0.1, negative: 0.01 });
   });
 
+  it('never returns a negative threshold above the positive one, even under the floor', () => {
+    // A positive threshold below the floor must win: returning the floor would
+    // invert the pair, which is the exact failure this module exists to prevent.
+    const { positive, negative } = resolveVadThresholds({ threshold: 0.005 });
+    expect(negative).toBeLessThanOrEqual(positive);
+  });
+
   it('floors an explicit zero negative threshold', () => {
     expect(resolveVadThresholds({ threshold: 0.5, negativeThreshold: 0 }))
       .toEqual({ positive: 0.5, negative: 0.01 });
