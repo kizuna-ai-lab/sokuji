@@ -57,6 +57,7 @@ import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audi
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
+import { formatUsd } from '../../utils/formatters';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -1417,7 +1418,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Refresh user profile and quota after session ends
-      // This ensures the token balance is updated after usage
+      // This ensures the wallet balance is updated after usage
       if (refetchAll) {
         refetchAll().catch(error => {
           console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
@@ -1500,7 +1501,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
-      // client is created — saves a WebSocket and, for Kizuna AI, token cost.
+      // client is created — saves a WebSocket and, for Kizuna AI, wallet cost.
       if (speakerWillStart) {
         // Determine if WebRTC transport should be used
         let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
@@ -3302,7 +3303,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       : isKizunaManagedProvider(provider) && quota && quota.frozen
                         ? t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')
                         : isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0
-                          ? t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })
+                          ? t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota.balance ?? 0) })
                           : provider === Provider.LOCAL_INFERENCE
                             ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
                             : undefined
@@ -3470,7 +3471,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                     )}
                     {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0 && !quota.frozen && (
-                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
+                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota.balance ?? 0) })}</span>
                     )}
                   </>
                 )}

@@ -3,29 +3,20 @@
  */
 
 /**
- * Format large numbers (tokens) in a human-readable format
- * @param tokens Number of tokens
- * @returns Formatted string (e.g., "1.5M", "150K", "1234")
+ * Format a micro-USD wallet amount (1 USD = 1,000,000 micro-USD) as a display
+ * currency string. Mirrors the `formatUsd` helper in the backend web dashboard
+ * (sokuji-backend/web/src/pages/dashboard/Wallet.tsx).
+ * @param microUsd Amount in micro-USD
+ * @returns Formatted string (e.g., "$3.42")
  */
-export function formatTokens(tokens: number): string {
-  if (tokens >= 1000000) {
-    const millions = tokens / 1000000;
-    return millions >= 10 
-      ? `${Math.round(millions)}M` 
-      : `${millions.toFixed(1)}M`;
-  } else if (tokens >= 1000) {
-    const thousands = tokens / 1000;
-    return thousands >= 10 
-      ? `${Math.round(thousands)}K` 
-      : `${thousands.toFixed(1)}K`;
-  }
-  return tokens.toString();
+export function formatUsd(microUsd: number): string {
+  return `$${(microUsd / 1_000_000).toFixed(2)}`;
 }
 
 /**
  * Calculate usage percentage
- * @param used Number of tokens used
- * @param total Total token quota
+ * @param used Amount used
+ * @param total Total quota
  * @returns Percentage (0-100)
  */
 export function formatPercentage(used: number, total: number): number {
@@ -48,8 +39,8 @@ export function formatDate(dateString: string): string {
 
 /**
  * Determine quota warning level based on usage percentage
- * @param used Number of tokens used
- * @param total Total token quota
+ * @param used Amount used
+ * @param total Total quota
  * @returns Warning level: 'normal' | 'warning' | 'critical'
  */
 export function getQuotaWarningLevel(used: number, total: number): 'normal' | 'warning' | 'critical' {

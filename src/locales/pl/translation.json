@@ -442,7 +442,7 @@
     "send": "Wyślij",
     "error": "Błąd",
     "unknownError": "Nieznany błąd",
-    "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
+    "insufficientBalance": "Niewystarczające saldo: {{balance}}",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
     "localModelsRequired": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
     "clearConversation": "Wyczyść rozmowę",

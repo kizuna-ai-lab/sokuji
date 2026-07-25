@@ -442,7 +442,7 @@
     "send": "भेजें",
     "error": "त्रुटि",
     "unknownError": "अज्ञात त्रुटि",
-    "insufficientBalance": "अपर्याप्त टोकन शेष: {{balance}} टोकन",
+    "insufficientBalance": "अपर्याप्त शेष राशि: {{balance}}",
     "walletFrozen": "वॉलेट फ्रीज है। कृपया सहायता से संपर्क करें।",
     "localModelsRequired": "शुरू करने के लिए कृपया सेटिंग्स में आवश्यक मॉडल डाउनलोड करें।",
     "clearConversation": "वार्तालाप साफ़ करें",

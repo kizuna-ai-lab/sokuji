@@ -442,7 +442,7 @@
     "send": "Senden",
     "error": "Fehler",
     "unknownError": "Unbekannter Fehler",
-    "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
+    "insufficientBalance": "Unzureichendes Guthaben: {{balance}}",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
     "localModelsRequired": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
     "clearConversation": "Unterhaltung löschen",

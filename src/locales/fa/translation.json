@@ -442,7 +442,7 @@
     "send": "ارسال",
     "error": "خطا",
     "unknownError": "خطای ناشناخته",
-    "insufficientBalance": "موجودی توکن ناکافی: {{balance}} توکن",
+    "insufficientBalance": "موجودی ناکافی: {{balance}}",
     "walletFrozen": "کیف پول مسدود شده است. لطفاً با پشتیبانی تماس بگیرید.",
     "localModelsRequired": "لطفاً برای شروع مدل‌های مورد نیاز را از تنظیمات دانلود کنید.",
     "clearConversation": "پاک کردن مکالمه",

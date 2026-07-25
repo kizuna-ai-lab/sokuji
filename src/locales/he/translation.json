@@ -442,7 +442,7 @@
     "send": "שלח",
     "error": "שגיאה",
     "unknownError": "שגיאה לא ידועה",
-    "insufficientBalance": "יתרת אסימונים לא מספקת: {{balance}} אסימונים",
+    "insufficientBalance": "יתרה לא מספקת: {{balance}}",
     "walletFrozen": "הארנק מוקפא. אנא צור קשר עם התמיכה.",
     "localModelsRequired": "אנא הורד את המודלים הנדרשים בהגדרות כדי להתחיל.",
     "clearConversation": "נקה שיחה",

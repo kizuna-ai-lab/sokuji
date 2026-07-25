@@ -442,7 +442,7 @@
     "send": "Send",
     "error": "Error",
     "unknownError": "Unknown error",
-    "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
+    "insufficientBalance": "Insufficient balance: {{balance}}",
     "walletFrozen": "Wallet is frozen. Please contact support.",
     "localModelsRequired": "Please download the required models in Settings to start.",
     "clearConversation": "Clear conversation",

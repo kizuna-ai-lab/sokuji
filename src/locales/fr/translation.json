@@ -442,7 +442,7 @@
     "send": "Envoyer",
     "error": "Erreur",
     "unknownError": "Erreur inconnue",
-    "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
+    "insufficientBalance": "Solde insuffisant : {{balance}}",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
     "localModelsRequired": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
     "clearConversation": "Effacer la conversation",

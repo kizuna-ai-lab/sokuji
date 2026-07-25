@@ -442,7 +442,7 @@
     "send": "Надіслати",
     "error": "Помилка",
     "unknownError": "Невідома помилка",
-    "insufficientBalance": "Недостатній баланс токенів: {{balance}} токенів",
+    "insufficientBalance": "Недостатній баланс: {{balance}}",
     "walletFrozen": "Гаманець заморожено. Зверніться до підтримки.",
     "localModelsRequired": "Завантажте необхідні моделі в Налаштуваннях, щоб почати.",
     "clearConversation": "Очистити розмову",

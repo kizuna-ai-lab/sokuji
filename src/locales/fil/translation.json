@@ -442,7 +442,7 @@
     "send": "Ipadala",
     "error": "Error",
     "unknownError": "Hindi kilalang error",
-    "insufficientBalance": "Hindi sapat ang token balance: {{balance}} token",
+    "insufficientBalance": "Hindi sapat ang balanse: {{balance}}",
     "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
     "localModelsRequired": "Mangyaring i-download ang mga kinakailangang modelo sa Mga Setting para makapagsimula.",
     "clearConversation": "Burahin ang usapan",

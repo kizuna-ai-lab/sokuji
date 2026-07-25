@@ -442,7 +442,7 @@
     "send": "পাঠান",
     "error": "ত্রুটি",
     "unknownError": "অজানা ত্রুটি",
-    "insufficientBalance": "অপর্যাপ্ত টোকেন ব্যালেন্স: {{balance}} টোকেন",
+    "insufficientBalance": "অপর্যাপ্ত ব্যালেন্স: {{balance}}",
     "walletFrozen": "ওয়ালেট ফ্রিজ করা হয়েছে। অনুগ্রহ করে সহায়তায় যোগাযোগ করুন।",
     "localModelsRequired": "শুরু করতে অনুগ্রহ করে সেটিংসে প্রয়োজনীয় মডেলগুলি ডাউনলোড করুন।",
     "clearConversation": "কথোপকথন মুছুন",

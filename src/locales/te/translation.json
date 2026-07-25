@@ -442,7 +442,7 @@
     "send": "పంపు",
     "error": "లోపం",
     "unknownError": "తెలియని లోపం",
-    "insufficientBalance": "తగినంత టోకెన్ బ్యాలెన్స్ లేదు: {{balance}} టోకెన్‌లు",
+    "insufficientBalance": "తగినంత బ్యాలెన్స్ లేదు: {{balance}}",
     "walletFrozen": "వాలెట్ ఫ్రీజ్ చేయబడింది. దయచేసి సపోర్ట్‌ను సంప్రదించండి.",
     "localModelsRequired": "ప్రారంభించడానికి సెట్టింగ్‌లలో అవసరమైన మోడల్‌లను డౌన్‌లోడ్ చేయండి.",
     "clearConversation": "సంభాషణ తొలగించు",

@@ -442,7 +442,7 @@
     "send": "Kirim",
     "error": "Kesalahan",
     "unknownError": "Kesalahan tidak diketahui",
-    "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
+    "insufficientBalance": "Saldo tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
     "localModelsRequired": "Silakan unduh model yang diperlukan di Pengaturan untuk memulai.",
     "clearConversation": "Hapus percakapan",

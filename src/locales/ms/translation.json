@@ -442,7 +442,7 @@
     "send": "Hantar",
     "error": "Ralat",
     "unknownError": "Ralat tidak diketahui",
-    "insufficientBalance": "Baki token tidak mencukupi: {{balance}} token",
+    "insufficientBalance": "Baki tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
     "localModelsRequired": "Sila muat turun model yang diperlukan dalam Tetapan untuk bermula.",
     "clearConversation": "Padam perbualan",

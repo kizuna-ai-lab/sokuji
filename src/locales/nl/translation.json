@@ -442,7 +442,7 @@
     "send": "Verzenden",
     "error": "Fout",
     "unknownError": "Onbekende fout",
-    "insufficientBalance": "Onvoldoende tokensaldo: {{balance}} tokens",
+    "insufficientBalance": "Onvoldoende saldo: {{balance}}",
     "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
     "localModelsRequired": "Download de vereiste modellen in Instellingen om te beginnen.",
     "clearConversation": "Gesprek wissen",

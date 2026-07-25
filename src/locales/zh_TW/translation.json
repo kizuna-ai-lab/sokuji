@@ -442,7 +442,7 @@
     "send": "發送",
     "error": "錯誤",
     "unknownError": "未知錯誤",
-    "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
+    "insufficientBalance": "餘額不足：{{balance}}",
     "walletFrozen": "錢包已凍結。請聯繫客服。",
     "localModelsRequired": "請先在設定中下載所需的模型才能開始使用。",
     "clearConversation": "清除對話",

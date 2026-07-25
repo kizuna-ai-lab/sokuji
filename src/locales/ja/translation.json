@@ -442,7 +442,7 @@
     "send": "送信",
     "error": "エラー",
     "unknownError": "不明なエラー",
-    "insufficientBalance": "トークン残高不足: {{balance}} トークン",
+    "insufficientBalance": "残高不足: {{balance}}",
     "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
     "localModelsRequired": "開始するには設定で必要なモデルをダウンロードしてください。",
     "clearConversation": "会話をクリア",

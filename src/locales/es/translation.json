@@ -442,7 +442,7 @@
     "send": "Enviar",
     "error": "Error",
     "unknownError": "Error desconocido",
-    "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
+    "insufficientBalance": "Saldo insuficiente: {{balance}}",
     "walletFrozen": "Billetera congelada. Contacte con soporte.",
     "localModelsRequired": "Por favor, descarga los modelos necesarios en Configuración para comenzar.",
     "clearConversation": "Borrar conversación",

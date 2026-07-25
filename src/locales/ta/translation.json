@@ -442,7 +442,7 @@
     "send": "அனுப்பு",
     "error": "பிழை",
     "unknownError": "அறியப்படாத பிழை",
-    "insufficientBalance": "போதிய டோக்கன் இருப்பு இல்லை: {{balance}} டோக்கன்கள்",
+    "insufficientBalance": "போதிய இருப்பு இல்லை: {{balance}}",
     "walletFrozen": "வாலட் முடக்கப்பட்டுள்ளது. ஆதரவை தொடர்பு கொள்ளவும்.",
     "localModelsRequired": "தொடங்க அமைப்புகளில் தேவையான மாதிரிகளைப் பதிவிறக்கவும்.",
     "clearConversation": "உரையாடலை அழி",

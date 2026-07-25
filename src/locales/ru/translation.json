@@ -442,7 +442,7 @@
     "send": "Отправить",
     "error": "Ошибка",
     "unknownError": "Неизвестная ошибка",
-    "insufficientBalance": "Недостаточный баланс токенов: {{balance}} токенов",
+    "insufficientBalance": "Недостаточный баланс: {{balance}}",
     "walletFrozen": "Кошелёк заморожен. Обратитесь в поддержку.",
     "localModelsRequired": "Загрузите необходимые модели в Настройках, чтобы начать.",
     "clearConversation": "Очистить разговор",

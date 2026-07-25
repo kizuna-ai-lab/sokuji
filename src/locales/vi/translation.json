@@ -442,7 +442,7 @@
     "send": "Gửi",
     "error": "Lỗi",
     "unknownError": "Lỗi không xác định",
-    "insufficientBalance": "Số dư token không đủ: {{balance}} token",
+    "insufficientBalance": "Số dư không đủ: {{balance}}",
     "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
     "localModelsRequired": "Vui lòng tải xuống các mô hình cần thiết trong Cài đặt để bắt đầu.",
     "clearConversation": "Xóa hội thoại",

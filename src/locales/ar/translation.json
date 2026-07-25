@@ -442,7 +442,7 @@
     "send": "إرسال",
     "error": "خطأ",
     "unknownError": "خطأ غير معروف",
-    "insufficientBalance": "رصيد الرموز غير كافٍ: {{balance}} رمز",
+    "insufficientBalance": "رصيد غير كافٍ: {{balance}}",
     "walletFrozen": "المحفظة مجمدة. يرجى الاتصال بالدعم.",
     "localModelsRequired": "يرجى تنزيل النماذج المطلوبة من الإعدادات للبدء.",
     "clearConversation": "مسح المحادثة",

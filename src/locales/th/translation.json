@@ -442,7 +442,7 @@
     "send": "ส่ง",
     "error": "ข้อผิดพลาด",
     "unknownError": "ข้อผิดพลาดที่ไม่รู้จัก",
-    "insufficientBalance": "ยอดโทเค็นไม่เพียงพอ: {{balance}} โทเค็น",
+    "insufficientBalance": "ยอดคงเหลือไม่เพียงพอ: {{balance}}",
     "walletFrozen": "กระเป๋าเงินถูกระงับ กรุณาติดต่อฝ่ายสนับสนุน",
     "localModelsRequired": "กรุณาดาวน์โหลดโมเดลที่จำเป็นในการตั้งค่าเพื่อเริ่มต้นใช้งาน",
     "clearConversation": "ล้างการสนทนา",

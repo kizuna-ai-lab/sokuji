@@ -442,7 +442,7 @@
     "send": "Lähetä",
     "error": "Virhe",
     "unknownError": "Tuntematon virhe",
-    "insufficientBalance": "Riittämätön token-saldo: {{balance}} tokenia",
+    "insufficientBalance": "Riittämätön saldo: {{balance}}",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
     "localModelsRequired": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
     "clearConversation": "Tyhjennä keskustelu",

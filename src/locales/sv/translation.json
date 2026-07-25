@@ -442,7 +442,7 @@
     "send": "Skicka",
     "error": "Fel",
     "unknownError": "Okänt fel",
-    "insufficientBalance": "Otillräckligt tokensaldo: {{balance}} tokens",
+    "insufficientBalance": "Otillräckligt saldo: {{balance}}",
     "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
     "localModelsRequired": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
     "clearConversation": "Rensa konversation",
