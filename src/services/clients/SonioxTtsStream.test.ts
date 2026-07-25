@@ -170,6 +170,33 @@ describe('SonioxTtsStream', () => {
     expect(errors).toEqual(['socket_closed']);
   });
 
+  it('reports hadActiveStream=true on onclose when a stream carrying real text was lost mid-utterance', async () => {
+    const { t, ws } = await openTts();
+    const calls: Array<[string, string, boolean]> = [];
+    t.setHandlers({ onError: (code, message, hadActiveStream) => calls.push([code, message, hadActiveStream]) });
+    t.sendText('Hi', 'en'); // opens utt-1 and marks it used — a real utterance in flight
+    ws.close(); // unexpected remote close, mid-utterance
+    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', true]]);
+  });
+
+  it('reports hadActiveStream=false on onclose for an ordinary idle-timeout drop (no stream ever carried text)', async () => {
+    const { t, ws } = await openTts();
+    const calls: Array<[string, string, boolean]> = [];
+    t.setHandlers({ onError: (code, message, hadActiveStream) => calls.push([code, message, hadActiveStream]) });
+    // No sendText/endUtterance: the socket is genuinely idle when it drops.
+    ws.close();
+    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', false]]);
+  });
+
+  it('reports hadActiveStream=false when only a prewarmed, never-used stream is open at drop time', async () => {
+    const { t, ws } = await openTts();
+    const calls: Array<[string, string, boolean]> = [];
+    t.setHandlers({ onError: (code, message, hadActiveStream) => calls.push([code, message, hadActiveStream]) });
+    t.prewarm('en'); // activeStreamId is set, but no real utterance content was ever sent
+    ws.close();
+    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', false]]);
+  });
+
   it('stays silent on an intentional close', async () => {
     const { t, ws } = await openTts();
     const errors: string[] = [];

@@ -118,7 +118,7 @@ export class SonioxTtsStream {
         if (data.error_code != null) {
           // Snapshot BEFORE handleStreamFailure clears it — this is the seam
           // the caller uses to tell an idle-timeout drop from a genuine one.
-          const hadActiveStream = this.activeStreamId !== null || this.drainingStreamId !== null;
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
           this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream);
           this.handleStreamFailure(data.stream_id);
         } else if (data.audio && (data.stream_id === this.activeStreamId || data.stream_id === this.drainingStreamId)) {
@@ -140,7 +140,7 @@ export class SonioxTtsStream {
         if (!opened) {
           reject(error instanceof Error ? error : new Error('Soniox TTS connection failed'));
         } else {
-          const hadActiveStream = this.activeStreamId !== null || this.drainingStreamId !== null;
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
           this.handlers.onError?.('socket_error', String(error), hadActiveStream);
         }
       };
@@ -157,7 +157,7 @@ export class SonioxTtsStream {
         }
         if (!this.intentionalClose) {
           // Snapshot BEFORE clearing — same seam as the error branch above.
-          const hadActiveStream = this.activeStreamId !== null || this.drainingStreamId !== null;
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
           this.activeStreamId = null;
           this.activeLanguage = null;
           this.activeStreamUsed = false;
