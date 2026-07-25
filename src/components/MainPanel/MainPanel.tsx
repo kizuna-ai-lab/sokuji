@@ -51,7 +51,9 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible, isKizunaManagedProvider, kizunaBaseProvider } from '../../types/Provider';
+import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../types/Provider';
+import { computeStartGate, reasonToI18n } from './sessionStartGate';
+import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
@@ -343,12 +345,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
-  // Balance validation for Kizuna AI. Require a POSITIVE balance to start (a zero
-  // or negative balance can't begin a session); the relay enforces the same gate
-  // server-side, and cuts the session off if usage drives the balance negative.
-  const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
-    (quota && quota.balance !== undefined && quota.balance > 0 && !quota.frozen);
-
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
   const currentMode = useMode();
@@ -413,9 +409,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
   // values: 'speaker', 'participant', or 'both'.
-  const canStartSession = isApiKeyValid && availableModels.length > 0 &&
-    !loadingModels && !isInitializing && hasValidBalance &&
-    missingDeviceForMode === null;
+  //
+  // The gate also carries WHY it is closed, so the tooltip below and the
+  // subtitle window (via useSubtitleSessionBridge) explain the blocker with
+  // one shared implementation. See sessionStartGate.ts.
+  const startGate = useMemo(
+    () => computeStartGate({
+      isApiKeyValid,
+      availableModelCount: availableModels.length,
+      loadingModels,
+      isInitializing,
+      provider,
+      quota,
+      missingDeviceForMode,
+    }),
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode],
+  );
+  const canStartSession = startGate.canStart;
 
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
@@ -1880,6 +1890,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     participantWillStart
   ]);
 
+  // Bridge to surfaces outside this React tree (the Electron subtitle window):
+  // publishes the start gate + init state, and turns their start/stop requests
+  // into calls on this component's own session functions.
+  useSubtitleSessionBridge({
+    startGate,
+    isInitializing,
+    initProgress,
+    onStart: connectConversation,
+    onStop: disconnectConversation,
+  });
+
   /**
    * In push-to-talk mode, start recording
    * .appendInputAudio() for each sample
@@ -3253,16 +3274,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
                 title={
-                  !canStartSession && !isSessionActive
-                    ? missingDeviceForMode !== null
-                      ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
-                      : isKizunaManagedProvider(provider) && quota && quota.frozen
-                        ? t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')
-                        : isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0
-                          ? t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })
-                          : provider === Provider.LOCAL_INFERENCE
-                            ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                            : undefined
+                  !isSessionActive && startGate.reason
+                    ? t(
+                        reasonToI18n(startGate.reason).key,
+                        reasonToI18n(startGate.reason).defaultValue,
+                        { balance: startGate.balance },
+                      )
                     : undefined
                 }
               >
@@ -3405,29 +3422,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
-                    {missingDeviceForMode !== null && (
+                    {startGate.reason && (
                       <span className="tooltip">
-                        {t('modePicker.missingDevice', 'Configure devices for this mode to start.')}
+                        {t(
+                          reasonToI18n(startGate.reason).key,
+                          reasonToI18n(startGate.reason).defaultValue,
+                          { balance: startGate.balance },
+                        )}
                       </span>
-                    )}
-                    {missingDeviceForMode === null && !isApiKeyValid && (
-                      <span className="tooltip">
-                        {provider === Provider.LOCAL_INFERENCE
-                          ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                          : t('mainPanel.apiKeyRequired')}
-                      </span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
-                      <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && loadingModels && (
-                      <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
-                      <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.balance !== undefined && quota.balance <= 0 && !quota.frozen && (
-                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                     )}
                   </>
                 )}
