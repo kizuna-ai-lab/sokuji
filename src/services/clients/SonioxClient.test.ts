@@ -26,7 +26,7 @@ class MockStt {
 
 const ttsInstances: MockTts[] = [];
 class MockTts {
-  handlers: { onAudio?: (a: Int16Array) => void; onError?: (c: string, m: string) => void } = {};
+  handlers: { onAudio?: (a: Int16Array) => void; onError?: (c: string, m: string, hadActiveStream: boolean) => void } = {};
   options: unknown;
   prewarmed: string[] = [];
   sent: Array<{ text: string; language: string }> = [];
@@ -709,5 +709,56 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
     expect(tts0.sent).toEqual([]);                              // nothing fed to the dead stream
     expect(tts1.sent).toEqual([{ text: 'Hello', language: 'en' }]); // flushed to the fresh one
     expect(tts1.utteranceEnds).toBe(1);                         // queued end flushed after the text
+  });
+
+  it('an idle-timeout drop (408, no active stream) followed by a successful reconnect surfaces NOTHING to the user', async () => {
+    const client = new SonioxClient('key');
+    const errors: Array<{ code: string; message: string }> = [];
+    const realtimeEvents: Array<{ event: { type: string } }> = [];
+    client.setEventHandlers({
+      onError: (e: any) => errors.push(e),
+      onRealtimeEvent: (e: any) => realtimeEvents.push(e),
+    });
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const tts0 = ttsInstances.at(-1)!;
+
+    // Simulate the server's real sequence for an idle-timeout drop: a 408
+    // error frame with no active/draining stream, then the follow-up close.
+    tts0.handlers.onError?.('408', 'Request timeout', false);
+    tts0.closed = true;
+
+    // A translation needs speaking → feedTts finds the socket closed and
+    // reconnects on demand; the reconnect succeeds (MockTts.failConnect stays
+    // false by default).
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    await new Promise((r) => setTimeout(r, 0)); // let ensureTts connect + flush
+
+    expect(errors).toHaveLength(0);
+    expect(realtimeEvents.filter((e) => e.event.type === 'tts.degraded')).toHaveLength(0);
+    expect(ttsInstances.at(-1)).not.toBe(tts0); // reconnect did happen
+  });
+
+  it('a drop whose reconnect fails DOES surface the failure', async () => {
+    const client = new SonioxClient('key');
+    const errors: Array<{ code: string; message: string }> = [];
+    client.setEventHandlers({ onError: (e: any) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const tts0 = ttsInstances.at(-1)!;
+
+    // Same idle-timeout drop as above...
+    tts0.handlers.onError?.('408', 'Request timeout', false);
+    tts0.closed = true;
+    // ...but this time the reconnect itself fails (e.g. the 401 a spent/
+    // expired key produces).
+    MockTts.failConnect = true;
+
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    await new Promise((r) => setTimeout(r, 0)); // let ensureTts's connect reject
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toMatch(/^tts_/);
+    expect(errors[0].message).toMatch(/spoken translation has stopped/i);
   });
 });

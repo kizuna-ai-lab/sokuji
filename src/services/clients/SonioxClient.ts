@@ -562,7 +562,7 @@ export class SonioxClient implements IClient {
     });
     stream.setHandlers({
       onAudio: (audio) => this.emitAssistantAudio(audio),
-      onError: (code, message) => this.handleTtsError(code, message),
+      onError: (code, message, hadActiveStream) => this.handleTtsError(code, message, hadActiveStream),
     });
     return stream;
   }
@@ -602,8 +602,10 @@ export class SonioxClient implements IClient {
       }
     } catch (error) {
       // Reconnect itself failed → spoken output genuinely unavailable now.
+      // hadActiveStream is always true here: this IS the "tried to resume
+      // speech and could not" signal, unconditionally worth surfacing.
       this.ttsPending = [];
-      if (gen === this.generation) this.handleTtsError('connect_failed', String(error));
+      if (gen === this.generation) this.handleTtsError('connect_failed', String(error), true);
     } finally {
       this.ttsConnecting = false;
     }
@@ -841,13 +843,18 @@ export class SonioxClient implements IClient {
     this.eventHandlers.onError?.({ code, message });
   }
 
-  private handleTtsError(code: string, message: string): void {
-    // An idle TTS socket is closed by the server (~5.3 s, 408: "Request
-    // timeout"; measured live) between utterances and is recovered by
-    // reconnecting on the next translation (ensureTts) — that's expected, not
-    // a degradation, so don't surface it. Only a genuine failure (a reconnect
-    // that itself failed, or a wire-level error code) degrades spoken output.
-    if (code === 'socket_closed' || code === 'socket_error') return;
+  private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {
+    // hadActiveStream — not the wire code — decides whether this is worth
+    // surfacing. A drop with no active/draining stream (nothing was actually
+    // being spoken) is an idle-timeout: expected server behavior (~5.3 s,
+    // measured live) recovered silently the next time ensureTts reconnects,
+    // no matter whether the wire reports it as 408 "Request timeout",
+    // socket_error, or a plain close. Only a drop that hit an in-flight
+    // utterance, or a reconnect attempt that itself failed (ensureTts's
+    // catch, which always passes true) — i.e. "we tried to resume speech and
+    // could not", not "the socket closed" — means spoken output has
+    // genuinely stopped.
+    if (!hadActiveStream) return;
     // TTS errors are non-fatal to the SESSION — transcription and text
     // translation carry on — but they are not invisible to the USER: spoken
     // output has stopped, and (in managed mode) the session is still billed at
