@@ -65,13 +65,16 @@ counter that MainPanel watches to run local logic on behalf of a remote caller
 (`sessionStore.ts:69`, consumed at `MainPanel.tsx:899`). Start/Stop needs
 exactly one of each.
 
-**3. Start failures are already carried in `items`.** On session-init failure
-MainPanel appends a `type: 'error'` system item **after**
-`await disconnectConversation()` (`MainPanel.tsx:1849`, with a comment
-explaining the ordering), and the `items` mirror effect (`MainPanel.tsx:874`)
-pushes it into `sessionStore`. The failure text is therefore already readable
-from the subtitle window — no `lastStartError` field is needed, and the
-subtitle window necessarily shows the *same* error string as the main window.
+**3. Start failures are carried in `items`.** On session-init failure MainPanel
+appends a `type: 'error'` system item **after** `await disconnectConversation()`
+(`MainPanel.tsx:1849`, with a comment explaining the ordering), and the `items`
+mirror effect (`MainPanel.tsx:874`) pushes it into `sessionStore`. This was
+initially true only for that throw path; the two reachable early returns
+(all-channels-failed, and the local-model revalidation guard) were fixed to
+append the same shape so they are covered too. The failure text is therefore
+readable from the subtitle window for every start-failure path — no
+`lastStartError` field is needed, and the subtitle window necessarily shows
+the *same* error string as the main window.
 
 The one thing that genuinely is not reachable: `canStartSession`
 (`MainPanel.tsx:416`) is a local `useMemo` over six conditions, and its
@@ -213,6 +216,7 @@ the toolbar pill fades with its siblings, which is the consistent behavior.
 | `src/stores/sessionStore.ts` | `startGate` mirror fields, `isInitializing`, `initProgress`, `startSessionVersion` / `stopSessionVersion`, `requestSessionStart()` / `requestSessionStop()` |
 | `src/components/MainPanel/MainPanel.tsx` | call the bridge hook; Start tooltip reads `computeStartGate` |
 | `src/components/Subtitle/SubtitleEnterButton.tsx` | Electron: no longer disabled; extension: unchanged |
+| `src/stores/settingsStore.ts` | `enterSubtitleMode`'s entry guard: allow entry on Electron without an active session, matching `SubtitleEnterButton`'s gating |
 | `src/components/Subtitle/SubtitleSessionEnded.tsx` → `SubtitleIdle.tsx` | five-state idle body |
 | `src/components/Subtitle/SubtitleBar.tsx` | persistent Start/Stop pill, `surface === 'electron'` only |
 | `src/components/Subtitle/SubtitleApp.scss` | idle body styles |
