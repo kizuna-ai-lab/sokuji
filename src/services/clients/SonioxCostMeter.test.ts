@@ -57,4 +57,16 @@ describe('SonioxCostMeter', () => {
     expect(m.remainingSeconds).toBe(0);
     expect(Number.isFinite(m.remainingSeconds)).toBe(true);
   });
+
+  it('rounds a partial micro-dollar up, never down', () => {
+    // 1 second at $0.60/hour:
+    // (1000 ms / 3_600_000 ms/hr) * $0.60/hr * 1_000_000 µUSD/USD
+    // = (1 / 3600) * 0.6 * 1_000_000
+    // = 166.666... µUSD
+    // ceil(166.666...) = 167, floor(166.666...) = 166
+    const m = new SonioxCostMeter({ budgetMicroUsd: 1_000_000, rateUsdPerHour: 0.6 });
+    m.start(0);
+    m.tick(1000);  // 1 second
+    expect(m.spentMicroUsd).toBe(167);
+  });
 });
