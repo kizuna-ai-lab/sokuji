@@ -24,6 +24,7 @@ import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-a
 import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
+import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { StreamingAudioFeed, StreamingTextAccumulator } from './_shared/streaming-generation';
 
 import type {
@@ -99,8 +100,7 @@ async function initVad(vadConfig?: VoxtralAsrInitMessage['vadConfig'], vadModelU
     state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
   };
 
-  const positiveSpeechThreshold = vadConfig?.threshold ?? 0.3;
-  const negativeSpeechThreshold = vadConfig?.negativeThreshold ?? 0.25;
+  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;

@@ -96,6 +96,12 @@ export interface VadValues {
   vadThreshold: number;
   vadMinSilenceDuration: number;
   vadMinSpeechDuration: number;
+  /**
+   * Silence-confirmation threshold, vad-web workers only — omit it and the
+   * slider is hidden (the sherpa-onnx engine derives its own hysteresis).
+   * 0 means "auto": the worker derives it from vadThreshold.
+   */
+  vadNegativeThreshold?: number;
 }
 
 export const VadControl: React.FC<{
@@ -124,6 +130,26 @@ export const VadControl: React.FC<{
           className="slider" disabled={disabled}
         />
       </div>
+      {values.vadNegativeThreshold !== undefined && (
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>
+              {t('settings.vadNegativeThreshold', 'Silence Threshold')}
+              <Tooltip content={t('settings.vadNegativeThresholdTooltip', 'Probability below which silence starts counting toward the end of a segment. Auto keeps it 0.15 under the speech threshold. It never applies above the speech threshold — that would stop segments from ever ending.')} position="top">{inlineHelpIcon}</Tooltip>
+            </span>
+            <span className="setting-value">
+              {values.vadNegativeThreshold === 0
+                ? t('settings.vadNegativeThresholdAuto', 'Auto')
+                : values.vadNegativeThreshold.toFixed(2)}
+            </span>
+          </div>
+          <input
+            type="range" min="0" max="0.9" step="0.05" value={values.vadNegativeThreshold}
+            onChange={(e) => onChange({ vadNegativeThreshold: parseFloat(e.target.value) })}
+            className="slider" disabled={disabled}
+          />
+        </div>
+      )}
       <div className="setting-item">
         <div className="setting-label">
           <span>
