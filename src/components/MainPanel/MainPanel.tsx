@@ -1805,6 +1805,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const participantInScope = sessionMode === 'participant' || sessionMode === 'both';
       const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current !== null;
 
+      // Set (not appended) by the participant catch block below when the
+      // channel fails non-fatally. Deferred rather than appended immediately
+      // because setItems(speakerClientRef.current?.getConversationItems() ||
+      // []) further down unconditionally overwrites state — appending before
+      // that point would get wiped (participant-only: overwritten with [];
+      // Both mode: overwritten with the speaker's just-started list).
+      let participantErrorMessage: string | null = null;
+
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
@@ -1924,19 +1932,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // participant channel silently dead with no visible explanation.
           // Surface it the same way onError does elsewhere in this file: a
           // log entry plus a conversation bubble.
-          const participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
+          // The bubble itself is appended later (after the setItems overwrite
+          // below) — see the comment on the `participantErrorMessage`
+          // declaration above.
+          participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
           addRealtimeEvent(
             { type: 'participant.error', data: { message: participantErrorMessage } },
             'client', 'participant.error'
           );
-          setItems(prevItems => [...prevItems, {
-            id: `error-${Date.now()}`,
-            role: 'system',
-            type: 'error',
-            status: 'completed',
-            createdAt: Date.now(),
-            formatted: { text: participantErrorMessage },
-          }]);
         }
       }
 
@@ -1960,6 +1963,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setLockedMode(sessionMode);
       setIsSessionActive(true);
       setItems(speakerClientRef.current?.getConversationItems() || []);
+
+      // Appended AFTER the setItems overwrite above: it would otherwise
+      // wipe this entry (participant-only: overwritten with []; Both mode:
+      // overwritten with the speaker's just-started list). See the
+      // `participantErrorMessage` declaration near the participant block
+      // for why this is deferred instead of appended in the catch itself.
+      if (participantErrorMessage) {
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: participantErrorMessage },
+        }]);
+      }
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
