@@ -10,6 +10,7 @@ import {
 import { isElectron, isExtension } from '../../utils/environment';
 import { useToast } from '../Toast';
 import { CONTENT_SCRIPT_UNAVAILABLE } from './surfaces/ExtensionContentScriptSubtitleSurface';
+import { canEnterSubtitleMode } from './subtitleEnterGate';
 
 const SubtitleEnterButton: React.FC = () => {
   const { t } = useTranslation();
@@ -26,11 +27,9 @@ const SubtitleEnterButton: React.FC = () => {
   const enterLabel = t('subtitle.enterButton.label', 'Subtitle');
   const exitLabel = t('subtitle.exitButton.label', 'Exit subtitle');
 
-  // The Electron subtitle window carries its own Start control, so it can be
-  // opened at any time — users position and size it before the meeting
-  // (issue #324). The extension overlay has no such control (the side panel
-  // owns session control there), so it stays session-gated.
-  const canEnter = isElectron() || isSessionActive;
+  // Shared with settingsStore.enterSubtitleMode (see subtitleEnterGate.ts) so
+  // this button can never be enabled for a click the store would refuse.
+  const canEnter = canEnterSubtitleMode(isSessionActive);
   const enterTooltip = canEnter
     ? t('subtitle.enterButton.title', 'Enter subtitle mode')
     : t('subtitle.enterButton.disabled', 'Start a session first');
