@@ -17,7 +17,8 @@ export type StartBlockReason =
   | 'no-models'
   | 'loading-models'
   | 'wallet-frozen'
-  | 'insufficient-balance';
+  | 'insufficient-balance'
+  | 'quota-unknown';
 
 export type DeviceScope = 'speaker' | 'participant' | 'both';
 
@@ -36,7 +37,11 @@ export interface StartGate {
 }
 
 export interface StartGateInput {
-  isApiKeyValid: boolean;
+  // MainPanel's isApiKeyValid state is `boolean | null` (null while
+  // validation hasn't resolved yet); widened here to match. All internal
+  // uses are in boolean contexts (`!isApiKeyValid`), so `null` behaves the
+  // same as `false` and this widening changes no behavior.
+  isApiKeyValid: boolean | null;
   availableModelCount: number;
   loadingModels: boolean;
   isInitializing: boolean;
@@ -94,9 +99,14 @@ export function computeStartGate(input: StartGateInput): StartGate {
   if (kizunaManaged && quota?.balance !== undefined && quota.balance <= 0) {
     return { canStart: false, reason: 'insufficient-balance', balance: quota.balance };
   }
-  // Defensive: hasValidBalance failed for a Kizuna provider with no quota
-  // loaded yet. Treat it as an account problem rather than reporting nothing.
-  return { canStart: false, reason: 'insufficient-balance' };
+  // Defensive: hasValidBalance failed for a Kizuna provider whose quota
+  // hasn't loaded yet (quota is still null — the profile fetch is async and
+  // can fail). This is NOT known to be an account problem, so it must not
+  // be reported as 'insufficient-balance': that reason's message
+  // interpolates {{balance}}, which would render as an empty slot ("...:
+  // tokens") and route the user to the account page for a problem that may
+  // not exist. 'quota-unknown' is its own distinct, inert reason instead.
+  return { canStart: false, reason: 'quota-unknown' };
 }
 
 /**
@@ -121,6 +131,9 @@ export function reasonToSettingsTarget(
     case 'insufficient-balance':
       return 'user-account';
     case 'loading-models':
+    // Quota state is unknown (not confirmed insufficient), so there is
+    // nothing concrete to send the user to fix — same as 'loading-models'.
+    case 'quota-unknown':
       return null;
   }
 }
@@ -146,5 +159,7 @@ export function reasonToI18n(reason: StartBlockReason): { key: string; defaultVa
       return { key: 'mainPanel.walletFrozen', defaultValue: 'Wallet is frozen. Please contact support.' };
     case 'insufficient-balance':
       return { key: 'mainPanel.insufficientBalance', defaultValue: 'Insufficient token balance: {{balance}} tokens' };
+    case 'quota-unknown':
+      return { key: 'tokenUsage.unableToLoadQuota', defaultValue: 'Unable to load quota information' };
   }
 }

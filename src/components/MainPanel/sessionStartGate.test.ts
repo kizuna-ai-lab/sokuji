@@ -81,6 +81,21 @@ describe('computeStartGate', () => {
     ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 0 });
   });
 
+  // Defensive fallback: the Kizuna-managed profile fetch is async and can
+  // still be null/pending when the gate is computed. This must not be
+  // reported as 'insufficient-balance' — that reason's message interpolates
+  // {{balance}}, which would render as an empty slot for a problem that may
+  // not exist (issue found in whole-branch review, Fix 4).
+  it('reports quota-unknown when a Kizuna-managed provider has no quota loaded yet', () => {
+    expect(
+      computeStartGate({
+        ...ready,
+        provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+        quota: null,
+      }),
+    ).toEqual({ canStart: false, reason: 'quota-unknown' });
+  });
+
   it('ignores balance for providers that are not Kizuna-managed', () => {
     expect(computeStartGate({ ...ready, quota: { balance: 0, frozen: true } })).toEqual({
       canStart: true,
@@ -150,6 +165,10 @@ describe('reasonToSettingsTarget', () => {
   it('offers no destination for the transient loading state', () => {
     expect(reasonToSettingsTarget('loading-models')).toBeNull();
   });
+
+  it('offers no destination when the quota state is unknown', () => {
+    expect(reasonToSettingsTarget('quota-unknown')).toBeNull();
+  });
 });
 
 describe('reasonToI18n', () => {
@@ -157,11 +176,19 @@ describe('reasonToI18n', () => {
     const reasons = [
       'missing-device', 'local-models-missing', 'api-key-invalid',
       'no-models', 'loading-models', 'wallet-frozen', 'insufficient-balance',
+      'quota-unknown',
     ] as const;
     for (const reason of reasons) {
       const entry = reasonToI18n(reason);
-      expect(entry.key).toMatch(/^(mainPanel|modePicker)\./);
+      expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage)\./);
       expect(entry.defaultValue.length).toBeGreaterThan(0);
     }
+  });
+
+  it('maps quota-unknown to the existing tokenUsage.unableToLoadQuota key (no new i18n key)', () => {
+    expect(reasonToI18n('quota-unknown')).toEqual({
+      key: 'tokenUsage.unableToLoadQuota',
+      defaultValue: 'Unable to load quota information',
+    });
   });
 });
