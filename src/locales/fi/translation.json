@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)",
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
     "waveformSystemTooltip": "Osallistujan ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
-    "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen."
+    "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen.",
+    "participantChannelFailed": "Osallistujan äänikanavan käynnistys epäonnistui.",
+    "sonioxInsufficientBalance": "Saldo ei riitä istunnon aloittamiseen. Lataa saldoasi ja yritä uudelleen.",
+    "sonioxSessionConflict": "Tililläsi on jo käynnissä toinen istunto. Yritä uudelleen hetken kuluttua.",
+    "sonioxServiceUnavailable": "Soniox ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",
+    "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
+    "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
+    "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla Aloita."
   },
   "modePicker": {
     "modeYou": "Sinä",

@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)",
     "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",
     "waveformSystemTooltip": "Audio ng kalahok na kinukuha para isalin (browser tab / system audio)",
-    "allChannelsFailed": "Hindi nagsimula ang anumang audio channel. Suriin ang mga pahintulot ng device at subukang muli."
+    "allChannelsFailed": "Hindi nagsimula ang anumang audio channel. Suriin ang mga pahintulot ng device at subukang muli.",
+    "participantChannelFailed": "Nabigong simulan ang audio channel ng kalahok.",
+    "sonioxInsufficientBalance": "Hindi sapat ang balanse para simulan ang session. Mangyaring mag-top up ng iyong balanse at subukang muli.",
+    "sonioxSessionConflict": "May isa nang aktibong session sa iyong account. Pakisubukang muli sa ilang sandali.",
+    "sonioxServiceUnavailable": "Pansamantalang hindi available ang Soniox. Pakisubukang muli sa ilang sandali.",
+    "sonioxServiceBusy": "Ganap sa kapasidad ang Soniox sa ngayon. Pakisubukang muli sa madaling panahon.",
+    "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
+    "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang Start para magpatuloy."
   },
   "modePicker": {
     "modeYou": "Ikaw",

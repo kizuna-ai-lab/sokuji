@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "傳送到虛擬麥克風的音訊（翻譯 + 原聲直通）",
     "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",
     "waveformSystemTooltip": "擷取參與者音訊用於翻譯（瀏覽器分頁 / 系統音訊）",
-    "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。"
+    "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。",
+    "participantChannelFailed": "無法啟動參與者音訊通道。",
+    "sonioxInsufficientBalance": "餘額不足,無法開始工作階段。請儲值後再試一次。",
+    "sonioxSessionConflict": "您的帳戶中已有另一個工作階段正在進行。請稍後再試一次。",
+    "sonioxServiceUnavailable": "Soniox 暫時無法使用。請稍後再試一次。",
+    "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
+    "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
+    "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。"
   },
   "modePicker": {
     "modeYou": "您",

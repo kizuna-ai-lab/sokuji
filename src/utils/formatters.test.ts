@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatUsd } from './formatters';
+import { formatUsd, formatRemainingTime } from './formatters';
 
 describe('formatUsd', () => {
   it('renders micro-USD as a 2dp dollar string', () => {
@@ -28,5 +28,30 @@ describe('formatUsd', () => {
 
   it('rejects a non-number that would coerce (a string balance from bad JSON)', () => {
     expect(formatUsd('3420000' as unknown as number)).toBe('$0.00');
+  });
+});
+
+describe('formatRemainingTime', () => {
+  it('renders sub-hour durations as mm:ss', () => {
+    expect(formatRemainingTime(0)).toBe('00:00');
+    expect(formatRemainingTime(59_000)).toBe('00:59');
+    expect(formatRemainingTime(60_000)).toBe('01:00');
+    expect(formatRemainingTime(1_800_000)).toBe('30:00');
+  });
+
+  it('renders hour-plus durations as h:mm:ss', () => {
+    expect(formatRemainingTime(3_600_000)).toBe('01:00:00');
+    expect(formatRemainingTime(3_661_000)).toBe('01:01:01');
+  });
+
+  it('rounds to the nearest second', () => {
+    expect(formatRemainingTime(59_600)).toBe('01:00');
+    expect(formatRemainingTime(59_400)).toBe('00:59');
+  });
+
+  it('clamps negative or non-finite input to 00:00 rather than a garbled clock', () => {
+    expect(formatRemainingTime(-5_000)).toBe('00:00');
+    expect(formatRemainingTime(NaN)).toBe('00:00');
+    expect(formatRemainingTime(Infinity)).toBe('00:00');
   });
 });

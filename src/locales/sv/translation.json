@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)",
     "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",
     "waveformSystemTooltip": "Deltagarljud som fångas för översättning (webbläsarflik / systemljud)",
-    "allChannelsFailed": "Kunde inte starta någon ljudkanal. Kontrollera enhetsbehörigheterna och försök igen."
+    "allChannelsFailed": "Kunde inte starta någon ljudkanal. Kontrollera enhetsbehörigheterna och försök igen.",
+    "participantChannelFailed": "Det gick inte att starta deltagarens ljudkanal.",
+    "sonioxInsufficientBalance": "Otillräckligt saldo för att starta en session. Fyll på ditt saldo och försök igen.",
+    "sonioxSessionConflict": "En annan session pågår redan på ditt konto. Försök igen om en liten stund.",
+    "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",
+    "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
+    "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
+    "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på Start för att fortsätta."
   },
   "modePicker": {
     "modeYou": "Du",

@@ -57,7 +57,8 @@ import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audi
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
-import { formatUsd } from '../../utils/formatters';
+import { formatUsd, formatRemainingTime } from '../../utils/formatters';
+import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -417,9 +418,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Others/Both with an 'auto' source can't start. Matches the LanguageSection
   // warning (`showSonioxAutoParticipantWarning`); the user must pick a concrete
   // source first. `participantWillStart` === isParticipantChannelInScope.
-  const sonioxSourceLanguage = useSettingsStore((s) => s.soniox.sourceLanguage);
+  //
+  // Resolves the EFFECTIVE provider (kizunaBaseProvider) and reads the
+  // ACTIVE provider's settings slice via its descriptor's settingsSliceKey —
+  // mirrors LanguageSection.showSonioxAutoParticipantWarning exactly. A raw
+  // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
+  // (as this used to be) is always false for the KIZUNA_AI_SONIOX managed
+  // twin, so this gate silently no-op'd for it: LanguageSection still showed
+  // the warning (it already resolved the effective provider correctly), but
+  // Start stayed enabled — clicking it left the participant channel's
+  // connect() to fail non-fatally and silently (see the catch block around
+  // participant client startup below, which now surfaces that failure).
+  const activeProviderSourceLanguage = useSettingsStore(
+    (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { sourceLanguage?: string } | undefined)?.sourceLanguage
+  );
   const sonioxAutoParticipantBlocked =
-    provider === Provider.SONIOX && participantWillStart && sonioxSourceLanguage === 'auto';
+    (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
+    participantWillStart && activeProviderSourceLanguage === 'auto';
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
@@ -1012,6 +1027,46 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => clearInterval(interval);
   }, [isSessionActive, sessionStartTime]);
 
+  // Managed Soniox remaining-time countdown for the status footer. The
+  // session's budget/rate/start-time are fixed for the whole session (see
+  // SonioxCostMeter.getBudgetSnapshot), so this captures them once and then
+  // re-evaluates the same pure wall-clock formula against Date.now() every
+  // second — a smooth per-second countdown without polling the cost meter
+  // itself, which only advances on the STT stream's ~5s keepalive tick.
+  // Only the KIZUNA_AI_SONIOX managed twin has a budget to count down; BYOK
+  // Soniox has no cost meter and getManagedBudgetInfo() is always null there.
+  const sonioxBudgetInfoRef = useRef<SonioxBudgetSnapshot | null>(null);
+  const [sonioxCountdown, setSonioxCountdown] = useState<{ remainingMs: number; totalMs: number } | null>(null);
+  useEffect(() => {
+    if (!isSessionActive || provider !== Provider.KIZUNA_AI_SONIOX) {
+      sonioxBudgetInfoRef.current = null;
+      setSonioxCountdown(null);
+      return;
+    }
+    const update = () => {
+      if (!sonioxBudgetInfoRef.current) {
+        // Whichever client is the real managed-session core: speaker if
+        // present, else participant (participant-only mode). Both
+        // single-session's participant ref is an inert secondary port with
+        // no budget info of its own — see createSecondaryPort.
+        const client = speakerClientRef.current ?? participantClientRef.current;
+        sonioxBudgetInfoRef.current = client?.getManagedBudgetInfo?.() ?? null;
+      }
+      const info = sonioxBudgetInfoRef.current;
+      setSonioxCountdown(info ? {
+        remainingMs: computeSonioxRemainingMs(Date.now(), info),
+        totalMs: computeSonioxBudgetTotalMs(info),
+      } : null);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [isSessionActive, provider]);
+  // Below 20% of the session's granted budget, the countdown switches to a
+  // stronger visual emphasis (see the `.low` class in MainPanel.scss).
+  const sonioxRemainingLow = !!sonioxCountdown && sonioxCountdown.totalMs > 0
+    && sonioxCountdown.remainingMs / sonioxCountdown.totalMs < 0.2;
+
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
 
@@ -1186,6 +1241,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Route through disconnectConversation — handles both clients, audio,
         // streaming tracks, profile refresh, and the re-entry guard.
         await disconnectConversationRef.current?.();
+
+        // Managed Soniox: SonioxClient tags this close with sonioxDurationCutoff
+        // when Soniox dropped the session at its granted duration (a 403 error
+        // frame immediately followed by this close — see SonioxClient's onClose
+        // docstring). Show a dedicated "segment ended" notice instead of a raw
+        // error, and — per explicit product decision — do NOT auto-reconnect
+        // here (a silent reconnect would restart billing without the user
+        // knowing); the user must tap Start again to begin a new segment.
+        // Appended AFTER disconnectConversation: it calls
+        // setItems(client.getConversationItems()), which would otherwise
+        // overwrite this entry (the client has no items for a synthetic notice).
+        if (event?.sonioxDurationCutoff) {
+          setItems(prevItems => [...prevItems, {
+            id: `notice-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start to continue.') },
+          }]);
+        }
       },
       onConversationInterrupted: async () => {
         // Handle conversation interruption
@@ -1493,11 +1569,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Both mode uses ONE shared Soniox two_way session (mic+system mixed) when the
       // shared-session toggle is on and the source language is concrete; else 2 clients.
+      //
+      // Resolves the EFFECTIVE provider and reads the ACTIVE provider's settings
+      // slice (soniox for BYOK, kizunaSoniox for the KIZUNA_AI_SONIOX managed
+      // twin) — mirrors the sonioxAutoParticipantBlocked gate above. A raw
+      // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
+      // (as this used to be) is always false for the twin, so it opened TWO
+      // independent managed sessions instead of one shared one; the backend's
+      // per-account lease is single-session, so the second connect() was refused
+      // with 409 and Both mode simply didn't work for the twin.
+      const sonioxActiveSettings = useSettingsStore.getState()[
+        ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
+      ] as { bothModeSharedSession?: boolean; sourceLanguage?: string };
       const sonioxSharedBoth =
-        provider === Provider.SONIOX &&
+        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
         effectiveMode === 'both' &&
-        (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
-        useSettingsStore.getState().soniox.sourceLanguage !== 'auto';
+        (sonioxActiveSettings.bothModeSharedSession ?? true) &&
+        sonioxActiveSettings.sourceLanguage !== 'auto';
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
@@ -1828,7 +1916,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (error?.isGpuOom) {
             throw error;
           }
-          // Other participant errors are non-fatal — log and continue
+          // Other participant errors are non-fatal — the session continues on
+          // whichever channel(s) did come up (the post-init guard below bails
+          // if none did). But the failure must still reach the user, not just
+          // the console — previously console-only, so e.g. a managed Soniox
+          // connect failure (402/403/409/...) on this channel left the
+          // participant channel silently dead with no visible explanation.
+          // Surface it the same way onError does elsewhere in this file: a
+          // log entry plus a conversation bubble.
+          const participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
+          addRealtimeEvent(
+            { type: 'participant.error', data: { message: participantErrorMessage } },
+            'client', 'participant.error'
+          );
+          setItems(prevItems => [...prevItems, {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: participantErrorMessage },
+          }]);
         }
       }
 
@@ -3348,6 +3456,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
               )}
+              {isSessionActive && sonioxCountdown && (
+                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
+                  {formatRemainingTime(sonioxCountdown.remainingMs)}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -3502,6 +3615,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </span>
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
+              )}
+              {isSessionActive && sonioxCountdown && (
+                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
+                  {formatRemainingTime(sonioxCountdown.remainingMs)}
+                </span>
               )}
             </div>
           </div>

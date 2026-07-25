@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Âm thanh gửi đến microphone ảo (bản dịch + truyền âm thanh gốc)",
     "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",
     "waveformSystemTooltip": "Âm thanh của người tham gia được thu để dịch (tab trình duyệt / âm thanh hệ thống)",
-    "allChannelsFailed": "Không thể khởi động bất kỳ kênh âm thanh nào. Kiểm tra quyền thiết bị và thử lại."
+    "allChannelsFailed": "Không thể khởi động bất kỳ kênh âm thanh nào. Kiểm tra quyền thiết bị và thử lại.",
+    "participantChannelFailed": "Không thể khởi động kênh âm thanh của người tham gia.",
+    "sonioxInsufficientBalance": "Số dư không đủ để bắt đầu phiên. Vui lòng nạp thêm số dư và thử lại.",
+    "sonioxSessionConflict": "Một phiên khác đã đang chạy trên tài khoản của bạn. Vui lòng thử lại sau giây lát.",
+    "sonioxServiceUnavailable": "Soniox tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
+    "sonioxServiceBusy": "Soniox hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
+    "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
+    "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn Bắt đầu để tiếp tục."
   },
   "modePicker": {
     "modeYou": "Bạn",

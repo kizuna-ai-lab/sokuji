@@ -57,3 +57,22 @@ export function getQuotaWarningLevel(used: number, total: number): 'normal' | 'w
   if (percentage >= 80) return 'warning';
   return 'normal';
 }
+
+/**
+ * Format a millisecond duration as a countdown clock: `mm:ss`, or `h:mm:ss`
+ * once it reaches an hour. Matches the format MainPanel's session-duration
+ * stopwatch already uses, so a managed-session remaining-time countdown
+ * reads consistently with it.
+ *
+ * @param ms Duration in milliseconds. Negative/non-finite input renders as
+ *           "00:00" rather than a garbled or negative clock.
+ */
+export function formatRemainingTime(ms: number): string {
+  const totalSeconds = typeof ms === 'number' && Number.isFinite(ms) ? Math.max(0, Math.round(ms / 1000)) : 0;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return h > 0
+    ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}

@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Audio inviato al microfono virtuale (traduzione + passaggio audio originale)",
     "waveformMicTooltip": "Il tuo microfono — la tua voce acquisita per la traduzione",
     "waveformSystemTooltip": "Audio dei partecipanti acquisito per la traduzione (scheda del browser / audio di sistema)",
-    "allChannelsFailed": "Impossibile avviare qualsiasi canale audio. Controlla i permessi dei dispositivi e riprova."
+    "allChannelsFailed": "Impossibile avviare qualsiasi canale audio. Controlla i permessi dei dispositivi e riprova.",
+    "participantChannelFailed": "Impossibile avviare il canale audio del partecipante.",
+    "sonioxInsufficientBalance": "Saldo insufficiente per avviare una sessione. Ricarica il tuo saldo e riprova.",
+    "sonioxSessionConflict": "Un'altra sessione è già attiva sul tuo account. Riprova tra un momento.",
+    "sonioxServiceUnavailable": "Soniox non è temporaneamente disponibile. Riprova tra un momento.",
+    "sonioxServiceBusy": "Soniox è al momento alla massima capacità. Riprova a breve.",
+    "sonioxBudgetExhausted": "Il saldo della sessione è esaurito. Ricarica il tuo saldo per continuare a tradurre.",
+    "sonioxSegmentEnded": "Questo segmento è terminato — tocca Avvia per continuare."
   },
   "modePicker": {
     "modeYou": "Tu",

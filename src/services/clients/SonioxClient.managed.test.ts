@@ -96,6 +96,27 @@ function mockFetchOnce(status: number, body: unknown) {
   return fn;
 }
 
+/**
+ * Queues distinct responses in call order (for the 409-retry tests, where the
+ * first and second /soniox/session-key attempts must differ). Once the queue
+ * is drained, further calls (e.g. the fire-and-forget /soniox/session-started
+ * notification after a retry that succeeds) get a generic 200 — those calls
+ * are not under test and must not throw from an unconfigured mock.
+ */
+function mockFetchSequence(...responses: Array<{ status: number; body: unknown }>) {
+  const queue = [...responses];
+  const fn = vi.fn(async () => {
+    const next = queue.shift() ?? { status: 200, body: {} };
+    return { ok: next.status >= 200 && next.status < 300, status: next.status, json: async () => next.body };
+  });
+  vi.stubGlobal('fetch', fn);
+  return fn;
+}
+
+function sessionKeyCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter(([url]) => (url as string).includes('/soniox/session-key'));
+}
+
 function managedClient() {
   return new SonioxClient('', { managed: { sessionToken: SESSION_TOKEN } });
 }
@@ -301,5 +322,183 @@ describe('SonioxClient BYOK mode is unaffected', () => {
     const stt = sttInstances.at(-1)!;
     expect(stt.config!.apiKey).toBe('byok-key');
     expect(stt.config!.clientReferenceId).toBeUndefined();
+  });
+});
+
+describe('SonioxClient managed mode: 409 conflict — retry once using the backend\'s retryAfterMs', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('retries once and succeeds transparently when the second attempt is issued', async () => {
+    const fetchMock = mockFetchSequence(
+      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 2500 } },
+      { status: 200, body: speechToSpeechResponse() },
+    );
+    const client = managedClient();
+    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
+    await vi.advanceTimersByTimeAsync(2500);
+    await connectPromise;
+
+    expect(client.isConnected()).toBe(true);
+    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
+  });
+
+  it('waits exactly the backend-supplied retryAfterMs — not a fixed guess', async () => {
+    const fetchMock = mockFetchSequence(
+      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 7000 } },
+      { status: 200, body: speechToSpeechResponse() },
+    );
+    const client = managedClient();
+    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    await vi.advanceTimersByTimeAsync(6999);
+    expect(sessionKeyCalls(fetchMock)).toHaveLength(1); // retry has not fired yet
+
+    await vi.advanceTimersByTimeAsync(1);
+    await connectPromise;
+    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
+  });
+
+  it('falls back to a default wait only when retryAfterMs is missing from the body', async () => {
+    const fetchMock = mockFetchSequence(
+      { status: 409, body: { error: 'Another session is already active' } }, // no retryAfterMs
+      { status: 200, body: speechToSpeechResponse() },
+    );
+    const client = managedClient();
+    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
+    await vi.advanceTimersByTimeAsync(3000);
+    await connectPromise;
+
+    expect(client.isConnected()).toBe(true);
+    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
+  });
+
+  it('retries exactly once — a conflict on the retry itself rejects rather than retrying again', async () => {
+    const fetchMock = mockFetchSequence(
+      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 100 } },
+      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 100 } },
+    );
+    const client = managedClient();
+    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
+    const assertion = expect(connectPromise).rejects.toThrow(/already running|already active/i);
+    await vi.advanceTimersByTimeAsync(100);
+    await assertion;
+
+    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
+    expect(sttInstances).toHaveLength(0); // never opened a socket on the failed path
+  });
+});
+
+describe('SonioxClient managed mode: getManagedBudgetInfo', () => {
+  it('is null before connect()', () => {
+    const client = managedClient();
+    expect(client.getManagedBudgetInfo()).toBeNull();
+  });
+
+  it('is null for BYOK sessions even after connect() (no cost meter)', async () => {
+    const client = new SonioxClient('byok-key');
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    expect(client.getManagedBudgetInfo()).toBeNull();
+  });
+
+  it('returns the session\'s budget/rate/start snapshot once connected', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const before = Date.now();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    const info = client.getManagedBudgetInfo();
+    expect(info).not.toBeNull();
+    expect(info!.budgetMicroUsd).toBe(500_000);
+    expect(info!.rateUsdPerHour).toBe(0.6);
+    expect(info!.startedAtMs).toBeGreaterThanOrEqual(before);
+  });
+
+  it('is cleared back to null once reset() runs (the next connect())', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    expect(client.getManagedBudgetInfo()).not.toBeNull();
+
+    client.reset();
+    expect(client.getManagedBudgetInfo()).toBeNull();
+  });
+});
+
+describe('SonioxClient managed mode: session-duration cutoff (403 error frame + close 1000)', () => {
+  it('a managed-session 403 wire error does not push a generic error bubble or call onError', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const errors: any[] = [];
+    const updates: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e), onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('403', 'session duration exceeded');
+
+    expect(errors).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+    expect(client.getConversationItems()).toHaveLength(0);
+  });
+
+  it('tags the close that follows with sonioxDurationCutoff', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('403', 'session duration exceeded');
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(closeEvents).toHaveLength(1);
+    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
+    expect(closeEvents[0].code).toBe(1000);
+  });
+
+  it('a normal close with no preceding 403 is not tagged — no auto-reconnect signal either way', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(closeEvents).toHaveLength(1);
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+  });
+
+  it('BYOK: a mid-session 403 still surfaces as a normal error — BYOK has no granted duration', async () => {
+    const client = new SonioxClient('byok-key');
+    const errors: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('403', 'invalid api key');
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('403');
+  });
+
+  it('the pending-cutoff flag does not leak into an unrelated close from a later session', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    sttInstances.at(-1)!.handlers.onError?.('403', 'session duration exceeded');
+
+    // A fresh connect() calls reset() before anything else, which must clear
+    // the flag set by the previous session's 403.
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
   });
 });

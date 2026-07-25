@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "השמע שנשלח למיקרופון הווירטואלי (תרגום + העברת שמע מקורי)",
     "waveformMicTooltip": "המיקרופון שלך — הקול שלך שנקלט לתרגום",
     "waveformSystemTooltip": "שמע המשתתפים שנקלט לתרגום (לשונית הדפדפן / שמע המערכת)",
-    "allChannelsFailed": "הפעלת ערוצי השמע נכשלה. בדוק את הרשאות ההתקנים ונסה שוב."
+    "allChannelsFailed": "הפעלת ערוצי השמע נכשלה. בדוק את הרשאות ההתקנים ונסה שוב.",
+    "participantChannelFailed": "הפעלת ערוץ השמע של המשתתף נכשלה.",
+    "sonioxInsufficientBalance": "אין מספיק יתרה כדי להתחיל הפעלה. אנא טענו את היתרה שלכם ונסו שוב.",
+    "sonioxSessionConflict": "הפעלה אחרת כבר פועלת בחשבון שלכם. אנא נסו שוב בעוד רגע.",
+    "sonioxServiceUnavailable": "Soniox אינו זמין באופן זמני. אנא נסו שוב בעוד רגע.",
+    "sonioxServiceBusy": "Soniox פועל כרגע בקיבולת מלאה. אנא נסו שוב בקרוב.",
+    "sonioxBudgetExhausted": "יתרת ההפעלה שלכם נוצלה במלואה. טענו את היתרה שלכם כדי להמשיך לתרגם.",
+    "sonioxSegmentEnded": "קטע זה הסתיים — הקישו על התחל כדי להמשיך."
   },
   "modePicker": {
     "modeYou": "אתה",

@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
     "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",
     "waveformSystemTooltip": "Audio peserta yang ditangkap untuk terjemahan (tab pelayar / audio sistem)",
-    "allChannelsFailed": "Gagal memulakan sebarang saluran audio. Semak kebenaran peranti dan cuba lagi."
+    "allChannelsFailed": "Gagal memulakan sebarang saluran audio. Semak kebenaran peranti dan cuba lagi.",
+    "participantChannelFailed": "Gagal memulakan saluran audio peserta.",
+    "sonioxInsufficientBalance": "Baki tidak mencukupi untuk memulakan sesi. Sila tambah nilai baki anda dan cuba lagi.",
+    "sonioxSessionConflict": "Satu lagi sesi sudah aktif dalam akaun anda. Sila cuba lagi sebentar lagi.",
+    "sonioxServiceUnavailable": "Soniox tidak tersedia buat sementara waktu. Sila cuba lagi sebentar lagi.",
+    "sonioxServiceBusy": "Soniox kini pada kapasiti penuh. Sila cuba lagi tidak lama lagi.",
+    "sonioxBudgetExhausted": "Baki sesi anda telah habis. Tambah nilai baki anda untuk terus menterjemah.",
+    "sonioxSegmentEnded": "Segmen ini telah berakhir — ketik Mula untuk meneruskan."
   },
   "modePicker": {
     "modeYou": "Anda",

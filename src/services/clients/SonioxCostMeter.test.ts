@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SonioxCostMeter } from './SonioxCostMeter';
+import { SonioxCostMeter, computeSonioxRemainingMs, computeSonioxBudgetTotalMs } from './SonioxCostMeter';
 
 const opts = { budgetMicroUsd: 300_000, rateUsdPerHour: 0.6 }; // $0.30 at $0.60/hr = 1800s
 
@@ -68,5 +68,67 @@ describe('SonioxCostMeter', () => {
     m.start(0);
     m.tick(1000);  // 1 second
     expect(m.spentMicroUsd).toBe(167);
+  });
+
+  describe('getBudgetSnapshot', () => {
+    it('is null before start()', () => {
+      const m = new SonioxCostMeter(opts);
+      expect(m.getBudgetSnapshot()).toBeNull();
+    });
+
+    it('captures the static budget params and start time after start()', () => {
+      const m = new SonioxCostMeter(opts);
+      m.start(1_000);
+      expect(m.getBudgetSnapshot()).toEqual({
+        budgetMicroUsd: 300_000,
+        rateUsdPerHour: 0.6,
+        startedAtMs: 1_000,
+      });
+    });
+
+    it('does not change as time passes — it is a fixed snapshot, not a live read', () => {
+      const m = new SonioxCostMeter(opts);
+      m.start(0);
+      m.tick(900_000);
+      expect(m.getBudgetSnapshot()).toEqual({
+        budgetMicroUsd: 300_000,
+        rateUsdPerHour: 0.6,
+        startedAtMs: 0,
+      });
+    });
+  });
+});
+
+describe('computeSonioxRemainingMs', () => {
+  const snapshot = { budgetMicroUsd: 300_000, rateUsdPerHour: 0.6, startedAtMs: 10_000 }; // 1800s budget
+
+  it('reports the full budget at the start time', () => {
+    expect(computeSonioxRemainingMs(10_000, snapshot)).toBe(1_800_000);
+  });
+
+  it('counts down as wall-clock time advances, independent of any tick() call', () => {
+    expect(computeSonioxRemainingMs(10_000 + 900_000, snapshot)).toBe(900_000);
+  });
+
+  it('never goes negative once the budget is exceeded', () => {
+    expect(computeSonioxRemainingMs(10_000 + 10_000_000, snapshot)).toBe(0);
+  });
+
+  it('clamps a `now` before startedAtMs to the full budget rather than going negative', () => {
+    expect(computeSonioxRemainingMs(0, snapshot)).toBe(1_800_000);
+  });
+});
+
+describe('computeSonioxBudgetTotalMs', () => {
+  it('equals the remaining time at t=0 — the countdown\'s 100% mark', () => {
+    const snapshot = { budgetMicroUsd: 300_000, rateUsdPerHour: 0.6, startedAtMs: 5_000 };
+    expect(computeSonioxBudgetTotalMs(snapshot)).toBe(1_800_000);
+    expect(computeSonioxBudgetTotalMs(snapshot)).toBe(computeSonioxRemainingMs(5_000, snapshot));
+  });
+
+  it('is independent of startedAtMs — only the rate and budget determine total time', () => {
+    const a = { budgetMicroUsd: 750_000, rateUsdPerHour: 1.5, startedAtMs: 0 };
+    const b = { budgetMicroUsd: 750_000, rateUsdPerHour: 1.5, startedAtMs: 999_999 };
+    expect(computeSonioxBudgetTotalMs(a)).toBe(computeSonioxBudgetTotalMs(b));
   });
 });

@@ -11,7 +11,7 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
-import { SonioxCostMeter } from './SonioxCostMeter';
+import { SonioxCostMeter, SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { PcmMixer } from './PcmMixer';
 import i18n from '../../locales';
 import { getApiUrl } from '../../utils/environment';
@@ -36,6 +36,10 @@ const STT_MODEL = 'stt-rt-v5';
 const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+// Fallback only — the backend's 409 body always carries its own retryAfterMs
+// (see describeManagedSessionError); this is used solely if that field is
+// somehow missing from a malformed/empty body.
+const DEFAULT_CONFLICT_RETRY_MS = 3000;
 
 /** Options for managed (backend-billed) sessions. BYOK sessions omit this entirely. */
 export interface SonioxClientOptions {
@@ -141,6 +145,10 @@ export class SonioxClient implements IClient {
   private leaseId: string | null = null;
   private clientReferenceId: string | null = null;
   private costMeter: SonioxCostMeter | null = null;
+  // Set by handleSttError when a managed session's STT stream reports the
+  // 403 "granted duration reached" error frame; consumed (and cleared) by
+  // the close that always immediately follows it — see onClose's docstring.
+  private pendingDurationCutoff = false;
 
   constructor(apiKey: string, options?: SonioxClientOptions) {
     this.apiKey = apiKey;
@@ -229,6 +237,19 @@ export class SonioxClient implements IClient {
       onError: (code, message) => this.handleSttError(code, message),
       onClose: (event) => {
         this.isConnectedState = false;
+        // Managed sessions: Soniox drops the session at its granted duration
+        // by sending a 403 error frame (caught by handleSttError, which sets
+        // this flag and suppresses the generic error bubble) immediately
+        // followed by this close. Tag the event so the UI shows a dedicated
+        // "segment ended, tap to continue" state instead of a raw error —
+        // and, per explicit product decision, does NOT auto-reconnect (a
+        // silent reconnect would restart billing without the user knowing).
+        if (this.pendingDurationCutoff) {
+          this.pendingDurationCutoff = false;
+          this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
+          this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
+          return;
+        }
         this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
         this.eventHandlers.onClose?.(event);
       },
@@ -304,24 +325,25 @@ export class SonioxClient implements IClient {
    * The session token itself is sent ONLY in this request's Authorization
    * header, to our own backend — never to Soniox. Soniox only ever sees the
    * sttApiKey / ttsApiKey minted here in exchange for it.
+   *
+   * A 409 (another session already active on this account) is retried
+   * exactly once, after the backend's own `retryAfterMs` hint — the prior
+   * session is very often just finishing its teardown, so a single short
+   * wait-and-retry resolves it transparently instead of surfacing a
+   * conflict the user would only retry themselves.
    */
   private async fetchManagedSession(cfg: SonioxSessionConfig): Promise<void> {
     const mode: 'text_only' | 'speech_to_speech' = cfg.textOnly === true ? 'text_only' : 'speech_to_speech';
-    let response: Response;
-    try {
-      response = await fetch(`${getApiUrl()}/soniox/session-key`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mode }),
-      });
-    } catch (error) {
-      throw new Error(`Failed to reach the Soniox session service: ${error instanceof Error ? error.message : String(error)}`);
+    let response = await this.requestSessionKey(mode);
+    if (!response.ok && response.status === 409) {
+      const conflict = await this.describeManagedSessionError(response);
+      const retryAfterMs = conflict.retryAfterMs ?? DEFAULT_CONFLICT_RETRY_MS;
+      this.emitRealtime('client', 'session.retry', { provider: 'soniox', status: 409, retryAfterMs });
+      await SonioxClient.delay(retryAfterMs);
+      response = await this.requestSessionKey(mode);
     }
     if (!response.ok) {
-      throw new Error(await this.describeManagedSessionError(response));
+      throw new Error((await this.describeManagedSessionError(response)).message);
     }
     const data = await response.json() as SonioxSessionKeyResponse;
     this.managedSttApiKey = data.sttApiKey;
@@ -352,34 +374,68 @@ export class SonioxClient implements IClient {
   }
 
   /**
+   * POST /soniox/session-key. Network failures (DNS, offline, CORS) throw
+   * immediately — those are transport errors that have nothing to retry;
+   * only an HTTP-level response (ok or not) is returned for the caller to
+   * interpret status-by-status.
+   */
+  private async requestSessionKey(mode: 'text_only' | 'speech_to_speech'): Promise<Response> {
+    try {
+      return await fetch(`${getApiUrl()}/soniox/session-key`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mode }),
+      });
+    } catch (error) {
+      throw new Error(`Failed to reach the Soniox session service: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private static delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
    * Distinct, user-facing reasons for each session-key failure — a 402
    * (insufficient balance) must read differently from every other failure
    * so the UI can point the user at the right fix rather than a generic
-   * "couldn't connect".
+   * "couldn't connect". Also surfaces the 409 body's `retryAfterMs` so
+   * fetchManagedSession's single retry uses the backend's own hint rather
+   * than a guess.
    */
-  private async describeManagedSessionError(response: Response): Promise<string> {
+  private async describeManagedSessionError(response: Response): Promise<{ message: string; retryAfterMs?: number }> {
     let serverMessage = '';
+    let retryAfterMs: number | undefined;
     try {
       const body = await response.json();
       if (typeof body?.error === 'string') serverMessage = body.error;
+      if (typeof body?.retryAfterMs === 'number') retryAfterMs = body.retryAfterMs;
     } catch {
       // Body wasn't JSON (or was empty) — fall back to the status-based message below.
     }
     switch (response.status) {
       case 401:
-        return 'Sign-in is required to start a managed Soniox session';
+        // Not part of the actionable status table this task adds (402/403/409/
+        // 502/503) — extractCredentials() already blocks connect() before this
+        // point when there is no session token, so this is effectively
+        // unreachable via the normal UI flow. Left as a plain string rather
+        // than a new locale key, matching its pre-existing behavior.
+        return { message: 'Sign-in is required to start a managed Soniox session' };
       case 402:
-        return 'Insufficient balance to start a managed Soniox session';
+        return { message: i18n.t('mainPanel.sonioxInsufficientBalance', 'Insufficient balance to start a session. Please top up your balance and try again.') };
       case 403:
-        return 'Your Kizuna AI wallet is frozen';
+        return { message: i18n.t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.') };
       case 409:
-        return 'Another Soniox session is already active on this account';
+        return { message: i18n.t('mainPanel.sonioxSessionConflict', 'Another session is already running on your account. Please try again in a moment.'), retryAfterMs };
       case 502:
-        return 'Soniox is temporarily unavailable';
+        return { message: i18n.t('mainPanel.sonioxServiceUnavailable', 'Soniox is temporarily unavailable. Please try again in a moment.') };
       case 503:
-        return 'Soniox capacity is temporarily full — try again shortly';
+        return { message: i18n.t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.') };
       default:
-        return serverMessage || `Failed to start a managed Soniox session (HTTP ${response.status})`;
+        return { message: serverMessage || `Failed to start a managed Soniox session (HTTP ${response.status})` };
     }
   }
 
@@ -426,8 +482,22 @@ export class SonioxClient implements IClient {
    */
   private handleBudgetExhausted(): void {
     this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
-    this.eventHandlers.onError?.({ code: 'budget_exhausted', message: 'Soniox session balance used up' });
+    this.eventHandlers.onError?.({
+      code: 'budget_exhausted',
+      message: i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.'),
+    });
     this.stt?.end();
+  }
+
+  /**
+   * Managed-mode only: the running session's fixed budget parameters, for
+   * the status footer's remaining-time countdown (see
+   * SonioxCostMeter.getBudgetSnapshot / computeSonioxRemainingMs). Null for
+   * BYOK sessions (no cost meter) or before the session-key exchange has
+   * completed.
+   */
+  getManagedBudgetInfo(): SonioxBudgetSnapshot | null {
+    return this.costMeter?.getBudgetSnapshot() ?? null;
   }
 
   private handleSttMessage(message: SonioxSttMessage): void {
@@ -742,6 +812,18 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttError(code: string, message: string): void {
+    // Managed sessions only: Soniox reports the granted-duration cutoff as
+    // this exact 403 error frame, immediately followed by a close (handled
+    // in the onClose wiring in connect(), which shows a dedicated "segment
+    // ended" state). Set the flag and stop here — no generic error bubble
+    // for this one, since it isn't really an error. BYOK has no granted
+    // duration and never hits this: a genuine mid-session 403 there (e.g. a
+    // revoked key) still falls through to the normal error path below.
+    if (this.managedOptions && code === '403') {
+      this.pendingDurationCutoff = true;
+      console.info('[SonioxClient] Managed session reached its granted duration (403); closing');
+      return;
+    }
     console.error(`[SonioxClient] STT error ${code}: ${message}`);
     const errorItem: ConversationItem = {
       id: this.generateItemId('error'),
@@ -871,6 +953,7 @@ export class SonioxClient implements IClient {
     this.leaseId = null;
     this.clientReferenceId = null;
     this.costMeter = null;
+    this.pendingDurationCutoff = false;
   }
 
   appendInputAudio(audioData: Int16Array): void {

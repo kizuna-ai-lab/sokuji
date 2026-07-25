@@ -488,7 +488,14 @@
     "waveformOutputTooltip": "가상 마이크로 전송되는 오디오 (번역 + 패스스루)",
     "waveformMicTooltip": "내 마이크 — 번역을 위해 캡처되는 내 목소리",
     "waveformSystemTooltip": "번역을 위해 캡처되는 참가자 오디오 (브라우저 탭 / 시스템 오디오)",
-    "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요."
+    "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요.",
+    "participantChannelFailed": "참가자 오디오 채널을 시작하지 못했습니다.",
+    "sonioxInsufficientBalance": "세션을 시작하기에 잔액이 부족합니다. 잔액을 충전한 후 다시 시도해 주세요.",
+    "sonioxSessionConflict": "이미 계정에서 다른 세션이 실행 중입니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxServiceUnavailable": "Soniox를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxServiceBusy": "Soniox가 현재 용량이 가득 찼습니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxBudgetExhausted": "세션 잔액이 모두 소진되었습니다. 번역을 계속하려면 잔액을 충전하세요.",
+    "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 시작을 탭하세요."
   },
   "modePicker": {
     "modeYou": "당신",
