@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import type { ConversationItem } from '../services/interfaces/IClient';
+import type { StartBlockReason, DeviceScope } from '../components/MainPanel/sessionStartGate';
 
 export type LockedFooterMode = 'speaker' | 'participant' | 'both';
 
@@ -25,6 +26,18 @@ interface SessionStore {
   // routine when it changes, so any consumer (subtitle bar, main toolbar)
   // can trigger a clear without holding a direct reference to MainPanel.
   clearConversationVersion: number;
+  // Mirror of MainPanel's start gate. MainPanel owns the computation; the
+  // subtitle window is a sibling React tree that cannot read MainPanel state,
+  // so the answer is published here. Same pattern as lockedMode above.
+  startGate: { canStart: boolean; reason: StartBlockReason | null; balance?: number; deviceScope?: DeviceScope };
+  isInitializing: boolean;
+  initProgress: { completed: number; total: number } | null;
+  // Monotonic counters — every requestSessionStart/Stop bumps one. MainPanel
+  // watches them and runs connectConversation/disconnectConversation, so any
+  // surface can drive the session without a reference to MainPanel. Same
+  // pattern as clearConversationVersion above.
+  startSessionVersion: number;
+  stopSessionVersion: number;
 
   // Actions
   setIsSessionActive: (active: boolean) => void;
@@ -37,6 +50,11 @@ interface SessionStore {
   setParticipantItems: (items: ConversationItem[]) => void;
   setLockedMode: (mode: LockedFooterMode | null) => void;
   requestClearConversation: () => void;
+  setStartGate: (gate: SessionStore['startGate']) => void;
+  setIsInitializing: (initializing: boolean) => void;
+  setInitProgress: (progress: { completed: number; total: number } | null) => void;
+  requestSessionStart: () => void;
+  requestSessionStop: () => void;
 
   // Compound actions
   startSession: (sessionId: string) => void;
@@ -56,6 +74,11 @@ const useSessionStore = create<SessionStore>()(
     participantItems: [],
     lockedMode: null,
     clearConversationVersion: 0,
+    startGate: { canStart: false, reason: null },
+    isInitializing: false,
+    initProgress: null,
+    startSessionVersion: 0,
+    stopSessionVersion: 0,
 
     // Basic setters
     setIsSessionActive: (active) => set({ isSessionActive: active }),
@@ -68,6 +91,15 @@ const useSessionStore = create<SessionStore>()(
     setLockedMode: (mode) => set({ lockedMode: mode }),
     requestClearConversation: () => set((state) => ({
       clearConversationVersion: state.clearConversationVersion + 1,
+    })),
+    setStartGate: (startGate) => set({ startGate }),
+    setIsInitializing: (isInitializing) => set({ isInitializing }),
+    setInitProgress: (initProgress) => set({ initProgress }),
+    requestSessionStart: () => set((state) => ({
+      startSessionVersion: state.startSessionVersion + 1,
+    })),
+    requestSessionStop: () => set((state) => ({
+      stopSessionVersion: state.stopSessionVersion + 1,
     })),
 
     // Increment translation count
@@ -134,6 +166,13 @@ export const useLockedMode = () => useSessionStore((state) => state.lockedMode);
 export const useSetLockedMode = () => useSessionStore((state) => state.setLockedMode);
 export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
 export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
+export const useStartGate = () => useSessionStore((state) => state.startGate);
+// Named useSessionIsInitializing to avoid colliding with MainPanel's local
+// isInitializing state when both are in scope.
+export const useSessionIsInitializing = () => useSessionStore((state) => state.isInitializing);
+export const useInitProgress = () => useSessionStore((state) => state.initProgress);
+export const useRequestSessionStart = () => useSessionStore((state) => state.requestSessionStart);
+export const useRequestSessionStop = () => useSessionStore((state) => state.requestSessionStop);
 
 // Export actions - use individual hooks and memoize to prevent recreating objects
 export const useSessionActions = () => {
