@@ -32,7 +32,7 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
     return (
       <div className="subtitle-idle">
         <p>{t('subtitle.sessionEnded', 'Session ended')}</p>
-        <button type="button" className="subtitle-idle__link" onClick={onReturn}>
+        <button type="button" className="subtitle-idle__return" onClick={onReturn}>
           {t('subtitle.backToMain', 'Return to main window')}
         </button>
       </div>
