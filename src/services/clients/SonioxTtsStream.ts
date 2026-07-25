@@ -28,6 +28,9 @@ export interface SonioxTtsOptions {
   voice: string;
   model: string;
   sampleRate: number;
+  // Managed-mode only: must match the STT stream's clientReferenceId, or the
+  // TTS half of the session cannot be attributed to the billing lease.
+  clientReferenceId?: string;
 }
 
 export interface SonioxTtsStreamHandlers {
@@ -269,6 +272,7 @@ export class SonioxTtsStream {
       language,
       audio_format: 'pcm_s16le',
       sample_rate: this.options.sampleRate,
+      ...(this.options.clientReferenceId ? { client_reference_id: this.options.clientReferenceId } : {}),
     }));
     this.activeStreamId = streamId;
     this.activeLanguage = language;

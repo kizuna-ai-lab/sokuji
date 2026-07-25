@@ -11,8 +11,10 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
+import { SonioxCostMeter } from './SonioxCostMeter';
 import { PcmMixer } from './PcmMixer';
 import i18n from '../../locales';
+import { getApiUrl } from '../../utils/environment';
 
 /**
  * Soniox speech-to-speech translation client.
@@ -34,6 +36,27 @@ const STT_MODEL = 'stt-rt-v5';
 const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+
+/** Options for managed (backend-billed) sessions. BYOK sessions omit this entirely. */
+export interface SonioxClientOptions {
+  managed?: {
+    /** Better-auth session token. Sent ONLY to our backend's Authorization
+     *  header — never to Soniox, which receives the short-lived sttApiKey /
+     *  ttsApiKey minted in exchange for it. */
+    sessionToken: string;
+  };
+}
+
+interface SonioxSessionKeyResponse {
+  sttApiKey: string;
+  ttsApiKey?: string;
+  expiresAt: string;
+  maxSessionDurationSeconds: number;
+  budgetMicroUsd: number;
+  rateUsdPerHour: number;
+  sku: string;
+  leaseId: string;
+}
 
 export class SonioxClient implements IClient {
   private apiKey: string;
@@ -103,8 +126,20 @@ export class SonioxClient implements IClient {
   private ttsConnecting = false;
   private ttsPending: Array<{ kind: 'text'; text: string; language: string } | { kind: 'end' }> = [];
 
-  constructor(apiKey: string) {
+  // Managed-mode session state. Populated once per connect() from
+  // /api/soniox/session-key (never earlier — see connect()'s docstring) and
+  // cleared by reset(). BYOK sessions leave all of these null and fall back
+  // to `this.apiKey` for both sockets, same as before this feature existed.
+  private readonly managedOptions?: SonioxClientOptions['managed'];
+  private managedSttApiKey: string | null = null;
+  private managedTtsApiKey: string | null = null;
+  private leaseId: string | null = null;
+  private clientReferenceId: string | null = null;
+  private costMeter: SonioxCostMeter | null = null;
+
+  constructor(apiKey: string, options?: SonioxClientOptions) {
     this.apiKey = apiKey;
+    this.managedOptions = options?.managed;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -176,6 +211,13 @@ export class SonioxClient implements IClient {
       ? [cfg.sourceLanguage, cfg.targetLanguage]
       : (cfg.sourceLanguage !== 'auto' ? [cfg.sourceLanguage] : undefined);
 
+    if (this.managedOptions) {
+      await this.fetchManagedSession(cfg);
+      // Stale-attempt guard: disconnect() may have run while we were
+      // exchanging the session token for keys.
+      if (gen !== this.generation) return;
+    }
+
     this.stt = new SonioxSttStream();
     this.stt.setHandlers({
       onMessage: (message) => this.handleSttMessage(message),
@@ -185,18 +227,26 @@ export class SonioxClient implements IClient {
         this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
         this.eventHandlers.onClose?.(event);
       },
+      // The meter's own clock, not a second timer — see onTick's docstring
+      // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
+      onTick: () => this.costMeter?.tick(Date.now()),
     });
     await this.stt.connect({
-      apiKey: this.apiKey,
+      apiKey: this.managedOptions ? this.managedSttApiKey! : this.apiKey,
       model: cfg.model || STT_MODEL,
       sampleRate: SAMPLE_RATE,
       languageHints,
       translation,
+      clientReferenceId: this.clientReferenceId ?? undefined,
     });
     // If disconnect() ran during the STT connect await, this attempt is stale:
     // close the socket we just opened and bail before wiring anything up.
     if (gen !== this.generation) { this.stt?.close(); this.stt = null; return; }
     this.isConnectedState = true;
+
+    // Fire-and-forget: extends the lease from its short "start window" TTL
+    // to the full session duration now that the socket is actually up.
+    if (this.managedOptions && this.leaseId) this.notifySessionStarted(this.leaseId);
 
     if (this.bidirectional) {
       this.mixer = new PcmMixer({
@@ -237,6 +287,130 @@ export class SonioxClient implements IClient {
       textOnly: !!cfg.textOnly,
     });
     this.eventHandlers.onOpen?.();
+  }
+
+  /**
+   * Exchange the better-auth session token for a Soniox session-key set.
+   * Called from connect(), never earlier: the key's start window is only
+   * 60 s, so fetching sooner risks the keys expiring before the sockets
+   * open — and issue failures (402/403/409/502/503) need to land on
+   * connect()'s error path, where the UI already handles a failed connect.
+   *
+   * The session token itself is sent ONLY in this request's Authorization
+   * header, to our own backend — never to Soniox. Soniox only ever sees the
+   * sttApiKey / ttsApiKey minted here in exchange for it.
+   */
+  private async fetchManagedSession(cfg: SonioxSessionConfig): Promise<void> {
+    const mode: 'text_only' | 'speech_to_speech' = cfg.textOnly === true ? 'text_only' : 'speech_to_speech';
+    let response: Response;
+    try {
+      response = await fetch(`${getApiUrl()}/soniox/session-key`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mode }),
+      });
+    } catch (error) {
+      throw new Error(`Failed to reach the Soniox session service: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (!response.ok) {
+      throw new Error(await this.describeManagedSessionError(response));
+    }
+    const data = await response.json() as SonioxSessionKeyResponse;
+    this.managedSttApiKey = data.sttApiKey;
+    this.managedTtsApiKey = data.ttsApiKey ?? null;
+    this.leaseId = data.leaseId;
+    // The session-key response carries no separate clientReferenceId field —
+    // leaseId is the only per-session identifier it returns, so both sockets
+    // are told to use it.
+    this.clientReferenceId = data.leaseId;
+    this.costMeter = new SonioxCostMeter({
+      budgetMicroUsd: data.budgetMicroUsd,
+      rateUsdPerHour: data.rateUsdPerHour,
+      onExhausted: () => this.handleBudgetExhausted(),
+    });
+    this.costMeter.start(Date.now());
+  }
+
+  /**
+   * Distinct, user-facing reasons for each session-key failure — a 402
+   * (insufficient balance) must read differently from every other failure
+   * so the UI can point the user at the right fix rather than a generic
+   * "couldn't connect".
+   */
+  private async describeManagedSessionError(response: Response): Promise<string> {
+    let serverMessage = '';
+    try {
+      const body = await response.json();
+      if (typeof body?.error === 'string') serverMessage = body.error;
+    } catch {
+      // Body wasn't JSON (or was empty) — fall back to the status-based message below.
+    }
+    switch (response.status) {
+      case 401:
+        return 'Sign-in is required to start a managed Soniox session';
+      case 402:
+        return 'Insufficient balance to start a managed Soniox session';
+      case 403:
+        return 'Your Kizuna AI wallet is frozen';
+      case 409:
+        return 'Another Soniox session is already active on this account';
+      case 502:
+        return 'Soniox is temporarily unavailable';
+      case 503:
+        return 'Soniox capacity is temporarily full — try again shortly';
+      default:
+        return serverMessage || `Failed to start a managed Soniox session (HTTP ${response.status})`;
+    }
+  }
+
+  /**
+   * Fire-and-forget: confirms the socket is up so the backend extends the
+   * lease from its short "start window" TTL to the full session duration.
+   * Never awaited by connect() — a failure here just means the lease expires
+   * on its own schedule, never worth failing an already-open session over.
+   */
+  private notifySessionStarted(leaseId: string): void {
+    fetch(`${getApiUrl()}/soniox/session-started`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ leaseId }),
+    }).catch((error) => console.error('[SonioxClient] session-started notify failed:', error));
+  }
+
+  /**
+   * Fire-and-forget: hints the backend reconciler to look for this session's
+   * usage logs sooner. Never awaited by disconnect() — this is a hint, not a
+   * transaction, and a failure here is not actionable during teardown.
+   */
+  private notifySessionEnd(leaseId: string): void {
+    fetch(`${getApiUrl()}/soniox/session-end`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ leaseId }),
+    }).catch((error) => console.error('[SonioxClient] session-end notify failed:', error));
+  }
+
+  /**
+   * The session's budget ran out mid-stream. End the STT stream the same way
+   * a normal session ends — the protocol's empty-text-frame end-of-stream
+   * signal — so the server flushes and closes it cleanly instead of the
+   * socket being torn down mid-utterance. Surfaced through the same onError
+   * channel handleSttError/handleTtsError already use, with a distinct code
+   * so the UI can show a "balance used up" state rather than a generic error.
+   */
+  private handleBudgetExhausted(): void {
+    this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
+    this.eventHandlers.onError?.({ code: 'budget_exhausted', message: 'Soniox session balance used up' });
+    this.stt?.end();
   }
 
   private handleSttMessage(message: SonioxSttMessage): void {
@@ -287,10 +461,15 @@ export class SonioxClient implements IClient {
 
   private createTtsStream(): SonioxTtsStream {
     const stream = new SonioxTtsStream({
-      apiKey: this.apiKey,
+      // Managed mode: a Soniox temporary key is scoped to ONE usage type —
+      // an sttApiKey cannot open a TTS socket, so this MUST be ttsApiKey.
+      apiKey: this.managedOptions ? this.managedTtsApiKey! : this.apiKey,
       voice: this.currentConfig?.voice || 'Maya',
       model: TTS_MODEL,
       sampleRate: SAMPLE_RATE,
+      // Same id as the STT stream — required for the TTS half of a managed
+      // session to be attributed to the billing lease.
+      clientReferenceId: this.clientReferenceId ?? undefined,
     });
     stream.setHandlers({
       onAudio: (audio) => this.emitAssistantAudio(audio),
@@ -626,6 +805,10 @@ export class SonioxClient implements IClient {
     // Invalidate any in-flight connect()/ensureTts(): a socket whose connect
     // await resolves after this point must not be installed or fed.
     this.generation++;
+    // Fire-and-forget: a hint, not a transaction — the backend releases the
+    // lease only once Soniox's usage logs confirm the session actually
+    // ended (or it expires on its own).
+    if (this.managedOptions && this.leaseId) this.notifySessionEnd(this.leaseId);
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     if (this.stt) {
       this.stt.end();   // empty text frame: server flushes and closes
@@ -666,6 +849,11 @@ export class SonioxClient implements IClient {
     this.ttsPending = [];
     this.ttsConnecting = false;
     this.ttsFailedOnce = false;
+    this.managedSttApiKey = null;
+    this.managedTtsApiKey = null;
+    this.leaseId = null;
+    this.clientReferenceId = null;
+    this.costMeter = null;
   }
 
   appendInputAudio(audioData: Int16Array): void {
