@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "세션이 종료되었습니다",
     "backToMain": "메인 창으로 돌아가기",
+    "idle": {
+      "start": "번역 시작",
+      "hint": "시작하기 전에 창의 위치와 크기를 조정하세요",
+      "ended": "이 세션이 종료되었습니다",
+      "fixHint": "설정이 완료되면 시작할 수 있습니다",
+      "failed": "시작하지 못했습니다: {{message}}",
+      "retry": "다시 시도",
+      "backForDetails": "자세한 내용은 메인 창으로 돌아가세요"
+    },
     "enterButton": {
       "title": "자막 모드 시작",
       "disabled": "먼저 세션을 시작하세요",
@@ -814,6 +823,8 @@
       "label": "자막 종료"
     },
     "bar": {
+      "start": "세션 시작",
+      "stop": "세션 종료",
       "fontDecrease": "글자 크기 축소",
       "fontIncrease": "글자 크기 확대",
       "expand": "확장 보기",

@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Tapos na ang session",
     "backToMain": "Bumalik sa pangunahing window",
+    "idle": {
+      "start": "Simulan ang pagsasalin",
+      "hint": "Ayusin ang posisyon at sukat ng window bago magsimula",
+      "ended": "Tapos na ang session na ito",
+      "fixHint": "Puwede kang magsimula kapag naisaayos na ito",
+      "failed": "Hindi nagsimula: {{message}}",
+      "retry": "Subukang muli",
+      "backForDetails": "Bumalik sa pangunahing window para sa detalye"
+    },
     "enterButton": {
       "title": "Pumasok sa subtitle mode",
       "disabled": "Magsimula muna ng session",
@@ -814,6 +823,8 @@
       "label": "Lumabas sa subtitle"
     },
     "bar": {
+      "start": "Simulan ang session",
+      "stop": "Itigil ang session",
       "fontDecrease": "Bawasan ang laki ng font",
       "fontIncrease": "Lakihan ang laki ng font",
       "expand": "Pinalawak na view",

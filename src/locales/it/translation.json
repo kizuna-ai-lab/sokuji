@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Sessione terminata",
     "backToMain": "Torna alla finestra principale",
+    "idle": {
+      "start": "Avvia la traduzione",
+      "hint": "Posiziona e ridimensiona la finestra prima di iniziare",
+      "ended": "Questa sessione è terminata",
+      "fixHint": "Potrai avviare non appena questo sarà configurato",
+      "failed": "Avvio non riuscito: {{message}}",
+      "retry": "Riprova",
+      "backForDetails": "Torna alla finestra principale per i dettagli"
+    },
     "enterButton": {
       "title": "Attiva modalità sottotitoli",
       "disabled": "Avvia prima una sessione",
@@ -814,6 +823,8 @@
       "label": "Esci dai sottotitoli"
     },
     "bar": {
+      "start": "Avvia sessione",
+      "stop": "Interrompi sessione",
       "fontDecrease": "Riduci dimensione carattere",
       "fontIncrease": "Aumenta dimensione carattere",
       "expand": "Vista espansa",

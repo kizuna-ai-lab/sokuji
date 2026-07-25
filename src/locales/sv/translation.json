@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Sessionen avslutad",
     "backToMain": "Tillbaka till huvudfönstret",
+    "idle": {
+      "start": "Starta översättning",
+      "hint": "Placera och ändra storlek på fönstret innan du startar",
+      "ended": "Den här sessionen har avslutats",
+      "fixHint": "Du kan starta så snart detta är konfigurerat",
+      "failed": "Det gick inte att starta: {{message}}",
+      "retry": "Försök igen",
+      "backForDetails": "Gå tillbaka till huvudfönstret för mer information"
+    },
     "enterButton": {
       "title": "Aktivera undertextläge",
       "disabled": "Starta en session först",
@@ -814,6 +823,8 @@
       "label": "Avsluta undertexter"
     },
     "bar": {
+      "start": "Starta session",
+      "stop": "Stoppa session",
       "fontDecrease": "Minska textstorlek",
       "fontIncrease": "Öka textstorlek",
       "expand": "Utökad vy",

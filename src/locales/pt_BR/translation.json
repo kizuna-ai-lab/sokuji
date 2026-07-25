@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Sessão encerrada",
     "backToMain": "Voltar à janela principal",
+    "idle": {
+      "start": "Iniciar tradução",
+      "hint": "Posicione e redimensione a janela antes de iniciar",
+      "ended": "Esta sessão foi encerrada",
+      "fixHint": "Você poderá iniciar assim que isso for configurado",
+      "failed": "Falha ao iniciar: {{message}}",
+      "retry": "Tentar novamente",
+      "backForDetails": "Volte à janela principal para ver os detalhes"
+    },
     "enterButton": {
       "title": "Ativar modo de legendas",
       "disabled": "Inicie uma sessão primeiro",
@@ -814,6 +823,8 @@
       "label": "Sair das legendas"
     },
     "bar": {
+      "start": "Iniciar sessão",
+      "stop": "Encerrar sessão",
       "fontDecrease": "Diminuir tamanho da fonte",
       "fontIncrease": "Aumentar tamanho da fonte",
       "expand": "Visualização expandida",

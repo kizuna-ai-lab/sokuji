@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Istunto päättyi",
     "backToMain": "Palaa pääikkunaan",
+    "idle": {
+      "start": "Aloita kääntäminen",
+      "hint": "Sijoita ja muuta ikkunan kokoa ennen aloittamista",
+      "ended": "Tämä istunto on päättynyt",
+      "fixHint": "Voit aloittaa, kun tämä on määritetty",
+      "failed": "Aloitus epäonnistui: {{message}}",
+      "retry": "Yritä uudelleen",
+      "backForDetails": "Palaa pääikkunaan nähdäksesi lisätiedot"
+    },
     "enterButton": {
       "title": "Ota tekstitystila käyttöön",
       "disabled": "Aloita istunto ensin",
@@ -814,6 +823,8 @@
       "label": "Poistu tekstityksestä"
     },
     "bar": {
+      "start": "Aloita istunto",
+      "stop": "Lopeta istunto",
       "fontDecrease": "Pienennä fonttia",
       "fontIncrease": "Suurenna fonttia",
       "expand": "Laaja näkymä",

@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "對話已結束",
     "backToMain": "返回主視窗",
+    "idle": {
+      "start": "開始翻譯",
+      "hint": "開始前請調整視窗的位置與大小",
+      "ended": "本次對話已結束",
+      "fixHint": "完成此設定後即可開始",
+      "failed": "啟動失敗：{{message}}",
+      "retry": "再試一次",
+      "backForDetails": "返回主視窗查看詳情"
+    },
     "enterButton": {
       "title": "進入字幕模式",
       "disabled": "請先啟動對話",
@@ -814,6 +823,8 @@
       "label": "退出字幕"
     },
     "bar": {
+      "start": "開始對話",
+      "stop": "結束對話",
       "fontDecrease": "縮小字級",
       "fontIncrease": "放大字級",
       "expand": "展開檢視",

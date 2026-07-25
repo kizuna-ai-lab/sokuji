@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "セッションが終了しました",
     "backToMain": "メイン画面に戻る",
+    "idle": {
+      "start": "翻訳を開始",
+      "hint": "開始する前にウィンドウの位置とサイズを調整してください",
+      "ended": "このセッションは終了しました",
+      "fixHint": "設定が完了すると開始できます",
+      "failed": "開始に失敗しました: {{message}}",
+      "retry": "再試行",
+      "backForDetails": "詳細を確認するにはメイン画面に戻ってください"
+    },
     "enterButton": {
       "title": "字幕モードを開始",
       "disabled": "先にセッションを開始してください",
@@ -814,6 +823,8 @@
       "label": "字幕を終了"
     },
     "bar": {
+      "start": "セッションを開始",
+      "stop": "セッションを終了",
       "fontDecrease": "文字を小さく",
       "fontIncrease": "文字を大きく",
       "expand": "展開表示",
