@@ -135,7 +135,7 @@ export const VadControl: React.FC<{
           <div className="setting-label">
             <span>
               {t('settings.vadNegativeThreshold', 'Silence Threshold')}
-              <Tooltip content={t('settings.vadNegativeThresholdTooltip', 'Probability below which silence starts counting toward the end of a segment. Auto keeps it 0.15 under the speech threshold. It never applies above the speech threshold — that would stop segments from ever ending.')} position="top">{inlineHelpIcon}</Tooltip>
+              <Tooltip content={t('settings.vadNegativeThresholdTooltip', 'Probability below which silence starts counting toward the end of a segment. Auto keeps it 0.15 under the VAD Threshold. It never applies above the VAD Threshold — that would stop segments from ever ending.')} position="top">{inlineHelpIcon}</Tooltip>
             </span>
             <span className="setting-value">
               {values.vadNegativeThreshold === 0

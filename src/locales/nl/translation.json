@@ -162,7 +162,7 @@
     "vadSettingsTooltip": "Configuratie van spraakactiviteitsdetectie. Pas deze instellingen aan om spraakdetectie te optimaliseren voor uw omgeving.",
     "vadThresholdTooltip": "Gevoeligheid van spraakdetectie. Hogere waarden vereisen luidere/duidelijkere spraak. Lagere waarden zijn gevoeliger voor zachte spraak.",
     "vadNegativeThreshold": "Stiltedrempel",
-    "vadNegativeThresholdTooltip": "Waarschijnlijkheid waaronder stilte begint mee te tellen voor het einde van een segment. Auto houdt deze 0,15 onder de spraakdrempel. Hij wordt nooit boven de spraakdrempel toegepast, want dan zouden segmenten nooit eindigen.",
+    "vadNegativeThresholdTooltip": "Waarschijnlijkheid waaronder stilte begint mee te tellen voor het einde van een segment. Auto houdt deze 0,15 onder de VAD-drempel. Hij wordt nooit boven de VAD-drempel toegepast, want dan zouden segmenten nooit eindigen.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. stilteduur",
     "vadMinSilenceDurationTooltip": "Minimale stilteduur om spraaksegmenten te splitsen. Kortere waarden splitsen zinnen sneller, langere waarden wachten op natuurlijkere pauzes.",

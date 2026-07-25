@@ -162,7 +162,7 @@
     "vadSettingsTooltip": "Konfiguration der Sprachaktivitätserkennung. Passen Sie diese Einstellungen an, um die Spracherkennung für Ihre Umgebung zu optimieren.",
     "vadThresholdTooltip": "Empfindlichkeit der Spracherkennung. Höhere Werte erfordern lautere/klarere Sprache. Niedrigere Werte sind empfindlicher für leise Sprache.",
     "vadNegativeThreshold": "Stilleschwelle",
-    "vadNegativeThresholdTooltip": "Wahrscheinlichkeit, unterhalb derer Stille auf das Segmentende angerechnet wird. Auto hält sie 0,15 unter dem Sprach-Schwellenwert. Sie gilt nie oberhalb des Sprach-Schwellenwerts — dann würden Segmente nie enden.",
+    "vadNegativeThresholdTooltip": "Wahrscheinlichkeit, unterhalb derer Stille auf das Segmentende angerechnet wird. Auto hält sie 0,15 unter dem VAD-Schwellenwert. Sie gilt nie oberhalb des VAD-Schwellenwerts — dann würden Segmente nie enden.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. Stille-Dauer",
     "vadMinSilenceDurationTooltip": "Minimale Stille zum Aufteilen von Sprachsegmenten. Kürzere Werte teilen Sätze schneller auf, längere Werte warten auf natürlichere Pausen.",
