@@ -45,6 +45,27 @@ describe('mapWalletStatusToQuota', () => {
       expect(() => mapWalletStatusToQuota(payload)).toThrow('Invalid wallet status payload');
     }
   });
+
+  it('reads balanceMicroUsd when the backend sends the new shape', () => {
+    const q = mapWalletStatusToQuota({
+      balanceMicroUsd: 3_420_000,
+      balanceUsd: '3.42',
+      frozen: false,
+      last30DaysUsageMicroUsd: 1_580_000,
+      last30DaysUsageUsd: '1.58',
+      rates: { 'soniox:text_only': 0.6 },
+      balance: 3_420_000,
+      usage: 1_580_000,
+    });
+    expect(q.balance).toBe(3_420_000);
+    expect(q.remaining).toBe(3_420_000);
+    expect(q.last30DaysUsage).toBe(1_580_000);
+  });
+
+  it('still accepts the legacy shape from an older backend', () => {
+    const q = mapWalletStatusToQuota({ balance: 500, frozen: false, usage: 10 });
+    expect(q.balance).toBe(500);
+  });
 });
 
 describe('isWalletStatus', () => {

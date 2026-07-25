@@ -11,12 +11,12 @@ import { mapWalletStatusToQuota } from '../utils/walletQuota';
 
 export interface QuotaData {
   // Core wallet data (new fields)
-  balance?: number;      // Wallet balance (never expires)
+  balance?: number;      // Wallet balance in micro-USD (never expires)
   frozen?: boolean;      // Whether wallet is frozen
 
   // Usage statistics (new fields)
-  monthlyQuota?: number;     // Tokens allocated monthly for this plan
-  last30DaysUsage?: number;  // Tokens used in the past 30 days
+  monthlyQuota?: number;     // Micro-USD allocated monthly for this plan
+  last30DaysUsage?: number;  // Micro-USD used in the past 30 days
 
   // Compatibility fields (for frontend UI)
   total: number;         // = balance (for compatibility)
