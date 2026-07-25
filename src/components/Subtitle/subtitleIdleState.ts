@@ -43,15 +43,11 @@ export function deriveSubtitleIdleState(input: IdleStateInput): SubtitleIdleStat
       : { kind: 'starting' };
   }
 
-  const last = items[items.length - 1];
-  const isFreshStartFailure =
-    startRequestedAt !== null &&
-    last?.type === 'error' &&
-    (last.createdAt ?? 0) >= startRequestedAt;
-  if (isFreshStartFailure) {
-    return { kind: 'failed', message: last.formatted?.text ?? '' };
-  }
-
+  // A live blocker wins over a stale failure. Retry can't succeed while the
+  // gate is closed (e.g. the mic was unplugged, or the balance hit zero,
+  // after a start attempt already failed for a different reason), so
+  // reporting the current blocker is more actionable than replaying the old
+  // failure message for a Retry that would just be refused again.
   if (!startGate.canStart && startGate.reason) {
     return {
       kind: 'blocked',
@@ -59,6 +55,15 @@ export function deriveSubtitleIdleState(input: IdleStateInput): SubtitleIdleStat
       balance: startGate.balance,
       deviceScope: startGate.deviceScope,
     };
+  }
+
+  const last = items[items.length - 1];
+  const isFreshStartFailure =
+    startRequestedAt !== null &&
+    last?.type === 'error' &&
+    (last.createdAt ?? 0) >= startRequestedAt;
+  if (isFreshStartFailure) {
+    return { kind: 'failed', message: last.formatted?.text ?? '' };
   }
 
   return hasRunSession ? { kind: 'ended' } : { kind: 'ready' };

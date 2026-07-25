@@ -23,9 +23,17 @@ interface Props {
   // When false, this renders only what the pre-#324 SubtitleSessionEnded
   // component rendered: the ended message and a return button.
   allowSessionControl: boolean;
+  // Whether the start gate is currently open. `state.kind === 'failed'` only
+  // means a fresh start-failure item exists — the gate can independently be
+  // closed again by then (e.g. the mic was unplugged after the failure, or
+  // the gate is closed with no reason while models are still loading; see
+  // subtitleIdleState's blocked-over-failed precedence). Retry must not be
+  // clickable in that case, since it would just re-express a start the gate
+  // already refuses.
+  canStart: boolean;
 }
 
-const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl }) => {
+const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl, canStart }) => {
   const { t } = useTranslation();
 
   if (!allowSessionControl) {
@@ -94,7 +102,12 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
           {t('subtitle.idle.failed', 'Failed to start: {{message}}', { message: state.message })}
         </p>
         <div className="subtitle-idle__row">
-          <button type="button" className="subtitle-idle__action" onClick={onStart}>
+          <button
+            type="button"
+            className="subtitle-idle__action"
+            disabled={!canStart}
+            onClick={onStart}
+          >
             <RotateCcw size={15} />
             <span>{t('subtitle.idle.retry', 'Retry')}</span>
           </button>

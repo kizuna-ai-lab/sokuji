@@ -124,9 +124,15 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   // happens to sit at the end of the conversation.
   const startRequestedAtRef = useRef<number | null>(null);
   const handleStart = useCallback(() => {
+    // Defense in depth: nothing downstream re-checks the gate before firing
+    // connectConversation (unlike MainPanel, where the gate is enforced
+    // purely by the button's `disabled`). A start request must never express
+    // something the gate currently forbids — e.g. Retry after the mic was
+    // unplugged following an earlier failure.
+    if (!startGate.canStart) return;
     startRequestedAtRef.current = Date.now();
     requestSessionStart();
-  }, [requestSessionStart]);
+  }, [requestSessionStart, startGate.canStart]);
 
   const handleFix = useCallback((reason: StartBlockReason, deviceScope?: DeviceScope) => {
     const target = reasonToSettingsTarget(reason, deviceScope);
@@ -386,6 +392,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           onFix={handleFix}
           onReturn={requestExit}
           allowSessionControl={surface === 'electron'}
+          canStart={startGate.canStart}
         />
       )}
       {showResizeHandles && (

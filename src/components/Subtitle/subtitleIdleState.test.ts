@@ -115,7 +115,9 @@ describe('deriveSubtitleIdleState', () => {
     ).toEqual({ kind: 'starting' });
   });
 
-  it('prefers a failure over a blocked gate', () => {
+  // A live blocker beats a stale failure: Retry can't succeed against a
+  // closed gate, so the current blocker is what the user needs to act on.
+  it('prefers a blocked gate over a stale failure', () => {
     expect(
       deriveSubtitleIdleState({
         ...base,
@@ -123,7 +125,7 @@ describe('deriveSubtitleIdleState', () => {
         items: [errorItem(900, 'boom')],
         startGate: { canStart: false, reason: 'api-key-invalid' },
       }),
-    ).toEqual({ kind: 'failed', message: 'boom' });
+    ).toEqual({ kind: 'blocked', reason: 'api-key-invalid' });
   });
 
   it('prefers a blocked gate over the ended headline', () => {

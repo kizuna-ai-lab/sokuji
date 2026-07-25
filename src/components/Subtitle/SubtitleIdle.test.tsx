@@ -12,7 +12,9 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const handlers = () => ({ onStart: vi.fn(), onFix: vi.fn(), onReturn: vi.fn(), allowSessionControl: true });
+const handlers = () => ({
+  onStart: vi.fn(), onFix: vi.fn(), onReturn: vi.fn(), allowSessionControl: true, canStart: true,
+});
 
 beforeEach(cleanup);
 
@@ -108,6 +110,20 @@ describe('SubtitleIdle failed state', () => {
     render(<SubtitleIdle state={{ kind: 'failed', message: 'boom' }} {...h} />);
     fireEvent.click(screen.getByRole('button', { name: /details/i }));
     expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+
+  // Regression: a start failed, then the gate closed again (mic unplugged,
+  // balance hit zero) before the user clicked Retry. Retry must not be able
+  // to fire a start the gate currently forbids.
+  it('disables retry when the gate is closed', () => {
+    const h = handlers();
+    render(
+      <SubtitleIdle state={{ kind: 'failed', message: 'boom' }} {...h} canStart={false} />,
+    );
+    const retry = screen.getByRole('button', { name: /retry/i });
+    expect(retry).toBeDisabled();
+    fireEvent.click(retry);
+    expect(h.onStart).not.toHaveBeenCalled();
   });
 });
 
