@@ -92,6 +92,7 @@ export type StartBlockReason =
   | 'insufficient-balance'
   | 'local-models-missing'
   | 'api-key-invalid'
+  | 'no-models'
   | 'loading-models';
 
 export interface StartGate {
@@ -114,17 +115,19 @@ export function computeStartGate(input: {
 export function reasonToSettingsTarget(reason: StartBlockReason): string | null;
 ```
 
-Reason precedence is lifted verbatim from the existing tooltip so the two
-surfaces can never disagree:
+Reason precedence is lifted verbatim from the advanced-mode tooltip chain
+(`MainPanel.tsx:3408`), which is the more complete of the two existing chains.
+The two surfaces can never disagree:
 
 | reason | condition | settings target |
 |---|---|---|
 | `missing-device` | `missingDeviceForMode !== null` | `microphone` / `participant` |
+| `local-models-missing` | `!isApiKeyValid` and `provider === LOCAL_INFERENCE` | `model-management` |
+| `api-key-invalid` | `!isApiKeyValid` otherwise | `provider` |
+| `no-models` | model list empty and not loading | `provider` |
+| `loading-models` | `loadingModels` | none (transient) |
 | `wallet-frozen` | Kizuna-managed provider and `quota.frozen` | `user-account` |
 | `insufficient-balance` | Kizuna-managed provider and `balance <= 0` | `user-account` |
-| `local-models-missing` | `provider === LOCAL_INFERENCE` | `model-management` |
-| `api-key-invalid` | `!isApiKeyValid` (fallback) | `provider` |
-| `loading-models` | `loadingModels` | none (transient) |
 
 `MainPanel`'s own Start button switches its `title` to this function, replacing
 the nested ternary.
