@@ -1016,7 +1016,7 @@ The pure function that decides which of the five idle presentations the subtitle
 
 **Interfaces:**
 - Consumes: `StartBlockReason`, `DeviceScope` (Task 1); `ConversationItem` from `src/services/interfaces/IClient`
-- Produces: `SubtitleIdleState` union and `deriveSubtitleIdleState(input)` — used by Tasks 6 and 7
+- Produces: `SubtitleIdleState` union and `deriveSubtitleIdleState(input)` — used by Task 6
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1253,19 +1253,20 @@ git commit -m "feat(subtitle): derive the idle-state presentation from session s
 
 ---
 
-### Task 6: SubtitleIdle component
+### Task 6: SubtitleIdle component and SubtitleApp wiring
 
-Replaces `SubtitleSessionEnded` with a presentational component covering all five states. Pure props in, callbacks out — no store access, so it tests trivially.
+Replaces `SubtitleSessionEnded` with a presentational component covering all five states, and mounts it. Component and wiring land together so no commit ever references a deleted module — the old component is removed in the same step that stops importing it.
 
 **Files:**
 - Create: `src/components/Subtitle/SubtitleIdle.tsx`
 - Create: `src/components/Subtitle/SubtitleIdle.test.tsx`
-- Delete: `src/components/Subtitle/SubtitleSessionEnded.tsx`, `src/components/Subtitle/SubtitleSessionEnded.test.tsx`
 - Modify: `src/components/Subtitle/SubtitleApp.scss`
+- Modify: `src/components/Subtitle/SubtitleApp.tsx`
+- Delete: `src/components/Subtitle/SubtitleSessionEnded.tsx`, `src/components/Subtitle/SubtitleSessionEnded.test.tsx`
 
 **Interfaces:**
-- Consumes: `SubtitleIdleState` (Task 5); `reasonToI18n` (Task 1)
-- Produces: `SubtitleIdle` default export with props `{ state, onStart, onFix, onReturn }` — mounted by Task 7
+- Consumes: `SubtitleIdleState`, `deriveSubtitleIdleState` (Task 5); `reasonToI18n`, `reasonToSettingsTarget` (Task 1); store hooks `useStartGate`, `useSessionIsInitializing`, `useInitProgress`, `useRequestSessionStart`, `useRequestSessionStop` (Task 2); `useNavigateToSettings`, `useExitSubtitleMode` from settingsStore
+- Produces: `SubtitleIdle` default export with props `{ state, onStart, onFix, onReturn }`; the `sessionControl` prop object passed to `SubtitleBar` and consumed in Task 7
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1628,42 +1629,7 @@ In `src/components/Subtitle/SubtitleApp.scss`, replace both `.subtitle-session-e
 Run: `npx vitest run src/components/Subtitle/SubtitleIdle.test.tsx`
 Expected: PASS — 11 tests.
 
-- [ ] **Step 6: Delete the superseded component**
-
-```bash
-git rm src/components/Subtitle/SubtitleSessionEnded.tsx \
-       src/components/Subtitle/SubtitleSessionEnded.test.tsx
-```
-
-Run: `npx vitest run src/components/Subtitle`
-Expected: FAIL — `SubtitleApp.tsx` still imports `SubtitleSessionEnded`. That is Task 7's job; do not fix it here.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add src/components/Subtitle/SubtitleIdle.tsx \
-        src/components/Subtitle/SubtitleIdle.test.tsx \
-        src/components/Subtitle/SubtitleApp.scss
-git commit -m "feat(subtitle): add the five-state idle body
-
-SubtitleApp still imports the removed SubtitleSessionEnded; wired in the
-next commit."
-```
-
----
-
-### Task 7: Wire SubtitleApp
-
-Mounts `SubtitleIdle` in place of `SubtitleSessionEnded`, derives its state, and tracks the two pieces of local history the derivation needs.
-
-**Files:**
-- Modify: `src/components/Subtitle/SubtitleApp.tsx`
-
-**Interfaces:**
-- Consumes: `deriveSubtitleIdleState` (Task 5); `SubtitleIdle` (Task 6); store hooks `useStartGate`, `useSessionIsInitializing`, `useInitProgress`, `useRequestSessionStart`, `useRequestSessionStop` (Task 2); `useNavigateToSettings`, `useExitSubtitleMode` from settingsStore
-- Produces: `sessionControl` props consumed by `SubtitleBar` in Task 8
-
-- [ ] **Step 1: Update the imports**
+- [ ] **Step 6: Update SubtitleApp's imports**
 
 In `src/components/Subtitle/SubtitleApp.tsx`:
 
@@ -1680,7 +1646,7 @@ Add `useNavigateToSettings` to the existing `settingsStore` import list.
 
 Add to the existing `sessionStore` import list: `useStartGate`, `useSessionIsInitializing`, `useInitProgress`, `useRequestSessionStart`, `useRequestSessionStop`.
 
-- [ ] **Step 2: Add the state derivation**
+- [ ] **Step 7: Add the state derivation**
 
 Immediately after the existing `const requestClearConversation = useRequestClearConversation();` line, add:
 
@@ -1727,7 +1693,7 @@ Immediately after the existing `const requestClearConversation = useRequestClear
   });
 ```
 
-- [ ] **Step 3: Pass the session controls to the bar**
+- [ ] **Step 8: Pass the session controls to the bar**
 
 Change the `<SubtitleBar ... />` element to add one prop, after `surface={surface}`:
 
@@ -1741,7 +1707,7 @@ Change the `<SubtitleBar ... />` element to add one prop, after `surface={surfac
         }}
 ```
 
-- [ ] **Step 4: Swap the idle branch**
+- [ ] **Step 9: Swap the idle branch and delete the superseded component**
 
 Replace:
 
@@ -1764,21 +1730,38 @@ with:
       )}
 ```
 
-- [ ] **Step 5: Run the subtitle suite**
-
-Run: `npx vitest run src/components/Subtitle`
-Expected: PASS. (Task 8 adds the `sessionControl` prop to SubtitleBar; until then TypeScript flags an unknown prop but Vitest/esbuild does not type-check, so tests still run. If SubtitleBar's tests fail because the extra prop reaches the DOM, that is a real bug — SubtitleBar must not spread unknown props onto elements.)
-
-- [ ] **Step 6: Commit**
+Nothing imports the old component now, so remove it in the same step:
 
 ```bash
-git add src/components/Subtitle/SubtitleApp.tsx
-git commit -m "feat(subtitle): render the idle body and route start/stop requests"
+git rm src/components/Subtitle/SubtitleSessionEnded.tsx \
+       src/components/Subtitle/SubtitleSessionEnded.test.tsx
+```
+
+- [ ] **Step 10: Run the subtitle suite**
+
+Run: `npx vitest run src/components/Subtitle`
+Expected: PASS — every file green, including `SubtitleIdle.test.tsx`. No
+commit in this task may leave the suite red.
+
+(Task 7 adds the `sessionControl` prop to SubtitleBar; until then TypeScript
+flags an unknown prop, but Vitest/esbuild does not type-check so the tests
+still run. If SubtitleBar's own tests fail because the extra prop reaches the
+DOM, that is a real bug — SubtitleBar must not spread unknown props onto
+elements.)
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add src/components/Subtitle/SubtitleIdle.tsx \
+        src/components/Subtitle/SubtitleIdle.test.tsx \
+        src/components/Subtitle/SubtitleApp.scss \
+        src/components/Subtitle/SubtitleApp.tsx
+git commit -m "feat(subtitle): add the five-state idle body and wire it up"
 ```
 
 ---
 
-### Task 8: Start/Stop pill in the subtitle bar
+### Task 7: Start/Stop pill in the subtitle bar
 
 A persistent control in the toolbar so Stop is reachable during a session (when the body is full of subtitles) and Start keeps a fixed home across states.
 
@@ -1788,7 +1771,7 @@ A persistent control in the toolbar so Stop is reachable during a session (when 
 - Modify: `src/components/Subtitle/SubtitleBar.test.tsx`
 
 **Interfaces:**
-- Consumes: `sessionControl` prop from Task 7
+- Consumes: `sessionControl` prop from Task 6
 - Produces: nothing downstream
 
 - [ ] **Step 1: Write the failing test**
@@ -1961,7 +1944,7 @@ git commit -m "feat(subtitle): add a persistent start/stop control to the bar"
 
 ---
 
-### Task 9: Ungate the subtitle entry button
+### Task 8: Ungate the subtitle entry button
 
 Removes the session requirement on Electron while keeping it on the extension.
 
@@ -2094,13 +2077,13 @@ git commit -m "feat(subtitle): allow entering subtitle mode before a session (El
 
 ---
 
-### Task 10: Translations and end-to-end verification
+### Task 9: Translations and end-to-end verification
 
 **Files:**
 - Modify: `src/locales/en/translation.json`
 
 **Interfaces:**
-- Consumes: the `subtitle.idle.*` and `subtitle.bar.*` keys referenced in Tasks 6 and 8
+- Consumes: the `subtitle.idle.*` and `subtitle.bar.*` keys referenced in Tasks 6 and 7
 - Produces: nothing downstream
 
 - [ ] **Step 1: Add the English strings**
