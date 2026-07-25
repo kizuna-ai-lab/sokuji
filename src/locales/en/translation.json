@@ -803,6 +803,15 @@
   "subtitle": {
     "sessionEnded": "Session ended",
     "backToMain": "Return to main window",
+    "idle": {
+      "start": "Start translating",
+      "hint": "Position and size the window before you start",
+      "ended": "This session has ended",
+      "fixHint": "You can start once this is configured",
+      "failed": "Failed to start: {{message}}",
+      "retry": "Retry",
+      "backForDetails": "Return to main window for details"
+    },
     "enterButton": {
       "title": "Enter subtitle mode",
       "disabled": "Start a session first",
@@ -814,6 +823,8 @@
       "label": "Exit subtitle"
     },
     "bar": {
+      "start": "Start session",
+      "stop": "Stop session",
       "fontDecrease": "Decrease font size",
       "fontIncrease": "Increase font size",
       "expand": "Expanded view",
