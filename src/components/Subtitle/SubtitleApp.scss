@@ -36,14 +36,15 @@
 .subtitle-app__resize--se { bottom: 0; right: 0;  width: 12px; height: 12px; cursor: nwse-resize; }
 
 .subtitle-ptt-hint,
-.subtitle-session-ended {
+.subtitle-idle {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px 24px;
-  gap: 12px;
+  gap: 10px;
   flex-direction: column;
+  min-height: 0;
 
   p {
     margin: 0;
@@ -53,32 +54,83 @@
   }
 }
 
-.subtitle-session-ended {
-  button {
+.subtitle-idle {
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__action {
     appearance: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 4px;
-    padding: 6px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #10a37f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
     font: inherit;
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 120ms ease, border-color 120ms ease;
+    max-width: 100%;
+    transition: background 120ms ease, opacity 120ms ease;
     -webkit-app-region: no-drag;
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.28);
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    &:active {
-      background: rgba(255, 255, 255, 0.2);
+    &:hover:not(:disabled) { background: #0d8c6d; }
+
+    &:disabled {
+      background: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.45);
+      cursor: default;
     }
 
-    &:focus-visible {
-      outline: 2px solid rgba(108, 197, 255, 0.6);
-      outline-offset: 1px;
+    // Blocked state: the action routes to settings instead of starting.
+    &--fix:not(:disabled) {
+      background: rgba(231, 76, 60, 0.16);
+      color: #f0a49b;
+      border: 1px solid rgba(231, 76, 60, 0.45);
+
+      &:hover { background: rgba(231, 76, 60, 0.24); }
     }
+  }
+
+  &__hint {
+    font-size: 12px !important;
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  // One line, always. The window can be resized to any height, so the error
+  // must never push the buttons out of view.
+  &__error {
+    font-size: 12.5px !important;
+    color: #f0a49b !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__link {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: underline;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+
+    &:hover { color: rgba(255, 255, 255, 0.75); }
   }
 }
