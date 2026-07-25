@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "স্পিচ-টু-স্পিচ অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "স্পিচ-টু-স্পিচ অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT মডেল দ্বারা চালিত"

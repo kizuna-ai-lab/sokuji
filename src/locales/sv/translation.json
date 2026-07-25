@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Tal-till-tal-översättning, autentiserad via ditt konto"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Tal-till-tal-översättning, autentiserad via ditt konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Drivs av GPT modeller"

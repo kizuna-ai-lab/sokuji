@@ -52,6 +52,7 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
 import {
   SonioxSettings, defaultSonioxSettings,
 } from '../services/providers/SonioxProviderConfig';
@@ -205,6 +206,7 @@ export interface SettingsStore {
   soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
+  kizunaSoniox: SonioxSettings;
   localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
 
@@ -290,6 +292,7 @@ export interface SettingsStore {
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
+  updateKizunaSoniox: (settings: Partial<SonioxSettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
 
@@ -611,6 +614,7 @@ const PROVIDER_SLICE_REGISTRY = {
   // (stale/sensitive values). See each descriptor's extractCredentials.
   kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'], persistErrors: 'throw' },
   kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'], persistErrors: 'swallow' },
+  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey'], persistErrors: 'swallow' },
   localInference: { defaults: defaultLocalInferenceSettings, persistErrors: 'swallow' },
   localNative: { defaults: defaultLocalNativeSettings, persistErrors: 'swallow' },
 } satisfies Record<string, SliceUpdateSpec>;
@@ -662,6 +666,7 @@ const useSettingsStore = create<SettingsStore>()(
     soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
+    kizunaSoniox: defaultKizunaSonioxSettings,
     localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
 
@@ -885,6 +890,7 @@ const useSettingsStore = create<SettingsStore>()(
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
     updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
+    updateKizunaSoniox: (settings) => updateProviderSlice(set, 'kizunaSoniox', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
 
@@ -1324,6 +1330,7 @@ export const useVolcengineAST2Settings = () => useSettingsStore((state) => state
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
+export const useKizunaSonioxSettings = () => useSettingsStore((state) => state.kizunaSoniox);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
@@ -1376,6 +1383,7 @@ export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.u
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
+export const useUpdateKizunaSoniox = () => useSettingsStore((state) => state.updateKizunaSoniox);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 

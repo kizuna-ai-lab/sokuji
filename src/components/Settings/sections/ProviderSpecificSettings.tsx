@@ -19,6 +19,7 @@ import {
   useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
+  useKizunaSonioxSettings,
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useUpdateLocalNative,
@@ -37,6 +38,7 @@ import {
   useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
+  useUpdateKizunaSoniox,
   useUpdateLocalInference,
   useGetCurrentProviderSettings,
   TransportType,
@@ -116,6 +118,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const mode = useMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
+  const kizunaSonioxSettings = useKizunaSonioxSettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
   const updateLocalNativeSettings = useUpdateLocalNative();
@@ -143,6 +146,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
+  const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localSystemPrompt = useLocalSystemPrompt();
@@ -178,6 +182,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
       ? updateKizunaVolcengineAst2Settings
       : updateVolcengineAST2Settings;
+
+  // Active Soniox slice + updater: kizuna slice when managed, else user-managed.
+  const activeSonioxSettings =
+    provider === Provider.KIZUNA_AI_SONIOX
+      ? kizunaSonioxSettings
+      : sonioxSettings;
+  const updateActiveSonioxSettings =
+    provider === Provider.KIZUNA_AI_SONIOX
+      ? updateKizunaSonioxSettings
+      : updateSonioxSettings;
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -292,6 +306,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
       updateKizunaVolcengineAst2Settings({ [key]: value });
+    } else if (provider === Provider.KIZUNA_AI_SONIOX) {
+      updateKizunaSonioxSettings({ [key]: value });
     } else if (provider === Provider.LOCAL_INFERENCE) {
       updateLocalInferenceSettings({ [key]: value });
     } else {
@@ -1729,14 +1745,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderSonioxSettings = () => {
-    if (provider !== Provider.SONIOX) return null;
+    // Covers SONIOX and its kizuna twin; effectiveProvider resolves the twin
+    // to SONIOX while activeSonioxSettings/updateActiveSonioxSettings resolve
+    // to the kizuna slice when managed (same pattern as the AST2 twin above).
+    if (effectiveProvider !== Provider.SONIOX) return null;
 
     // The shared-session toggle only means anything in Both mode — Soniox
     // runs a single You/Others session there instead of two separate ones.
     // In You-only or Others-only mode there's nothing to share, so the pill
     // is greyed out (still shows the persisted preference, just inert).
     const inBoth = mode === 'both';
-    const shared = sonioxSettings.bothModeSharedSession;
+    const shared = activeSonioxSettings.bothModeSharedSession;
 
     return (
       <div className="settings-section" id="soniox-settings-section">
@@ -1753,14 +1772,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="turn-detection-options">
             <button
               className={`option-button ${shared ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ bothModeSharedSession: true })}
+              onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: true })}
               disabled={isSessionActive || !inBoth}
             >
               {t('settings.enabled', 'Enabled')}
             </button>
             <button
               className={`option-button ${!shared ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ bothModeSharedSession: false })}
+              onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: false })}
               disabled={isSessionActive || !inBoth}
             >
               {t('settings.disabled', 'Disabled')}

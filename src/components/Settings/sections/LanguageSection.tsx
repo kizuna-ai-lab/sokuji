@@ -19,6 +19,7 @@ import {
   useUpdateOpenAITranslate,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
+  useUpdateKizunaSoniox,
   useUpdateLocalInference,
   useUpdateLocalNative,
   useUpdateVolcengineST,
@@ -93,6 +94,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
+  const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
@@ -220,6 +222,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.SONIOX:
         updateSonioxSettings({ sourceLanguage: value });
         break;
+      case Provider.KIZUNA_AI_SONIOX:
+        // Relay-managed twin of SONIOX — writes the kizuna slice.
+        updateKizunaSonioxSettings({ sourceLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -292,6 +298,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.SONIOX:
         updateSonioxSettings({ targetLanguage: value });
+        break;
+      case Provider.KIZUNA_AI_SONIOX:
+        // Relay-managed twin of SONIOX — writes the kizuna slice.
+        updateKizunaSonioxSettings({ targetLanguage: value });
         break;
     }
     trackEvent('language_changed', {

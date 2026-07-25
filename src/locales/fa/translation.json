@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "ترجمهٔ گفتار به گفتار، احراز هویت‌شده از طریق حساب شما"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "ترجمهٔ گفتار به گفتار، احراز هویت‌شده از طریق حساب شما"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "قدرت گرفته از مدل‌های GPT"

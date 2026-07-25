@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Dịch giọng nói sang giọng nói, xác thực qua tài khoản của bạn"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Dịch giọng nói sang giọng nói, xác thực qua tài khoản của bạn"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Sử dụng các mô hình GPT"

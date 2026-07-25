@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Aangedreven door GPT modellen"

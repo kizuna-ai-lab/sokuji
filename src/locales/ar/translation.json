@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "ترجمة من صوت إلى صوت، مُصادَق عليها عبر حسابك"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "ترجمة من صوت إلى صوت، مُصادَق عليها عبر حسابك"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "مدعوم بنماذج GPT"

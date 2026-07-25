@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Didukung oleh model GPT"

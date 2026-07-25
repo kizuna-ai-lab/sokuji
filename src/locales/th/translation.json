@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "การแปลเสียงเป็นเสียง ยืนยันตัวตนผ่านบัญชีของคุณ"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "การแปลเสียงเป็นเสียง ยืนยันตัวตนผ่านบัญชีของคุณ"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "ขับเคลื่อนโดยโมเดล GPT"

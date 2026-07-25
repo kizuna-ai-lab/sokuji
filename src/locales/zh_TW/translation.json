@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "語音到語音翻譯，透過您的帳戶進行驗證"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "語音到語音翻譯，透過您的帳戶進行驗證"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "由 GPT 模型驅動"

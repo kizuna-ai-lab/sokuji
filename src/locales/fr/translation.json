@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Traduction voix à voix, authentifiée via votre compte"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Traduction voix à voix, authentifiée via votre compte"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Alimenté par les modèles GPT"

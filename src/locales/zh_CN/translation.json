@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "端到端语音翻译，通过你的账户进行身份验证"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "端到端语音翻译，通过你的账户进行身份验证"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "由GPT模型驱动"

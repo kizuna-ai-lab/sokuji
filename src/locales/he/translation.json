@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "תרגום דיבור לדיבור, מאומת דרך החשבון שלך"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "תרגום דיבור לדיבור, מאומת דרך החשבון שלך"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "מופעל על ידי מודלי GPT"

@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "స్పీచ్-టు-స్పీచ్ అనువాదం, మీ ఖాతా ద్వారా ప్రామాణీకరించబడింది"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "స్పీచ్-టు-స్పీచ్ అనువాదం, మీ ఖాతా ద్వారా ప్రామాణీకరించబడింది"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT మాడల్స్ ద్వారా సంచాలితం"

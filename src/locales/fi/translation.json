@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT-mallien voimalla"

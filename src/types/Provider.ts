@@ -11,6 +11,7 @@ export enum Provider {
   PALABRA_AI = 'palabraai',
   KIZUNA_AI_OPENAI_TRANSLATE = 'kizunaai_openai_translate',
   KIZUNA_AI_VOLCENGINE_AST2 = 'kizunaai_volcengine_ast2',
+  KIZUNA_AI_SONIOX = 'kizunaai_soniox',
   OPENAI_COMPATIBLE = 'openai_compatible',
   OPENAI_TRANSLATE = 'openai_translate',
   VOLCENGINE_ST = 'volcengine_st',
@@ -24,7 +25,7 @@ export enum Provider {
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.LOCAL_NATIVE | Provider.ZOOM_AI | Provider.SONIOX;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.KIZUNA_AI_SONIOX | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.LOCAL_NATIVE | Provider.ZOOM_AI | Provider.SONIOX;
 
 /**
  * OpenAI-compatible providers (providers that use OpenAI-compatible APIs)
@@ -42,12 +43,14 @@ export function isOpenAICompatible(provider: ProviderType): boolean {
 }
 
 export function isKizunaManagedProvider(p: Provider): boolean {
-  return p === Provider.KIZUNA_AI_OPENAI_TRANSLATE || p === Provider.KIZUNA_AI_VOLCENGINE_AST2;
+  return p === Provider.KIZUNA_AI_OPENAI_TRANSLATE || p === Provider.KIZUNA_AI_VOLCENGINE_AST2
+    || p === Provider.KIZUNA_AI_SONIOX;
 }
 
 /** The user-managed base provider whose behavior/UI a kizuna-managed twin reuses. */
 export function kizunaBaseProvider(p: Provider): Provider | undefined {
   if (p === Provider.KIZUNA_AI_OPENAI_TRANSLATE) return Provider.OPENAI_TRANSLATE;
   if (p === Provider.KIZUNA_AI_VOLCENGINE_AST2) return Provider.VOLCENGINE_AST2;
+  if (p === Provider.KIZUNA_AI_SONIOX) return Provider.SONIOX;
   return undefined;
 }

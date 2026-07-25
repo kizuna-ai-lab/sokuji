@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "वाक्-से-वाक् अनुवाद, आपके खाते के माध्यम से प्रमाणित"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "वाक्-से-वाक् अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT मॉडल द्वारा संचालित"

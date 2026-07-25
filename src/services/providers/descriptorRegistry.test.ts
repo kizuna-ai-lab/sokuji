@@ -27,6 +27,7 @@ import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
+import { defaultKizunaSonioxSettings } from './KizunaAISonioxProviderConfig';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
 import en from '../../locales/en/translation.json';
 
@@ -45,13 +46,14 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   localNative: defaultLocalNativeSettings,
   kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
   kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
+  kizunaSoniox: defaultKizunaSonioxSettings,
   soniox: defaultSonioxSettings,
 };
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(13);
+    expect(ids.length).toBe(14);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -75,6 +77,7 @@ describe('descriptor.createClient', () => {
       const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, ws);
       expect(client.getProvider()).toBe(id === Provider.KIZUNA_AI_OPENAI_TRANSLATE ? Provider.OPENAI_TRANSLATE
         : id === Provider.KIZUNA_AI_VOLCENGINE_AST2 ? Provider.VOLCENGINE_AST2
+        : id === Provider.KIZUNA_AI_SONIOX ? Provider.SONIOX
         : id === Provider.OPENAI_COMPATIBLE ? Provider.OPENAI
         : id);
     }
@@ -90,6 +93,14 @@ describe('descriptor.createClient', () => {
     const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_VOLCENGINE_AST2)
       .createClient({ ok: true, primary: 'sess_TOKEN' }, ws);
     expect(c).toBeInstanceOf(VolcengineAST2Client);
+  });
+
+  it('kizuna soniox twin routes to a managed-mode SonioxClient', async () => {
+    const { SonioxClient } = await import('../clients/SonioxClient');
+    const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
+      .createClient({ ok: true, primary: 'sess_TOKEN' }, ws);
+    expect(c).toBeInstanceOf(SonioxClient);
+    expect(c.getProvider()).toBe(Provider.SONIOX);
   });
 });
 
@@ -108,6 +119,15 @@ describe('descriptor.validateAndFetchModels', () => {
     expect(ok.validation.valid).toBe(true);
     expect(ok.models[0].id).toBe('gpt-realtime-translate');
     const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna relay providers' });
+    expect(bad.validation.valid).toBe(false);
+  });
+
+  it('kizuna soniox twin validates statically from a non-empty token', async () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
+    const ok = await d.validateAndFetchModels({ ok: true, primary: 'sess_TOKEN' });
+    expect(ok.validation.valid).toBe(true);
+    expect(ok.models[0].id).toBe('stt-rt-v5');
+    const bad = await d.validateAndFetchModels({ ok: false, missing: 'Sign in is required for Kizuna providers' });
     expect(bad.validation.valid).toBe(false);
   });
 });
@@ -150,6 +170,14 @@ describe('descriptor.extractCredentials', () => {
     expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
   });
 
+  it('kizuna soniox twin resolves the auth token from ctx', async () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
+    expect(await d.extractCredentials({}, { getAuthToken: async () => 'sess_T' }))
+      .toEqual({ ok: true, primary: 'sess_T' });
+    expect((await d.extractCredentials({}, {})).ok).toBe(false);
+    expect((await d.extractCredentials({}, { getAuthToken: async () => null })).ok).toBe(false);
+  });
+
   it('local inference needs no credentials', async () => {
     expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
       .toEqual({ ok: true, primary: '' });
@@ -165,7 +193,7 @@ describe('descriptor.buildSessionConfig', () => {
       volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
       local_native: 'local_native',
       kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
-      soniox: 'soniox',
+      soniox: 'soniox', kizunaai_soniox: 'soniox',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
@@ -241,6 +269,7 @@ describe('registry invariants', () => {
     [Provider.LOCAL_NATIVE]: 'localNative',
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
+    [Provider.KIZUNA_AI_SONIOX]: 'kizunaSoniox',
     [Provider.SONIOX]: 'soniox',
   };
 
@@ -269,6 +298,7 @@ describe('registry invariants', () => {
     [Provider.LOCAL_NATIVE]: false,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false,
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false,
+    [Provider.KIZUNA_AI_SONIOX]: false,
     [Provider.SONIOX]: false,
   };
 

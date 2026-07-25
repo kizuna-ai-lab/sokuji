@@ -341,6 +341,10 @@
       "name": "KizunaAI Doubao",
       "description": "Перевод речи в речь, аутентификация через ваш аккаунт"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Перевод речи в речь, аутентификация через ваш аккаунт"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Работает на моделях GPT"
