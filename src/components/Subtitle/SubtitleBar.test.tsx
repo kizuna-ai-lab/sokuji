@@ -156,6 +156,18 @@ describe('SubtitleBar session pill', () => {
     expect(screen.getByLabelText('Start session')).toBeDisabled();
   });
 
+  // Regression: the disabled expression used to be
+  // `isInitializing || (!isSessionActive && !canStart)`, which read as
+  // disabled whenever isInitializing was true regardless of session state.
+  // Stop must always be clickable during a session — pin that invariant
+  // directly rather than relying on MainPanel never setting isInitializing
+  // true while isSessionActive is also true.
+  it('keeps the stop pill enabled during a session even if isInitializing/canStart say otherwise', () => {
+    const c = control({ isSessionActive: true, isInitializing: true, canStart: false });
+    render(<SubtitleBar {...baseProps} surface="electron" sessionControl={c} />);
+    expect(screen.getByLabelText('Stop session')).toBeEnabled();
+  });
+
   // Start/stop from the overlay is out of scope: the side panel is always
   // visible there and owns session control.
   it('does NOT render the pill on the extension-overlay surface', () => {

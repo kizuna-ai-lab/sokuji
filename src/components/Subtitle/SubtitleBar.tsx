@@ -133,9 +133,13 @@ const SubtitleBar: React.FC<Props> = ({
             type="button"
             className={`subtitle-bar__session ${sessionControl.isSessionActive ? 'is-stop' : 'is-start'}`}
             onClick={sessionControl.isSessionActive ? sessionControl.onStop : sessionControl.onStart}
+            // Stop must always be clickable during a session — written so that
+            // invariant is structural (guarded by !isSessionActive) rather than
+            // an accident of isInitializing/canStart never both being true
+            // while a session is active.
             disabled={
-              sessionControl.isInitializing ||
-              (!sessionControl.isSessionActive && !sessionControl.canStart)
+              !sessionControl.isSessionActive &&
+              (sessionControl.isInitializing || !sessionControl.canStart)
             }
             title={sessionControl.isSessionActive
               ? t('subtitle.bar.stop', 'Stop session')

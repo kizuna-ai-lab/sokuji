@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import type { ConversationItem } from '../services/interfaces/IClient';
-import type { StartBlockReason, DeviceScope } from '../components/MainPanel/sessionStartGate';
+import type { StartGate } from '../components/MainPanel/sessionStartGate';
 
 export type LockedFooterMode = 'speaker' | 'participant' | 'both';
 
@@ -29,7 +29,7 @@ interface SessionStore {
   // Mirror of MainPanel's start gate. MainPanel owns the computation; the
   // subtitle window is a sibling React tree that cannot read MainPanel state,
   // so the answer is published here. Same pattern as lockedMode above.
-  startGate: { canStart: boolean; reason: StartBlockReason | null; balance?: number; deviceScope?: DeviceScope };
+  startGate: StartGate;
   isInitializing: boolean;
   initProgress: { completed: number; total: number } | null;
   // Monotonic counters — every requestSessionStart/Stop bumps one. MainPanel
