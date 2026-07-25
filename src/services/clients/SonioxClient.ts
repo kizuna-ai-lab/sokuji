@@ -128,10 +128,11 @@ export class SonioxClient implements IClient {
   // debug-timeline event (reset each utterance).
   private ttsSpokenText = '';
   // Reconnect-on-demand: the server closes an idle TTS socket with no active
-  // stream at ~11 s (code 1001) regardless of keep_alive, so between/before
-  // utterances the socket often dies. When feedTts finds it closed it queues
-  // the text/end here and re-establishes the socket; the queue is flushed in
-  // order once connected.
+  // stream after ~5.3 s (408: "Request timeout") regardless of keep_alive —
+  // measured live; well inside the 20 s keepalive interval, so keep_alive
+  // never gets a chance to save it — so between/before utterances the socket
+  // often dies. When feedTts finds it closed it queues the text/end here and
+  // re-establishes the socket; the queue is flushed in order once connected.
   private ttsConnecting = false;
   private ttsPending: Array<{ kind: 'text'; text: string; language: string } | { kind: 'end' }> = [];
 
@@ -292,11 +293,12 @@ export class SonioxClient implements IClient {
         // discard the socket instead of installing it (would leak + speak after Stop).
         if (gen !== this.generation) { stream.close(); return; }
         this.tts = stream;
-        // No prewarm: a config-only TTS stream with no text is 408'd by the
-        // server in ~5 s. And an idle socket with no active stream is closed at
-        // ~11 s (code 1001) regardless of keep_alive — so this socket may die
-        // during a long silence before the first translation. feedTts detects a
-        // closed socket and reconnects on demand (see ensureTts).
+        // No prewarm: a config-only TTS stream with no text — and, the same
+        // way, an idle socket with no active stream at all — is closed by the
+        // server after ~5.3 s (408: "Request timeout"; measured live) regardless
+        // of keep_alive, so this socket may die during a long silence before
+        // the first translation. feedTts detects a closed socket and
+        // reconnects on demand (see ensureTts).
       } catch (error) {
         // Best-effort: never fail the session because TTS is unavailable.
         // feedTts will retry the connection on the first translation.
@@ -568,8 +570,9 @@ export class SonioxClient implements IClient {
   /**
    * (Re)establish the TTS socket when it is closed, then flush any text/end
    * markers queued while it was down. Idle TTS sockets are closed by the
-   * server (~11 s) between utterances, so this runs whenever a translation
-   * needs speaking but the socket is not open.
+   * server (~5.3 s, 408: "Request timeout"; measured live) between
+   * utterances — almost every conversational pause — so this runs whenever a
+   * translation needs speaking but the socket is not open.
    */
   private async ensureTts(): Promise<void> {
     if (this.ttsConnecting) return;
@@ -839,11 +842,11 @@ export class SonioxClient implements IClient {
   }
 
   private handleTtsError(code: string, message: string): void {
-    // An idle TTS socket is closed by the server (~11 s, code 1001) between
-    // utterances and is recovered by reconnecting on the next translation
-    // (ensureTts) — that's expected, not a degradation, so don't surface it.
-    // Only a genuine failure (a reconnect that itself failed, or a wire-level
-    // error code) degrades spoken output.
+    // An idle TTS socket is closed by the server (~5.3 s, 408: "Request
+    // timeout"; measured live) between utterances and is recovered by
+    // reconnecting on the next translation (ensureTts) — that's expected, not
+    // a degradation, so don't surface it. Only a genuine failure (a reconnect
+    // that itself failed, or a wire-level error code) degrades spoken output.
     if (code === 'socket_closed' || code === 'socket_error') return;
     // TTS errors are non-fatal to the SESSION — transcription and text
     // translation carry on — but they are not invisible to the USER: spoken

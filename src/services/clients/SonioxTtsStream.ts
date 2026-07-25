@@ -19,8 +19,12 @@
  *   round-trip (~400 ms). A prewarmed stream with the wrong language (only
  *   possible in two_way mode) is discarded immediately — it produced no
  *   audio, so no serialization wait is needed.
- * - {keep_alive:true} every 20 s keeps idle sockets alive (NOTE: different
- *   shape from the STT keepalive {"type":"keepalive"}).
+ * - {keep_alive:true} every 20 s (NOTE: different shape from the STT
+ *   keepalive {"type":"keepalive"}). Does NOT prevent the server from closing
+ *   a socket with no active stream — measured live at ~5.3 s with a 408
+ *   ("Request timeout") error, well inside this 20 s interval — so
+ *   SonioxClient's reconnect-on-demand (ensureTts) is what actually keeps
+ *   speech flowing across a silence, not this.
  */
 
 export interface SonioxTtsOptions {

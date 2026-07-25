@@ -697,7 +697,7 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
     const stt = sttInstances.at(-1)!;
     const tts0 = ttsInstances.at(-1)!;
-    // Simulate the idle TTS socket having been closed by the server (~11s).
+    // Simulate the idle TTS socket having been closed by the server (~5.3s, 408).
     tts0.closed = true;
     expect(tts0.isOpen()).toBe(false);
     // A translation arrives, then <end> — both must land on a fresh stream.
