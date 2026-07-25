@@ -161,7 +161,7 @@
     "vadSettings": "VAD設定",
     "vadSettingsTooltip": "音声活動検出の設定。環境に合わせて音声検出を最適化するためにこれらの設定を調整してください。",
     "vadThresholdTooltip": "音声検出の感度。値が高いほど認識にはっきりした声が必要になります。値が低いほど小さな声にも反応します。",
-    "vadNegativeThreshold": "無音しきい値",
+    "vadNegativeThreshold": "沈黙のしきい値",
     "vadNegativeThresholdTooltip": "この確率を下回ると、無音がセグメント終了のためにカウントされ始めます。自動では音声しきい値より 0.15 低い値に保たれます。音声しきい値より高い値が適用されることはありません。その場合、セグメントが終わらなくなるためです。",
     "vadNegativeThresholdAuto": "自動",
     "vadMinSilenceDuration": "最小無音時間",

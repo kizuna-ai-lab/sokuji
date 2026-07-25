@@ -140,11 +140,13 @@ export const VadControl: React.FC<{
             <span className="setting-value">
               {values.vadNegativeThreshold === 0
                 ? t('settings.vadNegativeThresholdAuto', 'Auto')
-                : values.vadNegativeThreshold.toFixed(2)}
+                : // Show what the session will actually use: the worker clamps
+                  // this to the speech threshold, so displaying more would lie.
+                  Math.min(values.vadNegativeThreshold, values.vadThreshold).toFixed(2)}
             </span>
           </div>
           <input
-            type="range" min="0" max="0.9" step="0.05" value={values.vadNegativeThreshold}
+            type="range" min="0" max={values.vadThreshold} step="0.05" value={Math.min(values.vadNegativeThreshold, values.vadThreshold)}
             onChange={(e) => onChange({ vadNegativeThreshold: parseFloat(e.target.value) })}
             className="slider" disabled={disabled}
           />

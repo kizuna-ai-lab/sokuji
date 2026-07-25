@@ -161,7 +161,7 @@
     "vadSettings": "Paramètres VAD",
     "vadSettingsTooltip": "Configuration de la détection d'activité vocale. Ajustez ces paramètres pour optimiser la détection vocale dans votre environnement.",
     "vadThresholdTooltip": "Sensibilité de détection vocale. Des valeurs plus élevées nécessitent une parole plus forte/claire. Des valeurs plus basses sont plus sensibles aux voix faibles.",
-    "vadNegativeThreshold": "Seuil de silence",
+    "vadNegativeThreshold": "Seuil de Silence",
     "vadNegativeThresholdTooltip": "Probabilité en dessous de laquelle le silence commence à compter pour la fin d'un segment. Auto le maintient 0,15 sous le seuil de parole. Il ne s'applique jamais au-dessus du seuil de parole, sinon les segments ne se termineraient jamais.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Durée min. de silence",

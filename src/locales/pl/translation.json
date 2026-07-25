@@ -161,7 +161,7 @@
     "vadSettings": "Ustawienia VAD",
     "vadSettingsTooltip": "Konfiguracja wykrywania aktywności głosowej. Dostosuj te ustawienia, aby zoptymalizować wykrywanie mowy w swoim środowisku.",
     "vadThresholdTooltip": "Czułość wykrywania mowy. Wyższe wartości wymagają głośniejszej/wyraźniejszej mowy. Niższe wartości są bardziej wrażliwe na cichą mowę.",
-    "vadNegativeThreshold": "Próg ciszy",
+    "vadNegativeThreshold": "Próg Ciszy",
     "vadNegativeThresholdTooltip": "Prawdopodobieństwo, poniżej którego cisza zaczyna się liczyć do zakończenia segmentu. Auto utrzymuje go 0,15 poniżej progu mowy. Nigdy nie jest stosowany powyżej progu mowy, bo segmenty nigdy by się nie kończyły.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. czas ciszy",

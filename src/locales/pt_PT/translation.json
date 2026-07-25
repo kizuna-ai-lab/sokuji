@@ -161,7 +161,7 @@
     "vadSettings": "Definições VAD",
     "vadSettingsTooltip": "Configuração de deteção de atividade vocal. Ajuste estas definições para otimizar a deteção de voz no seu ambiente.",
     "vadThresholdTooltip": "Sensibilidade de deteção de voz. Valores mais altos requerem fala mais alta/clara. Valores mais baixos são mais sensíveis a fala baixa.",
-    "vadNegativeThreshold": "Limiar de silêncio",
+    "vadNegativeThreshold": "Limite de Silêncio",
     "vadNegativeThresholdTooltip": "Probabilidade abaixo da qual o silêncio começa a contar para terminar o segmento. Auto mantém-no 0,15 abaixo do limiar de fala. Nunca é aplicado acima do limiar de fala, pois os segmentos nunca terminariam.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duração mín. de silêncio",

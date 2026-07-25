@@ -65,6 +65,16 @@ describe('StreamingAudioFeed', () => {
     expect(feed.readyFor(100)).toBe(true);
   });
 
+  it('stages audio arriving after a stop so the next run still has its onset', () => {
+    const feed = new StreamingAudioFeed();
+    feed.append(f32(1));
+    feed.requestStop();
+    feed.append(f32(9, 9));
+    expect(Array.from(feed.audio)).toEqual([1]);   // the abandoned run gains nothing
+    feed.complete();
+    expect(Array.from(feed.audio)).toEqual([9, 9]);
+  });
+
   it('halts a run immediately on stop, even with audio still buffered', () => {
     const feed = new StreamingAudioFeed();
     feed.append(new Float32Array(100));

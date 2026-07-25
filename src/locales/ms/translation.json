@@ -163,7 +163,7 @@
     "vadThresholdTooltip": "Kepekaan pengesanan pertuturan. Nilai lebih tinggi memerlukan pertuturan lebih kuat/jelas. Nilai lebih rendah lebih peka terhadap pertuturan perlahan.",
     "vadNegativeThreshold": "Ambang Senyap",
     "vadNegativeThresholdTooltip": "Kebarangkalian yang di bawahnya kesenyapan mula dikira untuk menamatkan segmen. Auto mengekalkannya 0.15 di bawah ambang pertuturan. Ia tidak pernah digunakan melebihi ambang pertuturan, kerana segmen tidak akan pernah tamat.",
-    "vadNegativeThresholdAuto": "Auto",
+    "vadNegativeThresholdAuto": "Automatik",
     "vadMinSilenceDuration": "Tempoh Senyap Minimum",
     "vadMinSilenceDurationTooltip": "Tempoh senyap minimum untuk memisahkan segmen pertuturan. Nilai lebih pendek memisahkan ayat lebih cepat, nilai lebih panjang menunggu jeda yang lebih semula jadi.",
     "vadMinSpeechDuration": "Tempoh Pertuturan Minimum",

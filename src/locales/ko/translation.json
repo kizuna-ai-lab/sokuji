@@ -161,7 +161,7 @@
     "vadSettings": "VAD 설정",
     "vadSettingsTooltip": "음성 활동 감지 설정. 환경에 맞게 음성 감지를 최적화하려면 이 설정을 조정하세요.",
     "vadThresholdTooltip": "음성 감지 민감도. 값이 높을수록 인식을 위해 더 크고 명확한 음성이 필요합니다. 값이 낮을수록 조용한 음성에 더 민감합니다.",
-    "vadNegativeThreshold": "무음 임계값",
+    "vadNegativeThreshold": "침묵 임계값",
     "vadNegativeThresholdTooltip": "이 확률 아래로 내려가면 무음이 구간 종료를 위해 카운트되기 시작합니다. 자동은 음성 임계값보다 0.15 낮게 유지합니다. 음성 임계값보다 높게 적용되는 일은 없습니다. 그러면 구간이 끝나지 않기 때문입니다.",
     "vadNegativeThresholdAuto": "자동",
     "vadMinSilenceDuration": "최소 무음 시간",

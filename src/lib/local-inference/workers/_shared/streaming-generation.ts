@@ -66,7 +66,11 @@ export class StreamingAudioFeed {
 
   append(samples: Float32Array): void {
     if (samples.length === 0) return;
-    if (this._finishing) {
+    // Stage once the run is ending — under a stop too, not just a finish. The
+    // generate loop only notices `stopped` on its next poll, and `complete()`
+    // drops whatever is left in `active`; anything appended in that window
+    // belongs to the next utterance, so it must not land there.
+    if (this._finishing || this._stopped) {
       this.staged = concat(this.staged, samples);
     } else {
       this.active = concat(this.active, samples);

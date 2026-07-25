@@ -161,7 +161,7 @@
     "vadSettings": "Configuración VAD",
     "vadSettingsTooltip": "Configuración de detección de actividad de voz. Ajuste estos parámetros para optimizar la detección de voz en su entorno.",
     "vadThresholdTooltip": "Sensibilidad de detección de voz. Valores más altos requieren voz más fuerte/clara. Valores más bajos son más sensibles a voz baja.",
-    "vadNegativeThreshold": "Umbral de silencio",
+    "vadNegativeThreshold": "Umbral de Silencio",
     "vadNegativeThresholdTooltip": "Probabilidad por debajo de la cual el silencio empieza a contar para terminar el segmento. Auto lo mantiene 0,15 por debajo del umbral de voz. Nunca se aplica por encima del umbral de voz, ya que los segmentos no terminarían nunca.",
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duración mín. de silencio",
