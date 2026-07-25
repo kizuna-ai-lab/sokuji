@@ -6,10 +6,18 @@
  * Format a micro-USD wallet amount (1 USD = 1,000,000 micro-USD) as a display
  * currency string. Mirrors the `formatUsd` helper in the backend web dashboard
  * (sokuji-backend/web/src/pages/dashboard/Wallet.tsx).
+ *
+ * The argument comes from `QuotaData`, which is built from an untyped JSON
+ * payload, so null/undefined/NaN can reach here — callers pass things like
+ * `quota.balance ?? 0` and `quota.balance || quota.remaining`, neither of which
+ * stops a NaN. Anything non-finite renders "$0.00" rather than the literal
+ * "$NaN" appearing in the balance UI.
+ *
  * @param microUsd Amount in micro-USD
  * @returns Formatted string (e.g., "$3.42")
  */
-export function formatUsd(microUsd: number): string {
+export function formatUsd(microUsd: number | null | undefined): string {
+  if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return '$0.00';
   return `$${(microUsd / 1_000_000).toFixed(2)}`;
 }
 
