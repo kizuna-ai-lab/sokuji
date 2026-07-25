@@ -25,7 +25,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
-import { StreamingAudioFeed, StreamingTextAccumulator } from './_shared/streaming-generation';
+import { StreamingAudioFeed, StreamingTextAccumulator, tailPadSamples } from './_shared/streaming-generation';
 
 import type {
   VoxtralAsrInitMessage,
@@ -167,15 +167,15 @@ const audioFeed = new StreamingAudioFeed();
 /**
  * Silence to append at an utterance end so the model can decode its tail.
  *
- * Voxtral Realtime emits tokens NUM_DELAY_TOKENS behind the audio it has been
- * fed, and the non-streaming path pads `num_right_pad_tokens` on the right for
- * exactly this reason. Cutting the feed at the VAD endpoint instead leaves the
- * last ~1s of every utterance undecoded — the audio was buffered but never
- * turned into tokens.
+ * Voxtral Realtime emits tokens behind the audio it has been fed, and the
+ * non-streaming path pads on the right for exactly this reason. Cutting the
+ * feed at the VAD endpoint instead leaves the last words of every utterance
+ * undecoded — the audio was buffered but never turned into tokens.
+ * See TAIL_PAD_TOKENS for why this is shorter than `num_right_pad_tokens`.
  */
-function tailPadSamples(): number {
+function utterancePadSamples(): number {
   if (!voxtralProcessor) return 0;
-  return voxtralProcessor.num_right_pad_tokens * voxtralProcessor.raw_audio_length_per_tok;
+  return tailPadSamples(voxtralProcessor.raw_audio_length_per_tok);
 }
 
 function waitUntil(condition: () => boolean): Promise<void> {
@@ -321,7 +321,7 @@ function finishGenerate() {
     audioFeed.clear();
     return;
   }
-  audioFeed.requestFinish(tailPadSamples());
+  audioFeed.requestFinish(utterancePadSamples());
 }
 
 /** Abandon the current utterance without decoding its tail. */

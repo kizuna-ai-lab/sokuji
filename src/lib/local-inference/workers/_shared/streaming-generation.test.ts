@@ -1,7 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { StreamingAudioFeed, StreamingTextAccumulator } from './streaming-generation';
+import { StreamingAudioFeed, StreamingTextAccumulator, tailPadSamples } from './streaming-generation';
 
 const f32 = (...values: number[]) => Float32Array.from(values);
+
+describe('tailPadSamples', () => {
+  // Voxtral Realtime: AUDIO_LENGTH_PER_TOK(8) * whisper hop_length(160).
+  const RAW_AUDIO_LENGTH_PER_TOK = 1280;
+
+  it('pads just past the model delay — about 560ms at 16kHz', () => {
+    expect(tailPadSamples(RAW_AUDIO_LENGTH_PER_TOK) / 16000).toBeCloseTo(0.56, 2);
+  });
+
+  it('has nothing to pad when the token length is unknown', () => {
+    expect(tailPadSamples(0)).toBe(0);
+  });
+});
 
 describe('StreamingAudioFeed', () => {
   it('collects audio for the run that is currently generating', () => {

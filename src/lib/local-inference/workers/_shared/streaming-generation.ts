@@ -7,6 +7,23 @@
  * in worker-module globals) makes the end-of-utterance handoff testable.
  */
 
+/**
+ * Silence, in tokens, appended at an utterance end so the model decodes its tail.
+ *
+ * Voxtral Realtime runs NUM_DELAY_TOKENS (6) behind the audio it has been fed,
+ * so 6 + 1 is what it takes to flush the words it is still holding. The
+ * processor's own `num_right_pad_tokens` is 17 — the extra 10 are
+ * OFFLINE_STREAMING_BUFFER_TOKENS, slack for decoding a whole clip at once.
+ * Streaming does not need them, and every padded token is real decode work at
+ * the end of every utterance.
+ */
+export const TAIL_PAD_TOKENS = 7;
+
+/** Samples of silence to append at an utterance end. */
+export function tailPadSamples(rawAudioLengthPerTok: number): number {
+  return TAIL_PAD_TOKENS * rawAudioLengthPerTok;
+}
+
 function concat(a: Float32Array, b: Float32Array): Float32Array {
   const merged = new Float32Array(a.length + b.length);
   merged.set(a);
