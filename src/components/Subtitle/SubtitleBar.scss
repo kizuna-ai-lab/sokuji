@@ -149,6 +149,19 @@
       color: rgba(255, 255, 255, 0.4);
       cursor: default;
     }
+
+    // The initializing-state Loader icon. Self-contained rather than relying
+    // on MainPanel.scss's global .spinning/@keyframes spin — this bar's CSS
+    // also ships in the extension-overlay iframe bundle, which never loads
+    // MainPanel.scss.
+    .spinning {
+      animation: subtitle-bar-spin 1s linear infinite;
+    }
   }
 
+}
+
+@keyframes subtitle-bar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

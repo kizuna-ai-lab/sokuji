@@ -167,4 +167,21 @@
       outline-offset: 1px;
     }
   }
+
+  // The "starting" body's Loader icon. `.spinning` is used the same way in
+  // MainPanel.scss, AudioSystemBanner.scss, etc., but each of those scopes
+  // the rule locally rather than relying on a shared global class — and this
+  // component's CSS ships in two different bundles (the Electron main
+  // window, where MainPanel.scss's global @keyframes spin happens to also be
+  // loaded, and the extension-overlay iframe, which never pulls in
+  // MainPanel.scss at all). Defining it here keeps the spin self-contained
+  // in both.
+  .spinning {
+    animation: subtitle-idle-spin 1s linear infinite;
+  }
+}
+
+@keyframes subtitle-idle-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
