@@ -1446,10 +1446,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const result = await useSettingsStore.getState().validateApiKey();
         if (!result.valid) {
           setIsInitializing(false);
+          const errorMessage = result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.');
           addRealtimeEvent(
-            { type: 'session.init_error', data: { message: result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
+            { type: 'session.init_error', data: { message: errorMessage } },
             'client', 'session.init_error'
           );
+          // Also surface this in the conversation items (not just the realtime
+          // event log) so the idle-state derivation (subtitleIdleState.ts) can
+          // detect the failure and the subtitle window shows why start didn't
+          // happen — see the equivalent append in the outer catch block below.
+          setItems(prevItems => [...prevItems, {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: errorMessage },
+          }]);
           return;
         }
       }
@@ -1806,10 +1819,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (!speakerClientRef.current && !participantClientRef.current) {
         console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
         setIsInitializing(false);
+        const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
         addRealtimeEvent(
-          { type: 'session.init_error', data: { message: t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.') } },
+          { type: 'session.init_error', data: { message: errorMessage } },
           'client', 'session.init_error'
         );
+        // Same reasoning as the local-model revalidation guard above and the
+        // outer catch block below: append to items (not just the realtime
+        // event log) so subtitleIdleState can derive `failed` and the
+        // subtitle window shows why start didn't happen. Nothing here calls
+        // setItems(getConversationItems()) afterward, so there's no overwrite
+        // risk and no "append after disconnect" ordering is needed.
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: errorMessage },
+        }]);
         return;
       }
 
