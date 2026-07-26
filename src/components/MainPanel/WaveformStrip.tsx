@@ -3,7 +3,7 @@ import './WaveformStrip.scss';
 
 interface WaveformStripProps {
   kind: 'mic' | 'system' | 'output';
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   width?: 'full' | 'half';
   label?: string;
   /** Optional hover tooltip describing what this strip shows. */

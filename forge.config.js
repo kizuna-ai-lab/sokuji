@@ -1,5 +1,32 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const fs = require('fs');
+const path = require('path');
+
+// Sokuji localizes its product UI through i18next. Electron's locale packs
+// only cover Chromium-native UI, which intentionally falls back to English.
+// Windows/Linux use en-US.pak; macOS uses en.lproj.
+const ELECTRON_LANGUAGES = new Set([
+  'en', 'en-US',
+]);
+
+function pruneElectronLocales(buildPath, platform) {
+  const isMac = platform === 'darwin';
+  const localesDir = isMac
+    ? path.resolve(buildPath, '..')
+    : path.resolve(buildPath, '..', '..', 'locales');
+  const localeSuffix = isMac ? '.lproj' : '.pak';
+
+  if (!fs.existsSync(localesDir)) return;
+
+  for (const entry of fs.readdirSync(localesDir, { withFileTypes: true })) {
+    if (!entry.name.endsWith(localeSuffix)) continue;
+    const language = entry.name.slice(0, -localeSuffix.length);
+    if (!ELECTRON_LANGUAGES.has(language)) {
+      fs.rmSync(path.join(localesDir, entry.name), { recursive: true, force: true });
+    }
+  }
+}
 
 module.exports = {
   packagerConfig: {
@@ -16,13 +43,16 @@ module.exports = {
       // Root is always included
       if (filePath === '') return false;
 
+      // Source maps are useful in local build output but not at runtime.
+      if (filePath.endsWith('.map')) return true;
+
       // Allow runtime-essential top-level entries
       if (filePath === '/package.json') return false;
       if (filePath.startsWith('/dist-electron')) return false;
       if (filePath.startsWith('/node_modules')) {
         // Strip dev-only junk inside node_modules
         if (/\/((@testing-library|jest|eslint|babel)[^/]*|@parcel\/watcher)(\/|$)/.test(filePath)) return true;
-        if (/\.(map|ts|flow|markdown)$/.test(filePath)) return true;
+        if (/\.(ts|flow|markdown)$/.test(filePath)) return true;
         return false;
       }
       if (filePath.startsWith('/build')) {
@@ -46,10 +76,8 @@ module.exports = {
           if (wasmRuntimeDirs.some(dir => filePath === dir || filePath.startsWith(dir + '/'))) return false;
           return true;
         }
-        // Exclude source maps
-        if (filePath.endsWith('.map')) return true;
         // Exclude debug assets
-        if (filePath === '/build/assets/test-tone.mp3') return true;
+        if (filePath.startsWith('/build/assets/test-tone') && filePath.endsWith('.mp3')) return true;
         return false;
       }
 
@@ -105,10 +133,10 @@ module.exports = {
   ],
   // Add hooks to further optimize the build
   hooks: {
+    packageAfterCopy: async (_forgeConfig, buildPath, _electronVersion, platform) => {
+      pruneElectronLocales(buildPath, platform);
+    },
     packageAfterPrune: async (forgeConfig, buildPath) => {
-      const fs = require('fs');
-      const path = require('path');
-      
       // List of directories to check and remove unnecessary files
       const dirsToClean = [
         path.join(buildPath, 'node_modules')

@@ -4,6 +4,7 @@ import electron from 'vite-plugin-electron/simple'
 import path from 'path'
 import fs from 'fs'
 import pkg from './package.json' with { type: 'json' }
+import { dropDuplicateOrtWasm } from './vite.drop-duplicate-ort-wasm'
 import { workerManualChunks } from './vite.worker-chunks'
 
 /**
@@ -128,6 +129,7 @@ export default defineConfig(({ command, mode }) => {
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
+      dropDuplicateOrtWasm(),
       electron({
         main: {
           // Entry points for the main process
@@ -139,6 +141,7 @@ export default defineConfig(({ command, mode }) => {
             'sidecar-sku': 'electron/sidecar-sku.js',
             'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
+            'sandbox-recovery': 'electron/sandbox-recovery.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
@@ -154,8 +157,36 @@ export default defineConfig(({ command, mode }) => {
               sourcemap,
               minify: isBuild,
               outDir: 'dist-electron',
-              rollupOptions: {
-                external: ['electron', 'electron-squirrel-startup', 'electron-conf', 'electron-audio-loopback', 'electron-updater'],
+              // Vite 8 reads `rolldownOptions`; `rollupOptions` is silently
+              // ignored here because vite-plugin-electron already normalizes the
+              // main config onto the rolldown key. Putting `external` under the
+              // old key bundles electron-updater/electron-conf/the native
+              // electron-audio-loopback straight into dist-electron.
+              rolldownOptions: {
+                external: [
+                  'electron',
+                  // Everything in `dependencies` ships in the asar's
+                  // node_modules and must stay a runtime require. Rollup
+                  // externalized these on its own; rolldown bundles them
+                  // instead — it inlined fzstd and rewrote tar-stream into
+                  // `../node_modules/tar-stream/extract`, reaching past the
+                  // package's exports map. Derived from package.json so the
+                  // list cannot drift from what actually ships.
+                  ...Object.keys(pkg.dependencies ?? {}),
+                  // sidecar-bundle reads `sidecarVersion` from the package.json
+                  // that forge/electron-builder pack into the asar. Left to
+                  // rolldown it gets inlined, baking the whole file — including
+                  // the devDependencies list — into the shipped main process.
+                  '../package.json',
+                  // The main entries `require()` each other (18 sites, and
+                  // windows-audio-utils <-> vb-cable-installer is circular).
+                  // Rollup left those as runtime requires between the emitted
+                  // files; rolldown instead inlines the target entry and leaves
+                  // a re-export stub, which mangles CJS exports — a required
+                  // sibling came back as the wrong module. Marking siblings
+                  // external restores one self-contained file per entry.
+                  /^\.\/[a-z0-9-]+$/,
+                ],
                 output: {
                   entryFileNames: '[name].js'
                 }
@@ -177,7 +208,7 @@ export default defineConfig(({ command, mode }) => {
               sourcemap: sourcemap ? 'inline' : undefined,
               minify: isBuild,
               outDir: 'dist-electron',
-              rollupOptions: {
+              rolldownOptions: {
                 external: ['electron']
               }
             }
@@ -190,6 +221,21 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       host: true,
+      watch: {
+        // Vite recursively watches the whole project tree. Python virtualenvs
+        // living under git worktrees (.claude/worktrees/**/.spike/venv — with
+        // site-packages holding 100k+ files like onnx/torch) blow past the
+        // inotify max_user_watches limit and crash the dev server with ENOSPC.
+        // None of these dirs feed the build, so exclude them from the watcher.
+        // Merged with Vite's defaults (node_modules, .git already ignored).
+        ignored: [
+          '**/.claude/worktrees/**',
+          '**/.spike/**',
+          '**/venv/**',
+          '**/.venv/**',
+          '**/__pycache__/**',
+        ],
+      },
       // Cross-origin isolation for the dev server (electron:dev / web dev only).
       // Electron 40's Chromium requires COEP for ES module workers even when SAB
       // comes from --enable-features=SharedArrayBuffer, so without these the
@@ -231,4 +277,4 @@ export default defineConfig(({ command, mode }) => {
       include: ['@huggingface/transformers', 'onnxruntime-web'],
     }
   }
-}) 
+})

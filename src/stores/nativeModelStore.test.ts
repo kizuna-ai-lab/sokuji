@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useNativeModelStore } from './nativeModelStore';
+import { useNativeModelStore, deriveVariantRepos } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 
 // The store's bundle IPC helpers (bundleInvoke/onBundleProgress) gate on the
@@ -219,6 +219,40 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
     await useNativeModelStore.getState().ensureCatalog();
     // sense-voice (the fixture ASR) has no `variants` → no entry in statusRepos.
     expect(useNativeModelStore.getState().statusRepos['sense-voice']).toBeUndefined();
+  });
+});
+
+describe('deriveVariantRepos', () => {
+  // Pure-function unit tests (no store/settingsStore involvement) for the fix
+  // site directly, per its own docstring: an unsupported pin must not drive
+  // the readiness gate to validate a repo the sidecar's runnable-filter never
+  // loads — it must fall back to the recommended (supported) variant.
+  const CARD = {
+    id: 'card', name: 'Card', kind: 'asr', languages: ['multi'], recommended: true,
+    tiers: [], order: 0, repo: 'org/fake-fp32',
+    variants: [
+      { id: 'fp32', sizeBytes: 1000, repo: 'org/fake-fp32', supported: true, recommended: true },
+      { id: 'bf16', sizeBytes: 1000, repo: 'org/fake-bf16', supported: false, recommended: false },
+    ],
+  } as any;
+
+  it('ignores a pin whose variant is unsupported, falling back to the recommended repo', () => {
+    expect(deriveVariantRepos([CARD], { card: 'bf16' })).toEqual({ card: 'org/fake-fp32' });
+  });
+
+  it('honours a pin whose variant IS supported', () => {
+    const supportedPinCard = {
+      ...CARD,
+      variants: [
+        { id: 'fp32', sizeBytes: 1000, repo: 'org/fake-fp32', supported: true, recommended: true },
+        { id: 'bf16', sizeBytes: 1000, repo: 'org/fake-bf16', supported: true, recommended: false },
+      ],
+    };
+    expect(deriveVariantRepos([supportedPinCard], { card: 'bf16' })).toEqual({ card: 'org/fake-bf16' });
+  });
+
+  it('falls back to recommended with no pin at all', () => {
+    expect(deriveVariantRepos([CARD], {})).toEqual({ card: 'org/fake-fp32' });
   });
 });
 
@@ -469,6 +503,65 @@ describe('ensureSelectionReady (facade)', () => {
       selection: { ...SEL, translationModel: 'hy-mt2-1.8b' }, textOnly: false,
     }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
+  });
+
+  it('resolves the PINNED tts variant repo on the required-models refresh, not the recommended one', async () => {
+    // Same shape as the translation-model variant test above, but for TTS: a
+    // multi-variant TTS card, pinned to its NON-recommended variant. The
+    // required-models refresh (the one that queries exactly the models
+    // requiredNativeModels() says are needed) must resolve the TTS card's
+    // PINNED repo — ensureSelectionReady's second deriveVariantRepos() call
+    // historically only listed asrModel/translationModel and silently dropped
+    // ttsModel, so this card's status was checked against its default/
+    // recommended repo instead of the one the user actually pinned.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const catalog = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: { ...catalog, 'moss-tts-pro': {
+      id: 'moss-tts-pro', name: 'MOSS Pro', kind: 'tts', languages: ['ja', 'zh'], recommended: false,
+      tiers: [], order: 9, repo: '',
+      variants: [
+        { id: 'fp32', sizeBytes: 3e9, repo: 'org/moss-pro-fp32', supported: true, recommended: false },
+        { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
+      ],
+    } } as any });
+    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja', ttsModel: 'moss-tts-pro',
+        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
+      textOnly: false,
+    }));
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
+  });
+
+  it('resolves the PINNED tts variant repo when TTS is on Auto (ttsModel: \'\'), not just an explicit pick', async () => {
+    // Same pin as the test above, but ttsModel is '' (Auto) — the DEFAULT for
+    // most users. requiredNativeModels() resolves Auto through resolveNativeTts()
+    // internally and status-checks the CONCRETE model id it picks, but the
+    // second deriveVariantRepos() call historically fed it effective.ttsModel
+    // RAW ('' for Auto): asCards() maps '' -> catalog[''] -> undefined and
+    // filters it out, so the pinned card never made it into that repo lookup —
+    // the checked model (Auto-resolved) and the pin-looked-up model (none,
+    // since '' was dropped) diverged and the pin was silently ignored for
+    // every Auto-TTS user. Drop the default moss-tts-nano fixture so the
+    // pinned multi-variant card is the SOLE ja-matching TTS candidate — the
+    // one Auto resolves to.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { 'moss-tts-nano': _dropTts, ...catalogWithoutMossNano } = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: { ...catalogWithoutMossNano, 'moss-tts-pro': {
+      id: 'moss-tts-pro', name: 'MOSS Pro', kind: 'tts', languages: ['ja', 'zh'], recommended: false,
+      tiers: [], order: 9, repo: '',
+      variants: [
+        { id: 'fp32', sizeBytes: 3e9, repo: 'org/moss-pro-fp32', supported: true, recommended: false },
+        { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
+      ],
+    } } as any });
+    await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja', ttsModel: '',
+        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
+      textOnly: false,
+    }));
+    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
   });
 
   it('sidecar still starting → not ready, reason starting, no corrections', async () => {

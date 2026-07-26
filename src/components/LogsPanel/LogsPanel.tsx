@@ -116,7 +116,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const logsContentRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<ClientId>('speaker');
   const [copyLabel, setCopyLabel] = useState<string | null>(null);
 

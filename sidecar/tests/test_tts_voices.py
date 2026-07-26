@@ -89,3 +89,50 @@ def test_qwen3_without_bundled_voices_dir_falls_through_to_empty(tmp_path, monke
     snap.mkdir()
     monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
     assert tts_voices.list_builtin_voices("qwen3-tts-0.6b") == []
+
+
+def _tts_variant_card():
+    # Same synthetic multi-variant TTS card shape as test_native_models.py /
+    # test_accel.py's _tts_variant_card(): 3 non-mlx deployments (bf16/fp32/int8).
+    from sokuji_sidecar import catalog
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_repo_for_prefers_cached_variant_over_default(monkeypatch):
+    # repos[0] (fp32, the card's default) isn't cached, but bf16 is -- the
+    # resolver must return the cached variant so voice listing doesn't
+    # require downloading the default repo too (voices/ is identical across
+    # a card's variant repos).
+    from sokuji_sidecar import tts_voices, catalog
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+    monkeypatch.setattr(tts_voices, "_repo_cached", lambda r: r == "org/fake-bf16")
+    assert tts_voices._repo_for("fake-tts") == "org/fake-bf16"
+
+
+def test_repo_for_falls_back_to_default_repo_when_none_cached(monkeypatch):
+    from sokuji_sidecar import tts_voices, catalog
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
+    monkeypatch.setattr(tts_voices, "_repo_cached", lambda r: False)
+    assert tts_voices._repo_for("fake-tts") == "org/fake-fp32"
+
+
+def test_pocket_bundled_voice_manifest_listing(monkeypatch, tmp_path):
+    # Pocket rides the generic bundled-voices branch: the mirror repo ships
+    # voices/manifest.json (staged by scripts/mirror_pocket_tts.py), so voice
+    # listing needs no pocket-specific code path.
+    from sokuji_sidecar import tts_voices
+    vdir = tmp_path / "voices"
+    vdir.mkdir()
+    (vdir / "manifest.json").write_text(json.dumps(
+        [{"name": "alba", "default": True}] + [{"name": n} for n in
+         ["azelma", "cosette", "eponine", "fantine", "javert", "jean", "marius"]]))
+    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(tmp_path))
+    out = tts_voices.list_builtin_voices("pocket-tts-en")
+    assert len(out) == 8
+    assert [v["name"] for v in out][:2] == ["alba", "azelma"]
+    assert out[0]["default"] is True and out[1]["default"] is False

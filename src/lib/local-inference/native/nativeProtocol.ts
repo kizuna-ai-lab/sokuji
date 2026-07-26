@@ -10,6 +10,7 @@ export interface NativeModelInfo {
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
   numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
   voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip' | 'style'; transcriptRequired?: boolean };   // tts only
+  license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };  // non-commercial / restricted models only
   sizeBytes?: number;   // total download size; 0/absent = unknown
   variantIds?: string[];   // quant variants (default first), >1 → show the picker
   /** Precomputed machine-aware quant ladder (quality-desc): the sidecar owns

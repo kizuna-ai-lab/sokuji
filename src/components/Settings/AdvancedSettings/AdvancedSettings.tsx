@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
@@ -83,6 +83,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
   // State
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
+
+  // Close the warning modal when the panel hides (<Activity> cleanup) so it
+  // can't linger open invisibly and block the visible panel's Escape key.
+  useEffect(() => () => setWarningType(null), []);
 
   return (
     <div className="advanced-settings">

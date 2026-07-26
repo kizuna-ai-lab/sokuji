@@ -13,6 +13,16 @@ export interface ConversationItem {
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
   source?: 'speaker' | 'participant'; // Source of the conversation item (speaker's mic or participant's system audio)
   createdAt?: number; // Timestamp for accurate sorting
+  /**
+   * The language actually detected for THIS item's text (e.g. Soniox reports
+   * a per-token `language`), as an ISO code. When present, the conversation
+   * bubble's language badge shows this instead of the configured
+   * source/target — correct for two-way translation and auto-detect, where the
+   * configured pair doesn't match what was spoken. Clients that don't receive
+   * per-item language leave it undefined and the badge falls back to the
+   * configured value.
+   */
+  detectedLanguage?: string;
   formatted?: {
     text?: string;
     transcript?: string;
@@ -170,6 +180,21 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Soniox speech-to-speech translation session configuration.
+ * `voice` comes from BaseSessionConfig. When `bidirectional` is true the
+ * client sends a two_way translation block (source ↔ target); sourceLanguage
+ * must then be a concrete language ('auto' is only valid for one_way, where
+ * it means "no language_hints").
+ */
+export interface SonioxSessionConfig extends BaseSessionConfig {
+  provider: 'soniox';
+  sourceLanguage: string; // 'auto' | ISO code
+  targetLanguage: string; // ISO code
+  /** True only for Both mode with a shared single session (set by MainPanel). Drives two_way vs one_way. */
+  bidirectional: boolean;
+}
+
+/**
  * Local inference session configuration
  */
 export interface LocalInferenceSessionConfig extends BaseSessionConfig {
@@ -183,6 +208,8 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   ttsSpeed: number;
   edgeTtsVoice?: string;
   vadThreshold?: number;
+  /** vad-web only; 0 or absent derives it from vadThreshold. Never applies above it. */
+  vadNegativeThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
@@ -222,12 +249,14 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   translationVariant?: string;
   /** User-pinned ASR quant (variant picker) — load must match the download. */
   asrVariant?: string;
+  /** User-pinned TTS quant (variant picker, e.g. qwen3-tts fp32/bf16) — load must match the download. */
+  ttsVariant?: string;
 }
 
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -258,6 +287,10 @@ export function isZoomAISessionConfig(config: SessionConfig): config is ZoomAISe
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
   return config.provider === 'volcengine_ast2';
+}
+
+export function isSonioxSessionConfig(config: SessionConfig): config is SonioxSessionConfig {
+  return config.provider === 'soniox';
 }
 
 export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
@@ -375,6 +408,12 @@ export interface IClient {
   switchOutputDevice?(deviceId: string): Promise<void>;
   setOutputMuted?(muted: boolean): void;
   setOutputVolume?(volume: number): void;
+
+  // Optional Both single-session (Soniox) mixer methods
+  /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
+  appendParticipantAudio?(audioData: Int16Array): void;
+  /** Return a second IClient reference bound to this same core (Both single-session). SonioxClient only. */
+  createSecondaryPort?(): IClient;
 }
 
 /**

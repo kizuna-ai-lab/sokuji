@@ -161,6 +161,9 @@
     "vadSettings": "VAD-inställningar",
     "vadSettingsTooltip": "Konfiguration av röstaktivitetsdetektering. Justera dessa inställningar för att optimera taligenkänning för din miljö.",
     "vadThresholdTooltip": "Taligenkänningskänslighet. Högre värden kräver högre/tydligare tal. Lägre värden är mer känsliga för tyst tal.",
+    "vadNegativeThreshold": "Tystnadströskel",
+    "vadNegativeThresholdTooltip": "Sannolikhet under vilken tystnad börjar räknas mot segmentets slut. Auto håller den 0,15 under VAD-tröskeln. Den tillämpas aldrig över VAD-tröskeln, eftersom segment då aldrig skulle avslutas.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. tystnadslängd",
     "vadMinSilenceDurationTooltip": "Minsta tystnad för att dela talsegment. Kortare värden delar meningar snabbare, längre värden väntar på mer naturliga pauser.",
     "vadMinSpeechDuration": "Min. tallängd",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Startar den lokala motorn",
     "localNativeTranslationIncompatible": "Välj en översättningsmodell för detta språkpar",
     "localNativeUnavailable": "Native-motorn är inte tillgänglig — försök igen i inställningarna",
-    "simpleMode": "Snabb"
+    "simpleMode": "Snabb",
+    "sonioxSharedSession": "Delad session i läget Båda",
+    "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk talarseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
+    "sonioxAutoParticipantWarning": "Välj ett specifikt källspråk — med automatisk identifiering kan den andra deltagarens tal inte översättas till ditt språk."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -366,6 +372,11 @@
       "description": "ByteDance röstöversättning",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Översättning mellan valfria av 60+ språk, enkel- eller dubbelriktad",
+      "apiKeyPlaceholder": "Ange din Soniox API-nyckel"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Ladda ner",
     "cancel": "Avbryt",
     "downloaded": "Nedladdad",
+    "active": "Aktiv",
     "delete": "Radera",
     "error": "Fel",
     "retry": "Försök igen",
@@ -771,7 +783,18 @@
     "initFailed": "Modellagringen kunde inte initieras: {{message}}",
     "othersGroup": "Övriga",
     "requiresGpu": "Kräver en GPU",
-    "upgradeVariant": "Din enhet stöder ett snabbare modellformat. Radera och ladda ner igen för bättre prestanda."
+    "upgradeVariant": "Din enhet stöder ett snabbare modellformat. Radera och ladda ner igen för bättre prestanda.",
+    "licenseConsent": {
+      "title": "Icke-kommersiell licens",
+      "modelRepo": "{{model}} laddas ner från {{repo}}.",
+      "licenseName": "Den distribueras under {{name}} ({{spdx}}).",
+      "viewLicense": "Visa den fullständiga licenstexten",
+      "nonCommercial": "Denna licens tillåter endast icke-kommersiell användning — använd inte modellen i kommersiella produkter eller tjänster.",
+      "disclaimer": "Sokuji är inte anslutet till modellens upphovspersoner och har ingen relation till dem. Denna integration är inofficiell och tillhandahålls i befintligt skick utan någon garanti.",
+      "attribution": "Erkännande: {{attribution}}",
+      "cancel": "Avbryt",
+      "accept": "Jag förstår — endast icke-kommersiellt"
+    }
   },
   "update": {
     "available": "Ny version v{{version}} tillgänglig",
@@ -866,12 +889,14 @@
     "manageImported": "Hantera importerade röster",
     "myVoices": "Mina röster",
     "openVoiceBuilder": "Skapa en i Voice Builder",
+    "play": "Spela upp",
     "presets": "Förinställningar",
     "recordVoice": "Spela in röst…",
     "rename": "Byt namn",
     "restartHint": "Starta om sessionen för att tillämpa ändringar av importerade röster.",
     "showAll": "Visa alla röster",
     "showFewer": "Visa färre röster",
+    "stopPreview": "Stoppa",
     "stopRecording": "Stoppa inspelning",
     "transcript": "Transkription",
     "transcriptHint": "Måste matcha orden som sägs i klippet.",

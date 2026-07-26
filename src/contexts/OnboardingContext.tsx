@@ -6,23 +6,16 @@ import { ProviderConfigFactory } from '../services/providers/ProviderConfigFacto
 import { Provider } from '../types/Provider';
 import { isKizunaAIEnabled } from '../utils/environment';
 
+// Field names follow react-joyride v3's Step type (steps are passed straight
+// through): per-step theming lives directly on the step (Options fields like
+// primaryColor), and skipBeacon replaces v2's disableBeacon.
 export interface OnboardingStep {
   target: string;
   content: string | ReactNode;
   title: string;
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
-  disableBeacon?: boolean;
-  spotlightClicks?: boolean;
-  styles?: {
-    options?: {
-      primaryColor?: string;
-      backgroundColor?: string;
-      textColor?: string;
-      overlayColor?: string;
-      spotlightShadow?: string;
-      beaconSize?: number;
-    };
-  };
+  skipBeacon?: boolean;
+  primaryColor?: string;
 }
 
 interface OnboardingContextType {
@@ -59,12 +52,8 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
     title: t('onboarding.basic.steps.welcome.title', 'Welcome to Sokuji'),
     placement: 'center',
-    disableBeacon: true,
-    styles: {
-      options: {
-        primaryColor: '#10a37f',
-      }
-    }
+    skipBeacon: true,
+    primaryColor: '#10a37f',
   },
   {
     target: '.mode-picker',
@@ -125,7 +114,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use Sokuji. Click Start and begin speaking to hear real-time translations.'),
     title: t('onboarding.basic.steps.complete.title', 'All Set!'),
     placement: 'center',
-    disableBeacon: true,
+    skipBeacon: true,
   }
   ];
   return allSteps.filter((s): s is OnboardingStep => s !== null);
@@ -140,12 +129,8 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
       content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
       title: t('onboarding.steps.welcome.title', 'Welcome to Sokuji'),
       placement: 'center',
-      disableBeacon: true,
-      styles: {
-        options: {
-          primaryColor: '#007bff',
-        }
-      }
+      skipBeacon: true,
+      primaryColor: '#007bff',
     },
     {
       target: '.mode-picker',
@@ -212,7 +197,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
       content: t('onboarding.steps.complete.content', 'Great! You\'re all set up. Remember to grant microphone permissions when prompted. You can restart this guide anytime from the settings.'),
       title: t('onboarding.steps.complete.title', 'Setup Complete!'),
       placement: 'center',
-      disableBeacon: true,
+      skipBeacon: true,
     }
   ];
 

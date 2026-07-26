@@ -161,6 +161,9 @@
     "vadSettings": "Mga Setting ng VAD",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Ayusin ang mga setting na ito para ma-optimize ang speech detection para sa iyong kapaligiran.",
     "vadThresholdTooltip": "Sensitivity ng speech detection. Ang mas mataas na halaga ay nangangailangan ng mas malakas/malinaw na pagsasalita. Ang mas mababang halaga ay mas sensitibo sa mahihinang pagsasalita.",
+    "vadNegativeThreshold": "Prag ng Katahimikan",
+    "vadNegativeThresholdTooltip": "Probabilidad kung saan magsisimulang bilangin ang katahimikan tungo sa pagtatapos ng segment. Pinapanatili ito ng Awtomatiko na 0.15 na mas mababa kaysa sa VAD Threshold. Hindi ito kailanman inilalapat nang mas mataas sa VAD Threshold, dahil hindi na matatapos ang mga segment.",
+    "vadNegativeThresholdAuto": "Awtomatiko",
     "vadMinSilenceDuration": "Min. Tagal ng Katahimikan",
     "vadMinSilenceDurationTooltip": "Minimum na katahimikan para hatiin ang mga speech segment. Mas maikling halaga ay naghahati ng mga pangungusap nang mas mabilis, mas mahabang halaga ay naghihintay ng mas natural na paghinto.",
     "vadMinSpeechDuration": "Min. Tagal ng Pagsasalita",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Sinisimulan ang local engine",
     "localNativeTranslationIncompatible": "Pumili ng translation model para sa language pair na ito",
     "localNativeUnavailable": "Hindi available ang native engine — subukang muli sa mga setting",
-    "simpleMode": "Mabilis"
+    "simpleMode": "Mabilis",
+    "sonioxSharedSession": "Nakabahaging session sa mode na Pareho",
+    "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho.",
+    "sonioxAutoParticipantWarning": "Pumili ng tiyak na pinagmulang wika — sa awtomatikong pagtukoy, hindi maisasalin ang sinasabi ng ibang kalahok sa iyong wika."
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -366,6 +372,11 @@
       "description": "ByteDance pagsasalin ng pananalita",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Pagsasalin sa anumang pares mula sa 60+ na wika, one-way o two-way",
+      "apiKeyPlaceholder": "Ilagay ang iyong Soniox API Key"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "I-download",
     "cancel": "Kanselahin",
     "downloaded": "Na-download",
+    "active": "Aktibo",
     "delete": "I-delete",
     "error": "Error",
     "retry": "Subukan muli",
@@ -771,7 +783,18 @@
     "initFailed": "Nabigong mag-initialize ang storage ng modelo: {{message}}",
     "othersGroup": "Iba pa",
     "requiresGpu": "Nangangailangan ng GPU",
-    "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance."
+    "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance.",
+    "licenseConsent": {
+      "title": "Lisensyang hindi pangkomersyo",
+      "modelRepo": "Ida-download ang {{model}} mula sa {{repo}}.",
+      "licenseName": "Ipinamamahagi ito sa ilalim ng {{name}} ({{spdx}}).",
+      "viewLicense": "Tingnan ang buong teksto ng lisensya",
+      "nonCommercial": "Pinapayagan lamang ng lisensyang ito ang hindi pangkomersyong paggamit — huwag gamitin ang modelong ito sa anumang komersyal na produkto o serbisyo.",
+      "disclaimer": "Ang Sokuji ay walang kaugnayan sa mga may-akda ng modelo. Hindi opisyal ang integrasyong ito at ibinibigay ito nang walang anumang garantiya.",
+      "attribution": "Pagkilala: {{attribution}}",
+      "cancel": "Kanselahin",
+      "accept": "Nauunawaan ko — hindi pangkomersyo lamang"
+    }
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",
@@ -866,12 +889,14 @@
     "manageImported": "Pamahalaan ang mga na-import na boses",
     "myVoices": "Aking mga Boses",
     "openVoiceBuilder": "Gumawa ng isa sa Voice Builder",
+    "play": "I-play",
     "presets": "Mga Preset",
     "recordVoice": "Mag-record ng boses…",
     "rename": "Palitan ang pangalan",
     "restartHint": "I-restart ang session para mailapat ang mga pagbabago sa na-import na boses.",
     "showAll": "Ipakita lahat ng boses",
     "showFewer": "Magpakita ng mas kaunting boses",
+    "stopPreview": "Ihinto",
     "stopRecording": "Itigil ang pag-record",
     "transcript": "Transkripsyon",
     "transcriptHint": "Dapat tumugma sa mga salitang binigkas sa clip.",

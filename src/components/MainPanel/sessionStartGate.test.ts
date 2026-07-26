@@ -17,6 +17,7 @@ const ready: StartGateInput = {
   provider: Provider.OPENAI,
   quota: null,
   missingDeviceForMode: null,
+  sonioxAutoParticipantBlocked: false,
 };
 
 describe('computeStartGate', () => {
@@ -128,6 +129,34 @@ describe('computeStartGate', () => {
     expect(gate.reason).toBe('api-key-invalid');
   });
 
+  // Soniox reverses source/target for the participant client, so an 'auto'
+  // source cannot be reversed. On main this closed the gate with no
+  // explanation at all; it now reports a reason like every other blocker.
+  it('reports soniox-auto-source when auto detection blocks the participant', () => {
+    expect(computeStartGate({ ...ready, sonioxAutoParticipantBlocked: true })).toEqual({
+      canStart: false,
+      reason: 'soniox-auto-source',
+    });
+  });
+
+  it('prefers missing-device over soniox-auto-source', () => {
+    const gate = computeStartGate({
+      ...ready,
+      missingDeviceForMode: 'speaker',
+      sonioxAutoParticipantBlocked: true,
+    });
+    expect(gate.reason).toBe('missing-device');
+  });
+
+  it('prefers soniox-auto-source over a credential problem', () => {
+    const gate = computeStartGate({
+      ...ready,
+      sonioxAutoParticipantBlocked: true,
+      isApiKeyValid: false,
+    });
+    expect(gate.reason).toBe('soniox-auto-source');
+  });
+
   it('prefers wallet-frozen over insufficient-balance', () => {
     const gate = computeStartGate({
       ...ready,
@@ -149,6 +178,10 @@ describe('reasonToSettingsTarget', () => {
 
   it('routes a both-scope device gap to the microphone section', () => {
     expect(reasonToSettingsTarget('missing-device', 'both')).toBe('microphone');
+  });
+
+  it('routes the Soniox auto-source block to the language settings', () => {
+    expect(reasonToSettingsTarget('soniox-auto-source')).toBe('languages');
   });
 
   it('routes model and key problems to their sections', () => {
@@ -174,13 +207,13 @@ describe('reasonToSettingsTarget', () => {
 describe('reasonToI18n', () => {
   it('maps every reason to an existing translation key', () => {
     const reasons = [
-      'missing-device', 'local-models-missing', 'api-key-invalid',
-      'no-models', 'loading-models', 'wallet-frozen', 'insufficient-balance',
-      'quota-unknown',
+      'missing-device', 'soniox-auto-source', 'local-models-missing',
+      'api-key-invalid', 'no-models', 'loading-models', 'wallet-frozen',
+      'insufficient-balance', 'quota-unknown',
     ] as const;
     for (const reason of reasons) {
       const entry = reasonToI18n(reason);
-      expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage)\./);
+      expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage|settings)\./);
       expect(entry.defaultValue.length).toBeGreaterThan(0);
     }
   });

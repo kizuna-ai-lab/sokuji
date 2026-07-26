@@ -1,5 +1,8 @@
-import asyncio, json
+import asyncio
+
+import pytest, json
 from sokuji_sidecar import server
+from sokuji_sidecar import wire
 from sokuji_sidecar.server import handle_message, Conn, _conn
 
 
@@ -34,9 +37,27 @@ class _IterWS:
 def test_conn_send_json_and_binary():
     ws = FakeWS()
     conn = Conn(ws)
-    asyncio.run(conn.send({"a": 1}))
+    # Conn.send is the wire-contract funnel, so even transport tests speak a
+    # real message shape.
+    asyncio.run(conn.send({"type": "ok", "id": 1}))
     asyncio.run(conn.send(binary=b"\x00\x01"))
-    assert ws.sent == [json.dumps({"a": 1}), b"\x00\x01"]
+    assert ws.sent == [json.dumps({"type": "ok", "id": 1}), b"\x00\x01"]
+
+
+def test_conn_send_enforces_the_wire_contract():
+    # The funnel is the enforcement point: a message violating wire_schema.json
+    # must raise (strict mode, set suite-wide in conftest) BEFORE anything
+    # leaves the process.
+    ws = FakeWS()
+    conn = Conn(ws)
+    with pytest.raises(wire.WireContractError):
+        asyncio.run(conn.send({"type": "ok"}))   # missing required id
+    assert ws.sent == []
+    # Validation runs BEFORE any I/O: with a paired binary frame, a violating
+    # JSON must not leave an orphan binary already on the wire.
+    with pytest.raises(wire.WireContractError):
+        asyncio.run(conn.send({"type": "ok"}, binary=b"\x00\x01"))
+    assert ws.sent == []
 
 
 def test_handle_message_passes_conn_to_handler():
@@ -243,7 +264,7 @@ def test_conn_close_runs_registered_cleanups_in_order():
     async def _stage_init(state, msg, _b, conn=None):
         conn.on_close(lambda: calls.append("first"))
         conn.on_close(lambda: calls.append("second"))
-        return {"type": "ready", "id": msg.get("id")}, None
+        return {"type": "ready", "id": msg.get("id"), "loadTimeMs": 0}, None
 
     state = {"handlers": {"stage_init": _stage_init}}
     asyncio.run(_conn(state, _IterWS([json.dumps({"type": "stage_init", "id": 1})])))
@@ -261,17 +282,20 @@ def test_conn_close_isolates_a_raising_cleanup():
 
         conn.on_close(_boom)
         conn.on_close(lambda: calls.append("after"))
-        return {"type": "ready", "id": msg.get("id")}, None
+        return {"type": "ready", "id": msg.get("id"), "loadTimeMs": 0}, None
 
     state = {"handlers": {"stage_init": _stage_init}}
     asyncio.run(_conn(state, _IterWS([json.dumps({"type": "stage_init", "id": 1})])))
     assert calls == ["boom", "after"]
 
 
-def test_server_accepts_large_binary_frame():
+def test_server_accepts_large_binary_frame(monkeypatch):
     """A reference-voice clip (set_voice) arrives as one large binary frame; it can
     exceed the websockets 1 MiB default max_size. The server must accept it rather
     than closing the connection with 1009 (message too big)."""
+    # Pure transport test with a deliberately synthetic protocol (probe/probe_result);
+    # opt out of the strict wire contract rather than teach the schema fake types.
+    monkeypatch.delenv("SOKUJI_WIRE_STRICT", raising=False)
     import websockets
 
     async def run():

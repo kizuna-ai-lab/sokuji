@@ -161,6 +161,9 @@
     "vadSettings": "VAD設定",
     "vadSettingsTooltip": "音声活動検出の設定。環境に合わせて音声検出を最適化するためにこれらの設定を調整してください。",
     "vadThresholdTooltip": "音声検出の感度。値が高いほど認識にはっきりした声が必要になります。値が低いほど小さな声にも反応します。",
+    "vadNegativeThreshold": "沈黙のしきい値",
+    "vadNegativeThresholdTooltip": "この確率を下回ると、無音がセグメント終了のためにカウントされ始めます。自動では VADしきい値 より 0.15 低い値に保たれます。VADしきい値 より高い値が適用されることはありません。その場合、セグメントが終わらなくなるためです。",
+    "vadNegativeThresholdAuto": "自動",
     "vadMinSilenceDuration": "最小無音時間",
     "vadMinSilenceDurationTooltip": "発話を分割するための最小無音時間。短い値は文をすばやく分割し、長い値はより自然な間で分割します。",
     "vadMinSpeechDuration": "最小発話時間",
@@ -209,7 +212,10 @@
     "localNativeStarting": "ローカルエンジンを起動中",
     "localNativeTranslationIncompatible": "この言語ペアの翻訳モデルを選択してください",
     "localNativeUnavailable": "ネイティブエンジンを利用できません — 設定で再試行してください",
-    "simpleMode": "クイック"
+    "simpleMode": "クイック",
+    "sonioxSharedSession": "「両方」モードでセッションを共有",
+    "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、話者を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
+    "sonioxAutoParticipantWarning": "入力言語を具体的に選んでください——自動検出では、相手の音声をあなたの言語に翻訳できません。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -366,6 +372,11 @@
       "description": "ByteDanceリアルタイム音声翻訳",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "60以上の言語を自由な組み合わせで翻訳、一方向・双方向に対応",
+      "apiKeyPlaceholder": "Soniox APIキーを入力してください"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "ダウンロード",
     "cancel": "キャンセル",
     "downloaded": "ダウンロード済み",
+    "active": "使用中",
     "delete": "削除",
     "error": "エラー",
     "retry": "再試行",
@@ -771,7 +783,18 @@
     "initFailed": "モデルストレージの初期化に失敗しました: {{message}}",
     "othersGroup": "その他",
     "requiresGpu": "GPUが必要です",
-    "upgradeVariant": "お使いのデバイスはより高速なモデル形式に対応しています。削除して再ダウンロードするとパフォーマンスが向上します。"
+    "upgradeVariant": "お使いのデバイスはより高速なモデル形式に対応しています。削除して再ダウンロードするとパフォーマンスが向上します。",
+    "licenseConsent": {
+      "title": "非商用ライセンス",
+      "modelRepo": "{{model}} は {{repo}} からダウンロードされます。",
+      "licenseName": "このモデルは {{name}}({{spdx}})の下で配布されています。",
+      "viewLicense": "ライセンス全文を表示",
+      "nonCommercial": "このライセンスは非商用利用のみを許可しています。商用の製品やサービスでこのモデルを使用しないでください。",
+      "disclaimer": "Sokuji はモデルの作者と提携しておらず、いかなる関係もありません。この統合は非公式であり、現状のまま、いかなる保証もなく提供されます。",
+      "attribution": "帰属表示:{{attribution}}",
+      "cancel": "キャンセル",
+      "accept": "理解しました — 非商用のみ"
+    }
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",
@@ -866,12 +889,14 @@
     "manageImported": "インポートした音声を管理",
     "myVoices": "マイ音声",
     "openVoiceBuilder": "Voice Builder で作成する",
+    "play": "再生",
     "presets": "プリセット",
     "recordVoice": "音声を録音…",
     "rename": "名前を変更",
     "restartHint": "インポートした音声の変更を適用するにはセッションを再開してください。",
     "showAll": "すべての音声を表示",
     "showFewer": "表示する音声を減らす",
+    "stopPreview": "停止",
     "stopRecording": "録音を停止",
     "transcript": "文字起こし",
     "transcriptHint": "クリップ内で話された言葉と一致している必要があります。",

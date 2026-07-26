@@ -144,70 +144,191 @@ def test_moss_load_maps_device_to_execution_provider(monkeypatch, tmp_path, devi
     assert b.is_loaded
 
 
-def _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured):
-    """Stub every collaborator Qwen3TtsOnnxBackend.load reaches for (snapshot
-    download, tokenizer, ONNX session builder, embeddings, codec), capturing the
-    variant_dir handed to build_sessions — mirrors the mocking style of
-    test_moss_load_maps_device_to_execution_provider above."""
+def test_qwen3_tts_onnx_load_materializes_symlinks_and_builds_sessions(monkeypatch, tmp_path):
+    """Qwen3TtsOnnxBackend.load must (1) deref the snapshot's onnx/ subdir
+    through hf_symlinks.materialize_symlinks before touching it (the
+    >2GB talker graph's external-data file is an HF-cache symlink that ORT's
+    external-data validation rejects) and (2) build the ONNX sessions from
+    that same onnx/ subdir with the caller's device. Mirrors the MOSS
+    load-test pattern above: every real collaborator (snapshot_download,
+    the tokenizer/config/codec loaders, session building) is stubbed so this
+    is a pure wiring test, not an integration test."""
     from sokuji_sidecar import tts_backends as tb
+    captured = {}
 
+    monkeypatch.delenv("SOKUJI_TTS_THREADS", raising=False)
     monkeypatch.setitem(_sys.modules, "huggingface_hub",
                         _types.SimpleNamespace(
                             snapshot_download=lambda repo_id, local_files_only=True: str(tmp_path)))
-    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer", lambda d: object())
-
-    def fake_build_sessions(onnx_dir, device, threads, variant_dir=None):
-        captured["variant_dir"] = variant_dir
-        return {}
-
-    monkeypatch.setattr(tb._q3_runtime, "build_sessions", fake_build_sessions)
+    monkeypatch.setattr("sokuji_sidecar.qwen_tokenizer.load_qwen2_tokenizer",
+                        lambda model_dir: object())
+    monkeypatch.setattr(tb._hf_symlinks, "materialize_symlinks",
+                        lambda d: captured.setdefault("materialize_dir", d))
     monkeypatch.setattr(tb._q3_config, "load_model_config", lambda d: object())
+
+    def fake_build_sessions(onnx_dir, device, threads):
+        captured["build_sessions_args"] = (onnx_dir, device, threads)
+        return {}
+    monkeypatch.setattr(tb._q3_runtime, "build_sessions", fake_build_sessions)
     monkeypatch.setattr(tb._q3_runtime.Embeddings, "from_sessions",
                         classmethod(lambda cls, sessions: object()))
     monkeypatch.setattr(tb._q3_codec, "Codec12Hz", lambda sessions: object())
-    return tb
-
-
-@pytest.mark.parametrize("device,subdir,make_dir,expect_variant", [
-    ("cuda", "onnx-bf16", True, True),      # real qwen3-tts card on cuda: variant selected
-    ("cpu", "onnx-bf16", True, False),      # non-cuda device: never selects a variant
-    ("cuda", None, False, False),           # config.variant_subdir=None (e.g. no card sets it): no variant
-    ("cuda", "onnx-bf16", False, False),    # subdir configured but absent from the snapshot: falls back
-    ("cuda", "custom-subdir", True, True),  # arbitrary subdir name from the card, NOT the literal
-                                             # "onnx-bf16" — proves the value is read from config, not
-                                             # hard-coded (this case cannot pass against the old hard-coded
-                                             # "onnx-bf16" string, which would never look for this dir)
-])
-def test_qwen3tts_load_variant_dir_from_config(monkeypatch, tmp_path, device, subdir, make_dir,
-                                               expect_variant):
-    """Qwen3TtsOnnxBackend.load must source the CUDA-only bf16 variant subdir from
-    config.variant_subdir (the card's cuda_variant_subdir, plumbed through
-    PlanConfig in Task 5) instead of a hard-coded 'onnx-bf16' string — while
-    reproducing the exact old behavior: device must be cuda AND the subdir must
-    both be configured and exist on disk before it is selected."""
-    from sokuji_sidecar.planner import PlanConfig
-    if make_dir:
-        (tmp_path / subdir).mkdir()
-    captured = {}
-    tb = _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured)
 
     b = tb.Qwen3TtsOnnxBackend()
-    b.load("some/repo", device, "fp32", config=PlanConfig(variant_subdir=subdir))
+    b.load("some/qwen3-tts-repo", "cpu", "fp32", None)
 
-    if expect_variant:
-        assert captured["variant_dir"] == str(tmp_path / subdir)
-    else:
-        assert captured["variant_dir"] is None
+    expected_dir = f"{tmp_path}/onnx"
+    assert captured["materialize_dir"] == expected_dir
+    assert captured["build_sessions_args"] == (expected_dir, "cpu", 4)
+    assert b.is_loaded
 
 
-def test_qwen3tts_load_variant_dir_none_when_config_omitted(monkeypatch, tmp_path):
-    """load(..., config=None) — the default when a caller doesn't pass one — must
-    never select a variant dir, even on cuda with the dir present on disk."""
-    (tmp_path / "onnx-bf16").mkdir()
-    captured = {}
-    tb = _patch_qwen3tts_collaborators(monkeypatch, tmp_path, captured)
+def test_pocket_onnx_registered_and_flags(monkeypatch):
+    monkeypatch.delenv("SOKUJI_POCKET_PRESET_VOICE", raising=False)
+    b = backends.make_backend("pocket_onnx")
+    assert b.NAME == "pocket_onnx" and b.STREAMING is False and b.CLONES is True
+    assert b.is_loaded is False and b.sample_rate == 24000
+    assert b.preset_voice == "alba"
 
-    b = tb.Qwen3TtsOnnxBackend()
-    b.load("some/repo", "cuda", "fp32")  # config defaults to None
 
-    assert captured["variant_dir"] is None
+def test_pocket_set_builtin_voice_unknown_raises():
+    b = backends.make_backend("pocket_onnx")
+    b._voices = {}                      # already "parsed": empty -> nothing matches
+    with pytest.raises(backends.BackendLoadError):
+        b.set_builtin_voice("nope")
+
+
+def test_pocket_set_builtin_voice_maps_record_to_flow_state():
+    b = backends.make_backend("pocket_onnx")
+    b._meta = {"flow_lm_state_manifest": [
+        {"input_name": "state_0", "dtype": "float32", "shape": [1, 4], "fill": "nan",
+         "module": "layer.0", "key": "cache"},
+        {"input_name": "state_1", "dtype": "int64", "shape": [1], "fill": "zeros",
+         "module": "layer.0", "key": "step"},
+    ]}
+    b._voices = {"alba": {"layer.0/cache": np.ones((1, 2), np.float32),
+                          "layer.0/offset": np.asarray([2], np.int64)}}
+    b.set_builtin_voice("alba")
+    assert np.array_equal(b._flow["state_0"][:, :2], np.ones((1, 2), np.float32))
+    assert np.isnan(b._flow["state_0"][:, 2:]).all()
+    assert b._flow["state_1"][0] == 2
+
+
+def test_pocket_generate_defaults_to_preset_voice(monkeypatch):
+    from sokuji_sidecar import pocket_inference as pi
+
+    class _Tok:
+        def encode_ids(self, text):
+            return [1, 2, 3]
+
+    class _Sess:
+        def run(self, names, feeds):
+            return [np.zeros((1, 3, 8), np.float32)]
+
+    b = backends.make_backend("pocket_onnx")
+    b._tok = _Tok()
+    b._sessions = {"textConditioner": _Sess()}
+    b._meta = {}
+    applied = []
+
+    def fake_builtin(name):
+        applied.append(name)
+        b._flow = {"state_0": np.zeros(1, np.float32)}
+
+    monkeypatch.setattr(b, "set_builtin_voice", fake_builtin)
+    monkeypatch.setattr(pi, "generate", lambda *a, **k: np.zeros(2400, np.float32))
+    samples, ms = b.generate("hello")
+    # No voice picked yet -> the preset is applied (the post-load RTF probe
+    # generates before the renderer ever sends set_voice).
+    assert applied == ["alba"]
+    assert samples.shape == (2400,) and ms >= 0
+
+
+def test_pocket_load_missing_snapshot_raises_backend_load_error(monkeypatch):
+    import huggingface_hub
+
+    def boom(**kw):
+        raise FileNotFoundError("not cached")
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", boom)
+    b = backends.make_backend("pocket_onnx")
+    with pytest.raises(backends.BackendLoadError):
+        b.load("jiangzhuo9357/pocket-tts-en-onnx", "cpu", "int8")
+    assert b.is_loaded is False
+
+
+@pytest.mark.skipif(not os.environ.get("POCKET_MODEL_DIR"),
+                    reason="set POCKET_MODEL_DIR to a local Pocket bundle dir")
+def test_pocket_backend_builtin_voices_end_to_end(monkeypatch):
+    """The KV-mapping failure mode is audio that PLAYS but carries the wrong
+    timbre — shape/finiteness checks can't see it. Teeth: with a seeded rng and
+    one intra-op thread (bitwise-deterministic), the same builtin voice twice is
+    byte-identical while two different voices diverge. A mapping that collapsed
+    to manifest defaults (ignoring the record) would make every voice sound the
+    same and fail the alba-vs-javert assertion."""
+    import huggingface_hub
+    d = os.environ["POCKET_MODEL_DIR"]
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", lambda **kw: d)
+    monkeypatch.setenv("POCKET_NATIVE_THREADS", "1")
+    real_rng = np.random.default_rng
+    monkeypatch.setattr(np.random, "default_rng", lambda *a, **k: real_rng(0))
+    b = backends.make_backend("pocket_onnx")
+    b.load("mirror-not-needed-locally", "cpu", "int8")
+    assert b.is_loaded and b.sample_rate == 24000
+    text = "The quick brown fox jumps over the lazy dog."
+    b.set_builtin_voice("alba")
+    a1, ms1 = b.generate(text)
+    a2, _ = b.generate(text)
+    assert np.array_equal(a1, a2)                       # seeded -> deterministic
+    assert np.isfinite(a1).all() and len(a1) > 24000 and np.abs(a1).max() > 0.05
+    b.set_builtin_voice("javert")
+    a3, _ = b.generate(text)
+    assert a1.shape != a3.shape or not np.array_equal(a1, a3)
+    b.unload()
+    assert b.is_loaded is False
+
+
+@pytest.mark.skipif(not (os.environ.get("SOKUJI_RUN_COSYVOICE3")
+                         and os.environ.get("SOKUJI_COSYVOICE3_REPO")),
+                    reason="real-model cosyvoice3 smoke (needs local repo + models)")
+def test_cosyvoice3_real_model_smoke():
+    b = backends.make_backend("cosyvoice3_onnx")
+    b.load(os.environ["SOKUJI_COSYVOICE3_REPO"], "cpu", "fp32")
+    b.set_builtin_voice("classic-zh")
+    audio, ms = b.generate("今天的天气真不错。")
+    assert audio.dtype == np.float32
+    assert 1.0 < len(audio) / 24000 < 10.0
+    assert float(np.sqrt((audio ** 2).mean())) > 0.01
+
+
+# `classic-zh.wav` is the committed reference clip also used by
+# test_omnivoice_higgs.py's round-trip test (repo-root relative, since this
+# suite runs with cwd=sidecar/).
+_OMNIVOICE_WAV_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), "..", "..",
+    "scripts", "assets", "gpt-sovits-voices", "classic-zh.wav"))
+
+
+@pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
+                    reason="set SOKUJI_RUN_GPU=1 (CUDA + OmniVoice ONNX assets)")
+def test_omnivoice_onnx_cuda_smoke():
+    """Real-model end-to-end smoke: load the bf16 variant repo on CUDA, clone a
+    reference voice, and synthesize speech. `build_sessions` (runtime.py)
+    fail-fasts if a hot graph doesn't land on CUDAExecutionProvider, so a
+    passing `.load()` already confirms the LLM ran on CUDA -- no separate
+    provider assertion is needed here. The backbone lives at the repo ROOT
+    (self-contained per-variant repo)."""
+    from huggingface_hub import snapshot_download
+    repo = os.environ.get("SOKUJI_OMNIVOICE_BF16_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-bf16")
+    snapshot_download(repo)  # self-contained variant repo (backbone + higgs + voices)
+    b = backends.make_backend("omnivoice_onnx")
+    b.load(repo, "cuda", "bf16")
+    import soundfile as sf
+    audio, sr = sf.read(_OMNIVOICE_WAV_PATH, dtype="float32", always_2d=False)
+    b.set_voice(audio, sr)
+    out, gen_ms = b.generate("你好，这是一个测试。")
+    assert out.dtype == np.float32 and len(out) > 0
+    rms = float(np.sqrt(np.mean(out ** 2)))
+    assert 0.02 < rms < 0.6
+    b.unload()
+    assert b.is_loaded is False

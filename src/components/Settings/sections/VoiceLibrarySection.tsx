@@ -1,7 +1,8 @@
-import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Plus, Upload } from 'lucide-react';
+import { Mic, Play, Plus, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
+import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
@@ -25,27 +26,6 @@ export interface VoiceEntry {
   };
 }
 
-export interface VoiceLibraryCapability {
-  /** Which import affordances to render. `upload` → file picker + drop zone;
-   *  `record` → microphone Record button. */
-  importModes: ('upload' | 'record')[];
-  /** When true, only curated builtins are shown by default with a "show all"
-   *  expander revealing the rest. When false, all builtins are shown. */
-  curation: boolean;
-  /** `accept` filter for the upload file input. Defaults to the JSON voice-card
-   *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
-  accept?: string;
-  /** How voice SELECTION is presented. `'list'` (default) renders a clickable
-   *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
-   *  original Supertonic affordance). Curation does not apply in dropdown mode. */
-  presentation?: 'list' | 'dropdown';
-  /** When true, captured clips must carry a reference transcript (native
-   *  zero-shot cloning models that require ICL text). Renders a labeled
-   *  transcript input in the manage toolbar and disables Import/Record until
-   *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
-  transcriptRequired?: boolean;
-}
-
 export interface VoiceLibrarySectionProps {
   /** All voices, normalized across providers. */
   voices: VoiceEntry[];
@@ -66,6 +46,10 @@ export interface VoiceLibrarySectionProps {
   onRename: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
+  /** Fetch a removable voice's stored clip so the user can play it back and
+   *  check their recording is clear. Returns null when the voice has no
+   *  playable clip. Preview controls only render when this is provided. */
+  onPreview?: (id: string) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -82,16 +66,81 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRecord,
   onRename,
   onDelete,
+  onPreview,
   capability,
   isSessionActive = false,
 }) => {
   const { t } = useTranslation();
+
+  // ---- local playback (listen back to a recorded/imported clip) -----------
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  // Monotonic token: a toggle invalidates any earlier onPreview still in
+  // flight, so a stale resolution can't start playback over a newer one.
+  const previewTokenRef = useRef(0);
+
+  const stopPreview = useCallback(() => {
+    previewTokenRef.current += 1;
+    const src = sourceRef.current;
+    if (src) {
+      src.onended = null;
+      try { src.stop(); } catch { /* already stopped/ended */ }
+      sourceRef.current = null;
+    }
+    setPlayingId(null);
+  }, []);
+
+  const togglePreview = useCallback(async (id: string) => {
+    if (playingId === id) { stopPreview(); return; }
+    stopPreview();
+    if (!onPreview) return;
+    const token = previewTokenRef.current;
+    let payload: { audio: Float32Array; sampleRate: number } | null = null;
+    try { payload = await onPreview(id); } catch { payload = null; }
+    if (token !== previewTokenRef.current) return; // superseded by a newer toggle
+    if (!payload || payload.audio.length === 0) return;
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = audioCtxRef.current ?? (audioCtxRef.current = new AudioCtx());
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* ignore */ } }
+    const buffer = ctx.createBuffer(1, payload.audio.length, payload.sampleRate);
+    buffer.copyToChannel(payload.audio, 0);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.onended = () => { if (sourceRef.current === src) { sourceRef.current = null; setPlayingId(null); } };
+    sourceRef.current = src;
+    setPlayingId(id);
+    src.start();
+  }, [playingId, onPreview, stopPreview]);
+
+  // Stop playback + release the context on unmount.
+  useEffect(() => () => {
+    stopPreview();
+    void audioCtxRef.current?.close().catch(() => {});
+  }, [stopPreview]);
+
+  const renderPreviewButton = (v: VoiceEntry) => (
+    onPreview && v.removable ? (
+      <button
+        type="button"
+        className="voice-row-btn"
+        onClick={() => void togglePreview(v.id)}
+        aria-label={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+        title={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+      >
+        {playingId === v.id ? <Square size={14} /> : <Play size={14} />}
+      </button>
+    ) : null
+  );
 
   const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
   const [transcript, setTranscript] = useState('');
   const transcriptInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +151,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     processor: ScriptProcessorNode;
     chunks: Float32Array[];
   } | null>(null);
+  const recTimerRef = useRef<number | null>(null);
+  // stopRecording is defined below startRecording; the countdown interval
+  // reaches it through a ref so the auto-stop always calls the latest closure.
+  const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+  const clearRecTimer = () => {
+    if (recTimerRef.current !== null) {
+      window.clearInterval(recTimerRef.current);
+      recTimerRef.current = null;
+    }
+  };
 
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
@@ -189,10 +248,37 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     catch (err) { console.warn('Delete failed:', err); }
   }, [onDelete, t]);
 
+  // Release the microphone when the component's effects unmount — a real
+  // unmount, or the settings panel hiding inside its <Activity> boundary.
+  // The capture graph lives only in recRef, so without this the mic would
+  // keep recording invisibly after a panel switch. Partial audio is
+  // deliberately discarded rather than submitted as a half-finished clip.
+  // The generation counter also invalidates a getUserMedia call still
+  // pending at cleanup time, so a late-resolving stream is stopped instead
+  // of resurrecting the capture graph.
+  const recGenerationRef = useRef(0);
+  useEffect(() => () => {
+    recGenerationRef.current += 1;
+    clearRecTimer();
+    const rec = recRef.current;
+    if (!rec) return;
+    recRef.current = null;
+    rec.processor.disconnect();
+    rec.source.disconnect();
+    rec.stream.getTracks().forEach((track) => track.stop());
+    void rec.ctx.close();
+    setIsRecording(false);
+  }, []);
+
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
     try {
+      const generation = recGenerationRef.current;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (generation !== recGenerationRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
@@ -204,12 +290,24 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       processor.connect(ctx.destination);
       recRef.current = { ctx, stream, source, processor, chunks };
       setIsRecording(true);
+      // Countdown to the model's clip limit; auto-stop at 0 so the capture
+      // can never exceed what the model can actually use.
+      const limit = capability.maxClipSeconds ?? 20;
+      setRecordSecondsLeft(limit);
+      const startedAt = Date.now();
+      recTimerRef.current = window.setInterval(() => {
+        const left = limit - (Date.now() - startedAt) / 1000;
+        setRecordSecondsLeft(Math.max(0, Math.ceil(left)));
+        if (left <= 0) void stopRecordingRef.current?.();
+      }, 250);
     } catch (err) {
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord, transcriptMissing]);
+  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
 
   const stopRecording = useCallback(async () => {
+    clearRecTimer();
+    setRecordSecondsLeft(null);
     const rec = recRef.current;
     recRef.current = null;
     setIsRecording(false);
@@ -236,6 +334,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       }
     } catch (err) { console.warn('Recording handler failed:', err); }
   }, [onRecord, capability.transcriptRequired, transcript]);
+  // Keep the auto-stop ref pointing at the latest committed closure — written
+  // in an effect, not the render body (renders can be replayed/discarded,
+  // e.g. under an <Activity> boundary).
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
 
   const renderRow = (v: VoiceEntry) => {
     const isSelected = v.id === selectedId;
@@ -272,6 +376,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         )}
         {v.removable && !isEditing && (
           <>
+            {renderPreviewButton(v)}
             <button
               type="button"
               className="voice-row-btn"
@@ -314,6 +419,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         ) : (
           <span className="voice-name">{v.label}</span>
         )}
+        {!isEditing && renderPreviewButton(v)}
         <button
           type="button"
           className="voice-row-btn"
@@ -378,7 +484,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         >
           <Mic size={14} />
           {isRecording
-            ? t('voiceLibrary.stopRecording', 'Stop recording')
+            ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
             : t('voiceLibrary.recordVoice', 'Record voice…')}
         </button>
       )}

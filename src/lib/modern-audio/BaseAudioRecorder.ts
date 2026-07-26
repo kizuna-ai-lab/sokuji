@@ -54,6 +54,25 @@ export abstract class BaseAudioRecorder {
   }
 
   /**
+   * Immediately release the microphone device by stopping all live tracks.
+   *
+   * This is a synchronous best-effort teardown for page/window close: it frees
+   * the OS capture endpoint right away instead of waiting for the (async)
+   * end()/cleanup() path or for process teardown. On Windows, closing the app
+   * without cleanly stopping the mic tracks can leave the WASAPI capture
+   * endpoint stranded, so the next launch's getUserMedia fails with
+   * "NotReadableError: Could not start audio source". Stopping the tracks here
+   * makes the release deterministic. Full graph cleanup still happens in
+   * cleanup(); this only guarantees the device itself is let go.
+   */
+  releaseStream(): void {
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+  }
+
+  /**
    * Get the URL for the AudioWorklet processor
    * Handles both extension and regular web/Electron environments
    */

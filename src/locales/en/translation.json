@@ -161,6 +161,9 @@
     "vadSettings": "VAD Settings",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Adjust these settings to optimize speech detection for your environment.",
     "vadThresholdTooltip": "Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.",
+    "vadNegativeThreshold": "Silence Threshold",
+    "vadNegativeThresholdTooltip": "Probability below which silence starts counting toward the end of a segment. Auto keeps it 0.15 under the VAD Threshold. It never applies above the VAD Threshold — that would stop segments from ever ending.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min Silence Duration",
     "vadMinSilenceDurationTooltip": "Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.",
     "vadMinSpeechDuration": "Min Speech Duration",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Starting the local engine…",
     "localNativeTranslationIncompatible": "Select a translation model for this language pair",
     "localNativeUnavailable": "Native engine unavailable — retry in settings",
-    "simpleMode": "Quick"
+    "simpleMode": "Quick",
+    "sonioxSharedSession": "Shared session in Both mode",
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
+    "sonioxAutoParticipantWarning": "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -366,6 +372,11 @@
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Any-to-any translation across 60+ languages, one-way or two-way",
+      "apiKeyPlaceholder": "Enter your Soniox API Key"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Download",
     "cancel": "Cancel",
     "downloaded": "Downloaded",
+    "active": "Active",
     "delete": "Delete",
     "error": "Error",
     "retry": "Retry",
@@ -771,7 +783,18 @@
     "initFailed": "Model storage failed to initialize: {{message}}",
     "othersGroup": "Others",
     "requiresGpu": "Requires a GPU",
-    "upgradeVariant": "Your device supports a faster model format. Delete and re-download for better performance."
+    "upgradeVariant": "Your device supports a faster model format. Delete and re-download for better performance.",
+    "licenseConsent": {
+      "title": "Non-commercial license",
+      "modelRepo": "{{model}} downloads from {{repo}}.",
+      "licenseName": "It is distributed under {{name}} ({{spdx}}).",
+      "viewLicense": "View the full license text",
+      "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "attribution": "Attribution: {{attribution}}",
+      "cancel": "Cancel",
+      "accept": "I understand — non-commercial only"
+    }
   },
   "update": {
     "available": "New version v{{version}} available",
@@ -866,12 +889,14 @@
     "manageImported": "Manage imported voices",
     "myVoices": "My Voices",
     "openVoiceBuilder": "Create one at Voice Builder",
+    "play": "Play",
     "presets": "Presets",
     "recordVoice": "Record voice…",
     "rename": "Rename",
     "restartHint": "Restart the session to apply imported voice changes.",
     "showAll": "Show all voices",
     "showFewer": "Show fewer voices",
+    "stopPreview": "Stop",
     "stopRecording": "Stop recording",
     "transcript": "Transcript",
     "transcriptHint": "Must match the words spoken in the clip.",

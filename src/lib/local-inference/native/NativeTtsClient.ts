@@ -1,6 +1,10 @@
-import type { TtsResult } from '../engine/TtsEngine';
 import type { ServerMsg } from './nativeProtocol';
 import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError, type ISidecarConnection } from './SidecarConnection';
+
+/** A finished native synthesis. Shape-compatible with the WASM lane's TtsResult
+ *  by construction, NOT by import — the two providers are peers and the native
+ *  lane owns its own contracts (cf. TtsReady below; NativeAsrClient's NativeAsrResult). */
+export interface NativeTtsResult { samples: Float32Array; sampleRate: number; generationTimeMs: number; }
 
 /** Reject a streaming generate if no chunk/done arrives for this long (inactivity). */
 const TTS_STREAM_INACTIVITY_MS = 30_000;
@@ -79,9 +83,15 @@ export class NativeTtsClient {
     this.streamDone.clear(); this.streamHandlers.clear(); this.lastBinary = null;
   }
 
-  async init(model?: string, device?: string): Promise<TtsReady> {
+  async init(model?: string, device?: string, language?: string, variant?: string): Promise<TtsReady> {
     this.onStatus?.('[native-tts] init…');
-    const msg = await this.conn.request({ type: 'tts_init', model, device }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
+    // language = the session's target language. Backends with per-language
+    // frontends (gpt_sovits_onnx G2P) need it; others ignore it. Omitting it
+    // made zh/ja text run through the English G2P → "no audio" (live repro).
+    // variant = the user-pinned compute type (e.g. 'bf16') for multi-variant
+    // TTS cards (qwen3-tts) — mirrors asr_init's field so load resolves the
+    // same repo download picked.
+    const msg = await this.conn.request({ type: 'tts_init', model, device, language, variant }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     this.streaming = !!r.streaming;
     this.sampleRate = r.sampleRate ?? 24000;
@@ -117,7 +127,7 @@ export class NativeTtsClient {
     await this.conn.request({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
   }
 
-  async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<TtsResult> {
+  async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<NativeTtsResult> {
     if (this.streaming && onChunk) {
       const id = this.conn.nextId();
       this.inFlightId = id;

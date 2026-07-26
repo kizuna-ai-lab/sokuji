@@ -8,7 +8,11 @@ parameter rather than reading one. That is the whole point of the
 accel/planner split (see planner.py's module docstring): the Loader wrappers
 in accel.py fetch those facts and hand them to the same pure functions tested
 here; this file is the table-driven proof that the planner's decision logic
-needs no test-time patching to exercise.
+needs no test-time patching to exercise. The two resolve_tts tests that
+monkeypatch `planner.catalog.resolve_tts_card` are a narrow, justified
+exception: resolve_tts takes a model_id (not a model), so injecting a
+hand-built fixture card requires patching the catalog lookup it calls
+internally — that's a test-fixture seam, not an environment fact.
 
 _fit_walk (below) is the size-descending fit-walk nucleus shared by
 _tc_pick_quant and _llamacpp_variant_row (see planner.py docstrings): given a
@@ -923,6 +927,183 @@ def test_resolve_arm_ort_cuda_resolves_tts_cuda():
     assert tts[0].device == "cuda"
 
 
+# ── _tts_pick_quant / resolve_tts: multi-compute-type TTS card narrowing ──
+# A "variant" TTS card lists the SAME logical model at several compute_types
+# (bf16/fp32/int8 qwen3-tts ONNX repos, plus a macOS mlx row) rather than one
+# compute_type per tier. _tts_pick_quant narrows to a single compute_type
+# BEFORE the generic tier resolver runs, mirroring resolve()'s ASR
+# _tc_pick_quant narrowing. Reuses the CUDA_12GB/CPU_ONLY/APPLE_SILICON
+# fixtures above (their `installed` sets already cover qwen3tts_onnx and
+# mlx_audio_tts) rather than adding new machine fixtures.
+
+
+def _tts_variant_card():
+    return catalog.TtsModel(
+        "fake-tts", "Fake TTS", ("en",),
+        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "org/fake-mlx", 1.0,
+                            platforms=("macos",), requires_apple_silicon=True),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_tts_pick_quant_cuda_machine_prefers_bf16():
+    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB) == "bf16"
+
+
+def test_tts_pick_quant_cpu_machine_prefers_smallest():
+    assert planner._tts_pick_quant(_tts_variant_card(), CPU_ONLY) == "int8"
+
+
+def test_tts_pick_quant_apple_silicon_prefers_fp32():
+    # the metal/mlx row is fp32 — narrowing must keep it alive on macOS
+    assert planner._tts_pick_quant(_tts_variant_card(), APPLE_SILICON) == "fp32"
+
+
+def test_tts_pick_quant_pin_wins():
+    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, pin="fp32") == "fp32"
+
+
+def test_tts_pick_quant_restricts_to_downloaded():
+    got = planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, downloaded=frozenset({"fp32"}))
+    assert got == "fp32"    # bf16 not downloaded -> never chosen
+
+
+def test_resolve_tts_narrows_multi_ct_card(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux", cache={})
+    assert {p.compute_type for p in plans} == {"bf16"}
+    assert plans[0].artifact == "org/fake-bf16"
+
+
+def test_resolve_tts_downloaded_int8_lands_on_cpu(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
+    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux",
+                                cache={}, downloaded=frozenset({"int8"}))
+    assert [p.device for p in plans] == ["cpu"] and plans[0].compute_type == "int8"
+
+
+# ── _tts_pick_quant: fp32/bf16-only ladder (post-int8-cut shipping ladder) ──
+# The real catalog's TTS ladder changed to fp32 (cpu + gpu-cuda + gpu-dml
+# rows) + bf16 (gpu-cuda row ONLY) — int8, which had the card's only other
+# cpu row, was cut. This exposed two bugs in _tts_pick_quant: (1) the
+# smallest-est_bytes fallback could pick bf16 on a CPU-only machine even
+# though bf16 has no cpu row at all, narrowing the model to zero runnable
+# deployments; (2) the GPU-preference walk trusted tuple declaration order
+# instead of rank, so a card that happened to declare fp32-cuda before
+# bf16-cuda would land on fp32 even though bf16 outranks it. fp32-cuda is
+# declared BEFORE bf16-cuda below specifically so these tests can tell a
+# rank-ordered walk apart from a declaration-order one.
+def _tts_variant_card_v2():
+    return catalog.TtsModel(
+        "fake-tts-v2", "Fake TTS v2", ("en",),
+        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
+         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
+         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
+        repos=("org/fake-fp32",), clones=True, streaming=False)
+
+
+def test_tts_pick_quant_cpu_only_avoids_unrunnable_bf16():
+    # bf16 (5_000 bytes) is smaller than fp32 (8_000 bytes), but bf16 has no
+    # cpu row -> unrunnable on a CPU-only machine. Narrowing to it would leave
+    # zero runnable deployments (NoUsablePlan for every CPU-only user).
+    assert planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY) == "fp32"
+
+
+def test_tts_pick_quant_rank_beats_declaration_order():
+    # fp32-cuda (rank 1.0) is declared before bf16-cuda (rank 1.2); the
+    # preference walk must land on bf16 because it outranks fp32, not because
+    # of tuple position.
+    assert planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB) == "bf16"
+
+
+def test_tts_pick_quant_runnable_beats_downloaded_but_unrunnable():
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY,
+                                  downloaded=frozenset({"bf16"}))
+    assert got == "fp32"    # bf16 downloaded but unrunnable here -> not chosen
+
+
+def test_tts_pick_quant_pin_absent_from_ladder_falls_through():
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, pin="int8")
+    assert got == "bf16"    # int8 isn't a compute_type on this card -> pin ignored
+
+
+# ── _tts_pick_quant / resolve_tts: override-aware narrowing ─────────────
+# The multi-compute-type narrowing runs BEFORE _resolve_model applies the
+# device override. On _tts_variant_card_v2 (fp32: cpu+cuda rows, bf16:
+# cuda-only row) a CUDA machine's un-scoped narrowing always prefers bf16 —
+# so an explicit override='cpu' arrived at _resolve_model already narrowed
+# to a compute_type with no cpu row, and the override had nothing to pin:
+# it was silently ignored and the plan landed on gpu-cuda bf16 anyway. The
+# override must instead scope the narrowing itself to variants that have a
+# row on the pinned device.
+
+
+def test_tts_pick_quant_cuda_machine_override_cpu_picks_fp32():
+    # bf16 has no cpu row -> override='cpu' must scope the narrowing away
+    # from it, landing on fp32 (which does have a cpu row), NOT bf16.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cpu")
+    assert got == "fp32"
+
+
+def test_resolve_tts_cuda_machine_override_cpu_lands_on_cpu_fp32(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", "cpu", machine=CUDA_12GB, platform="linux", cache={})
+    assert plans[0].device == "cpu"
+    assert plans[0].compute_type == "fp32"
+
+
+def test_tts_pick_quant_cuda_machine_override_cuda_still_picks_bf16():
+    # override='cuda' is already a superset of the un-scoped GPU-preferring
+    # walk on this fixture -> unchanged behavior.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cuda")
+    assert got == "bf16"
+
+
+def test_tts_pick_quant_override_with_no_matching_device_falls_back():
+    # The fixture has no gpu-dml row at all -> the override-scoped runnable
+    # set is empty, so this gracefully falls back to the machine-wide
+    # (un-scoped) narrowing rather than raising or picking nothing.
+    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="dml")
+    assert got == "bf16"
+
+
+# ── resolve_tts: downloaded-fp32 cpu tail for a cpu-less narrowed ct ─────
+# _tts_variant_card_v2's bf16 row is gpu-cuda ONLY (no cpu row at all); a CUDA
+# machine narrows to it because it outranks fp32 (see
+# test_tts_pick_quant_rank_beats_declaration_order). A bf16-only download
+# then has nothing to fall back to on a load failure -- an honest single
+# plan. But when fp32 (which DOES have a cpu row) is ALSO already downloaded
+# alongside bf16, that cpu-loadable file is already sitting on disk, so
+# resolve_tts appends it as a last-resort tail: a CUDA machine with BOTH
+# variants downloaded degrades to cpu fp32 on a bf16 load failure instead of
+# hard-failing. The tail only ever uses an ALREADY-DOWNLOADED variant, so
+# bf16-only downloads and fresh (nothing downloaded) recommendations are
+# unaffected.
+
+
+def test_resolve_tts_appends_cpu_fp32_tail_when_both_variants_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
+                                downloaded=frozenset({"fp32", "bf16"}))
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16"), ("cpu", "fp32")]
+
+
+def test_resolve_tts_no_cpu_tail_when_only_bf16_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
+                                downloaded=frozenset({"bf16"}))
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
+
+
+def test_resolve_tts_no_cpu_tail_when_nothing_downloaded(monkeypatch):
+    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
+    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={})
+    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
+
+
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
 # Characterisation coverage hole: nothing previously asserted that RESOLVING
 # a model actually produces the right PlanConfig (only that an explicit
@@ -951,19 +1132,6 @@ def test_plan_config_qwen25_05b_is_fully_inert():
     assert planner._plan_config(card) == planner.PlanConfig()
 
 
-def test_plan_config_qwen3_tts_06b_carries_onnx_bf16_variant_subdir():
-    card = catalog.resolve_tts_card("qwen3-tts-0.6b")
-    assert planner._plan_config(card) == planner.PlanConfig(variant_subdir="onnx-bf16")
-
-
-def test_plan_config_non_onnx_tts_card_has_no_variant_subdir():
-    # moss-tts-nano has no cuda_variant_subdir field value set (defaults None)
-    # -- only the qwen3-tts onnx cards carry the bf16-graph subdir.
-    card = catalog.tts_model("moss-tts-nano")
-    assert planner._plan_config(card) == planner.PlanConfig()
-    assert planner._plan_config(card).variant_subdir is None
-
-
 def test_resolve_translate_propagates_qwen3_thinking_config():
     # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
     # must carry the card's derived PlanConfig through to the Plan it returns.
@@ -973,10 +1141,3 @@ def test_resolve_translate_propagates_qwen3_thinking_config():
     assert plans[0].config == planner.PlanConfig(disable_thinking=True, append_no_think=True)
     # every plan for this model shares the same card-derived config.
     assert all(p.config == plans[0].config for p in plans)
-
-
-def test_resolve_tts_propagates_qwen3_variant_subdir_config():
-    m = _nv_machine(12000, installed=frozenset({"qwen3tts_onnx"}))
-    plans = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
-    assert plans[0].config.variant_subdir == "onnx-bf16"
-    assert all(p.config.variant_subdir == "onnx-bf16" for p in plans)

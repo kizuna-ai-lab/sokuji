@@ -15,6 +15,20 @@ interface PanelBarProps {
   onClose: () => void;
 }
 
+// A dialog inside the OTHER (hidden) panel must not block this panel's
+// Escape: panels stay mounted inside <Activity> boundaries, which hide via
+// inline display:none, so DOM presence no longer implies visibility.
+const isVisibleDialogOpen = (): boolean => {
+  for (const dialog of document.querySelectorAll<HTMLElement>('[role="dialog"]')) {
+    let hidden = false;
+    for (let node: HTMLElement | null = dialog; node; node = node.parentElement) {
+      if (node.style.display === 'none') { hidden = true; break; }
+    }
+    if (!hidden) return true;
+  }
+  return false;
+};
+
 const PanelBar: React.FC<PanelBarProps> = ({ tabs, activeTab, onTabChange, actions, onClose }) => {
   const { t } = useTranslation();
 
@@ -22,7 +36,7 @@ const PanelBar: React.FC<PanelBarProps> = ({ tabs, activeTab, onTabChange, actio
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
       // Don't steal Escape from an open modal/dialog or floating popover.
-      if (document.querySelector('[role="dialog"]')) return;
+      if (isVisibleDialogOpen()) return;
       onClose();
     };
     document.addEventListener('keydown', handleKeyDown);

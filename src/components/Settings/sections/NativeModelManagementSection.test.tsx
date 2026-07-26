@@ -148,6 +148,26 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     voice: { builtin: 'named', custom: 'style' },
     sizeBytes: 100000000,
   },
+  // Multi-variant TTS card (Task 10) — same shape as the hy-mt2-7b translation
+  // fixture above, gating the quant-variant picker on a TTS card.
+  'qwen3-tts-1.7b': {
+    id: 'qwen3-tts-1.7b',
+    name: 'Qwen3 TTS 1.7B',
+    languages: ['en'],
+    recommended: false,
+    tiers: [],
+    order: 3,
+    repo: 'qwen3-tts-1.7b',
+    kind: 'tts',
+    numSpeakers: 1,
+    sizeBytes: 3600000000,
+    variantIds: ['bf16', 'fp32', 'int8'],
+    variants: [
+      { id: 'bf16', sizeBytes: 3.6e9, repo: 'org/qwen3-tts-1.7b-bf16', supported: true, recommended: true },
+      { id: 'fp32', sizeBytes: 7.2e9, repo: 'org/qwen3-tts-1.7b-fp32', supported: true, recommended: false },
+      { id: 'int8', sizeBytes: 1.9e9, repo: 'org/qwen3-tts-1.7b-int8', supported: false, recommended: false },
+    ],
+  },
 };
 
 const mockVariants: VariantInfo[] = [
@@ -408,6 +428,54 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     // Download must be called with the model's catalog id AND the Q4_K_M variant's repo.
     expect(mockDownload).toHaveBeenCalledWith('hy-mt2-7b', 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf');
+  });
+});
+
+describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', () => {
+  // qwen3-tts-1.7b (mockCatalog) mirrors hy-mt2-7b's shape but with kind:'tts' —
+  // this exercises the TTS renderCards call, which previously passed undefined for
+  // variantMap/onPin (the picker was translation/ASR-only before this task).
+  it('the picker renders on a multi-variant TTS card (same as ASR/translation)', async () => {
+    render(<NativeModelManagementSection />);
+    const q4SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
+
+    const trigger = await waitFor(() => {
+      const card = screen.getByTestId('model-card-qwen3-tts-1.7b');
+      return within(card).getByTestId('variant-dd-qwen3-tts-1.7b');
+    });
+    expect(trigger).toHaveTextContent('BF16');
+    expect(trigger).toHaveTextContent(q4SizeLabel);
+  });
+
+  it('pinning a supported variant on a TTS card writes translationVariantByModel (not the download or active model)', async () => {
+    render(<NativeModelManagementSection />);
+    const trigger = await waitFor(() =>
+      within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
+    fireEvent.click(trigger); // open the menu
+
+    const fp32Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-fp32');
+    fireEvent.click(fp32Row);
+
+    // The pin reaches settings via the same generic per-model map ASR/translation use.
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ translationVariantByModel: { 'qwen3-tts-1.7b': 'fp32' } }));
+    // and it must NOT switch the active TTS model
+    expect(mockUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ ttsModel: expect.anything() }));
+  });
+
+  it('downloads the chosen (recommended BF16) variant repo for a TTS card, not the default', async () => {
+    render(<NativeModelManagementSection />);
+    const card = await waitFor(() => {
+      const c = screen.getByTestId('model-card-qwen3-tts-1.7b');
+      within(c).getByTestId('variant-dd-qwen3-tts-1.7b'); // throws until variant data lands
+      return c;
+    });
+
+    const downloadBtn = within(card).getByRole('button', { name: /Download/i });
+    fireEvent.click(downloadBtn);
+
+    expect(mockDownload).toHaveBeenCalledWith('qwen3-tts-1.7b', 'org/qwen3-tts-1.7b-bf16');
   });
 });
 

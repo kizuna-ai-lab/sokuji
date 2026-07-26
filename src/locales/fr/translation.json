@@ -161,6 +161,9 @@
     "vadSettings": "Paramètres VAD",
     "vadSettingsTooltip": "Configuration de la détection d'activité vocale. Ajustez ces paramètres pour optimiser la détection vocale dans votre environnement.",
     "vadThresholdTooltip": "Sensibilité de détection vocale. Des valeurs plus élevées nécessitent une parole plus forte/claire. Des valeurs plus basses sont plus sensibles aux voix faibles.",
+    "vadNegativeThreshold": "Seuil de Silence",
+    "vadNegativeThresholdTooltip": "Probabilité en dessous de laquelle le silence commence à compter pour la fin d'un segment. Auto le maintient 0,15 sous le Seuil VAD. Il ne s'applique jamais au-dessus du Seuil VAD, sinon les segments ne se termineraient jamais.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Durée min. de silence",
     "vadMinSilenceDurationTooltip": "Durée minimale de silence pour séparer les segments de parole. Des valeurs plus courtes séparent les phrases plus rapidement, des valeurs plus longues attendent des pauses plus naturelles.",
     "vadMinSpeechDuration": "Durée min. de parole",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Démarrage du moteur local",
     "localNativeTranslationIncompatible": "Sélectionnez un modèle de traduction pour cette paire de langues",
     "localNativeUnavailable": "Moteur natif indisponible — réessayez dans les paramètres",
-    "simpleMode": "Rapide"
+    "simpleMode": "Rapide",
+    "sonioxSharedSession": "Session partagée en mode Les deux",
+    "sonioxSharedSessionTooltip": "Le mode Les deux peut utiliser une seule session Soniox partagée ou une session distincte par direction.\n\nActivé : une seule session traduit les deux côtés avec séparation automatique des locuteurs — coût et latence réduits.\n\nDésactivé : une session distincte par direction — plus fiable lorsque les deux personnes parlent en même temps, mais environ deux fois plus coûteux.\n\nN’affecte que le mode Les deux.",
+    "sonioxAutoParticipantWarning": "Choisissez une langue source spécifique — avec la détection automatique, la parole de l'autre participant ne peut pas être traduite dans votre langue."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -366,6 +372,11 @@
       "description": "Traduction vocale ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Traduction entre n'importe quelles langues parmi plus de 60, unidirectionnelle ou bidirectionnelle",
+      "apiKeyPlaceholder": "Entrez votre clé API Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Télécharger",
     "cancel": "Annuler",
     "downloaded": "Téléchargé",
+    "active": "Actif",
     "delete": "Supprimer",
     "error": "Erreur",
     "retry": "Réessayer",
@@ -771,7 +783,18 @@
     "initFailed": "Échec de l'initialisation du stockage des modèles : {{message}}",
     "othersGroup": "Autres",
     "requiresGpu": "Nécessite un GPU",
-    "upgradeVariant": "Votre appareil prend en charge un format de modèle plus rapide. Supprimez-le et téléchargez-le à nouveau pour de meilleures performances."
+    "upgradeVariant": "Votre appareil prend en charge un format de modèle plus rapide. Supprimez-le et téléchargez-le à nouveau pour de meilleures performances.",
+    "licenseConsent": {
+      "title": "Licence non commerciale",
+      "modelRepo": "{{model}} sera téléchargé depuis {{repo}}.",
+      "licenseName": "Il est distribué sous {{name}} ({{spdx}}).",
+      "viewLicense": "Voir le texte complet de la licence",
+      "nonCommercial": "Cette licence n’autorise qu’un usage non commercial — n’utilisez pas ce modèle dans un produit ou service commercial.",
+      "disclaimer": "Sokuji n’est pas affilié aux auteurs du modèle et n’a aucun lien avec eux. Cette intégration est non officielle et fournie telle quelle, sans aucune garantie.",
+      "attribution": "Attribution : {{attribution}}",
+      "cancel": "Annuler",
+      "accept": "J’ai compris — usage non commercial uniquement"
+    }
   },
   "update": {
     "available": "Nouvelle version v{{version}} disponible",
@@ -866,12 +889,14 @@
     "manageImported": "Gérer les voix importées",
     "myVoices": "Mes voix",
     "openVoiceBuilder": "Créez-en une avec Voice Builder",
+    "play": "Lire",
     "presets": "Préréglages",
     "recordVoice": "Enregistrer une voix…",
     "rename": "Renommer",
     "restartHint": "Redémarrez la session pour appliquer les modifications des voix importées.",
     "showAll": "Afficher toutes les voix",
     "showFewer": "Afficher moins de voix",
+    "stopPreview": "Arrêter",
     "stopRecording": "Arrêter l'enregistrement",
     "transcript": "Transcription",
     "transcriptHint": "Doit correspondre aux mots prononcés dans le clip.",

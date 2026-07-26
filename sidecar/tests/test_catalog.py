@@ -92,7 +92,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 23
+    assert len(ids) == 64
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
@@ -134,14 +134,94 @@ def test_tts_models_have_deployments_languages_and_repos():
         assert m.repos, f"{m.id} has no download repos"
         for d in m.deployments:
             assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
-                                 "qwen3tts_onnx", "mlx_audio_tts"}
+                                 "qwen3tts_onnx", "mlx_audio_tts",
+                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx",
+                                 "omnivoice_onnx"}
+
+
+# The realtime bar decides which tiers exist (issue #323): CosyVoice3's CPU
+# RTF ~3.5 is unusable, so it is the first deliberately GPU-only TTS card.
+# OmniVoice (issue #351) is GPU-only for the same reason (fp16/int4 backbone
+# tuned for CUDA; no cpu deployment row is shipped).
+GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b", "omnivoice-0.6b"}
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
     ids = [m.id for m in catalog.tts_models()]
     assert len(ids) == len(set(ids)), "duplicate tts model ids"
     for m in catalog.tts_models():
+        if m.id in GPU_ONLY_TTS_IDS:
+            assert all(d.tier != "cpu" for d in m.deployments), \
+                f"{m.id} is declared GPU-only but ships a cpu row"
+            continue
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no cpu floor"
+
+
+def test_cosyvoice3_card_shape():
+    m = catalog.tts_model("cosyvoice3-0.5b")
+    assert m is not None
+    assert m.clones and m.named_voices and m.transcript_required
+    assert not m.streaming
+    assert m.sample_rate == 24000 and m.num_speakers == 1
+    assert set(m.languages) == {"zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"}
+    tiers = {d.tier for d in m.deployments}
+    assert tiers == {"gpu-cuda"}
+    assert all(d.backend == "cosyvoice3_onnx" for d in m.deployments)
+    assert m.size_bytes > 3_000_000_000
+
+
+def test_omnivoice_card_shape():
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    assert m.languages == ("multi",)
+    assert m.clones
+    assert m.transcript_required is False
+    assert m.named_voices is True  # curated presets (voices/manifest.json) — issue #351 follow-up
+    assert not m.streaming
+    assert m.sample_rate == 24000 and m.num_speakers == 1
+    tiers = {d.tier for d in m.deployments}
+    assert tiers == {"gpu-cuda"}
+    assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
+    # Three llm precisions, each in its OWN self-contained repo; bf16 default.
+    cts = [d.compute_type for d in m.deployments]
+    assert set(cts) == {"bf16", "fp32", "int4"}
+    assert "fp16" not in cts  # naive fp16 is CUDA-broken (RMSNorm x^2 overflow) — intentionally absent
+    assert max(m.deployments, key=lambda d: d.rank).compute_type == "bf16"
+    # distinct per-variant repos → only the chosen variant downloads
+    arts = [d.artifact for d in m.deployments]
+    assert len(set(arts)) == 3
+    assert all(a.startswith("jiangzhuo9357/omnivoice-onnx-bidi-") for a in arts)
+    by_ct = {d.compute_type: d for d in m.deployments}
+    assert by_ct["bf16"].artifact == m.repos[0]  # default repo = bf16 variant
+    assert (by_ct["bf16"].est_bytes, by_ct["fp32"].est_bytes, by_ct["int4"].est_bytes) == \
+        (1_995_363_769, 3_207_687_266, 1_352_217_204)
+    assert m.size_bytes == 1_995_363_769  # default (bf16) variant download
+
+
+def test_omnivoice_license():
+    # Non-commercial license descriptor (issue #351 follow-up): the catalog
+    # carries it as DATA so the renderer/downloader can gate on it generically
+    # rather than special-casing "omnivoice" by id.
+    m = catalog.tts_model("omnivoice-0.6b")
+    assert m is not None
+    lic = m.license
+    assert lic is not None
+    assert lic.spdx == "CC-BY-NC-4.0"
+    assert lic.non_commercial is True
+    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi-bf16"
+    assert lic.attribution == "k2-fsa/OmniVoice"
+    assert catalog.license_dict(m) == {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "nonCommercial": True,
+        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi-bf16",
+        "attribution": "k2-fsa/OmniVoice",
+    }
+    # Every other card has no license — license_dict is a plain pass-through
+    # None, not a default-constructed License.
+    assert catalog.tts_model("cosyvoice3-0.5b").license is None
+    assert catalog.license_dict(catalog.tts_model("cosyvoice3-0.5b")) is None
 
 
 def test_tts_moss_nano_is_streaming_cloning():
@@ -401,8 +481,12 @@ def test_heavy_tts_cards_have_windows_only_gpu_dml_rows():
         assert d.backend == backend
         assert d.platforms == ("windows",), mid           # DirectML SKU is Windows-only
         assert d.compute_type == "fp32"
-        # Same artifact as the CUDA row: DML runs the identical graphs (spec D2).
-        assert d.artifact == by_tier["gpu-cuda"][0].artifact
+        # Same artifact as the fp32 CUDA row: DML runs the identical graphs
+        # (spec D2). The qwen3-tts cards carry a SECOND, bf16, gpu-cuda row
+        # (P7 multi-variant ladder) — compare against the fp32 one by name,
+        # not by tier-list position.
+        cuda_fp32 = next(x for x in by_tier["gpu-cuda"] if x.compute_type == "fp32")
+        assert d.artifact == cuda_fp32.artifact
 
 
 def test_sherpa_tts_cards_have_no_gpu_dml_row():
@@ -414,13 +498,16 @@ def test_sherpa_tts_cards_have_no_gpu_dml_row():
 
 def test_mlx_tts_deployment_rows():
     # spec D5 / P6: each MLX-lane card gains ONE Apple-Silicon macOS metal row,
-    # pointed at the mlx-community repo, reusing the card's compute_type so the
-    # card still exposes exactly one variant (no new TTS variantIds).
+    # pointed at the mlx-community repo, reusing the card's compute_type. moss
+    # is single-variant, so it still exposes exactly one compute_type overall;
+    # the qwen3-tts cards are now multi-variant (P7: fp32 + bf16 ONNX rows) —
+    # the mlx row's fp32 just needs to be ONE of the card's onnx compute_types.
     expect = {
         "moss-tts-nano": "mlx-community/MOSS-TTS-Nano-100M",
         "qwen3-tts-0.6b": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
         "qwen3-tts-1.7b": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
     }
+    single_variant = {"moss-tts-nano"}
     for mid, repo in expect.items():
         m = catalog.tts_model(mid)
         mlx = [d for d in m.deployments if d.backend == "mlx_audio_tts"]
@@ -430,10 +517,11 @@ def test_mlx_tts_deployment_rows():
         assert d.artifact == repo
         assert d.platforms == ("macos",)
         assert d.requires_apple_silicon is True
-        # compute_type reused from the card's ONNX rows → still a single variant
+        # compute_type reused from the card's ONNX rows → not a brand-new one
         onnx_cts = {x.compute_type for x in m.deployments if x.backend != "mlx_audio_tts"}
         assert d.compute_type in onnx_cts
-        assert len({x.compute_type for x in m.deployments}) == 1, mid
+        if mid in single_variant:
+            assert len({x.compute_type for x in m.deployments}) == 1, mid
 
 
 def test_mlx_cards_keep_onnx_cpu_fallback_rows():
@@ -443,3 +531,24 @@ def test_mlx_cards_keep_onnx_cpu_fallback_rows():
         m = catalog.tts_model(mid)
         assert any(d.tier == "cpu" and d.backend != "mlx_audio_tts"
                    for d in m.deployments), mid
+
+
+def test_qwen3_tts_cards_carry_per_variant_onnx_repos():
+    # Multi-variant shipping ladder (int8 was CUT after validating slower on
+    # both aarch64 and x86 — only fp32 + bf16 ship): each variant is its OWN
+    # self-contained repo (the repo IS the variant), not a subdir/file inside
+    # one shared repo. bf16 is CUDA-only (no cpu/dml row); fp32 covers
+    # cpu + gpu-cuda + gpu-dml.
+    for mid in ("qwen3-tts-0.6b", "qwen3-tts-1.7b"):
+        card = catalog.tts_model(mid)
+        onnx = [d for d in card.deployments if d.backend == "qwen3tts_onnx"]
+        cts = {d.compute_type for d in onnx}
+        assert cts == {"fp32", "bf16"}
+        for d in onnx:
+            assert d.artifact.endswith(f"-{d.compute_type}"), (mid, d.compute_type, d.artifact)
+            assert d.est_bytes, f"{mid}/{d.compute_type} missing est_bytes"
+        assert all(d.tier == "gpu-cuda" for d in onnx if d.compute_type == "bf16")
+        assert {d.tier for d in onnx if d.compute_type == "fp32"} == {"cpu", "gpu-cuda", "gpu-dml"}
+        fp32_repo = next(d.artifact for d in onnx if d.compute_type == "fp32")
+        assert card.repos == (fp32_repo,)
+        assert card.size_bytes == next(d.est_bytes for d in onnx if d.compute_type == "fp32")

@@ -1,6 +1,10 @@
-import type { TranslationResult } from '../engine/TranslationEngine';
 import type { ServerMsg } from './nativeProtocol';
 import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, type ISidecarConnection } from './SidecarConnection';
+
+/** The native translate reply as this client returns it. Shape-compatible with
+ *  the WASM lane's TranslationResult by construction, NOT by import — the two
+ *  providers are peers and the native lane owns its own contracts. */
+export interface NativeTranslationResult { sourceText: string; translatedText: string; inferenceTimeMs: number; }
 
 export class NativeTranslateClient {
   onStatus: ((m: string) => void) | null = null;
@@ -33,7 +37,7 @@ export class NativeTranslateClient {
     return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }
 
-  async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<TranslationResult> {
+  async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<NativeTranslationResult> {
     const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translate_result' }>;
     return { sourceText: msg.sourceText, translatedText: msg.translatedText, inferenceTimeMs: msg.inferenceTimeMs };
   }

@@ -12,6 +12,7 @@ import { Provider, isKizunaManagedProvider, type ProviderType } from '../../type
 
 export type StartBlockReason =
   | 'missing-device'
+  | 'soniox-auto-source'
   | 'local-models-missing'
   | 'api-key-invalid'
   | 'no-models'
@@ -48,6 +49,13 @@ export interface StartGateInput {
   provider: ProviderType;
   quota: { balance?: number; frozen?: boolean } | null | undefined;
   missingDeviceForMode: DeviceScope | null;
+  /**
+   * Soniox carries direction in source/target and reverses them for the
+   * participant client, so an 'auto' source can't be reversed — the
+   * participant's translate target would become 'auto', which Soniox
+   * rejects. True when that combination is selected. See MainPanel.
+   */
+  sonioxAutoParticipantBlocked: boolean;
 }
 
 export function computeStartGate(input: StartGateInput): StartGate {
@@ -59,6 +67,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
     provider,
     quota,
     missingDeviceForMode,
+    sonioxAutoParticipantBlocked,
   } = input;
 
   const kizunaManaged = isKizunaManagedProvider(provider);
@@ -72,7 +81,8 @@ export function computeStartGate(input: StartGateInput): StartGate {
     !loadingModels &&
     !isInitializing &&
     hasValidBalance &&
-    missingDeviceForMode === null;
+    missingDeviceForMode === null &&
+    !sonioxAutoParticipantBlocked;
 
   if (canStart) return { canStart: true, reason: null };
 
@@ -83,6 +93,14 @@ export function computeStartGate(input: StartGateInput): StartGate {
   // used (MainPanel.tsx:3408). Do not reorder without changing both.
   if (missingDeviceForMode !== null) {
     return { canStart: false, reason: 'missing-device', deviceScope: missingDeviceForMode };
+  }
+  // Sits with missing-device rather than further down: both say "the scope
+  // you picked can't run as configured", which is more actionable than a
+  // generic credential complaint. On main this condition closed the gate
+  // with no explanation at all — the silent-disable this module exists to
+  // remove.
+  if (sonioxAutoParticipantBlocked) {
+    return { canStart: false, reason: 'soniox-auto-source' };
   }
   if (!isApiKeyValid) {
     // For LOCAL_INFERENCE, "API key valid" is really "required models are
@@ -122,6 +140,8 @@ export function reasonToSettingsTarget(
   switch (reason) {
     case 'missing-device':
       return deviceScope === 'participant' ? 'participant' : 'microphone';
+    case 'soniox-auto-source':
+      return 'languages';
     case 'local-models-missing':
       return 'model-management';
     case 'api-key-invalid':
@@ -147,6 +167,13 @@ export function reasonToI18n(reason: StartBlockReason): { key: string; defaultVa
   switch (reason) {
     case 'missing-device':
       return { key: 'modePicker.missingDevice', defaultValue: 'Configure devices for this mode to start.' };
+    case 'soniox-auto-source':
+      // Same sentence the language settings already show for this exact
+      // combination (LanguageSection's showSonioxAutoParticipantWarning).
+      return {
+        key: 'settings.sonioxAutoParticipantWarning',
+        defaultValue: "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language.",
+      };
     case 'local-models-missing':
       return { key: 'mainPanel.localModelsRequired', defaultValue: 'Please download the required models in Settings to start.' };
     case 'api-key-invalid':

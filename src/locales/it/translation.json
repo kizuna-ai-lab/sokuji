@@ -161,6 +161,9 @@
     "vadSettings": "Impostazioni VAD",
     "vadSettingsTooltip": "Configurazione del rilevamento dell'attività vocale. Regola queste impostazioni per ottimizzare il rilevamento vocale nel tuo ambiente.",
     "vadThresholdTooltip": "Sensibilità di rilevamento vocale. Valori più alti richiedono voce più forte/chiara. Valori più bassi sono più sensibili alla voce bassa.",
+    "vadNegativeThreshold": "Soglia di Silenzio",
+    "vadNegativeThresholdTooltip": "Probabilità sotto la quale il silenzio inizia a contare per la fine del segmento. Auto la mantiene 0,15 sotto la Soglia VAD. Non viene mai applicata sopra la Soglia VAD, perché i segmenti non finirebbero mai.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Durata min. silenzio",
     "vadMinSilenceDurationTooltip": "Durata minima del silenzio per dividere i segmenti vocali. Valori più brevi dividono le frasi più velocemente, valori più lunghi attendono pause più naturali.",
     "vadMinSpeechDuration": "Durata min. parlato",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Avvio del motore locale",
     "localNativeTranslationIncompatible": "Seleziona un modello di traduzione per questa coppia di lingue",
     "localNativeUnavailable": "Motore nativo non disponibile — riprova nelle impostazioni",
-    "simpleMode": "Rapido"
+    "simpleMode": "Rapido",
+    "sonioxSharedSession": "Sessione condivisa in modalità Entrambi",
+    "sonioxSharedSessionTooltip": "La modalità Entrambi può usare un’unica sessione Soniox condivisa o una sessione separata per direzione.\n\nAbilitato: un’unica sessione traduce entrambi i lati con separazione automatica dei parlanti — costi e latenza inferiori.\n\nDisabilitato: una sessione separata per direzione — più affidabile quando parlano entrambi contemporaneamente, ma con costo circa doppio.\n\nInfluisce solo sulla modalità Entrambi.",
+    "sonioxAutoParticipantWarning": "Scegli una lingua di origine specifica — con il rilevamento automatico non è possibile tradurre la voce dell'altro partecipante nella tua lingua."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",
@@ -366,6 +372,11 @@
       "description": "Traduzione vocale ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Traduzione tra 60+ lingue in qualsiasi combinazione, unidirezionale o bidirezionale",
+      "apiKeyPlaceholder": "Inserisci la tua chiave API Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Scarica",
     "cancel": "Annulla",
     "downloaded": "Scaricato",
+    "active": "Attivo",
     "delete": "Elimina",
     "error": "Errore",
     "retry": "Riprova",
@@ -771,7 +783,18 @@
     "initFailed": "Inizializzazione dell'archiviazione dei modelli non riuscita: {{message}}",
     "othersGroup": "Altri",
     "requiresGpu": "Richiede una GPU",
-    "upgradeVariant": "Il tuo dispositivo supporta un formato di modello più veloce. Elimina e scarica di nuovo per prestazioni migliori."
+    "upgradeVariant": "Il tuo dispositivo supporta un formato di modello più veloce. Elimina e scarica di nuovo per prestazioni migliori.",
+    "licenseConsent": {
+      "title": "Licenza non commerciale",
+      "modelRepo": "{{model}} verrà scaricato da {{repo}}.",
+      "licenseName": "È distribuito con licenza {{name}} ({{spdx}}).",
+      "viewLicense": "Visualizza il testo completo della licenza",
+      "nonCommercial": "Questa licenza consente solo l’uso non commerciale: non utilizzare questo modello in prodotti o servizi commerciali.",
+      "disclaimer": "Sokuji non è affiliato agli autori del modello e non ha alcun rapporto con loro. Questa integrazione non è ufficiale ed è fornita così com’è, senza alcuna garanzia.",
+      "attribution": "Attribuzione: {{attribution}}",
+      "cancel": "Annulla",
+      "accept": "Ho capito: solo uso non commerciale"
+    }
   },
   "update": {
     "available": "Nuova versione v{{version}} disponibile",
@@ -866,12 +889,14 @@
     "manageImported": "Gestisci le voci importate",
     "myVoices": "Le Mie Voci",
     "openVoiceBuilder": "Creane una su Voice Builder",
+    "play": "Riproduci",
     "presets": "Preimpostazioni",
     "recordVoice": "Registra voce…",
     "rename": "Rinomina",
     "restartHint": "Riavvia la sessione per applicare le modifiche alle voci importate.",
     "showAll": "Mostra tutte le voci",
     "showFewer": "Mostra meno voci",
+    "stopPreview": "Interrompi",
     "stopRecording": "Ferma registrazione",
     "transcript": "Trascrizione",
     "transcriptHint": "Deve corrispondere alle parole pronunciate nel clip.",

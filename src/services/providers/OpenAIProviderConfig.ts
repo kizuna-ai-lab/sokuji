@@ -33,7 +33,7 @@ export type OpenAISettings = OpenAICompatibleSettingsBase;
 
 export const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
   apiKey: '',
-  model: 'gpt-realtime-mini',
+  model: 'gpt-realtime-2.1-mini',
   voice: 'alloy',
   sourceLanguage: 'en',
   targetLanguage: 'zh_CN',
@@ -206,10 +206,13 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Verse', value: 'verse' },
   ];
 
+  // Static fallback shown before an API key is validated; at runtime the real
+  // list comes from /v1/models (validateAndFetchModels). Keep these to current,
+  // non-deprecated realtime models. OpenAI's pre-2.1 realtime/audio families are
+  // shut off 2027-01-20 (see migrateDeprecatedOpenAIModel in settingsStore).
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gpt-realtime-mini', type: 'realtime' },
-    { id: 'gpt-realtime-1.5', type: 'realtime' },
-    { id: 'gpt-realtime-2', type: 'realtime' },
+    { id: 'gpt-realtime-2.1-mini', type: 'realtime' },
+    { id: 'gpt-realtime-2.1', type: 'realtime' },
   ];
 
   // Only models matching this prefix accept the `reasoning.effort` parameter.

@@ -59,7 +59,6 @@ function ModelCard({
   isSelected,
   isCompatible,
   isAutoSelected,
-  showRadio,
   compatibilityHint,
   deviceFeatures,
   onSelect,
@@ -77,7 +76,6 @@ function ModelCard({
   isSelected: boolean;
   isCompatible: boolean;
   isAutoSelected?: boolean;
-  showRadio: boolean;
   compatibilityHint?: string;
   deviceFeatures?: string[];
   onSelect?: () => void;
@@ -113,7 +111,6 @@ function ModelCard({
     return (
       <div className={classNames} onClick={handleClick}>
         <div className="model-card__top-row">
-          {showRadio && <div className="model-card__radio" />}
           <div className="model-card__content">
             <div className="model-card__info">
               <div className="model-card__header">
@@ -129,7 +126,6 @@ function ModelCard({
   return (
     <div className={classNames} data-testid={`model-card-${entry.id}`} onClick={handleClick}>
       <div className="model-card__top-row">
-        {showRadio && <div className="model-card__radio" />}
         <div className="model-card__content">
           <div className="model-card__info">
             <div className="model-card__header">
@@ -165,9 +161,11 @@ function ModelCard({
 
           <div className="model-card__actions">
             {isCloud && (
-              <div className="model-card__downloaded model-card__cloud">
-                <span className="model-card__status-icon"><CheckCircle size={14} /></span>
-                <span>{t('models.online', 'Online')}</span>
+              <div className="model-card__downloaded">
+                <span className={`model-card__status-label${isSelected ? ' model-card__status-label--active' : ''}`}>
+                  <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+                  <span>{isSelected ? t('models.active', 'Active') : t('models.online', 'Online')}</span>
+                </span>
               </div>
             )}
 
@@ -222,8 +220,10 @@ function ModelCard({
 
             {!isCloud && status === 'downloaded' && (
               <div className="model-card__downloaded">
-                <span className="model-card__status-icon"><CheckCircle size={14} /></span>
-                <span>{t('models.downloaded', 'Downloaded')}</span>
+                <span className={`model-card__status-label${isSelected ? ' model-card__status-label--active' : ''}`}>
+                  <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+                  <span>{isSelected ? t('models.active', 'Active') : t('models.downloaded', 'Downloaded')}</span>
+                </span>
                 <button
                   className="model-card__btn model-card__btn--delete"
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -360,6 +360,11 @@ export function ModelManagementSection({
   const [showAllAsr, setShowAllAsr] = useState(false);
   const [showAllTts, setShowAllTts] = useState(false);
   const [importFor, setImportFor] = useState<ModelManifestEntry | null>(null);
+
+  // Close the import dialog when the panel hides (<Activity> cleanup); a
+  // hidden-but-open dialog would reappear on reveal and swallow the visible
+  // panel's Escape key. Staged files are intentionally discarded with it.
+  useEffect(() => () => setImportFor(null), []);
 
   useEffect(() => {
     initialize();
@@ -702,7 +707,6 @@ export function ModelManagementSection({
         isSessionActive={isSessionActive}
         isSelected={selectedId === entry.id}
         isCompatible={!incompatible}
-        showRadio={true}
         compatibilityHint={hint}
         deviceFeatures={deviceFeatures}
         onSelect={() => onSelect(entry.id)}
@@ -774,7 +778,6 @@ export function ModelManagementSection({
                 isSessionActive={isSessionActive}
                 isSelected={asrModel === entry.id}
                 isCompatible={false}
-                showRadio={true}
                 compatibilityHint={
                   !deviceReady(entry, webgpuAvailable)
                     ? t('settings.webgpuNotSupported', 'Not available in current environment')
@@ -843,7 +846,6 @@ export function ModelManagementSection({
                 isSessionActive={isSessionActive}
                 isSelected={translationModel === entry.id}
                 isCompatible={false}
-                showRadio={true}
                 compatibilityHint={
                   !deviceReady(entry, webgpuAvailable)
                     ? t('settings.webgpuNotSupported', 'Not available in current environment')
@@ -972,7 +974,6 @@ export function ModelManagementSection({
                 isSessionActive={isSessionActive}
                 isSelected={ttsModel === entry.id}
                 isCompatible={false}
-                showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
                 onSelect={() => {
                   updateLocalInference({ ttsModel: entry.id });

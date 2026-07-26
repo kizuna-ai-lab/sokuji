@@ -2,7 +2,7 @@
   <img width="200" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
 </p>
 
-<h3 align="center">リアルタイム音声翻訳 — クラウドまたは完全オフラインでデバイス上で動作</h3>
+<h3 align="center">リアルタイム双方向音声翻訳 — バイリンガル会議向け、クラウドまたは完全オフラインでデバイス上で動作</h3>
 
 <p align="center">
   <a href="../LICENSE" target="_blank">
@@ -30,7 +30,7 @@
 
 [Kizuna AI Lab](https://github.com/kizuna-ai-lab) が開発 — AIを活用して言語とアクセシビリティの壁を打ち破り、人と人との真のつながりを創造します。「絆」は日本語で「bond」、即時（Sokuji）はリアルタイムコミュニケーションを可能にするフラッグシップツールです。
 
-Sokujiは、デスクトップとブラウザに対応したクロスプラットフォームのリアルタイム音声翻訳アプリです。**ローカル推論**をサポート — WASMとWebGPUによるオンデバイスASR・翻訳・TTSで、APIキー不要、高価なGPU不要、完全オフライン、プライバシー完全保護。OpenAI、Google Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、OpenAI互換APIなどのクラウドプロバイダーにも対応。
+Sokujiは、デスクトップとブラウザに対応したクロスプラットフォームのリアルタイム音声翻訳アプリです。**ローカル推論**をサポート — WASMとWebGPUによるオンデバイスASR・翻訳・TTSで、APIキー不要、高価なGPU不要、完全オフライン、プライバシー完全保護。OpenAI、Google Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI互換APIなどのクラウドプロバイダーにも対応。
 
 ---
 
@@ -57,7 +57,7 @@ graph LR
 
 | | |
 |---|---|
-| **プロバイダー** | 7 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、OpenAI互換、ローカル推論 |
+| **プロバイダー** | 9 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI互換、ローカル推論 |
 | **ローカルモデル** | ASR 50モデル、翻訳 55以上の言語ペア、TTS 136ボイス |
 | **言語** | 99以上（音声認識）· 55以上（翻訳）· 53（音声合成） |
 | **プラットフォーム** | Linux · Windows · macOS · Chrome · Edge |
@@ -126,6 +126,23 @@ npm run electron:build      # 本番ビルド
 
 ---
 
+## 双方向翻訳（バイリンガル会議向け）
+
+2人、2つの言語、1つの会話。Sokujiは話されている言語を自動検出し、
+もう一方の言語へ翻訳します — 双方向に、リアルタイムで。
+言語Aと言語Bを設定し、システム音声とマイクを同時にキャプチャすれば、
+全員が会話についていけます。
+
+- **自動言語検出** — 会話の途中で手動切り替え不要
+- **双方向を同時に** — マイク + システム音声を1つのセッションで
+- **ライブ字幕** — 画面を共有すれば相手側も一緒に読めます
+- Zoom、Google Meet、Teams、Discord、あらゆるアプリ（デスクトップ）で動作、
+  ウェブ会議プラットフォーム内でも直接（ブラウザ拡張機能）
+
+> Soniox 双方向モードを利用 — 60以上の言語、3,600以上の言語ペア。
+
+---
+
 ## 機能
 
 ### ローカル推論（エッジAI）
@@ -146,6 +163,8 @@ npm run electron:build      # 本番ビルド
 | **Palabra.ai** | WebRTC低遅延 · ボイスクローニング · 自動文分割 · 部分転写翻訳 · 60以上のソース / 40以上のターゲット言語 |
 | **Kizuna AI** | サインインするだけ — APIキーはバックエンド管理 · OpenAIモデルを最適化されたデフォルトで |
 | **豆包 AST 2.0** | 話者ボイスクローニング付き音声翻訳 · 中国語↔英語双方向 · Ogg Opus音声出力 |
+| **Soniox** | リアルタイム音声間翻訳 · **一方向＆双方向翻訳（話者の言語を自動検出）** · 60以上の言語 / 3,600以上のペア · 12ボイス · APIキー持ち込み |
+| **Zoom AI Services** | テキストのみのライブ字幕 · Zoom Build Platform キーを持ち込み · Zoom以外のあらゆるサイトで動作 · Zoomのネイティブ言語ペア |
 | **OpenAI互換** | 独自エンドポイント対応 — OpenAI Realtime API互換サービス（Electronのみ） |
 | **ローカル推論** | 完全オフライン · ASR → 翻訳 → TTSをオンデバイスで · APIキー不要 · GPU不要 |
 

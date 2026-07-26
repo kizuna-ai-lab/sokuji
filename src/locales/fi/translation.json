@@ -161,6 +161,9 @@
     "vadSettings": "VAD-asetukset",
     "vadSettingsTooltip": "Ääniaktiivisuuden tunnistuksen asetukset. Säädä näitä asetuksia optimoidaksesi puheentunnistuksen ympäristöllesi.",
     "vadThresholdTooltip": "Puheentunnistuksen herkkyys. Korkeammat arvot vaativat voimakkaampaa/selkeämpää puhetta. Matalammat arvot ovat herkempiä hiljaiselle puheelle.",
+    "vadNegativeThreshold": "Hiljaisuuden kynnys",
+    "vadNegativeThresholdTooltip": "Todennäköisyys, jonka alapuolella hiljaisuus alkaa kerryttää segmentin lopetusta. Auto pitää sen 0,15 VAD-kynnyksen alapuolella. Sitä ei koskaan käytetä VAD-kynnystä suurempana, koska silloin segmentit eivät päättyisi koskaan.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. hiljaisuusaika",
     "vadMinSilenceDurationTooltip": "Minimi hiljaisuus puhesegmenttien jakamiseen. Lyhyemmät arvot jakavat lauseet nopeammin, pidemmät odottavat luonnollisempia taukoja.",
     "vadMinSpeechDuration": "Min. puheaika",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Käynnistetään paikallista moottoria",
     "localNativeTranslationIncompatible": "Valitse käännösmalli tälle kieliparille",
     "localNativeUnavailable": "Natiivimoottori ei ole käytettävissä — yritä uudelleen asetuksista",
-    "simpleMode": "Pika"
+    "simpleMode": "Pika",
+    "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
+    "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella puhujien erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
+    "sonioxAutoParticipantWarning": "Valitse tietty lähdekieli — automaattisella tunnistuksella toisen osallistujan puhetta ei voi kääntää omalle kielellesi."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -366,6 +372,11 @@
       "description": "ByteDance puheenkääntäminen",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Käännös minkä tahansa yli 60 kielen välillä, yksi- tai kaksisuuntaisesti",
+      "apiKeyPlaceholder": "Anna Soniox API -avaimesi"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Lataa",
     "cancel": "Peruuta",
     "downloaded": "Ladattu",
+    "active": "Aktiivinen",
     "delete": "Poista",
     "error": "Virhe",
     "retry": "Yritä uudelleen",
@@ -771,7 +783,18 @@
     "initFailed": "Mallien tallennustilan alustus epäonnistui: {{message}}",
     "othersGroup": "Muut",
     "requiresGpu": "Vaatii GPU:n",
-    "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi."
+    "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi.",
+    "licenseConsent": {
+      "title": "Ei-kaupallinen lisenssi",
+      "modelRepo": "{{model}} ladataan lähteestä {{repo}}.",
+      "licenseName": "Se jaellaan lisenssillä {{name}} ({{spdx}}).",
+      "viewLicense": "Näytä koko lisenssiteksti",
+      "nonCommercial": "Tämä lisenssi sallii vain ei-kaupallisen käytön — älä käytä tätä mallia kaupallisissa tuotteissa tai palveluissa.",
+      "disclaimer": "Sokuji ei ole sidoksissa mallin tekijöihin eikä sillä ole heihin mitään suhdetta. Tämä integraatio on epävirallinen ja tarjotaan sellaisenaan ilman minkäänlaista takuuta.",
+      "attribution": "Tekijätiedot: {{attribution}}",
+      "cancel": "Peruuta",
+      "accept": "Ymmärrän — vain ei-kaupallinen käyttö"
+    }
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",
@@ -866,12 +889,14 @@
     "manageImported": "Hallitse tuotuja ääniä",
     "myVoices": "Omat äänet",
     "openVoiceBuilder": "Luo sellainen Voice Builderissa",
+    "play": "Toista",
     "presets": "Esiasetukset",
     "recordVoice": "Nauhoita ääni…",
     "rename": "Nimeä uudelleen",
     "restartHint": "Käynnistä istunto uudelleen ottaaksesi tuodut äänimuutokset käyttöön.",
     "showAll": "Näytä kaikki äänet",
     "showFewer": "Näytä vähemmän ääniä",
+    "stopPreview": "Pysäytä",
     "stopRecording": "Lopeta nauhoitus",
     "transcript": "Litterointi",
     "transcriptHint": "Täytyy vastata leikkeessä puhuttuja sanoja.",

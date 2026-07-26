@@ -89,6 +89,7 @@ export function createLocalNativeSessionConfig(
 ): LocalNativeSessionConfig {
   const wrapTranscript = resolveWrapTranscript(
     settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
+  const ttsModelId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog);
 
   return {
     provider: 'local_native',
@@ -104,7 +105,11 @@ export function createLocalNativeSessionConfig(
     // translationVariantByModel is the GENERIC per-model quant-pin map (keyed
     // by model id — ids never collide across stages); ASR pins live there too.
     asrVariant: settings.translationVariantByModel[settings.asrModel],
-    ttsModelId: resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog),
+    ttsModelId,
+    // Same generic per-model quant-pin map as asrVariant above — keyed by the
+    // RESOLVED TTS model id (not settings.ttsModel, which can be '' for Auto),
+    // so the Auto-resolved model's pin (if any) is still picked up.
+    ttsVariant: settings.translationVariantByModel[ttsModelId ?? ''],
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,

@@ -6,7 +6,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 
 - **Real-time speech translation** powered by multiple AI providers
 - **Smart site detection** - Shows supported sites when clicking the extension icon
-- **Seamless integration** with Google Meet, Microsoft Teams, Zoom, Yandex Telemost, Gather Town, and Jitsi Meet
+- **Runs inside** Google Meet, Microsoft Teams, Zoom, Yandex Telemost, Gather Town, and Jitsi Meet
 - **Virtual microphone** functionality for meeting integration
 - **Customizable settings** for voice, model, and translation preferences
 
@@ -41,7 +41,7 @@ When you click the Sokuji extension icon:
 ### 3. Platform-Specific Notes
 
 #### Gather Town
-- Works seamlessly with Gather Town's spatial audio features (both classic and v2 versions)
+- Works with Gather Town's spatial audio features (both classic and v2 versions)
 - Select "Sokuji Virtual Microphone" in Gather Town's audio settings
 - The extension automatically detects when you're in a Gather Town space
 - Supports both proximity-based conversations and larger group meetings

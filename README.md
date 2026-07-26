@@ -2,7 +2,7 @@
   <img width="200" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
 </p>
 
-<h3 align="center">Real-time speech translation — cloud or fully offline on your device</h3>
+<h3 align="center">Real-time two-way speech translation for bilingual meetings — cloud or fully offline on your device</h3>
 
 <p align="center">
   <a href="LICENSE" target="_blank">
@@ -30,7 +30,7 @@
 
 Built by [Kizuna AI Lab](https://github.com/kizuna-ai-lab) — we use AI to break language and accessibility barriers, creating genuine human connections. "Kizuna" (絆) means "bond" in Japanese, and Sokuji (即時) is our flagship tool to make real-time communication possible across any language.
 
-Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, no expensive GPU needed, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, and OpenAI-compatible APIs.
+Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, no expensive GPU needed, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, Zoom AI, and OpenAI-compatible APIs.
 
 ---
 
@@ -57,7 +57,7 @@ graph LR
 
 | | |
 |---|---|
-| **Providers** | 7 — OpenAI, Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, OpenAI Compatible, Local Inference |
+| **Providers** | 9 — OpenAI, Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, Zoom AI, OpenAI Compatible, Local Inference |
 | **Local Models** | 48 ASR models, 55+ translation pairs, 136 TTS voices |
 | **Languages** | 99+ (speech recognition) · 55+ (translation) · 53 (text-to-speech) |
 | **Platforms** | Linux · Windows · macOS · Chrome · Edge |
@@ -126,6 +126,23 @@ npm run electron:build      # Production
 
 ---
 
+## Two-Way Translation for Bilingual Meetings
+
+Two people, two languages, one conversation. Sokuji auto-detects which
+language is being spoken and translates it into the other — in both
+directions, in real time. Set Language A and Language B, capture system
+audio and microphone together, and everyone follows along.
+
+- **Auto language detection** — no manual switching mid-conversation
+- **Both directions at once** — mic + system audio in a single session
+- **Live subtitles** — share your screen so the other side reads along too
+- Works in Zoom, Google Meet, Teams, Discord, or any app (desktop),
+  and directly inside web meeting platforms (browser extension)
+
+> Powered by Soniox two-way mode — 60+ languages, 3,600+ language pairs.
+
+---
+
 ## Features
 
 ### Local Inference (Edge AI)
@@ -146,6 +163,8 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 | **Palabra.ai** | WebRTC low-latency · voice cloning · auto sentence segmentation · partial transcription translation · 60+ source / 40+ target languages |
 | **Kizuna AI** | Sign in and go — API key managed by backend · same OpenAI models with optimized defaults |
 | **Doubao AST 2.0** | Speech-to-speech with speaker voice cloning · bidirectional Chinese↔English · Ogg Opus audio output |
+| **Soniox** | Real-time speech-to-speech · **one-way & two-way translation (auto-detects speaker language)** · 60+ languages / 3,600+ pairs · 12 voices · bring-your-own-key |
+| **Zoom AI Services** | Text-only live captions · bring your own Zoom Build Platform key · works on any site, not just Zoom · Zoom's native language pairs |
 | **OpenAI Compatible** | Bring your own endpoint — any OpenAI Realtime API-compatible service (Electron only) |
 | **Local Inference** | Fully offline · ASR → Translation → TTS on-device · no API key · no GPU required |
 

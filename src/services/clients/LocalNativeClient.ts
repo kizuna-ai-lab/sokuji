@@ -112,14 +112,11 @@ export class LocalNativeClient implements IClient {
       await initTranslate();
       await initAsr();
     }
-    // Enable native TTS for piper (one-shot) and MOSS (streaming/cloning). Pocket
-    // voice-cloning stays off until the Plan B reference-voice UX.
-    this.ttsEnabled = !!config.ttsModelId && !config.textOnly
-      && !String(config.ttsModelId).includes('pocket');
+    this.ttsEnabled = !!config.ttsModelId && !config.textOnly;
     if (this.ttsEnabled) {
       store.setTtsLoading(true);
       try {
-        const r = await this.tts.init(config.ttsModelId, config.ttsDevice);
+        const r = await this.tts.init(config.ttsModelId, config.ttsDevice, config.targetLanguage, config.ttsVariant);
         this.ttsStreaming = !!r.streaming;
         store.setTtsResolved({ model: config.ttsModelId!, device: r.device ?? 'cpu', backend: r.backend, computeType: r.computeType,
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });

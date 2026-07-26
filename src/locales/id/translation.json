@@ -161,6 +161,9 @@
     "vadSettings": "Pengaturan VAD",
     "vadSettingsTooltip": "Konfigurasi Deteksi Aktivitas Suara. Sesuaikan pengaturan ini untuk mengoptimalkan deteksi ucapan di lingkungan Anda.",
     "vadThresholdTooltip": "Sensitivitas deteksi ucapan. Nilai lebih tinggi membutuhkan ucapan yang lebih keras/jelas. Nilai lebih rendah lebih sensitif terhadap ucapan pelan.",
+    "vadNegativeThreshold": "Ambang Batas Hening",
+    "vadNegativeThresholdTooltip": "Probabilitas yang di bawahnya keheningan mulai dihitung untuk mengakhiri segmen. Otomatis menjaganya 0,15 di bawah Ambang VAD. Nilai ini tidak pernah diterapkan di atas Ambang VAD, karena segmen tidak akan pernah berakhir.",
+    "vadNegativeThresholdAuto": "Otomatis",
     "vadMinSilenceDuration": "Durasi Diam Minimum",
     "vadMinSilenceDurationTooltip": "Durasi diam minimum untuk memisahkan segmen ucapan. Nilai lebih pendek memisahkan kalimat lebih cepat, nilai lebih panjang menunggu jeda yang lebih alami.",
     "vadMinSpeechDuration": "Durasi Bicara Minimum",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Memulai mesin lokal",
     "localNativeTranslationIncompatible": "Pilih model terjemahan untuk pasangan bahasa ini",
     "localNativeUnavailable": "Mesin native tidak tersedia — coba lagi di pengaturan",
-    "simpleMode": "Cepat"
+    "simpleMode": "Cepat",
+    "sonioxSharedSession": "Sesi bersama dalam mode Keduanya",
+    "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nDiaktifkan: satu sesi menerjemahkan kedua sisi dengan pemisahan pembicara otomatis — biaya dan latensi lebih rendah.\n\nDinonaktifkan: sesi terpisah untuk tiap arah — lebih andal saat keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
+    "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan deteksi otomatis, ucapan peserta lain tidak dapat diterjemahkan ke bahasa Anda."
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
@@ -366,6 +372,11 @@
       "description": "Terjemahan ucapan ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Terjemahan antar bahasa apa pun dari 60+ bahasa, satu arah atau dua arah",
+      "apiKeyPlaceholder": "Masukkan Soniox API Key Anda"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Unduh",
     "cancel": "Batal",
     "downloaded": "Terunduh",
+    "active": "Aktif",
     "delete": "Hapus",
     "error": "Kesalahan",
     "retry": "Coba lagi",
@@ -771,7 +783,18 @@
     "initFailed": "Penyimpanan model gagal diinisialisasi: {{message}}",
     "othersGroup": "Lainnya",
     "requiresGpu": "Memerlukan GPU",
-    "upgradeVariant": "Perangkat Anda mendukung format model yang lebih cepat. Hapus dan unduh ulang untuk performa lebih baik."
+    "upgradeVariant": "Perangkat Anda mendukung format model yang lebih cepat. Hapus dan unduh ulang untuk performa lebih baik.",
+    "licenseConsent": {
+      "title": "Lisensi nonkomersial",
+      "modelRepo": "{{model}} akan diunduh dari {{repo}}.",
+      "licenseName": "Didistribusikan di bawah {{name}} ({{spdx}}).",
+      "viewLicense": "Lihat teks lisensi lengkap",
+      "nonCommercial": "Lisensi ini hanya mengizinkan penggunaan nonkomersial — jangan gunakan model ini dalam produk atau layanan komersial apa pun.",
+      "disclaimer": "Sokuji tidak berafiliasi dengan pembuat model dan tidak memiliki hubungan apa pun dengan mereka. Integrasi ini tidak resmi dan disediakan apa adanya, tanpa jaminan apa pun.",
+      "attribution": "Atribusi: {{attribution}}",
+      "cancel": "Batal",
+      "accept": "Saya mengerti — hanya nonkomersial"
+    }
   },
   "update": {
     "available": "Versi baru v{{version}} tersedia",
@@ -866,12 +889,14 @@
     "manageImported": "Kelola suara yang diimpor",
     "myVoices": "Suara Saya",
     "openVoiceBuilder": "Buat di Voice Builder",
+    "play": "Putar",
     "presets": "Preset",
     "recordVoice": "Rekam suara…",
     "rename": "Ganti nama",
     "restartHint": "Mulai ulang sesi untuk menerapkan perubahan suara yang diimpor.",
     "showAll": "Tampilkan semua suara",
     "showFewer": "Tampilkan lebih sedikit suara",
+    "stopPreview": "Berhenti",
     "stopRecording": "Hentikan perekaman",
     "transcript": "Transkrip",
     "transcriptHint": "Harus sesuai dengan kata-kata yang diucapkan dalam klip.",

@@ -161,6 +161,9 @@
     "vadSettings": "VAD-instellingen",
     "vadSettingsTooltip": "Configuratie van spraakactiviteitsdetectie. Pas deze instellingen aan om spraakdetectie te optimaliseren voor uw omgeving.",
     "vadThresholdTooltip": "Gevoeligheid van spraakdetectie. Hogere waarden vereisen luidere/duidelijkere spraak. Lagere waarden zijn gevoeliger voor zachte spraak.",
+    "vadNegativeThreshold": "Stiltedrempel",
+    "vadNegativeThresholdTooltip": "Waarschijnlijkheid waaronder stilte begint mee te tellen voor het einde van een segment. Auto houdt deze 0,15 onder de VAD-drempel. Hij wordt nooit boven de VAD-drempel toegepast, want dan zouden segmenten nooit eindigen.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. stilteduur",
     "vadMinSilenceDurationTooltip": "Minimale stilteduur om spraaksegmenten te splitsen. Kortere waarden splitsen zinnen sneller, langere waarden wachten op natuurlijkere pauzes.",
     "vadMinSpeechDuration": "Min. spraakduur",
@@ -209,7 +212,10 @@
     "localNativeStarting": "De lokale engine wordt gestart",
     "localNativeTranslationIncompatible": "Selecteer een vertaalmodel voor dit taalpaar",
     "localNativeUnavailable": "Native engine niet beschikbaar — probeer opnieuw in Instellingen",
-    "simpleMode": "Snel"
+    "simpleMode": "Snel",
+    "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
+    "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
+    "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de andere deelnemer niet naar jouw taal worden vertaald."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -366,6 +372,11 @@
       "description": "ByteDance spraakvertaling",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Vertaling tussen willekeurige talen uit 60+ talen, in één of twee richtingen",
+      "apiKeyPlaceholder": "Voer uw Soniox API-sleutel in"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Downloaden",
     "cancel": "Annuleren",
     "downloaded": "Gedownload",
+    "active": "Actief",
     "delete": "Verwijderen",
     "error": "Fout",
     "retry": "Opnieuw",
@@ -771,7 +783,18 @@
     "initFailed": "Initialiseren van modelopslag mislukt: {{message}}",
     "othersGroup": "Overige",
     "requiresGpu": "Vereist een GPU",
-    "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties."
+    "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties.",
+    "licenseConsent": {
+      "title": "Niet-commerciële licentie",
+      "modelRepo": "{{model}} wordt gedownload van {{repo}}.",
+      "licenseName": "Het wordt verspreid onder {{name}} ({{spdx}}).",
+      "viewLicense": "Bekijk de volledige licentietekst",
+      "nonCommercial": "Deze licentie staat alleen niet-commercieel gebruik toe — gebruik dit model niet in commerciële producten of diensten.",
+      "disclaimer": "Sokuji is niet gelieerd aan de auteurs van het model en heeft geen relatie met hen. Deze integratie is onofficieel en wordt geleverd zoals ze is, zonder enige garantie.",
+      "attribution": "Naamsvermelding: {{attribution}}",
+      "cancel": "Annuleren",
+      "accept": "Begrepen — alleen niet-commercieel"
+    }
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",
@@ -866,12 +889,14 @@
     "manageImported": "Geïmporteerde stemmen beheren",
     "myVoices": "Mijn stemmen",
     "openVoiceBuilder": "Maak er een in Voice Builder",
+    "play": "Afspelen",
     "presets": "Presets",
     "recordVoice": "Stem opnemen…",
     "rename": "Hernoemen",
     "restartHint": "Start de sessie opnieuw om de wijzigingen aan geïmporteerde stemmen toe te passen.",
     "showAll": "Alle stemmen tonen",
     "showFewer": "Minder stemmen tonen",
+    "stopPreview": "Stoppen",
     "stopRecording": "Opname stoppen",
     "transcript": "Transcript",
     "transcriptHint": "Moet overeenkomen met de woorden die in de clip worden gesproken.",

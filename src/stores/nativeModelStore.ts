@@ -4,7 +4,7 @@ import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, H
 import {
   autoSelectNative, hardwareGated, statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
-  requiredNativeModels, supportsLanguage,
+  requiredNativeModels, resolveNativeTts, supportsLanguage,
   type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
@@ -129,9 +129,19 @@ const client = new NativeModelClient();
  */
 /** A card's CHOSEN (pinned ?? recommended) variant repo, for each multi-variant
  * card in `cards`. Single-variant cards are skipped (their status uses the
- * default-repo cache). Pure: no store/settings reads — pins are injected. */
-function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, string>): Record<string, string> {
+ * default-repo cache). Pure: no store/settings reads — pins are injected.
+ * Exported for direct unit testing (avoids routing through the store's async
+ * settingsStore-import path in tests).
+ *
+ * A persisted pin can outlive its variant's support on this machine (e.g.
+ * pinned bf16, then the box loses CUDA) — the variant picker already shows it
+ * disabled, but a stale pin here would still drive the readiness gate to
+ * validate a repo the sidecar's runnable-filter never loads. An unsupported
+ * pin is therefore ignored here (falls back to the recommended variant),
+ * mirroring what the picker itself already enforces visually. */
+export function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, string>): Record<string, string> {
   const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+  const effectivePins: Record<string, string> = { ...pins };
   for (const m of cards) {
     const vs = m.variants;
     if (!vs || vs.length < 2) continue;
@@ -139,8 +149,12 @@ function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, strin
       variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
       recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
     };
+    const pinned = pins[m.id];
+    if (pinned !== undefined && vs.find((v) => v.id === pinned)?.supported === false) {
+      delete effectivePins[m.id];
+    }
   }
-  return statusReposFor(Object.keys(vd), vd, pins);
+  return statusReposFor(Object.keys(vd), vd, effectivePins);
 }
 
 async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<string, string>> {
@@ -480,7 +494,19 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       effective.asrModel, effective.translationModel, effective.ttsModel,
       effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
     // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
-    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel]), pins);
+    // Includes ttsModel alongside asrModel/translationModel — omitting it here
+    // meant a pinned non-recommended TTS variant (e.g. fp32 on a box where bf16
+    // is recommended) was checked against the recommended/default repo instead
+    // of the pin, so readiness could report ready/missing against the wrong repo.
+    // effective.ttsModel is resolved through resolveNativeTts FIRST, not passed
+    // raw: '' means Auto, and asCards() below drops '' (catalog[''] is
+    // undefined) — passing it raw silently dropped the pin lookup for Auto-TTS
+    // users even though `models` above (via requiredNativeModels) already
+    // status-checks the concrete Auto-resolved id. Mirrors
+    // LocalNativeProviderConfig's ttsModelId resolution (same "not
+    // settings.ttsModel, which can be '' for Auto" reasoning).
+    const resolvedTtsId = resolveNativeTts(effective.ttsModel, effective.targetLanguage, catalog) ?? '';
+    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, resolvedTtsId]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
     const ready = asrCompatible && trCompatible && get().isReady(models);

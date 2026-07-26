@@ -36,10 +36,8 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
-    consumed by backends at load time: llama.cpp reads the two thinking flags,
-    the Qwen3-TTS ONNX backend reads variant_subdir. All-inert defaults so a
-    bare `PlanConfig()` changes no behavior."""
-    variant_subdir: str | None = None
+    consumed by backends at load time: llama.cpp reads the two thinking flags.
+    All-inert defaults so a bare `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
 
@@ -62,12 +60,10 @@ class NoUsablePlan(Exception):
 
 def _plan_config(model) -> PlanConfig:
     """Build a Plan's PlanConfig from its resolved catalog card. Card types
-    differ (an AsrModel has neither thinking flags nor a variant subdir, a
-    TtsModel has no thinking flags, a TranslateModel has no variant subdir),
-    so every field is read defensively via getattr with an inert default —
-    this stays correct for any current or future card shape."""
+    differ (an AsrModel and a TtsModel have no thinking flags), so every
+    field is read defensively via getattr with an inert default — this stays
+    correct for any current or future card shape."""
     return PlanConfig(
-        variant_subdir=getattr(model, "cuda_variant_subdir", None),
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
     )
@@ -364,11 +360,138 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
+def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
+                    downloaded: frozenset | None = None,
+                    override: str = "auto") -> str:
+    """Quant for a multi-compute-type TTS card.
+
+    Candidates are first narrowed to `runnable` compute_types — those with at
+    least one deployment row whose tier is available on this machine (a cpu
+    row is always tier-available, so any compute_type shipping a cpu row is
+    always runnable). This narrowing happens BEFORE anything else, because a
+    compute_type with no runnable row can never be loaded no matter how small
+    its footprint or how eagerly the user downloaded it (e.g. an fp32+bf16
+    ladder where only fp32 ships a cpu row: on a CPU-only machine bf16 would
+    otherwise "win" the smallest-est_bytes fallback below and leave zero
+    runnable deployments — the exact dead end this narrowing exists to avoid).
+
+    An explicit device `override` narrows the variant choice further, to
+    variants that can actually run on the device being pinned — using the
+    SAME predicate `resolve_deployments` uses to pin rows (tier's device ==
+    override, or override == 'cuda' matching any non-cpu tier). Without this,
+    the narrowing above can hand back a compute_type that has no row at all
+    on the overridden device (e.g. bf16 outranks fp32 on a CUDA machine, but
+    bf16 ships no cpu row) — the model is then narrowed to bf16-only rows
+    BEFORE the override ever gets a chance to pin anything, so the pin has
+    nothing to attach to and is silently dropped: override='cpu' would still
+    resolve to gpu-cuda. If the override-scoped runnable set is empty (the
+    override names a device this model has no row for at all, e.g.
+    override='dml' on a card with no dml deployments), fall back to the
+    machine-wide runnable set exactly as when override is 'auto' — the
+    override then has nothing to pin downstream regardless of which
+    compute_type is chosen here, so this is a graceful no-op rather than a
+    dead end.
+
+    pin wins when it names a runnable (override-scoped, when applicable)
+    compute_type; a pin naming an unrunnable (or unknown) compute_type is
+    ignored and falls through to the rest of this function, rather than
+    being honored into a dead end.
+
+    Otherwise, restrict to `downloaded` variants that are also runnable, when
+    that intersection is non-empty (we prefer to LOAD the repo the user
+    DOWNLOADED); if the user downloaded only unrunnable variants, fall back to
+    the full runnable set instead — the one exception to the
+    load-what-you-downloaded rule, since a downloaded-but-unrunnable variant
+    cannot be loaded anyway and recommending a runnable one is the honest
+    behavior.
+
+    From the surviving candidates, take the compute_type of the
+    highest-rank candidate deployment whose own accelerator row is usable on
+    this machine — deployments are walked in RANK order, not tuple
+    declaration order, so a card whose rows happen to be declared fp32-before
+    -bf16 still lands cuda machines on bf16 when bf16 outranks fp32 (Apple
+    Silicon similarly lands on whichever runnable row ranks highest, e.g. the
+    fp32 mlx row). With no usable accelerator row, the smallest candidate
+    wins (CPU is bandwidth-bound: smaller = faster)."""
+    uniq = list(dict.fromkeys(d.compute_type for d in model.deployments))
+    runnable = {c for c in uniq
+                if any(d.compute_type == c and _tier_available(d.tier, machine, d.backend)
+                       for d in model.deployments)}
+    if override != "auto":
+        def _pinned(d):
+            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+        scoped = {c for c in runnable
+                  if any(d.compute_type == c and _pinned(d)
+                         and _tier_available(d.tier, machine, d.backend)
+                         for d in model.deployments)}
+        if scoped:
+            runnable = scoped
+    runnable_cands = [c for c in uniq if c in runnable] or uniq
+    if pin in runnable:
+        return pin
+    cands = [c for c in runnable_cands if downloaded and c in downloaded] or runnable_cands
+    for d in sorted(model.deployments, key=lambda d: -d.rank):
+        if (d.compute_type in cands and d.tier != "cpu"
+                and _tier_available(d.tier, machine, d.backend)):
+            return d.compute_type
+    sized = {}
+    for c in cands:
+        sizes = [d.est_bytes for d in model.deployments
+                 if d.compute_type == c and d.est_bytes]
+        if sizes:
+            sized[c] = max(sizes)
+    if len(sized) == len(cands) and sized:
+        return min(sized, key=sized.get)
+    return cands[0]
+
+
 def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
-                cache: dict) -> list[Plan]:
+                cache: dict, downloaded: frozenset = frozenset(),
+                pin: str | None = None) -> list[Plan]:
     model = catalog.resolve_tts_card(model_id)
     if model is None:
         raise ValueError(f"unknown tts model: {model_id}")
+    # Multi-variant card: narrow to ONE compute_type before tier resolution,
+    # mirroring resolve()'s ASR multi-quant narrowing. `override` is threaded
+    # through so the narrowing itself is device-aware (see _tts_pick_quant's
+    # docstring) — otherwise an explicit override='cpu' can arrive at
+    # _resolve_model after the model has already been narrowed to a
+    # cpu-less compute_type, leaving the override with nothing to pin.
+    if len({d.compute_type for d in model.deployments}) > 1:
+        pre_narrow = model
+        quant = _tts_pick_quant(model, machine, pin, downloaded, override)
+        model = dataclasses.replace(
+            model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
+        plans = _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
+        # The narrowed compute_type can be GPU-only (e.g. bf16 ships no cpu
+        # row at all), leaving nothing to fall back to on a load failure --
+        # ordinarily the honest outcome. But when a DIFFERENT compute_type
+        # that DOES have a cpu row (e.g. fp32) is already downloaded
+        # alongside it, that cpu-loadable file is already sitting on disk:
+        # append its cpu plan as a last-resort tail so a CUDA machine with
+        # BOTH variants downloaded degrades to cpu on a bf16 load failure
+        # instead of hard-failing. Guarded on `downloaded` being non-empty
+        # and actually containing such a compute_type -- the tail only ever
+        # uses an ALREADY-DOWNLOADED variant, so a bf16-only download still
+        # gets the honest single plan, and so does a fresh (nothing
+        # downloaded yet) recommendation.
+        if downloaded and all(p.device != "cpu" for p in plans):
+            cpu_ct = next((d.compute_type for d in sorted(pre_narrow.deployments, key=lambda d: -d.rank)
+                          if d.tier == "cpu" and d.compute_type != quant
+                          and d.compute_type in downloaded), None)
+            if cpu_ct is not None:
+                cpu_model = dataclasses.replace(
+                    pre_narrow, deployments=tuple(d for d in pre_narrow.deployments
+                                                  if d.compute_type == cpu_ct))
+                try:
+                    cpu_plans = _resolve_model(cpu_model, model_id, override, machine,
+                                               cache=cache, platform=platform)
+                except NoUsablePlan:
+                    cpu_plans = []
+                tail = next((p for p in cpu_plans if p.device == "cpu"), None)
+                if tail is not None:
+                    plans = plans + [tail]
+        return plans
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 

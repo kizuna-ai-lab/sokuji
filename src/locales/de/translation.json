@@ -161,6 +161,9 @@
     "vadSettings": "VAD-Einstellungen",
     "vadSettingsTooltip": "Konfiguration der Sprachaktivitätserkennung. Passen Sie diese Einstellungen an, um die Spracherkennung für Ihre Umgebung zu optimieren.",
     "vadThresholdTooltip": "Empfindlichkeit der Spracherkennung. Höhere Werte erfordern lautere/klarere Sprache. Niedrigere Werte sind empfindlicher für leise Sprache.",
+    "vadNegativeThreshold": "Stilleschwelle",
+    "vadNegativeThresholdTooltip": "Wahrscheinlichkeit, unterhalb derer Stille auf das Segmentende angerechnet wird. Auto hält sie 0,15 unter dem VAD-Schwellenwert. Sie gilt nie oberhalb des VAD-Schwellenwerts — dann würden Segmente nie enden.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. Stille-Dauer",
     "vadMinSilenceDurationTooltip": "Minimale Stille zum Aufteilen von Sprachsegmenten. Kürzere Werte teilen Sätze schneller auf, längere Werte warten auf natürlichere Pausen.",
     "vadMinSpeechDuration": "Min. Sprechdauer",
@@ -209,7 +212,10 @@
     "localNativeStarting": "Lokale Engine wird gestartet",
     "localNativeTranslationIncompatible": "Wählen Sie ein Übersetzungsmodell für dieses Sprachpaar",
     "localNativeUnavailable": "Native Engine nicht verfügbar — in den Einstellungen erneut versuchen",
-    "simpleMode": "Schnell"
+    "simpleMode": "Schnell",
+    "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
+    "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Sprechertrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
+    "sonioxAutoParticipantWarning": "Wählen Sie eine konkrete Ausgangssprache – bei automatischer Erkennung kann die Sprache des Gegenübers nicht in Ihre Sprache übersetzt werden."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -366,6 +372,11 @@
       "description": "ByteDance Sprachübersetzung",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "Übersetzung zwischen über 60 Sprachen in beliebiger Kombination, ein- oder bidirektional",
+      "apiKeyPlaceholder": "Geben Sie Ihren Soniox-API-Schlüssel ein"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "Herunterladen",
     "cancel": "Abbrechen",
     "downloaded": "Heruntergeladen",
+    "active": "Aktiv",
     "delete": "Löschen",
     "error": "Fehler",
     "retry": "Wiederholen",
@@ -771,7 +783,18 @@
     "initFailed": "Modellspeicher konnte nicht initialisiert werden: {{message}}",
     "othersGroup": "Andere",
     "requiresGpu": "Erfordert eine GPU",
-    "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung."
+    "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung.",
+    "licenseConsent": {
+      "title": "Nichtkommerzielle Lizenz",
+      "modelRepo": "{{model}} wird von {{repo}} heruntergeladen.",
+      "licenseName": "Es wird unter {{name}} ({{spdx}}) vertrieben.",
+      "viewLicense": "Vollständigen Lizenztext ansehen",
+      "nonCommercial": "Diese Lizenz erlaubt nur nichtkommerzielle Nutzung — verwenden Sie dieses Modell nicht in kommerziellen Produkten oder Diensten.",
+      "disclaimer": "Sokuji ist nicht mit den Modellautoren verbunden und steht in keiner Beziehung zu ihnen. Diese Integration ist inoffiziell und wird ohne jegliche Gewährleistung bereitgestellt.",
+      "attribution": "Namensnennung: {{attribution}}",
+      "cancel": "Abbrechen",
+      "accept": "Verstanden — nur nichtkommerziell"
+    }
   },
   "update": {
     "available": "Neue Version v{{version}} verfügbar",
@@ -866,12 +889,14 @@
     "manageImported": "Importierte Stimmen verwalten",
     "myVoices": "Meine Stimmen",
     "openVoiceBuilder": "Im Voice Builder erstellen",
+    "play": "Abspielen",
     "presets": "Voreinstellungen",
     "recordVoice": "Stimme aufnehmen…",
     "rename": "Umbenennen",
     "restartHint": "Starten Sie die Sitzung neu, um Änderungen an importierten Stimmen zu übernehmen.",
     "showAll": "Alle Stimmen anzeigen",
     "showFewer": "Weniger Stimmen anzeigen",
+    "stopPreview": "Stopp",
     "stopRecording": "Aufnahme stoppen",
     "transcript": "Transkript",
     "transcriptHint": "Muss mit den im Clip gesprochenen Worten übereinstimmen.",

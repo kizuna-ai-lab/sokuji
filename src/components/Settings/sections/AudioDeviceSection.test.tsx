@@ -107,3 +107,34 @@ describe('AudioDeviceSection lockedReason', () => {
     expect(list).not.toHaveAttribute('aria-disabled');
   });
 });
+
+// The panel lives inside an <Activity> boundary (MainLayout): hiding runs
+// effect cleanups while state normally persists. The warning modal must NOT
+// persist — a hidden-but-open dialog would reappear on reveal and swallow
+// the visible panel's Escape key (PanelBar's dialog guard).
+describe('AudioDeviceSection warning modal under Activity hide', () => {
+  it('closes the warning modal when the panel hides', async () => {
+    const { Activity } = await import('react');
+    const { fireEvent } = await import('@testing-library/react');
+    const ui = (mode: 'visible' | 'hidden') => (
+      <Activity mode={mode}>
+        <AudioDeviceSection
+          isSessionActive={false}
+          showMicrophone={false}
+          showSpeaker={true}
+          isSystemAudioEnabled={true}
+        />
+      </Activity>
+    );
+    const { rerender } = render(ui('visible'));
+
+    // Selecting a speaker while system audio is on triggers the
+    // mutual-exclusivity warning modal.
+    fireEvent.click(screen.getByText('Headphones'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    rerender(ui('hidden'));
+    rerender(ui('visible'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

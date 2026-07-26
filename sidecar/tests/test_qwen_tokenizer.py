@@ -15,7 +15,7 @@ from sokuji_sidecar.qwen_tokenizer import load_qwen2_tokenizer
 def _snapshot_dir():
     try:
         from huggingface_hub import snapshot_download
-        return snapshot_download("jiangzhuo9357/qwen3-tts-0.6b-onnx", local_files_only=True)
+        return snapshot_download("jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32", local_files_only=True)
     except Exception:
         return None
 

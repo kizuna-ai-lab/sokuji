@@ -729,6 +729,64 @@
   }
 }
 
+// License consent modal content styles (non-commercial-licensed model downloads)
+.license-consent-modal {
+  text-align: left;
+
+  &__icon {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+
+    strong {
+      color: vars.$text-primary;
+    }
+
+    a {
+      color: vars.$color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__accept {
+    background-color: vars.$color-primary;
+    color: white;
+
+    &:hover {
+      background-color: vars.$color-primary-hover;
+    }
+  }
+}
+
 // Volume control styles
 .volume-control {
   margin-top: 12px;

@@ -40,12 +40,12 @@ class TtsEngine:
         self.clones = False
         self.resolved = None
 
-    def init(self, model_id=None, device="auto", language=""):
+    def init(self, model_id=None, device="auto", language="", pin=None):
         from . import accel, catalog
         t0 = time.time()
         self.close()                        # VRAM hygiene: free any prior model first
         mid = model_id or "moss-tts-nano"
-        plans = accel.resolve_tts(mid, override=device or "auto")
+        plans = accel.resolve_tts(mid, override=device or "auto", pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="tts")
         if hasattr(self._backend, "set_language"):
             self._backend.set_language(language or "")
@@ -155,7 +155,8 @@ def _tts_teardown(state, conn):
 
 async def _h_tts_init(state, msg, _b, conn=None):
     eng = state["tts_engine"]
-    ms = eng.init(msg.get("model"), msg.get("device", "auto"), msg.get("language", ""))
+    ms = eng.init(msg.get("model"), msg.get("device", "auto"), msg.get("language", ""),
+                  pin=msg.get("variant"))
     # This connection owns the TTS model: closing it frees the model from VRAM.
     if conn is not None:
         conn.on_close(lambda: _tts_teardown(state, conn))

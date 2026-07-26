@@ -58,6 +58,29 @@ describe('ConversationRow — expanded (default) mode', () => {
     expect(container.querySelector('.lang-badge')).not.toBeNull();
   });
 
+  it('badge prefers the item\'s detectedLanguage over the configured mapping', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'user', detectedLanguage: 'de' })}
+        prevItem={null}
+      />,
+    );
+    expect(container.querySelector('.lang-badge')?.textContent).toBe('DE');
+  });
+
+  it('badge falls back to the configured mapping when detectedLanguage is absent', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker', role: 'user' })}
+        prevItem={null}
+      />,
+    );
+    // speaker/user → sourceLanguage ('zh')
+    expect(container.querySelector('.lang-badge')?.textContent).toBe('ZH');
+  });
+
   it('renders the row play button on assistant rows when canPlay is true', () => {
     const { container } = render(
       <ConversationRow

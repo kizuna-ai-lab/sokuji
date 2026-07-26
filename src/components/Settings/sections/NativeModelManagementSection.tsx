@@ -25,6 +25,8 @@ import {
 } from '../../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { TierIcon } from './TierIcon';
+import LicenseConsentModal from '../shared/LicenseConsentModal';
+import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
 import {
   useNativeModelStore,
   useNativeCatalog,
@@ -238,17 +240,38 @@ const NativeModelCard: React.FC<{
     return `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
   }, [chosenVariant, ready, sizeMb]);
 
+  // Non-commercial-licensed cards (spec.license.nonCommercial) gate the first
+  // download behind an acknowledge modal — remembered per model id (Task 2 of
+  // the OmniVoice license-consent plan). Everything else downloads immediately,
+  // as before.
+  const [consentOpen, setConsentOpen] = useState(false);
+
   // The download button fetches the chosen variant's repo (undefined → default repo,
   // for single-variant cards). Keeps download in lock-step with the variant load.
+  const startDownload = () => download(spec.downloadId as string, chosenVariant?.repo);
+
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    download(spec.downloadId as string, chosenVariant?.repo);
+    if (spec.license?.nonCommercial && !hasAcceptedLicense(spec.downloadId as string)) {
+      setConsentOpen(true);
+      return;
+    }
+    startDownload();
+  };
+
+  const handleAcceptLicense = () => {
+    acceptLicense(spec.downloadId as string);
+    setConsentOpen(false);
+    // Re-check eligibility: state may have changed while the modal was open
+    // (hardware gate flipped, another surface started/completed the download).
+    // Mirrors the download button's own gating.
+    if (disabled || hwGated || status === 'downloading' || status === 'ready') return;
+    startDownload();
   };
 
   return (
     <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
       <div className="model-card__top-row">
-        <div className="model-card__radio" />
         <div className="model-card__content">
           <div className="model-card__info">
             <div className="model-card__header">
@@ -387,8 +410,10 @@ const NativeModelCard: React.FC<{
               </div>
             ) : status === 'ready' ? (
               <div className="model-card__downloaded">
-                <span className="model-card__status-icon"><CheckCircle size={14} /></span>
-                <span>{t('models.downloaded', 'Downloaded')}</span>
+                <span className={`model-card__status-label${selected ? ' model-card__status-label--active' : ''}`}>
+                  <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+                  <span>{selected ? t('models.active', 'Active') : t('models.downloaded', 'Downloaded')}</span>
+                </span>
                 <button
                   className="model-card__btn model-card__btn--delete"
                   onClick={(e) => { e.stopPropagation(); deleteModel(spec.downloadId as string, chosenVariant?.repo); }}
@@ -421,6 +446,15 @@ const NativeModelCard: React.FC<{
         <div className="model-card__body" onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
+      )}
+      {spec.license && (
+        <LicenseConsentModal
+          isOpen={consentOpen}
+          license={spec.license}
+          modelName={spec.name}
+          onAccept={handleAcceptLicense}
+          onClose={() => setConsentOpen(false)}
+        />
       )}
     </div>
   );
@@ -570,8 +604,9 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
-  // Pick the download quant for a card — a per-model setting only. Does NOT change
-  // the active translation model (so the auto-select reconcile never fires on a pick).
+  // Pick the download quant/variant for a card (asr/translation/tts alike) — a
+  // per-model setting only. Does NOT change the active model for its stage (so
+  // the auto-select reconcile never fires on a pick).
   const handlePinVariant = useCallback((selectId: string, variantId: string) => {
     update({ translationVariantByModel: { ...settings.translationVariantByModel, [selectId]: variantId } });
   }, [update, settings.translationVariantByModel]);
@@ -786,8 +821,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             ttsCards,
             (c) => ttsSelected(c.selectId),
             'ttsModel',
-            undefined,
-            undefined,
+            variantData,
+            handlePinVariant,
             () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
               <NativeVoiceSection
                 capability={capability}

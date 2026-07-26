@@ -223,6 +223,9 @@
 }
 
 .voice-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 2px 8px;
   font-size: 11px;
   background: transparent;
@@ -247,4 +250,15 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid #10a37f;
   border-radius: 3px;
+}
+
+// Clip-validation alert (e.g. "Recording is too long — keep it under 20 seconds").
+// Rendered as an unstyled sibling of the voice library; without this rule it
+// inherits the settings panel's larger base font. Keep it on the section's
+// small-text scale, in the shared error red.
+.voice-capture-error {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e74c3c;
 }

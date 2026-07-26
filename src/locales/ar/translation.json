@@ -161,6 +161,9 @@
     "vadSettings": "إعدادات VAD",
     "vadSettingsTooltip": "إعدادات كشف النشاط الصوتي. اضبط هذه الإعدادات لتحسين اكتشاف الكلام في بيئتك.",
     "vadThresholdTooltip": "حساسية كشف الكلام. القيم الأعلى تتطلب كلامًا أعلى/أوضح. القيم الأقل أكثر حساسية للكلام الهادئ.",
+    "vadNegativeThreshold": "عتبة الصمت",
+    "vadNegativeThresholdTooltip": "الاحتمال الذي يبدأ الصمت دونه في العدّ لإنهاء المقطع. يُبقيها الوضع التلقائي أقل بمقدار 0.15 من عتبة VAD. ولا تُطبَّق أبدًا فوق عتبة VAD، لأن ذلك يمنع انتهاء المقاطع.",
+    "vadNegativeThresholdAuto": "تلقائي",
     "vadMinSilenceDuration": "الحد الأدنى لمدة الصمت",
     "vadMinSilenceDurationTooltip": "الحد الأدنى للصمت لتقسيم مقاطع الكلام. القيم الأقصر تقسم الجمل أسرع، والقيم الأطول تنتظر توقفات أكثر طبيعية.",
     "vadMinSpeechDuration": "الحد الأدنى لمدة الكلام",
@@ -209,7 +212,10 @@
     "localNativeStarting": "جاري تشغيل المحرك المحلي",
     "localNativeTranslationIncompatible": "اختر نموذج ترجمة لزوج اللغات هذا",
     "localNativeUnavailable": "المحرك الأصلي غير متاح — أعد المحاولة من الإعدادات",
-    "simpleMode": "سريع"
+    "simpleMode": "سريع",
+    "sonioxSharedSession": "جلسة مشتركة في وضع الكل",
+    "sonioxSharedSessionTooltip": "يمكن لوضع الكل استخدام جلسة Soniox مشتركة واحدة أو جلسة منفصلة لكل اتجاه.\n\nمفعل: جلسة واحدة تترجم كلا الجانبين مع فصل تلقائي للمتحدثين — تكلفة وزمن استجابة أقل.\n\nمعطل: جلسة منفصلة لكل اتجاه — أكثر موثوقية عندما يتحدث الشخصان معًا، لكن التكلفة تقارب الضعف.\n\nيؤثر في وضع الكل فقط.",
+    "sonioxAutoParticipantWarning": "اختر لغة مصدر محددة — عند استخدام الكشف التلقائي، لا يمكن ترجمة كلام الطرف الآخر إلى لغتك."
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -366,6 +372,11 @@
       "description": "ترجمة الكلام من ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "soniox": {
+      "name": "Soniox",
+      "description": "ترجمة بين أي لغتين من بين أكثر من 60 لغة، باتجاه واحد أو اتجاهين",
+      "apiKeyPlaceholder": "أدخل مفتاح API الخاص بـ Soniox"
     },
     "volcengine_ast2": {
       "name": "Doubao AST 2.0",
@@ -735,6 +746,7 @@
     "download": "تحميل",
     "cancel": "إلغاء",
     "downloaded": "تم التحميل",
+    "active": "نشط",
     "delete": "حذف",
     "error": "خطأ",
     "retry": "إعادة المحاولة",
@@ -771,7 +783,18 @@
     "initFailed": "فشل تهيئة تخزين النماذج: {{message}}",
     "othersGroup": "أخرى",
     "requiresGpu": "يتطلب GPU",
-    "upgradeVariant": "جهازك يدعم تنسيق نموذج أسرع. احذفه وأعد تنزيله لأداء أفضل."
+    "upgradeVariant": "جهازك يدعم تنسيق نموذج أسرع. احذفه وأعد تنزيله لأداء أفضل.",
+    "licenseConsent": {
+      "title": "ترخيص غير تجاري",
+      "modelRepo": "سيتم تنزيل {{model}} من {{repo}}.",
+      "licenseName": "يُوزَّع بموجب {{name}} ({{spdx}}).",
+      "viewLicense": "عرض نص الترخيص الكامل",
+      "nonCommercial": "يسمح هذا الترخيص بالاستخدام غير التجاري فقط — لا تستخدم هذا النموذج في أي منتج أو خدمة تجارية.",
+      "disclaimer": "Sokuji غير مرتبط بمؤلفي النموذج ولا تربطه بهم أي علاقة. هذا التكامل غير رسمي ويُقدَّم كما هو دون أي ضمان من أي نوع.",
+      "attribution": "الإسناد: {{attribution}}",
+      "cancel": "إلغاء",
+      "accept": "فهمت — للاستخدام غير التجاري فقط"
+    }
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",
@@ -866,12 +889,14 @@
     "manageImported": "إدارة الأصوات المستوردة",
     "myVoices": "أصواتي",
     "openVoiceBuilder": "أنشئ واحدًا في Voice Builder",
+    "play": "تشغيل",
     "presets": "الإعدادات المسبقة",
     "recordVoice": "تسجيل صوت…",
     "rename": "إعادة تسمية",
     "restartHint": "أعد تشغيل الجلسة لتطبيق تغييرات الأصوات المستوردة.",
     "showAll": "عرض جميع الأصوات",
     "showFewer": "عرض أصوات أقل",
+    "stopPreview": "إيقاف",
     "stopRecording": "إيقاف التسجيل",
     "transcript": "النص",
     "transcriptHint": "يجب أن يطابق الكلمات المنطوقة في المقطع.",

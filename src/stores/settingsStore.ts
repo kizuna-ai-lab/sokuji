@@ -53,6 +53,9 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
+import {
+  SonioxSettings, defaultSonioxSettings,
+} from '../services/providers/SonioxProviderConfig';
 
 /** Map a native readiness reason to its user-facing message. Verbatim port of
  * the messages the inline LOCAL_NATIVE gate produced. */
@@ -74,7 +77,7 @@ export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
   VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
-  LocalNativeSettings,
+  LocalNativeSettings, SonioxSettings,
 };
 
 // Union of every provider's settings slice — the return type of
@@ -82,7 +85,7 @@ export type {
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
   | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings
-  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings;
+  | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
 
@@ -200,6 +203,7 @@ export interface SettingsStore {
   volcengineST: VolcengineSTSettings;
   zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
+  soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
   kizunaVolcengineAst2: VolcengineAST2Settings;
   localInference: LocalInferenceSettings;
@@ -284,6 +288,7 @@ export interface SettingsStore {
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
+  updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateKizunaVolcengineAst2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
@@ -312,6 +317,40 @@ export interface SettingsStore {
  *  default existing users to the Translate twin. */
 export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
   return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
+}
+
+/** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
+ *  current replacement. OpenAI notified (2026-07-20) that the pre-2.1 realtime
+ *  and audio model families/snapshots are removed from the API on 2027-01-20;
+ *  the former default `gpt-realtime-mini` is among them. Prefix-matched so dated
+ *  snapshots (e.g. `-preview-2024-12-17`) are also caught. Applied only to the
+ *  `openai` slice's `model`, which only ever holds voice-agent realtime ids.
+ *  Translate/whisper realtime variants (their own provider slices) and current
+ *  or future (>= 2.1) versioned models are left untouched. */
+export function migrateDeprecatedOpenAIModel(model: string): string {
+  const m = (model ?? '').toLowerCase();
+  // Preserve current AND future versioned voice-agent models: any
+  // gpt-realtime-<major>.<minor> at >= 2.1 is kept as-is (2.1, 2.2, 3, ...), so
+  // a user who later selects a newer 2.x model isn't silently downgraded on the
+  // next settings load. Only the pre-2.1 families below are deprecated.
+  const version = m.match(/^gpt-realtime-(\d+)(?:\.(\d+))?/);
+  if (version) {
+    const major = parseInt(version[1], 10);
+    const minor = parseInt(version[2] ?? '0', 10);
+    if (major > 2 || (major === 2 && minor >= 1)) return model;
+  }
+  // Non-voice-agent realtime families live in their own provider slices.
+  if (m.startsWith('gpt-realtime-translate')) return model;
+  if (m.startsWith('gpt-realtime-whisper')) return model;
+  // Deprecated mini realtime families → gpt-realtime-2.1-mini.
+  if (m.startsWith('gpt-realtime-mini') || m.startsWith('gpt-4o-mini-realtime')) {
+    return 'gpt-realtime-2.1-mini';
+  }
+  // Deprecated full realtime families (incl. stale gpt-realtime-1.5 / -2) → 2.1.
+  if (m.startsWith('gpt-realtime') || m.startsWith('gpt-4o-realtime')) {
+    return 'gpt-realtime-2.1';
+  }
+  return model;
 }
 
 /**
@@ -522,6 +561,10 @@ export function createParticipantLocalNativeConfig(
       translationVariant: translationModel === (baseConfig.translationModelId ?? '')
         ? baseConfig.translationVariant : undefined,
       ttsModelId: undefined,
+      // TTS is dropped entirely for the participant channel (text-only) — drop
+      // its variant pin too, else a stale pin from the base config would leak
+      // into a config whose ttsModelId is unconditionally undefined.
+      ttsVariant: undefined,
     },
   };
 }
@@ -563,6 +606,7 @@ const PROVIDER_SLICE_REGISTRY = {
   volcengineST: { defaults: defaultVolcengineSTSettings, persistErrors: 'swallow' },
   zoomAI: { defaults: defaultZoomAISettings, persistErrors: 'swallow' },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings, persistErrors: 'swallow' },
+  soniox: { defaults: defaultSonioxSettings, persistErrors: 'swallow' },
   // Relay twins authenticate through the relay with a short-lived Better Auth
   // session token; the user-managed credential fields must never be persisted
   // (stale/sensitive values). See each descriptor's extractCredentials.
@@ -616,6 +660,7 @@ const useSettingsStore = create<SettingsStore>()(
     volcengineST: defaultVolcengineSTSettings,
     zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
+    soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
     kizunaVolcengineAst2: defaultKizunaVolcengineAst2Settings,
     localInference: defaultLocalInferenceSettings,
@@ -841,6 +886,7 @@ const useSettingsStore = create<SettingsStore>()(
     updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
     updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
+    updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
     updateKizunaVolcengineAst2: (settings) => updateProviderSlice(set, 'kizunaVolcengineAst2', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
@@ -1126,6 +1172,14 @@ const useSettingsStore = create<SettingsStore>()(
           ] as const),
         )) as Partial<SettingsStore>;
 
+        // Migrate a persisted deprecated OpenAI realtime model (pre-2.1 family,
+        // removed from the API 2027-01-20) to its current replacement so
+        // existing users don't reconnect onto a dead model.
+        const openaiSlice = loadedSlices.openai as OpenAISettings | undefined;
+        if (openaiSlice?.model) {
+          openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
+        }
+
         set({
           provider: validProvider,
           uiLanguage,
@@ -1271,6 +1325,7 @@ export const useOpenAITranslateSettings = () => useSettingsStore((state) => stat
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
+export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
 export const useKizunaVolcengineAst2Settings = () => useSettingsStore((state) => state.kizunaVolcengineAst2);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
@@ -1322,6 +1377,7 @@ export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
+export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
 export const useUpdateKizunaVolcengineAst2 = () => useSettingsStore((state) => state.updateKizunaVolcengineAst2);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);

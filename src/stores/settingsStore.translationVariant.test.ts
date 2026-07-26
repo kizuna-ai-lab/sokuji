@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock ServiceFactory (required — settingsStore calls it during updateLocalNative)
 const mockSetSetting = vi.fn().mockResolvedValue(undefined);
@@ -19,6 +19,7 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 
 // Import after mocking
 const { default: useSettingsStore, createLocalNativeSessionConfig } = await import('./settingsStore');
+const { useNativeModelStore } = await import('./nativeModelStore');
 
 describe('translationVariant pin reaches the session config (download/load agree)', () => {
   it('is undefined (automatic) by default — empty per-model map', () => {
@@ -41,5 +42,51 @@ describe('translationVariant pin reaches the session config (download/load agree
     });
     const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
     expect(cfg.translationVariant).toBeUndefined();   // active model has no entry
+  });
+});
+
+describe('ttsVariant pin reaches the session config (download/load agree)', () => {
+  // Same generic translationVariantByModel map as ASR/translation (Task 10) — keyed
+  // by the RESOLVED tts model id. Unlike translationModelId (a straight passthrough
+  // of the settings choice), resolving the tts model id needs a real catalog entry
+  // — createLocalNativeSessionConfig here is the settingsStore back-compat wrapper,
+  // which delegates to LocalNativeProviderConfig.buildSessionConfig and reads the
+  // catalog from nativeModelStore itself (not a param), so seed it via setState.
+  const ttsCatalog = {
+    'qwen3-tts-1.7b': {
+      id: 'qwen3-tts-1.7b', name: 'Qwen3 TTS 1.7B', languages: ['en'], recommended: true,
+      tiers: [], order: 0, repo: 'qwen3-tts-1.7b', kind: 'tts' as const,
+    },
+  };
+
+  beforeEach(() => {
+    useNativeModelStore.setState({ catalog: ttsCatalog });
+  });
+
+  it('is undefined (automatic) with an empty per-model map', async () => {
+    // The store is a shared singleton mutated by the sibling describe block above
+    // (this file's tests run sequentially against one store instance) — reset the
+    // map explicitly rather than assume a pristine store.
+    await useSettingsStore.getState().updateLocalNative({ translationVariantByModel: {} });
+    const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
+    expect(cfg.ttsVariant).toBeUndefined();
+  });
+
+  it('forwards the active TTS model\'s chosen quant as config.ttsVariant', async () => {
+    await useSettingsStore.getState().updateLocalNative({
+      ttsModel: 'qwen3-tts-1.7b', targetLanguage: 'en',
+      translationVariantByModel: { 'qwen3-tts-1.7b': 'bf16' },
+    });
+    const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
+    expect(cfg.ttsVariant).toBe('bf16');
+  });
+
+  it('a quant chosen for a NON-active TTS model does not affect the active config', async () => {
+    await useSettingsStore.getState().updateLocalNative({
+      ttsModel: '', targetLanguage: 'en',   // Auto resolves to qwen3-tts-1.7b (only 'en' entry)
+      translationVariantByModel: { 'some-other-tts': 'bf16' },
+    });
+    const cfg = createLocalNativeSessionConfig(useSettingsStore.getState().localNative, '');
+    expect(cfg.ttsVariant).toBeUndefined();   // resolved model has no entry
   });
 });
