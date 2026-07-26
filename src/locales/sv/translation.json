@@ -807,7 +807,6 @@
       "start": "Starta översättning",
       "hint": "Placera och ändra storlek på fönstret innan du startar",
       "ended": "Den här sessionen har avslutats",
-      "fixHint": "Du kan starta så snart detta är konfigurerat",
       "failed": "Det gick inte att starta: {{message}}",
       "retry": "Försök igen",
       "backForDetails": "Gå tillbaka till huvudfönstret för mer information"

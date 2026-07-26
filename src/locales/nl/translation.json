@@ -807,7 +807,6 @@
       "start": "Vertaling starten",
       "hint": "Positioneer het venster en pas het formaat aan voordat u begint",
       "ended": "Deze sessie is beëindigd",
-      "fixHint": "U kunt starten zodra dit is geconfigureerd",
       "failed": "Starten mislukt: {{message}}",
       "retry": "Opnieuw proberen",
       "backForDetails": "Ga terug naar het hoofdvenster voor details"

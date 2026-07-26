@@ -148,11 +148,12 @@ const SubtitleBar: React.FC<Props> = ({
               ? t('subtitle.bar.stop', 'Stop session')
               : t('subtitle.bar.start', 'Start session')}
           >
+            {/* 14px matches every other icon in this bar. */}
             {sessionControl.isInitializing
-              ? <Loader size={11} className="spinning" />
+              ? <Loader size={14} className="spinning" />
               : sessionControl.isSessionActive
-                ? <Square size={11} />
-                : <Play size={11} />}
+                ? <Square size={14} />
+                : <Play size={14} />}
           </button>
         )}
         <span className="subtitle-bar__logo">Sokuji</span>

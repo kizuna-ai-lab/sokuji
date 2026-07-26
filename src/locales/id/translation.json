@@ -807,7 +807,6 @@
       "start": "Mulai terjemahan",
       "hint": "Atur posisi dan ukuran jendela sebelum memulai",
       "ended": "Sesi ini telah berakhir",
-      "fixHint": "Anda dapat memulai setelah ini dikonfigurasi",
       "failed": "Gagal memulai: {{message}}",
       "retry": "Coba lagi",
       "backForDetails": "Kembali ke jendela utama untuk detail"

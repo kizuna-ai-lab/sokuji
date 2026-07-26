@@ -807,7 +807,6 @@
       "start": "Übersetzung starten",
       "hint": "Positionieren Sie das Fenster und passen Sie die Größe an, bevor Sie starten",
       "ended": "Diese Sitzung wurde beendet",
-      "fixHint": "Sie können starten, sobald dies konfiguriert ist",
       "failed": "Start fehlgeschlagen: {{message}}",
       "retry": "Erneut versuchen",
       "backForDetails": "Kehren Sie für Details zum Hauptfenster zurück"

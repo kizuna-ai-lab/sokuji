@@ -807,7 +807,6 @@
       "start": "Mulakan terjemahan",
       "hint": "Atur kedudukan dan saiz tetingkap sebelum anda mula",
       "ended": "Sesi ini telah tamat",
-      "fixHint": "Anda boleh mula sebaik sahaja ini dikonfigurasikan",
       "failed": "Gagal memulakan: {{message}}",
       "retry": "Cuba lagi",
       "backForDetails": "Kembali ke tetingkap utama untuk butiran"

@@ -807,7 +807,6 @@
       "start": "Bắt đầu dịch",
       "hint": "Định vị và điều chỉnh kích thước cửa sổ trước khi bắt đầu",
       "ended": "Phiên này đã kết thúc",
-      "fixHint": "Bạn có thể bắt đầu khi mục này được cấu hình xong",
       "failed": "Bắt đầu không thành công: {{message}}",
       "retry": "Thử lại",
       "backForDetails": "Quay lại cửa sổ chính để xem chi tiết"

@@ -126,18 +126,20 @@
     margin: 0 4px;
   }
 
+  // Shares .subtitle-bar__btn's box — same padding, same radius, same icon
+  // size — so it reads as one of the bar's controls rather than something
+  // pasted on. Its fill is what marks it as the primary one; the shape does
+  // not need to say it a second time.
   .subtitle-bar__session {
     appearance: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 18px;
     border: none;
-    border-radius: 999px;
+    border-radius: 4px;
     color: #fff;
     cursor: pointer;
-    padding: 0;
+    padding: 4px;
     -webkit-app-region: no-drag;
     transition: background 120ms ease, opacity 120ms ease;
 

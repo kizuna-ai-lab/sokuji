@@ -807,7 +807,6 @@
       "start": "Start translating",
       "hint": "Position and size the window before you start",
       "ended": "This session has ended",
-      "fixHint": "You can start once this is configured",
       "failed": "Failed to start: {{message}}",
       "retry": "Retry",
       "backForDetails": "Return to main window for details"

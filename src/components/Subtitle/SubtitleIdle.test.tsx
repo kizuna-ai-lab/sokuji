@@ -76,6 +76,21 @@ describe('SubtitleIdle blocked state', () => {
     expect(h.onStart).not.toHaveBeenCalled();
   });
 
+  // The reason strings are shared with the main window's Start tooltip, where
+  // they are full sentences. A button label should not carry the terminal
+  // punctuation that comes with them.
+  it('strips the sentence-ending period when the reason becomes a button label', () => {
+    render(
+      <SubtitleIdle
+        state={{ kind: 'blocked', reason: 'missing-device', deviceScope: 'speaker' }}
+        {...handlers()}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Configure devices for this mode to start' }),
+    ).toBeInTheDocument();
+  });
+
   it('interpolates the balance into the insufficient-balance message', () => {
     render(
       <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 0 }} {...handlers()} />,

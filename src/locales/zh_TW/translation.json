@@ -807,7 +807,6 @@
       "start": "開始翻譯",
       "hint": "開始前請調整視窗的位置與大小",
       "ended": "本次對話已結束",
-      "fixHint": "完成此設定後即可開始",
       "failed": "啟動失敗：{{message}}",
       "retry": "再試一次",
       "backForDetails": "返回主視窗查看詳情"

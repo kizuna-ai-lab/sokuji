@@ -807,7 +807,6 @@
       "start": "开始翻译",
       "hint": "开始前请调整窗口的位置和大小",
       "ended": "本次会话已结束",
-      "fixHint": "完成此项配置后即可开始",
       "failed": "启动失败：{{message}}",
       "retry": "重试",
       "backForDetails": "返回主窗口查看详情"

@@ -807,7 +807,6 @@
       "start": "Avvia la traduzione",
       "hint": "Posiziona e ridimensiona la finestra prima di iniziare",
       "ended": "Questa sessione è terminata",
-      "fixHint": "Potrai avviare non appena questo sarà configurato",
       "failed": "Avvio non riuscito: {{message}}",
       "retry": "Riprova",
       "backForDetails": "Torna alla finestra principale per i dettagli"

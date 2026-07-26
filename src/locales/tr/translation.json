@@ -807,7 +807,6 @@
       "start": "Çeviriyi başlat",
       "hint": "Başlamadan önce pencereyi konumlandırın ve boyutlandırın",
       "ended": "Bu oturum sona erdi",
-      "fixHint": "Bu yapılandırıldığında başlayabilirsiniz",
       "failed": "Başlatılamadı: {{message}}",
       "retry": "Tekrar dene",
       "backForDetails": "Ayrıntılar için ana pencereye dönün"

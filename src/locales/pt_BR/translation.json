@@ -807,7 +807,6 @@
       "start": "Iniciar tradução",
       "hint": "Posicione e redimensione a janela antes de iniciar",
       "ended": "Esta sessão foi encerrada",
-      "fixHint": "Você poderá iniciar assim que isso for configurado",
       "failed": "Falha ao iniciar: {{message}}",
       "retry": "Tentar novamente",
       "backForDetails": "Volte à janela principal para ver os detalhes"

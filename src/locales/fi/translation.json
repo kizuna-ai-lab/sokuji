@@ -807,7 +807,6 @@
       "start": "Aloita kääntäminen",
       "hint": "Sijoita ja muuta ikkunan kokoa ennen aloittamista",
       "ended": "Tämä istunto on päättynyt",
-      "fixHint": "Voit aloittaa, kun tämä on määritetty",
       "failed": "Aloitus epäonnistui: {{message}}",
       "retry": "Yritä uudelleen",
       "backForDetails": "Palaa pääikkunaan nähdäksesi lisätiedot"

@@ -48,10 +48,19 @@
 
   p {
     margin: 0;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 0.3px;
   }
+}
+
+// The 16px voice belongs to the two elements that actually speak in it: the
+// PTT hint and the extension overlay's ended message. Scoping it to those
+// two — rather than to every <p> in the container — is what lets __hint and
+// __error set their own size and colour without fighting back with
+// !important.
+.subtitle-ptt-hint p,
+.subtitle-idle__message {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.3px;
 }
 
 .subtitle-idle {
@@ -97,26 +106,33 @@
       cursor: default;
     }
 
-    // Blocked state: the action routes to settings instead of starting.
+    // Blocked state: the action routes to settings instead of starting. It
+    // keeps the primary action's shape and position so switching states
+    // doesn't move the layout, but drops to a neutral surface — it is the
+    // corrective action, not the happy path. The warning colour is carried
+    // by the icon alone; tinting the fill, the border and the label as well
+    // would say the same thing four times, and read as "danger" rather than
+    // "click here to fix it".
     &--fix:not(:disabled) {
-      background: rgba(231, 76, 60, 0.16);
-      color: #f0a49b;
-      border: 1px solid rgba(231, 76, 60, 0.45);
+      background: rgba(255, 255, 255, 0.10);
 
-      &:hover { background: rgba(231, 76, 60, 0.24); }
+      &:hover { background: rgba(255, 255, 255, 0.16); }
+
+      svg { color: #ff6b6b; }
     }
   }
 
   &__hint {
-    font-size: 12px !important;
-    color: rgba(255, 255, 255, 0.45) !important;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
   }
 
   // One line, always. The window can be resized to any height, so the error
   // must never push the buttons out of view.
   &__error {
-    font-size: 12.5px !important;
-    color: #f0a49b !important;
+    font-size: 12.5px;
+    // The app's error-text-on-dark colour (MainPanel.scss:150,156).
+    color: #ff6b6b;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;

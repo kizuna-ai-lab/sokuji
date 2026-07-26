@@ -807,7 +807,6 @@
       "start": "Rozpocznij tłumaczenie",
       "hint": "Ustaw pozycję i rozmiar okna przed rozpoczęciem",
       "ended": "Ta sesja została zakończona",
-      "fixHint": "Będziesz mógł rozpocząć, gdy to zostanie skonfigurowane",
       "failed": "Nie udało się rozpocząć: {{message}}",
       "retry": "Spróbuj ponownie",
       "backForDetails": "Wróć do okna głównego, aby zobaczyć szczegóły"

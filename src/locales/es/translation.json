@@ -807,7 +807,6 @@
       "start": "Empezar a traducir",
       "hint": "Coloca y ajusta el tamaño de la ventana antes de empezar",
       "ended": "Esta sesión ha finalizado",
-      "fixHint": "Podrás empezar en cuanto esto esté configurado",
       "failed": "Error al iniciar: {{message}}",
       "retry": "Reintentar",
       "backForDetails": "Vuelve a la ventana principal para ver los detalles"

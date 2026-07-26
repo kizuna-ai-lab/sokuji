@@ -39,7 +39,7 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
   if (!allowSessionControl) {
     return (
       <div className="subtitle-idle">
-        <p>{t('subtitle.sessionEnded', 'Session ended')}</p>
+        <p className="subtitle-idle__message">{t('subtitle.sessionEnded', 'Session ended')}</p>
         <button type="button" className="subtitle-idle__return" onClick={onReturn}>
           {t('subtitle.backToMain', 'Return to main window')}
         </button>
@@ -66,6 +66,11 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
   if (state.kind === 'blocked') {
     const { key, defaultValue } = reasonToI18n(state.reason);
     const message = t(key, defaultValue, { balance: state.balance });
+    // The reason strings are shared with the main window's Start tooltip,
+    // where they are full sentences. On a button the terminal punctuation is
+    // wrong, so strip it here rather than forking the string into a
+    // button-shaped copy that would need translating 30 times.
+    const label = message.replace(/[.。！!]+$/, '');
     // No destination means there is nothing for the user to fix (the model
     // list is still loading), so the action is inert rather than misleading.
     const target = reasonToSettingsTarget(state.reason, state.deviceScope);
@@ -78,13 +83,8 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
           onClick={() => onFix(state.reason, state.deviceScope)}
         >
           <AlertTriangle size={15} />
-          <span>{message}</span>
+          <span>{label}</span>
         </button>
-        {target !== null && (
-          <p className="subtitle-idle__hint">
-            {t('subtitle.idle.fixHint', 'You can start once this is configured')}
-          </p>
-        )}
         <button type="button" className="subtitle-idle__link" onClick={onReturn}>
           {t('subtitle.backToMain', 'Return to main window')}
         </button>

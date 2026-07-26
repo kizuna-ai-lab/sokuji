@@ -807,7 +807,6 @@
       "start": "Démarrer la traduction",
       "hint": "Positionnez et redimensionnez la fenêtre avant de démarrer",
       "ended": "Cette session est terminée",
-      "fixHint": "Vous pourrez démarrer une fois ceci configuré",
       "failed": "Échec du démarrage : {{message}}",
       "retry": "Réessayer",
       "backForDetails": "Retournez à la fenêtre principale pour plus de détails"

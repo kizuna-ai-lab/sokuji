@@ -807,7 +807,6 @@
       "start": "Simulan ang pagsasalin",
       "hint": "Ayusin ang posisyon at sukat ng window bago magsimula",
       "ended": "Tapos na ang session na ito",
-      "fixHint": "Puwede kang magsimula kapag naisaayos na ito",
       "failed": "Hindi nagsimula: {{message}}",
       "retry": "Subukang muli",
       "backForDetails": "Bumalik sa pangunahing window para sa detalye"
