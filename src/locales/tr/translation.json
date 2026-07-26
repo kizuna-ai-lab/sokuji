@@ -215,6 +215,7 @@
     "simpleMode": "Hızlı",
     "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
     "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum, otomatik konuşmacı ayrımıyla her iki tarafı da çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak yaklaşık iki kat maliyet.\n\nYalnızca Her ikisi modunu etkiler.",
+    "sonioxSharedSessionManaged": "Kizuna AI, Her ikisi modunu tek bir paylaşılan oturum olarak çalıştırır; bu nedenle kapatılamaz.",
     "sonioxAutoParticipantWarning": "Belirli bir kaynak dil seçin — otomatik algılamayla karşı tarafın konuşması sizin dilinize çevrilemez."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Konuşmadan konuşmaya çeviri, hesabınız üzerinden kimliği doğrulanır"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Konuşmadan konuşmaya çeviri, hesabınız üzerinden kimliği doğrulanır"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT modelleri ile çalışır"
@@ -445,7 +450,7 @@
     "send": "Gönder",
     "error": "Hata",
     "unknownError": "Bilinmeyen hata",
-    "insufficientBalance": "Yetersiz token bakiyesi: {{balance}} token",
+    "insufficientBalance": "Yetersiz bakiye: {{balance}}",
     "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
     "localModelsRequired": "Başlamak için lütfen Ayarlar'dan gerekli modelleri indirin.",
     "clearConversation": "Sohbeti temizle",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)",
     "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",
     "waveformSystemTooltip": "Katılımcı sesi çeviri için yakalanıyor (tarayıcı sekmesi / sistem sesi)",
-    "allChannelsFailed": "Hiçbir ses kanalı başlatılamadı. Cihaz izinlerini kontrol edip tekrar deneyin."
+    "allChannelsFailed": "Hiçbir ses kanalı başlatılamadı. Cihaz izinlerini kontrol edip tekrar deneyin.",
+    "participantChannelFailed": "Katılımcı ses kanalı başlatılamadı.",
+    "sonioxInsufficientBalance": "Oturum başlatmak için bakiye yetersiz. Lütfen bakiyenizi yükleyip tekrar deneyin.",
+    "sonioxSessionConflict": "Hesabınızda zaten başka bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
+    "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",
+    "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
+    "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
+    "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
+    "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için Başlat'a dokunun."
   },
   "modePicker": {
     "modeYou": "Siz",

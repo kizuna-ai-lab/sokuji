@@ -17,7 +17,7 @@ import {
   UserCog,
   Wallet
 } from 'lucide-react';
-import {formatTokens} from '../../utils/formatters';
+import {formatUsd} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
@@ -381,12 +381,12 @@ export function UserAccountInfo({
               <span className="divider">|</span>
               <Wallet size={14} className="wallet-icon"/>
               <span className="balance-section">
-                {formatTokens(quota.balance || quota.remaining)} tokens
+                {formatUsd(quota.balance || quota.remaining)}
               </span>
               <span className="divider">|</span>
               <span className="usage-section">
                 <TrendingDown size={14} className="usage-icon"/>
-                30D: {formatTokens(quota.last30DaysUsage || 0)}
+                30D: {formatUsd(quota.last30DaysUsage || 0)}
               </span>
               <button
                 className="action-button-compact refresh-account"

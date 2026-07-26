@@ -215,6 +215,7 @@
     "simpleMode": "Cepat",
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
     "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan penutur automatik — kos dan latensi lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih dipercayai apabila kedua-duanya bercakap serentak, tetapi kira-kira dua kali ganda kos.\n\nHanya menjejaskan mod Kedua-duanya.",
+    "sonioxSharedSessionManaged": "Kizuna AI menjalankan mod Kedua-duanya sebagai satu sesi dikongsi, jadi ini tidak boleh dimatikan.",
     "sonioxAutoParticipantWarning": "Pilih bahasa sumber yang tertentu — dengan pengesanan automatik, pertuturan peserta lain tidak boleh diterjemahkan ke bahasa anda."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Terjemahan pertuturan ke pertuturan, disahkan melalui akaun anda"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Terjemahan pertuturan ke pertuturan, disahkan melalui akaun anda"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Dikuasakan oleh model GPT"
@@ -445,7 +450,7 @@
     "send": "Hantar",
     "error": "Ralat",
     "unknownError": "Ralat tidak diketahui",
-    "insufficientBalance": "Baki token tidak mencukupi: {{balance}} token",
+    "insufficientBalance": "Baki tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
     "localModelsRequired": "Sila muat turun model yang diperlukan dalam Tetapan untuk bermula.",
     "clearConversation": "Padam perbualan",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
     "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",
     "waveformSystemTooltip": "Audio peserta yang ditangkap untuk terjemahan (tab pelayar / audio sistem)",
-    "allChannelsFailed": "Gagal memulakan sebarang saluran audio. Semak kebenaran peranti dan cuba lagi."
+    "allChannelsFailed": "Gagal memulakan sebarang saluran audio. Semak kebenaran peranti dan cuba lagi.",
+    "participantChannelFailed": "Gagal memulakan saluran audio peserta.",
+    "sonioxInsufficientBalance": "Baki tidak mencukupi untuk memulakan sesi. Sila tambah nilai baki anda dan cuba lagi.",
+    "sonioxSessionConflict": "Satu lagi sesi sudah aktif dalam akaun anda. Sila cuba lagi sebentar lagi.",
+    "sonioxServiceUnavailable": "Soniox tidak tersedia buat sementara waktu. Sila cuba lagi sebentar lagi.",
+    "sonioxServiceBusy": "Soniox kini pada kapasiti penuh. Sila cuba lagi tidak lama lagi.",
+    "sonioxBudgetExhausted": "Baki sesi anda telah habis. Tambah nilai baki anda untuk terus menterjemah.",
+    "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
+    "sonioxSegmentEnded": "Segmen ini telah berakhir — ketik Mula untuk meneruskan."
   },
   "modePicker": {
     "modeYou": "Anda",

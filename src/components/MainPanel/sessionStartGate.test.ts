@@ -82,6 +82,82 @@ describe('computeStartGate', () => {
     ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 0 });
   });
 
+  // Managed Soniox is the one provider with a real floor rather than "any
+  // positive balance": the backend refuses a session key below the price of
+  // its shortest session (60s) at the SKU's rate. `> 0` showed a green Start
+  // to a user who was then handed a 402. Boundaries are checked on both sides
+  // of each SKU's floor; the floor values themselves are pinned against the
+  // backend formula in services/providers/sonioxManagedMinBalance.test.ts.
+  describe('managed Soniox balance floor', () => {
+    const soniox = { ...ready, provider: Provider.KIZUNA_AI_SONIOX } as StartGateInput;
+
+    it('blocks one micro-USD below the text-only floor ($0.01)', () => {
+      expect(
+        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 9_999, frozen: false } }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 9_999 });
+    });
+
+    it('allows exactly the text-only floor', () => {
+      expect(
+        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 10_000, frozen: false } }),
+      ).toEqual({ canStart: true, reason: null });
+    });
+
+    it('blocks one micro-USD below the speech-to-speech floor ($0.025)', () => {
+      expect(
+        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 24_999, frozen: false } }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 24_999 });
+    });
+
+    it('allows exactly the speech-to-speech floor', () => {
+      expect(
+        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 25_000, frozen: false } }),
+      ).toEqual({ canStart: true, reason: null });
+    });
+
+    // The exact regression the floor exists to close: a balance that passes
+    // `> 0` but cannot buy the shortest session the backend will start.
+    it('blocks a positive balance that sits between zero and the floor', () => {
+      const gate = computeStartGate({ ...soniox, quota: { balance: 5_000, frozen: false } });
+      expect(gate.canStart).toBe(false);
+      expect(gate.reason).toBe('insufficient-balance');
+    });
+
+    // textOnly is optional, so callers that don't know about the toggle must
+    // still get a safe gate rather than silently falling back to `> 0`.
+    it('defaults to the speech-to-speech floor when textOnly is omitted', () => {
+      expect(
+        computeStartGate({ ...soniox, quota: { balance: 24_999, frozen: false } }).canStart,
+      ).toBe(false);
+      expect(
+        computeStartGate({ ...soniox, quota: { balance: 25_000, frozen: false } }).canStart,
+      ).toBe(true);
+    });
+
+    // Every other provider keeps the historical rule. Balances are integer
+    // micro-USD, so the floor of 1 is exactly `> 0`.
+    it('leaves other Kizuna-managed providers on the any-positive-balance rule', () => {
+      const other = { ...ready, provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE } as StartGateInput;
+      expect(computeStartGate({ ...other, quota: { balance: 1, frozen: false } })).toEqual({
+        canStart: true,
+        reason: null,
+      });
+      expect(computeStartGate({ ...other, quota: { balance: 0, frozen: false } }).reason).toBe(
+        'insufficient-balance',
+      );
+      // textOnly must not move a non-Soniox provider's floor.
+      expect(
+        computeStartGate({ ...other, textOnly: true, quota: { balance: 1, frozen: false } })
+          .canStart,
+      ).toBe(true);
+    });
+
+    it('still prefers wallet-frozen over a sub-floor balance', () => {
+      const gate = computeStartGate({ ...soniox, quota: { balance: 5_000, frozen: true } });
+      expect(gate.reason).toBe('wallet-frozen');
+    });
+  });
+
   // Defensive fallback: the Kizuna-managed profile fetch is async and can
   // still be null/pending when the gate is computed. This must not be
   // reported as 'insufficient-balance' — that reason's message interpolates
@@ -216,6 +292,21 @@ describe('reasonToI18n', () => {
       expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage|settings)\./);
       expect(entry.defaultValue.length).toBeGreaterThan(0);
     }
+  });
+
+  // The wallet is micro-USD and this branch removed token vocabulary
+  // product-wide, so interpolating the raw value would render a 7-digit
+  // integer next to the word "tokens". Formatting lives here so no surface
+  // can forget it.
+  it('formats the insufficient-balance amount as USD, not as a raw wallet integer', () => {
+    const entry = reasonToI18n('insufficient-balance', 9_999);
+    expect(entry.defaultValue).toBe('Insufficient balance: {{balance}}');
+    expect(entry.defaultValue).not.toMatch(/token/i);
+    expect(entry.values).toEqual({ balance: '$0.01' });
+  });
+
+  it('renders a missing balance as $0.00 rather than an empty slot', () => {
+    expect(reasonToI18n('insufficient-balance').values).toEqual({ balance: '$0.00' });
   });
 
   it('maps quota-unknown to the existing tokenUsage.unableToLoadQuota key (no new i18n key)', () => {

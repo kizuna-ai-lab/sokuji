@@ -9,6 +9,11 @@
 // call. Keeping it in one place is what stops the two windows from giving
 // the user contradictory explanations.
 import { Provider, isKizunaManagedProvider, type ProviderType } from '../../types/Provider';
+// Imported from the leaf module, NOT from SonioxProviderConfig which
+// re-exports it: this file is also loaded by the subtitle window, and that
+// barrel pulls in SonioxClient and the i18n bootstrap behind it.
+import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
+import { formatUsd } from '../../utils/formatters';
 
 export type StartBlockReason =
   | 'missing-device'
@@ -56,6 +61,16 @@ export interface StartGateInput {
    * rejects. True when that combination is selected. See MainPanel.
    */
   sonioxAutoParticipantBlocked: boolean;
+  /**
+   * Will the session about to start be text-only (no spoken translation)?
+   *
+   * Read ONLY for managed Soniox, which is the one provider with a real
+   * balance floor rather than "any positive balance" — see
+   * `balanceFloorMicroUsd` below. Optional, and every other provider keeps
+   * the historical `> 0` rule regardless of its value, so callers that do
+   * not know about the text-only toggle can leave it out.
+   */
+  textOnly?: boolean;
 }
 
 export function computeStartGate(input: StartGateInput): StartGate {
@@ -68,12 +83,33 @@ export function computeStartGate(input: StartGateInput): StartGate {
     quota,
     missingDeviceForMode,
     sonioxAutoParticipantBlocked,
+    textOnly,
   } = input;
 
   const kizunaManaged = isKizunaManagedProvider(provider);
+
+  // Managed Soniox has a real floor rather than "any positive balance": the
+  // backend refuses to issue a session key below the price of its shortest
+  // session (60s) at the SKU's rate — $0.01 text-only, $0.025
+  // speech-to-speech. Gating on `> 0` showed a green Start to a user who was
+  // then handed a 402 by the server. The 402 stays as the authority; this
+  // stops the button lying about it.
+  //
+  // Every other provider gets a floor of 1: balances are integer micro-USD,
+  // so `>= 1` is exactly the `> 0` rule this replaced.
+  const balanceFloorMicroUsd =
+    provider === Provider.KIZUNA_AI_SONIOX
+      ? sonioxManagedMinBalanceMicroUsd(Boolean(textOnly))
+      : 1;
+
   const hasValidBalance =
     !kizunaManaged ||
-    Boolean(quota && quota.balance !== undefined && quota.balance > 0 && !quota.frozen);
+    Boolean(
+      quota &&
+        quota.balance !== undefined &&
+        quota.balance >= balanceFloorMicroUsd &&
+        !quota.frozen,
+    );
 
   const canStart =
     isApiKeyValid &&
@@ -114,7 +150,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
   if (loadingModels) return { canStart: false, reason: 'loading-models' };
   if (availableModelCount === 0) return { canStart: false, reason: 'no-models' };
   if (kizunaManaged && quota?.frozen) return { canStart: false, reason: 'wallet-frozen' };
-  if (kizunaManaged && quota?.balance !== undefined && quota.balance <= 0) {
+  if (kizunaManaged && quota?.balance !== undefined && quota.balance < balanceFloorMicroUsd) {
     return { canStart: false, reason: 'insufficient-balance', balance: quota.balance };
   }
   // Defensive: hasValidBalance failed for a Kizuna provider whose quota
@@ -162,8 +198,15 @@ export function reasonToSettingsTarget(
  * Existing translation keys, reused verbatim. These strings already ship in
  * all 30 locale directories, and reusing them guarantees the subtitle window
  * and the main window word the same blocker identically.
+ *
+ * `balanceMicroUsd` is only read by 'insufficient-balance'. Interpolation
+ * values are returned already display-formatted, so no call site can render
+ * a raw wallet integer — pass `values` straight to `t()`.
  */
-export function reasonToI18n(reason: StartBlockReason): { key: string; defaultValue: string } {
+export function reasonToI18n(
+  reason: StartBlockReason,
+  balanceMicroUsd?: number,
+): { key: string; defaultValue: string; values?: Record<string, string> } {
   switch (reason) {
     case 'missing-device':
       return { key: 'modePicker.missingDevice', defaultValue: 'Configure devices for this mode to start.' };
@@ -185,7 +228,15 @@ export function reasonToI18n(reason: StartBlockReason): { key: string; defaultVa
     case 'wallet-frozen':
       return { key: 'mainPanel.walletFrozen', defaultValue: 'Wallet is frozen. Please contact support.' };
     case 'insufficient-balance':
-      return { key: 'mainPanel.insufficientBalance', defaultValue: 'Insufficient token balance: {{balance}} tokens' };
+      // The wallet is denominated in micro-USD and this product no longer
+      // speaks in "tokens", so the raw value would render as a 7-digit
+      // integer. Formatted here — the one place every surface reads its
+      // blocker message from — rather than at each call site.
+      return {
+        key: 'mainPanel.insufficientBalance',
+        defaultValue: 'Insufficient balance: {{balance}}',
+        values: { balance: formatUsd(balanceMicroUsd ?? 0) },
+      };
     case 'quota-unknown':
       return { key: 'tokenUsage.unableToLoadQuota', defaultValue: 'Unable to load quota information' };
   }

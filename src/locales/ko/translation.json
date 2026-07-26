@@ -215,6 +215,7 @@
     "simpleMode": "빠른",
     "sonioxSharedSession": "모두 모드에서 세션 공유",
     "sonioxSharedSessionTooltip": "모두 모드에서는 하나의 Soniox 세션을 공유하거나 방향별로 별도의 세션을 사용할 수 있습니다.\n\n활성화됨: 하나의 세션이 양쪽을 번역하고 화자를 자동으로 구분합니다 — 비용과 지연이 낮아집니다.\n\n비활성화: 방향별로 별도의 세션을 사용합니다 — 두 사람이 동시에 말할 때 더 안정적이지만 비용은 약 2배입니다.\n\n모두 모드에만 적용됩니다.",
+    "sonioxSharedSessionManaged": "Kizuna AI는 모두 모드를 하나의 공유 세션으로 실행하므로 끌 수 없습니다.",
     "sonioxAutoParticipantWarning": "구체적인 소스 언어를 선택하세요 — 자동 감지에서는 상대방의 음성을 내 언어로 번역할 수 없습니다."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "음성 대 음성 번역, 계정으로 인증"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "음성 대 음성 번역, 계정으로 인증"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT 모델 기반"
@@ -445,7 +450,7 @@
     "send": "전송",
     "error": "오류",
     "unknownError": "알 수 없는 오류",
-    "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
+    "insufficientBalance": "잔액 부족: {{balance}}",
     "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
     "localModelsRequired": "시작하려면 설정에서 필요한 모델을 다운로드하세요.",
     "clearConversation": "대화 지우기",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "가상 마이크로 전송되는 오디오 (번역 + 패스스루)",
     "waveformMicTooltip": "내 마이크 — 번역을 위해 캡처되는 내 목소리",
     "waveformSystemTooltip": "번역을 위해 캡처되는 참가자 오디오 (브라우저 탭 / 시스템 오디오)",
-    "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요."
+    "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요.",
+    "participantChannelFailed": "참가자 오디오 채널을 시작하지 못했습니다.",
+    "sonioxInsufficientBalance": "세션을 시작하기에 잔액이 부족합니다. 잔액을 충전한 후 다시 시도해 주세요.",
+    "sonioxSessionConflict": "이미 계정에서 다른 세션이 실행 중입니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxServiceUnavailable": "Soniox를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxServiceBusy": "Soniox가 현재 용량이 가득 찼습니다. 잠시 후 다시 시도해 주세요.",
+    "sonioxBudgetExhausted": "세션 잔액이 모두 소진되었습니다. 번역을 계속하려면 잔액을 충전하세요.",
+    "sonioxTtsFailed": "음성 번역이 중지되었습니다. 전사와 텍스트 번역은 계속 작동합니다.",
+    "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 시작을 탭하세요."
   },
   "modePicker": {
     "modeYou": "당신",

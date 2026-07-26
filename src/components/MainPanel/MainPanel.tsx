@@ -22,10 +22,12 @@ import {
   useCurrentTurnDetectionMode,
   useSubtitleModeActive,
   useKeepReplayAudio,
+  useTextOnly,
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -59,6 +61,8 @@ import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audi
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
+import { formatRemainingTime } from '../../utils/formatters';
+import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -345,6 +349,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
+  // Text-only mode (no spoken translation). Fed to computeStartGate, which
+  // uses it to pick the managed-Soniox balance floor: that provider's backend
+  // refuses to issue a session key below the price of its shortest session at
+  // the SKU's rate, and the rate differs between text-only and
+  // speech-to-speech. The balance gate itself lives in sessionStartGate.ts so
+  // the subtitle window applies the identical rule.
+  const textOnly = useTextOnly();
+
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
   const currentMode = useMode();
@@ -412,9 +424,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Others/Both with an 'auto' source can't start. Matches the LanguageSection
   // warning (`showSonioxAutoParticipantWarning`); the user must pick a concrete
   // source first. `participantWillStart` === isParticipantChannelInScope.
-  const sonioxSourceLanguage = useSettingsStore((s) => s.soniox.sourceLanguage);
+  //
+  // Resolves the EFFECTIVE provider (kizunaBaseProvider) and reads the
+  // ACTIVE provider's settings slice via its descriptor's settingsSliceKey —
+  // mirrors LanguageSection.showSonioxAutoParticipantWarning exactly. A raw
+  // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
+  // (as this used to be) is always false for the KIZUNA_AI_SONIOX managed
+  // twin, so this gate silently no-op'd for it: LanguageSection still showed
+  // the warning (it already resolved the effective provider correctly), but
+  // Start stayed enabled — clicking it left the participant channel's
+  // connect() to fail non-fatally and silently (see the catch block around
+  // participant client startup below, which now surfaces that failure).
+  const activeProviderSourceLanguage = useSettingsStore(
+    (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { sourceLanguage?: string } | undefined)?.sourceLanguage
+  );
   const sonioxAutoParticipantBlocked =
-    provider === Provider.SONIOX && participantWillStart && sonioxSourceLanguage === 'auto';
+    (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
+    participantWillStart && activeProviderSourceLanguage === 'auto';
 
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
@@ -433,10 +459,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       quota,
       missingDeviceForMode,
       sonioxAutoParticipantBlocked,
+      textOnly,
     }),
-    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked],
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked, textOnly],
   );
   const canStartSession = startGate.canStart;
+
+  // The blocker rendered as a sentence, resolved once. Both Start surfaces
+  // below (the basic-mode button's title and the advanced-mode tooltip) read
+  // this, so they cannot drift apart, and the balance interpolation arrives
+  // already formatted as USD from reasonToI18n.
+  const startBlockMessage = useMemo(() => {
+    if (!startGate.reason) return undefined;
+    const { key, defaultValue, values } = reasonToI18n(startGate.reason, startGate.balance);
+    return t(key, defaultValue, values);
+  }, [startGate.reason, startGate.balance, t]);
 
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
@@ -1041,6 +1078,46 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => clearInterval(interval);
   }, [isSessionActive, sessionStartTime]);
 
+  // Managed Soniox remaining-time countdown for the status footer. The
+  // session's budget/rate/start-time are fixed for the whole session (see
+  // SonioxCostMeter.getBudgetSnapshot), so this captures them once and then
+  // re-evaluates the same pure wall-clock formula against Date.now() every
+  // second — a smooth per-second countdown without polling the cost meter
+  // itself, which only advances on the STT stream's ~5s keepalive tick.
+  // Only the KIZUNA_AI_SONIOX managed twin has a budget to count down; BYOK
+  // Soniox has no cost meter and getManagedBudgetInfo() is always null there.
+  const sonioxBudgetInfoRef = useRef<SonioxBudgetSnapshot | null>(null);
+  const [sonioxCountdown, setSonioxCountdown] = useState<{ remainingMs: number; totalMs: number } | null>(null);
+  useEffect(() => {
+    if (!isSessionActive || provider !== Provider.KIZUNA_AI_SONIOX) {
+      sonioxBudgetInfoRef.current = null;
+      setSonioxCountdown(null);
+      return;
+    }
+    const update = () => {
+      if (!sonioxBudgetInfoRef.current) {
+        // Whichever client is the real managed-session core: speaker if
+        // present, else participant (participant-only mode). Both
+        // single-session's participant ref is an inert secondary port with
+        // no budget info of its own — see createSecondaryPort.
+        const client = speakerClientRef.current ?? participantClientRef.current;
+        sonioxBudgetInfoRef.current = client?.getManagedBudgetInfo?.() ?? null;
+      }
+      const info = sonioxBudgetInfoRef.current;
+      setSonioxCountdown(info ? {
+        remainingMs: computeSonioxRemainingMs(Date.now(), info),
+        totalMs: computeSonioxBudgetTotalMs(info),
+      } : null);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [isSessionActive, provider]);
+  // Below 20% of the session's granted budget, the countdown switches to a
+  // stronger visual emphasis (see the `.low` class in MainPanel.scss).
+  const sonioxRemainingLow = !!sonioxCountdown && sonioxCountdown.totalMs > 0
+    && sonioxCountdown.remainingMs / sonioxCountdown.totalMs < 0.2;
+
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
 
@@ -1215,6 +1292,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Route through disconnectConversation — handles both clients, audio,
         // streaming tracks, profile refresh, and the re-entry guard.
         await disconnectConversationRef.current?.();
+
+        // Managed Soniox: SonioxClient tags this close with sonioxDurationCutoff
+        // when Soniox dropped the session at its granted duration (a 403 error
+        // frame immediately followed by this close — see SonioxClient's onClose
+        // docstring). Show a dedicated "segment ended" notice instead of a raw
+        // error, and — per explicit product decision — do NOT auto-reconnect
+        // here (a silent reconnect would restart billing without the user
+        // knowing); the user must tap Start again to begin a new segment.
+        // Appended AFTER disconnectConversation: it calls
+        // setItems(client.getConversationItems()), which would otherwise
+        // overwrite this entry (the client has no items for a synthetic notice).
+        if (event?.sonioxDurationCutoff) {
+          setItems(prevItems => [...prevItems, {
+            id: `notice-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start to continue.') },
+          }]);
+        }
       },
       onConversationInterrupted: async () => {
         // Handle conversation interruption
@@ -1447,7 +1545,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Refresh user profile and quota after session ends
-      // This ensures the token balance is updated after usage
+      // This ensures the wallet balance is updated after usage
       if (refetchAll) {
         refetchAll().catch(error => {
           console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
@@ -1541,15 +1639,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Both mode uses ONE shared Soniox two_way session (mic+system mixed) when the
       // shared-session toggle is on and the source language is concrete; else 2 clients.
+      //
+      // Resolves the EFFECTIVE provider and reads the ACTIVE provider's settings
+      // slice (soniox for BYOK, kizunaSoniox for the KIZUNA_AI_SONIOX managed
+      // twin) — mirrors the sonioxAutoParticipantBlocked gate above. A raw
+      // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
+      // (as this used to be) is always false for the twin, so it opened TWO
+      // independent managed sessions instead of one shared one; the backend's
+      // per-account lease is single-session, so the second connect() was refused
+      // with 409 and Both mode simply didn't work for the twin.
+      const sonioxActiveSettings = useSettingsStore.getState()[
+        ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
+      ] as { bothModeSharedSession?: boolean; sourceLanguage?: string };
+      // sonioxUsesSharedBothSession forces the shared path on for the managed
+      // twin whatever the stored preference says: the backend lease is
+      // account-scoped, so two clients means the second gets a 409 and
+      // Others→You silently never runs. The settings UI disables the control
+      // for the twin; this reads the same helper so a `false` persisted before
+      // that (or by BYOK use of the same account) cannot resurrect it.
       const sonioxSharedBoth =
-        provider === Provider.SONIOX &&
+        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
         effectiveMode === 'both' &&
-        (useSettingsStore.getState().soniox.bothModeSharedSession ?? true) &&
-        useSettingsStore.getState().soniox.sourceLanguage !== 'auto';
+        sonioxUsesSharedBothSession(provider, sonioxActiveSettings) &&
+        sonioxActiveSettings.sourceLanguage !== 'auto';
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
-      // client is created — saves a WebSocket and, for Kizuna AI, token cost.
+      // client is created — saves a WebSocket and, for Kizuna AI, wallet cost.
       if (speakerWillStart) {
         // Determine if WebRTC transport should be used
         let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
@@ -1765,6 +1881,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const participantInScope = sessionMode === 'participant' || sessionMode === 'both';
       const shouldCaptureParticipantAudio = participantInScope && audioServiceRef.current !== null;
 
+      // Set (not appended) by the participant catch block below when the
+      // channel fails non-fatally. Deferred rather than appended immediately
+      // because setItems(speakerClientRef.current?.getConversationItems() ||
+      // []) further down unconditionally overwrites state — appending before
+      // that point would get wiped (participant-only: overwritten with [];
+      // Both mode: overwritten with the speaker's just-started list).
+      let participantErrorMessage: string | null = null;
+
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
@@ -1876,7 +2000,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (error?.isGpuOom) {
             throw error;
           }
-          // Other participant errors are non-fatal — log and continue
+          // Other participant errors are non-fatal — the session continues on
+          // whichever channel(s) did come up (the post-init guard below bails
+          // if none did). But the failure must still reach the user, not just
+          // the console — previously console-only, so e.g. a managed Soniox
+          // connect failure (402/403/409/...) on this channel left the
+          // participant channel silently dead with no visible explanation.
+          // Surface it the same way onError does elsewhere in this file: a
+          // log entry plus a conversation bubble.
+          // The bubble itself is appended later (after the setItems overwrite
+          // below) — see the comment on the `participantErrorMessage`
+          // declaration above.
+          participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
+          addRealtimeEvent(
+            { type: 'participant.error', data: { message: participantErrorMessage } },
+            'client', 'participant.error'
+          );
         }
       }
 
@@ -1915,6 +2054,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setLockedMode(sessionMode);
       setIsSessionActive(true);
       setItems(speakerClientRef.current?.getConversationItems() || []);
+
+      // Appended AFTER the setItems overwrite above: it would otherwise
+      // wipe this entry (participant-only: overwritten with []; Both mode:
+      // overwritten with the speaker's just-started list). See the
+      // `participantErrorMessage` declaration near the participant block
+      // for why this is deferred instead of appended in the catch itself.
+      if (participantErrorMessage) {
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: participantErrorMessage },
+        }]);
+      }
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
@@ -3370,15 +3525,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
-                title={
-                  !isSessionActive && startGate.reason
-                    ? t(
-                        reasonToI18n(startGate.reason).key,
-                        reasonToI18n(startGate.reason).defaultValue,
-                        { balance: startGate.balance },
-                      )
-                    : undefined
-                }
+                title={!isSessionActive ? startBlockMessage : undefined}
               >
                 {isInitializing ? (
                   <>
@@ -3417,6 +3564,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </span>
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
+              )}
+              {isSessionActive && sonioxCountdown && (
+                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
+                  {formatRemainingTime(sonioxCountdown.remainingMs)}
+                </span>
               )}
             </div>
           </div>
@@ -3520,13 +3672,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
                     {startGate.reason && (
-                      <span className="tooltip">
-                        {t(
-                          reasonToI18n(startGate.reason).key,
-                          reasonToI18n(startGate.reason).defaultValue,
-                          { balance: startGate.balance },
-                        )}
-                      </span>
+                      <span className="tooltip">{startBlockMessage}</span>
                     )}
                   </>
                 )}
@@ -3557,6 +3703,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </span>
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
+              )}
+              {isSessionActive && sonioxCountdown && (
+                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
+                  {formatRemainingTime(sonioxCountdown.remainingMs)}
+                </span>
               )}
             </div>
           </div>

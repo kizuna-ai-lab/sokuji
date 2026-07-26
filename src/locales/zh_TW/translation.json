@@ -215,6 +215,7 @@
     "simpleMode": "快捷",
     "sonioxSharedSession": "「兩者」模式下共用工作階段",
     "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段,也可以每個方向各用一個獨立的工作階段。\n\n已啟用:單一工作階段同時翻譯雙方,並自動區分說話者——成本與延遲更低。\n\n停用:每個方向各一個獨立工作階段——兩人同時說話時更可靠,但成本約為兩倍。\n\n僅影響「兩者」模式。",
+    "sonioxSharedSessionManaged": "Kizuna AI 的「兩者」模式一律使用單一共用工作階段，因此無法關閉。",
     "sonioxAutoParticipantWarning": "請選擇具體的來源語言——使用自動偵測時,無法把對方的語音翻譯成你的語言。"
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "語音到語音翻譯，透過您的帳戶進行驗證"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "語音到語音翻譯，透過您的帳戶進行驗證"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "由 GPT 模型驅動"
@@ -445,7 +450,7 @@
     "send": "發送",
     "error": "錯誤",
     "unknownError": "未知錯誤",
-    "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
+    "insufficientBalance": "餘額不足：{{balance}}",
     "walletFrozen": "錢包已凍結。請聯繫客服。",
     "localModelsRequired": "請先在設定中下載所需的模型才能開始使用。",
     "clearConversation": "清除對話",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "傳送到虛擬麥克風的音訊（翻譯 + 原聲直通）",
     "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",
     "waveformSystemTooltip": "擷取參與者音訊用於翻譯（瀏覽器分頁 / 系統音訊）",
-    "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。"
+    "allChannelsFailed": "無法啟動任何音訊通道。請檢查裝置權限後再試一次。",
+    "participantChannelFailed": "無法啟動參與者音訊通道。",
+    "sonioxInsufficientBalance": "餘額不足,無法開始工作階段。請儲值後再試一次。",
+    "sonioxSessionConflict": "您的帳戶中已有另一個工作階段正在進行。請稍後再試一次。",
+    "sonioxServiceUnavailable": "Soniox 暫時無法使用。請稍後再試一次。",
+    "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
+    "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
+    "sonioxTtsFailed": "語音翻譯已停止。轉錄與文字翻譯仍在繼續。",
+    "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。"
   },
   "modePicker": {
     "modeYou": "您",

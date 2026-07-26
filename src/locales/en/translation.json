@@ -215,6 +215,7 @@
     "simpleMode": "Quick",
     "sonioxSharedSession": "Shared session in Both mode",
     "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
+    "sonioxSharedSessionManaged": "Kizuna AI runs Both mode as one shared session, so this cannot be turned off.",
     "sonioxAutoParticipantWarning": "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Speech-to-speech translation, authenticated via your account"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Speech-to-speech translation, authenticated via your account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Powered by GPT models"
@@ -445,7 +450,7 @@
     "send": "Send",
     "error": "Error",
     "unknownError": "Unknown error",
-    "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
+    "insufficientBalance": "Insufficient balance: {{balance}}",
     "walletFrozen": "Wallet is frozen. Please contact support.",
     "localModelsRequired": "Please download the required models in Settings to start.",
     "clearConversation": "Clear conversation",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",
     "waveformSystemTooltip": "Participant audio captured for translation (browser tab / system audio)",
-    "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again."
+    "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again.",
+    "participantChannelFailed": "Failed to start the participant audio channel.",
+    "sonioxInsufficientBalance": "Insufficient balance to start a session. Please top up your balance and try again.",
+    "sonioxSessionConflict": "Another session is already running on your account. Please try again in a moment.",
+    "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",
+    "sonioxServiceBusy": "Soniox is at capacity right now. Please try again shortly.",
+    "sonioxBudgetExhausted": "Your session balance is used up. Top up your balance to keep translating.",
+    "sonioxTtsFailed": "Spoken translation has stopped. Transcription and text translation are still running.",
+    "sonioxSegmentEnded": "This segment has ended — tap Start to continue."
   },
   "modePicker": {
     "modeYou": "You",

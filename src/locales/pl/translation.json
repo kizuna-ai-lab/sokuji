@@ -215,6 +215,7 @@
     "simpleMode": "Szybki",
     "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
     "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem mówców — niższy koszt i opóźnienie.\n\nWyłączony: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt około dwukrotnie wyższy.\n\nDotyczy tylko trybu Oba.",
+    "sonioxSharedSessionManaged": "Kizuna AI uruchamia tryb Oba w jednej wspólnej sesji, więc nie można tego wyłączyć.",
     "sonioxAutoParticipantWarning": "Wybierz konkretny język źródłowy — przy automatycznym wykrywaniu nie można przetłumaczyć wypowiedzi drugiej osoby na Twój język."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Tłumaczenie mowy na mowę, uwierzytelnione przez Twoje konto"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Tłumaczenie mowy na mowę, uwierzytelnione przez Twoje konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Napędzany modelami GPT"
@@ -445,7 +450,7 @@
     "send": "Wyślij",
     "error": "Błąd",
     "unknownError": "Nieznany błąd",
-    "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
+    "insufficientBalance": "Niewystarczające saldo: {{balance}}",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
     "localModelsRequired": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
     "clearConversation": "Wyczyść rozmowę",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Dźwięk wysyłany do wirtualnego mikrofonu (tłumaczenie + przepuszczanie)",
     "waveformMicTooltip": "Twój mikrofon — Twój głos przechwytywany do tłumaczenia",
     "waveformSystemTooltip": "Dźwięk uczestnika przechwytywany do tłumaczenia (karta przeglądarki / dźwięk systemu)",
-    "allChannelsFailed": "Nie udało się uruchomić żadnego kanału audio. Sprawdź uprawnienia urządzeń i spróbuj ponownie."
+    "allChannelsFailed": "Nie udało się uruchomić żadnego kanału audio. Sprawdź uprawnienia urządzeń i spróbuj ponownie.",
+    "participantChannelFailed": "Nie udało się uruchomić kanału audio uczestnika.",
+    "sonioxInsufficientBalance": "Niewystarczające saldo, aby rozpocząć sesję. Doładuj saldo i spróbuj ponownie.",
+    "sonioxSessionConflict": "Na Twoim koncie trwa już inna sesja. Spróbuj ponownie za chwilę.",
+    "sonioxServiceUnavailable": "Soniox jest tymczasowo niedostępny. Spróbuj ponownie za chwilę.",
+    "sonioxServiceBusy": "Soniox jest obecnie w pełni obciążony. Spróbuj ponownie wkrótce.",
+    "sonioxBudgetExhausted": "Saldo Twojej sesji zostało wyczerpane. Doładuj saldo, aby kontynuować tłumaczenie.",
+    "sonioxTtsFailed": "Tłumaczenie głosowe zostało zatrzymane. Transkrypcja i tłumaczenie tekstu nadal działają.",
+    "sonioxSegmentEnded": "Ten segment się zakończył — dotknij Start, aby kontynuować."
   },
   "modePicker": {
     "modeYou": "Ty",

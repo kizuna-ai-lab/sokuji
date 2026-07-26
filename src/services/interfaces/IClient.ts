@@ -414,6 +414,14 @@ export interface IClient {
   appendParticipantAudio?(audioData: Int16Array): void;
   /** Return a second IClient reference bound to this same core (Both single-session). SonioxClient only. */
   createSecondaryPort?(): IClient;
+
+  /**
+   * Managed-mode Soniox only: the running session's fixed budget parameters
+   * (grant, rate, start time), for the status footer's remaining-time
+   * countdown — see SonioxClient.getManagedBudgetInfo. Null for BYOK
+   * sessions or before the managed session-key exchange has completed.
+   */
+  getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
 }
 
 /**

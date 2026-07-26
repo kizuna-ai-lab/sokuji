@@ -27,7 +27,7 @@ describe('LOCAL_NATIVE feature-flag gating (disabled path)', () => {
     // Local Native flag, so they must remain registered.
     expect(ids).toContain(Provider.OPENAI_COMPATIBLE);
     expect(ids).toContain(Provider.VOLCENGINE_AST2);
-    // One fewer than the 13 in descriptorRegistry.test.ts (which forces the flag on).
-    expect(ids.length).toBe(12);
+    // One fewer than the 14 in descriptorRegistry.test.ts (which forces the flag on).
+    expect(ids.length).toBe(13);
   });
 });

@@ -215,6 +215,7 @@
     "simpleMode": "クイック",
     "sonioxSharedSession": "「両方」モードでセッションを共有",
     "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、話者を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
+    "sonioxSharedSessionManaged": "Kizuna AI は「両方」モードを 1 つの共有セッションで実行するため、無効にできません。",
     "sonioxAutoParticipantWarning": "入力言語を具体的に選んでください——自動検出では、相手の音声をあなたの言語に翻訳できません。"
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "音声から音声への翻訳、アカウントで認証"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "音声から音声への翻訳、アカウントで認証"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPTモデル搭載"
@@ -445,7 +450,7 @@
     "send": "送信",
     "error": "エラー",
     "unknownError": "不明なエラー",
-    "insufficientBalance": "トークン残高不足: {{balance}} トークン",
+    "insufficientBalance": "残高不足: {{balance}}",
     "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
     "localModelsRequired": "開始するには設定で必要なモデルをダウンロードしてください。",
     "clearConversation": "会話をクリア",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "仮想マイクへ送られる音声（翻訳 + パススルー）",
     "waveformMicTooltip": "あなたのマイク — 翻訳のためにキャプチャされるあなたの声",
     "waveformSystemTooltip": "翻訳のためにキャプチャされる参加者の音声（ブラウザタブ / システム音声）",
-    "allChannelsFailed": "オーディオチャンネルを開始できませんでした。デバイスの権限を確認してもう一度お試しください。"
+    "allChannelsFailed": "オーディオチャンネルを開始できませんでした。デバイスの権限を確認してもう一度お試しください。",
+    "participantChannelFailed": "参加者の音声チャンネルを開始できませんでした。",
+    "sonioxInsufficientBalance": "セッションを開始するには残高が不足しています。残高をチャージしてもう一度お試しください。",
+    "sonioxSessionConflict": "このアカウントでは既に別のセッションが実行中です。しばらくしてからもう一度お試しください。",
+    "sonioxServiceUnavailable": "Sonioxは一時的に利用できません。しばらくしてからもう一度お試しください。",
+    "sonioxServiceBusy": "Sonioxは現在利用が集中しています。しばらくしてからもう一度お試しください。",
+    "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
+    "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
+    "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「開始」をタップしてください。"
   },
   "modePicker": {
     "modeYou": "あなた",

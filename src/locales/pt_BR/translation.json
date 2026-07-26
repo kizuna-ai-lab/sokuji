@@ -215,6 +215,7 @@
     "simpleMode": "Rápido",
     "sonioxSharedSession": "Sessão compartilhada no modo Ambos",
     "sonioxSharedSessionTooltip": "O modo Ambos pode usar uma única sessão Soniox compartilhada ou uma sessão separada por direção.\n\nAtivado: uma única sessão traduz os dois lados com separação automática de locutores — menor custo e latência.\n\nDesabilitado: uma sessão separada por direção — mais confiável quando as duas pessoas falam ao mesmo tempo, mas com cerca do dobro do custo.\n\nAfeta apenas o modo Ambos.",
+    "sonioxSharedSessionManaged": "A Kizuna AI executa o modo Ambos como uma única sessão compartilhada, portanto isso não pode ser desativado.",
     "sonioxAutoParticipantWarning": "Escolha um idioma de origem específico — com a detecção automática, a fala do outro participante não pode ser traduzida para o seu idioma."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Tradução de voz para voz, autenticada pela sua conta"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Tradução de voz para voz, autenticada pela sua conta"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Alimentado por modelos GPT"
@@ -445,7 +450,7 @@
     "send": "Enviar",
     "error": "Erro",
     "unknownError": "Erro desconhecido",
-    "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
+    "insufficientBalance": "Saldo insuficiente: {{balance}}",
     "walletFrozen": "Carteira congelada. Entre em contato com o suporte.",
     "localModelsRequired": "Por favor, baixe os modelos necessários em Configurações para começar.",
     "clearConversation": "Limpar conversa",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Áudio enviado ao microfone virtual (tradução + passthrough)",
     "waveformMicTooltip": "Seu microfone — sua voz capturada para tradução",
     "waveformSystemTooltip": "Áudio de participantes capturado para tradução (aba do navegador / áudio do sistema)",
-    "allChannelsFailed": "Falha ao iniciar qualquer canal de áudio. Verifique as permissões dos dispositivos e tente novamente."
+    "allChannelsFailed": "Falha ao iniciar qualquer canal de áudio. Verifique as permissões dos dispositivos e tente novamente.",
+    "participantChannelFailed": "Falha ao iniciar o canal de áudio do participante.",
+    "sonioxInsufficientBalance": "Saldo insuficiente para iniciar uma sessão. Recarregue seu saldo e tente novamente.",
+    "sonioxSessionConflict": "Já existe outra sessão em andamento na sua conta. Tente novamente em instantes.",
+    "sonioxServiceUnavailable": "O Soniox está temporariamente indisponível. Tente novamente em instantes.",
+    "sonioxServiceBusy": "O Soniox está com capacidade total no momento. Tente novamente em breve.",
+    "sonioxBudgetExhausted": "O saldo da sua sessão acabou. Recarregue seu saldo para continuar traduzindo.",
+    "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam funcionando.",
+    "sonioxSegmentEnded": "Este segmento terminou — toque em Iniciar para continuar."
   },
   "modePicker": {
     "modeYou": "Você",

@@ -215,6 +215,7 @@
     "simpleMode": "Rapide",
     "sonioxSharedSession": "Session partagée en mode Les deux",
     "sonioxSharedSessionTooltip": "Le mode Les deux peut utiliser une seule session Soniox partagée ou une session distincte par direction.\n\nActivé : une seule session traduit les deux côtés avec séparation automatique des locuteurs — coût et latence réduits.\n\nDésactivé : une session distincte par direction — plus fiable lorsque les deux personnes parlent en même temps, mais environ deux fois plus coûteux.\n\nN’affecte que le mode Les deux.",
+    "sonioxSharedSessionManaged": "Kizuna AI exécute le mode Les deux dans une seule session partagée ; ce réglage ne peut donc pas être désactivé.",
     "sonioxAutoParticipantWarning": "Choisissez une langue source spécifique — avec la détection automatique, la parole de l'autre participant ne peut pas être traduite dans votre langue."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Traduction voix à voix, authentifiée via votre compte"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Traduction voix à voix, authentifiée via votre compte"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Alimenté par les modèles GPT"
@@ -445,7 +450,7 @@
     "send": "Envoyer",
     "error": "Erreur",
     "unknownError": "Erreur inconnue",
-    "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
+    "insufficientBalance": "Solde insuffisant : {{balance}}",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
     "localModelsRequired": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
     "clearConversation": "Effacer la conversation",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio envoyé au microphone virtuel (traduction + passage audio original)",
     "waveformMicTooltip": "Votre microphone — votre voix captée pour la traduction",
     "waveformSystemTooltip": "Audio des participants capté pour la traduction (onglet du navigateur / audio système)",
-    "allChannelsFailed": "Échec du démarrage des canaux audio. Vérifiez les autorisations des périphériques et réessayez."
+    "allChannelsFailed": "Échec du démarrage des canaux audio. Vérifiez les autorisations des périphériques et réessayez.",
+    "participantChannelFailed": "Échec du démarrage du canal audio du participant.",
+    "sonioxInsufficientBalance": "Solde insuffisant pour démarrer une session. Veuillez recharger votre solde et réessayer.",
+    "sonioxSessionConflict": "Une autre session est déjà en cours sur votre compte. Veuillez réessayer dans un instant.",
+    "sonioxServiceUnavailable": "Soniox est temporairement indisponible. Veuillez réessayer dans un instant.",
+    "sonioxServiceBusy": "Soniox est actuellement à pleine capacité. Veuillez réessayer sous peu.",
+    "sonioxBudgetExhausted": "Le solde de votre session est épuisé. Rechargez votre solde pour continuer à traduire.",
+    "sonioxTtsFailed": "La traduction vocale s'est arrêtée. La transcription et la traduction textuelle continuent.",
+    "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur Démarrer pour continuer."
   },
   "modePicker": {
     "modeYou": "Vous",

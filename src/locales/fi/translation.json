@@ -215,6 +215,7 @@
     "simpleMode": "Pika",
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella puhujien erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
+    "sonioxSharedSessionManaged": "Kizuna AI suorittaa Molemmat-tilan yhtenä jaettuna istuntona, joten tätä ei voi poistaa käytöstä.",
     "sonioxAutoParticipantWarning": "Valitse tietty lähdekieli — automaattisella tunnistuksella toisen osallistujan puhetta ei voi kääntää omalle kielellesi."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "GPT-mallien voimalla"
@@ -445,7 +450,7 @@
     "send": "Lähetä",
     "error": "Virhe",
     "unknownError": "Tuntematon virhe",
-    "insufficientBalance": "Riittämätön token-saldo: {{balance}} tokenia",
+    "insufficientBalance": "Riittämätön saldo: {{balance}}",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
     "localModelsRequired": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
     "clearConversation": "Tyhjennä keskustelu",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)",
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",
     "waveformSystemTooltip": "Osallistujan ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
-    "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen."
+    "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen.",
+    "participantChannelFailed": "Osallistujan äänikanavan käynnistys epäonnistui.",
+    "sonioxInsufficientBalance": "Saldo ei riitä istunnon aloittamiseen. Lataa saldoasi ja yritä uudelleen.",
+    "sonioxSessionConflict": "Tililläsi on jo käynnissä toinen istunto. Yritä uudelleen hetken kuluttua.",
+    "sonioxServiceUnavailable": "Soniox ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",
+    "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
+    "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
+    "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
+    "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla Aloita."
   },
   "modePicker": {
     "modeYou": "Sinä",

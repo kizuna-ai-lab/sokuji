@@ -11,8 +11,10 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
+import { SonioxCostMeter, SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { PcmMixer } from './PcmMixer';
 import i18n from '../../locales';
+import { getApiUrl } from '../../utils/environment';
 
 /**
  * Soniox speech-to-speech translation client.
@@ -34,6 +36,36 @@ const STT_MODEL = 'stt-rt-v5';
 const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+// Fallback only — the backend's 409 body always carries its own retryAfterMs
+// (see describeManagedSessionError); this is used solely if that field is
+// somehow missing from a malformed/empty body.
+const DEFAULT_CONFLICT_RETRY_MS = 3000;
+
+/** Options for managed (backend-billed) sessions. BYOK sessions omit this entirely. */
+export interface SonioxClientOptions {
+  managed?: {
+    /** Better-auth session token. Sent ONLY to our backend's Authorization
+     *  header — never to Soniox, which receives the short-lived sttApiKey /
+     *  ttsApiKey minted in exchange for it. */
+    sessionToken: string;
+  };
+}
+
+interface SonioxSessionKeyResponse {
+  sttApiKey: string;
+  ttsApiKey?: string;
+  expiresAt: string;
+  maxSessionDurationSeconds: number;
+  budgetMicroUsd: number;
+  rateUsdPerHour: number;
+  sku: string;
+  leaseId: string;
+  // The exact `sokuji1:<accountId>:<leaseId>` string the backend already
+  // bound to the temporary key(s) — see fetchManagedSession's docstring for
+  // why this, not leaseId, is what gets sent to Soniox as
+  // `client_reference_id`.
+  clientReferenceId: string;
+}
 
 export class SonioxClient implements IClient {
   private apiKey: string;
@@ -96,15 +128,32 @@ export class SonioxClient implements IClient {
   // debug-timeline event (reset each utterance).
   private ttsSpokenText = '';
   // Reconnect-on-demand: the server closes an idle TTS socket with no active
-  // stream at ~11 s (code 1001) regardless of keep_alive, so between/before
-  // utterances the socket often dies. When feedTts finds it closed it queues
-  // the text/end here and re-establishes the socket; the queue is flushed in
-  // order once connected.
+  // stream after ~5.3 s (408: "Request timeout") regardless of keep_alive —
+  // measured live; well inside the 20 s keepalive interval, so keep_alive
+  // never gets a chance to save it — so between/before utterances the socket
+  // often dies. When feedTts finds it closed it queues the text/end here and
+  // re-establishes the socket; the queue is flushed in order once connected.
   private ttsConnecting = false;
   private ttsPending: Array<{ kind: 'text'; text: string; language: string } | { kind: 'end' }> = [];
 
-  constructor(apiKey: string) {
+  // Managed-mode session state. Populated once per connect() from
+  // /api/soniox/session-key (never earlier — see connect()'s docstring) and
+  // cleared by reset(). BYOK sessions leave all of these null and fall back
+  // to `this.apiKey` for both sockets, same as before this feature existed.
+  private readonly managedOptions?: SonioxClientOptions['managed'];
+  private managedSttApiKey: string | null = null;
+  private managedTtsApiKey: string | null = null;
+  private leaseId: string | null = null;
+  private clientReferenceId: string | null = null;
+  private costMeter: SonioxCostMeter | null = null;
+  // Set by handleSttError when a managed session's STT stream reports the
+  // 403 "granted duration reached" error frame; consumed (and cleared) by
+  // the close that always immediately follows it — see onClose's docstring.
+  private pendingDurationCutoff = false;
+
+  constructor(apiKey: string, options?: SonioxClientOptions) {
     this.apiKey = apiKey;
+    this.managedOptions = options?.managed;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -176,27 +225,55 @@ export class SonioxClient implements IClient {
       ? [cfg.sourceLanguage, cfg.targetLanguage]
       : (cfg.sourceLanguage !== 'auto' ? [cfg.sourceLanguage] : undefined);
 
+    if (this.managedOptions) {
+      await this.fetchManagedSession(cfg);
+      // Stale-attempt guard: disconnect() may have run while we were
+      // exchanging the session token for keys.
+      if (gen !== this.generation) return;
+    }
+
     this.stt = new SonioxSttStream();
     this.stt.setHandlers({
       onMessage: (message) => this.handleSttMessage(message),
       onError: (code, message) => this.handleSttError(code, message),
       onClose: (event) => {
         this.isConnectedState = false;
+        // Managed sessions: Soniox drops the session at its granted duration
+        // by sending a 403 error frame (caught by handleSttError, which sets
+        // this flag and suppresses the generic error bubble) immediately
+        // followed by this close. Tag the event so the UI shows a dedicated
+        // "segment ended, tap to continue" state instead of a raw error —
+        // and, per explicit product decision, does NOT auto-reconnect (a
+        // silent reconnect would restart billing without the user knowing).
+        if (this.pendingDurationCutoff) {
+          this.pendingDurationCutoff = false;
+          this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
+          this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
+          return;
+        }
         this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
         this.eventHandlers.onClose?.(event);
       },
+      // The meter's own clock, not a second timer — see onTick's docstring
+      // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
+      onTick: () => this.costMeter?.tick(Date.now()),
     });
     await this.stt.connect({
-      apiKey: this.apiKey,
+      apiKey: this.managedOptions ? this.managedSttApiKey! : this.apiKey,
       model: cfg.model || STT_MODEL,
       sampleRate: SAMPLE_RATE,
       languageHints,
       translation,
+      clientReferenceId: this.clientReferenceId ?? undefined,
     });
     // If disconnect() ran during the STT connect await, this attempt is stale:
     // close the socket we just opened and bail before wiring anything up.
     if (gen !== this.generation) { this.stt?.close(); this.stt = null; return; }
     this.isConnectedState = true;
+
+    // Fire-and-forget: extends the lease from its short "start window" TTL
+    // to the full session duration now that the socket is actually up.
+    if (this.managedOptions && this.leaseId) this.notifySessionStarted(this.leaseId);
 
     if (this.bidirectional) {
       this.mixer = new PcmMixer({
@@ -216,11 +293,12 @@ export class SonioxClient implements IClient {
         // discard the socket instead of installing it (would leak + speak after Stop).
         if (gen !== this.generation) { stream.close(); return; }
         this.tts = stream;
-        // No prewarm: a config-only TTS stream with no text is 408'd by the
-        // server in ~5 s. And an idle socket with no active stream is closed at
-        // ~11 s (code 1001) regardless of keep_alive — so this socket may die
-        // during a long silence before the first translation. feedTts detects a
-        // closed socket and reconnects on demand (see ensureTts).
+        // No prewarm: a config-only TTS stream with no text — and, the same
+        // way, an idle socket with no active stream at all — is closed by the
+        // server after ~5.3 s (408: "Request timeout"; measured live) regardless
+        // of keep_alive, so this socket may die during a long silence before
+        // the first translation. feedTts detects a closed socket and
+        // reconnects on demand (see ensureTts).
       } catch (error) {
         // Best-effort: never fail the session because TTS is unavailable.
         // feedTts will retry the connection on the first translation.
@@ -237,6 +315,191 @@ export class SonioxClient implements IClient {
       textOnly: !!cfg.textOnly,
     });
     this.eventHandlers.onOpen?.();
+  }
+
+  /**
+   * Exchange the better-auth session token for a Soniox session-key set.
+   * Called from connect(), never earlier: the key's start window is only
+   * 60 s, so fetching sooner risks the keys expiring before the sockets
+   * open — and issue failures (402/403/409/502/503) need to land on
+   * connect()'s error path, where the UI already handles a failed connect.
+   *
+   * The session token itself is sent ONLY in this request's Authorization
+   * header, to our own backend — never to Soniox. Soniox only ever sees the
+   * sttApiKey / ttsApiKey minted here in exchange for it.
+   *
+   * A 409 (another session already active on this account) is retried
+   * exactly once, after the backend's own `retryAfterMs` hint — the prior
+   * session is very often just finishing its teardown, so a single short
+   * wait-and-retry resolves it transparently instead of surfacing a
+   * conflict the user would only retry themselves.
+   */
+  private async fetchManagedSession(cfg: SonioxSessionConfig): Promise<void> {
+    const mode: 'text_only' | 'speech_to_speech' = cfg.textOnly === true ? 'text_only' : 'speech_to_speech';
+    let response = await this.requestSessionKey(mode);
+    if (!response.ok && response.status === 409) {
+      const conflict = await this.describeManagedSessionError(response);
+      const retryAfterMs = conflict.retryAfterMs ?? DEFAULT_CONFLICT_RETRY_MS;
+      this.emitRealtime('client', 'session.retry', { provider: 'soniox', status: 409, retryAfterMs });
+      await SonioxClient.delay(retryAfterMs);
+      response = await this.requestSessionKey(mode);
+    }
+    if (!response.ok) {
+      throw new Error((await this.describeManagedSessionError(response)).message);
+    }
+    const data = await response.json() as SonioxSessionKeyResponse;
+    this.managedSttApiKey = data.sttApiKey;
+    this.managedTtsApiKey = data.ttsApiKey ?? null;
+    this.leaseId = data.leaseId;
+    // The backend already bound `client_reference_id = sokuji1:<accountId>:
+    // <leaseId>` to the temporary key(s) it just minted (see session-lease.ts's
+    // `clientRefIdFor`). The reconciler that attributes usage logs back to a
+    // lease requires exactly that namespaced format — the bare leaseId fails
+    // its parse and the session goes unattributed (never charged, lease never
+    // released). Both sockets must echo back this EXACT string, not leaseId,
+    // and not recompute/reformat it here.
+    //
+    // No fallback to leaseId: a missing clientReferenceId is a backend
+    // contract break that must surface as a failed connect, not be silently
+    // papered over with a value already known to be rejected by the
+    // reconciler.
+    if (!data.clientReferenceId) {
+      throw new Error('Soniox session-key response is missing clientReferenceId');
+    }
+    this.clientReferenceId = data.clientReferenceId;
+    this.costMeter = new SonioxCostMeter({
+      budgetMicroUsd: data.budgetMicroUsd,
+      rateUsdPerHour: data.rateUsdPerHour,
+      onExhausted: () => this.handleBudgetExhausted(),
+    });
+    this.costMeter.start(Date.now());
+  }
+
+  /**
+   * POST /soniox/session-key. Network failures (DNS, offline, CORS) throw
+   * immediately — those are transport errors that have nothing to retry;
+   * only an HTTP-level response (ok or not) is returned for the caller to
+   * interpret status-by-status.
+   */
+  private async requestSessionKey(mode: 'text_only' | 'speech_to_speech'): Promise<Response> {
+    try {
+      return await fetch(`${getApiUrl()}/soniox/session-key`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mode }),
+      });
+    } catch (error) {
+      throw new Error(`Failed to reach the Soniox session service: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private static delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Distinct, user-facing reasons for each session-key failure — a 402
+   * (insufficient balance) must read differently from every other failure
+   * so the UI can point the user at the right fix rather than a generic
+   * "couldn't connect". Also surfaces the 409 body's `retryAfterMs` so
+   * fetchManagedSession's single retry uses the backend's own hint rather
+   * than a guess.
+   */
+  private async describeManagedSessionError(response: Response): Promise<{ message: string; retryAfterMs?: number }> {
+    let serverMessage = '';
+    let retryAfterMs: number | undefined;
+    try {
+      const body = await response.json();
+      if (typeof body?.error === 'string') serverMessage = body.error;
+      if (typeof body?.retryAfterMs === 'number') retryAfterMs = body.retryAfterMs;
+    } catch {
+      // Body wasn't JSON (or was empty) — fall back to the status-based message below.
+    }
+    switch (response.status) {
+      case 401:
+        // Not part of the actionable status table this task adds (402/403/409/
+        // 502/503) — extractCredentials() already blocks connect() before this
+        // point when there is no session token, so this is effectively
+        // unreachable via the normal UI flow. Left as a plain string rather
+        // than a new locale key, matching its pre-existing behavior.
+        return { message: 'Sign-in is required to start a managed Soniox session' };
+      case 402:
+        return { message: i18n.t('mainPanel.sonioxInsufficientBalance', 'Insufficient balance to start a session. Please top up your balance and try again.') };
+      case 403:
+        return { message: i18n.t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.') };
+      case 409:
+        return { message: i18n.t('mainPanel.sonioxSessionConflict', 'Another session is already running on your account. Please try again in a moment.'), retryAfterMs };
+      case 502:
+        return { message: i18n.t('mainPanel.sonioxServiceUnavailable', 'Soniox is temporarily unavailable. Please try again in a moment.') };
+      case 503:
+        return { message: i18n.t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.') };
+      default:
+        return { message: serverMessage || `Failed to start a managed Soniox session (HTTP ${response.status})` };
+    }
+  }
+
+  /**
+   * Fire-and-forget: confirms the socket is up so the backend extends the
+   * lease from its short "start window" TTL to the full session duration.
+   * Never awaited by connect() — a failure here just means the lease expires
+   * on its own schedule, never worth failing an already-open session over.
+   */
+  private notifySessionStarted(leaseId: string): void {
+    fetch(`${getApiUrl()}/soniox/session-started`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ leaseId }),
+    }).catch((error) => console.error('[SonioxClient] session-started notify failed:', error));
+  }
+
+  /**
+   * Fire-and-forget: hints the backend reconciler to look for this session's
+   * usage logs sooner. Never awaited by disconnect() — this is a hint, not a
+   * transaction, and a failure here is not actionable during teardown.
+   */
+  private notifySessionEnd(leaseId: string): void {
+    fetch(`${getApiUrl()}/soniox/session-end`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.managedOptions!.sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ leaseId }),
+    }).catch((error) => console.error('[SonioxClient] session-end notify failed:', error));
+  }
+
+  /**
+   * The session's budget ran out mid-stream. End the STT stream the same way
+   * a normal session ends — the protocol's empty-text-frame end-of-stream
+   * signal — so the server flushes and closes it cleanly instead of the
+   * socket being torn down mid-utterance. Surfaced through the same onError
+   * channel handleSttError/handleTtsError already use, with a distinct code
+   * so the UI can show a "balance used up" state rather than a generic error.
+   */
+  private handleBudgetExhausted(): void {
+    this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
+    this.eventHandlers.onError?.({
+      code: 'budget_exhausted',
+      message: i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.'),
+    });
+    this.stt?.end();
+  }
+
+  /**
+   * Managed-mode only: the running session's fixed budget parameters, for
+   * the status footer's remaining-time countdown (see
+   * SonioxCostMeter.getBudgetSnapshot / computeSonioxRemainingMs). Null for
+   * BYOK sessions (no cost meter) or before the session-key exchange has
+   * completed.
+   */
+  getManagedBudgetInfo(): SonioxBudgetSnapshot | null {
+    return this.costMeter?.getBudgetSnapshot() ?? null;
   }
 
   private handleSttMessage(message: SonioxSttMessage): void {
@@ -287,14 +550,19 @@ export class SonioxClient implements IClient {
 
   private createTtsStream(): SonioxTtsStream {
     const stream = new SonioxTtsStream({
-      apiKey: this.apiKey,
+      // Managed mode: a Soniox temporary key is scoped to ONE usage type —
+      // an sttApiKey cannot open a TTS socket, so this MUST be ttsApiKey.
+      apiKey: this.managedOptions ? this.managedTtsApiKey! : this.apiKey,
       voice: this.currentConfig?.voice || 'Maya',
       model: TTS_MODEL,
       sampleRate: SAMPLE_RATE,
+      // Same id as the STT stream — required for the TTS half of a managed
+      // session to be attributed to the billing lease.
+      clientReferenceId: this.clientReferenceId ?? undefined,
     });
     stream.setHandlers({
       onAudio: (audio) => this.emitAssistantAudio(audio),
-      onError: (code, message) => this.handleTtsError(code, message),
+      onError: (code, message, hadActiveStream) => this.handleTtsError(code, message, hadActiveStream),
     });
     return stream;
   }
@@ -302,8 +570,9 @@ export class SonioxClient implements IClient {
   /**
    * (Re)establish the TTS socket when it is closed, then flush any text/end
    * markers queued while it was down. Idle TTS sockets are closed by the
-   * server (~11 s) between utterances, so this runs whenever a translation
-   * needs speaking but the socket is not open.
+   * server (~5.3 s, 408: "Request timeout"; measured live) between
+   * utterances — almost every conversational pause — so this runs whenever a
+   * translation needs speaking but the socket is not open.
    */
   private async ensureTts(): Promise<void> {
     if (this.ttsConnecting) return;
@@ -333,8 +602,10 @@ export class SonioxClient implements IClient {
       }
     } catch (error) {
       // Reconnect itself failed → spoken output genuinely unavailable now.
+      // hadActiveStream is always true here: this IS the "tried to resume
+      // speech and could not" signal, unconditionally worth surfacing.
       this.ttsPending = [];
-      if (gen === this.generation) this.handleTtsError('connect_failed', String(error));
+      if (gen === this.generation) this.handleTtsError('connect_failed', String(error), true);
     } finally {
       this.ttsConnecting = false;
     }
@@ -546,6 +817,18 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttError(code: string, message: string): void {
+    // Managed sessions only: Soniox reports the granted-duration cutoff as
+    // this exact 403 error frame, immediately followed by a close (handled
+    // in the onClose wiring in connect(), which shows a dedicated "segment
+    // ended" state). Set the flag and stop here — no generic error bubble
+    // for this one, since it isn't really an error. BYOK has no granted
+    // duration and never hits this: a genuine mid-session 403 there (e.g. a
+    // revoked key) still falls through to the normal error path below.
+    if (this.managedOptions && code === '403') {
+      this.pendingDurationCutoff = true;
+      console.info('[SonioxClient] Managed session reached its granted duration (403); closing');
+      return;
+    }
     console.error(`[SonioxClient] STT error ${code}: ${message}`);
     const errorItem: ConversationItem = {
       id: this.generateItemId('error'),
@@ -560,19 +843,42 @@ export class SonioxClient implements IClient {
     this.eventHandlers.onError?.({ code, message });
   }
 
-  private handleTtsError(code: string, message: string): void {
-    // An idle TTS socket is closed by the server (~11 s, code 1001) between
-    // utterances and is recovered by reconnecting on the next translation
-    // (ensureTts) — that's expected, not a degradation, so don't surface it.
-    // Only a genuine failure (a reconnect that itself failed, or a wire-level
-    // error code) degrades spoken output.
-    if (code === 'socket_closed' || code === 'socket_error') return;
-    // TTS errors are non-fatal: log once, keep subtitles running. ttsFailedOnce
-    // is reset on a successful reconnect so a later genuine failure logs again.
+  private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {
+    // hadActiveStream — not the wire code — decides whether this is worth
+    // surfacing. A drop with no active/draining stream (nothing was actually
+    // being spoken) is an idle-timeout: expected server behavior (~5.3 s,
+    // measured live) recovered silently the next time ensureTts reconnects,
+    // no matter whether the wire reports it as 408 "Request timeout",
+    // socket_error, or a plain close. Only a drop that hit an in-flight
+    // utterance, or a reconnect attempt that itself failed (ensureTts's
+    // catch, which always passes true) — i.e. "we tried to resume speech and
+    // could not", not "the socket closed" — means spoken output has
+    // genuinely stopped.
+    if (!hadActiveStream) return;
+    // TTS errors are non-fatal to the SESSION — transcription and text
+    // translation carry on — but they are not invisible to the USER: spoken
+    // output has stopped, and (in managed mode) the session is still billed at
+    // the speech-to-speech rate. A console.error and a debug event reach
+    // neither. Surfaced through the same onError channel handleSttError and
+    // handleBudgetExhausted use, which puts a system bubble in the
+    // conversation and a session.error entry in the LogsPanel.
+    //
+    // Reported ONCE per failure episode: ttsFailedOnce is reset on a successful
+    // reconnect, so a later genuine failure reports again. The condition for
+    // raising the error is deliberately unchanged — only its visibility is.
     if (!this.ttsFailedOnce) {
       this.ttsFailedOnce = true;
       console.error(`[SonioxClient] TTS error ${code}: ${message} — spoken translation degraded`);
       this.emitRealtime('client', 'tts.degraded', { code, message });
+      this.eventHandlers.onError?.({
+        // Namespaced so a UI branching on `code` cannot confuse a degraded-TTS
+        // report with the STT error of the same wire code.
+        code: `tts_${code}`,
+        message: i18n.t(
+          'mainPanel.sonioxTtsFailed',
+          'Spoken translation has stopped. Transcription and text translation are still running.'
+        ),
+      });
     }
   }
 
@@ -626,6 +932,10 @@ export class SonioxClient implements IClient {
     // Invalidate any in-flight connect()/ensureTts(): a socket whose connect
     // await resolves after this point must not be installed or fed.
     this.generation++;
+    // Fire-and-forget: a hint, not a transaction — the backend releases the
+    // lease only once Soniox's usage logs confirm the session actually
+    // ended (or it expires on its own).
+    if (this.managedOptions && this.leaseId) this.notifySessionEnd(this.leaseId);
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     if (this.stt) {
       this.stt.end();   // empty text frame: server flushes and closes
@@ -666,6 +976,12 @@ export class SonioxClient implements IClient {
     this.ttsPending = [];
     this.ttsConnecting = false;
     this.ttsFailedOnce = false;
+    this.managedSttApiKey = null;
+    this.managedTtsApiKey = null;
+    this.leaseId = null;
+    this.clientReferenceId = null;
+    this.costMeter = null;
+    this.pendingDurationCutoff = false;
   }
 
   appendInputAudio(audioData: Int16Array): void {

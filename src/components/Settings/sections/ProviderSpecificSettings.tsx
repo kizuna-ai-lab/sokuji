@@ -19,6 +19,7 @@ import {
   useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
+  useKizunaSonioxSettings,
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useUpdateLocalNative,
@@ -37,6 +38,7 @@ import {
   useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
+  useUpdateKizunaSoniox,
   useUpdateLocalInference,
   useGetCurrentProviderSettings,
   TransportType,
@@ -54,6 +56,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } f
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
+import { sonioxUsesSharedBothSession } from '../../../services/providers/SonioxProviderConfig';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import { useMode } from '../../../stores/audioStore';
@@ -116,6 +119,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const mode = useMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
+  const kizunaSonioxSettings = useKizunaSonioxSettings();
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
   const updateLocalNativeSettings = useUpdateLocalNative();
@@ -143,6 +147,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
+  const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const localSystemPrompt = useLocalSystemPrompt();
@@ -178,6 +183,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     provider === Provider.KIZUNA_AI_VOLCENGINE_AST2
       ? updateKizunaVolcengineAst2Settings
       : updateVolcengineAST2Settings;
+
+  // Active Soniox slice + updater: kizuna slice when managed, else user-managed.
+  const activeSonioxSettings =
+    provider === Provider.KIZUNA_AI_SONIOX
+      ? kizunaSonioxSettings
+      : sonioxSettings;
+  const updateActiveSonioxSettings =
+    provider === Provider.KIZUNA_AI_SONIOX
+      ? updateKizunaSonioxSettings
+      : updateSonioxSettings;
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -292,6 +307,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateKizunaOpenaiTranslateSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_VOLCENGINE_AST2) {
       updateKizunaVolcengineAst2Settings({ [key]: value });
+    } else if (provider === Provider.KIZUNA_AI_SONIOX) {
+      updateKizunaSonioxSettings({ [key]: value });
     } else if (provider === Provider.LOCAL_INFERENCE) {
       updateLocalInferenceSettings({ [key]: value });
     } else {
@@ -1729,44 +1746,69 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderSonioxSettings = () => {
-    if (provider !== Provider.SONIOX) return null;
+    // Covers SONIOX and its kizuna twin; effectiveProvider resolves the twin
+    // to SONIOX while activeSonioxSettings/updateActiveSonioxSettings resolve
+    // to the kizuna slice when managed (same pattern as the AST2 twin above).
+    if (effectiveProvider !== Provider.SONIOX) return null;
 
     // The shared-session toggle only means anything in Both mode — Soniox
     // runs a single You/Others session there instead of two separate ones.
     // In You-only or Others-only mode there's nothing to share, so the pill
     // is greyed out (still shows the persisted preference, just inert).
     const inBoth = mode === 'both';
-    const shared = sonioxSettings.bothModeSharedSession;
+    // Managed (Kizuna) Soniox has no choice to offer: the backend's session
+    // lease is account-scoped, so "Disabled" would open a second client that
+    // the backend refuses with 409 — You→Others would work while Others→You
+    // silently did not. Forced on and locked, with the reason shown, rather
+    // than letting the user pick a mode the backend cannot honour.
+    const managed = isKizunaManagedProvider(provider);
+    const shared = sonioxUsesSharedBothSession(provider, activeSonioxSettings);
+    const lockedOff = isSessionActive || !inBoth || managed;
 
     return (
       <div className="settings-section" id="soniox-settings-section">
         <h2>
           {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
-          <Tooltip
-            content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
+          {/* The Enabled/Disabled tooltip recommends "Disabled" for reliability,
+              which is advice a managed account cannot act on — the inline note
+              below replaces it there. */}
+          {!managed && (
+            <Tooltip
+              content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          )}
         </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
             <button
               className={`option-button ${shared ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ bothModeSharedSession: true })}
-              disabled={isSessionActive || !inBoth}
+              onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: true })}
+              disabled={lockedOff}
             >
               {t('settings.enabled', 'Enabled')}
             </button>
             <button
               className={`option-button ${!shared ? 'active' : ''}`}
-              onClick={() => updateSonioxSettings({ bothModeSharedSession: false })}
-              disabled={isSessionActive || !inBoth}
+              onClick={() => updateActiveSonioxSettings({ bothModeSharedSession: false })}
+              disabled={lockedOff}
             >
               {t('settings.disabled', 'Disabled')}
             </button>
           </div>
         </div>
+        {managed && (
+          <div className="setting-item">
+            <div className="setting-description">
+              {t(
+                'settings.sonioxSharedSessionManaged',
+                'Kizuna AI runs Both mode as one shared session, so this cannot be turned off.'
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

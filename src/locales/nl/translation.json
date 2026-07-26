@@ -215,6 +215,7 @@
     "simpleMode": "Snel",
     "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
     "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
+    "sonioxSharedSessionManaged": "Kizuna AI voert de modus Beide uit als één gedeelde sessie, dus dit kan niet worden uitgeschakeld.",
     "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de andere deelnemer niet naar jouw taal worden vertaald."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Aangedreven door GPT modellen"
@@ -445,7 +450,7 @@
     "send": "Verzenden",
     "error": "Fout",
     "unknownError": "Onbekende fout",
-    "insufficientBalance": "Onvoldoende tokensaldo: {{balance}} tokens",
+    "insufficientBalance": "Onvoldoende saldo: {{balance}}",
     "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
     "localModelsRequired": "Download de vereiste modellen in Instellingen om te beginnen.",
     "clearConversation": "Gesprek wissen",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio die naar de virtuele microfoon wordt gestuurd (vertaling + doorvoer)",
     "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",
     "waveformSystemTooltip": "Deelnemersaudio vastgelegd voor vertaling (browsertabblad / systeemaudio)",
-    "allChannelsFailed": "Kon geen enkel audiokanaal starten. Controleer de apparaatmachtigingen en probeer het opnieuw."
+    "allChannelsFailed": "Kon geen enkel audiokanaal starten. Controleer de apparaatmachtigingen en probeer het opnieuw.",
+    "participantChannelFailed": "Het kon het audiokanaal van de deelnemer niet starten.",
+    "sonioxInsufficientBalance": "Onvoldoende saldo om een sessie te starten. Laad uw saldo op en probeer het opnieuw.",
+    "sonioxSessionConflict": "Er loopt al een andere sessie op uw account. Probeer het over een moment opnieuw.",
+    "sonioxServiceUnavailable": "Soniox is tijdelijk niet beschikbaar. Probeer het over een moment opnieuw.",
+    "sonioxServiceBusy": "Soniox zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
+    "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
+    "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
+    "sonioxSegmentEnded": "Dit segment is beëindigd — tik op Start om door te gaan."
   },
   "modePicker": {
     "modeYou": "Jij",

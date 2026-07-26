@@ -215,6 +215,7 @@
     "simpleMode": "Cepat",
     "sonioxSharedSession": "Sesi bersama dalam mode Keduanya",
     "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nDiaktifkan: satu sesi menerjemahkan kedua sisi dengan pemisahan pembicara otomatis — biaya dan latensi lebih rendah.\n\nDinonaktifkan: sesi terpisah untuk tiap arah — lebih andal saat keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
+    "sonioxSharedSessionManaged": "Kizuna AI menjalankan mode Keduanya sebagai satu sesi bersama, sehingga ini tidak dapat dinonaktifkan.",
     "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan deteksi otomatis, ucapan peserta lain tidak dapat diterjemahkan ke bahasa Anda."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Didukung oleh model GPT"
@@ -445,7 +450,7 @@
     "send": "Kirim",
     "error": "Kesalahan",
     "unknownError": "Kesalahan tidak diketahui",
-    "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
+    "insufficientBalance": "Saldo tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
     "localModelsRequired": "Silakan unduh model yang diperlukan di Pengaturan untuk memulai.",
     "clearConversation": "Hapus percakapan",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)",
     "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",
     "waveformSystemTooltip": "Audio peserta yang ditangkap untuk diterjemahkan (tab browser / audio sistem)",
-    "allChannelsFailed": "Gagal memulai saluran audio mana pun. Periksa izin perangkat dan coba lagi."
+    "allChannelsFailed": "Gagal memulai saluran audio mana pun. Periksa izin perangkat dan coba lagi.",
+    "participantChannelFailed": "Gagal memulai saluran audio partisipan.",
+    "sonioxInsufficientBalance": "Saldo tidak mencukupi untuk memulai sesi. Silakan isi ulang saldo Anda dan coba lagi.",
+    "sonioxSessionConflict": "Sesi lain sudah berjalan di akun Anda. Silakan coba lagi sebentar lagi.",
+    "sonioxServiceUnavailable": "Soniox untuk sementara tidak tersedia. Silakan coba lagi sebentar lagi.",
+    "sonioxServiceBusy": "Soniox sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
+    "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
+    "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
+    "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk Mulai untuk melanjutkan."
   },
   "modePicker": {
     "modeYou": "Anda",

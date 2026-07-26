@@ -73,6 +73,7 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.SONIOX]: SonioxIcon,
   [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
   [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
+  [Provider.KIZUNA_AI_SONIOX]: KizunaAIIcon,
   [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
   [Provider.LOCAL_NATIVE]: KizunaAIIcon,
 };

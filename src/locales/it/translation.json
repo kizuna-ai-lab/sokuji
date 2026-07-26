@@ -215,6 +215,7 @@
     "simpleMode": "Rapido",
     "sonioxSharedSession": "Sessione condivisa in modalità Entrambi",
     "sonioxSharedSessionTooltip": "La modalità Entrambi può usare un’unica sessione Soniox condivisa o una sessione separata per direzione.\n\nAbilitato: un’unica sessione traduce entrambi i lati con separazione automatica dei parlanti — costi e latenza inferiori.\n\nDisabilitato: una sessione separata per direzione — più affidabile quando parlano entrambi contemporaneamente, ma con costo circa doppio.\n\nInfluisce solo sulla modalità Entrambi.",
+    "sonioxSharedSessionManaged": "Kizuna AI esegue la modalità Entrambi come un'unica sessione condivisa, quindi non è possibile disattivarla.",
     "sonioxAutoParticipantWarning": "Scegli una lingua di origine specifica — con il rilevamento automatico non è possibile tradurre la voce dell'altro partecipante nella tua lingua."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Traduzione da voce a voce, autenticata tramite il tuo account"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Traduzione da voce a voce, autenticata tramite il tuo account"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Alimentato dai modelli GPT"
@@ -445,7 +450,7 @@
     "send": "Invia",
     "error": "Errore",
     "unknownError": "Errore sconosciuto",
-    "insufficientBalance": "Saldo token insufficiente: {{balance}} token",
+    "insufficientBalance": "Saldo insufficiente: {{balance}}",
     "walletFrozen": "Portafoglio congelato. Contatta il supporto.",
     "localModelsRequired": "Scarica i modelli necessari nelle Impostazioni per iniziare.",
     "clearConversation": "Cancella conversazione",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio inviato al microfono virtuale (traduzione + passaggio audio originale)",
     "waveformMicTooltip": "Il tuo microfono — la tua voce acquisita per la traduzione",
     "waveformSystemTooltip": "Audio dei partecipanti acquisito per la traduzione (scheda del browser / audio di sistema)",
-    "allChannelsFailed": "Impossibile avviare qualsiasi canale audio. Controlla i permessi dei dispositivi e riprova."
+    "allChannelsFailed": "Impossibile avviare qualsiasi canale audio. Controlla i permessi dei dispositivi e riprova.",
+    "participantChannelFailed": "Impossibile avviare il canale audio del partecipante.",
+    "sonioxInsufficientBalance": "Saldo insufficiente per avviare una sessione. Ricarica il tuo saldo e riprova.",
+    "sonioxSessionConflict": "Un'altra sessione è già attiva sul tuo account. Riprova tra un momento.",
+    "sonioxServiceUnavailable": "Soniox non è temporaneamente disponibile. Riprova tra un momento.",
+    "sonioxServiceBusy": "Soniox è al momento alla massima capacità. Riprova a breve.",
+    "sonioxBudgetExhausted": "Il saldo della sessione è esaurito. Ricarica il tuo saldo per continuare a tradurre.",
+    "sonioxTtsFailed": "La traduzione vocale si è interrotta. La trascrizione e la traduzione testuale continuano a funzionare.",
+    "sonioxSegmentEnded": "Questo segmento è terminato — tocca Avvia per continuare."
   },
   "modePicker": {
     "modeYou": "Tu",

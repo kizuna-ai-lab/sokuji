@@ -19,8 +19,14 @@
  *   round-trip (~400 ms). A prewarmed stream with the wrong language (only
  *   possible in two_way mode) is discarded immediately — it produced no
  *   audio, so no serialization wait is needed.
- * - {keep_alive:true} every 20 s keeps idle sockets alive (NOTE: different
- *   shape from the STT keepalive {"type":"keepalive"}).
+ * - {keep_alive:true} every 20 s (NOTE: different shape from the STT
+ *   keepalive {"type":"keepalive"}). Does NOT prevent the server from closing
+ *   a socket with no active stream — measured live at ~5.3 s with a 408
+ *   ("Request timeout") error, well inside this 20 s interval — so
+ *   SonioxClient's reconnect-on-demand (ensureTts) is what actually keeps
+ *   speech flowing across a silence, not this. Every onError report carries
+ *   `hadActiveStream` so the caller can tell this ordinary idle drop (no
+ *   stream was carrying content) apart from one that hit real speech.
  */
 
 export interface SonioxTtsOptions {
@@ -28,11 +34,21 @@ export interface SonioxTtsOptions {
   voice: string;
   model: string;
   sampleRate: number;
+  // Managed-mode only: must match the STT stream's clientReferenceId, or the
+  // TTS half of the session cannot be attributed to the billing lease.
+  clientReferenceId?: string;
 }
 
 export interface SonioxTtsStreamHandlers {
   onAudio?: (audio: Int16Array) => void;
-  onError?: (code: string, message: string) => void;
+  // hadActiveStream: whether a stream carrying real utterance content (active
+  // or still draining its final audio) existed at the moment of this
+  // error/close, as opposed to a socket that was genuinely idle (no stream
+  // ever opened, or already fully drained) — e.g. the ~5.3 s "no active
+  // stream" 408 idle-timeout. The caller (SonioxClient.handleTtsError) uses
+  // this, not the wire code, to decide whether a drop is expected (silently
+  // recovered by ensureTts) or a genuine loss of spoken output.
+  onError?: (code: string, message: string, hadActiveStream: boolean) => void;
 }
 
 interface QueuedItem {
@@ -100,7 +116,10 @@ export class SonioxTtsStream {
           return;
         }
         if (data.error_code != null) {
-          this.handlers.onError?.(String(data.error_code), data.error_message ?? '');
+          // Snapshot BEFORE handleStreamFailure clears it — this is the seam
+          // the caller uses to tell an idle-timeout drop from a genuine one.
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
+          this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream);
           this.handleStreamFailure(data.stream_id);
         } else if (data.audio && (data.stream_id === this.activeStreamId || data.stream_id === this.drainingStreamId)) {
           this.handlers.onAudio?.(this.base64ToInt16(data.audio));
@@ -121,7 +140,8 @@ export class SonioxTtsStream {
         if (!opened) {
           reject(error instanceof Error ? error : new Error('Soniox TTS connection failed'));
         } else {
-          this.handlers.onError?.('socket_error', String(error));
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
+          this.handlers.onError?.('socket_error', String(error), hadActiveStream);
         }
       };
 
@@ -136,12 +156,14 @@ export class SonioxTtsStream {
           return;
         }
         if (!this.intentionalClose) {
+          // Snapshot BEFORE clearing — same seam as the error branch above.
+          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
           this.activeStreamId = null;
           this.activeLanguage = null;
           this.activeStreamUsed = false;
           this.drainingStreamId = null;
           this.queue = [];
-          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly');
+          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream);
         }
       };
     });
@@ -269,6 +291,7 @@ export class SonioxTtsStream {
       language,
       audio_format: 'pcm_s16le',
       sample_rate: this.options.sampleRate,
+      ...(this.options.clientReferenceId ? { client_reference_id: this.options.clientReferenceId } : {}),
     }));
     this.activeStreamId = streamId;
     this.activeLanguage = language;

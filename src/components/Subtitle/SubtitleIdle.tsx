@@ -64,8 +64,8 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
   }
 
   if (state.kind === 'blocked') {
-    const { key, defaultValue } = reasonToI18n(state.reason);
-    const message = t(key, defaultValue, { balance: state.balance });
+    const { key, defaultValue, values } = reasonToI18n(state.reason, state.balance);
+    const message = t(key, defaultValue, values);
     // The reason strings are shared with the main window's Start tooltip,
     // where they are full sentences. On a button the terminal punctuation is
     // wrong, so strip it here rather than forking the string into a

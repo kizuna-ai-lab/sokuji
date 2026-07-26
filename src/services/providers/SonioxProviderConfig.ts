@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDe
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
+import { Provider, isKizunaManagedProvider } from '../../types/Provider';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
@@ -23,6 +24,37 @@ export const defaultSonioxSettings: SonioxSettings = {
   voice: 'Maya',
   model: 'stt-rt-v5',
 };
+
+// The managed start floor lives in its own import-free module so the Start
+// gate (and the subtitle window that shares it) can read it without pulling
+// SonioxClient — and the i18n bootstrap behind it — into their bundles.
+// Re-exported here so this file stays the one place to look for Soniox config.
+export {
+  SONIOX_MANAGED_MIN_BALANCE_MICRO_USD,
+  sonioxManagedMinBalanceMicroUsd,
+} from './sonioxManagedMinBalance';
+
+/**
+ * Does Both mode run on ONE shared Soniox session for this provider?
+ *
+ * FORCED ON for the Kizuna-managed twin, whatever the stored preference says.
+ * The managed backend's session lease is account-scoped and single-session: two
+ * clients means the second `connect()` is refused with 409, so You→Others works
+ * while Others→You silently does not. The user cannot be offered a mode the
+ * backend structurally cannot honour, so `ProviderSpecificSettings` disables
+ * the control and this function is the single source of truth both it and
+ * `MainPanel` read (a stored `false` — e.g. carried over from BYOK use — must
+ * not resurrect the half-failed session).
+ *
+ * BYOK Soniox keeps the choice: two keys, two sessions, no lease involved.
+ */
+export function sonioxUsesSharedBothSession(
+  provider: Provider,
+  settings: { bothModeSharedSession?: boolean } | null | undefined
+): boolean {
+  if (isKizunaManagedProvider(provider)) return true;
+  return settings?.bothModeSharedSession ?? true;
+}
 
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';

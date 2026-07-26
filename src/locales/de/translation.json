@@ -215,6 +215,7 @@
     "simpleMode": "Schnell",
     "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
     "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Sprechertrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
+    "sonioxSharedSessionManaged": "Kizuna AI führt den Modus „Beides“ immer als eine gemeinsame Sitzung aus, daher lässt sich dies nicht deaktivieren.",
     "sonioxAutoParticipantWarning": "Wählen Sie eine konkrete Ausgangssprache – bei automatischer Erkennung kann die Sprache des Gegenübers nicht in Ihre Sprache übersetzt werden."
   },
   "simpleSettings": {
@@ -344,6 +345,10 @@
       "name": "KizunaAI Doubao",
       "description": "Sprache-zu-Sprache-Übersetzung, authentifiziert über Ihr Konto"
     },
+    "kizunaai_soniox": {
+      "name": "KizunaAI Soniox",
+      "description": "Sprache-zu-Sprache-Übersetzung, authentifiziert über Ihr Konto"
+    },
     "openai": {
       "name": "OpenAI",
       "description": "Betrieben von GPT-Modellen"
@@ -445,7 +450,7 @@
     "send": "Senden",
     "error": "Fehler",
     "unknownError": "Unbekannter Fehler",
-    "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
+    "insufficientBalance": "Unzureichendes Guthaben: {{balance}}",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
     "localModelsRequired": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
     "clearConversation": "Unterhaltung löschen",
@@ -487,7 +492,15 @@
     "waveformOutputTooltip": "Audio, das an das virtuelle Mikrofon gesendet wird (Übersetzung + Durchleitung)",
     "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",
     "waveformSystemTooltip": "Teilnehmer-Audio, das zur Übersetzung erfasst wird (Browser-Tab / System-Audio)",
-    "allChannelsFailed": "Kein Audiokanal konnte gestartet werden. Prüfen Sie die Geräteberechtigungen und versuchen Sie es erneut."
+    "allChannelsFailed": "Kein Audiokanal konnte gestartet werden. Prüfen Sie die Geräteberechtigungen und versuchen Sie es erneut.",
+    "participantChannelFailed": "Der Teilnehmer-Audiokanal konnte nicht gestartet werden.",
+    "sonioxInsufficientBalance": "Unzureichendes Guthaben, um eine Sitzung zu starten. Bitte laden Sie Ihr Guthaben auf und versuchen Sie es erneut.",
+    "sonioxSessionConflict": "In Ihrem Konto läuft bereits eine andere Sitzung. Bitte versuchen Sie es in Kürze erneut.",
+    "sonioxServiceUnavailable": "Soniox ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
+    "sonioxServiceBusy": "Soniox ist derzeit ausgelastet. Bitte versuchen Sie es in Kürze erneut.",
+    "sonioxBudgetExhausted": "Ihr Sitzungsguthaben ist aufgebraucht. Laden Sie Ihr Guthaben auf, um weiter zu übersetzen.",
+    "sonioxTtsFailed": "Die gesprochene Übersetzung wurde beendet. Transkription und Textübersetzung laufen weiter.",
+    "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf Start, um fortzufahren."
   },
   "modePicker": {
     "modeYou": "Sie",

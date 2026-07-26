@@ -91,11 +91,24 @@ describe('SubtitleIdle blocked state', () => {
     ).toBeInTheDocument();
   });
 
-  it('interpolates the balance into the insufficient-balance message', () => {
+  // The wallet is denominated in micro-USD and the product no longer speaks
+  // in "tokens", so the balance must arrive here already formatted as dollars
+  // — interpolating the raw value would put a 7-digit integer on the button.
+  it('interpolates the balance into the insufficient-balance message as USD', () => {
     render(
       <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 0 }} {...handlers()} />,
     );
-    expect(screen.getByRole('button', { name: /0 tokens/i })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /\$0\.00/ });
+    expect(button).toBeInTheDocument();
+    expect(button.textContent).not.toMatch(/token/i);
+  });
+
+  it('renders a sub-floor micro-USD balance as dollars, not as a raw integer', () => {
+    render(
+      <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 9_999 }} {...handlers()} />,
+    );
+    expect(screen.getByRole('button', { name: /\$0\.01/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /9999/ })).not.toBeInTheDocument();
   });
 
   // loading-models has no settings destination, so there is nothing to click.

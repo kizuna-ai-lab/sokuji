@@ -48,6 +48,10 @@ export interface SonioxSttConfig {
   sampleRate: number;
   languageHints?: string[];
   translation: SonioxTranslationConfig;
+  // Managed-mode only: correlates this session's usage logs back to the
+  // backend's billing lease. BYOK sessions omit it (the field is simply
+  // absent from the wire config).
+  clientReferenceId?: string;
 }
 
 export interface SonioxSttStreamHandlers {
@@ -55,6 +59,11 @@ export interface SonioxSttStreamHandlers {
   onFinished?: () => void;
   onError?: (code: string, message: string) => void;
   onClose?: (event: { code?: number; reason?: string }) => void;
+  // Fires on every keepalive-check tick (see KEEPALIVE_CHECK_INTERVAL_MS),
+  // independent of whether a keepalive frame was actually sent. Managed-mode
+  // SonioxClient drives its SonioxCostMeter off this — it is the "existing
+  // interval" the meter is meant to reuse rather than starting a second timer.
+  onTick?: () => void;
 }
 
 const STT_URL = 'wss://stt-rt.soniox.com/transcribe-websocket';
@@ -101,6 +110,7 @@ export class SonioxSttStream {
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
           translation: config.translation,
+          ...(config.clientReferenceId ? { client_reference_id: config.clientReferenceId } : {}),
         }));
         this.lastAudioAt = Date.now();
         this.startKeepalive();
@@ -184,6 +194,9 @@ export class SonioxSttStream {
         this.ws!.send(JSON.stringify({ type: 'keepalive' }));
         this.lastAudioAt = Date.now();
       }
+      // Runs every tick regardless of whether a keepalive frame was actually
+      // sent — see onTick's docstring.
+      this.handlers.onTick?.();
     }, KEEPALIVE_CHECK_INTERVAL_MS);
   }
 
