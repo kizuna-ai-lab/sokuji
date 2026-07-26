@@ -99,14 +99,15 @@ public/wasm/*
 !public/wasm/gtcrn/
 
 .superpowers/
-/.playwright-mcp/page-2026-05-08T15-57-58-425Z.yml
-/.playwright-mcp/page-2026-05-08T15-58-05-987Z.yml
-/.playwright-mcp/page-2026-05-08T16-03-59-090Z.yml
-/.playwright-mcp/page-2026-05-08T16-04-06-607Z.yml
-/.playwright-mcp/page-2026-05-08T16-04-32-198Z.yml
-/.playwright-mcp/page-2026-05-08T16-04-38-548Z.yml
-/.playwright-mcp/page-2026-05-08T16-04-45-831Z.yml
-/.playwright-mcp/page-2026-05-08T16-04-59-713Z.yml
+# Playwright MCP scratch: page dumps and screenshots from interactive browser
+# sessions. This was previously a list of individual filenames, which only
+# covered the dumps that existed the day it was written — every later session
+# produced untracked files that a `git add` then swept into a commit. Ignore
+# the directory instead.
+/.playwright-mcp/
+
+# Local test-run output (`npm run test > test-results.txt`)
+/test-results.txt
 /pocket-mirrors/
 
 # OmniVoice TTS spike scratch (models, samples) — not committed

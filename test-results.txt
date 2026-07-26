@@ -1,9 +1,0 @@
-
- RUN  v4.1.7 /home/jiangzhuo/Desktop/kizunaai/sokuji-react
-
-
- Test Files  129 passed (129)
-      Tests  1340 passed (1340)
-   Start at  18:26:36
-   Duration  5.39s (transform 14.18s, setup 6.41s, import 30.28s, tests 8.41s, environment 34.22s)
-
