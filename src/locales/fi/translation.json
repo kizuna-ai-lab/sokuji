@@ -161,6 +161,9 @@
     "vadSettings": "VAD-asetukset",
     "vadSettingsTooltip": "Ääniaktiivisuuden tunnistuksen asetukset. Säädä näitä asetuksia optimoidaksesi puheentunnistuksen ympäristöllesi.",
     "vadThresholdTooltip": "Puheentunnistuksen herkkyys. Korkeammat arvot vaativat voimakkaampaa/selkeämpää puhetta. Matalammat arvot ovat herkempiä hiljaiselle puheelle.",
+    "vadNegativeThreshold": "Hiljaisuuden kynnys",
+    "vadNegativeThresholdTooltip": "Todennäköisyys, jonka alapuolella hiljaisuus alkaa kerryttää segmentin lopetusta. Auto pitää sen 0,15 VAD-kynnyksen alapuolella. Sitä ei koskaan käytetä VAD-kynnystä suurempana, koska silloin segmentit eivät päättyisi koskaan.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min. hiljaisuusaika",
     "vadMinSilenceDurationTooltip": "Minimi hiljaisuus puhesegmenttien jakamiseen. Lyhyemmät arvot jakavat lauseet nopeammin, pidemmät odottavat luonnollisempia taukoja.",
     "vadMinSpeechDuration": "Min. puheaika",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Istunto päättyi",
     "backToMain": "Palaa pääikkunaan",
+    "idle": {
+      "start": "Aloita kääntäminen",
+      "hint": "Sijoita ja muuta ikkunan kokoa ennen aloittamista",
+      "ended": "Tämä istunto on päättynyt",
+      "failed": "Aloitus epäonnistui: {{message}}",
+      "retry": "Yritä uudelleen",
+      "backForDetails": "Palaa pääikkunaan nähdäksesi lisätiedot"
+    },
     "enterButton": {
       "title": "Ota tekstitystila käyttöön",
       "disabled": "Aloita istunto ensin",
@@ -847,6 +858,8 @@
       "label": "Poistu tekstityksestä"
     },
     "bar": {
+      "start": "Aloita istunto",
+      "stop": "Lopeta istunto",
       "fontDecrease": "Pienennä fonttia",
       "fontIncrease": "Suurenna fonttia",
       "expand": "Laaja näkymä",

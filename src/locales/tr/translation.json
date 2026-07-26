@@ -161,6 +161,9 @@
     "vadSettings": "VAD Ayarları",
     "vadSettingsTooltip": "Ses etkinliği algılama yapılandırması. Ortamınız için ses algılamayı optimize etmek üzere bu ayarları düzenleyin.",
     "vadThresholdTooltip": "Konuşma algılama hassasiyeti. Yüksek değerler daha yüksek/net konuşma gerektirir. Düşük değerler sessiz konuşmaya daha duyarlıdır.",
+    "vadNegativeThreshold": "Sessizlik Eşiği",
+    "vadNegativeThresholdTooltip": "Sessizliğin segmenti bitirmek üzere sayılmaya başladığı olasılık. Otomatik, bu değeri VAD Eşiğinin 0,15 altında tutar. VAD Eşiğinin üzerinde asla uygulanmaz; aksi hâlde segmentler hiç bitmezdi.",
+    "vadNegativeThresholdAuto": "Otomatik",
     "vadMinSilenceDuration": "Min. Sessizlik Süresi",
     "vadMinSilenceDurationTooltip": "Konuşma segmentlerini ayırmak için minimum sessizlik. Daha kısa değerler cümleleri daha hızlı ayırır, daha uzun değerler daha doğal duraklamaları bekler.",
     "vadMinSpeechDuration": "Min. Konuşma Süresi",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Oturum sona erdi",
     "backToMain": "Ana pencereye dön",
+    "idle": {
+      "start": "Çeviriyi başlat",
+      "hint": "Başlamadan önce pencereyi konumlandırın ve boyutlandırın",
+      "ended": "Bu oturum sona erdi",
+      "failed": "Başlatılamadı: {{message}}",
+      "retry": "Tekrar dene",
+      "backForDetails": "Ayrıntılar için ana pencereye dönün"
+    },
     "enterButton": {
       "title": "Altyazı moduna geç",
       "disabled": "Önce bir oturum başlatın",
@@ -847,6 +858,8 @@
       "label": "Altyazıdan çık"
     },
     "bar": {
+      "start": "Oturumu başlat",
+      "stop": "Oturumu durdur",
       "fontDecrease": "Yazı tipini küçült",
       "fontIncrease": "Yazı tipini büyüt",
       "expand": "Genişletilmiş görünüm",

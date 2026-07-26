@@ -161,6 +161,9 @@
     "vadSettings": "Tetapan VAD",
     "vadSettingsTooltip": "Konfigurasi Pengesanan Aktiviti Suara. Laraskan tetapan ini untuk mengoptimumkan pengesanan pertuturan bagi persekitaran anda.",
     "vadThresholdTooltip": "Kepekaan pengesanan pertuturan. Nilai lebih tinggi memerlukan pertuturan lebih kuat/jelas. Nilai lebih rendah lebih peka terhadap pertuturan perlahan.",
+    "vadNegativeThreshold": "Ambang Senyap",
+    "vadNegativeThresholdTooltip": "Kebarangkalian yang di bawahnya kesenyapan mula dikira untuk menamatkan segmen. Automatik mengekalkannya 0.15 di bawah Ambang VAD. Ia tidak pernah digunakan melebihi Ambang VAD, kerana segmen tidak akan pernah tamat.",
+    "vadNegativeThresholdAuto": "Automatik",
     "vadMinSilenceDuration": "Tempoh Senyap Minimum",
     "vadMinSilenceDurationTooltip": "Tempoh senyap minimum untuk memisahkan segmen pertuturan. Nilai lebih pendek memisahkan ayat lebih cepat, nilai lebih panjang menunggu jeda yang lebih semula jadi.",
     "vadMinSpeechDuration": "Tempoh Pertuturan Minimum",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Sesi berakhir",
     "backToMain": "Kembali ke tetingkap utama",
+    "idle": {
+      "start": "Mulakan terjemahan",
+      "hint": "Atur kedudukan dan saiz tetingkap sebelum anda mula",
+      "ended": "Sesi ini telah tamat",
+      "failed": "Gagal memulakan: {{message}}",
+      "retry": "Cuba lagi",
+      "backForDetails": "Kembali ke tetingkap utama untuk butiran"
+    },
     "enterButton": {
       "title": "Masuk mod sari kata",
       "disabled": "Mulakan sesi dahulu",
@@ -847,6 +858,8 @@
       "label": "Keluar sari kata"
     },
     "bar": {
+      "start": "Mulakan sesi",
+      "stop": "Hentikan sesi",
       "fontDecrease": "Kecilkan fon",
       "fontIncrease": "Besarkan fon",
       "expand": "Paparan dipanjangkan",

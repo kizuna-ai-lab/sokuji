@@ -161,6 +161,9 @@
     "vadSettings": "Cài đặt VAD",
     "vadSettingsTooltip": "Cấu hình phát hiện hoạt động giọng nói. Điều chỉnh các cài đặt này để tối ưu hóa phát hiện giọng nói cho môi trường của bạn.",
     "vadThresholdTooltip": "Độ nhạy phát hiện giọng nói. Giá trị cao hơn yêu cầu giọng nói to/rõ hơn. Giá trị thấp hơn nhạy hơn với giọng nói nhỏ.",
+    "vadNegativeThreshold": "Ngưỡng im lặng",
+    "vadNegativeThresholdTooltip": "Xác suất mà dưới mức đó, khoảng im lặng bắt đầu được tính để kết thúc đoạn. Tự động giữ nó thấp hơn Ngưỡng VAD 0,15. Giá trị này không bao giờ được áp dụng cao hơn Ngưỡng VAD, vì khi đó các đoạn sẽ không bao giờ kết thúc.",
+    "vadNegativeThresholdAuto": "Tự động",
     "vadMinSilenceDuration": "Thời gian im lặng tối thiểu",
     "vadMinSilenceDurationTooltip": "Thời gian im lặng tối thiểu để chia đoạn giọng nói. Giá trị ngắn hơn chia câu nhanh hơn, giá trị dài hơn chờ ngắt nghỉ tự nhiên hơn.",
     "vadMinSpeechDuration": "Thời gian nói tối thiểu",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Phiên đã kết thúc",
     "backToMain": "Quay lại cửa sổ chính",
+    "idle": {
+      "start": "Bắt đầu dịch",
+      "hint": "Định vị và điều chỉnh kích thước cửa sổ trước khi bắt đầu",
+      "ended": "Phiên này đã kết thúc",
+      "failed": "Bắt đầu không thành công: {{message}}",
+      "retry": "Thử lại",
+      "backForDetails": "Quay lại cửa sổ chính để xem chi tiết"
+    },
     "enterButton": {
       "title": "Bật chế độ phụ đề",
       "disabled": "Hãy bắt đầu phiên trước",
@@ -847,6 +858,8 @@
       "label": "Thoát phụ đề"
     },
     "bar": {
+      "start": "Bắt đầu phiên",
+      "stop": "Dừng phiên",
       "fontDecrease": "Giảm cỡ chữ",
       "fontIncrease": "Tăng cỡ chữ",
       "expand": "Chế độ mở rộng",

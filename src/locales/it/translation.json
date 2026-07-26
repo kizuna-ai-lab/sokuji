@@ -161,6 +161,9 @@
     "vadSettings": "Impostazioni VAD",
     "vadSettingsTooltip": "Configurazione del rilevamento dell'attività vocale. Regola queste impostazioni per ottimizzare il rilevamento vocale nel tuo ambiente.",
     "vadThresholdTooltip": "Sensibilità di rilevamento vocale. Valori più alti richiedono voce più forte/chiara. Valori più bassi sono più sensibili alla voce bassa.",
+    "vadNegativeThreshold": "Soglia di Silenzio",
+    "vadNegativeThresholdTooltip": "Probabilità sotto la quale il silenzio inizia a contare per la fine del segmento. Auto la mantiene 0,15 sotto la Soglia VAD. Non viene mai applicata sopra la Soglia VAD, perché i segmenti non finirebbero mai.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Durata min. silenzio",
     "vadMinSilenceDurationTooltip": "Durata minima del silenzio per dividere i segmenti vocali. Valori più brevi dividono le frasi più velocemente, valori più lunghi attendono pause più naturali.",
     "vadMinSpeechDuration": "Durata min. parlato",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Sessione terminata",
     "backToMain": "Torna alla finestra principale",
+    "idle": {
+      "start": "Avvia la traduzione",
+      "hint": "Posiziona e ridimensiona la finestra prima di iniziare",
+      "ended": "Questa sessione è terminata",
+      "failed": "Avvio non riuscito: {{message}}",
+      "retry": "Riprova",
+      "backForDetails": "Torna alla finestra principale per i dettagli"
+    },
     "enterButton": {
       "title": "Attiva modalità sottotitoli",
       "disabled": "Avvia prima una sessione",
@@ -847,6 +858,8 @@
       "label": "Esci dai sottotitoli"
     },
     "bar": {
+      "start": "Avvia sessione",
+      "stop": "Interrompi sessione",
       "fontDecrease": "Riduci dimensione carattere",
       "fontIncrease": "Aumenta dimensione carattere",
       "expand": "Vista espansa",

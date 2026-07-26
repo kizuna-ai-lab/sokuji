@@ -161,6 +161,9 @@
     "vadSettings": "VAD Settings",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Adjust these settings to optimize speech detection for your environment.",
     "vadThresholdTooltip": "Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.",
+    "vadNegativeThreshold": "Silence Threshold",
+    "vadNegativeThresholdTooltip": "Probability below which silence starts counting toward the end of a segment. Auto keeps it 0.15 under the VAD Threshold. It never applies above the VAD Threshold — that would stop segments from ever ending.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Min Silence Duration",
     "vadMinSilenceDurationTooltip": "Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.",
     "vadMinSpeechDuration": "Min Speech Duration",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Session ended",
     "backToMain": "Return to main window",
+    "idle": {
+      "start": "Start translating",
+      "hint": "Position and size the window before you start",
+      "ended": "This session has ended",
+      "failed": "Failed to start: {{message}}",
+      "retry": "Retry",
+      "backForDetails": "Return to main window for details"
+    },
     "enterButton": {
       "title": "Enter subtitle mode",
       "disabled": "Start a session first",
@@ -847,6 +858,8 @@
       "label": "Exit subtitle"
     },
     "bar": {
+      "start": "Start session",
+      "stop": "Stop session",
       "fontDecrease": "Decrease font size",
       "fontIncrease": "Increase font size",
       "expand": "Expanded view",

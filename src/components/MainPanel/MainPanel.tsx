@@ -27,7 +27,7 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { sonioxUsesSharedBothSession, sonioxManagedMinBalanceMicroUsd } from '../../services/providers/SonioxProviderConfig';
+import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -53,13 +53,15 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible, isKizunaManagedProvider, kizunaBaseProvider } from '../../types/Provider';
+import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../types/Provider';
+import { computeStartGate, reasonToI18n } from './sessionStartGate';
+import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
-import { formatUsd, formatRemainingTime } from '../../utils/formatters';
+import { formatRemainingTime } from '../../utils/formatters';
 import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
@@ -347,24 +349,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session duration for footer display
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
 
-  // Balance validation for Kizuna AI. Require enough balance to actually START
-  // a session; the relay enforces the same gate server-side, and cuts the
-  // session off if usage drives the balance negative.
-  //
-  // Managed Soniox has a real floor rather than "any positive balance": the
-  // backend refuses to issue a session key below the price of its shortest
-  // session (60s) at the SKU's rate — $0.01 text-only, $0.025
-  // speech-to-speech. Gating on `> 0` showed a user in between a green Start
-  // and then a 402. The 402 stays as the backstop; this just stops the button
-  // lying about it.
+  // Text-only mode (no spoken translation). Fed to computeStartGate, which
+  // uses it to pick the managed-Soniox balance floor: that provider's backend
+  // refuses to issue a session key below the price of its shortest session at
+  // the SKU's rate, and the rate differs between text-only and
+  // speech-to-speech. The balance gate itself lives in sessionStartGate.ts so
+  // the subtitle window applies the identical rule.
   const textOnly = useTextOnly();
-  const managedBalanceFloorMicroUsd = provider === Provider.KIZUNA_AI_SONIOX
-    ? sonioxManagedMinBalanceMicroUsd(textOnly)
-    : 1; // µUSD are integers, so `>= 1` is the old `> 0`.
-  const managedBalanceTooLow = isKizunaManagedProvider(provider) &&
-    !!quota && quota.balance !== undefined && quota.balance < managedBalanceFloorMicroUsd;
-  const hasValidBalance = (!isKizunaManagedProvider(provider)) ||
-    (quota && quota.balance !== undefined && quota.balance >= managedBalanceFloorMicroUsd && !quota.frozen);
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).
   // Reads directly from audioStore — setMode is the single source of truth.
@@ -454,9 +445,35 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
   // values: 'speaker', 'participant', or 'both'.
-  const canStartSession = isApiKeyValid && availableModels.length > 0 &&
-    !loadingModels && !isInitializing && hasValidBalance &&
-    missingDeviceForMode === null && !sonioxAutoParticipantBlocked;
+  //
+  // The gate also carries WHY it is closed, so the tooltip below and the
+  // subtitle window (via useSubtitleSessionBridge) explain the blocker with
+  // one shared implementation. See sessionStartGate.ts.
+  const startGate = useMemo(
+    () => computeStartGate({
+      isApiKeyValid,
+      availableModelCount: availableModels.length,
+      loadingModels,
+      isInitializing,
+      provider,
+      quota,
+      missingDeviceForMode,
+      sonioxAutoParticipantBlocked,
+      textOnly,
+    }),
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked, textOnly],
+  );
+  const canStartSession = startGate.canStart;
+
+  // The blocker rendered as a sentence, resolved once. Both Start surfaces
+  // below (the basic-mode button's title and the advanced-mode tooltip) read
+  // this, so they cannot drift apart, and the balance interpolation arrives
+  // already formatted as USD from reasonToI18n.
+  const startBlockMessage = useMemo(() => {
+    if (!startGate.reason) return undefined;
+    const { key, defaultValue, values } = reasonToI18n(startGate.reason, startGate.balance);
+    return t(key, defaultValue, values);
+  }, [startGate.reason, startGate.balance, t]);
 
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
@@ -790,10 +807,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
     
     initAudioService();
-    
-    // Clean up function
+
+    // Release the microphone the instant the window/page is going away, so the
+    // OS capture endpoint is freed cleanly rather than on abrupt process
+    // teardown. Without this, closing and quickly reopening can leave the mic
+    // stranded and the next launch's getUserMedia fails with
+    // "NotReadableError: Could not start audio source" (Windows especially).
+    // `pagehide` fires on window close / navigation / reload — but NOT on
+    // minimize/hide (that's `visibilitychange`), so this never releases the mic
+    // while the app is merely hidden. Guard against the bfcache case
+    // (event.persisted) where the page is frozen and may be restored via
+    // `pageshow` rather than torn down.
+    const releaseMic = (event?: PageTransitionEvent) => {
+      if (event?.persisted) return;
+      audioServiceRef.current?.releaseMicrophone?.();
+    };
+    window.addEventListener('pagehide', releaseMic);
+
+    // Cleanup only detaches the listener. Do NOT release the mic on unmount:
+    // real teardown already goes through the non-persisted `pagehide` above,
+    // and releasing here would stop capture during a StrictMode remount or any
+    // future transition that unmounts MainPanel while a session is live.
     return () => {
-      // Any cleanup needed for the audio service
+      window.removeEventListener('pagehide', releaseMic);
     };
   }, []);
 
@@ -1543,10 +1579,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const result = await useSettingsStore.getState().validateApiKey();
         if (!result.valid) {
           setIsInitializing(false);
+          const errorMessage = result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.');
           addRealtimeEvent(
-            { type: 'session.init_error', data: { message: result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
+            { type: 'session.init_error', data: { message: errorMessage } },
             'client', 'session.init_error'
           );
+          // Also surface this in the conversation items, not just the realtime
+          // event log, which is unreachable from the subtitle bar — see the
+          // equivalent append in the outer catch block below.
+          //
+          // The subtitle window will actually render this as `blocked`, not
+          // `failed`: validateApiKey has just set isApiKeyValid false, so the
+          // start gate is closed by the time the idle body re-derives, and
+          // blocked wins over failed (subtitleIdleState.ts). That is the more
+          // actionable of the two — it routes to the right settings section.
+          // The item still earns its keep in the main window's conversation.
+          setItems(prevItems => [...prevItems, {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: errorMessage },
+          }]);
           return;
         }
       }
@@ -1972,10 +2027,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (!speakerClientRef.current && !participantClientRef.current) {
         console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
         setIsInitializing(false);
+        const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
         addRealtimeEvent(
-          { type: 'session.init_error', data: { message: t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.') } },
+          { type: 'session.init_error', data: { message: errorMessage } },
           'client', 'session.init_error'
         );
+        // Same reasoning as the local-model revalidation guard above and the
+        // outer catch block below: append to items (not just the realtime
+        // event log) so subtitleIdleState can derive `failed` and the
+        // subtitle window shows why start didn't happen. Nothing here calls
+        // setItems(getConversationItems()) afterward, so there's no overwrite
+        // risk and no "append after disconnect" ordering is needed.
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: errorMessage },
+        }]);
         return;
       }
 
@@ -2071,6 +2141,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     speakerWillStart,
     participantWillStart
   ]);
+
+  // Bridge to surfaces outside this React tree (the Electron subtitle window):
+  // publishes the start gate + init state, and turns their start/stop requests
+  // into calls on this component's own session functions.
+  useSubtitleSessionBridge({
+    startGate,
+    isInitializing,
+    initProgress,
+    onStart: connectConversation,
+    onStop: disconnectConversation,
+  });
 
   /**
    * In push-to-talk mode, start recording
@@ -3444,19 +3525,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
-                title={
-                  !canStartSession && !isSessionActive
-                    ? missingDeviceForMode !== null
-                      ? t('modePicker.missingDevice', 'Configure devices for this mode to start.')
-                      : isKizunaManagedProvider(provider) && quota && quota.frozen
-                        ? t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')
-                        : managedBalanceTooLow
-                          ? t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota?.balance ?? 0) })
-                          : provider === Provider.LOCAL_INFERENCE
-                            ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                            : undefined
-                    : undefined
-                }
+                title={!isSessionActive ? startBlockMessage : undefined}
               >
                 {isInitializing ? (
                   <>
@@ -3602,29 +3671,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
-                    {missingDeviceForMode !== null && (
-                      <span className="tooltip">
-                        {t('modePicker.missingDevice', 'Configure devices for this mode to start.')}
-                      </span>
-                    )}
-                    {missingDeviceForMode === null && !isApiKeyValid && (
-                      <span className="tooltip">
-                        {provider === Provider.LOCAL_INFERENCE
-                          ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
-                          : t('mainPanel.apiKeyRequired')}
-                      </span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && availableModels.length === 0 && !loadingModels && (
-                      <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && loadingModels && (
-                      <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && isKizunaManagedProvider(provider) && quota && quota.frozen && (
-                      <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
-                    )}
-                    {missingDeviceForMode === null && isApiKeyValid && managedBalanceTooLow && !quota?.frozen && (
-                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient balance: {{balance}}', { balance: formatUsd(quota?.balance ?? 0) })}</span>
+                    {startGate.reason && (
+                      <span className="tooltip">{startBlockMessage}</span>
                     )}
                   </>
                 )}

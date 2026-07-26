@@ -161,6 +161,9 @@
     "vadSettings": "Definições VAD",
     "vadSettingsTooltip": "Configuração de deteção de atividade vocal. Ajuste estas definições para otimizar a deteção de voz no seu ambiente.",
     "vadThresholdTooltip": "Sensibilidade de deteção de voz. Valores mais altos requerem fala mais alta/clara. Valores mais baixos são mais sensíveis a fala baixa.",
+    "vadNegativeThreshold": "Limite de Silêncio",
+    "vadNegativeThresholdTooltip": "Probabilidade abaixo da qual o silêncio começa a contar para terminar o segmento. Auto mantém-no 0,15 abaixo do Limiar VAD. Nunca é aplicado acima do Limiar VAD, pois os segmentos nunca terminariam.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duração mín. de silêncio",
     "vadMinSilenceDurationTooltip": "Duração mínima de silêncio para dividir segmentos de fala. Valores mais curtos dividem frases mais rápido, valores mais longos aguardam pausas mais naturais.",
     "vadMinSpeechDuration": "Duração mín. de fala",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Sessão terminada",
     "backToMain": "Voltar à janela principal",
+    "idle": {
+      "start": "Iniciar tradução",
+      "hint": "Posicione e redimensione a janela antes de iniciar",
+      "ended": "Esta sessão terminou",
+      "failed": "Falha ao iniciar: {{message}}",
+      "retry": "Tentar novamente",
+      "backForDetails": "Volte à janela principal para ver os detalhes"
+    },
     "enterButton": {
       "title": "Ativar modo de legendas",
       "disabled": "Inicie uma sessão primeiro",
@@ -847,6 +858,8 @@
       "label": "Sair das legendas"
     },
     "bar": {
+      "start": "Iniciar sessão",
+      "stop": "Terminar sessão",
       "fontDecrease": "Diminuir tamanho da letra",
       "fontIncrease": "Aumentar tamanho da letra",
       "expand": "Vista expandida",

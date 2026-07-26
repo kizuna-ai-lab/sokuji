@@ -25,32 +25,14 @@ export const defaultSonioxSettings: SonioxSettings = {
   model: 'stt-rt-v5',
 };
 
-/**
- * What a MANAGED Soniox session costs to start, in micro-USD.
- *
- * The backend refuses to issue a session key below `minBalanceMicroUsd(sku,
- * MIN_SESSION_S)` — the price of the shortest session it will start (60s) at
- * that SKU's hourly rate: $0.60/hr text-only → $0.01, $1.50/hr
- * speech-to-speech → $0.025. Gating Start on `balance > 0` alone therefore
- * showed a green button to a user who was about to be handed a 402.
- *
- * KEEP IN SYNC with sokuji-backend `src/services/pricing.ts` (RATE_USD_PER_HOUR)
- * and `src/config/soniox.ts` (MIN_SESSION_S). This is a UI pre-check only —
- * the backend's 402 remains the authority, and the client still surfaces it.
- */
-export const SONIOX_MANAGED_MIN_BALANCE_MICRO_USD = {
-  text_only: 10_000,
-  speech_to_speech: 25_000,
-} as const;
-
-/** The floor that applies to the session the user is about to start. A session
- *  is speech_to_speech unless the text-only toggle is on — the same mapping
- *  `SonioxClient` uses to pick the mode it asks the backend for. */
-export function sonioxManagedMinBalanceMicroUsd(textOnly: boolean): number {
-  return textOnly
-    ? SONIOX_MANAGED_MIN_BALANCE_MICRO_USD.text_only
-    : SONIOX_MANAGED_MIN_BALANCE_MICRO_USD.speech_to_speech;
-}
+// The managed start floor lives in its own import-free module so the Start
+// gate (and the subtitle window that shares it) can read it without pulling
+// SonioxClient — and the i18n bootstrap behind it — into their bundles.
+// Re-exported here so this file stays the one place to look for Soniox config.
+export {
+  SONIOX_MANAGED_MIN_BALANCE_MICRO_USD,
+  sonioxManagedMinBalanceMicroUsd,
+} from './sonioxManagedMinBalance';
 
 /**
  * Does Both mode run on ONE shared Soniox session for this provider?

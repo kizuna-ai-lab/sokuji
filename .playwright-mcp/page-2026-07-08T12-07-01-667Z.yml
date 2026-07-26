@@ -1,0 +1,91 @@
+- generic [ref=f92e1]:
+  - generic [ref=f92e74]:
+    - log [ref=f92e75]: Loading
+    - log
+  - generic [ref=f92e2]:
+    - link "Accessibility overview" [ref=f92e3] [cursor=pointer]:
+      - /url: https://explore.zoom.us/en/accessibility?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+      - text: Accessibility Overview
+    - main "main content" [ref=f92e5]:
+      - generic [ref=f92e7]:
+        - generic [ref=f92e8]:
+          - link "Zoom Logo" [ref=f92e9] [cursor=pointer]:
+            - /url: /
+            - img "Zoom Logo" [ref=f92e10]
+          - generic [ref=f92e11]:
+            - generic [ref=f92e12]: Already have an account?
+            - button "Sign In" [ref=f92e13] [cursor=pointer]:
+              - generic [ref=f92e14]: Sign In
+            - link "Support" [ref=f92e15] [cursor=pointer]:
+              - /url: https://support.zoom.us/hc/en-us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - generic [ref=f92e16]: Support
+            - generic [ref=f92e17]:
+              - generic [ref=f92e18]: Press Shift+F10 or menu key for more options
+              - button "Language English" [ref=f92e19] [cursor=pointer]:
+                - img [ref=f92e21]
+                - generic [ref=f92e23]: English
+        - generic [ref=f92e76]:
+          - generic [ref=f92e77]:
+            - img "Zoom Sign up banner imager" [ref=f92e78]
+            - generic [ref=f92e80]:
+              - term [ref=f92e81]: Create your free Basic account
+              - definition [ref=f92e82]:
+                - img [ref=f92e85]
+                - generic [ref=f92e87]: Get up to 40 minutes and 100 participants per meeting
+              - definition [ref=f92e88]:
+                - img [ref=f92e91]
+                - generic [ref=f92e93]: Share AI Docs
+              - definition [ref=f92e94]:
+                - img [ref=f92e97]
+                - generic [ref=f92e99]: Get 3 editable whiteboards
+              - definition [ref=f92e100]:
+                - img [ref=f92e103]
+                - generic [ref=f92e105]: Unlimited instant messaging
+              - definition [ref=f92e106]:
+                - img [ref=f92e109]
+                - generic [ref=f92e111]: Create up to 5 two-minute video messages
+          - generic [ref=f92e113]:
+            - heading "Sign up" [level=1] [ref=f92e114]
+            - generic [ref=f92e115]:
+              - generic [ref=f92e120]:
+                - textbox "Email address" [active] [ref=f92e121]:
+                  - /placeholder: ""
+                - generic:
+                  - generic: Email address
+              - button "Continue" [disabled] [ref=f92e123]:
+                - generic [ref=f92e124]: Continue
+              - paragraph [ref=f92e125]:
+                - text: By proceeding, I agree to
+                - link "Zoom's Privacy Statement" [ref=f92e126] [cursor=pointer]:
+                  - /url: /privacy
+                - text: and
+                - link "Terms of Service" [ref=f92e127] [cursor=pointer]:
+                  - /url: /terms
+                - text: .
+            - generic [ref=f92e129]:
+              - paragraph [ref=f92e130]:
+                - generic [ref=f92e131]: Or sign up with
+              - generic [ref=f92e132]:
+                - button "Sign in with SSO" [ref=f92e133] [cursor=pointer]:
+                  - img [ref=f92e136]
+                  - text: SSO
+                - button "Sign in with Apple" [ref=f92e138] [cursor=pointer]:
+                  - img [ref=f92e141]
+                  - text: Apple
+                - button "Sign in with Google" [ref=f92e143] [cursor=pointer]:
+                  - img [ref=f92e146]
+                  - text: Google
+                - button "Sign in with Facebook" [ref=f92e151] [cursor=pointer]:
+                  - img [ref=f92e154]
+                  - text: Facebook
+                - button "Sign in with Microsoft" [ref=f92e156] [cursor=pointer]:
+                  - img [ref=f92e159]
+                  - text: Microsoft
+            - generic [ref=f92e169]:
+              - text: Zoom is protected by reCAPTCHA and the Google
+              - link "Privacy Policy" [ref=f92e170] [cursor=pointer]:
+                - /url: https://policies.google.com/privacy
+              - text: and
+              - link "Terms of Service" [ref=f92e171] [cursor=pointer]:
+                - /url: https://policies.google.com/terms
+              - text: apply.

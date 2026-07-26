@@ -161,6 +161,9 @@
     "vadSettings": "Pengaturan VAD",
     "vadSettingsTooltip": "Konfigurasi Deteksi Aktivitas Suara. Sesuaikan pengaturan ini untuk mengoptimalkan deteksi ucapan di lingkungan Anda.",
     "vadThresholdTooltip": "Sensitivitas deteksi ucapan. Nilai lebih tinggi membutuhkan ucapan yang lebih keras/jelas. Nilai lebih rendah lebih sensitif terhadap ucapan pelan.",
+    "vadNegativeThreshold": "Ambang Batas Hening",
+    "vadNegativeThresholdTooltip": "Probabilitas yang di bawahnya keheningan mulai dihitung untuk mengakhiri segmen. Otomatis menjaganya 0,15 di bawah Ambang VAD. Nilai ini tidak pernah diterapkan di atas Ambang VAD, karena segmen tidak akan pernah berakhir.",
+    "vadNegativeThresholdAuto": "Otomatis",
     "vadMinSilenceDuration": "Durasi Diam Minimum",
     "vadMinSilenceDurationTooltip": "Durasi diam minimum untuk memisahkan segmen ucapan. Nilai lebih pendek memisahkan kalimat lebih cepat, nilai lebih panjang menunggu jeda yang lebih alami.",
     "vadMinSpeechDuration": "Durasi Bicara Minimum",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Sesi berakhir",
     "backToMain": "Kembali ke jendela utama",
+    "idle": {
+      "start": "Mulai terjemahan",
+      "hint": "Atur posisi dan ukuran jendela sebelum memulai",
+      "ended": "Sesi ini telah berakhir",
+      "failed": "Gagal memulai: {{message}}",
+      "retry": "Coba lagi",
+      "backForDetails": "Kembali ke jendela utama untuk detail"
+    },
     "enterButton": {
       "title": "Masuk mode subtitle",
       "disabled": "Mulai sesi terlebih dahulu",
@@ -847,6 +858,8 @@
       "label": "Keluar subtitle"
     },
     "bar": {
+      "start": "Mulai sesi",
+      "stop": "Hentikan sesi",
       "fontDecrease": "Perkecil font",
       "fontIncrease": "Perbesar font",
       "expand": "Tampilan diperluas",

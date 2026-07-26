@@ -208,6 +208,8 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   ttsSpeed: number;
   edgeTtsVoice?: string;
   vadThreshold?: number;
+  /** vad-web only; 0 or absent derives it from vadThreshold. Never applies above it. */
+  vadNegativeThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';

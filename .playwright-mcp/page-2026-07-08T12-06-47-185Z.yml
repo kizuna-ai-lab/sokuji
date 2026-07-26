@@ -1,0 +1,53 @@
+- generic [ref=f92e2]:
+  - link "Accessibility overview" [ref=f92e3] [cursor=pointer]:
+    - /url: https://explore.zoom.us/en/accessibility?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+    - text: Accessibility Overview
+  - main "main content" [ref=f92e5]:
+    - generic [ref=f92e7]:
+      - generic [ref=f92e8]:
+        - link "Zoom Logo" [ref=f92e9] [cursor=pointer]:
+          - /url: /
+          - img "Zoom Logo" [ref=f92e10]
+        - generic [ref=f92e11]:
+          - generic [ref=f92e12]: Already have an account?
+          - button "Sign In" [ref=f92e13] [cursor=pointer]:
+            - generic [ref=f92e14]: Sign In
+          - link "Support" [ref=f92e15] [cursor=pointer]:
+            - /url: https://support.zoom.us/hc/en-us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+            - generic [ref=f92e16]: Support
+          - generic [ref=f92e17]:
+            - generic [ref=f92e18]: Press Shift+F10 or menu key for more options
+            - button "Language English" [ref=f92e19] [cursor=pointer]:
+              - img [ref=f92e21]
+              - generic [ref=f92e23]: English
+      - generic [ref=f92e24]:
+        - generic [ref=f92e25]:
+          - img "Zoom sign up banner image" [ref=f92e26]
+          - generic [ref=f92e28]:
+            - term [ref=f92e29]: Create your free Basic account
+            - definition [ref=f92e30]:
+              - img [ref=f92e33]
+              - generic [ref=f92e35]: Get up to 40 minutes and 100 participants per meeting
+            - definition [ref=f92e36]:
+              - img [ref=f92e39]
+              - generic [ref=f92e41]: Share AI Docs
+            - definition [ref=f92e42]:
+              - img [ref=f92e45]
+              - generic [ref=f92e47]: Get 3 editable whiteboards
+            - definition [ref=f92e48]:
+              - img [ref=f92e51]
+              - generic [ref=f92e53]: Unlimited instant messaging
+            - definition [ref=f92e54]:
+              - img [ref=f92e57]
+              - generic [ref=f92e59]: Create up to 5 two-minute video messages
+        - generic [ref=f92e61]:
+          - heading "Get started with Zoom" [level=1] [ref=f92e62]
+          - paragraph [ref=f92e63]: To create your Zoom account, please enter your birth year. This data won't be stored.
+          - generic [ref=f92e64]:
+            - generic [ref=f92e69]:
+              - textbox "Birth year" [active] [ref=f92e70]:
+                - /placeholder: ""
+              - generic:
+                - generic: Birth year
+            - button "Continue" [disabled] [ref=f92e72]:
+              - generic [ref=f92e73]: Continue

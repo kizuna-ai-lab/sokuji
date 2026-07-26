@@ -161,6 +161,9 @@
     "vadSettings": "VAD設定",
     "vadSettingsTooltip": "音声活動検出の設定。環境に合わせて音声検出を最適化するためにこれらの設定を調整してください。",
     "vadThresholdTooltip": "音声検出の感度。値が高いほど認識にはっきりした声が必要になります。値が低いほど小さな声にも反応します。",
+    "vadNegativeThreshold": "沈黙のしきい値",
+    "vadNegativeThresholdTooltip": "この確率を下回ると、無音がセグメント終了のためにカウントされ始めます。自動では VADしきい値 より 0.15 低い値に保たれます。VADしきい値 より高い値が適用されることはありません。その場合、セグメントが終わらなくなるためです。",
+    "vadNegativeThresholdAuto": "自動",
     "vadMinSilenceDuration": "最小無音時間",
     "vadMinSilenceDurationTooltip": "発話を分割するための最小無音時間。短い値は文をすばやく分割し、長い値はより自然な間で分割します。",
     "vadMinSpeechDuration": "最小発話時間",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "セッションが終了しました",
     "backToMain": "メイン画面に戻る",
+    "idle": {
+      "start": "翻訳を開始",
+      "hint": "開始する前にウィンドウの位置とサイズを調整してください",
+      "ended": "このセッションは終了しました",
+      "failed": "開始に失敗しました: {{message}}",
+      "retry": "再試行",
+      "backForDetails": "詳細を確認するにはメイン画面に戻ってください"
+    },
     "enterButton": {
       "title": "字幕モードを開始",
       "disabled": "先にセッションを開始してください",
@@ -847,6 +858,8 @@
       "label": "字幕を終了"
     },
     "bar": {
+      "start": "セッションを開始",
+      "stop": "セッションを終了",
       "fontDecrease": "文字を小さく",
       "fontIncrease": "文字を大きく",
       "expand": "展開表示",

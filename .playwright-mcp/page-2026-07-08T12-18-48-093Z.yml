@@ -1,0 +1,167 @@
+- generic [ref=f162e3]:
+  - banner [ref=f162e5]:
+    - link "Go to the homepage" [ref=f162e6] [cursor=pointer]:
+      - generic [ref=f162e7]:
+        - img [ref=f162e9]
+        - paragraph [ref=f162e12]: Platform Studio
+    - generic [ref=f162e13]:
+      - button "Blog" [ref=f162e14] [cursor=pointer]
+      - button "Community" [ref=f162e15] [cursor=pointer]
+      - button "Documentation" [ref=f162e16] [cursor=pointer]
+    - generic [ref=f162e18]:
+      - button "Develop" [active] [ref=f162e20] [cursor=pointer]:
+        - text: Develop
+        - img [ref=f162e22]
+      - button [ref=f162e25] [cursor=pointer]:
+        - img [ref=f162e27]
+  - generic [ref=f162e29]:
+    - generic [ref=f162e31]:
+      - link "Created apps" [ref=f162e32] [cursor=pointer]:
+        - /url: /user/build
+        - generic [ref=f162e33]: Created apps
+      - link "API call logs" [ref=f162e34] [cursor=pointer]:
+        - /url: /user/logs
+        - generic [ref=f162e35]: API call logs
+      - link "Monetization NEW" [ref=f162e36] [cursor=pointer]:
+        - /url: /user/monetization
+        - generic [ref=f162e37]: Monetization
+        - generic [ref=f162e38]: NEW
+    - generic [ref=f162e39]:
+      - generic [ref=f162e41]:
+        - heading "Created apps" [level=1] [ref=f162e43]:
+          - generic [ref=f162e44]: Created apps
+        - generic [ref=f162e46]:
+          - generic [ref=f162e47]:
+            - img "Magnifier Small" [ref=f162e48]:
+              - img [ref=f162e49]
+            - textbox "Search by app name" [ref=f162e51]
+            - group
+          - table [ref=f162e54]:
+            - rowgroup [ref=f162e55]:
+              - row "Name Status Type Zoom products Activation state" [ref=f162e56]:
+                - columnheader "Name" [ref=f162e57]
+                - columnheader "Status" [ref=f162e58]
+                - columnheader "Type" [ref=f162e59]
+                - columnheader "Zoom products" [ref=f162e60]
+                - columnheader "Activation state" [ref=f162e61]
+                - columnheader [ref=f162e62]
+            - rowgroup [ref=f162e63]:
+              - row "Your created apps will appear here" [ref=f162e64]:
+                - cell "Your created apps will appear here" [ref=f162e65]:
+                  - generic [ref=f162e66]: Your created apps will appear here
+      - generic [ref=f162e69]:
+        - img [ref=f162e71]
+        - generic [ref=f162e73]:
+          - generic [ref=f162e74]:
+            - generic [ref=f162e75]:
+              - link "About" [ref=f162e77] [cursor=pointer]:
+                - /url: https://zoom.us/about
+              - generic [ref=f162e78]:
+                - link "Blog" [ref=f162e79] [cursor=pointer]:
+                  - /url: https://www.zoom.com/blog/
+                - link "Customers" [ref=f162e80] [cursor=pointer]:
+                  - /url: https://zoom.us/customer/all
+                - link "Our Team" [ref=f162e81] [cursor=pointer]:
+                  - /url: https://zoom.us/team
+                - link "Why Zoom" [ref=f162e82] [cursor=pointer]:
+                  - /url: https://zoom.us/zoomisbetter
+                - link "Features" [ref=f162e83] [cursor=pointer]:
+                  - /url: https://zoom.us/feature
+                - link "Careers" [ref=f162e84] [cursor=pointer]:
+                  - /url: https://zoom.us/careers
+                - link "Integrations" [ref=f162e85] [cursor=pointer]:
+                  - /url: https://zoom.us/integrations
+                - link "Partners" [ref=f162e86] [cursor=pointer]:
+                  - /url: https://zoom.us/partners
+                - link "Resources" [ref=f162e87] [cursor=pointer]:
+                  - /url: https://zoom.us/resources
+                - link "Press" [ref=f162e88] [cursor=pointer]:
+                  - /url: https://news.zoom.us/
+            - generic [ref=f162e89]:
+              - link "Download" [ref=f162e91] [cursor=pointer]:
+                - /url: https://zoom.us/download
+              - generic [ref=f162e92]:
+                - link "Meetings Client" [ref=f162e93] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_4meeting
+                - link "Zoom Rooms Client" [ref=f162e94] [cursor=pointer]:
+                  - /url: https://zoom.us/download#room_client
+                - link "Browser Extension" [ref=f162e95] [cursor=pointer]:
+                  - /url: https://zoom.us/download#chrome_ext
+                - link "Outlook Plug-in" [ref=f162e96] [cursor=pointer]:
+                  - /url: https://zoom.us/download#outlook_plugin
+                - link "Lync Plug-in" [ref=f162e97] [cursor=pointer]:
+                  - /url: https://zoom.us/download#lync_plugin
+                - link "iPhone/iPad App" [ref=f162e98] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_iphone
+                - link "Android App" [ref=f162e99] [cursor=pointer]:
+                  - /url: https://zoom.us/download#mobile_app
+            - generic [ref=f162e100]:
+              - link "Sales" [ref=f162e102] [cursor=pointer]:
+                - /url: https://zoom.us/contactsales
+              - generic [ref=f162e103]:
+                - link "1 888 799 9666" [ref=f162e104] [cursor=pointer]:
+                  - /url: tel:18887999666
+                - link "Contact Sales" [ref=f162e105] [cursor=pointer]:
+                  - /url: https://zoom.us/contactsales
+                - link "Plans & Pricing" [ref=f162e106] [cursor=pointer]:
+                  - /url: https://zoom.us/pricing
+                - link "Request a Demo" [ref=f162e107] [cursor=pointer]:
+                  - /url: https://zoom.us/livedemo
+                - link "Webinars and Events" [ref=f162e108] [cursor=pointer]:
+                  - /url: https://zoom.us/events
+            - generic [ref=f162e109]:
+              - link "Support" [ref=f162e111] [cursor=pointer]:
+                - /url: http://support.zoom.us/
+              - generic [ref=f162e112]:
+                - link "Test Zoom" [ref=f162e113] [cursor=pointer]:
+                  - /url: https://zoom.us/test
+                - link "Account" [ref=f162e114] [cursor=pointer]:
+                  - /url: https://zoom.us/account
+                - link "Support Center" [ref=f162e115] [cursor=pointer]:
+                  - /url: http://support.zoom.us/
+                - link "Live Training" [ref=f162e116] [cursor=pointer]:
+                  - /url: https://zoom.us/livetraining
+                - link "Feedback" [ref=f162e117] [cursor=pointer]:
+                  - /url: https://zoom.us/feed
+                - link "Contact Us" [ref=f162e118] [cursor=pointer]:
+                  - /url: https://zoom.us/contact
+                - link "Accessibility" [ref=f162e119] [cursor=pointer]:
+                  - /url: https://zoom.us/accessibility
+            - generic [ref=f162e120]:
+              - generic [ref=f162e121]: Language
+              - generic [ref=f162e123]:
+                - combobox "Change language" [ref=f162e124] [cursor=pointer]: English
+                - textbox: en-US
+                - generic:
+                  - img
+                - group
+          - generic [ref=f162e125]:
+            - link "Follow Zoom on Linkedin" [ref=f162e126] [cursor=pointer]:
+              - /url: http://www.linkedin.com/company/2532259
+              - img "Linked In" [ref=f162e128]:
+                - img [ref=f162e129]
+            - link "Follow Zoom on Twitter" [ref=f162e131] [cursor=pointer]:
+              - /url: https://twitter.com/zoom
+              - img "X" [ref=f162e133]:
+                - img [ref=f162e134]
+            - link "Follow Zoom on Youtube" [ref=f162e136] [cursor=pointer]:
+              - /url: http://www.youtube.com/zoommeetings
+              - img "You Tube" [ref=f162e138]:
+                - img [ref=f162e139]
+            - link "Follow Zoom on Facebook" [ref=f162e141] [cursor=pointer]:
+              - /url: https://www.facebook.com/zoomvideocommunications
+              - img "Facebook" [ref=f162e143]:
+                - img [ref=f162e144]
+            - link "Zoom on Blog" [ref=f162e146] [cursor=pointer]:
+              - /url: http://blog.zoom.us/
+              - img [ref=f162e149]
+          - generic [ref=f162e152]:
+            - text: Copyright ©2026 Zoom Video Communications, Inc. All rights reserved.
+            - link "Privacy Policy" [ref=f162e153] [cursor=pointer]:
+              - /url: https://zoom.us/privacy
+            - text: ·
+            - link "Terms" [ref=f162e154] [cursor=pointer]:
+              - /url: https://explore.zoom.us/terms
+            - button "Do Not Sell My Personal Information" [ref=f162e155] [cursor=pointer]
+            - text: "|"
+            - button "Cookies Settings" [ref=f162e156] [cursor=pointer]

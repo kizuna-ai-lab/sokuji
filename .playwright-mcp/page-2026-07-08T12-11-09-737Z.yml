@@ -1,0 +1,520 @@
+- generic [active] [ref=f144e1]:
+  - generic [ref=f144e2]:
+    - link "Skip to main content" [ref=f144e3] [cursor=pointer]:
+      - /url: "#nested"
+      - text: Skip to Main Content
+    - link "Accessibility overview" [ref=f144e4] [cursor=pointer]:
+      - /url: https://explore.zoom.us/en/accessibility?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+      - text: Accessibility Overview
+    - main [ref=f144e6]:
+      - generic [ref=f144e8]:
+        - navigation [ref=f144e11]:
+          - generic [ref=f144e12]:
+            - link "Zoom Home Page" [ref=f144e13] [cursor=pointer]:
+              - /url: https://www.zoom.com/?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - img "Zoom" [ref=f144e14]
+            - list [ref=f144e15]:
+              - listitem [ref=f144e16]:
+                - button "Products" [ref=f144e17] [cursor=pointer]
+                - text: 
+              - listitem [ref=f144e18]:
+                - button "AI" [ref=f144e19] [cursor=pointer]:
+                  - generic [ref=f144e21]: AI
+                - text: 
+              - listitem [ref=f144e22]:
+                - button "Solutions" [ref=f144e23] [cursor=pointer]
+                - text: 
+              - listitem [ref=f144e24]:
+                - link "Pricing" [ref=f144e25] [cursor=pointer]:
+                  - /url: /pricing
+          - list [ref=f144e27]:
+            - listitem [ref=f144e28]:
+              - button [ref=f144e29] [cursor=pointer]
+            - listitem [ref=f144e30]:
+              - button "Meet" [ref=f144e31] [cursor=pointer]
+            - listitem [ref=f144e32]:
+              - link "Support" [ref=f144e33] [cursor=pointer]:
+                - /url: https://support.zoom.com/hc/en?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+            - listitem [ref=f144e34]:
+              - link "Contact Sales" [ref=f144e35] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/contactsales/?referrer=developerPricing&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+            - listitem [ref=f144e36]:
+              - link "What's New" [ref=f144e37] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/products/whats-new/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568&optimizely_user_id=0f83802f286649c59efa8785422f7b03
+            - listitem [ref=f144e38]:
+              - button "Kizuna AI, profile options" [ref=f144e41] [cursor=pointer]:
+                - img "Kizuna AI profile avatar" [ref=f144e43]:
+                  - generic [ref=f144e44]: KA
+            - listitem
+        - generic [ref=f144e45]:
+          - navigation "Main navigation" [ref=f144e46]:
+            - generic [ref=f144e47]:
+              - heading "Explore Pricing" [level=3] [ref=f144e48]: Explore pricing
+              - generic [ref=f144e49]:
+                - generic [ref=f144e51]: Workplace
+                - listbox "Workplace" [ref=f144e52]:
+                  - generic [ref=f144e53]:
+                    - option "Workplace Meetings Chat Mail Calendar" [ref=f144e54]:
+                      - generic [ref=f144e55] [cursor=pointer]:
+                        - img [ref=f144e56]
+                        - generic [ref=f144e58]: Meetings
+                      - generic [ref=f144e59] [cursor=pointer]:
+                        - img [ref=f144e60]
+                        - generic [ref=f144e62]: Chat
+                      - generic [ref=f144e63] [cursor=pointer]:
+                        - img [ref=f144e64]
+                        - generic [ref=f144e66]: Mail
+                      - generic [ref=f144e67] [cursor=pointer]:
+                        - img [ref=f144e68]
+                        - generic [ref=f144e70]: Calendar
+                    - option "Workplace Phone" [ref=f144e72] [cursor=pointer]:
+                      - img [ref=f144e73]
+                      - generic [ref=f144e75]: Phone
+                    - option "Workplace Scheduler" [ref=f144e76] [cursor=pointer]:
+                      - img [ref=f144e77]
+                      - generic [ref=f144e79]: Scheduler
+                    - option "Workplace Whiteboard" [ref=f144e80] [cursor=pointer]:
+                      - img [ref=f144e81]
+                      - generic [ref=f144e83]: Whiteboard
+                    - option "Workplace Clips" [ref=f144e84] [cursor=pointer]:
+                      - img [ref=f144e85]
+                      - generic [ref=f144e87]: Clips
+                    - option "Workplace Workvivo" [ref=f144e88] [cursor=pointer]:
+                      - img [ref=f144e89]
+                      - generic [ref=f144e91]: Workvivo
+              - generic [ref=f144e93]:
+                - generic [ref=f144e95]: AI
+                - listbox "AI" [ref=f144e96]:
+                  - generic [ref=f144e97]:
+                    - option "AI ZoomMate" [ref=f144e98] [cursor=pointer]:
+                      - img [ref=f144e99]
+                      - generic [ref=f144e101]: ZoomMate
+                    - option "AI My Notes" [ref=f144e102] [cursor=pointer]:
+                      - img [ref=f144e103]
+                      - generic [ref=f144e105]: My Notes
+              - generic [ref=f144e107]:
+                - generic [ref=f144e109]: AI Productivity Suite
+                - listbox "AI Productivity Suite" [ref=f144e110]:
+                  - option "AI Productivity Suite Slides Sheets Paper Canvas" [ref=f144e112]:
+                    - generic [ref=f144e113] [cursor=pointer]:
+                      - img [ref=f144e114]
+                      - generic [ref=f144e116]: Slides
+                    - generic [ref=f144e117] [cursor=pointer]:
+                      - img [ref=f144e118]
+                      - generic [ref=f144e120]: Sheets
+                    - generic [ref=f144e121] [cursor=pointer]:
+                      - img [ref=f144e122]
+                      - generic [ref=f144e124]: Paper
+                    - generic [ref=f144e125] [cursor=pointer]:
+                      - img [ref=f144e126]
+                      - generic [ref=f144e128]: Canvas
+              - generic [ref=f144e130]:
+                - generic [ref=f144e132]: Business services
+                - listbox "Business services" [ref=f144e133]:
+                  - generic [ref=f144e134]:
+                    - option "Business services Webinars & Events" [ref=f144e135] [cursor=pointer]:
+                      - img [ref=f144e136]
+                      - generic [ref=f144e138]: Webinars & Events
+                    - option "Business services Bonsai" [ref=f144e139] [cursor=pointer]:
+                      - img [ref=f144e140]
+                      - generic [ref=f144e142]: Bonsai
+                    - option "Business services Virtual Agent" [ref=f144e143] [cursor=pointer]:
+                      - img [ref=f144e144]
+                      - generic [ref=f144e146]: Virtual Agent
+                    - option "Business services Contact Center" [ref=f144e147] [cursor=pointer]:
+                      - img [ref=f144e148]
+                      - generic [ref=f144e150]: Contact Center
+                    - option "Business services Revenue Accelerator" [ref=f144e151] [cursor=pointer]:
+                      - img [ref=f144e152]
+                      - generic [ref=f144e154]: Revenue Accelerator
+              - generic [ref=f144e156]:
+                - generic [ref=f144e158]: Spaces
+                - listbox "Spaces" [ref=f144e159]:
+                  - generic [ref=f144e160]:
+                    - option "Spaces Rooms" [ref=f144e161] [cursor=pointer]:
+                      - img [ref=f144e162]
+                      - generic [ref=f144e164]: Rooms
+                    - option "Spaces Workspace Reservation" [ref=f144e165] [cursor=pointer]:
+                      - img [ref=f144e166]
+                      - generic [ref=f144e168]: Workspace Reservation
+                    - option "Spaces Visitor Management" [ref=f144e169] [cursor=pointer]:
+                      - img [ref=f144e170]
+                      - generic [ref=f144e172]: Visitor Management
+              - generic [ref=f144e174]:
+                - generic [ref=f144e176]: Industries
+                - listbox "Industries" [ref=f144e177]:
+                  - generic [ref=f144e178]:
+                    - option "Industries Healthcare" [ref=f144e179] [cursor=pointer]:
+                      - img [ref=f144e180]
+                      - generic [ref=f144e182]: Healthcare
+                    - option "Industries Frontline" [ref=f144e183] [cursor=pointer]:
+                      - img [ref=f144e184]
+                      - generic [ref=f144e186]: Frontline
+                    - option "Industries Developer" [selected] [ref=f144e187] [cursor=pointer]:
+                      - img [ref=f144e188]
+                      - generic [ref=f144e190]: Developer
+          - main [ref=f144e191]:
+            - generic [ref=f144e192]:
+              - generic [ref=f144e193]:
+                - heading "Developer pricing page title" [level=2] [ref=f144e194]: Developer
+                - generic [ref=f144e196]: APIs and SDKs for developer.
+              - generic [ref=f144e198]:
+                - generic [ref=f144e199]: Prices in
+                - generic [ref=f144e200]:
+                  - generic [ref=f144e201]: Press Tab for more information
+                  - generic [ref=f144e202] [cursor=pointer]:
+                    - generic [ref=f144e203]: Press arrow left/right to focus on selected values
+                    - generic [ref=f144e204]: A maximum of 0 item(s) can be selected
+                    - combobox "Currency" [ref=f144e209]: US Dollars $
+                    - img [ref=f144e211]
+            - generic [ref=f144e214]:
+              - generic [ref=f144e215]:
+                - generic [ref=f144e216]:
+                  - paragraph [ref=f144e219]: Zoom Build Platform
+                  - generic [ref=f144e220]:
+                    - heading "Zoom Build Platform*" [level=3] [ref=f144e221]
+                    - paragraph [ref=f144e222]: Unlock the full power of Zoom's SDK and AI Services with the flexibility of prepaid credits
+                  - generic [ref=f144e223]:
+                    - generic [ref=f144e224]: credits
+                    - generic [ref=f144e225]:
+                      - generic [ref=f144e226]: Press Tab for more information
+                      - generic [ref=f144e227] [cursor=pointer]:
+                        - generic [ref=f144e228]: Press arrow left/right to focus on selected values
+                        - generic [ref=f144e229]: A maximum of 0 item(s) can be selected
+                        - combobox "Zoom Build Platform* choose credits" [ref=f144e234]:
+                          - generic [ref=f144e236]: "100"
+                        - img [ref=f144e238]
+                    - generic [ref=f144e240]:
+                      - generic "$100.00" [ref=f144e244]: $100
+                      - generic [ref=f144e245]:
+                        - text: per month · billed monthly
+                        - generic [ref=f144e246]: · excluding JCT
+                  - generic [ref=f144e247]:
+                    - link "Try 20 Credits Free Zoom Build Platform*" [ref=f144e248] [cursor=pointer]:
+                      - /url: /account/cpaas/plan/subscribe?type=add&subPlan=newsubs&from_sub=zsdkuc_ft&period=monthly&referrer=pricing
+                      - generic [ref=f144e249]: Try 20 Credits Free
+                    - link "Buy Now Zoom Build Platform*" [ref=f144e250] [cursor=pointer]:
+                      - /url: /buy?product=ZSDKUCU-BD&period=monthly&referrer=pricing&zsdkuc_credits=100
+                      - generic [ref=f144e251]: Buy Now
+                  - list [ref=f144e252]:
+                    - listitem [ref=f144e253]:
+                      - button "View credit rates" [ref=f144e254] [cursor=pointer]
+                    - listitem [ref=f144e255]: A new account is required for both new and existing customers
+                    - listitem [ref=f144e256]:
+                      - text: Need more than 500 credits?
+                      - link "Contact Sales" [ref=f144e257] [cursor=pointer]:
+                        - /url: https://explore.zoom.us/en/contactsales/?referrer=developerPricing
+                  - generic [ref=f144e258]:
+                    - generic [ref=f144e259]: "Highlights:"
+                    - generic [ref=f144e261]:
+                      - generic [ref=f144e262]:
+                        - paragraph [ref=f144e263]:
+                          - generic [ref=f144e264]: Communication Services
+                        - list [ref=f144e265]:
+                          - listitem [ref=f144e266]: Cloud-Based Architecture — Designed for video, engineered for reliability and optimized for scalability
+                          - listitem [ref=f144e267]: Video SDK — Offers HD Video and Audio for virtual meetings
+                          - listitem [ref=f144e268]: Cobrowse SDK — Secure, real-time web collaboration without exposing your entire screen
+                      - generic [ref=f144e269]:
+                        - paragraph [ref=f144e270]:
+                          - generic [ref=f144e271]: Zoom AI Services
+                        - list [ref=f144e272]:
+                          - listitem [ref=f144e273]: Scribe, Translator and Summarizer APIs — A complete toolkit for intelligent speech and text capabilities
+                          - listitem [ref=f144e274]: Batch Processing at Scale — Process thousands of audio and text files using your own storage account
+                          - listitem [ref=f144e275]: Usage-Based Pricing — Pay only for what you process with transparent per-minute rates
+                          - listitem [ref=f144e276]:
+                            - generic [ref=f144e277]:
+                              - text: Get API key by setting up your
+                              - link "Build Platform Credentials" [ref=f144e278] [cursor=pointer]:
+                                - /url: https://developers.zoom.us/docs/ai-services/build-platform/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+                  - link "See add-ons" [ref=f144e281] [cursor=pointer]:
+                    - /url: "#add-on__cards-title"
+                - generic [ref=f144e282]:
+                  - paragraph [ref=f144e285]: Zoom Developer Pack
+                  - generic [ref=f144e286]:
+                    - heading "Zoom Developer Pack" [level=3] [ref=f144e287]
+                    - paragraph [ref=f144e288]: Unlock Zoom’s API power with versatile access to QSS and RTMS
+                  - generic [ref=f144e289]:
+                    - generic [ref=f144e290]: credits
+                    - generic [ref=f144e291]:
+                      - generic [ref=f144e292]: Press Tab for more information
+                      - generic [ref=f144e293] [cursor=pointer]:
+                        - generic [ref=f144e294]: Press arrow left/right to focus on selected values
+                        - generic [ref=f144e295]: A maximum of 0 item(s) can be selected
+                        - combobox "Zoom Developer Pack choose credits" [ref=f144e300]:
+                          - generic [ref=f144e302]: Pay as you go
+                        - img [ref=f144e304]
+                    - generic [ref=f144e306]:
+                      - generic "$0.00" [ref=f144e310]: $0
+                      - generic [ref=f144e311]:
+                        - text: upfront · billed monthly
+                        - generic [ref=f144e312]: · excluding JCT
+                  - generic [ref=f144e313]:
+                    - link "Try 20 Credits Free Zoom Developer Pack" [ref=f144e314] [cursor=pointer]:
+                      - /url: https://zoom.us/opc/buy?type=buy_trial&plan=ZDPCD&from=ZDPCD&period=monthly&campaign_code=zoom_developer_pack_campaign&trial_code=zoom_developer_pack_trial_plan&itm_source=pricingpage
+                      - generic [ref=f144e315]: Try 20 Credits Free
+                    - link "Buy Now Zoom Developer Pack" [ref=f144e316] [cursor=pointer]:
+                      - /url: /buy?product=ZDPCP&period=monthly&referrer=pricing
+                      - generic [ref=f144e317]: Buy Now
+                  - list [ref=f144e318]:
+                    - listitem [ref=f144e319]:
+                      - button "View credit rates" [ref=f144e320] [cursor=pointer]
+                    - listitem [ref=f144e321]:
+                      - text: Need more than 500 credits?
+                      - link "Contact Sales" [ref=f144e322] [cursor=pointer]:
+                        - /url: https://www.zoom.com/en/realtime-media-streams/?optimizely_user_id=0f83802f286649c59efa8785422f7b03#form
+                  - generic [ref=f144e323]:
+                    - generic [ref=f144e324]: "Highlights:"
+                    - generic [ref=f144e327]:
+                      - paragraph [ref=f144e328]:
+                        - generic [ref=f144e329]: Developer Pack
+                      - list [ref=f144e330]:
+                        - listitem [ref=f144e331]: Flexible credit usage for Zoom Quality of Service Subscription Service and Realtime Media Streams
+                        - listitem [ref=f144e332]: AI-optimized data streams – Access realtime meeting data to enable custom AI workflows
+                        - listitem [ref=f144e333]: Realtime access to Audio, Video, Screenshare, Transcript, and Chat for Zoom Meeting, Zoom Webinar, Zoom Phone, and Zoom Contact Center
+                        - listitem [ref=f144e334]: Quality of Service Subscription – receive details about the network traffic in real-time for Zoom Meetings, Zoom Webinars, and Zoom Contact Center
+                  - link "See add-ons" [ref=f144e337] [cursor=pointer]:
+                    - /url: "#add-on__cards-title"
+              - generic [ref=f144e338]:
+                - generic [ref=f144e339]: "*Please note: The “Zoom Build Platform” is the new name for the Zoom SDK Universal Credit Plan; this name change is reflected on our pricing page, while the original name (“Zoom SDK Universal Credit Plan”) will still appear in the checkout flow, plan management page, and invoice."
+                - generic [ref=f144e340]:
+                  - generic [ref=f144e343]:
+                    - generic [ref=f144e344]: All add-ons require a paid base plan
+                    - heading "Add-ons to Developer" [level=2] [ref=f144e345]
+                  - article [ref=f144e348]:
+                    - generic [ref=f144e349]:
+                      - generic [ref=f144e350]:
+                        - img [ref=f144e353]
+                        - heading "Premier Developer Support" [level=3] [ref=f144e355]:
+                          - generic [ref=f144e356]: Premier Developer Support
+                      - paragraph [ref=f144e358]: Prioritized technical resources & committed developer work hours available through tiered plans.
+                    - generic [ref=f144e359]:
+                      - generic [ref=f144e360]: Talk to us
+                      - generic [ref=f144e362]:
+                        - link "Contact Sales Premier Developer Support" [ref=f144e364] [cursor=pointer]:
+                          - /url: https://explore.zoom.us/en/contactsales/?referrer=developerPricing
+                          - generic [ref=f144e365]: Contact Sales
+                        - button "Learn More Premier Developer Support" [ref=f144e367] [cursor=pointer]:
+                          - generic [ref=f144e368]: Learn More
+                - generic [ref=f144e369]:
+                  - generic [ref=f144e371]:
+                    - generic [ref=f144e372]: FAQs
+                    - heading "Frequently asked questions" [level=2] [ref=f144e373]
+                  - generic [ref=f144e374]:
+                    - button "Is Video SDK HIPAA Compliant?" [ref=f144e376] [cursor=pointer]:
+                      - generic [ref=f144e377]: Is Video SDK HIPAA Compliant?
+                      - img [ref=f144e379]
+                    - button "Where can I find the Zoom Video SDK Terms of Service?" [ref=f144e382] [cursor=pointer]:
+                      - generic [ref=f144e383]: Where can I find the Zoom Video SDK Terms of Service?
+                      - img [ref=f144e385]
+                    - button "How is the Zoom Video SDK billed?" [ref=f144e388] [cursor=pointer]:
+                      - generic [ref=f144e389]: How is the Zoom Video SDK billed?
+                      - img [ref=f144e391]
+                    - button "What platforms does the Zoom Video SDK support?" [ref=f144e394] [cursor=pointer]:
+                      - generic [ref=f144e395]: What platforms does the Zoom Video SDK support?
+                      - img [ref=f144e397]
+                    - button "Can the Zoom Video SDK join a Zoom Meeting?" [ref=f144e400] [cursor=pointer]:
+                      - generic [ref=f144e401]: Can the Zoom Video SDK join a Zoom Meeting?
+                      - img [ref=f144e403]
+                    - button "Can the Zoom Video SDK be customized?" [ref=f144e406] [cursor=pointer]:
+                      - generic [ref=f144e407]: Can the Zoom Video SDK be customized?
+                      - img [ref=f144e409]
+                    - button "Does the Zoom Video SDK come with a no code / low code option?" [ref=f144e412] [cursor=pointer]:
+                      - generic [ref=f144e413]: Does the Zoom Video SDK come with a no code / low code option?
+                      - img [ref=f144e415]
+                    - button "Does the Zoom Video SDK support raw data?" [ref=f144e418] [cursor=pointer]:
+                      - generic [ref=f144e419]: Does the Zoom Video SDK support raw data?
+                      - img [ref=f144e421]
+                    - button "Does Zoom Video SDK run on the same world class Zoom infrastructure?" [ref=f144e424] [cursor=pointer]:
+                      - generic [ref=f144e425]: Does Zoom Video SDK run on the same world class Zoom infrastructure?
+                      - img [ref=f144e427]
+                    - button "Does the Zoom Video SDK for web support all major browsers?" [ref=f144e430] [cursor=pointer]:
+                      - generic [ref=f144e431]: Does the Zoom Video SDK for web support all major browsers?
+                      - img [ref=f144e433]
+                    - button "How do I get my Zoom Video SDK credentials?" [ref=f144e436] [cursor=pointer]:
+                      - generic [ref=f144e437]: How do I get my Zoom Video SDK credentials?
+                      - img [ref=f144e439]
+                    - button "How do I get developer support?" [ref=f144e442] [cursor=pointer]:
+                      - generic [ref=f144e443]: How do I get developer support?
+                      - img [ref=f144e445]
+                    - button "Does Zoom offer development services to build my implementation?" [ref=f144e448] [cursor=pointer]:
+                      - generic [ref=f144e449]: Does Zoom offer development services to build my implementation?
+                      - img [ref=f144e451]
+                    - button "How does Zoom support non-profits?" [ref=f144e454] [cursor=pointer]:
+                      - generic [ref=f144e455]: How does Zoom support non-profits?
+                      - img [ref=f144e457]
+            - generic [ref=f144e460]: ‡ All plans are billed annually as a single upfront charge. Monthly rates shown are calculated by dividing the annual total by 12 and are displayed for comparison purposes only — you will not be charged on a monthly basis. Prices shown exclude applicable taxes and fees.
+    - contentinfo [ref=f144e461]:
+      - generic [ref=f144e464]:
+        - generic [ref=f144e465]:
+          - generic [ref=f144e466]:
+            - heading "About" [level=2] [ref=f144e467]:
+              - link "About" [ref=f144e468] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/about/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+            - list [ref=f144e469]:
+              - listitem [ref=f144e470]:
+                - link "Zoom Blog" [ref=f144e471] [cursor=pointer]:
+                  - /url: https://blog.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e472]:
+                - link "Customers" [ref=f144e473] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/customer/all/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e474]:
+                - link "Our Team" [ref=f144e475] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/team/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e476]:
+                - link "Careers" [ref=f144e477] [cursor=pointer]:
+                  - /url: https://careers.zoom.us/home?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e478]:
+                - link "Integrations" [ref=f144e479] [cursor=pointer]:
+                  - /url: https://marketplace.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e480]:
+                - link "Partners" [ref=f144e481] [cursor=pointer]:
+                  - /url: https://partner.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e482]:
+                - link "Investors" [ref=f144e483] [cursor=pointer]:
+                  - /url: https://investors.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e484]:
+                - link "Press" [ref=f144e485] [cursor=pointer]:
+                  - /url: https://news.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e486]:
+                - link "Sustainability & ESG" [ref=f144e487] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/zoom-esg/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e488]:
+                - link "Zoom Cares" [ref=f144e489] [cursor=pointer]:
+                  - /url: https://zoomcares.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e490]:
+                - link "Media Kit" [ref=f144e491] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/media-kit/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e492]:
+                - link "How to Videos" [ref=f144e493] [cursor=pointer]:
+                  - /url: https://learn-zoom.us/show-me?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e494]:
+                - link "Developer Platform" [ref=f144e495] [cursor=pointer]:
+                  - /url: https://developers.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e496]:
+                - link "Zoom Ventures" [ref=f144e497] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/zoom-ventures/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e498]:
+                - link "Zoom Merchandise Store" [ref=f144e499] [cursor=pointer]:
+                  - /url: https://shophappy.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - generic [ref=f144e500]:
+            - heading "Download" [level=2] [ref=f144e501]:
+              - link "Download" [ref=f144e502] [cursor=pointer]:
+                - /url: https://zoom.us/download
+            - list [ref=f144e503]:
+              - listitem [ref=f144e504]:
+                - link "Zoom Workplace App" [ref=f144e505] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_4meeting
+              - listitem [ref=f144e506]:
+                - link "Browser Extension" [ref=f144e507] [cursor=pointer]:
+                  - /url: https://zoom.us/download#chrome_ext
+              - listitem [ref=f144e508]:
+                - link "iPhone/iPad App" [ref=f144e509] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_iphone
+              - listitem [ref=f144e510]:
+                - link "Android App" [ref=f144e511] [cursor=pointer]:
+                  - /url: https://zoom.us/download#mobile_app
+              - listitem [ref=f144e512]:
+                - link "Zoom Virtual Backgrounds" [ref=f144e513] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/virtual-backgrounds/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - generic [ref=f144e514]:
+            - heading "Sales" [level=2] [ref=f144e515]:
+              - link "Sales" [ref=f144e516] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/contactsales/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+            - list [ref=f144e517]:
+              - listitem [ref=f144e518]:
+                - link "1.888.799.9666" [ref=f144e519] [cursor=pointer]:
+                  - /url: tel:1.888.799.9666
+              - listitem [ref=f144e520]:
+                - link "Contact Sales" [ref=f144e521] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/contactsales/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e522]:
+                - link "Plans & Pricing" [ref=f144e523] [cursor=pointer]:
+                  - /url: /pricing
+              - listitem [ref=f144e524]:
+                - link "Request a Demo" [ref=f144e525] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/livedemo/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e526]:
+                - link "Webinars and Events" [ref=f144e527] [cursor=pointer]:
+                  - /url: https://zoom.us/events
+              - listitem [ref=f144e528]:
+                - link "Zoom Experience Center" [ref=f144e529] [cursor=pointer]:
+                  - /url: https://ebc.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - generic [ref=f144e530]:
+            - heading "Support" [level=2] [ref=f144e531]:
+              - link "Support" [ref=f144e532] [cursor=pointer]:
+                - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+            - list [ref=f144e533]:
+              - listitem [ref=f144e534]:
+                - link "Test Zoom" [ref=f144e535] [cursor=pointer]:
+                  - /url: https://zoom.us/test
+              - listitem [ref=f144e536]:
+                - link "Account" [ref=f144e537] [cursor=pointer]:
+                  - /url: https://zoom.us/account
+              - listitem [ref=f144e538]:
+                - link "Support Center" [ref=f144e539] [cursor=pointer]:
+                  - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+              - listitem [ref=f144e540]:
+                - link "Learning Center" [ref=f144e541] [cursor=pointer]:
+                  - /url: https://learning.zoom.us/learn?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e542]:
+                - link "Zoom Community" [ref=f144e543] [cursor=pointer]:
+                  - /url: https://community.zoom.com/?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e544] [cursor=pointer]:
+                - button "Feedback" [ref=f144e545]
+              - listitem [ref=f144e546]:
+                - link "Contact Us" [ref=f144e547] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/contact?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e548]:
+                - link "Accessibility" [ref=f144e549] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/accessibility/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e550]:
+                - link "Developer support" [ref=f144e551] [cursor=pointer]:
+                  - /url: https://devsupport.zoom.us/hc/en-us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+              - listitem [ref=f144e552]:
+                - link "Privacy, Security, Legal Policies, and Modern Slavery Act Transparency Statement" [ref=f144e553] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/trust/legal-compliance/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - generic [ref=f144e554]:
+            - heading "Language" [level=2] [ref=f144e555]
+            - list [ref=f144e556]:
+              - listitem [ref=f144e557]:
+                - button "Language English" [ref=f144e558] [cursor=pointer]: English
+            - heading "Currency" [level=2] [ref=f144e560]
+            - list [ref=f144e561]:
+              - listitem [ref=f144e562]:
+                - button "US Dollars $" [ref=f144e563] [cursor=pointer]: US Dollars $
+            - generic [ref=f144e565]:
+              - link "Zoom on Blog" [ref=f144e566] [cursor=pointer]:
+                - /url: https://blog.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+                - generic [ref=f144e567]: Zoom on Blog
+              - link "Zoom on LinkedIn" [ref=f144e569] [cursor=pointer]:
+                - /url: https://www.linkedin.com/company/zoom
+                - generic [ref=f144e570]: Zoom on LinkedIn
+              - link "Zoom on Twitter" [ref=f144e572] [cursor=pointer]:
+                - /url: https://twitter.com/zoom
+                - generic [ref=f144e573]: Zoom on Twitter
+              - link "Zoom on Youtube" [ref=f144e575] [cursor=pointer]:
+                - /url: https://www.youtube.com/zoommeetings
+                - generic [ref=f144e576]: Zoom on Youtube
+              - link "Zoom on Facebook" [ref=f144e578] [cursor=pointer]:
+                - /url: https://www.facebook.com/zoom
+                - generic [ref=f144e579]: Zoom on Facebook
+              - link "Zoom on Instagram" [ref=f144e581] [cursor=pointer]:
+                - /url: https://www.instagram.com/zoom/
+                - generic [ref=f144e582]: Zoom on Instagram
+        - generic [ref=f144e585]:
+          - text: Copyright ©2026 Zoom Communications, Inc. All rights reserved.
+          - link "Terms" [ref=f144e586] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/terms/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - link "Privacy" [ref=f144e587] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/privacy/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - link "Trust Center" [ref=f144e588] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/trust/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - link "Acceptable Use Guidelines" [ref=f144e589] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/acceptable-use-guidelines/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - link "Legal & Compliance" [ref=f144e590] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/trust/legal-compliance/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783512303568
+          - link "Your Privacy Choices" [ref=f144e591] [cursor=pointer]
+          - link "Cookie Preferences" [ref=f144e592] [cursor=pointer]
+  - img
+  - button "Open chat dialog" [ref=f144e597] [cursor=pointer]:
+    - img "Slight smile icon" [ref=f144e598]

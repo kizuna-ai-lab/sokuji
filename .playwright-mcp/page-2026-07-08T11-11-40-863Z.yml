@@ -1,0 +1,25 @@
+- generic [ref=f19e1]:
+  - generic [ref=f19e4]:
+    - banner [ref=f19e6]:
+      - generic [ref=f19e7]:
+        - generic "Zoom" [ref=f19e8] [cursor=pointer]:
+          - img [ref=f19e9]
+        - generic [ref=f19e11] [cursor=pointer]: Marketplace
+      - generic [ref=f19e12]:
+        - generic [ref=f19e14]:
+          - generic [ref=f19e15]: Try new experience
+          - switch [checked] [ref=f19e18] [cursor=pointer]
+        - button "Sign In" [ref=f19e20] [cursor=pointer]:
+          - generic [ref=f19e21]: Sign In
+    - separator [ref=f19e73]
+  - alertdialog "Privacy" [ref=f19e269]:
+    - generic [ref=f19e270]:
+      - paragraph [ref=f19e272]:
+        - text: Zoom uses cookies and similar technologies as strictly necessary to make our site work. We and our partners would also like to set additional cookies to analyze your use of our site, to personalize and enhance your visit to our site and to show you more relevant content and advertising. These will be set only if you accept. You can always review and change your cookie preferences through our cookie settings page. For more information, please read our
+        - link "Privacy Statement" [ref=f19e273] [cursor=pointer]:
+          - /url: https://explore.zoom.us/privacy
+        - text: .
+      - generic [ref=f19e275]:
+        - button "Accept Cookies" [ref=f19e277] [cursor=pointer]
+        - button "Cookies Settings" [ref=f19e278] [cursor=pointer]
+      - button "Close" [ref=f19e280] [cursor=pointer]

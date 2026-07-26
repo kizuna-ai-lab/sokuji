@@ -1,0 +1,565 @@
+- main [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - heading "Architecture review — sokuji-react" [level=1] [ref=f2e4]
+    - paragraph [ref=f2e5]: 2026-07-10 · 8 路子系统探查 + 逐候选对抗验证（31 agents，23 候选 → 21 幸存，全部证据经 grep/wc 实测复核）
+    - generic [ref=f2e6]:
+      - generic [ref=f2e7]: module
+      - generic [ref=f2e9]: seam
+      - generic [ref=f2e11]: 泄漏 (leak)
+      - generic [ref=f2e13]: deep module
+      - generic [ref=f2e15]: Strong
+      - generic [ref=f2e17]: Worth exploring
+  - generic [ref=f2e19]:
+    - article [ref=f2e20]:
+      - generic [ref=f2e21]:
+        - heading [level=2] [ref=f2e22]:
+          - text: 1 · 让「一个 provider」成为一个 deep module — 收拢 142 处
+          - code [ref=f2e23]: case Provider.
+        - generic [ref=f2e24]:
+          - generic [ref=f2e25]: Strong
+          - generic [ref=f2e26]: in-process
+      - paragraph [ref=f2e27]: src/services/providers/ProviderConfigFactory.ts · ProviderConfig.ts · src/services/clients/ClientFactory.ts · src/services/ClientOperations.ts · src/types/Provider.ts · src/stores/settingsStore.ts · src/components/MainPanel/MainPanel.tsx:524-533 · LanguageSection.tsx
+      - generic [ref=f2e28]:
+        - generic [ref=f2e29]:
+          - paragraph [ref=f2e30]: Before — enum 扇出到 7 个文件的 15 个 switch
+          - generic [ref=f2e31]:
+            - generic [ref=f2e32]: Providerenum
+            - generic [ref=f2e40]:
+              - generic [ref=f2e41]: ClientFactory — 10 cases
+              - generic [ref=f2e42]: ClientOperations — 2 switch · 20 cases
+              - generic [ref=f2e43]: settingsStore — 3 switch · 32 cases
+              - generic [ref=f2e44]: LanguageSection — 33 cases
+              - generic [ref=f2e45]: ProviderSection — 27 cases
+              - generic [ref=f2e46]: MainPanel — 11 cases
+              - generic [ref=f2e47]: Provider.ts — displayName 9 cases
+              - generic [ref=f2e48]: ProviderConfigFactory Map（平行注册表，只装静态数据）
+          - paragraph [ref=f2e49]: 红框：provider→settings 映射一字不差地复制了 3 份（settingsStore.ts:1630 / :1718 / LanguageSection.tsx:136）；凭据槽位映射在 MainPanel:524-533 又抄了一份
+        - generic [ref=f2e50]:
+          - paragraph [ref=f2e51]: After — 一次查表，一个 descriptor 回答所有问题
+          - document [ref=f2e53]:
+            - generic [ref=f2e56]:
+              - paragraph [ref=f2e63]: settingsStore / MainPanel / UI
+              - paragraph [ref=f2e70]: ProviderRegistry(现有 Map 加深)
+              - paragraph [ref=f2e77]: per-provider descriptorcreateClient · validate · extractCredentialsbuildSessionConfig · 语言规则 · displayName · 门控
+          - paragraph [ref=f2e78]: 注册保持显式集中列表（验证者警告：不要用模块副作用自注册，有 import 顺序隐患）
+      - paragraph [ref=f2e79]:
+        - strong [ref=f2e80]: Problem
+        - text: — provider 的知识没有 locality：理解或修改一个 provider 要在 7+ 个文件间跳转，而真正的 per-provider seam（ProviderConfig，13 个类）是 shallow 的——只装静态元数据，行为全部散落在外。
+      - paragraph [ref=f2e81]:
+        - strong [ref=f2e82]: Solution
+        - text: — 把
+        - code [ref=f2e83]: createClient
+        - text: /
+        - code [ref=f2e84]: validateApiKeyAndFetchModels
+        - text: /
+        - code [ref=f2e85]: extractCredentials
+        - text: /
+        - code [ref=f2e86]: buildSessionConfig
+        - text: / 语言解析 / displayName 全部变成 descriptor 实例方法，ClientFactory 和 ClientOperations 的 switch 塌缩为一次 registry 查表。
+      - list [ref=f2e87]:
+        - listitem [ref=f2e88]: locality：改一个 provider = 改一个文件
+        - listitem [ref=f2e89]: leverage：一个 interface，142 个分支归位
+        - listitem [ref=f2e90]: interface 即 test surface：表驱动测试全体 provider
+        - listitem [ref=f2e91]: 消灭已发散的 3 处 displayName 真相源
+        - listitem [ref=f2e92]: 消灭两个互相矛盾的可用性注册表
+        - listitem [ref=f2e93]: CLAUDE.md「7 步加 provider」实测 14 文件 → 1 处注册
+      - generic [ref=f2e94]:
+        - text: 已经付过的代价：LanguageSection.tsx:159 / settingsStore.ts:1653 的
+        - code [ref=f2e95]: "default:"
+        - text: 静默回退到 OpenAI slice——正是产生真实 bug f660c715 的路径；display name 三处真相已发散（"Local (Offline)" vs "Free" vs i18n）；SUPPORTED_PROVIDERS 与 ProviderConfigFactory 对 OPENAI_COMPATIBLE / VOLCENGINE_AST2 的平台门控回答不一致。
+    - article [ref=f2e96]:
+      - generic [ref=f2e97]:
+        - heading "2 · 折叠 settingsStore 的 11 车道 provider-settings 扇出" [level=2] [ref=f2e98]
+        - generic [ref=f2e99]:
+          - generic [ref=f2e100]: Strong
+          - generic [ref=f2e101]: in-process
+      - paragraph [ref=f2e102]: src/stores/settingsStore.ts（1893 行）
+      - generic [ref=f2e103]:
+        - generic [ref=f2e104]:
+          - paragraph [ref=f2e105]: Before — 11 行 × 5 列，每格手写一遍
+          - generic [ref=f2e106]:
+            - generic [ref=f2e107]: slice 声明×11
+            - generic [ref=f2e108]: update action×9
+            - generic [ref=f2e109]: load 调用×11
+            - generic [ref=f2e110]: selector hook×9
+            - generic [ref=f2e111]: switch case×11
+          - paragraph [ref=f2e179]: 同一个持久化 for-loop 出现 11 次；9 个 action 里只有 2 个（红色）有真实逻辑（WebRTC 降级 :1055/:1087、Kizuna 凭据跳过 :1172/:1185），其余是纯样板
+        - generic [ref=f2e180]:
+          - paragraph [ref=f2e181]: After — 一条泛型车道 + 一张 11 行注册表
+          - generic [ref=f2e182]:
+            - generic [ref=f2e183]: updateProvider(sliceKey, patch) — 持久化 · merge · 错误策略，实现一次
+            - generic [ref=f2e184]: "registry: sliceKey → { defaults, persistPrefix, onUpdate? } （11 行数据）"
+            - generic [ref=f2e185]:
+              - generic [ref=f2e186]: "hook: webrtc 降级 ×2"
+              - generic [ref=f2e187]: "hook: kizuna 凭据跳过 ×2"
+          - paragraph [ref=f2e188]: load / getCurrentProviderSettings / selector 全部变成对注册表的迭代
+      - paragraph [ref=f2e189]:
+        - strong [ref=f2e190]: Problem
+        - text: — interface 几乎和 implementation 一样宽：每加一个 provider 要在 5 张平行列表里用不同名词把同一件事再说一遍，是教科书式的 shallow 扇出。
+      - paragraph [ref=f2e191]:
+        - strong [ref=f2e192]: Solution
+        - text: — 一个 slice 注册表驱动存储 / 加载 / 更新 / 选取，9 个手写 action、11 个 load 调用、11-case switch 归并为对注册表的循环，2 处特例降为具名 hook。
+      - list [ref=f2e193]:
+        - listitem [ref=f2e194]: leverage：一个 action 服务 11 个 slice
+        - listitem [ref=f2e195]: 样板测一次，不是测九次（今天只测了 2/9）
+        - listitem [ref=f2e196]: 与候选 1 组合后解锁其余 provider 分支
+        - listitem [ref=f2e197]: 2 处真实逻辑从样板里显形
+      - generic [ref=f2e198]: 权衡：持久化 key 布局要保持兼容（迁移敏感）；错误策略在现有 action 间是 5/6 分裂的（吞掉 vs 上抛），注册表必须显式承载这个决定，否则会重新变 shallow。
+    - article [ref=f2e199]:
+      - generic [ref=f2e200]:
+        - heading "3 · 封住 audio seam：getRecorder() / getWavStreamPlayer() 把 Web Audio 内脏递给了调用方" [level=2] [ref=f2e201]
+        - generic [ref=f2e202]:
+          - generic [ref=f2e203]: Strong
+          - generic [ref=f2e204]: in-process
+      - paragraph [ref=f2e205]: src/services/interfaces/IAudioService.ts（38 方法 · 1 个 adapter） · src/lib/modern-audio/ModernBrowserAudioService.ts · src/components/MainPanel/MainPanel.tsx · src/services/ServiceFactory.ts
+      - generic [ref=f2e206]:
+        - generic [ref=f2e207]:
+          - paragraph [ref=f2e208]: Before — 箭头刺穿 seam，直捅 AudioContext
+          - img [ref=f2e209]:
+            - generic [ref=f2e211]: MainPanel
+            - generic [ref=f2e212]: getRecorder() ×6
+            - generic [ref=f2e213]: recorder.getFrequencies()
+            - generic [ref=f2e214]: player.context.state
+            - generic [ref=f2e215]: player.analyser
+            - generic [ref=f2e216]: IAudioService（seam · 仅 1 个 adapter）
+            - generic [ref=f2e218]: ModernBrowserAudioService
+            - generic [ref=f2e220]: ModernAudioRecorder (953 行)
+            - generic [ref=f2e222]: ModernAudioPlayer · AudioContext
+            - generic [ref=f2e224]: AnalyserNode
+            - generic [ref=f2e226]: 内部 isElectron/isExtension ×18
+          - paragraph [ref=f2e228]:
+            - text: MainPanel.tsx:2602-2603 直接读
+            - code [ref=f2e229]: wavStreamPlayer.context.state
+            - text: /
+            - code [ref=f2e230]: .analyser
+            - text: —— seam 名存实亡
+        - generic [ref=f2e231]:
+          - paragraph [ref=f2e232]: After — 意图动词，内脏封死在 deep module 里
+          - img [ref=f2e233]:
+            - generic [ref=f2e235]: MainPanel
+            - generic [ref=f2e237]: AudioService（deep）
+            - generic [ref=f2e238]: isMicActive() · getMicFrequencies()
+            - generic [ref=f2e239]: setNoiseSuppression(mode)
+            - generic [ref=f2e240]: getPlaybackFrequencies() · getParticipantLevels()
+            - generic [ref=f2e241]: Recorder · Player · AnalyserNode
+            - generic [ref=f2e242]: AudioContext · Worklet
+            - generic [ref=f2e243]: platform 分支（不再外泄：
+            - generic [ref=f2e244]: tab/system/loopback 三入口合一）
+            - generic [ref=f2e245]: — 全部灰色 = 调用方不可见 —
+          - paragraph [ref=f2e246]: 同时把 ServiceFactory 降级为诚实的 singleton 访问器（它从不按平台分派）
+      - paragraph [ref=f2e247]:
+        - strong [ref=f2e248]: Problem
+        - text: — 3 个返回具体对象的 getter（:85 / :145 / :285）让调用方绕过 interface 直接操作 Web Audio 内部，platform 命名的方法（supportsTabAudioCapture / requestLoopbackAudioStream）又把平台分支泄漏回调用方——seam 是假的（1 个 adapter），interface 却宽达 38 个方法。
+      - paragraph [ref=f2e249]:
+        - strong [ref=f2e250]: Solution
+        - text: — 用意图动词替换对象 getter，把 tab/system/loopback 三个平台入口折进已存在的 startParticipantAudioRecording 之后，泄漏的 6+ 处 reach-through 收回 service 内部。
+      - list [ref=f2e251]:
+        - listitem [ref=f2e252]: interface 变成 test surface：fake 可站上 seam
+        - listitem [ref=f2e253]: MainPanel 不再 import 任何 Web Audio 名词
+        - listitem [ref=f2e254]: platform 分支的 locality 回到 adapter 内
+        - listitem [ref=f2e255]: 为候选 4 的纯 processor 铺路
+      - generic [ref=f2e256]: 历史注脚：这个 seam 曾经是真的——两个 adapter（Browser/Electron AudioService）在 eb26b1bc（2025-07-14）被有意合并。合并本身没错；错的是留下了为双 adapter 时代设计的 38 方法宽 interface 和对象直通 getter。
+    - article [ref=f2e257]:
+      - generic [ref=f2e258]:
+        - heading "4 · 提取纯 AudioFrameProcessor —— 5432 行音频管线目前 0 测试，而且抽错了纯函数" [level=2] [ref=f2e259]
+        - generic [ref=f2e260]:
+          - generic [ref=f2e261]: Strong
+          - generic [ref=f2e262]: local-substitutable
+      - paragraph [ref=f2e263]: src/lib/modern-audio/ModernAudioRecorder.ts:574,583,878 · BaseAudioRecorder.ts · src/utils/audio-conversion.ts · src/utils/audioUtils.ts
+      - generic [ref=f2e264]:
+        - generic [ref=f2e265]:
+          - paragraph [ref=f2e266]: Before — DSP 内联在浏览器纠缠的 953 行里
+          - document [ref=f2e268]:
+            - generic [ref=f2e270]:
+              - paragraph [ref=f2e278]: 只被 2 个 UI 文件用
+              - generic [ref=f2e279]:
+                - paragraph [ref=f2e286]: MediaStream · AudioContextAudioWorklet
+                - paragraph [ref=f2e293]: ModernAudioRecorder 953 行downsample48to24 :878_interpolateAudio :583_detectSilence :574denoise 交接 :794
+                - paragraph [ref=f2e300]: Service → 消费方
+                - paragraph [ref=f2e307]: audioUtils.ts(被抽出'为了可测'的纯函数)
+                - paragraph [ref=f2e314]: 反馈告警 UI
+          - paragraph [ref=f2e315]: bug 住的地方（重采样/静音门/插值）不可测；被抽出的纯函数是 UI 启发式——测的是错的东西
+        - generic [ref=f2e316]:
+          - paragraph [ref=f2e317]: After — 帧进、帧出，Node 里就能测
+          - document [ref=f2e319]:
+            - generic [ref=f2e321]:
+              - paragraph [ref=f2e331]: 驱动
+              - generic [ref=f2e332]:
+                - paragraph [ref=f2e339]: 浏览器捕获 adapter（薄：只泵原始帧）
+                - paragraph [ref=f2e346]: AudioFrameProcessor（纯）downmix · resample · 静音门插值 · denoise 编排 · f32↔i16
+                - paragraph [ref=f2e353]: Int16@24k chunk 流 → 消费方
+                - paragraph [ref=f2e360]: vitest（无浏览器）
+      - paragraph [ref=f2e361]:
+        - strong [ref=f2e362]: Problem
+        - text: — 每一个音频 chunk 都经过的帧运算散布在三个浏览器纠缠的文件里，没有任何 interface 能在无 AudioContext 的环境下驱动它——真正的 DSP 没有 locality，测试火力全部落在旁支。
+      - paragraph [ref=f2e363]:
+        - strong [ref=f2e364]: Solution
+        - text: — 收拢帧运算为一个纯 module（typed array 进 / 出），浏览器 I/O 留在薄的捕获 adapter 里；这一步让候选 3 封好的 seam 第一次有了可替换的第二 adapter（fake 帧源）。
+      - list [ref=f2e365]:
+        - listitem [ref=f2e366]: 重采样/静音门/降噪顺序获得单元测试
+        - listitem [ref=f2e367]: locality：帧 bug 集中在一个 module
+        - listitem [ref=f2e368]: seam 变真：fake 帧源 = 第二个 adapter
+        - listitem [ref=f2e369]: deletion test：三处 DSP 并一处，复杂度集中
+    - article [ref=f2e370]:
+      - generic [ref=f2e371]:
+        - heading "5 · WorkerSession：四个 engine 各抄一遍的 worker 生命周期，收进一个带真 seam 的 module" [level=2] [ref=f2e372]
+        - generic [ref=f2e373]:
+          - generic [ref=f2e374]: Strong
+          - generic [ref=f2e375]: ports & adapters
+      - paragraph [ref=f2e376]: src/lib/local-inference/engine/AsrEngine.ts(283) · StreamingAsrEngine.ts(258) · TranslationEngine.ts(313) · TtsEngine.ts(527) · src/services/clients/LocalInferenceClient.ts(829，0 测试)
+      - generic [ref=f2e377]:
+        - generic [ref=f2e378]:
+          - paragraph [ref=f2e379]: Before — 同一条生命周期带，抄了 4 份
+          - generic [ref=f2e380]:
+            - generic [ref=f2e381]:
+              - paragraph [ref=f2e382]: AsrEngine
+              - generic [ref=f2e383]:
+                - generic [ref=f2e384]: new Worker → 握手 → onmessage switch
+                - generic [ref=f2e385]: onerror → dispose → revokeBlobUrls
+            - generic [ref=f2e386]:
+              - paragraph [ref=f2e387]: StreamingAsrEngine
+              - generic [ref=f2e388]:
+                - generic [ref=f2e389]: 同上（又一份）
+                - generic [ref=f2e390]: ⚠ 猴补丁自己的 onmessage :140/:182
+            - generic [ref=f2e391]:
+              - paragraph [ref=f2e392]: TranslationEngine
+              - generic [ref=f2e393]: 同上（第三份）
+            - generic [ref=f2e394]:
+              - paragraph [ref=f2e395]: TtsEngine
+              - generic [ref=f2e396]: 同上（第四份）
+          - paragraph [ref=f2e397]:
+            - text: dispose 4/4 · onerror 4/4 · ready/error/disposed 各 4/4 · revokeBlobUrls 14 处。唯一的 engine 测试靠
+            - code [ref=f2e398]: globalThis.Worker = MockWorker
+            - text: 全局猴补丁才能跑
+        - generic [ref=f2e399]:
+          - paragraph [ref=f2e400]: After — 生命周期一份，engine 变成领域动词门面
+          - generic [ref=f2e401]:
+            - generic [ref=f2e402]:
+              - generic [ref=f2e403]: ASRfeedAudio/flush
+              - generic [ref=f2e404]: StreamASR(不再猴补丁)
+              - generic [ref=f2e405]: Translationtranslate()
+              - generic [ref=f2e406]: TTSgenerate/stream
+            - generic [ref=f2e407]: WorkerSession — start():Promise<ready> · on(type,cb) · post(msg,transfer) · dispose() 内部：worker 创建 · 握手 · 消息路由 · 错误传播 · revoke-on-settle · 载入顺序策略（supertonic 单 await 约束显式化）
+            - generic [ref=f2e408]:
+              - generic [ref=f2e410]: adapter①：真 Worker
+              - generic [ref=f2e411]: adapter②：in-memory（测试）
+              - generic [ref=f2e412]: 两个 adapter ⇒ seam 是真的
+      - paragraph [ref=f2e413]:
+        - strong [ref=f2e414]: Problem
+        - text: — init 握手、消息路由、blob-URL 回收这条生命周期在 4 个 engine 里近乎逐字重复，且每个 engine 直接握
+        - code [ref=f2e415]: new Worker
+        - text: 全局——没有任何 module 站在 engine 与 Worker 原语之间，于是 3 个 engine 加 829 行的 LocalInferenceClient 管线完全测不到。
+      - paragraph [ref=f2e416]:
+        - strong [ref=f2e417]: Solution
+        - text: — 一个 WorkerSession deep module 独占生命周期，engine 缩成 ~100 行的领域门面；配一个 in-memory adapter，让 seam 拥有第二个 adapter、猴补丁死掉。
+      - list [ref=f2e418]:
+        - listitem [ref=f2e419]: 生命周期 bug 集中一处（deletion test：concentrates）
+        - listitem [ref=f2e420]: 4 engine + client 管线在 Node 可测
+        - listitem [ref=f2e421]: StreamingAsrEngine 的 onmessage 猴补丁消失
+        - listitem [ref=f2e422]: revoke-on-error 等不变量测一次
+      - generic [ref=f2e423]: 验证者提醒：载入顺序是每 engine 有意调过的（TtsEngine.ts:96-99 注释了 supertonic 必须单 await 取 blob URL）——WorkerSession 的 interface 必须把这条约束显式承载，而不是抹平。
+    - article [ref=f2e424]:
+      - generic [ref=f2e425]:
+        - heading "6 · Worker 侧：10 份复制的 transformers.js 脚手架，其中一份已经开始烂" [level=2] [ref=f2e426]
+        - generic [ref=f2e427]:
+          - generic [ref=f2e428]: Strong
+          - generic [ref=f2e429]: in-process
+      - paragraph [ref=f2e430]: src/lib/local-inference/workers/*.worker.ts（13 文件 ≈5000 行，0 测试）—— qwen / hy-mt / translategemma / qwen35 / whisper-webgpu / cohere / granite / voxtral / …
+      - generic [ref=f2e431]:
+        - generic [ref=f2e432]:
+          - paragraph [ref=f2e433]: Before — 每个 worker 自带同一套 4 块脚手架
+          - generic [ref=f2e434]:
+            - paragraph [ref=f2e436]: qwen
+            - paragraph [ref=f2e444]: hy-mt
+            - paragraph [ref=f2e452]: gemma
+            - paragraph [ref=f2e460]: whisper ⚠
+            - paragraph [ref=f2e468]: +6 个…
+          - generic [ref=f2e475]:
+            - generic [ref=f2e476]: 复制的脚手架（blob-cache · env · GPU 门 · 路由）
+            - generic [ref=f2e478]: 真正 model-specific 的核心
+          - paragraph [ref=f2e480]: createBlobUrlCache 定义 ×10（三份 diff 证实逐字节相同，19 行）；whisper 的副本已经 drift（改名 + 空白）——复制粘贴腐烂进行时
+        - generic [ref=f2e481]:
+          - paragraph [ref=f2e482]: After — 脚手架一份，worker 只剩模型核心
+          - generic [ref=f2e483]:
+            - generic [ref=f2e484]: createTransformersWorker(config) blob-URL cache · env 配置 · WebGPU 门（可选，3 个 worker 无门）· status/ready/error 协议 · 消息路由
+            - generic [ref=f2e485]:
+              - generic [ref=f2e486]: qwen~60行
+              - generic [ref=f2e487]: hy-mt~60行
+              - generic [ref=f2e488]: gemma~60行
+              - generic [ref=f2e489]: whisper核心
+              - generic [ref=f2e490]: …
+            - paragraph [ref=f2e491]: harness 用 fake pipeline + fake postMessage 独立测协议；per-worker 测试缩成对 prompt/解析 的断言
+      - paragraph [ref=f2e492]:
+        - strong [ref=f2e493]: Problem
+        - text: — 每个 worker 真正拥有的 interface（哪个模型、怎么组一次 generate 调用）被埋在 ~40 行完全相同的样板下，blob-cache URL 重写的一个 bug 要修 10 处。
+      - paragraph [ref=f2e494]:
+        - strong [ref=f2e495]: Solution
+        - text: — 把 4 块脚手架上提为一个 worker harness module，LLM 翻译 worker 从 ~210 行缩到 ~60 行；与候选 5 互补（主线程/worker 侧各一半）。
+      - list [ref=f2e496]:
+        - listitem [ref=f2e497]: 协议测一次；今天 0 个 worker 有测试
+        - listitem [ref=f2e498]: 已发生的 whisper drift 结构性消失
+        - listitem [ref=f2e499]: 加一个模型 = 写核心，不是抄脚手架
+      - generic [ref=f2e500]: 对面的论点：worker 独立性让模型轮换（voxtral→voxtral-3b 直接新开文件）零波及邻居。harness 要保住这一点——共享的只能是协议脚手架，不能是模型逻辑。
+    - article [ref=f2e501]:
+      - generic [ref=f2e502]:
+        - heading "7 · 「这个模型现在能用吗」给一个家 —— settingsStore 不再指挥 modelStore 的内部编舞" [level=2] [ref=f2e503]
+        - generic [ref=f2e504]:
+          - generic [ref=f2e505]: Strong
+          - generic [ref=f2e506]: in-process
+      - paragraph [ref=f2e507]: src/stores/modelStore.ts · src/stores/settingsStore.ts:1206-1271 · src/lib/local-inference/ModelManager.ts · modelStorage.ts
+      - generic [ref=f2e508]:
+        - generic [ref=f2e509]:
+          - paragraph [ref=f2e510]: Before — 就绪判定被 7 处重推导
+          - document [ref=f2e512]:
+            - generic [ref=f2e514]:
+              - generic [ref=f2e520]:
+                - paragraph [ref=f2e526]: 动态 import + 指挥initialize→autoSelect→isProviderReady
+                - paragraph [ref=f2e532]: 绕过 ModelManager ×6
+              - generic [ref=f2e533]:
+                - paragraph [ref=f2e540]: readiness判定
+                - paragraph [ref=f2e547]: ModelManager.isModelReady
+                - paragraph [ref=f2e554]: isProviderReady
+                - paragraph [ref=f2e561]: autoSelectModels
+                - paragraph [ref=f2e568]: getParticipantModelStatus
+                - paragraph [ref=f2e575]: recallModels · initialize
+                - paragraph [ref=f2e582]: settingsStore.validateApiKey~65 行 LOCAL_INFERENCE 臂
+                - paragraph [ref=f2e589]: modelStore
+                - paragraph [ref=f2e596]: modelStorage
+          - paragraph [ref=f2e597]:
+            - text: webgpu 判式重复 ×11 ·
+            - code [ref=f2e598]: === 'downloaded'
+            - text: ×14 · 翻译 workerType 默认值在两个文件各写一份
+        - generic [ref=f2e599]:
+          - paragraph [ref=f2e600]: After — 一个谓词 + 一扇门
+          - document [ref=f2e602]:
+            - generic [ref=f2e604]:
+              - paragraph [ref=f2e616]: 一次调用
+              - generic [ref=f2e617]:
+                - paragraph [ref=f2e624]: isProviderReady
+                - paragraph [ref=f2e631]: modelUsable(entry, ctx)downloaded ∧ device ∧ language（纯函数，表驱动测试）
+                - paragraph [ref=f2e638]: autoSelectModels
+                - paragraph [ref=f2e645]: getParticipantModelStatus
+                - paragraph [ref=f2e652]: settingsStore.validateApiKey
+                - paragraph [ref=f2e659]: "modelStore.ensureSelectionReady(localSettings)→ { ready, corrections }"
+                - paragraph [ref=f2e666]: ModelManager
+                - paragraph [ref=f2e673]: modelStorage（只在此 seam 后）
+      - paragraph [ref=f2e674]:
+        - strong [ref=f2e675]: Problem
+        - text: — settingsStore 必须知道 modelStore 的内部调用顺序（initialize→autoSelect→isProviderReady）才能放行一个 session，这是跨 store seam 的 interface 泄漏；同时就绪子判式在 5 个 store 方法里各自重推导。
+      - paragraph [ref=f2e676]:
+        - strong [ref=f2e677]: Solution
+        - text: — 一个纯
+        - code [ref=f2e678]: modelUsable()
+        - text: 谓词供所有就绪调用方使用，一个
+        - code [ref=f2e679]: ensureSelectionReady()
+        - text: 入口把编舞收进数据所在的 store；modelStorage 收回 ModelManager 之后。
+      - list [ref=f2e680]:
+        - listitem [ref=f2e681]: 下载×设备×语言矩阵表驱动测一次
+        - listitem [ref=f2e682]: store 间 seam 只剩一次方法调用
+        - listitem [ref=f2e683]: 动态 import + 顺序知识从 settingsStore 消失
+      - generic [ref=f2e684]: 保留既有决定：validateApiKey 作为全 provider 统一门控点是 83cc296b 有意选择的——本候选不动这个门，只是让门后只有一次调用。
+    - article [ref=f2e685]:
+      - generic [ref=f2e686]:
+        - heading "8 · Extension：一个平台注册表，替换 6 文件 + 55 locale 的手抄散布" [level=2] [ref=f2e687]
+        - generic [ref=f2e688]:
+          - generic [ref=f2e689]: Strong
+          - generic [ref=f2e690]: in-process + codegen
+      - paragraph [ref=f2e691]: extension/manifest.json:49,98-110 · background/background.js:28-40 · popup.js:96,119,181 · content/content.js:89-111 · content/site-plugins.js:467-480 · src/components/Subtitle/surfaces/ExtensionContentScriptSubtitleSurface.ts:6-15
+      - generic [ref=f2e692]:
+        - generic [ref=f2e693]:
+          - paragraph [ref=f2e694]: Before — 「加一个平台」扇出 ~10 个编辑点
+          - document [ref=f2e696]:
+            - generic [ref=f2e698]:
+              - paragraph [ref=f2e713]: 已发散：slack．com ≠ app．slack．com
+              - generic [ref=f2e714]:
+                - paragraph [ref=f2e721]: 加一个平台
+                - paragraph [ref=f2e728]: manifest.json ×2 处
+                - paragraph [ref=f2e735]: background.js ENABLED_SITES
+                - paragraph [ref=f2e742]: popup.js ×3 张表
+                - paragraph [ref=f2e749]: content.js if/else 链
+                - paragraph [ref=f2e756]: site-plugins.js registry
+                - paragraph [ref=f2e763]: SubtitleSurface SUPPORTED_HOSTS
+                - paragraph [ref=f2e770]: 55 个 locale × 2 keys= 110 条 message
+          - paragraph [ref=f2e771]:
+            - text: 发散已发生：background.js:38 写
+            - code [ref=f2e772]: slack.com
+            - text: ，其余 5 处全是
+            - code [ref=f2e773]: app.slack.com
+            - text: ——没有编译器或测试把这 6 张表连起来
+        - generic [ref=f2e774]:
+          - paragraph [ref=f2e775]: After — 一处注册，其余为投影
+          - document [ref=f2e777]:
+            - generic [ref=f2e779]:
+              - generic [ref=f2e783]:
+                - paragraph [ref=f2e789]: build-time codegen
+                - paragraph [ref=f2e795]: codegen 或提升为 bundled entry
+              - generic [ref=f2e796]:
+                - paragraph [ref=f2e803]: "platforms registry{hostname, matchPattern, displayName,group, guidanceMsgKey, plugin}"
+                - paragraph [ref=f2e810]: popup / SubtitleSurface（bundled：直接 import）
+                - paragraph [ref=f2e817]: manifest.json matches
+                - paragraph [ref=f2e824]: background.js · content.jssite-plugins.js（原样复制的脚本）
+      - paragraph [ref=f2e825]:
+        - strong [ref=f2e826]: Problem
+        - text: — 不存在一个 interface 是「支持的会议平台集合」的 module：同一个领域事实（hostname、匹配模式、名称、指引文案、插件）被 6 个文件各自 shallow 地重新列举，加一个平台 = ~10 个无关联编辑点。
+      - paragraph [ref=f2e827]:
+        - strong [ref=f2e828]: Solution
+        - text: — 单一 platform-registry module；bundled 消费方直接 import，manifest 与原样复制的脚本经 build-time codegen 生成——发散在结构上不再可能。
+      - list [ref=f2e829]:
+        - listitem [ref=f2e830]: slack.com 式发散结构性消失
+        - listitem [ref=f2e831]: 一条注册表测试守住全部 6 张投影
+        - listitem [ref=f2e832]: 加平台的 8-surface 清单降为 1 项 + locale 文案
+      - generic [ref=f2e833]: 平台约束（load-bearing）：extension/vite.config.ts:58-65 把 background/content/site-plugins 原样复制，classic content script 不能 ESM import——所以是「registry + 生成投影」而不是「所有人 import 同一模块」；manifest 是静态 JSON，只能 codegen。
+    - article [ref=f2e834]:
+      - generic [ref=f2e835]:
+        - heading "9 · 字幕端口：两侧手抄的 5 种消息形状 → 一份共享 wire 契约" [level=2] [ref=f2e836]
+        - generic [ref=f2e837]:
+          - generic [ref=f2e838]: Strong
+          - generic [ref=f2e839]: in-process
+      - paragraph [ref=f2e840]: src/components/Subtitle/surfaces/ExtensionContentScriptSubtitleSurface.ts:268-360 · src/stores/sessionPortMirror.ts:10-48,102-113
+      - generic [ref=f2e841]:
+        - generic [ref=f2e842]:
+          - paragraph [ref=f2e843]: Before — 各自私藏一份协议
+          - generic [ref=f2e844]:
+            - generic [ref=f2e845]:
+              - paragraph [ref=f2e846]: side-panel surface（发送方）
+              - generic [ref=f2e847]: 5 个裸 object literal:268 :299 :314 :355 :360
+            - generic [ref=f2e848]: chrome.runtimeport ─ ─ ─
+            - generic [ref=f2e849]:
+              - paragraph [ref=f2e850]: iframe mirror（接收方）
+              - generic [ref=f2e851]: 5 个独立重声明的 interface+ 5 个字符串 tag guard
+              - generic [ref=f2e852]: PROVIDER_STATE_KEY：手抄 10 条settingsStore key 映射
+          - paragraph [ref=f2e853]: 改一个 wire 字段 = 两边各改一次，编译器不知情；加一个 provider 还要来这里再登记一次
+        - generic [ref=f2e854]:
+          - paragraph [ref=f2e855]: After — 契约躺在 wire 上，两侧同引
+          - generic [ref=f2e856]:
+            - generic [ref=f2e857]: surface
+            - generic [ref=f2e858]: subtitleWireTypesdiscriminated union ×5（type-only import，零运行时成本）
+            - generic [ref=f2e859]: mirror
+          - paragraph [ref=f2e860]: PROVIDER_STATE_KEY 的 provider→stateKey 映射迁入 provider registry（候选 1），端口不再私藏 store 内部布局
+      - paragraph [ref=f2e861]:
+        - strong [ref=f2e862]: Problem
+        - text: — 端口两侧只靠约定耦合：发送方 5 个裸 literal，接收方 5 个手抄 interface，外加把 settingsStore 的 provider key 布局泄漏进 mirror 的第三重耦合。
+      - paragraph [ref=f2e863]:
+        - strong [ref=f2e864]: Solution
+        - text: — 抽一个共享 wire-types module（判别联合），两侧同引一份定义；两个进程的处理器保持分离（deletion test 说 move——所以是抽契约，不是并模块）。
+      - list [ref=f2e865]:
+        - listitem [ref=f2e866]: wire drift 从运行时炸变编译错
+        - listitem [ref=f2e867]: 两侧已有测试改测同一契约
+        - listitem [ref=f2e868]: 改动小、见效快（本清单里最便宜）
+    - article [ref=f2e869]:
+      - generic [ref=f2e870]:
+        - heading "10 · Electron IPC：三处手工同步的通道登记（已经漂移）→ 一张类型化通道表" [level=2] [ref=f2e871]
+        - generic [ref=f2e872]:
+          - generic [ref=f2e873]: Strong
+          - generic [ref=f2e874]: in-process + codegen
+      - paragraph [ref=f2e875]: electron/preload.js:102-149 · main.js · subtitle-window.js · better-auth-adapter.js · update-manager.js · src/electron.d.ts
+      - generic [ref=f2e876]:
+        - generic [ref=f2e877]:
+          - paragraph [ref=f2e878]: Before — invoke(string, any) 什么都不遮
+          - document [ref=f2e880]:
+            - generic [ref=f2e882]:
+              - generic [ref=f2e886]:
+                - paragraph [ref=f2e892]: "invoke(channel: string, data?: any)"
+                - paragraph [ref=f2e898]: 必须手工同步
+                - paragraph [ref=f2e904]: 声明了却无 handler 无调用方
+              - generic [ref=f2e905]:
+                - paragraph [ref=f2e912]: renderer54 个字符串调用点
+                - paragraph [ref=f2e919]: main process31 个不同通道的 handler，散在 4 个文件
+                - paragraph [ref=f2e926]: preload validChannels33 条手抄白名单
+                - paragraph [ref=f2e933]: electron.d.tsconfig.* / openai.generateToken
+                - paragraph [ref=f2e940]: ∅
+          - paragraph [ref=f2e941]:
+            - text: 漂移实锤：白名单含无 handler 的占位
+            - code [ref=f2e942]: invoke-channel
+            - text: ；loopback 通道由第三方库注册、白名单里却要手补；.d.ts 有一整片死类型面
+        - generic [ref=f2e943]:
+          - paragraph [ref=f2e944]: After — 一张表，两个投影
+          - document [ref=f2e946]:
+            - generic [ref=f2e948]:
+              - paragraph [ref=f2e958]: build-time 生成
+              - generic [ref=f2e959]:
+                - paragraph [ref=f2e966]: "channel 表name → { argType, resultType, handler }"
+                - paragraph [ref=f2e973]: main：迭代注册 handler
+                - paragraph [ref=f2e980]: preload 白名单（保持字面量输出，可审计）
+                - paragraph [ref=f2e987]: typed invoke(channel, arg)参数与返回值均有类型
+      - paragraph [ref=f2e988]:
+        - strong [ref=f2e989]: Problem
+        - text: — renderer→main 的 interface 是一个字符串直通 shim：真正的知识（哪些通道存在、收发什么）摊在三个必须手工同步的登记处，且已经漂移，electron/ 目录 0 测试。
+      - paragraph [ref=f2e990]:
+        - strong [ref=f2e991]: Solution
+        - text: "— 一个通道注册表 module 拥有 name→{类型, handler}；白名单与 .d.ts 变成它的生成物，一条测试迭代表断言「每个广告出去的通道都有 handler」。"
+      - list [ref=f2e992]:
+        - listitem [ref=f2e993]: 三处登记 → 一处 + 两个投影
+        - listitem [ref=f2e994]: 已存在的漂移被测试锁死
+        - listitem [ref=f2e995]: 54 个 any 调用点获得类型
+        - listitem [ref=f2e996]: 删掉 .d.ts 的死类型面
+      - generic [ref=f2e997]: 安全权衡（验证者的钢人论证）：preload 里手写字面量白名单是 Electron contextIsolation 的经典配方——一眼可审计、零 import。缓解：白名单由 build 步生成但输出保持内联字面量，审计性不丢。
+  - generic [ref=f2e998]:
+    - heading "次级候选 — Worth exploring" [level=2] [ref=f2e999]
+    - paragraph [ref=f2e1000]: 对抗验证后被削弱或权衡显著的候选。每条都真实，但当前设计各有一半道理。
+    - generic [ref=f2e1001]:
+      - article [ref=f2e1002]:
+        - generic [ref=f2e1003]:
+          - heading "11 · 设备切换归一：applyInputDevice()" [level=3] [ref=f2e1004]
+          - generic [ref=f2e1005]: Worth exploring
+        - paragraph [ref=f2e1006]: audioStore.ts · ModernBrowserAudioService.ts:582-669 · MainPanel.tsx:2977,3011
+        - generic [ref=f2e1007]:
+          - generic [ref=f2e1008]: 同一触发 → 2 个 useEffect → 2 条机制；passthrough 回调逐字复制 ×2（:604/:660）
+          - generic [ref=f2e1009]: →
+          - generic [ref=f2e1010]: service 内一个入口，worklet-vs-WebRTC 分派在门后
+        - paragraph [ref=f2e1011]: 注意：worklet vs WebRTC 是真 seam（IClient.switchInputDevice 有 2 个 adapter），分叉必须存在于某处——本候选只是给它一个家。
+      - article [ref=f2e1012]:
+        - generic [ref=f2e1013]:
+          - heading "12 · ProviderSpecificSettings 由 capabilities 驱动" [level=3] [ref=f2e1014]
+          - generic [ref=f2e1015]: Worth exploring
+        - paragraph [ref=f2e1016]: ProviderSpecificSettings.tsx（2490 行 · 0 测试 · 21 个身份分支）
+        - generic [ref=f2e1017]:
+          - generic [ref=f2e1018]: 10-way if-chain :386-408；capability 层存在但只吃了一半
+          - generic [ref=f2e1019]: →
+          - generic [ref=f2e1020]: 表单 = f(config.capabilities)；喂合成 config 即可测
+        - paragraph [ref=f2e1021]: 削弱原因：混合是有注释的部分有意设计。作为候选 1 的自然续篇做，别单独做。
+      - article [ref=f2e1022]:
+        - generic [ref=f2e1023]:
+          - heading "13 · 入站事件 → ConversationItem 的 reducer seam" [level=3] [ref=f2e1024]
+          - generic [ref=f2e1025]: Worth exploring
+        - paragraph [ref=f2e1026]: 11 个 client · 6 个零测试 client = 5439 行
+        - generic [ref=f2e1027]:
+          - generic [ref=f2e1028]:
+            - text: 测试靠
+            - code [ref=f2e1029]: (client as any).handleServerEvent
+            - text: ×30 绕过 interface
+          - generic [ref=f2e1030]: →
+          - generic [ref=f2e1031]: 纯 reducer：(state, event) → items；录制 fixture 直喂
+        - paragraph [ref=f2e1032]: 削弱原因：fake-transport 测试已被证明可行（VolcengineAST2Client.test.ts 假 WebSocket）——更便宜的替代方案存在。
+      - article [ref=f2e1033]:
+        - generic [ref=f2e1034]:
+          - heading "14 · AbstractRealtimeClient 吸收 11× 样板" [level=3] [ref=f2e1035]
+          - generic [ref=f2e1036]: Worth exploring
+        - paragraph [ref=f2e1037]: src/services/clients/*.ts（11 个 implements，0 个 extends）
+        - generic [ref=f2e1038]:
+          - generic [ref=f2e1039]: generateItemId 已有 3 种发散实现
+          - generic [ref=f2e1040]: →
+          - generic [ref=f2e1041]: 基类持有 item 簿记；子类只留 transport + 事件解码
+        - paragraph [ref=f2e1042]: 削弱原因：真正逐字相同的只有 ~10-15 行/client；isConnected/reset 因 transport 而异是合理分化。收益偏小。
+      - article [ref=f2e1043]:
+        - generic [ref=f2e1044]:
+          - heading "15 · connectWebSocketWithHeaders()：封掉 set→connect→clear 编舞" [level=3] [ref=f2e1045]
+          - generic [ref=f2e1046]: Worth exploring
+        - paragraph [ref=f2e1047]: VolcengineAST2Client.ts:196/226/1031/1144 · EdgeTtsConnection.ts:234/248 · electron/main.js:713-841
+        - generic [ref=f2e1048]:
+          - generic [ref=f2e1049]: 「set 必须先于 new WebSocket、header 握手即耗」这条隐形契约在 6 个调用点手抄
+          - generic [ref=f2e1050]: →
+          - generic [ref=f2e1051]: 一个 helper：(url, headers) 进，就绪的 WebSocket 出；IPC 通道知识从 client 消失
+        - paragraph [ref=f2e1052]: "削弱原因：主进程侧在 ea03fc7c（PR #199）刚做过一轮有意的整合并主动停在当前契约；改的只是 renderer 侧便利层，收益小而实。"
+  - generic [ref=f2e1053]:
+    - paragraph [ref=f2e1054]: Top recommendation
+    - heading [level=2] [ref=f2e1055]:
+      - link "候选 1 —— 让「一个 provider」成为一个 deep module" [ref=f2e1056] [cursor=pointer]:
+        - /url: "#c1"
+    - paragraph [ref=f2e1057]:
+      - text: 三路互不知情的探索者（services-platform、clients-providers、stores-ui）独立收敛到同一处摩擦，两次对抗验证均以 strong 存活，而且它不是理论洁癖——display name 三处真相已经发散、两个可用性注册表已经互相矛盾、
+      - code [ref=f2e1058]: "default:"
+      - text: 静默回退已经产出过真实 bug（f660c715）。这是全库 leverage 最高的一刀：per-provider seam（ProviderConfig × 13 类）已经存在，只是 shallow；把行为折进去不需要发明新架构，只需要把 142 个分支搬回它们本来的家。做完它，候选 2（settings 扇出）、候选 9 的 PROVIDER_STATE_KEY、次级候选 12 全部变成顺手的续篇——而「加一个 provider」从 14 个文件的 shotgun surgery 变成一处注册。
+  - generic [ref=f2e1059]:
+    - paragraph [ref=f2e1060]: 方法：8 个子系统探查 agent（services / clients / audio / local-inference / extension / stores-ui / electron / test-surface）各报 ≤3 个候选，每个候选由独立验证 agent 以驳倒为目标复测全部数值证据（grep/wc/git log 实测）。23 个候选中 2 个被驳回（平台谓词归家——散布真实但集中会造出新的 shallow module；IPC 平台探针统一——现状已是最薄形态），21 个存活，本报告合并重叠项后呈现 15 个。
+    - paragraph [ref=f2e1061]: 词汇表：module / interface / implementation / depth（deep · shallow）/ seam / adapter（1 个 = 假 seam，2 个 = 真 seam）/ leverage / locality / deletion test（删掉后复杂度集中→值得做；只是挪动→放过它）。仓库无 CONTEXT.md 与 docs/adr/——领域名词取自 CLAUDE.md。

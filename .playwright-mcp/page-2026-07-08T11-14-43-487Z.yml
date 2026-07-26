@@ -1,0 +1,14 @@
+- generic [ref=f47e4]:
+  - banner [ref=f47e8]:
+    - generic [ref=f47e10]:
+      - link [ref=f47e11] [cursor=pointer]:
+        - /url: /
+        - img [ref=f47e12]
+      - generic [ref=f47e14]: Marketplace
+    - generic [ref=f47e16]:
+      - generic [ref=f47e18]:
+        - generic [ref=f47e19]: Try new experience
+        - switch [checked] [ref=f47e22] [cursor=pointer]
+      - button ", profile options" [ref=f47e27] [cursor=pointer]:
+        - img "profile avatar" [ref=f47e29]
+  - separator [ref=f47e82]

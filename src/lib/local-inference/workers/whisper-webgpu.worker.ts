@@ -20,6 +20,7 @@ import {
 import {InferenceSession, Tensor, env as ortEnv} from './_shared/onnxruntime-all';
 import {initTransformersEnv} from './_shared/transformers-env';
 import {FrameProcessor, Message} from '@ricky0123/vad-web';
+import {resolveVadThresholds} from './_shared/vad-thresholds';
 import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
 
 import type {
@@ -130,8 +131,7 @@ async function initVad(config?: WhisperAsrInitMessage['vadConfig'], vadModelUrl?
 
   // Map config values (seconds) to FrameProcessor options (ms).
   // Defaults match @ricky0123/vad-web for proven reliability.
-  const positiveSpeechThreshold = config?.threshold ?? 0.3;
-  const negativeSpeechThreshold = config?.negativeThreshold ?? 0.25;
+  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(config);
   const redemptionMs = (config?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (config?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (config?.preSpeechPadDuration ?? 0.8) * 1000;

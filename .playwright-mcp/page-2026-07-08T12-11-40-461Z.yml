@@ -1,0 +1,190 @@
+- generic [ref=f154e2]:
+  - link "Skip to main content" [ref=f154e3] [cursor=pointer]:
+    - /url: "#the-main-content"
+    - text: Skip to Main Content
+  - link "Accessibility overview" [ref=f154e4] [cursor=pointer]:
+    - /url: https://explore.zoom.us/en/accessibility
+    - text: Accessibility Overview
+  - generic [ref=f154e8]:
+    - link "Zoom Logo" [ref=f154e10] [cursor=pointer]:
+      - /url: https://zoom.us/
+      - img "Zoom Logo" [ref=f154e11]
+    - generic [ref=f154e12]:
+      - link "Support" [ref=f154e14] [cursor=pointer]:
+        - /url: https://zoom.us/zendesk/sso?return_to=https://support.zoom.us/hc/en-us
+      - generic [ref=f154e15]:
+        - list:
+          - listitem [ref=f154e16]:
+            - button "Language English" [ref=f154e17] [cursor=pointer]: English
+  - contentinfo [ref=f154e19]:
+    - generic [ref=f154e22]:
+      - generic [ref=f154e23]:
+        - generic [ref=f154e24]:
+          - heading "About" [level=2] [ref=f154e25]:
+            - link "About" [ref=f154e26] [cursor=pointer]:
+              - /url: https://explore.zoom.us/en/about/
+          - list [ref=f154e27]:
+            - listitem [ref=f154e28]:
+              - link "Zoom Blog" [ref=f154e29] [cursor=pointer]:
+                - /url: https://blog.zoom.us
+            - listitem [ref=f154e30]:
+              - link "Customers" [ref=f154e31] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/customer/all/
+            - listitem [ref=f154e32]:
+              - link "Our Team" [ref=f154e33] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/team/
+            - listitem [ref=f154e34]:
+              - link "Careers" [ref=f154e35] [cursor=pointer]:
+                - /url: https://careers.zoom.us/home
+            - listitem [ref=f154e36]:
+              - link "Integrations" [ref=f154e37] [cursor=pointer]:
+                - /url: https://marketplace.zoom.us/
+            - listitem [ref=f154e38]:
+              - link "Partners" [ref=f154e39] [cursor=pointer]:
+                - /url: https://partner.zoom.us/
+            - listitem [ref=f154e40]:
+              - link "Investors" [ref=f154e41] [cursor=pointer]:
+                - /url: https://investors.zoom.us/
+            - listitem [ref=f154e42]:
+              - link "Press" [ref=f154e43] [cursor=pointer]:
+                - /url: https://news.zoom.us/
+            - listitem [ref=f154e44]:
+              - link "Sustainability & ESG" [ref=f154e45] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/zoom-esg/
+            - listitem [ref=f154e46]:
+              - link "Zoom Cares" [ref=f154e47] [cursor=pointer]:
+                - /url: https://zoomcares.zoom.us
+            - listitem [ref=f154e48]:
+              - link "Media Kit" [ref=f154e49] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/media-kit/
+            - listitem [ref=f154e50]:
+              - link "How to Videos" [ref=f154e51] [cursor=pointer]:
+                - /url: https://learn-zoom.us/show-me
+            - listitem [ref=f154e52]:
+              - link "Developer Platform" [ref=f154e53] [cursor=pointer]:
+                - /url: https://developers.zoom.us/
+            - listitem [ref=f154e54]:
+              - link "Zoom Ventures" [ref=f154e55] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/zoom-ventures/
+            - listitem [ref=f154e56]:
+              - link "Zoom Merchandise Store" [ref=f154e57] [cursor=pointer]:
+                - /url: https://shophappy.zoom.us
+        - generic [ref=f154e58]:
+          - heading "Download" [level=2] [ref=f154e59]:
+            - link "Download" [ref=f154e60] [cursor=pointer]:
+              - /url: https://zoom.us/download
+          - list [ref=f154e61]:
+            - listitem [ref=f154e62]:
+              - link "Zoom Workplace App" [ref=f154e63] [cursor=pointer]:
+                - /url: https://zoom.us/download#client_4meeting
+            - listitem [ref=f154e64]:
+              - link "Browser Extension" [ref=f154e65] [cursor=pointer]:
+                - /url: https://zoom.us/download#chrome_ext
+            - listitem [ref=f154e66]:
+              - link "iPhone/iPad App" [ref=f154e67] [cursor=pointer]:
+                - /url: https://zoom.us/download#client_iphone
+            - listitem [ref=f154e68]:
+              - link "Android App" [ref=f154e69] [cursor=pointer]:
+                - /url: https://zoom.us/download#mobile_app
+            - listitem [ref=f154e70]:
+              - link "Zoom Virtual Backgrounds" [ref=f154e71] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/virtual-backgrounds/
+        - generic [ref=f154e72]:
+          - heading "Sales" [level=2] [ref=f154e73]:
+            - link "Sales" [ref=f154e74] [cursor=pointer]:
+              - /url: https://explore.zoom.us/en/contactsales/
+          - list [ref=f154e75]:
+            - listitem [ref=f154e76]:
+              - link "1.888.799.9666" [ref=f154e77] [cursor=pointer]:
+                - /url: tel:1.888.799.9666
+            - listitem [ref=f154e78]:
+              - link "Contact Sales" [ref=f154e79] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/contactsales/
+            - listitem [ref=f154e80]:
+              - link "Plans & Pricing" [ref=f154e81] [cursor=pointer]:
+                - /url: /pricing
+            - listitem [ref=f154e82]:
+              - link "Request a Demo" [ref=f154e83] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/livedemo/
+            - listitem [ref=f154e84]:
+              - link "Webinars and Events" [ref=f154e85] [cursor=pointer]:
+                - /url: https://zoom.us/events
+            - listitem [ref=f154e86]:
+              - link "Zoom Experience Center" [ref=f154e87] [cursor=pointer]:
+                - /url: https://ebc.zoom.us/
+        - generic [ref=f154e88]:
+          - heading "Support" [level=2] [ref=f154e89]:
+            - link "Support" [ref=f154e90] [cursor=pointer]:
+              - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+          - list [ref=f154e91]:
+            - listitem [ref=f154e92]:
+              - link "Test Zoom" [ref=f154e93] [cursor=pointer]:
+                - /url: https://zoom.us/test
+            - listitem [ref=f154e94]:
+              - link "Account" [ref=f154e95] [cursor=pointer]:
+                - /url: https://zoom.us/account
+            - listitem [ref=f154e96]:
+              - link "Support Center" [ref=f154e97] [cursor=pointer]:
+                - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+            - listitem [ref=f154e98]:
+              - link "Learning Center" [ref=f154e99] [cursor=pointer]:
+                - /url: https://learning.zoom.us/learn
+            - listitem [ref=f154e100]:
+              - link "Zoom Community" [ref=f154e101] [cursor=pointer]:
+                - /url: https://community.zoom.com/?optimizely_user_id=0f83802f286649c59efa8785422f7b03
+            - listitem [ref=f154e102] [cursor=pointer]:
+              - button "Feedback" [ref=f154e103]
+            - listitem [ref=f154e104]:
+              - link "Contact Us" [ref=f154e105] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/contact
+            - listitem [ref=f154e106]:
+              - link "Accessibility" [ref=f154e107] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/accessibility/
+            - listitem [ref=f154e108]:
+              - link "Developer support" [ref=f154e109] [cursor=pointer]:
+                - /url: https://devsupport.zoom.us/hc/en-us
+            - listitem [ref=f154e110]:
+              - link "Privacy, Security, Legal Policies, and Modern Slavery Act Transparency Statement" [ref=f154e111] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/trust/legal-compliance/
+        - generic [ref=f154e112]:
+          - heading "Language" [level=2] [ref=f154e113]
+          - list [ref=f154e114]:
+            - listitem [ref=f154e115]:
+              - button "Language English" [ref=f154e116] [cursor=pointer]: English
+          - heading "Currency" [level=2] [ref=f154e118]
+          - list [ref=f154e119]:
+            - listitem [ref=f154e120]:
+              - button "US Dollars $" [ref=f154e121] [cursor=pointer]: US Dollars $
+          - generic [ref=f154e123]:
+            - link "Zoom on Blog" [ref=f154e124] [cursor=pointer]:
+              - /url: https://blog.zoom.us
+              - generic [ref=f154e125]: Zoom on Blog
+            - link "Zoom on LinkedIn" [ref=f154e127] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/zoom
+              - generic [ref=f154e128]: Zoom on LinkedIn
+            - link "Zoom on Twitter" [ref=f154e130] [cursor=pointer]:
+              - /url: https://twitter.com/zoom
+              - generic [ref=f154e131]: Zoom on Twitter
+            - link "Zoom on Youtube" [ref=f154e133] [cursor=pointer]:
+              - /url: https://www.youtube.com/zoommeetings
+              - generic [ref=f154e134]: Zoom on Youtube
+            - link "Zoom on Facebook" [ref=f154e136] [cursor=pointer]:
+              - /url: https://www.facebook.com/zoom
+              - generic [ref=f154e137]: Zoom on Facebook
+            - link "Zoom on Instagram" [ref=f154e139] [cursor=pointer]:
+              - /url: https://www.instagram.com/zoom/
+              - generic [ref=f154e140]: Zoom on Instagram
+      - generic [ref=f154e143]:
+        - text: Copyright ©2026 Zoom Communications, Inc. All rights reserved.
+        - link "Terms" [ref=f154e144] [cursor=pointer]:
+          - /url: https://explore.zoom.us/en/terms/
+        - link "Privacy" [ref=f154e145] [cursor=pointer]:
+          - /url: https://explore.zoom.us/en/privacy/
+        - link "Trust Center" [ref=f154e146] [cursor=pointer]:
+          - /url: https://explore.zoom.us/en/trust/
+        - link "Acceptable Use Guidelines" [ref=f154e147] [cursor=pointer]:
+          - /url: https://explore.zoom.us/en/acceptable-use-guidelines/
+        - link "Legal & Compliance" [ref=f154e148] [cursor=pointer]:
+          - /url: https://explore.zoom.us/en/trust/legal-compliance/
+        - link "Your Privacy Choices" [ref=f154e149] [cursor=pointer]
+        - link "Cookie Preferences" [ref=f154e150] [cursor=pointer]

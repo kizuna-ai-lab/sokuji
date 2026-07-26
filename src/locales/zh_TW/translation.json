@@ -161,6 +161,9 @@
     "vadSettings": "VAD 設定",
     "vadSettingsTooltip": "語音活動偵測設定。調整這些設定以優化您環境中的語音偵測。",
     "vadThresholdTooltip": "語音偵測靈敏度。值越高，需要越響亮/清晰的語音才能觸發辨識。值越低，對較輕的語音越敏感。",
+    "vadNegativeThreshold": "靜音閾值",
+    "vadNegativeThresholdTooltip": "低於此機率時，靜音開始計入分段結束。自動模式會維持比 VAD 閾值低 0.15。此值永遠不會高於 VAD 閾值，否則分段將永遠不會結束。",
+    "vadNegativeThresholdAuto": "自動",
     "vadMinSilenceDuration": "最小靜音時長",
     "vadMinSilenceDurationTooltip": "分割語音段的最小靜音時長。較短的值會更快地分割句子，較長的值會等待更自然的停頓。",
     "vadMinSpeechDuration": "最小語音時長",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "對話已結束",
     "backToMain": "返回主視窗",
+    "idle": {
+      "start": "開始翻譯",
+      "hint": "開始前請調整視窗的位置與大小",
+      "ended": "本次對話已結束",
+      "failed": "啟動失敗：{{message}}",
+      "retry": "再試一次",
+      "backForDetails": "返回主視窗查看詳情"
+    },
     "enterButton": {
       "title": "進入字幕模式",
       "disabled": "請先啟動對話",
@@ -847,6 +858,8 @@
       "label": "退出字幕"
     },
     "bar": {
+      "start": "開始對話",
+      "stop": "結束對話",
       "fontDecrease": "縮小字級",
       "fontIncrease": "放大字級",
       "expand": "展開檢視",

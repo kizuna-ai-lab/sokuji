@@ -10,13 +10,16 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
-// Pretend we're running inside Electron so the IPC-guarded actions
-// (enterSubtitleMode, exitSubtitleMode) follow their real-environment paths.
+// Default to pretending we're running inside Electron so the IPC-guarded
+// actions (enterSubtitleMode, exitSubtitleMode) follow their real-environment
+// paths. Individual tests flip `isElectronFlag` to false to exercise the
+// extension's session-gated path (see the "per-surface entry gating" block).
+let isElectronFlag = true;
 vi.mock('../utils/environment', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../utils/environment')>();
   return {
     ...actual,
-    isElectron: () => true,
+    isElectron: () => isElectronFlag,
   };
 });
 
@@ -45,12 +48,28 @@ const { default: useSessionStore } = await import('./sessionStore');
 describe('settingsStore subtitle actions', () => {
   beforeEach(() => {
     useSettingsStore.setState({ subtitleModeActive: false, subtitleFullscreen: false });
+    isElectronFlag = true;
   });
 
-  it('enterSubtitleMode is a no-op when session is not active', async () => {
-    useSessionStore.setState({ isSessionActive: false } as any);
-    await useSettingsStore.getState().enterSubtitleMode();
-    expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+  // Issue #324: the Electron subtitle window carries its own Start control
+  // and must be enterable before a session exists. This mirrors
+  // SubtitleEnterButton's `canEnter` gating (subtitleEnterGate.ts) — the
+  // button being enabled and the store refusing entry was exactly the bug
+  // this pair of tests guards against.
+  describe('per-surface entry gating (subtitleEnterGate)', () => {
+    it('enters on Electron with no active session', async () => {
+      isElectronFlag = true;
+      useSessionStore.setState({ isSessionActive: false } as any);
+      await useSettingsStore.getState().enterSubtitleMode();
+      expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
+    });
+
+    it('stays a no-op on the extension with no active session', async () => {
+      isElectronFlag = false;
+      useSessionStore.setState({ isSessionActive: false } as any);
+      await useSettingsStore.getState().enterSubtitleMode();
+      expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
+    });
   });
 
   it('enterSubtitleMode sets the flag when session is active', async () => {

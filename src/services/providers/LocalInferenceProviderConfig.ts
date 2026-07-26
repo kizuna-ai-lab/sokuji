@@ -18,6 +18,7 @@ export interface LocalInferenceSettings {
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
+  vadNegativeThreshold: number; // 0.0-1.0, 0 = derive from vadThreshold (vad-web workers only)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
@@ -36,6 +37,7 @@ export const defaultLocalInferenceSettings: LocalInferenceSettings = {
   targetLanguage: 'en',
   turnDetectionMode: 'Auto',
   vadThreshold: 0.3,
+  vadNegativeThreshold: 0,   // auto: vadThreshold - 0.15
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
   useTemplateMode: true,
@@ -107,6 +109,7 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
       ttsSpeed: settings.ttsSpeed,
       edgeTtsVoice: settings.edgeTtsVoice || undefined,
       vadThreshold: settings.vadThreshold,
+      vadNegativeThreshold: settings.vadNegativeThreshold,
       vadMinSilenceDuration: settings.vadMinSilenceDuration,
       vadMinSpeechDuration: settings.vadMinSpeechDuration,
       turnDetectionMode: settings.turnDetectionMode,

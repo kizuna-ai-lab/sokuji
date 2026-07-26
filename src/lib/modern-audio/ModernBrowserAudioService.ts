@@ -23,6 +23,11 @@ export class ModernBrowserAudioService implements IAudioService {
   private targetTabId: number | null = null;
   private interruptedTrackIds: { [key: string]: boolean } = {};
   private initialized: boolean = false;
+  // In-flight guards: collapse concurrent initialize() / permission warm-up
+  // calls into a single run so we never open the microphone twice at once
+  // (which fails with NotReadableError on drivers that can't share a device).
+  private initPromise: Promise<void> | null = null;
+  private permissionWarmupPromise: Promise<void> | null = null;
   private recordingCallback: AudioRecordingCallback | null = null;
   private currentRecordingDeviceId: string | undefined = undefined;
 
@@ -66,12 +71,29 @@ export class ModernBrowserAudioService implements IAudioService {
    * Initialize the modern audio service
    */
   async initialize(): Promise<void> {
-    // Make initialization idempotent
+    // Make initialization idempotent AND concurrency-safe. Two effects mount at
+    // startup — Home's initializeAudioService and MainPanel's initAudioService —
+    // and React StrictMode double-invokes each in dev, so up to four
+    // initialize() calls race on this singleton. The `initialized` flag alone is
+    // not enough because it is only set at the very end (after several awaits),
+    // so every overlapping caller passes the guard below and each would run
+    // detectAndSetVirtualSpeaker() -> getDevices() -> getUserMedia() on the mic
+    // concurrently, tripping "NotReadableError: Could not start audio source".
+    // Caching the in-flight promise makes all callers share one initialization.
     if (this.initialized) {
       console.info('[Sokuji] [ModernBrowserAudio] Audio service already initialized');
       return;
     }
+    if (!this.initPromise) {
+      this.initPromise = this.doInitialize().catch((err) => {
+        this.initPromise = null; // allow a retry after a failed initialization
+        throw err;
+      });
+    }
+    return this.initPromise;
+  }
 
+  private async doInitialize(): Promise<void> {
     // Connect the player
     await this.player.connect();
 
@@ -108,21 +130,44 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   async getDevices(): Promise<AudioDevices> {
     try {
-      // Request permission to access media devices
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (permissionError: any) {
-        console.error('[Sokuji] [ModernBrowserAudio] Microphone permission denied:', permissionError);
-        
-        // Show user-friendly error message
-        this.showPermissionError(permissionError);
-        
-        // Return empty device lists
-        return { inputs: [], outputs: [] };
+      // Enumerate FIRST. Once microphone permission has been granted for this
+      // origin (always the case in Electron after the first run), enumerate
+      // returns fully-labeled devices WITHOUT needing an active stream — so the
+      // getUserMedia({ audio: true }) warm-up is only needed to unlock labels
+      // the very first time.
+      //
+      // Crucially, the warm-up opens the system DEFAULT input device. If that
+      // default is broken — e.g. a stale/phantom "3- ZUM-2" left by a
+      // replugged USB mic — getUserMedia hangs ~20s and then throws
+      // NotReadableError, even though every real device enumerates fine and the
+      // user's *selected* mic works. The old code let that warm-up failure
+      // discard the entire (good) device list and return empty, so the UI
+      // reported "no audio devices". We must never do that: enumerate is the
+      // source of truth for the device list; the warm-up is best-effort.
+      let devices = await navigator.mediaDevices.enumerateDevices();
+
+      // The warm-up exists to unlock MICROPHONE (input) labels, so key the
+      // decision on inputs only. A labeled audiooutput can otherwise mask
+      // unlabeled inputs and skip a warm-up the mic picker still needs. If
+      // there are no inputs at all, there is nothing to warm up.
+      const needsMicrophoneWarmup = devices.some(
+        d => d.kind === 'audioinput' && d.label === ''
+      );
+
+      if (needsMicrophoneWarmup) {
+        // Input labels missing => mic permission not yet granted this session.
+        // Warm up to unlock them, but if the warm-up fails (e.g. broken default
+        // device), fall through with whatever enumerate already gave us instead
+        // of wiping the list.
+        try {
+          await this.ensureMicrophonePermission();
+          devices = await navigator.mediaDevices.enumerateDevices();
+        } catch (permissionError: any) {
+          console.error('[Sokuji] [ModernBrowserAudio] Microphone permission warm-up failed; returning enumerated devices anyway:', permissionError);
+          this.showPermissionError(permissionError);
+        }
       }
-      
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      
+
       const inputs = devices
         .filter(device => device.kind === 'audioinput')
         .filter(device => device.deviceId !== 'default')
@@ -152,6 +197,59 @@ export class ModernBrowserAudioService implements IAudioService {
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to get audio devices:', error);
       return { inputs: [], outputs: [] };
+    }
+  }
+
+  /**
+   * Warm up microphone permission so enumerateDevices() returns labeled
+   * devices, then release the stream immediately.
+   *
+   * Serialized via a shared in-flight promise: at startup getDevices() is
+   * called from several overlapping paths (initialize()'s
+   * detectAndSetVirtualSpeaker + the store's refreshDevices, each doubled by
+   * React StrictMode). Without this guard they fire concurrent
+   * getUserMedia({ audio: true }) on the same physical mic, and drivers that
+   * cannot open one device twice reject the losers with
+   * "NotReadableError: Could not start audio source". Sharing one warm-up
+   * collapses them into a single open. The stream is stopped right away
+   * because enumerateDevices() only needs permission to have been granted, not
+   * a live track (leaving it open would leak an audio source that is only
+   * released on process teardown — abrupt on Windows and prone to stranding
+   * the capture endpoint for the next launch).
+   * @private
+   */
+  private ensureMicrophonePermission(): Promise<void> {
+    if (!this.permissionWarmupPromise) {
+      this.permissionWarmupPromise = (async () => {
+        const permStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        permStream.getTracks().forEach(track => track.stop());
+      })().finally(() => {
+        // Clear once settled so a later refresh can re-warm; concurrent callers
+        // still share this single in-flight open.
+        this.permissionWarmupPromise = null;
+      });
+    }
+    return this.permissionWarmupPromise;
+  }
+
+  /**
+   * Synchronously release the microphone device on page/window close.
+   *
+   * The renderer holds the mic through the recorder's capture stream (and the
+   * warm-up stream, already stopped). Nothing stops these when the window
+   * closes — the empty MainPanel cleanup and the analytics-only beforeunload
+   * handler leave the OS to reclaim the device on process teardown. On Windows
+   * that teardown is abrupt and can strand the WASAPI capture endpoint, so the
+   * next launch's getUserMedia fails with
+   * "NotReadableError: Could not start audio source" until the endpoint resets
+   * (often only after a reboot). Stopping the tracks here, wired to `pagehide`,
+   * makes the release clean and deterministic on every close.
+   */
+  public releaseMicrophone(): void {
+    try {
+      this.recorder.releaseStream();
+    } catch (error) {
+      console.warn('[Sokuji] [ModernBrowserAudio] Error releasing microphone on close:', error);
     }
   }
 

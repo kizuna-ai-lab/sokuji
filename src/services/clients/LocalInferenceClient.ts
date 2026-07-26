@@ -264,6 +264,9 @@ export class LocalInferenceClient implements IClient {
       const asrPromise = this.trackInit('asr', config.asrModelId, () => {
         const vadConfig = {
           threshold: config.vadThreshold,
+          // 0/absent lets the worker derive it from `threshold`; it is clamped
+          // to never sit above it, which would disable endpoint detection.
+          negativeThreshold: config.vadNegativeThreshold || undefined,
           minSilenceDuration: config.vadMinSilenceDuration,
           minSpeechDuration: config.vadMinSpeechDuration,
         };

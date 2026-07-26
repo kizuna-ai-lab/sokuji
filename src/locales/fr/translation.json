@@ -161,6 +161,9 @@
     "vadSettings": "Paramètres VAD",
     "vadSettingsTooltip": "Configuration de la détection d'activité vocale. Ajustez ces paramètres pour optimiser la détection vocale dans votre environnement.",
     "vadThresholdTooltip": "Sensibilité de détection vocale. Des valeurs plus élevées nécessitent une parole plus forte/claire. Des valeurs plus basses sont plus sensibles aux voix faibles.",
+    "vadNegativeThreshold": "Seuil de Silence",
+    "vadNegativeThresholdTooltip": "Probabilité en dessous de laquelle le silence commence à compter pour la fin d'un segment. Auto le maintient 0,15 sous le Seuil VAD. Il ne s'applique jamais au-dessus du Seuil VAD, sinon les segments ne se termineraient jamais.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Durée min. de silence",
     "vadMinSilenceDurationTooltip": "Durée minimale de silence pour séparer les segments de parole. Des valeurs plus courtes séparent les phrases plus rapidement, des valeurs plus longues attendent des pauses plus naturelles.",
     "vadMinSpeechDuration": "Durée min. de parole",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Session terminée",
     "backToMain": "Retour à la fenêtre principale",
+    "idle": {
+      "start": "Démarrer la traduction",
+      "hint": "Positionnez et redimensionnez la fenêtre avant de démarrer",
+      "ended": "Cette session est terminée",
+      "failed": "Échec du démarrage : {{message}}",
+      "retry": "Réessayer",
+      "backForDetails": "Retournez à la fenêtre principale pour plus de détails"
+    },
     "enterButton": {
       "title": "Activer le mode sous-titres",
       "disabled": "Démarrez d’abord une session",
@@ -847,6 +858,8 @@
       "label": "Quitter les sous-titres"
     },
     "bar": {
+      "start": "Démarrer la session",
+      "stop": "Arrêter la session",
       "fontDecrease": "Réduire la taille du texte",
       "fontIncrease": "Augmenter la taille du texte",
       "expand": "Vue développée",

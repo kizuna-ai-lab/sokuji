@@ -1985,6 +1985,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadThreshold: localInferenceSettings.vadThreshold,
               vadMinSilenceDuration: localInferenceSettings.vadMinSilenceDuration,
               vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
+              // vad-web workers only — the sherpa-onnx engine has its own hysteresis.
+              ...(() => {
+                const workerType = getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType;
+                return workerType && workerType !== 'sherpa-onnx'
+                  ? { vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0 }
+                  : {};
+              })(),
             }}
             onChange={(patch) => updateLocalInferenceSettings(patch)}
             disabled={isSessionActive}

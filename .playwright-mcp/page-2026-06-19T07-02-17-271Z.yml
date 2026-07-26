@@ -1,0 +1,7 @@
+- generic [ref=e3]:
+  - heading "Pocket TTS — Dev Playground" [level=1] [ref=e4]
+  - button "Load model (~int8 bundle)" [ref=e5] [cursor=pointer]
+  - generic [ref=e7]:
+    - generic [ref=e8]: logs (0)
+    - button "Copy" [ref=e9] [cursor=pointer]
+    - button "Clear" [ref=e10] [cursor=pointer]

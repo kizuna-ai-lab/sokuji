@@ -1,0 +1,752 @@
+- generic [ref=f87e1]:
+  - banner [ref=f87e2]:
+    - generic [ref=f87e4]:
+      - link "Skip to main content" [ref=f87e5] [cursor=pointer]:
+        - /url: "#main"
+      - button "Accessibility Overview" [ref=f87e6]
+      - link "logo-zoom-white@2x.png" [ref=f87e7] [cursor=pointer]:
+        - /url: https://www.zoom.com/
+        - img "logo-zoom-white@2x.png" [ref=f87e8]
+      - navigation [ref=f87e10]:
+        - list [ref=f87e11]:
+          - listitem [ref=f87e12]:
+            - button [ref=f87e13] [cursor=pointer]: Products
+          - listitem [ref=f87e14]:
+            - button [ref=f87e15] [cursor=pointer]: AI
+          - listitem [ref=f87e16]:
+            - button [ref=f87e17] [cursor=pointer]: Solutions
+          - listitem [ref=f87e18]:
+            - link [ref=f87e19] [cursor=pointer]:
+              - /url: https://zoom.us/pricing
+              - text: Pricing
+      - generic [ref=f87e20]:
+        - button "Open search" [ref=f87e22] [cursor=pointer]:
+          - img [ref=f87e23]
+        - generic [ref=f87e27]:
+          - button "Meet" [ref=f87e29] [cursor=pointer]
+          - link "Sign In" [ref=f87e30] [cursor=pointer]:
+            - /url: https://zoom.us/signin
+          - link "Support" [ref=f87e31] [cursor=pointer]:
+            - /url: https://support.zoom.com/hc/en
+        - generic [ref=f87e32]:
+          - link "Contact Sales" [ref=f87e33] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/contact/contact-sales/
+          - link "Sign Up Free" [ref=f87e34] [cursor=pointer]:
+            - /url: https://zoom.us/signup?signUpFrom=homepage
+        - button "More products and services" [ref=f87e37] [cursor=pointer]
+    - complementary [ref=f87e40]:
+      - list [ref=f87e41]:
+        - listitem [ref=f87e42]:
+          - button [expanded] [ref=f87e43] [cursor=pointer]: Zoom Workplace
+        - listitem [ref=f87e44]:
+          - button [ref=f87e45] [cursor=pointer]: Zoom Business Services
+        - listitem [ref=f87e46]:
+          - button [ref=f87e47] [cursor=pointer]: Zoom AI
+        - listitem [ref=f87e48]:
+          - button [ref=f87e49] [cursor=pointer]: Developers
+        - listitem [ref=f87e50]:
+          - button [ref=f87e51] [cursor=pointer]: Apps and Integrations
+      - generic [ref=f87e53]:
+        - generic [ref=f87e54]:
+          - generic [ref=f87e55]: Zoom Workplace
+          - paragraph [ref=f87e56]:
+            - text: Collaboration tools in an AI-first work platform.
+            - link [ref=f87e57] [cursor=pointer]:
+              - /url: https://www.zoom.com/en/products/collaboration-tools/
+              - text: Learn more
+          - generic [ref=f87e58]:
+            - generic [ref=f87e59]:
+              - generic [ref=f87e60]: Communication
+              - navigation [ref=f87e61]:
+                - link [ref=f87e62] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/virtual-meetings/
+                  - text: Meetings
+                - link [ref=f87e64] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/team-chat/
+                  - text: Chat
+                - link [ref=f87e66] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/voip-phone/
+                  - text: Phone
+                - link [ref=f87e68] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/email-calendar/
+                  - text: Mail & Calendar
+                - link [ref=f87e70] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/appointment-scheduler/
+                  - text: Scheduler
+            - generic [ref=f87e72]:
+              - generic [ref=f87e73]: Productivity
+              - navigation [ref=f87e74]:
+                - link [ref=f87e75] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/collaborative-docs/
+                  - text: Canvas
+                - link [ref=f87e77] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/online-whiteboard/
+                  - text: Whiteboard
+                - link [ref=f87e79] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/screen-recorder/
+                  - text: Clips
+                - link [ref=f87e81] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/hub/
+                  - text: Hub
+                - link [ref=f87e83] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/video-management/
+                  - text: Video Management
+            - generic [ref=f87e85]:
+              - generic [ref=f87e86]: Spaces
+              - navigation [ref=f87e87]:
+                - link [ref=f87e88] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/meeting-rooms/
+                  - text: Rooms
+                - link [ref=f87e90] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/meeting-rooms/features/workspace/
+                  - text: Workspace Reservation
+                - link [ref=f87e92] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/digital-signage/
+                  - text: Digital Signage
+                - link [ref=f87e94] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/visitor-management/
+                  - text: Visitor Management
+            - generic [ref=f87e96]:
+              - generic [ref=f87e97]: Employee Engagement
+              - navigation [ref=f87e98]:
+                - link [ref=f87e99] [cursor=pointer]:
+                  - /url: https://www.zoom.com/en/products/workvivo/
+                  - text: Workvivo
+        - generic [ref=f87e101]:
+          - img [ref=f87e102]
+          - generic [ref=f87e104]:
+            - text: 🚀
+            - generic [ref=f87e105]: NEW
+            - text: My Notes, your AI note taker
+          - paragraph [ref=f87e106]:
+            - text: Automatically captures, summarizes, and extracts action items from any virtual or in-person meeting.
+            - link [ref=f87e107] [cursor=pointer]:
+              - /url: https://www.zoom.com/en/products/ai-assistant/features/ai-note-taking/
+              - text: Learn more
+    - generic [ref=f87e109]:
+      - generic [ref=f87e110]:
+        - link [ref=f87e112] [cursor=pointer]:
+          - /url: https://zoom.us/download
+          - text: Install on desktop
+        - link [ref=f87e113] [cursor=pointer]:
+          - /url: https://zoom.us/download
+          - text: Download center
+      - generic [ref=f87e114]:
+        - generic [ref=f87e115]: Get in touch
+        - link [ref=f87e117] [cursor=pointer]:
+          - /url: tel:+18887999666
+          - text: +1.888.799.9666
+  - main [ref=f87e118]:
+    - generic [ref=f87e119]:
+      - generic [ref=f87e121]:
+        - alert [ref=f87e122]:
+          - generic [ref=f87e123]: Explore My Notes
+          - generic [ref=f87e124]:
+            - generic [ref=f87e125]:
+              - generic [ref=f87e126]: AI note taking across platforms that's secure, personalized, and under your control.
+              - generic [ref=f87e127] [cursor=pointer]: Explore My Notes
+            - img "close banner" [ref=f87e130] [cursor=pointer]
+        - heading "Find out what's possible when work connects" [level=1] [ref=f87e131]:
+          - text: Find out what's possible
+          - text: when work connects
+        - paragraph [ref=f87e133]: Bridge the gap between talking and doing with the AI-first work platform built for you.
+        - generic [ref=f87e134]:
+          - link "Explore products Explore products" [ref=f87e135] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/
+            - text: Explore products
+            - generic [ref=f87e136]: Explore products
+          - link "Find your plan Find your plan" [ref=f87e137] [cursor=pointer]:
+            - /url: https://zoom.us/pricing
+            - text: Find your plan
+            - generic [ref=f87e138]: Find your plan
+      - generic [ref=f87e140]:
+        - generic [ref=f87e142]:
+          - link "Attendees in a Zoom conference room engaged in discussion, with a large screen showing visual content. Rooms" [ref=f87e145] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/meeting-rooms/
+            - img "Attendees in a Zoom conference room engaged in discussion, with a large screen showing visual content."
+            - generic [ref=f87e146]: Rooms
+          - link "BrightHire BrightHire" [ref=f87e149] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/brighthire/
+            - img "BrightHire"
+            - generic [ref=f87e150]: BrightHire
+          - link "Chatbot screen showing the prompt, \"How can I assist you?quot; inviting user interaction. Virtual Agent" [ref=f87e153] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/virtual-agent/
+            - img "Chatbot screen showing the prompt, \"How can I assist you?quot; inviting user interaction."
+            - generic [ref=f87e154]: Virtual Agent
+          - link "Screenshot of contact center software showing a man providing virtual customer service. Contact Center" [ref=f87e157] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/contact-center/
+            - img "Screenshot of contact center software showing a man providing virtual customer service."
+            - generic [ref=f87e158]: Contact Center
+          - 'link "Meetings: Zoom Meetings app interface featuring various emoticons for enhanced communication and engagement. Meetings" [ref=f87e161] [cursor=pointer]':
+            - /url: https://www.zoom.com/en/products/virtual-meetings/
+            - 'img "Meetings: Zoom Meetings app interface featuring various emoticons for enhanced communication and engagement."'
+            - generic [ref=f87e162]: Meetings
+          - link "Automatically captures, summarizes, and extracts action items from any virtual or in-person meeting. My Notes" [ref=f87e165] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/ai-assistant/features/ai-note-taking/
+            - img "Automatically captures, summarizes, and extracts action items from any virtual or in-person meeting."
+            - generic [ref=f87e166]: My Notes
+          - link "Visual of ZoomMate being prompted to list action items from a meeting ZoomMate" [ref=f87e169] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/ai-assistant/
+            - img "Visual of ZoomMate being prompted to list action items from a meeting"
+            - generic [ref=f87e170]: ZoomMate
+          - link "Canvas AI Productivity Suite" [ref=f87e173] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/ai-productivity-suite/
+            - img "Canvas"
+            - generic [ref=f87e174]: AI Productivity Suite
+          - link "A woman engaged in a conversation on Zoom Phone, smiling as she talks. Phone" [ref=f87e177] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/voip-phone/
+            - img "A woman engaged in a conversation on Zoom Phone, smiling as she talks."
+            - generic [ref=f87e178]: Phone
+          - link "Live video chat screenshot from a webinar, featuring multiple participants interacting and presenting information. Webinars" [ref=f87e181] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/webinars/
+            - img "Live video chat screenshot from a webinar, featuring multiple participants interacting and presenting information."
+            - generic [ref=f87e182]: Webinars
+          - link "Bonsai Bonsai" [ref=f87e185] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/products/bonsai/
+            - img "Bonsai"
+            - generic [ref=f87e186]: Bonsai
+        - generic [ref=f87e187]:
+          - button "Previous slide" [ref=f87e188] [cursor=pointer]
+          - button "Next slide" [ref=f87e201] [cursor=pointer]
+    - generic [ref=f87e205]:
+      - generic [ref=f87e206]:
+        - generic [ref=f87e207]:
+          - img [ref=f87e209]
+          - heading "My Notes Your new AI note taker" [level=2] [ref=f87e210]:
+            - text: My Notes
+            - text: Your new AI note taker
+        - link "Explore My Notes Explore My Notes" [ref=f87e211] [cursor=pointer]:
+          - /url: https://www.zoom.com/en/products/ai-assistant/features/ai-note-taking/
+          - text: Explore My Notes
+          - generic [ref=f87e212]: Explore My Notes
+      - button "Play video" [ref=f87e215] [cursor=pointer]:
+        - generic [ref=f87e216]: ►
+    - generic [ref=f87e218]:
+      - link "A Leader in the Gartner® Magic Quadrant™ for UCaaS, Worldwide 2025. 6th year in a row! Read the report" [ref=f87e220] [cursor=pointer]:
+        - /url: https://click.zoom.com/gartner-magic-quadrant-for-ucaas
+        - img "A Leader in the Gartner® Magic Quadrant™ for UCaaS, Worldwide 2025. 6th year in a row!" [ref=f87e222]
+        - generic [ref=f87e224]: Read the report
+      - link "Zoom recognized in the 2025 Gartner® Magic Quadrant™ for CCaaS Explore the report" [ref=f87e226] [cursor=pointer]:
+        - /url: https://click.zoom.com/cx-gartner-voc
+        - img "Zoom recognized in the 2025 Gartner® Magic Quadrant™ for CCaaS" [ref=f87e228]
+        - generic [ref=f87e230]: Explore the report
+      - 'link "Zoom named a leader in The Forrester Wave™: UCaaS 2025 Read the report" [ref=f87e232] [cursor=pointer]':
+        - /url: https://click.zoom.com/resources/visionary-leader-frost-radar
+        - 'img "Zoom named a leader in The Forrester Wave™: UCaaS 2025" [ref=f87e234]'
+        - generic [ref=f87e236]: Read the report
+    - generic [ref=f87e238]:
+      - heading "One platform. Endless ways to work together." [level=2] [ref=f87e242]:
+        - text: One platform.
+        - text: Endless ways to work together.
+      - tablist "Feature Tabs" [ref=f87e244]:
+        - generic [ref=f87e245]:
+          - tab "Collaboration" [selected] [ref=f87e246] [cursor=pointer]:
+            - generic [ref=f87e247]: Collaboration
+          - tab "Customer support" [ref=f87e248] [cursor=pointer]:
+            - generic [ref=f87e249]: Customer support
+          - tab "Marketing" [ref=f87e250] [cursor=pointer]:
+            - generic [ref=f87e251]: Marketing
+          - tab "Sales" [ref=f87e252] [cursor=pointer]:
+            - generic [ref=f87e253]: Sales
+          - tab "Employee engagement" [ref=f87e254] [cursor=pointer]:
+            - generic [ref=f87e255]: Employee engagement
+        - tabpanel "Collaboration" [ref=f87e256]:
+          - generic [ref=f87e257]:
+            - region "Collaboration" [ref=f87e258]:
+              - list [ref=f87e263]:
+                - listitem [ref=f87e264]:
+                  - strong [ref=f87e265]: "Support hybrid and remote work:"
+                  - text: Keep global teams engaged with reliable video, chat, documents, and more.
+                - listitem [ref=f87e266]:
+                  - strong [ref=f87e267]: "Seamless communication:"
+                  - text: Save time and cut costs with Meetings, Phone, Chat, and more, in one UCaaS platform.
+                - listitem [ref=f87e268]:
+                  - strong [ref=f87e269]: "Keep workflows moving:"
+                  - text: From brainstorms to documents, Zoom helps teams cut friction and avoid stalls.
+                - listitem [ref=f87e270]:
+                  - strong [ref=f87e271]: "Do more with AI:"
+                  - text: Built-in AI summarizes meetings and automates next steps, while ZoomMate goes further and generates quality assets like decks and docs.
+              - link "Explore products Explore products" [ref=f87e273] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/products/collaboration-tools/
+                - text: Explore products
+                - generic [ref=f87e274]: Explore products
+            - img "Collaboration" [ref=f87e278]
+    - region [ref=f87e279]:
+      - heading "Trusted by millions. Built for you." [level=2] [ref=f87e282]
+      - generic [ref=f87e284]:
+        - generic [ref=f87e285]:
+          - img "The New York Times" [ref=f87e287]
+          - img "Walmart" [ref=f87e289]
+          - img "Werner" [ref=f87e291]
+          - img "Moffitt" [ref=f87e293]
+          - img "ExxonMobil" [ref=f87e295]
+          - img "Capital One" [ref=f87e297]
+        - generic [ref=f87e298]:
+          - img "The New York Times" [ref=f87e300]
+          - img "Walmart" [ref=f87e302]
+          - img "Werner" [ref=f87e304]
+          - img "Moffitt" [ref=f87e306]
+          - img "ExxonMobil" [ref=f87e308]
+          - img "Capital One" [ref=f87e310]
+      - button [ref=f87e312] [cursor=pointer]
+    - generic [ref=f87e313]:
+      - generic [ref=f87e318]:
+        - generic [ref=f87e319]:
+          - generic [ref=f87e320]: 4.5/5
+          - generic [ref=f87e321]:
+            - img [ref=f87e323]
+            - img [ref=f87e326]
+            - img [ref=f87e329]
+            - img [ref=f87e332]
+            - img [ref=f87e335]
+          - paragraph [ref=f87e338]: out of 7.9k+ reviews
+          - img "Gartner Peer Insights Logo" [ref=f87e340]
+        - generic [ref=f87e342]:
+          - generic [ref=f87e343]: 4.6/5
+          - generic [ref=f87e344]:
+            - img [ref=f87e346]
+            - img [ref=f87e349]
+            - img [ref=f87e352]
+            - img [ref=f87e355]
+            - img [ref=f87e358]
+          - paragraph [ref=f87e361]: out of 54.9k+ reviews
+          - img "G2 Logo" [ref=f87e363]
+        - generic [ref=f87e365]:
+          - generic [ref=f87e366]: 8.5/10
+          - generic [ref=f87e367]:
+            - img [ref=f87e369]
+            - img [ref=f87e372]
+            - img [ref=f87e375]
+            - img [ref=f87e378]
+            - img [ref=f87e381]
+          - paragraph [ref=f87e384]: out of 5.8k+ reviews
+          - img "Trust Radius Logo" [ref=f87e386]
+      - generic [ref=f87e388]:
+        - generic [ref=f87e389]:
+          - generic [ref=f87e390]:
+            - img "Customer stories" [ref=f87e392]
+            - generic [ref=f87e393]: Customer stories
+          - heading "Businesses achieve more with Zoom" [level=2] [ref=f87e395]
+        - generic [ref=f87e398]:
+          - group "1 / 4" [ref=f87e399] [cursor=pointer]:
+            - link "Read more Read more" [ref=f87e400]:
+              - /url: https://www.zoom.com/en/customer-stories/major-league-baseball/
+              - text: Read more
+              - generic [ref=f87e401]: Read more
+            - img "Major League Baseball" [ref=f87e402]
+            - generic [ref=f87e403]:
+              - img "Major League Baseball" [ref=f87e404]
+              - heading "Major League Baseball™ and Zoom expand the employee-fan experience" [level=3] [ref=f87e405]
+              - generic [ref=f87e408]:
+                - paragraph [ref=f87e409]: "\"Zoom has allowed us to continue a tradition of really being a technology-focused company and making sure that we are using cutting-edge technology not only to advance our business but also for our fans.\""
+                - paragraph [ref=f87e410]:
+                  - text: "-"
+                  - strong [ref=f87e411]: Noah Garden
+                  - text: ", Chief Revenue Officer"
+          - group "2 / 4" [ref=f87e412] [cursor=pointer]:
+            - link "Read more Read more" [ref=f87e413]:
+              - /url: https://www.zoom.com/en/customer-stories/theshareco/
+              - text: Read more
+              - generic [ref=f87e414]: Read more
+            - img "TheShareCo Background" [ref=f87e415]
+            - generic [ref=f87e416]:
+              - img "TheShareCo" [ref=f87e417]
+              - heading "Advancing mental wellness through TheShareCo’s journey with Zoom Video SDK" [level=3]
+              - generic [ref=f87e419]:
+                - paragraph [ref=f87e420]: "\"Zoom Video SDKs full flexibility in layout customization allowed us to achieve a real-life experience within the limited real estate presented by a phone or smart device.\""
+                - paragraph [ref=f87e421]:
+                  - text: "-"
+                  - strong [ref=f87e422]: Tan Han Sing
+                  - text: ", Founder and CEO, TheShareCo"
+          - group "3 / 4" [ref=f87e423] [cursor=pointer]:
+            - link "Read more Read more" [ref=f87e424]:
+              - /url: https://www.zoom.com/en/customer-stories/cricut/
+              - text: Read more
+              - generic [ref=f87e425]: Read more
+            - img "Cricut" [ref=f87e426]
+            - generic [ref=f87e427]:
+              - img "Cricut" [ref=f87e428]
+              - heading "Cricut slashed call abandonment rates by 90% with Zoom" [level=3]
+              - generic [ref=f87e430]:
+                - paragraph [ref=f87e431]: "\"Before Zoom, we juggled 10-plus tabs to handle calls. Now, everything is integrated into one clean platform, from CRM connections to video transitions. It is a dream workflow.\""
+                - paragraph [ref=f87e432]:
+                  - text: "-"
+                  - strong [ref=f87e433]: Taylor Nelson
+                  - text: ", Member Care QA Specialist"
+          - group "4 / 4" [ref=f87e434] [cursor=pointer]:
+            - link "Read more Read more" [ref=f87e435]:
+              - /url: https://www.zoom.com/en/customer-stories/capital-one/
+              - text: Read more
+              - generic [ref=f87e436]: Read more
+            - img "Capital One" [ref=f87e437]
+            - generic [ref=f87e438]:
+              - img "Capital One" [ref=f87e439]
+              - heading "A connected, collaborative workforce drives innovation at Capital One" [level=3]
+              - generic [ref=f87e441]:
+                - paragraph [ref=f87e442]: "\"We are highly collaborative, we are people-centered, we are interested in moving ourselves and our goals to the next level. Zoom is, I believe, the ideal tool to suit the culture that we are and that we strive to be at Capital One.\""
+                - paragraph [ref=f87e443]:
+                  - text: "-"
+                  - strong [ref=f87e444]: Nikita Steals
+                  - text: ", VP, Tech Talent Acquisition, Capital One"
+    - generic [ref=f87e446]:
+      - generic [ref=f87e447]:
+        - generic [ref=f87e448]:
+          - img "blue dot" [ref=f87e450]
+          - generic [ref=f87e451]: What’s new
+        - generic [ref=f87e454]: Making news, making impact
+      - generic [ref=f87e458]:
+        - link "My Notes" [ref=f87e459] [cursor=pointer]:
+          - /url: https://www.zoom.com/en/products/ai-assistant/features/ai-note-taking/
+          - generic [ref=f87e460]:
+            - 'heading "Meet My Notes: Your new AI note taker" [level=3] [ref=f87e461]':
+              - text: "Meet My Notes:"
+              - text: Your new AI note taker
+            - paragraph [ref=f87e462]: Capture insights from your conversations on Zoom, in person, and across third-party platforms.
+          - img "My Notes" [ref=f87e465]
+          - img [ref=f87e467]
+        - link "Zoom wins Emmy" [ref=f87e470] [cursor=pointer]:
+          - /url: https://news.zoom.com/zoom-wins-emmy-award-for-innovation-in-broadcast-contribution/
+          - generic [ref=f87e471]:
+            - heading "Zoom wins Emmy for Engineering, Science & Technology" [level=3] [ref=f87e472]
+            - paragraph [ref=f87e473]: From remote work to broadcast technology, Zoom is changing how the world connects. ©ATAS/NATAS
+          - generic [ref=f87e474]:
+            - generic:
+              - img "Zoom wins Emmy"
+          - img [ref=f87e476]
+        - generic [ref=f87e479]:
+          - 'link "Eric Yuan on accessible AI: Free AI tools for business" [ref=f87e480] [cursor=pointer]':
+            - /url: https://www.youtube.com/watch?v=AbLapi4wIvg
+            - generic [ref=f87e481]:
+              - 'heading "Eric Yuan on accessible AI: Include AI tools for business" [level=3] [ref=f87e482]'
+              - paragraph [ref=f87e483]: Zoom CEO, Eric Yuan, discusses how Zoom is making AI available at no extra cost.
+            - img [ref=f87e485]
+          - link "Zoom launches AI app for frontline workers" [ref=f87e488] [cursor=pointer]:
+            - /url: https://smallbiztrends.com/zoom-workplace-for-frontline-launch/
+            - generic [ref=f87e489]:
+              - heading "Zoom launches AI app for frontline workers" [level=3] [ref=f87e490]
+              - paragraph [ref=f87e491]: The app handles scheduling, updates, chat, push-to-talk, tasks, and more.
+            - img [ref=f87e493]
+    - generic [ref=f87e496]:
+      - heading "See what Zoom can do for your business" [level=2] [ref=f87e497]:
+        - text: See what Zoom can do
+        - text: for your business
+      - generic [ref=f87e498]:
+        - link "Get started today Get started today" [ref=f87e499] [cursor=pointer]:
+          - /url: https://zoom.us/signup?signUpFrom=homepage
+          - text: Get started today
+          - generic [ref=f87e500]: Get started today
+        - link "Find your plan Find your plan" [ref=f87e502] [cursor=pointer]:
+          - /url: https://zoom.us/pricing
+          - text: Find your plan
+          - generic [ref=f87e503]: Find your plan
+  - contentinfo [ref=f87e504]:
+    - generic [ref=f87e505]:
+      - navigation [ref=f87e509]:
+        - generic [ref=f87e510]:
+          - generic [ref=f87e511]:
+            - link "logo-zoom-white@2x.png" [ref=f87e513] [cursor=pointer]:
+              - /url: https://www.zoom.com/
+              - img "logo-zoom-white@2x.png" [ref=f87e514]
+            - link " Download Center Get the most out of Zoom" [ref=f87e516] [cursor=pointer]:
+              - /url: https://zoom.us/download
+              - generic [ref=f87e517]: 
+              - generic [ref=f87e518]:
+                - paragraph [ref=f87e519]: Download Center
+                - paragraph [ref=f87e520]: Get the most out of Zoom
+            - generic [ref=f87e521]:
+              - generic [ref=f87e522]:
+                - generic [ref=f87e523]: Language
+                - button "English" [ref=f87e524] [cursor=pointer]:
+                  - text: English
+                  - img [ref=f87e525]
+                - generic:
+                  - list:
+                    - listitem [ref=f87e526] [cursor=pointer]:
+                      - link "Deutsch" [ref=f87e527]:
+                        - /url: https://www.zoom.com/de/
+                    - listitem [ref=f87e528] [cursor=pointer]:
+                      - link "English" [ref=f87e529]:
+                        - /url: https://www.zoom.com/
+                    - listitem [ref=f87e530] [cursor=pointer]:
+                      - link "Español" [ref=f87e531]:
+                        - /url: https://www.zoom.com/es/
+                    - listitem [ref=f87e532] [cursor=pointer]:
+                      - link "Français" [ref=f87e533]:
+                        - /url: https://www.zoom.com/fr/
+                    - listitem [ref=f87e534] [cursor=pointer]:
+                      - link "Indonesia" [ref=f87e535]:
+                        - /url: https://www.zoom.com/id/
+                    - listitem [ref=f87e536] [cursor=pointer]:
+                      - link "Italiano" [ref=f87e537]:
+                        - /url: https://www.zoom.com/it/
+                    - listitem [ref=f87e538] [cursor=pointer]:
+                      - link "日本語" [ref=f87e539]:
+                        - /url: https://www.zoom.com/ja/
+                    - listitem [ref=f87e540] [cursor=pointer]:
+                      - link "한국어" [ref=f87e541]:
+                        - /url: https://www.zoom.com/ko/
+                    - listitem [ref=f87e542] [cursor=pointer]:
+                      - link "Nederlands" [ref=f87e543]:
+                        - /url: https://www.zoom.com/nl/
+                    - listitem [ref=f87e544] [cursor=pointer]:
+                      - link "Polski" [ref=f87e545]:
+                        - /url: https://www.zoom.com/pl/
+                    - listitem [ref=f87e546] [cursor=pointer]:
+                      - link "Português" [ref=f87e547]:
+                        - /url: https://www.zoom.com/pt/
+                    - listitem [ref=f87e548] [cursor=pointer]:
+                      - link "Русский" [ref=f87e549]:
+                        - /url: https://www.zoom.com/ru/
+                    - listitem [ref=f87e550] [cursor=pointer]:
+                      - link "Svenska" [ref=f87e551]:
+                        - /url: https://www.zoom.com/sv/
+                    - listitem [ref=f87e552] [cursor=pointer]:
+                      - link "Türkçe" [ref=f87e553]:
+                        - /url: https://www.zoom.com/tr/
+                    - listitem [ref=f87e554] [cursor=pointer]:
+                      - link "Tiếng Việt" [ref=f87e555]:
+                        - /url: https://www.zoom.com/vi/
+                    - listitem [ref=f87e556] [cursor=pointer]:
+                      - link "中文（简体，中国）" [ref=f87e557]:
+                        - /url: https://www.zoom.com/zh-cn/
+                    - listitem [ref=f87e558] [cursor=pointer]:
+                      - link "中文（繁體，台灣）" [ref=f87e559]:
+                        - /url: https://www.zoom.com/zh-tw/
+              - generic [ref=f87e560]:
+                - generic [ref=f87e561]: Currency
+                - button "US Dollar $" [ref=f87e562] [cursor=pointer]:
+                  - text: US Dollar $
+                  - img [ref=f87e563]
+                - generic:
+                  - list:
+                    - listitem [ref=f87e564] [cursor=pointer]:
+                      - button "US Dollar $" [ref=f87e565]
+          - generic [ref=f87e566]:
+            - paragraph [ref=f87e567]: Get in touch
+            - paragraph [ref=f87e568]:
+              - link "+1.888.799.9666" [ref=f87e569] [cursor=pointer]:
+                - /url: tel:+18887999666
+        - generic [ref=f87e570]:
+          - link "About" [ref=f87e571] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/about/
+          - list [ref=f87e573]:
+            - listitem [ref=f87e574]:
+              - link "Zoom Blog Zoom Blog" [ref=f87e575] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/blog/
+                - text: Zoom Blog
+                - generic [ref=f87e576]: Zoom Blog
+            - listitem [ref=f87e577]:
+              - link "Customers" [ref=f87e578] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/customer-stories/all/
+            - listitem [ref=f87e579]:
+              - link "Our Team" [ref=f87e580] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/about/team/
+            - listitem [ref=f87e581]:
+              - link "Careers" [ref=f87e582] [cursor=pointer]:
+                - /url: https://careers.zoom.us/home
+            - listitem [ref=f87e583]:
+              - link "Integrations" [ref=f87e584] [cursor=pointer]:
+                - /url: https://marketplace.zoom.us/
+            - listitem [ref=f87e585]:
+              - link "Partners" [ref=f87e586] [cursor=pointer]:
+                - /url: https://partner.zoom.us/
+            - listitem [ref=f87e587]:
+              - link "Investors" [ref=f87e588] [cursor=pointer]:
+                - /url: https://investors.zoom.us/
+            - listitem [ref=f87e589]:
+              - link "Press" [ref=f87e590] [cursor=pointer]:
+                - /url: https://news.zoom.us/
+            - listitem [ref=f87e591]:
+              - link "Sustainability & ESG" [ref=f87e592] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/about/esg-impact-report/
+            - listitem [ref=f87e593]:
+              - link "Zoom Cares Zoom Cares" [ref=f87e594] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/zoom-cares/
+                - text: Zoom Cares
+                - generic [ref=f87e595]: Zoom Cares
+            - listitem [ref=f87e596]:
+              - link "Media Kit" [ref=f87e597] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/about/media-kit/
+            - listitem [ref=f87e598]:
+              - link "How To Videos" [ref=f87e599] [cursor=pointer]:
+                - /url: https://learn-zoom.us/show-me
+            - listitem [ref=f87e600]:
+              - link "Developer Platform" [ref=f87e601] [cursor=pointer]:
+                - /url: https://developers.zoom.us/
+            - listitem [ref=f87e602]:
+              - link "Zoom Ventures" [ref=f87e603] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/zoom-ventures/
+            - listitem [ref=f87e604]:
+              - link "Zoom Merchandise Store Zoom Merchandise Store" [ref=f87e605] [cursor=pointer]:
+                - /url: https://shophappy.zoom.us/
+                - text: Zoom Merchandise Store
+                - generic [ref=f87e606]: Zoom Merchandise Store
+        - generic [ref=f87e607]:
+          - link "Download" [ref=f87e608] [cursor=pointer]:
+            - /url: https://zoom.us/download
+          - list [ref=f87e610]:
+            - listitem [ref=f87e611]:
+              - link "Zoom Workplace App Zoom Workplace App" [ref=f87e612] [cursor=pointer]:
+                - /url: https://zoom.us/download
+                - text: Zoom Workplace App
+                - generic [ref=f87e613]: Zoom Workplace App
+            - listitem [ref=f87e614]:
+              - link "Zoom Rooms App Zoom Rooms App" [ref=f87e615] [cursor=pointer]:
+                - /url: https://zoom.us/download#room_client
+                - text: Zoom Rooms App
+                - generic [ref=f87e616]: Zoom Rooms App
+            - listitem [ref=f87e617]:
+              - link "Zoom Rooms Controller" [ref=f87e618] [cursor=pointer]:
+                - /url: https://zoom.us/download#room_controller
+            - listitem [ref=f87e619]:
+              - link "Browser Extension" [ref=f87e620] [cursor=pointer]:
+                - /url: https://zoom.us/download#chrome_ext
+            - listitem [ref=f87e621]:
+              - link "Outlook Plug-in" [ref=f87e622] [cursor=pointer]:
+                - /url: https://zoom.us/download#outlook_plugin
+            - listitem [ref=f87e623]:
+              - link "iPhone/iPad App iPhone/iPad App" [ref=f87e624] [cursor=pointer]:
+                - /url: https://zoom.us/download#client_iphone
+                - text: iPhone/iPad App
+                - generic [ref=f87e625]: iPhone/iPad App
+            - listitem [ref=f87e626]:
+              - link "Android App Android App" [ref=f87e627] [cursor=pointer]:
+                - /url: https://zoom.us/download#mobile_app
+                - text: Android App
+                - generic [ref=f87e628]: Android App
+            - listitem [ref=f87e629]:
+              - link "Zoom Virtual Backgrounds" [ref=f87e630] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/products/virtual-meetings/features/virtual-background-library/
+        - generic [ref=f87e631]:
+          - link "Sales" [ref=f87e632] [cursor=pointer]:
+            - /url: https://www.zoom.com/en/contact/contact-sales/
+          - list [ref=f87e634]:
+            - listitem [ref=f87e635]:
+              - link "+1.888.799.9666 Click to call" [ref=f87e636] [cursor=pointer]:
+                - /url: tel:+18887999666
+                - text: +1.888.799.9666
+                - generic [ref=f87e637]: Click to call
+            - listitem [ref=f87e638]:
+              - link "Contact Sales" [ref=f87e639] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/contact/contact-sales/
+            - listitem [ref=f87e640]:
+              - link "Plans & Pricing" [ref=f87e641] [cursor=pointer]:
+                - /url: https://zoom.us/pricing
+            - listitem [ref=f87e642]:
+              - link "Request a Demo" [ref=f87e643] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/contact/live-demo/
+            - listitem [ref=f87e644]:
+              - link "Webinars and Events" [ref=f87e645] [cursor=pointer]:
+                - /url: https://ev.zoom.us/
+            - listitem [ref=f87e646]:
+              - link "Zoom Experience Center Zoom Experience Center" [ref=f87e647] [cursor=pointer]:
+                - /url: https://ebc.zoom.us/
+                - text: Zoom Experience Center
+                - generic [ref=f87e648]: Zoom Experience Center
+            - listitem [ref=f87e649]:
+              - link "Zoom for Startups Zoom for Startups" [ref=f87e650] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/lp/zoom-for-startups/
+                - text: Zoom for Startups
+                - generic [ref=f87e651]: Zoom for Startups
+        - generic [ref=f87e652]:
+          - link "Support Support" [ref=f87e653] [cursor=pointer]:
+            - /url: https://support.zoom.com/hc/en
+            - text: Support
+            - generic [ref=f87e654]: Support
+          - list [ref=f87e656]:
+            - listitem [ref=f87e657]:
+              - link "Test Zoom" [ref=f87e658] [cursor=pointer]:
+                - /url: https://zoom.us/test
+            - listitem [ref=f87e659]:
+              - link "Account" [ref=f87e660] [cursor=pointer]:
+                - /url: https://zoom.us/account
+            - listitem [ref=f87e661]:
+              - link "Support Center Support Center" [ref=f87e662] [cursor=pointer]:
+                - /url: https://support.zoom.com/hc/en
+                - text: Support Center
+                - generic [ref=f87e663]: Support Center
+            - listitem [ref=f87e664]:
+              - link "Learning Center" [ref=f87e665] [cursor=pointer]:
+                - /url: https://learning.zoom.us/learn
+            - listitem [ref=f87e666]:
+              - link "Zoom Community" [ref=f87e667] [cursor=pointer]:
+                - /url: https://community.zoom.com/
+            - listitem [ref=f87e668]:
+              - link "Technical Content Library Technical Content Library" [ref=f87e669] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/products/resources/tech-library/
+                - text: Technical Content Library
+                - generic [ref=f87e670]: Technical Content Library
+            - listitem [ref=f87e671]:
+              - link "Feedback" [ref=f87e672] [cursor=pointer]:
+                - /url: https://zoom.us/feed
+            - listitem [ref=f87e673]:
+              - link "Contact Us Contact Us" [ref=f87e674] [cursor=pointer]:
+                - /url: https://support.zoom.com/hc/en/contact?id=contact_us
+                - text: Contact Us
+                - generic [ref=f87e675]: Contact Us
+            - listitem [ref=f87e676]:
+              - link "Accessibility" [ref=f87e677] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/accessibility/
+            - listitem [ref=f87e678]:
+              - link "Developer Support" [ref=f87e679] [cursor=pointer]:
+                - /url: https://developers.zoom.us/support/
+            - listitem [ref=f87e680]:
+              - link "Privacy, Security, Legal Policies, and Modern Slavery Act Transparency Statement" [ref=f87e681] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/legal-compliance/
+      - generic [ref=f87e683]:
+        - list [ref=f87e685]:
+          - listitem [ref=f87e686]:
+            - link "Linked In" [ref=f87e687] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/zoom/
+          - listitem [ref=f87e688]:
+            - link "Twitter" [ref=f87e689] [cursor=pointer]:
+              - /url: https://twitter.com/zoom
+          - listitem [ref=f87e690]:
+            - link "YouTube" [ref=f87e691] [cursor=pointer]:
+              - /url: https://www.youtube.com/zoommeetings
+          - listitem [ref=f87e692]:
+            - link "Facebook" [ref=f87e693] [cursor=pointer]:
+              - /url: https://www.facebook.com/zoom
+          - listitem [ref=f87e694]:
+            - link "Instagram" [ref=f87e695] [cursor=pointer]:
+              - /url: https://www.instagram.com/zoom/
+        - generic [ref=f87e696]:
+          - generic [ref=f87e699]: Copyright ©2026 Zoom Communications, Inc. All rights reserved.
+          - list [ref=f87e701]:
+            - listitem [ref=f87e702]:
+              - link "Terms" [ref=f87e703] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/terms/
+            - listitem [ref=f87e704]:
+              - link "Privacy" [ref=f87e705] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/privacy/privacy-statement/
+            - listitem [ref=f87e706]:
+              - link "Trust Center" [ref=f87e707] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/
+            - listitem [ref=f87e708]:
+              - link "Acceptable Use Guidelines" [ref=f87e709] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/acceptable-use-guidelines/
+            - listitem [ref=f87e710]:
+              - link "Legal & Compliance" [ref=f87e711] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/trust/legal-compliance/
+            - listitem [ref=f87e712]:
+              - generic [ref=f87e713] [cursor=pointer]:
+                - img [ref=f87e714]
+                - text: Your Privacy Choices
+            - listitem [ref=f87e715]: Cookies Settings
+            - listitem [ref=f87e716]:
+              - link "Site Map Site Map" [ref=f87e717] [cursor=pointer]:
+                - /url: https://www.zoom.com/en/sitemap/
+                - text: Site Map
+                - generic [ref=f87e718]: Site Map
+  - region "Cookie banner" [active] [ref=f87e719]:
+    - dialog "Privacy" [ref=f87e720]:
+      - generic [ref=f87e721]:
+        - generic [ref=f87e723]:
+          - text: Zoom uses cookies and similar technologies as strictly necessary to make our site work. We and our partners would also like to set additional cookies to analyze your use of our site, to personalize and enhance your visit to our site and to show you more relevant content and advertising. These will be set only if you accept. You can always review and change your cookie preferences through our cookie settings page. For more information, please read our
+          - link "Privacy Statement" [ref=f87e724] [cursor=pointer]:
+            - /url: https://explore.zoom.us/privacy
+          - text: .
+        - generic [ref=f87e726]:
+          - button "Accept Cookies" [ref=f87e728] [cursor=pointer]
+          - button "Cookies Settings" [ref=f87e729] [cursor=pointer]
+        - button "Close" [ref=f87e731] [cursor=pointer]

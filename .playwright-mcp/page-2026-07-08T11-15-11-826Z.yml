@@ -1,0 +1,313 @@
+- generic [active] [ref=f59e1]:
+  - generic [ref=f59e2]:
+    - link "Skip to main content" [ref=f59e3] [cursor=pointer]:
+      - /url: "#the-main-content"
+      - text: Skip to Main Content
+    - link "Accessibility overview" [ref=f59e4] [cursor=pointer]:
+      - /url: https://explore.zoom.us/en/accessibility?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+      - text: Accessibility Overview
+    - generic [ref=f59e7]:
+      - navigation "Resources" [ref=f59e8]:
+        - list [ref=f59e10]:
+          - button "Search" [ref=f59e12] [cursor=pointer]:
+            - img [ref=f59e14]
+            - generic [ref=f59e18]: Search
+          - listitem [ref=f59e19]:
+            - link "Support" [ref=f59e20] [cursor=pointer]:
+              - /url: https://zoom.us/zendesk/sso?return_to=https://support.zoom.us/hc/en-us
+          - listitem [ref=f59e21]:
+            - button "Call 1-888-799-9666" [ref=f59e22] [cursor=pointer]: 81 368973660
+          - listitem [ref=f59e24]:
+            - link "Contact Sales" [ref=f59e25] [cursor=pointer]:
+              - /url: https://www.zoom.com/en/contact/contact-sales/?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - listitem [ref=f59e26]:
+            - link "Request a Demo" [ref=f59e27] [cursor=pointer]:
+              - /url: https://www.zoom.com/en/contact/live-demo/?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+      - banner [ref=f59e28]:
+        - link "Zoom Home Page" [ref=f59e31] [cursor=pointer]:
+          - /url: https://zoom.us/
+          - img "Zoom Logo" [ref=f59e32]
+        - generic [ref=f59e34]:
+          - navigation "product information" [ref=f59e35]:
+            - listitem [ref=f59e36]:
+              - button "Products" [ref=f59e37] [cursor=pointer]
+              - generic [ref=f59e38]:
+                - img [ref=f59e39]
+                - img [ref=f59e41]
+            - listitem [ref=f59e43]:
+              - button "Solutions" [ref=f59e44] [cursor=pointer]
+              - generic [ref=f59e45]:
+                - img [ref=f59e46]
+                - img [ref=f59e48]
+            - listitem [ref=f59e50]:
+              - button "Resources" [ref=f59e51] [cursor=pointer]
+              - generic [ref=f59e52]:
+                - img [ref=f59e53]
+                - img [ref=f59e55]
+            - link "Plans & Pricing" [ref=f59e57]:
+              - link "Plans & Pricing" [ref=f59e58] [cursor=pointer]:
+                - /url: /pricing
+          - navigation "meetings" [ref=f59e59]:
+            - link "Schedule" [ref=f59e60] [cursor=pointer]:
+              - /url: https://zoom.us/meeting/schedule
+            - link "Join" [ref=f59e61] [cursor=pointer]:
+              - /url: https://zoom.us/join
+            - button "Host" [ref=f59e63] [cursor=pointer]: Host
+            - button "Web App" [ref=f59e66] [cursor=pointer]: Web App
+            - button "タク キョウ, profile options" [ref=f59e70] [cursor=pointer]:
+              - img "タク キョウ profile avatar" [ref=f59e72]:
+                - generic [ref=f59e73]: タキ
+    - generic [ref=f59e75]:
+      - heading "Plan Management" [level=1] [ref=f59e76]
+      - generic [ref=f59e79]:
+        - navigation "side navigation" [ref=f59e80]:
+          - text: 
+          - region "Navigation" [ref=f59e81]:
+            - generic [ref=f59e82]: PERSONAL
+            - menu "Personal Menu" [ref=f59e83]:
+              - menuitem "Profile" [ref=f59e84] [cursor=pointer]
+              - menuitem "Meetings" [ref=f59e85] [cursor=pointer]
+              - menuitem "Webinars" [ref=f59e86] [cursor=pointer]
+              - menuitem "Webinars Plus" [ref=f59e87] [cursor=pointer]
+              - menuitem "Events" [ref=f59e88] [cursor=pointer]
+              - menuitem "Phone" [ref=f59e89] [cursor=pointer]
+              - menuitem "Personal Contacts" [ref=f59e90] [cursor=pointer]
+              - menuitem "Personal Devices" [ref=f59e91] [cursor=pointer]
+              - menuitem "Whiteboards" [ref=f59e92] [cursor=pointer]
+              - menuitem "Notes" [ref=f59e93] [cursor=pointer]
+              - menuitem "Canvas" [ref=f59e94] [cursor=pointer]
+              - menuitem "Recordings & Transcripts" [ref=f59e95] [cursor=pointer]
+              - menuitem "Clips" [ref=f59e96] [cursor=pointer]
+              - menuitem "Scheduler" [ref=f59e97] [cursor=pointer]
+              - menuitem "Settings" [ref=f59e98] [cursor=pointer]
+              - menuitem "Data & Privacy" [ref=f59e99] [cursor=pointer]
+              - menuitem "Analytics & Reports" [ref=f59e100]:
+                - img [ref=f59e102]
+                - generic [ref=f59e104]: Analytics & Reports
+            - generic [ref=f59e105]: ADMIN
+            - menu "Admin Menu" [ref=f59e106]:
+              - menuitem "Plans and Billing" [ref=f59e107] [cursor=pointer]:
+                - img [ref=f59e109]
+                - generic [ref=f59e111]: Plans and Billing
+              - menu "Plans and Billing" [ref=f59e112]:
+                - menuitem "Plan Management" [ref=f59e113] [cursor=pointer]
+                - menuitem "Billing Management" [ref=f59e114] [cursor=pointer]
+                - menuitem "Payment History" [ref=f59e115] [cursor=pointer]
+              - menuitem "User Management" [ref=f59e116] [cursor=pointer]:
+                - img [ref=f59e118]
+                - generic [ref=f59e120]: User Management
+              - menuitem "Scheduler Management" [ref=f59e121] [cursor=pointer]
+              - menuitem "Device Management" [ref=f59e122] [cursor=pointer]:
+                - img [ref=f59e124]
+                - generic [ref=f59e126]: Device Management
+              - menuitem "Room Management" [ref=f59e127] [cursor=pointer]:
+                - img [ref=f59e129]
+                - generic [ref=f59e131]: Room Management
+              - text: NEW
+              - menuitem "Workspaces Management" [ref=f59e132] [cursor=pointer]:
+                - img [ref=f59e134]
+                - generic [ref=f59e136]: Workspaces Management
+              - menuitem "Phone System Management" [ref=f59e137] [cursor=pointer]:
+                - img [ref=f59e139]
+                - generic [ref=f59e141]: Phone System Management
+              - menuitem "AI Studio NEW" [ref=f59e142] [cursor=pointer]:
+                - img [ref=f59e144]
+                - generic [ref=f59e146]: AI Studio NEW
+              - menuitem "Account Management" [ref=f59e147] [cursor=pointer]:
+                - img [ref=f59e149]
+                - generic [ref=f59e151]: Account Management
+              - menuitem "Advanced" [ref=f59e152] [cursor=pointer]:
+                - img [ref=f59e154]
+                - generic [ref=f59e156]: Advanced
+            - generic [ref=f59e157]:
+              - paragraph [ref=f59e158]:
+                - link "Zoom Learning Center" [ref=f59e159] [cursor=pointer]:
+                  - /url: https://zoom.us/learningcenter
+              - paragraph [ref=f59e160]:
+                - link "Video Tutorials" [ref=f59e161] [cursor=pointer]:
+                  - /url: /zendesk/sso?return_to=https://support.zoom.us/hc/en-us/articles/206618765-Zoom-Video-Tutorials
+              - paragraph [ref=f59e162]:
+                - link "Knowledge Base" [ref=f59e163] [cursor=pointer]:
+                  - /url: /zendesk/sso?return_to=https://support.zoom.us/hc/en-us
+        - main "main content" [ref=f59e164]:
+          - generic [ref=f59e165]:
+            - heading "Plans and Billing" [level=1] [ref=f59e167]
+            - list [ref=f59e168]:
+              - listitem [ref=f59e169]:
+                - link "Plan Management" [ref=f59e170]:
+                  - /url: https://zoom.us/billing
+              - listitem [ref=f59e171]:
+                - link "Billing Management" [ref=f59e172] [cursor=pointer]:
+                  - /url: https://zoom.us/billing/payment
+              - listitem [ref=f59e173]:
+                - link "Payment History" [ref=f59e174] [cursor=pointer]:
+                  - /url: https://zoom.us/billing/report
+    - contentinfo [ref=f59e188]:
+      - generic [ref=f59e191]:
+        - generic [ref=f59e192]:
+          - generic [ref=f59e193]:
+            - heading "About" [level=2] [ref=f59e194]:
+              - link "About" [ref=f59e195] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/about/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+            - list [ref=f59e196]:
+              - listitem [ref=f59e197]:
+                - link "Zoom Blog" [ref=f59e198] [cursor=pointer]:
+                  - /url: https://blog.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e199]:
+                - link "Customers" [ref=f59e200] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/customer/all/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e201]:
+                - link "Our Team" [ref=f59e202] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/team/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e203]:
+                - link "Careers" [ref=f59e204] [cursor=pointer]:
+                  - /url: https://careers.zoom.us/home?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e205]:
+                - link "Integrations" [ref=f59e206] [cursor=pointer]:
+                  - /url: https://marketplace.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e207]:
+                - link "Partners" [ref=f59e208] [cursor=pointer]:
+                  - /url: https://partner.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e209]:
+                - link "Investors" [ref=f59e210] [cursor=pointer]:
+                  - /url: https://investors.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e211]:
+                - link "Press" [ref=f59e212] [cursor=pointer]:
+                  - /url: https://news.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e213]:
+                - link "Sustainability & ESG" [ref=f59e214] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/zoom-esg/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e215]:
+                - link "Zoom Cares" [ref=f59e216] [cursor=pointer]:
+                  - /url: https://zoomcares.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e217]:
+                - link "Media Kit" [ref=f59e218] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/media-kit/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e219]:
+                - link "How to Videos" [ref=f59e220] [cursor=pointer]:
+                  - /url: https://learn-zoom.us/show-me?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e221]:
+                - link "Developer Platform" [ref=f59e222] [cursor=pointer]:
+                  - /url: https://developers.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e223]:
+                - link "Zoom Ventures" [ref=f59e224] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/zoom-ventures/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e225]:
+                - link "Zoom Merchandise Store" [ref=f59e226] [cursor=pointer]:
+                  - /url: https://shophappy.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - generic [ref=f59e227]:
+            - heading "Download" [level=2] [ref=f59e228]:
+              - link "Download" [ref=f59e229] [cursor=pointer]:
+                - /url: https://zoom.us/download
+            - list [ref=f59e230]:
+              - listitem [ref=f59e231]:
+                - link "Zoom Workplace App" [ref=f59e232] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_4meeting
+              - listitem [ref=f59e233]:
+                - link "Browser Extension" [ref=f59e234] [cursor=pointer]:
+                  - /url: https://zoom.us/download#chrome_ext
+              - listitem [ref=f59e235]:
+                - link "iPhone/iPad App" [ref=f59e236] [cursor=pointer]:
+                  - /url: https://zoom.us/download#client_iphone
+              - listitem [ref=f59e237]:
+                - link "Android App" [ref=f59e238] [cursor=pointer]:
+                  - /url: https://zoom.us/download#mobile_app
+              - listitem [ref=f59e239]:
+                - link "Zoom Virtual Backgrounds" [ref=f59e240] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/virtual-backgrounds/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - generic [ref=f59e241]:
+            - heading "Sales" [level=2] [ref=f59e242]:
+              - link "Sales" [ref=f59e243] [cursor=pointer]:
+                - /url: https://explore.zoom.us/en/contactsales/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+            - list [ref=f59e244]:
+              - listitem [ref=f59e245]:
+                - link "81 368973660" [ref=f59e246] [cursor=pointer]:
+                  - /url: tel:81 368973660
+              - listitem [ref=f59e247]:
+                - link "Contact Sales" [ref=f59e248] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/contactsales/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e249]:
+                - link "Plans & Pricing" [ref=f59e250] [cursor=pointer]:
+                  - /url: /pricing
+              - listitem [ref=f59e251]:
+                - link "Request a Demo" [ref=f59e252] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/livedemo/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e253]:
+                - link "Webinars and Events" [ref=f59e254] [cursor=pointer]:
+                  - /url: https://zoom.us/events
+              - listitem [ref=f59e255]:
+                - link "Zoom Experience Center" [ref=f59e256] [cursor=pointer]:
+                  - /url: https://ebc.zoom.us/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - generic [ref=f59e257]:
+            - heading "Support" [level=2] [ref=f59e258]:
+              - link "Support" [ref=f59e259] [cursor=pointer]:
+                - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+            - list [ref=f59e260]:
+              - listitem [ref=f59e261]:
+                - link "Test Zoom" [ref=f59e262] [cursor=pointer]:
+                  - /url: https://zoom.us/test
+              - listitem [ref=f59e263]:
+                - link "Account" [ref=f59e264] [cursor=pointer]:
+                  - /url: https://zoom.us/account
+              - listitem [ref=f59e265]:
+                - link "Support Center" [ref=f59e266] [cursor=pointer]:
+                  - /url: "/zendesk/sso?return_to=https://support.zoom.us/hc/en-us\n"
+              - listitem [ref=f59e267]:
+                - link "Learning Center" [ref=f59e268] [cursor=pointer]:
+                  - /url: https://learning.zoom.us/learn?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e269]:
+                - link "Zoom Community" [ref=f59e270] [cursor=pointer]:
+                  - /url: https://community.zoom.com/?optimizely_user_id=0f83802f286649c59efa8785422f7b03&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e271] [cursor=pointer]:
+                - button "Feedback" [ref=f59e272]
+              - listitem [ref=f59e273]:
+                - link "Contact Us" [ref=f59e274] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/contact?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e275]:
+                - link "Accessibility" [ref=f59e276] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/accessibility/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e277]:
+                - link "Developer support" [ref=f59e278] [cursor=pointer]:
+                  - /url: https://devsupport.zoom.us/hc/en-us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+              - listitem [ref=f59e279]:
+                - link "Privacy, Security, Legal Policies, and Modern Slavery Act Transparency Statement" [ref=f59e280] [cursor=pointer]:
+                  - /url: https://explore.zoom.us/en/trust/legal-compliance/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - generic [ref=f59e281]:
+            - heading "Language" [level=2] [ref=f59e282]
+            - list [ref=f59e283]:
+              - listitem [ref=f59e284]:
+                - button "Language English" [ref=f59e285] [cursor=pointer]: English
+            - generic [ref=f59e287]:
+              - link "Zoom on Blog" [ref=f59e288] [cursor=pointer]:
+                - /url: https://blog.zoom.us?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+                - generic [ref=f59e289]: Zoom on Blog
+              - link "Zoom on LinkedIn" [ref=f59e291] [cursor=pointer]:
+                - /url: https://www.linkedin.com/company/zoom
+                - generic [ref=f59e292]: Zoom on LinkedIn
+              - link "Zoom on Twitter" [ref=f59e294] [cursor=pointer]:
+                - /url: https://twitter.com/zoom
+                - generic [ref=f59e295]: Zoom on Twitter
+              - link "Zoom on Youtube" [ref=f59e297] [cursor=pointer]:
+                - /url: https://www.youtube.com/zoommeetings
+                - generic [ref=f59e298]: Zoom on Youtube
+              - link "Zoom on Facebook" [ref=f59e300] [cursor=pointer]:
+                - /url: https://www.facebook.com/zoom
+                - generic [ref=f59e301]: Zoom on Facebook
+              - link "Zoom on Instagram" [ref=f59e303] [cursor=pointer]:
+                - /url: https://www.instagram.com/zoom/
+                - generic [ref=f59e304]: Zoom on Instagram
+        - generic [ref=f59e307]:
+          - text: Copyright ©2026 Zoom Communications, Inc. All rights reserved.
+          - link "Terms" [ref=f59e308] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/terms/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - link "Privacy" [ref=f59e309] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/privacy/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - link "Trust Center" [ref=f59e310] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/trust/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - link "Acceptable Use Guidelines" [ref=f59e311] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/acceptable-use-guidelines/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - link "Legal & Compliance" [ref=f59e312] [cursor=pointer]:
+            - /url: https://explore.zoom.us/en/trust/legal-compliance/?ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963&ampDeviceId=167079cd-8b04-4a53-99ef-6e919bcafa52&ampSessionId=1783509119963
+          - link "Your Privacy Choices" [ref=f59e313] [cursor=pointer]
+          - link "Cookie Preferences" [ref=f59e314] [cursor=pointer]
+  - img

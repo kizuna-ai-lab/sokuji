@@ -161,6 +161,9 @@
     "vadSettings": "Configuración VAD",
     "vadSettingsTooltip": "Configuración de detección de actividad de voz. Ajuste estos parámetros para optimizar la detección de voz en su entorno.",
     "vadThresholdTooltip": "Sensibilidad de detección de voz. Valores más altos requieren voz más fuerte/clara. Valores más bajos son más sensibles a voz baja.",
+    "vadNegativeThreshold": "Umbral de Silencio",
+    "vadNegativeThresholdTooltip": "Probabilidad por debajo de la cual el silencio empieza a contar para terminar el segmento. Auto lo mantiene 0,15 por debajo del Umbral VAD. Nunca se aplica por encima del Umbral VAD, ya que los segmentos no terminarían nunca.",
+    "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duración mín. de silencio",
     "vadMinSilenceDurationTooltip": "Duración mínima de silencio para dividir segmentos de habla. Valores más cortos dividen las frases más rápido, valores más largos esperan pausas más naturales.",
     "vadMinSpeechDuration": "Duración mín. de habla",
@@ -836,6 +839,14 @@
   "subtitle": {
     "sessionEnded": "Sesión finalizada",
     "backToMain": "Volver a la ventana principal",
+    "idle": {
+      "start": "Empezar a traducir",
+      "hint": "Coloca y ajusta el tamaño de la ventana antes de empezar",
+      "ended": "Esta sesión ha finalizado",
+      "failed": "Error al iniciar: {{message}}",
+      "retry": "Reintentar",
+      "backForDetails": "Vuelve a la ventana principal para ver los detalles"
+    },
     "enterButton": {
       "title": "Entrar en modo subtítulos",
       "disabled": "Inicia una sesión primero",
@@ -847,6 +858,8 @@
       "label": "Salir de subtítulos"
     },
     "bar": {
+      "start": "Iniciar sesión",
+      "stop": "Detener sesión",
       "fontDecrease": "Reducir tamaño de fuente",
       "fontIncrease": "Aumentar tamaño de fuente",
       "expand": "Vista expandida",

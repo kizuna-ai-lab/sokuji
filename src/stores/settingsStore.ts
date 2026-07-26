@@ -16,6 +16,7 @@ import { useNativeModelStore } from './nativeModelStore';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import useSessionStore from './sessionStore';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
+import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -819,7 +820,10 @@ const useSettingsStore = create<SettingsStore>()(
 
     enterSubtitleMode: async () => {
       if (get().subtitleModeActive) return;
-      if (!useSessionStore.getState().isSessionActive) {
+      // Mirrors SubtitleEnterButton's `canEnter` gating exactly (see
+      // subtitleEnterGate.ts) so the button can never be enabled while this
+      // guard silently refuses the entry it triggers.
+      if (!canEnterSubtitleMode(useSessionStore.getState().isSessionActive)) {
         console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
         return;
       }
