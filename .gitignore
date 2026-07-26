@@ -118,3 +118,6 @@ scripts/reexport-omnivoice/.venv/
 scripts/reexport-omnivoice/out/
 scripts/reexport-omnivoice/.venv
 __pycache__/
+
+# Architecture-review screenshots (scratch, same batch as .playwright-mcp/)
+/arch-review-*.png
