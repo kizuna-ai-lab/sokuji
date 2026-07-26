@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Sessie beëindigd",
     "backToMain": "Terug naar hoofdvenster",
+    "idle": {
+      "start": "Vertaling starten",
+      "hint": "Positioneer het venster en pas het formaat aan voordat u begint",
+      "ended": "Deze sessie is beëindigd",
+      "failed": "Starten mislukt: {{message}}",
+      "retry": "Opnieuw proberen",
+      "backForDetails": "Ga terug naar het hoofdvenster voor details"
+    },
     "enterButton": {
       "title": "Ondertitelmodus inschakelen",
       "disabled": "Start eerst een sessie",
@@ -837,6 +845,8 @@
       "label": "Ondertiteling afsluiten"
     },
     "bar": {
+      "start": "Sessie starten",
+      "stop": "Sessie stoppen",
       "fontDecrease": "Lettergrootte verkleinen",
       "fontIncrease": "Lettergrootte vergroten",
       "expand": "Uitgebreide weergave",

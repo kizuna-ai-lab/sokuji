@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Sesi berakhir",
     "backToMain": "Kembali ke tetingkap utama",
+    "idle": {
+      "start": "Mulakan terjemahan",
+      "hint": "Atur kedudukan dan saiz tetingkap sebelum anda mula",
+      "ended": "Sesi ini telah tamat",
+      "failed": "Gagal memulakan: {{message}}",
+      "retry": "Cuba lagi",
+      "backForDetails": "Kembali ke tetingkap utama untuk butiran"
+    },
     "enterButton": {
       "title": "Masuk mod sari kata",
       "disabled": "Mulakan sesi dahulu",
@@ -837,6 +845,8 @@
       "label": "Keluar sari kata"
     },
     "bar": {
+      "start": "Mulakan sesi",
+      "stop": "Hentikan sesi",
       "fontDecrease": "Kecilkan fon",
       "fontIncrease": "Besarkan fon",
       "expand": "Paparan dipanjangkan",

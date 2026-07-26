@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Oturum sona erdi",
     "backToMain": "Ana pencereye dön",
+    "idle": {
+      "start": "Çeviriyi başlat",
+      "hint": "Başlamadan önce pencereyi konumlandırın ve boyutlandırın",
+      "ended": "Bu oturum sona erdi",
+      "failed": "Başlatılamadı: {{message}}",
+      "retry": "Tekrar dene",
+      "backForDetails": "Ayrıntılar için ana pencereye dönün"
+    },
     "enterButton": {
       "title": "Altyazı moduna geç",
       "disabled": "Önce bir oturum başlatın",
@@ -837,6 +845,8 @@
       "label": "Altyazıdan çık"
     },
     "bar": {
+      "start": "Oturumu başlat",
+      "stop": "Oturumu durdur",
       "fontDecrease": "Yazı tipini küçült",
       "fontIncrease": "Yazı tipini büyüt",
       "expand": "Genişletilmiş görünüm",

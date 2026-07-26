@@ -36,7 +36,7 @@
 .subtitle-app__resize--se { bottom: 0; right: 0;  width: 12px; height: 12px; cursor: nwse-resize; }
 
 .subtitle-ptt-hint,
-.subtitle-session-ended {
+.subtitle-idle {
   flex: 1;
   display: flex;
   align-items: center;
@@ -44,17 +44,119 @@
   padding: 16px 24px;
   gap: 12px;
   flex-direction: column;
+  min-height: 0;
 
   p {
     margin: 0;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 0.3px;
   }
 }
 
-.subtitle-session-ended {
-  button {
+// The 16px voice belongs to the two elements that actually speak in it: the
+// PTT hint and the extension overlay's ended message. Scoping it to those
+// two — rather than to every <p> in the container — is what lets __hint and
+// __error set their own size and colour without fighting back with
+// !important.
+.subtitle-ptt-hint p,
+.subtitle-idle__message {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.3px;
+}
+
+.subtitle-idle {
+  gap: 10px;
+}
+
+.subtitle-idle {
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__action {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #10a37f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 100%;
+    transition: background 120ms ease, opacity 120ms ease;
+    -webkit-app-region: no-drag;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &:hover:not(:disabled) { background: #0d8c6d; }
+
+    &:disabled {
+      background: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.45);
+      cursor: default;
+    }
+
+    // Blocked state: the action routes to settings instead of starting. It
+    // keeps the primary action's shape and position so switching states
+    // doesn't move the layout, but drops to a neutral surface — it is the
+    // corrective action, not the happy path. The warning colour is carried
+    // by the icon alone; tinting the fill, the border and the label as well
+    // would say the same thing four times, and read as "danger" rather than
+    // "click here to fix it".
+    &--fix:not(:disabled) {
+      background: rgba(255, 255, 255, 0.10);
+
+      &:hover { background: rgba(255, 255, 255, 0.16); }
+
+      svg { color: #ff6b6b; }
+    }
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  // One line, always. The window can be resized to any height, so the error
+  // must never push the buttons out of view.
+  &__error {
+    font-size: 12.5px;
+    // The app's error-text-on-dark colour (MainPanel.scss:150,156).
+    color: #ff6b6b;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__link {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: underline;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+
+    &:hover { color: rgba(255, 255, 255, 0.75); }
+  }
+
+  // Return button for the extension overlay surface (pre-#324 styling).
+  // Preserves the solid bordered button appearance for the browser extension.
+  &__return {
     appearance: none;
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.92);
@@ -81,4 +183,21 @@
       outline-offset: 1px;
     }
   }
+
+  // The "starting" body's Loader icon. `.spinning` is used the same way in
+  // MainPanel.scss, AudioSystemBanner.scss, etc., but each of those scopes
+  // the rule locally rather than relying on a shared global class — and this
+  // component's CSS ships in two different bundles (the Electron main
+  // window, where MainPanel.scss's global @keyframes spin happens to also be
+  // loaded, and the extension-overlay iframe, which never pulls in
+  // MainPanel.scss at all). Defining it here keeps the spin self-contained
+  // in both.
+  .spinning {
+    animation: subtitle-idle-spin 1s linear infinite;
+  }
+}
+
+@keyframes subtitle-idle-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

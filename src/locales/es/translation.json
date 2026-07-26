@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Sesión finalizada",
     "backToMain": "Volver a la ventana principal",
+    "idle": {
+      "start": "Empezar a traducir",
+      "hint": "Coloca y ajusta el tamaño de la ventana antes de empezar",
+      "ended": "Esta sesión ha finalizado",
+      "failed": "Error al iniciar: {{message}}",
+      "retry": "Reintentar",
+      "backForDetails": "Vuelve a la ventana principal para ver los detalles"
+    },
     "enterButton": {
       "title": "Entrar en modo subtítulos",
       "disabled": "Inicia una sesión primero",
@@ -837,6 +845,8 @@
       "label": "Salir de subtítulos"
     },
     "bar": {
+      "start": "Iniciar sesión",
+      "stop": "Detener sesión",
       "fontDecrease": "Reducir tamaño de fuente",
       "fontIncrease": "Aumentar tamaño de fuente",
       "expand": "Vista expandida",

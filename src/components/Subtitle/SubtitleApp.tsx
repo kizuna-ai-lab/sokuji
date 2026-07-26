@@ -3,7 +3,10 @@ import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import SubtitleBar from './SubtitleBar';
 import SubtitleStream from './SubtitleStream';
-import SubtitleSessionEnded from './SubtitleSessionEnded';
+import SubtitleIdle from './SubtitleIdle';
+import { deriveSubtitleIdleState } from './subtitleIdleState';
+import type { StartBlockReason, DeviceScope } from '../MainPanel/sessionStartGate';
+import { reasonToSettingsTarget } from '../MainPanel/sessionStartGate';
 import useSettingsStore, {
   useExitSubtitleMode,
   useProvider,
@@ -12,6 +15,7 @@ import useSettingsStore, {
   useCurrentTurnDetectionMode,
   useSubtitleFullscreen,
   useSetSubtitleFullscreen,
+  useNavigateToSettings,
 } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
@@ -29,6 +33,11 @@ import {
   useParticipantItems,
   useRequestClearConversation,
   useLockedMode,
+  useStartGate,
+  useSessionIsInitializing,
+  useInitProgress,
+  useRequestSessionStart,
+  useRequestSessionStop,
 } from '../../stores/sessionStore';
 import { useMode } from '../../stores/audioStore';
 import type { ConversationItem } from '../../services/interfaces/IClient';
@@ -96,6 +105,52 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const sessionStartTime = useSessionStartTime();
   const turnDetectionMode = useCurrentTurnDetectionMode();
   const requestClearConversation = useRequestClearConversation();
+  const startGate = useStartGate();
+  const sessionInitializing = useSessionIsInitializing();
+  const initProgress = useInitProgress();
+  const requestSessionStart = useRequestSessionStart();
+  const requestSessionStop = useRequestSessionStop();
+  const navigateToSettings = useNavigateToSettings();
+
+  // "A session has run during this visit to subtitle mode" — drives the
+  // ended-vs-never-started headline. translationCount cannot be used: it
+  // survives endSession, and a session can legitimately end with zero
+  // translations.
+  const hasRunSessionRef = useRef(false);
+  if (isSessionActive && !hasRunSessionRef.current) hasRunSessionRef.current = true;
+
+  // Timestamp of the last start requested from this window. Lets the idle
+  // state tell a genuine start failure apart from an old error item that
+  // happens to sit at the end of the conversation.
+  const startRequestedAtRef = useRef<number | null>(null);
+  const handleStart = useCallback(() => {
+    // Defense in depth: nothing downstream re-checks the gate before firing
+    // connectConversation (unlike MainPanel, where the gate is enforced
+    // purely by the button's `disabled`). A start request must never express
+    // something the gate currently forbids — e.g. Retry after the mic was
+    // unplugged following an earlier failure.
+    if (!startGate.canStart) return;
+    startRequestedAtRef.current = Date.now();
+    requestSessionStart();
+  }, [requestSessionStart, startGate.canStart]);
+
+  const handleFix = useCallback((reason: StartBlockReason, deviceScope?: DeviceScope) => {
+    const target = reasonToSettingsTarget(reason, deviceScope);
+    if (!target) return;
+    // Leave subtitle mode first so the main window is restored before the
+    // settings panel opens and scrolls to the section.
+    void exitSubtitleMode();
+    navigateToSettings(target);
+  }, [exitSubtitleMode, navigateToSettings]);
+
+  const idleState = deriveSubtitleIdleState({
+    isInitializing: sessionInitializing,
+    initProgress,
+    startGate,
+    items,
+    hasRunSession: hasRunSessionRef.current,
+    startRequestedAt: startRequestedAtRef.current,
+  });
   // Mirrors isPttLikeMode in MainPanel — modes that send audio only while
   // the user holds Space.
   const canHoldToSpeak =
@@ -303,6 +358,13 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           targetLanguage,
         }}
         surface={surface}
+        sessionControl={{
+          isSessionActive,
+          isInitializing: sessionInitializing,
+          canStart: startGate.canStart,
+          onStart: handleStart,
+          onStop: requestSessionStop,
+        }}
       />
       {isSessionActive ? (
         canHoldToSpeak && combinedItems.length === 0 ? (
@@ -324,7 +386,14 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           />
         )
       ) : (
-        <SubtitleSessionEnded onReturn={requestExit} />
+        <SubtitleIdle
+          state={idleState}
+          onStart={handleStart}
+          onFix={handleFix}
+          onReturn={requestExit}
+          allowSessionControl={surface === 'electron'}
+          canStart={startGate.canStart}
+        />
       )}
       {showResizeHandles && (
         <>

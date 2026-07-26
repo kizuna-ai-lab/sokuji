@@ -10,6 +10,7 @@ import {
 import { isElectron, isExtension } from '../../utils/environment';
 import { useToast } from '../Toast';
 import { CONTENT_SCRIPT_UNAVAILABLE } from './surfaces/ExtensionContentScriptSubtitleSurface';
+import { canEnterSubtitleMode } from './subtitleEnterGate';
 
 const SubtitleEnterButton: React.FC = () => {
   const { t } = useTranslation();
@@ -25,7 +26,11 @@ const SubtitleEnterButton: React.FC = () => {
   // it's the "Enter" affordance (disabled until a session starts).
   const enterLabel = t('subtitle.enterButton.label', 'Subtitle');
   const exitLabel = t('subtitle.exitButton.label', 'Exit subtitle');
-  const enterTooltip = isSessionActive
+
+  // Shared with settingsStore.enterSubtitleMode (see subtitleEnterGate.ts) so
+  // this button can never be enabled for a click the store would refuse.
+  const canEnter = canEnterSubtitleMode(isSessionActive);
+  const enterTooltip = canEnter
     ? t('subtitle.enterButton.title', 'Enter subtitle mode')
     : t('subtitle.enterButton.disabled', 'Start a session first');
   const exitTooltip = t('subtitle.exitButton.title', 'Exit subtitle mode');
@@ -56,8 +61,9 @@ const SubtitleEnterButton: React.FC = () => {
   const onClick = subtitleActive
     ? () => void exitSubtitleMode()
     : () => void handleEnter();
-  // Exit is always available while active; Enter is gated on isSessionActive.
-  const disabled = subtitleActive ? false : !isSessionActive;
+  // Exit is always available while active; Enter is gated only on the
+  // extension surface.
+  const disabled = subtitleActive ? false : !canEnter;
 
   return (
     <button

@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Phiên đã kết thúc",
     "backToMain": "Quay lại cửa sổ chính",
+    "idle": {
+      "start": "Bắt đầu dịch",
+      "hint": "Định vị và điều chỉnh kích thước cửa sổ trước khi bắt đầu",
+      "ended": "Phiên này đã kết thúc",
+      "failed": "Bắt đầu không thành công: {{message}}",
+      "retry": "Thử lại",
+      "backForDetails": "Quay lại cửa sổ chính để xem chi tiết"
+    },
     "enterButton": {
       "title": "Bật chế độ phụ đề",
       "disabled": "Hãy bắt đầu phiên trước",
@@ -837,6 +845,8 @@
       "label": "Thoát phụ đề"
     },
     "bar": {
+      "start": "Bắt đầu phiên",
+      "stop": "Dừng phiên",
       "fontDecrease": "Giảm cỡ chữ",
       "fontIncrease": "Tăng cỡ chữ",
       "expand": "Chế độ mở rộng",

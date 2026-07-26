@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Sesi berakhir",
     "backToMain": "Kembali ke jendela utama",
+    "idle": {
+      "start": "Mulai terjemahan",
+      "hint": "Atur posisi dan ukuran jendela sebelum memulai",
+      "ended": "Sesi ini telah berakhir",
+      "failed": "Gagal memulai: {{message}}",
+      "retry": "Coba lagi",
+      "backForDetails": "Kembali ke jendela utama untuk detail"
+    },
     "enterButton": {
       "title": "Masuk mode subtitle",
       "disabled": "Mulai sesi terlebih dahulu",
@@ -837,6 +845,8 @@
       "label": "Keluar subtitle"
     },
     "bar": {
+      "start": "Mulai sesi",
+      "stop": "Hentikan sesi",
       "fontDecrease": "Perkecil font",
       "fontIncrease": "Perbesar font",
       "expand": "Tampilan diperluas",

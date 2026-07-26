@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "会话已结束",
     "backToMain": "返回主窗口",
+    "idle": {
+      "start": "开始翻译",
+      "hint": "开始前请调整窗口的位置和大小",
+      "ended": "本次会话已结束",
+      "failed": "启动失败：{{message}}",
+      "retry": "重试",
+      "backForDetails": "返回主窗口查看详情"
+    },
     "enterButton": {
       "title": "进入字幕模式",
       "disabled": "请先启动会话",
@@ -837,6 +845,8 @@
       "label": "退出字幕"
     },
     "bar": {
+      "start": "开始会话",
+      "stop": "结束会话",
       "fontDecrease": "减小字号",
       "fontIncrease": "增大字号",
       "expand": "展开视图",

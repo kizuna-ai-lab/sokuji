@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Session terminée",
     "backToMain": "Retour à la fenêtre principale",
+    "idle": {
+      "start": "Démarrer la traduction",
+      "hint": "Positionnez et redimensionnez la fenêtre avant de démarrer",
+      "ended": "Cette session est terminée",
+      "failed": "Échec du démarrage : {{message}}",
+      "retry": "Réessayer",
+      "backForDetails": "Retournez à la fenêtre principale pour plus de détails"
+    },
     "enterButton": {
       "title": "Activer le mode sous-titres",
       "disabled": "Démarrez d’abord une session",
@@ -837,6 +845,8 @@
       "label": "Quitter les sous-titres"
     },
     "bar": {
+      "start": "Démarrer la session",
+      "stop": "Arrêter la session",
       "fontDecrease": "Réduire la taille du texte",
       "fontIncrease": "Augmenter la taille du texte",
       "expand": "Vue développée",

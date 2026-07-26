@@ -826,6 +826,14 @@
   "subtitle": {
     "sessionEnded": "Sitzung beendet",
     "backToMain": "Zurück zum Hauptfenster",
+    "idle": {
+      "start": "Übersetzung starten",
+      "hint": "Positionieren Sie das Fenster und passen Sie die Größe an, bevor Sie starten",
+      "ended": "Diese Sitzung wurde beendet",
+      "failed": "Start fehlgeschlagen: {{message}}",
+      "retry": "Erneut versuchen",
+      "backForDetails": "Kehren Sie für Details zum Hauptfenster zurück"
+    },
     "enterButton": {
       "title": "Untertitel-Modus aktivieren",
       "disabled": "Sitzung zuerst starten",
@@ -837,6 +845,8 @@
       "label": "Untertitel beenden"
     },
     "bar": {
+      "start": "Sitzung starten",
+      "stop": "Sitzung beenden",
       "fontDecrease": "Schrift verkleinern",
       "fontIncrease": "Schrift vergrößern",
       "expand": "Erweiterte Ansicht",
