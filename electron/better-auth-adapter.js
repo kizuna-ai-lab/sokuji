@@ -35,6 +35,53 @@ const clearCookies = () => {
   }
 };
 
+// Cookie names carrying a browser-enforced prefix (`__Secure-` requires the
+// Secure attribute, `__Host-` additionally pins path/domain). Better Auth adds
+// `__Secure-` to every one of its cookies as soon as the backend is reached
+// over https, so matching on the bare name alone silently misses the real
+// session cookie in production.
+const COOKIE_NAME_PREFIX = /^__(?:Secure|Host)-/;
+
+// Is this a Better Auth cookie we should mirror into the jar? The prefix is
+// stripped before matching so http (localhost) and https backends behave alike.
+const isAuthCookieName = (name) => {
+  const bare = name.replace(COOKIE_NAME_PREFIX, '');
+  return bare.startsWith('better-auth.') || bare === 'session_token' || bare === 'csrf_token';
+};
+
+/**
+ * Merge the jar into an outgoing request's headers, in place.
+ *
+ * Merge, never overwrite: the header Chromium already built reflects the live
+ * cookie store, whereas the jar is only a stand-in for the cases where the
+ * browser declines to attach anything (cross-site request from file://).
+ * Overwriting it lets a stale jar entry shadow a freshly issued session cookie.
+ *
+ * Chromium's header keys are not case-normalised for us, so the merged value
+ * goes back onto the exact key that was already there — adding a second key
+ * differing only in case would put two Cookie headers on the wire.
+ */
+const injectCookies = (requestHeaders) => {
+  const key = Object.keys(requestHeaders).find((k) => k.toLowerCase() === 'cookie');
+  const parts = [];
+  const attached = new Set();
+
+  for (const pair of (key ? requestHeaders[key] : '').split(';')) {
+    const trimmed = pair.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf('=');
+    // A malformed pair has no name to key on; pass it through untouched.
+    if (eq > 0) attached.add(trimmed.slice(0, eq));
+    parts.push(trimmed);
+  }
+
+  for (const [name, value] of Object.entries(getCookies() || {})) {
+    if (!attached.has(name)) parts.push(`${name}=${value}`);
+  }
+
+  if (parts.length > 0) requestHeaders[key || 'Cookie'] = parts.join('; ');
+};
+
 function handlerExists(channel) {
   try {
     const temp = () => {};
@@ -119,6 +166,7 @@ function betterAuthAdapter(opts) {
     filterPatterns,
     origin: opts.origin,
     getCookies,
+    injectCookies,
   };
 
   session.defaultSession.webRequest.onHeadersReceived(
@@ -141,10 +189,9 @@ function betterAuthAdapter(opts) {
               const trimmedName = name.trim();
               const trimmedValue = value.trim();
 
-              // Store all Better Auth cookies
-              if (trimmedName.startsWith('better-auth.') ||
-                  trimmedName === 'session_token' ||
-                  trimmedName === 'csrf_token') {
+              // Store all Better Auth cookies. The name is kept verbatim,
+              // prefix included — that is the name the server expects back.
+              if (isAuthCookieName(trimmedName)) {
                 storedCookies[trimmedName] = trimmedValue;
                 cookiesUpdated = true;
                 console.log('[BetterAuth Adapter] Stored cookie:', trimmedName, '=', trimmedValue);

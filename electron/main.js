@@ -948,12 +948,7 @@ function initWebSocketHeaderInjection() {
             requestHeaders['Origin'] = cleanOrigin.toLowerCase();
             requestHeaders['Referer'] = cleanOrigin.toLowerCase();
           }
-          const storedCookies = authConfig.getCookies();
-          if (storedCookies && Object.keys(storedCookies).length > 0) {
-            requestHeaders['Cookie'] = Object.entries(storedCookies)
-              .map(([name, value]) => `${name}=${value}`)
-              .join('; ');
-          }
+          authConfig.injectCookies(requestHeaders);
         }
       }
 
