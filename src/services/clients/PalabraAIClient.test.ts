@@ -59,6 +59,14 @@ describe('PalabraAIClient data message handling', () => {
     expect(errorEvents()).toEqual([]);
   });
 
+  it('reports an empty array as an error rather than mistaking it for a queue status map', () => {
+    // Object.keys([]) is also empty, so the empty-map shortcut must not swallow a
+    // JSON array — the queue status is always a map.
+    receiveDataMessage(client, []);
+
+    expect(errorEvents()).toHaveLength(1);
+  });
+
   it('ignores a populated queue status map', () => {
     receiveDataMessage(client, { es: { current_queue_level_ms: 0, max_queue_level_ms: 24000 } });
 

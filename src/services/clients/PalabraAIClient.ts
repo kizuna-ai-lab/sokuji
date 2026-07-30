@@ -716,7 +716,9 @@ export class PalabraAIClient implements IClient {
    * or no keys at all when nothing is queued yet
    */
   private isQueueStatusMessage(data: any): boolean {
-    if (!data || typeof data !== 'object') {
+    // The queue status is always a map, never an array — Object.keys([]) is empty
+    // too, so arrays have to be rejected before the empty-map shortcut below.
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
       return false;
     }
 
