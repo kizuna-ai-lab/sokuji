@@ -57,6 +57,9 @@ export interface SonioxSttConfig {
   endpointSensitivity?: number;
   /** endpoint_latency_adjustment_level, 0..3. 0/undefined = omit (server default). v5-only. */
   endpointLatencyAdjustmentLevel?: number;
+  /** Label tokens with a speaker id ("1", "2", …). Enabled only for the
+   *  Both shared session; falsy = key omitted (wire unchanged). */
+  enableSpeakerDiarization?: boolean;
   // Managed-mode only: correlates this session's usage logs back to the
   // backend's billing lease. BYOK sessions omit it (the field is simply
   // absent from the wire config).
@@ -123,6 +126,7 @@ export class SonioxSttStream {
             ? { endpoint_latency_adjustment_level: config.endpointLatencyAdjustmentLevel }
             : {}),
           ...(config.context ? { context: config.context } : {}),
+          ...(config.enableSpeakerDiarization ? { enable_speaker_diarization: true } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
           translation: config.translation,

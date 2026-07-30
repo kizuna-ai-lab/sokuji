@@ -192,4 +192,22 @@ describe('SonioxSttStream', () => {
     expect('endpoint_sensitivity' in first).toBe(false);
     expect('endpoint_latency_adjustment_level' in first).toBe(false);
   });
+
+  it('includes enable_speaker_diarization when configured', async () => {
+    const { ws } = await openStream({ ...CONFIG, enableSpeakerDiarization: true });
+    const first = JSON.parse(ws.sent[0] as string);
+    expect(first.enable_speaker_diarization).toBe(true);
+  });
+
+  it('omits enable_speaker_diarization when absent or false (wire unchanged)', async () => {
+    for (const enableSpeakerDiarization of [undefined, false]) {
+      const s = new SonioxSttStream();
+      const p = s.connect({ ...CONFIG, enableSpeakerDiarization });
+      const ws = MockWebSocket.instances.at(-1)!;
+      ws.open();
+      await p;
+      const first = JSON.parse(ws.sent[0] as string);
+      expect('enable_speaker_diarization' in first).toBe(false);
+    }
+  });
 });
