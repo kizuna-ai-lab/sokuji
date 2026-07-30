@@ -22,6 +22,9 @@ describe('rejected PalabraAI language migration', () => {
   });
 
   it('leaves a valid pair untouched', () => {
+    // es → en is the pair from the original bug report. Plain 'en' is in the API's
+    // target enum (verified against the live API), so the migration must not touch
+    // it — only 'vn' has no valid equivalent.
     expect(migrateRejectedPalabraLanguages({ sourceLanguage: 'es', targetLanguage: 'en' }))
       .toEqual({ sourceLanguage: 'es', targetLanguage: 'en' });
     expect(migrateRejectedPalabraLanguages({ sourceLanguage: 'vi', targetLanguage: 'vi' }))

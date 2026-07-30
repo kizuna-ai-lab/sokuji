@@ -79,6 +79,19 @@ describe('PalabraAI language codes match the API enums', () => {
     expect(rejected).toEqual([]);
   });
 
+  it('offers every source language the API also accepts as a target', () => {
+    // Two code paths move a source code into targetLanguage: the participant swap
+    // and the settings swap button. Any source the API accepts as a target has to
+    // appear in the target dropdown too, or the swapped value is stranded — it keeps
+    // working against the API while the select renders blank, because the option
+    // isn't there. Only genuinely unsupported codes may be missing.
+    const sources = descriptor.resolveSourceLanguages().map((l) => l.value);
+    const targets = new Set(descriptor.resolveTargetLanguages('en').map((l) => l.value));
+    const stranded = sources.filter((c) => API_TARGET_LANGUAGES.has(c) && !targets.has(c));
+
+    expect(stranded).toEqual([]);
+  });
+
   it('keeps every offered target usable as a participant-mode source', () => {
     // Participant mode swaps source and target. The API strips the region suffix
     // before validating a source, so the base of every target we offer has to be

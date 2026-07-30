@@ -1269,7 +1269,12 @@ const useSettingsStore = create<SettingsStore>()(
         const currentSettings = state.getCurrentProviderSettings();
 
         const sourceLang = providerConfig.languages.find(l => l.value === currentSettings.sourceLanguage);
-        const targetLang = providerConfig.languages.find(l => l.value === currentSettings.targetLanguage);
+        // Resolve the target name from the target list when the provider declares
+        // one — `languages` is the source list, so a target-only code (region
+        // variants like en-us, or az/fil/zh-hant) finds nothing there and the
+        // template renders the raw code instead of a display name.
+        const targetLang = (providerConfig.targetLanguages ?? providerConfig.languages)
+          .find(l => l.value === currentSettings.targetLanguage);
 
         const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
         const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';

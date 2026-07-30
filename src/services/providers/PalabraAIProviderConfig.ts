@@ -153,21 +153,38 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
   ];
 
-  // PalabraAI supported target languages (for translation) based on their documentation
+  // PalabraAI supported target languages (for translation). Checked against the
+  // API's own target enum — see palabraLanguageCodes.test.ts for the full list and
+  // how to re-capture it. Every source language the API also accepts as a target
+  // has to appear here: both the participant swap and the settings swap button move
+  // a source code into targetLanguage, and a code missing from this list leaves the
+  // dropdown blank even though the session still works.
   private static readonly TARGET_LANGUAGES: LanguageOption[] = [
+    { name: 'العربية', value: 'ar', englishName: 'Arabic' },
     { name: 'العربية (السعودية)', value: 'ar-sa', englishName: 'Arabic (Saudi)' },
     { name: 'العربية (الإمارات)', value: 'ar-ae', englishName: 'Arabic (UAE)' },
     { name: 'Azərbaycan', value: 'az', englishName: 'Azerbaijani' },
+    { name: 'Беларуская', value: 'be', englishName: 'Belarusian' },
+    { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
     { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
+    { name: 'Català', value: 'ca', englishName: 'Catalan' },
     { name: '中文 (简体)', value: 'zh', englishName: 'Chinese (Simplified)' },
     { name: '中文 (繁體)', value: 'zh-hant', englishName: 'Chinese (Traditional)' },
     { name: 'Čeština', value: 'cs', englishName: 'Czech' },
     { name: 'Dansk', value: 'da', englishName: 'Danish' },
+    { name: 'English', value: 'en', englishName: 'English' },
+    { name: 'Eesti', value: 'et', englishName: 'Estonian' },
+    { name: 'Galego', value: 'gl', englishName: 'Galician' },
     { name: 'Deutsch', value: 'de', englishName: 'German' },
     { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
     { name: 'English (US)', value: 'en-us', englishName: 'English (US)' },
     { name: 'English (Australia)', value: 'en-au', englishName: 'English (Australia)' },
     { name: 'English (Canada)', value: 'en-ca', englishName: 'English (Canada)' },
+    { name: 'Latviešu', value: 'lv', englishName: 'Latvian' },
+    { name: 'Lietuvių', value: 'lt', englishName: 'Lithuanian' },
+    { name: 'मराठी', value: 'mr', englishName: 'Marathi' },
+    { name: 'فارسی', value: 'fa', englishName: 'Persian' },
+    { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
     { name: 'Español', value: 'es', englishName: 'Spanish (Spain)' },
     { name: 'Español (México)', value: 'es-mx', englishName: 'Spanish (Mexico)' },
     { name: 'Filipino', value: 'fil', englishName: 'Filipino' },
@@ -191,11 +208,15 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Română', value: 'ro', englishName: 'Romanian' },
     { name: 'Русский', value: 'ru', englishName: 'Russian' },
     { name: 'Slovenčina', value: 'sk', englishName: 'Slovak' },
+    { name: 'Kiswahili', value: 'sw', englishName: 'Swahili' },
     { name: 'Svenska', value: 'sv', englishName: 'Swedish' },
     { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
+    { name: 'ไทย', value: 'th', englishName: 'Thai' },
     { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
     { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
+    { name: 'اردو', value: 'ur', englishName: 'Urdu' },
     { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
+    { name: 'Cymraeg', value: 'cy', englishName: 'Welsh' },
   ];
 
   // Combined languages for UI display (using source languages as base)
