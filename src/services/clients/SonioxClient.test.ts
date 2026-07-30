@@ -629,6 +629,37 @@ describe('SonioxClient bidirectional tagging + TTS filter', () => {
   });
 });
 
+describe('SonioxClient advanced-feature passthrough (#342)', () => {
+  it('maps session-config context to the wire shape and forwards endpoint tuning', async () => {
+    const { stt } = await connectedClient({
+      context: {
+        terms: ['Sokuji'],
+        translationTerms: [{ source: 'Kizuna AI', target: '絆愛' }],
+      },
+      endpointSensitivity: 0.5,
+      endpointLatencyAdjustmentLevel: 3,
+    });
+    expect(stt.config).toMatchObject({
+      context: {
+        terms: ['Sokuji'],
+        translation_terms: [{ source: 'Kizuna AI', target: '絆愛' }],
+      },
+      endpointSensitivity: 0.5,
+      endpointLatencyAdjustmentLevel: 3,
+    });
+  });
+
+  it('sends no context when the session config has none', async () => {
+    const { stt } = await connectedClient();
+    expect((stt.config as { context?: unknown }).context).toBeUndefined();
+  });
+
+  it('passes ttsSpeed to the TTS stream options', async () => {
+    const { tts } = await connectedClient({ ttsSpeed: 0.8 });
+    expect((tts!.options as { speed?: number }).speed).toBe(0.8);
+  });
+});
+
 describe('SonioxClient compact debug logging', () => {
   async function logged() {
     const client = new SonioxClient('key');
