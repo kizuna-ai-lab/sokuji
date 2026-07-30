@@ -2,10 +2,12 @@ import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './Prov
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, PalabraAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
-import { PalabraAIClient } from '../clients/PalabraAIClient';
+import { PalabraAIClient, PalabraCredentials } from '../clients/PalabraAIClient';
 
 // PalabraAI Settings
 export interface PalabraAISettings {
+  authMode: 'app' | 'platform';
+  apiKey: string;
   clientId: string;
   clientSecret: string;
   sourceLanguage: string;
@@ -22,6 +24,8 @@ export interface PalabraAISettings {
 }
 
 export const defaultPalabraAISettings: PalabraAISettings = {
+  authMode: 'platform',
+  apiKey: '',
   clientId: '',
   clientSecret: '',
   sourceLanguage: 'en',
@@ -43,20 +47,30 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
 
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as PalabraAISettings;
-    if (!s?.clientId || !s?.clientSecret) {
+    if (s?.authMode === 'platform') {
+      const apiKey = s.apiKey?.trim();
+      if (!apiKey) {
+        return { ok: false, missing: 'API Key is required for Palabra AI' };
+      }
+      // No `secret` key: createClient/validateAndFetchModels decode its absence
+      // as platform mode. Both ends of that convention live in Palabra's own files.
+      return { ok: true, primary: apiKey };
+    }
+    const clientId = s?.clientId?.trim();
+    const clientSecret = s?.clientSecret?.trim();
+    if (!clientId || !clientSecret) {
       return { ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' };
     }
-    return { ok: true, primary: s.clientId, secret: s.clientSecret };
+    return { ok: true, primary: clientId, secret: clientSecret };
   }
 
   peekPrimaryCredential(slice: unknown): string {
-    return (slice as PalabraAISettings)?.clientId ?? '';
+    const s = slice as PalabraAISettings;
+    return s?.authMode === 'platform' ? (s?.apiKey ?? '') : (s?.clientId ?? '');
   }
 
-  // creds.secret is guaranteed by extractCredentials (Task 5).
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    if (!creds.secret) throw new Error('Client secret is required for palabraai provider');
-    return new PalabraAIClient(creds.primary, creds.secret);
+    return new PalabraAIClient(PalabraAIProviderConfig.toPalabraCredentials(creds));
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -65,16 +79,25 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    if (!creds.secret) {
-      // Legacy façade callers pass raw positional args and skip
-      // extractCredentials — keep the old required-field contract here.
-      return { validation: { valid: false, message: 'Both Client ID and Client Secret are required for Palabra AI', validating: false }, models: [] };
-    }
-    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret);
+    const validation = await PalabraAIClient.validateApiKey(
+      PalabraAIProviderConfig.toPalabraCredentials(creds)
+    );
     return {
       validation,
       models: [{ id: 'realtime-translation', type: 'realtime', created: Date.now() / 1000 }],
     };
+  }
+
+  /**
+   * secret present = app pair, absent = platform key. A deprecated-façade caller
+   * passing a clientId without its secret now gets a Bearer 401 from validation
+   * instead of the old tailored both-required message — acceptable degradation;
+   * the live path (extractCredentials) always sets secret for app mode.
+   */
+  private static toPalabraCredentials(creds: Credentials & { ok: true }): PalabraCredentials {
+    return creds.secret !== undefined
+      ? { kind: 'clientCredentials', clientId: creds.primary, clientSecret: creds.secret }
+      : { kind: 'apiKey', apiKey: creds.primary };
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {

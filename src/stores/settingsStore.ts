@@ -343,6 +343,25 @@ export function migrateRejectedPalabraLanguages(
   };
 }
 
+/**
+ * Decide the auth mode for a persisted Palabra slice that predates authMode.
+ * storedAuthMode is the RAW stored value probed with an empty-string sentinel
+ * (loadProviderSettings merges defaults per key, so the merged slice cannot
+ * distinguish "never stored" from "stored 'platform'"). A user with legacy
+ * credentials who never chose a mode keeps working in app mode; everyone
+ * else gets the platform default.
+ */
+export function migratePalabraAuthMode(
+  storedAuthMode: string,
+  slice: Pick<PalabraAISettings, 'clientId' | 'clientSecret'>
+): Partial<Pick<PalabraAISettings, 'authMode'>> {
+  if (storedAuthMode === 'app' || storedAuthMode === 'platform') return {};
+  // Trimmed, to mirror extractCredentials: whitespace-only credentials are
+  // rejected there, so pinning them to app mode would strand the user.
+  if (slice.clientId?.trim() || slice.clientSecret?.trim()) return { authMode: 'app' };
+  return { authMode: 'platform' };
+}
+
 /** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
  *  current replacement. OpenAI notified (2026-07-20) that the pre-2.1 realtime
  *  and audio model families/snapshots are removed from the API on 2027-01-20;
@@ -1212,6 +1231,10 @@ const useSettingsStore = create<SettingsStore>()(
         const palabraSlice = loadedSlices.palabraai as PalabraAISettings | undefined;
         if (palabraSlice) {
           Object.assign(palabraSlice, migrateRejectedPalabraLanguages(palabraSlice));
+          // authMode predates some persisted slices; probe the raw stored value so a
+          // default-injected 'platform' isn't mistaken for a user choice.
+          const storedAuthMode = await service.getSetting('settings.palabraai.authMode', '');
+          Object.assign(palabraSlice, migratePalabraAuthMode(storedAuthMode, palabraSlice));
         }
 
         set({

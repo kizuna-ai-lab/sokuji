@@ -302,7 +302,11 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         updateOpenAICompatibleSettings({ apiKey: value });
         break;
       case Provider.PALABRA_AI:
-        updatePalabraAISettings({ clientId: value });
+        if (palabraAISettings.authMode === 'platform') {
+          updatePalabraAISettings({ apiKey: value });
+        } else {
+          updatePalabraAISettings({ clientId: value });
+        }
         break;
       case Provider.OPENAI_TRANSLATE:
         updateOpenAITranslateSettings({ apiKey: value });
@@ -756,42 +760,85 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             </div>
           </div>
         ) : provider === Provider.PALABRA_AI ? (
-          // PalabraAI requires both Client ID and Client Secret
+          // PalabraAI has two auth systems: platform API key (Bearer) or the legacy
+          // app Client ID/Secret pair. All three values persist; the toggle only
+          // selects which are used.
           <div className="palabraai-credentials-group">
-            <div className="api-key-input-group">
-              <input
-                type="password"
-                value={palabraAISettings.clientId}
-                onChange={(e) => updatePalabraAISettings({ clientId: e.target.value })}
-                placeholder={t('providers.palabraai.clientIdPlaceholder', 'Client ID')}
-                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
-                disabled={isSessionActive}
-              />
-            </div>
-            <div className="api-key-input-group">
-              <input
-                type="password"
-                value={palabraAISettings.clientSecret}
-                onChange={(e) => updatePalabraAISettings({ clientSecret: e.target.value })}
-                placeholder={t('providers.palabraai.clientSecretPlaceholder', 'Client Secret')}
-                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
-                disabled={isSessionActive}
-              />
+            <div className="segmented-control">
               <button
-                className="validate-button"
-                onClick={handleValidateApiKey}
-                disabled={!palabraAISettings.clientId || !palabraAISettings.clientSecret || isValidating || isSessionActive}
-                title={t('simpleSettings.validate')}
+                type="button"
+                className={`segmented-option ${palabraAISettings.authMode === 'platform' ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ authMode: 'platform' })}
+                disabled={isSessionActive}
               >
-                {isValidating ? (
-                  <span className="spinner" />
-                ) : isApiKeyValid ? (
-                  <CheckCircle size={16} />
-                ) : (
-                  t('simpleSettings.validate')
-                )}
+                {t('providers.palabraai.authModePlatform', 'Platform API Key')}
+              </button>
+              <button
+                type="button"
+                className={`segmented-option ${palabraAISettings.authMode === 'app' ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ authMode: 'app' })}
+                disabled={isSessionActive}
+              >
+                {t('providers.palabraai.authModeApp', 'App Client ID/Secret')}
               </button>
             </div>
+            {palabraAISettings.authMode === 'platform' ? (
+              <div className="api-key-input-group">
+                <input
+                  type="password"
+                  value={palabraAISettings.apiKey}
+                  onChange={(e) => updatePalabraAISettings({ apiKey: e.target.value })}
+                  placeholder={t('providers.palabraai.apiKeyPlaceholder', 'API Key')}
+                  className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                  disabled={isSessionActive}
+                />
+                <button
+                  className="validate-button"
+                  onClick={handleValidateApiKey}
+                  disabled={!palabraAISettings.apiKey || isValidating || isSessionActive}
+                  title={t('simpleSettings.validate')}
+                >
+                  {isValidating ? <span className="spinner" /> : isApiKeyValid ? <CheckCircle size={16} /> : t('simpleSettings.validate')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="api-key-input-group">
+                  <input
+                    type="password"
+                    value={palabraAISettings.clientId}
+                    onChange={(e) => updatePalabraAISettings({ clientId: e.target.value })}
+                    placeholder={t('providers.palabraai.clientIdPlaceholder', 'Client ID')}
+                    className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                    disabled={isSessionActive}
+                  />
+                </div>
+                <div className="api-key-input-group">
+                  <input
+                    type="password"
+                    value={palabraAISettings.clientSecret}
+                    onChange={(e) => updatePalabraAISettings({ clientSecret: e.target.value })}
+                    placeholder={t('providers.palabraai.clientSecretPlaceholder', 'Client Secret')}
+                    className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                    disabled={isSessionActive}
+                  />
+                  <button
+                    className="validate-button"
+                    onClick={handleValidateApiKey}
+                    disabled={!palabraAISettings.clientId || !palabraAISettings.clientSecret || isValidating || isSessionActive}
+                    title={t('simpleSettings.validate')}
+                  >
+                    {isValidating ? (
+                      <span className="spinner" />
+                    ) : isApiKeyValid ? (
+                      <CheckCircle size={16} />
+                    ) : (
+                      t('simpleSettings.validate')
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           // Standard API key input for other providers

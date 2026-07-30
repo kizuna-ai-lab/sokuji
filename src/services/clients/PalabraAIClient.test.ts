@@ -41,7 +41,7 @@ describe('PalabraAIClient data message handling', () => {
   let events: RealtimeEvent[];
 
   beforeEach(() => {
-    client = new PalabraAIClient('test-id', 'test-secret');
+    client = new PalabraAIClient({ kind: 'clientCredentials', clientId: 'test-id', clientSecret: 'test-secret' });
     events = [];
     client.setEventHandlers({
       onRealtimeEvent: (event) => { events.push(event); },
@@ -97,5 +97,68 @@ describe('PalabraAIClient data message handling', () => {
 
     expect(errorEvents()).toEqual([]);
     expect(updated).toContain('Hello there');
+  });
+});
+
+describe('PalabraAIClient auth headers', () => {
+  it('builds ClientId/ClientSecret headers for app credentials', () => {
+    const c = new PalabraAIClient({ kind: 'clientCredentials', clientId: 'id-1', clientSecret: 'sec-1' });
+    expect((c as any).authHeaders()).toEqual({ ClientId: 'id-1', ClientSecret: 'sec-1' });
+  });
+
+  it('builds a Bearer Authorization header for a platform API key', () => {
+    const c = new PalabraAIClient({ kind: 'apiKey', apiKey: 'pk-123' });
+    expect((c as any).authHeaders()).toEqual({ Authorization: 'Bearer pk-123' });
+  });
+});
+
+describe('PalabraAIClient.validateApiKey error surfacing', () => {
+  it('surfaces the API error detail from a 401 response instead of the generic message', async () => {
+    // Real Palabra error shape: { ok: false, errors: [{ title, detail, ... }] }
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({
+        ok: false,
+        errors: [{
+          title: 'Unauthorized',
+          detail: 'Unauthorized access is denied due to invalid credentials.',
+          status: 401,
+        }],
+      }),
+    } as unknown as Response);
+    try {
+      const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: 'wrong-key' });
+      expect(result.valid).toBe(false);
+      expect(result.message).toContain('Unauthorized access is denied');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
+describe('PalabraAIClient.validateApiKey empty-credential short-circuit', () => {
+  it('rejects an empty platform API key without a network call', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    try {
+      const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: '  ' });
+      expect(result.valid).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('rejects app credentials with a missing secret without a network call', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    try {
+      const result = await PalabraAIClient.validateApiKey({
+        kind: 'clientCredentials', clientId: 'id-1', clientSecret: '',
+      });
+      expect(result.valid).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

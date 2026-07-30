@@ -35,6 +35,9 @@ export function SettingsInitializer() {
   // Track previous provider to detect changes (null initially to trigger validation on mount)
   const prevProviderRef = useRef<typeof provider | null>(null);
   const isValidatingRef = useRef(false);
+  // Set when a credential/provider change lands mid-validation; consumed by
+  // the API-provider effect below to run one follow-up validation.
+  const pendingRevalidateRef = useRef(false);
 
   // Get all provider settings to monitor credential changes
   const openAISettings = useOpenAISettings();
@@ -105,15 +108,28 @@ export function SettingsInitializer() {
 
     // Always call validateApiKey — it handles empty credentials internally
     // (sets isApiKeyValid to null, clears availableModels).
-    if (!isValidatingRef.current) {
+    // Changes that arrive while a validation is in flight queue exactly one
+    // rerun: validateApiKey reads the latest store state at call time, so the
+    // follow-up run covers the final values instead of dropping them.
+    const runValidation = () => {
       isValidatingRef.current = true;
-      console.log('[SettingsInitializer] Validating API provider:', provider);
       validateApiKey().finally(() => {
         isValidatingRef.current = false;
+        if (pendingRevalidateRef.current) {
+          pendingRevalidateRef.current = false;
+          runValidation();
+        }
       });
+    };
+    if (isValidatingRef.current) {
+      pendingRevalidateRef.current = true;
+    } else {
+      console.log('[SettingsInitializer] Validating API provider:', provider);
+      runValidation();
     }
   }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey,
       openAICompatibleSettings.apiKey,
+      palabraAISettings.authMode, palabraAISettings.apiKey,
       palabraAISettings.clientId, palabraAISettings.clientSecret,
       volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
       volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,

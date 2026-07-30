@@ -102,14 +102,22 @@ interface PalabraAISessionData {
 }
 
 /**
+ * Palabra has two credential systems: the legacy app.palabra.ai ClientId/ClientSecret
+ * header pair and the platform.palabra.ai single API key (Authorization: Bearer).
+ * Both hit the same endpoints; only the auth headers differ.
+ */
+export type PalabraCredentials =
+  | { kind: 'clientCredentials'; clientId: string; clientSecret: string }
+  | { kind: 'apiKey'; apiKey: string };
+
+/**
  * PalabraAI WebRTC client adapter
  * Implements the IClient interface for PalabraAI's WebRTC API
  */
 export class PalabraAIClient implements IClient {
   private static readonly API_BASE_URL = 'https://api.palabra.ai';
-  
-  private clientId: string;
-  private clientSecret: string;
+
+  private credentials: PalabraCredentials;
   private room: Room | null = null;
   private eventHandlers: ClientEventHandlers = {};
   private conversationItems: ConversationItem[] = [];
@@ -137,20 +145,33 @@ export class PalabraAIClient implements IClient {
   private remoteAudioBufferLength: number = 0;
   private remoteAudioFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(clientId: string, clientSecret: string) {
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
+  constructor(credentials: PalabraCredentials) {
+    this.credentials = credentials;
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `palabra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private static authHeadersFor(credentials: PalabraCredentials): Record<string, string> {
+    return credentials.kind === 'apiKey'
+      ? { 'Authorization': `Bearer ${credentials.apiKey}` }
+      : { 'ClientId': credentials.clientId, 'ClientSecret': credentials.clientSecret };
+  }
+
+  private authHeaders(): Record<string, string> {
+    return PalabraAIClient.authHeadersFor(this.credentials);
   }
 
   /**
    * Validate API credentials by checking user sessions
    */
-  static async validateApiKey(clientId: string, clientSecret: string): Promise<ApiKeyValidationResult> {
+  static async validateApiKey(credentials: PalabraCredentials): Promise<ApiKeyValidationResult> {
     try {
       // Check if credentials are empty
-      if (!clientId || clientId.trim() === '' || !clientSecret || clientSecret.trim() === '') {
+      const empty = credentials.kind === 'apiKey'
+        ? !credentials.apiKey || credentials.apiKey.trim() === ''
+        : !credentials.clientId || credentials.clientId.trim() === '' ||
+          !credentials.clientSecret || credentials.clientSecret.trim() === '';
+      if (empty) {
         return {
           valid: false,
           message: i18n.t('settings.errorValidatingApiKey'),
@@ -163,8 +184,7 @@ export class PalabraAIClient implements IClient {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'ClientId': clientId,
-          'ClientSecret': clientSecret,
+          ...PalabraAIClient.authHeadersFor(credentials),
         }
       });
 
@@ -173,9 +193,12 @@ export class PalabraAIClient implements IClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.warn("[Sokuji] [PalabraAIClient] Validation failed:", errorData);
+        // Palabra's error shape is { ok: false, errors: [{ title, detail, ... }] };
+        // the flat error.message form is kept as a fallback for older responses.
+        const firstError = errorData?.errors?.[0];
         return {
           valid: false,
-          message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
+          message: firstError?.detail || firstError?.title || errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
           validating: false
         };
       }
@@ -406,12 +429,10 @@ export class PalabraAIClient implements IClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'ClientId': this.clientId,
-        'ClientSecret': this.clientSecret,
+        ...this.authHeaders(),
       },
       body: JSON.stringify({
         data: {
-          subscriber_count: 0,
           intent: 'api'
         }
       })
@@ -1067,8 +1088,7 @@ export class PalabraAIClient implements IClient {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'ClientId': this.clientId,
-          'ClientSecret': this.clientSecret,
+          ...this.authHeaders(),
         }
       });
 
@@ -1117,8 +1137,7 @@ export class PalabraAIClient implements IClient {
       const response = await fetch(`${PalabraAIClient.API_BASE_URL}/session-storage/sessions/${sessionId}`, {
         method: 'DELETE',
         headers: {
-          'ClientId': this.clientId,
-          'ClientSecret': this.clientSecret,
+          ...this.authHeaders(),
         }
       });
 

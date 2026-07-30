@@ -336,7 +336,6 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
   it('two-field providers reject a filled primary with a missing secret', async () => {
     const { ClientOperations } = await import('../ClientOperations');
     const cases: Array<[Provider, RegExp]> = [
-      [Provider.PALABRA_AI, /Client ID and Client Secret/],
       [Provider.VOLCENGINE_ST, /Access Key ID and Secret Access Key/],
       [Provider.VOLCENGINE_AST2, /APP ID and Access Token/],
       [Provider.ZOOM_AI, /API Key and API Secret/],
@@ -346,6 +345,33 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
       expect(r.validation.valid, id).toBe(false);
       expect(r.validation.message, id).toMatch(msg);
       expect(r.models, id).toEqual([]);
+    }
+  });
+
+  // PalabraAI is no longer a synchronous two-field guard: a missing `secret` is
+  // the documented signal for platform-mode (API key) credentials (see
+  // PalabraAIProviderConfig.toPalabraCredentials), so a legacy caller passing
+  // only a primary now reaches the real validateApiKey network call instead of
+  // being rejected up front. Mock fetch so that call still fails deterministically.
+  it('PalabraAI treats a missing secret as a platform API key, not a guard failure', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: { message: 'Unauthorized' } }),
+    } as unknown as Response);
+    try {
+      const { ClientOperations } = await import('../ClientOperations');
+      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', Provider.PALABRA_AI);
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(r.validation.valid).toBe(false);
+      // Unlike the guard-rejection cases above, credential *shape* was accepted
+      // (creds.ok === true), so validateAndFetchModels still returns the static
+      // model list — only `validation` reflects the failed network check.
+      expect(r.models).toHaveLength(1);
+    } finally {
+      // Without the finally, a failing expect leaks the global fetch mock into
+      // every later test in this file.
+      fetchSpy.mockRestore();
     }
   });
 
