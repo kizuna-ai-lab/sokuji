@@ -217,7 +217,7 @@
     "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nDiaktifkan: satu sesi menerjemahkan kedua sisi dengan pemisahan pembicara otomatis — biaya dan latensi lebih rendah.\n\nDinonaktifkan: sesi terpisah untuk tiap arah — lebih andal saat keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
     "sonioxSharedSessionManaged": "Kizuna AI menjalankan mode Keduanya sebagai satu sesi bersama, sehingga ini tidak dapat dinonaktifkan.",
     "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan deteksi otomatis, ucapan peserta lain tidak dapat diterjemahkan ke bahasa Anda.",
-    "sonioxVocabulary": "Kosakata Khusus",
+    "sonioxVocabulary": "Kosakata Kustom",
     "sonioxVocabularyTooltip": "Meningkatkan pengenalan nama dan istilah penting, serta memaksakan terjemahan yang disukai. Berlaku mulai sesi berikutnya.",
     "sonioxVocabularyTerms": "Istilah",
     "sonioxVocabularyTermsTooltip": "Meningkatkan pengenalan kata yang tidak umum — nama, istilah khusus, nama produk.",

@@ -1764,6 +1764,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <textarea
               id="soniox-vocabulary-terms"
+              aria-label={t('settings.sonioxVocabularyTerms', 'Terms')}
               className="system-instructions"
               placeholder={t('settings.sonioxVocabularyTermsPlaceholder', 'One term per line')}
               maxLength={4000}
@@ -1784,6 +1785,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <textarea
               id="soniox-vocabulary-translations"
+              aria-label={t('settings.sonioxVocabularyTranslations', 'Preferred Translations')}
               className="system-instructions"
               placeholder={t('settings.sonioxVocabularyTranslationsPlaceholder', 'One source=target per line')}
               maxLength={4000}
@@ -1811,6 +1813,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <input
               id="soniox-endpoint-sensitivity"
+              aria-label={t('settings.sonioxEndpointSensitivity', 'Endpoint Sensitivity')}
               type="range" min="-1" max="1" step="0.1"
               value={activeSonioxSettings.endpointSensitivity}
               onChange={(e) => updateActiveSonioxSettings({ endpointSensitivity: parseFloat(e.target.value) })}
@@ -1831,6 +1834,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <select
               id="soniox-endpoint-latency-level"
+              aria-label={t('settings.sonioxEndpointLatencyLevel', 'Latency Reduction Level')}
               className="select-dropdown"
               value={activeSonioxSettings.endpointLatencyAdjustmentLevel}
               onChange={(e) => updateActiveSonioxSettings({ endpointLatencyAdjustmentLevel: parseInt(e.target.value, 10) })}

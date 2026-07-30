@@ -44,6 +44,7 @@ export const TtsSpeedControl: React.FC<{
         </div>
         <input
           type="range" min={min} max={max} step={step} value={value}
+          aria-label={t('settings.ttsSpeed', 'Speech Speed')}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className="slider" disabled={disabled}
         />

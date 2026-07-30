@@ -217,7 +217,7 @@
     "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische sprekerscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
     "sonioxSharedSessionManaged": "Kizuna AI voert de modus Beide uit als één gedeelde sessie, dus dit kan niet worden uitgeschakeld.",
     "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de andere deelnemer niet naar jouw taal worden vertaald.",
-    "sonioxVocabulary": "Aangepaste woordenlijst",
+    "sonioxVocabulary": "Aangepast vocabulaire",
     "sonioxVocabularyTooltip": "Verbetert de herkenning van belangrijke namen en vakjargon en dwingt voorkeursvertalingen af. Wordt toegepast vanaf de volgende sessie.",
     "sonioxVocabularyTerms": "Termen",
     "sonioxVocabularyTermsTooltip": "Verbetert de herkenning van ongebruikelijke woorden — namen, vakjargon, productnamen.",
