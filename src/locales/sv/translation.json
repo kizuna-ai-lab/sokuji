@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "Specialiserad översättnings AI",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "API-nyckel",
+      "authModePlatform": "Platform API-nyckel",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine Röstöversättning",

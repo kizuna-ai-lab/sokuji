@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "Uzmanlaşmış çeviri AI'si",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "API Anahtarı",
+      "authModePlatform": "Platform API Anahtarı",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine Konuşma Çevirisi",

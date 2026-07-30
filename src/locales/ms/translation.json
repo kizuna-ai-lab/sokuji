@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "AI terjemahan khusus",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "Kunci API",
+      "authModePlatform": "Kunci API Platform",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine Terjemahan Pertuturan",

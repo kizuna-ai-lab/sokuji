@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "هوش مصنوعی تخصصی ترجمه",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "کلید API",
+      "authModePlatform": "کلید Platform API",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine ترجمه گفتار",

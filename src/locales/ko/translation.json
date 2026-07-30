@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "전문 번역 AI",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "API 키",
+      "authModePlatform": "Platform API 키",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine 음성 번역",

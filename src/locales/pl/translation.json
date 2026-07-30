@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "Wyspecjalizowane AI do tłumaczeń",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "Klucz API",
+      "authModePlatform": "Klucz API Platform",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine Tłumaczenie Mowy",

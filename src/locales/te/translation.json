@@ -370,7 +370,10 @@
       "name": "Palabra AI",
       "description": "ప్రత్యేక అనువాద AI",
       "clientIdPlaceholder": "Client ID",
-      "clientSecretPlaceholder": "Client Secret"
+      "clientSecretPlaceholder": "Client Secret",
+      "apiKeyPlaceholder": "API కీ",
+      "authModePlatform": "Platform API కీ",
+      "authModeApp": "App Client ID/Secret"
     },
     "volcengine_st": {
       "name": "Volcengine స్పీచ్ ట్రాన్స్‌లేట్",
