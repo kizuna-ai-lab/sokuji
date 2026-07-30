@@ -139,14 +139,26 @@ describe('PalabraAIClient.validateApiKey error surfacing', () => {
 
 describe('PalabraAIClient.validateApiKey empty-credential short-circuit', () => {
   it('rejects an empty platform API key without a network call', async () => {
-    const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: '  ' });
-    expect(result.valid).toBe(false);
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    try {
+      const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: '  ' });
+      expect(result.valid).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('rejects app credentials with a missing secret without a network call', async () => {
-    const result = await PalabraAIClient.validateApiKey({
-      kind: 'clientCredentials', clientId: 'id-1', clientSecret: '',
-    });
-    expect(result.valid).toBe(false);
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    try {
+      const result = await PalabraAIClient.validateApiKey({
+        kind: 'clientCredentials', clientId: 'id-1', clientSecret: '',
+      });
+      expect(result.valid).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

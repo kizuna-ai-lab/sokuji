@@ -23,6 +23,13 @@ describe('migratePalabraAuthMode', () => {
     expect(migratePalabraAuthMode('', { clientId: '', clientSecret: '' })).toEqual({ authMode: 'platform' });
   });
 
+  it('treats whitespace-only legacy credentials as absent', () => {
+    // extractCredentials trims and rejects whitespace-only values, so pinning
+    // such a slice to app mode would strand the user on unusable credentials.
+    expect(migratePalabraAuthMode('', { clientId: '   ', clientSecret: '' })).toEqual({ authMode: 'platform' });
+    expect(migratePalabraAuthMode('', { clientId: '', clientSecret: '  ' })).toEqual({ authMode: 'platform' });
+  });
+
   it('treats an unrecognized stored value as never stored', () => {
     // e.g. corrupted storage or a foreign value like 'Platform' (wrong case)
     expect(migratePalabraAuthMode('Platform', { clientId: 'id', clientSecret: 'sec' })).toEqual({ authMode: 'app' });

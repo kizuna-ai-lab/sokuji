@@ -356,7 +356,9 @@ export function migratePalabraAuthMode(
   slice: Pick<PalabraAISettings, 'clientId' | 'clientSecret'>
 ): Partial<Pick<PalabraAISettings, 'authMode'>> {
   if (storedAuthMode === 'app' || storedAuthMode === 'platform') return {};
-  if (slice.clientId || slice.clientSecret) return { authMode: 'app' };
+  // Trimmed, to mirror extractCredentials: whitespace-only credentials are
+  // rejected there, so pinning them to app mode would strand the user.
+  if (slice.clientId?.trim() || slice.clientSecret?.trim()) return { authMode: 'app' };
   return { authMode: 'platform' };
 }
 
