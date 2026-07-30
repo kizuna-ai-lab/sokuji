@@ -1229,6 +1229,25 @@
       }
     }
   }
+
+  .palabraai-auth-mode {
+    display: flex;
+    gap: 16px;
+
+    .auth-mode-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+
+      input[type='radio'] {
+        accent-color: #10a37f;
+        margin: 0;
+        cursor: pointer;
+      }
+    }
+  }
 }
 
 // API key info/warning styles

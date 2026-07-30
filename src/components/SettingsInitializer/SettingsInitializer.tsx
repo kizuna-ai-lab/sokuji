@@ -114,6 +114,7 @@ export function SettingsInitializer() {
     }
   }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey,
       openAICompatibleSettings.apiKey,
+      palabraAISettings.authMode, palabraAISettings.apiKey,
       palabraAISettings.clientId, palabraAISettings.clientSecret,
       volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
       volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
