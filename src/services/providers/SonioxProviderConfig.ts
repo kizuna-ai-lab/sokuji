@@ -70,6 +70,42 @@ function clampNumber(value: unknown, min: number, max: number, dflt: number): nu
     : dflt;
 }
 
+// Soniox rejects a session whose serialized context exceeds ~10,000 chars
+// ("Context is too long (max length 10000)"). The textarea maxLength caps only
+// the RAW text: 1,000 four-char "a=b" lines fit in one textarea but serialize
+// to ~26 KB of {"source":…,"target":…} objects. Budget the WIRE-shaped
+// serialization (with headroom for the JSON scaffolding Soniox counts) so a
+// session always starts; entries are dropped from the tail — the user's
+// earlier lines win — taking the expensive translation pairs first.
+const SONIOX_CONTEXT_CHAR_BUDGET = 9000;
+
+function fitContextToBudget(
+  terms: string[],
+  translationTerms: Array<{ source: string; target: string }>
+): { terms: string[]; translationTerms: Array<{ source: string; target: string }> } {
+  const serializedSize = (): number =>
+    JSON.stringify({
+      ...(terms.length ? { terms } : {}),
+      ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
+    }).length;
+  const dropped = { terms: 0, translationTerms: 0 };
+  while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && translationTerms.length) {
+    translationTerms = translationTerms.slice(0, -1);
+    dropped.translationTerms++;
+  }
+  while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && terms.length) {
+    terms = terms.slice(0, -1);
+    dropped.terms++;
+  }
+  if (dropped.terms || dropped.translationTerms) {
+    console.warn(
+      `[SonioxProviderConfig] Custom vocabulary exceeds the Soniox context size limit — ` +
+      `dropped ${dropped.translationTerms} translation(s) and ${dropped.terms} term(s) from the end`
+    );
+  }
+  return { terms, translationTerms };
+}
+
 // The managed start floor lives in its own import-free module so the Start
 // gate (and the subtitle window that shares it) can read it without pulling
 // SonioxClient — and the i18n bootstrap behind it — into their bundles.
@@ -120,8 +156,10 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as SonioxSettings;
-    const terms = parseVocabularyTerms(settings.vocabularyTerms ?? '');
-    const translationTerms = parseVocabularyTranslations(settings.vocabularyTranslations ?? '');
+    const { terms, translationTerms } = fitContextToBudget(
+      parseVocabularyTerms(settings.vocabularyTerms ?? ''),
+      parseVocabularyTranslations(settings.vocabularyTranslations ?? '')
+    );
     return {
       provider: 'soniox',
       model: settings.model || 'stt-rt-v5',

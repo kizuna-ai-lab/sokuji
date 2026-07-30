@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   SonioxProviderConfig,
   defaultSonioxSettings,
@@ -81,14 +81,44 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
 
   it('rounds fractional latency levels and falls back to defaults on non-finite input', () => {
     expect(build({ endpointLatencyAdjustmentLevel: 1.6 }).endpointLatencyAdjustmentLevel).toBe(2);
-    const bad = build({
-      endpointSensitivity: NaN as unknown as number,
-      endpointLatencyAdjustmentLevel: NaN as unknown as number,
-      ttsSpeed: NaN as unknown as number,
+    for (const nonFinite of [NaN, Infinity, -Infinity]) {
+      const bad = build({
+        endpointSensitivity: nonFinite as unknown as number,
+        endpointLatencyAdjustmentLevel: nonFinite as unknown as number,
+        ttsSpeed: nonFinite as unknown as number,
+      });
+      expect(bad.endpointSensitivity).toBe(0);
+      expect(bad.endpointLatencyAdjustmentLevel).toBe(0);
+      expect(bad.ttsSpeed).toBe(1.0);
+    }
+  });
+
+  it('trims the vocabulary to the serialized wire budget — translations first, earlier lines win', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 700 short unique "sNNN=tN" lines fit the 4000-char textarea but
+    // serialize to ~22 KB of {source, target} objects — over the wire limit.
+    const lines = Array.from({ length: 700 }, (_, i) => `s${String(i).padStart(3, '0')}=t${i}`);
+    const cfg = build({ vocabularyTerms: 'KeepMe', vocabularyTranslations: lines.join('\n') });
+    const kept = cfg.context!.translationTerms!;
+    expect(kept.length).toBeGreaterThan(0);
+    expect(kept.length).toBeLessThan(700);
+    expect(kept[0]).toEqual({ source: 's000', target: 't0' }); // head retained, tail dropped
+    expect(cfg.context!.terms).toEqual(['KeepMe']); // cheap terms survive untouched
+    const serialized = JSON.stringify({
+      terms: cfg.context!.terms,
+      translation_terms: kept,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('leaves an under-budget vocabulary untouched by the budget guard', () => {
+    const cfg = build({ vocabularyTerms: 'Sokuji', vocabularyTranslations: 'a=b' });
+    expect(cfg.context).toEqual({
+      terms: ['Sokuji'],
+      translationTerms: [{ source: 'a', target: 'b' }],
     });
-    expect(bad.endpointSensitivity).toBe(0);
-    expect(bad.endpointLatencyAdjustmentLevel).toBe(0);
-    expect(bad.ttsSpeed).toBe(1.0);
   });
 
   it('tolerates a slice missing the new fields (pre-upgrade persisted state)', () => {

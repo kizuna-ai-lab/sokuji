@@ -14,7 +14,7 @@
 - **Vitest is the correctness gate** — CI does not run tests; run them locally with `npx vitest run <path>`. Do NOT gate on `tsc` (the repo has ~113 pre-existing tsc errors; build is Vite/esbuild).
 - **Default-neutral wire:** with default settings the STT first frame and TTS stream config must contain none of the new keys. Verified by tests in Tasks 2–4.
 - **Documented ranges (clamp at `buildSessionConfig`):** `endpointSensitivity` ∈ [-1.0, 1.0] (default 0), `endpointLatencyAdjustmentLevel` ∈ {0,1,2,3} (default 0), `ttsSpeed` ∈ [0.7, 1.3] (default 1.0).
-- **Vocabulary textareas:** raw strings in the store, `maxLength={4000}` each (Soniox context wire limit is 10,000 chars total; 4000+4000 leaves JSON-overhead headroom).
+- **Vocabulary textareas:** raw strings in the store, `maxLength={4000}` each as the raw-input cap; the binding limit is the serialized wire context — `buildSessionConfig` budgets it to 9,000 chars (Soniox rejects >10,000) and drops tail entries (translations first) with a console warning.
 - **`context.general` / `context.text` are out of scope.** Speaker diarization is out of scope (separate spike, not in this PR).
 - **Locale lockstep:** `src/locales/` has 30 `translation.json` files; `src/locales.consistency.test.ts` (path: `src/locales/locales.consistency.test.ts` — find it with `ls src/locales/*.test.ts` if the name differs) fails on any key-set mismatch vs `en`. All 30 files must change in the same task.
 - **Conventional commits**, one commit per task, ending with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.

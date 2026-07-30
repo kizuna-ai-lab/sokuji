@@ -77,7 +77,7 @@ Non-default-only sending keeps existing users' wire traffic identical and leaves
 
 ### Overflow guard
 
-Both textareas get `maxLength={4000}` so the serialized context (raw text + JSON overhead) stays safely under the 10,000-char wire limit — the "Context is too long" error becomes unreachable.
+Both textareas get `maxLength={4000}` as a first-line cap on raw input, but that alone does not bound the WIRE size: many short `source=target` lines expand into `{source, target}` objects whose JSON scaffolding dominates (1,000 four-char lines ≈ 26 KB serialized). `buildSessionConfig` therefore budgets the wire-shaped serialization to 9,000 chars (headroom under Soniox's 10,000-char limit) and drops entries from the tail — translation pairs first, then terms, earlier lines win — logging a console warning, so a session always starts and the "Context is too long" error stays unreachable.
 
 ## Settings UI (`renderSonioxSettings` in `ProviderSpecificSettings.tsx`)
 
@@ -92,7 +92,7 @@ All controls follow existing conventions (numeric → slider with live value, sm
 
 ## i18n
 
-~8–10 new keys (vocabulary section title, two labels + two hints + two tooltips, sensitivity label + tooltip, latency-level label + tooltip and option labels as needed) × 30 locales. `locales.consistency.test.ts` enforces lockstep; runtime is safe on missing translations (`fallbackLng: 'en'`). Per the #339 convention: machine-translate all locales, then a native-quality pass for de/ja/zh_CN/zh_TW.
+17 new keys (vocabulary section title + tooltip, two labels + two placeholders + two tooltips, endpoint section title, sensitivity label + tooltip, latency-level label + tooltip + four option labels) × 30 locales. `locales.consistency.test.ts` enforces lockstep; runtime is safe on missing translations (`fallbackLng: 'en'`). Per the #339 convention: machine-translate all locales, then a native-quality pass for de/ja/zh_CN/zh_TW.
 
 ## Testing
 
