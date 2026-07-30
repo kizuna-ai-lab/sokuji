@@ -1732,7 +1732,119 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const lockedOff = isSessionActive || !inBoth || managed;
 
     return (
-      <div className="settings-section" id="soniox-settings-section">
+      <>
+        <TtsSpeedControl
+          value={activeSonioxSettings.ttsSpeed}
+          onChange={(ttsSpeed) => updateActiveSonioxSettings({ ttsSpeed })}
+          disabled={isSessionActive}
+          min={0.7}
+          max={1.3}
+          step={0.1}
+        />
+
+        <div className="settings-section" id="soniox-vocabulary-section">
+          <h2>
+            {t('settings.sonioxVocabulary', 'Custom Vocabulary')}
+            <Tooltip
+              content={t('settings.sonioxVocabularyTooltip', 'Bias recognition toward important names and jargon, and force preferred translations. Applies from the next session.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sonioxVocabularyTerms', 'Terms')}</span>
+              <Tooltip
+                content={t('settings.sonioxVocabularyTermsTooltip', 'Improves recognition of uncommon words — names, jargon, product names.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+            </div>
+            <textarea
+              id="soniox-vocabulary-terms"
+              className="system-instructions"
+              placeholder={t('settings.sonioxVocabularyTermsPlaceholder', 'One term per line')}
+              maxLength={4000}
+              value={activeSonioxSettings.vocabularyTerms}
+              onChange={(e) => updateActiveSonioxSettings({ vocabularyTerms: e.target.value })}
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sonioxVocabularyTranslations', 'Preferred Translations')}</span>
+              <Tooltip
+                content={t('settings.sonioxVocabularyTranslationsTooltip', 'Forces how specific terms are translated. Entries are directional — in two-way mode add a reverse line to force both directions.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+            </div>
+            <textarea
+              id="soniox-vocabulary-translations"
+              className="system-instructions"
+              placeholder={t('settings.sonioxVocabularyTranslationsPlaceholder', 'One source=target per line')}
+              maxLength={4000}
+              value={activeSonioxSettings.vocabularyTranslations}
+              onChange={(e) => updateActiveSonioxSettings({ vocabularyTranslations: e.target.value })}
+              disabled={isSessionActive}
+            />
+          </div>
+        </div>
+
+        <div className="settings-section" id="soniox-endpoint-section">
+          <h2>{t('settings.sonioxEndpointTuning', 'Endpoint Detection Tuning')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.sonioxEndpointSensitivity', 'Endpoint Sensitivity')}
+                <Tooltip
+                  content={t('settings.sonioxEndpointSensitivityTooltip', 'Higher values end utterances sooner — lower latency but more risk of premature cut-offs. Lower values wait longer before finalizing. 0 is the Soniox default.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{activeSonioxSettings.endpointSensitivity.toFixed(1)}</span>
+            </div>
+            <input
+              id="soniox-endpoint-sensitivity"
+              type="range" min="-1" max="1" step="0.1"
+              value={activeSonioxSettings.endpointSensitivity}
+              onChange={(e) => updateActiveSonioxSettings({ endpointSensitivity: parseFloat(e.target.value) })}
+              className="slider" disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.sonioxEndpointLatencyLevel', 'Latency Reduction Level')}
+                <Tooltip
+                  content={t('settings.sonioxEndpointLatencyLevelTooltip', 'Progressively more aggressive latency reduction when closing an utterance. 0 is the default behavior.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+            </div>
+            <select
+              id="soniox-endpoint-latency-level"
+              className="select-dropdown"
+              value={activeSonioxSettings.endpointLatencyAdjustmentLevel}
+              onChange={(e) => updateActiveSonioxSettings({ endpointLatencyAdjustmentLevel: parseInt(e.target.value, 10) })}
+              disabled={isSessionActive}
+            >
+              <option value={0}>{`0 — ${t('settings.sonioxLatencyLevelDefault', 'Default')}`}</option>
+              <option value={1}>{`1 — ${t('settings.sonioxLatencyLevelLower', 'Lower latency')}`}</option>
+              <option value={2}>{`2 — ${t('settings.sonioxLatencyLevelEvenLower', 'Even lower latency')}`}</option>
+              <option value={3}>{`3 — ${t('settings.sonioxLatencyLevelMost', 'Most aggressive')}`}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section" id="soniox-settings-section">
         <h2>
           {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
           {/* The Enabled/Disabled tooltip recommends "Disabled" for reliability,
@@ -1775,7 +1887,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </>
     );
   };
 
