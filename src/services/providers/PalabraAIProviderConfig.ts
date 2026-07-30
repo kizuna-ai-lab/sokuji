@@ -101,7 +101,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   // PalabraAI supported source languages (for recognition) based on their documentation
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-    { name: 'Башҡорт теле', value: 'ba', englishName: 'Bashkir' },
     { name: 'Беларуская', value: 'be', englishName: 'Belarusian' },
     { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
     { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
@@ -113,7 +112,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Deutsch', value: 'de', englishName: 'German' },
     { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
     { name: 'English', value: 'en', englishName: 'English' },
-    { name: 'Esperanto', value: 'eo', englishName: 'Esperanto' },
     { name: 'Español', value: 'es', englishName: 'Spanish' },
     { name: 'Eesti', value: 'et', englishName: 'Estonian' },
     { name: 'Euskera', value: 'eu', englishName: 'Basque' },
@@ -126,7 +124,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'हिन्दी', value: 'hi', englishName: 'Hindi' },
     { name: 'Hrvatski', value: 'hr', englishName: 'Croatian' },
     { name: 'Magyar', value: 'hu', englishName: 'Hungarian' },
-    { name: 'Interlingua', value: 'ia', englishName: 'Interlingua' },
     { name: 'Bahasa Indonesia', value: 'id', englishName: 'Indonesian' },
     { name: 'Italiano', value: 'it', englishName: 'Italian' },
     { name: '日本語', value: 'ja', englishName: 'Japanese' },
@@ -198,7 +195,7 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
     { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
     { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
-    { name: 'Tiếng Việt', value: 'vn', englishName: 'Vietnamese' },
+    { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
   ];
 
   // Combined languages for UI display (using source languages as base)
