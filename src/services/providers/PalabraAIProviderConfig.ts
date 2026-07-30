@@ -56,7 +56,7 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   // creds.secret is guaranteed by extractCredentials (Task 5).
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Client secret is required for palabraai provider');
-    return new PalabraAIClient(creds.primary, creds.secret);
+    return new PalabraAIClient({ kind: 'clientCredentials', clientId: creds.primary, clientSecret: creds.secret });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -70,7 +70,9 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
       // extractCredentials — keep the old required-field contract here.
       return { validation: { valid: false, message: 'Both Client ID and Client Secret are required for Palabra AI', validating: false }, models: [] };
     }
-    const validation = await PalabraAIClient.validateApiKey(creds.primary, creds.secret);
+    const validation = await PalabraAIClient.validateApiKey({
+      kind: 'clientCredentials', clientId: creds.primary, clientSecret: creds.secret,
+    });
     return {
       validation,
       models: [{ id: 'realtime-translation', type: 'realtime', created: Date.now() / 1000 }],

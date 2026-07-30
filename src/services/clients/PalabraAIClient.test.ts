@@ -41,7 +41,7 @@ describe('PalabraAIClient data message handling', () => {
   let events: RealtimeEvent[];
 
   beforeEach(() => {
-    client = new PalabraAIClient('test-id', 'test-secret');
+    client = new PalabraAIClient({ kind: 'clientCredentials', clientId: 'test-id', clientSecret: 'test-secret' });
     events = [];
     client.setEventHandlers({
       onRealtimeEvent: (event) => { events.push(event); },
@@ -97,5 +97,31 @@ describe('PalabraAIClient data message handling', () => {
 
     expect(errorEvents()).toEqual([]);
     expect(updated).toContain('Hello there');
+  });
+});
+
+describe('PalabraAIClient auth headers', () => {
+  it('builds ClientId/ClientSecret headers for app credentials', () => {
+    const c = new PalabraAIClient({ kind: 'clientCredentials', clientId: 'id-1', clientSecret: 'sec-1' });
+    expect((c as any).authHeaders()).toEqual({ ClientId: 'id-1', ClientSecret: 'sec-1' });
+  });
+
+  it('builds a Bearer Authorization header for a platform API key', () => {
+    const c = new PalabraAIClient({ kind: 'apiKey', apiKey: 'pk-123' });
+    expect((c as any).authHeaders()).toEqual({ Authorization: 'Bearer pk-123' });
+  });
+});
+
+describe('PalabraAIClient.validateApiKey empty-credential short-circuit', () => {
+  it('rejects an empty platform API key without a network call', async () => {
+    const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: '  ' });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects app credentials with a missing secret without a network call', async () => {
+    const result = await PalabraAIClient.validateApiKey({
+      kind: 'clientCredentials', clientId: 'id-1', clientSecret: '',
+    });
+    expect(result.valid).toBe(false);
   });
 });
