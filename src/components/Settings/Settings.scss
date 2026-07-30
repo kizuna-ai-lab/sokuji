@@ -1230,21 +1230,49 @@
     }
   }
 
-  .palabraai-auth-mode {
-    display: flex;
-    gap: 16px;
+  // Mirrors the app's segmented-control archetype (ModePicker.scss and the
+  // noise-suppression control further down this file — both scope their rules
+  // to their own section, hence this local copy). Active = fill, per the
+  // state-selected-fill convention in _variables.scss. Like ModePicker, no
+  // font-weight change on active: the two labels differ in width and the
+  // control must not resize when the user switches modes.
+  .segmented-control {
+    display: inline-flex;
+    align-items: stretch;
+    align-self: flex-start;
+    height: 28px;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    overflow: hidden;
 
-    .auth-mode-option {
-      display: flex;
+    .segmented-option {
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
+      padding: 0 12px;
+      font-size: vars.$font-caption;
+      line-height: 1;
+      border: none;
+      background: vars.$bg-control;
+      color: #aaa;
       cursor: pointer;
-      font-size: 13px;
+      transition: all 0.15s ease;
 
-      input[type='radio'] {
-        accent-color: #10a37f;
-        margin: 0;
-        cursor: pointer;
+      &:not(:last-child) {
+        border-right: 1px solid vars.$border-default;
+      }
+
+      &:hover:not(.active):not(:disabled) {
+        background: vars.$bg-hover;
+      }
+
+      &.active {
+        background: vars.$color-primary;
+        color: #fff;
+      }
+
+      &:disabled {
+        opacity: vars.$disabled-opacity;
+        cursor: not-allowed;
       }
     }
   }

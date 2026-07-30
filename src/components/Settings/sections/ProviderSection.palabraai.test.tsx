@@ -69,13 +69,13 @@ describe('ProviderSection — PalabraAI auth mode toggle', () => {
   it('switching modes swaps the inputs and never clears any credential', () => {
     render(<ProviderSection isSessionActive={false} />);
 
-    fireEvent.click(screen.getByRole('radio', { name: 'App Client ID/Secret' }));
+    fireEvent.click(screen.getByRole('button', { name: 'App Client ID/Secret' }));
     expect(useSettingsStore.getState().palabraai.authMode).toBe('app');
     expect((screen.getByPlaceholderText('Client ID') as HTMLInputElement).value).toBe('id-existing');
     expect((screen.getByPlaceholderText('Client Secret') as HTMLInputElement).value).toBe('sec-existing');
     expect(useSettingsStore.getState().palabraai.apiKey).toBe('pk-existing');
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Platform API Key' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Platform API Key' }));
     expect(useSettingsStore.getState().palabraai.authMode).toBe('platform');
     expect((screen.getByPlaceholderText('API Key') as HTMLInputElement).value).toBe('pk-existing');
     expect(useSettingsStore.getState().palabraai.clientId).toBe('id-existing');

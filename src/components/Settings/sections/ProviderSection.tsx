@@ -764,27 +764,23 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           // app Client ID/Secret pair. All three values persist; the toggle only
           // selects which are used.
           <div className="palabraai-credentials-group">
-            <div className="palabraai-auth-mode">
-              <label className="auth-mode-option">
-                <input
-                  type="radio"
-                  name="palabraai-auth-mode"
-                  checked={palabraAISettings.authMode === 'platform'}
-                  onChange={() => updatePalabraAISettings({ authMode: 'platform' })}
-                  disabled={isSessionActive}
-                />
+            <div className="segmented-control">
+              <button
+                type="button"
+                className={`segmented-option ${palabraAISettings.authMode === 'platform' ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ authMode: 'platform' })}
+                disabled={isSessionActive}
+              >
                 {t('providers.palabraai.authModePlatform', 'Platform API Key')}
-              </label>
-              <label className="auth-mode-option">
-                <input
-                  type="radio"
-                  name="palabraai-auth-mode"
-                  checked={palabraAISettings.authMode === 'app'}
-                  onChange={() => updatePalabraAISettings({ authMode: 'app' })}
-                  disabled={isSessionActive}
-                />
+              </button>
+              <button
+                type="button"
+                className={`segmented-option ${palabraAISettings.authMode === 'app' ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ authMode: 'app' })}
+                disabled={isSessionActive}
+              >
                 {t('providers.palabraai.authModeApp', 'App Client ID/Secret')}
-              </label>
+              </button>
             </div>
             {palabraAISettings.authMode === 'platform' ? (
               <div className="api-key-input-group">
