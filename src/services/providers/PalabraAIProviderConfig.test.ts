@@ -41,6 +41,18 @@ describe('extractCredentials', () => {
     expect((await descriptor.extractCredentials({ ...appSlice, clientId: '' }, {})).ok).toBe(false);
   });
 
+  it('trims surrounding whitespace from credentials in both modes', async () => {
+    expect(await descriptor.extractCredentials({ ...platformSlice, apiKey: '  pk-1  ' }, {}))
+      .toEqual({ ok: true, primary: 'pk-1' });
+    expect(await descriptor.extractCredentials({ ...appSlice, clientId: ' id-1 ', clientSecret: ' sec-1\n' }, {}))
+      .toEqual({ ok: true, primary: 'id-1', secret: 'sec-1' });
+  });
+
+  it('rejects whitespace-only credentials in both modes', async () => {
+    expect((await descriptor.extractCredentials({ ...platformSlice, apiKey: '   ' }, {})).ok).toBe(false);
+    expect((await descriptor.extractCredentials({ ...appSlice, clientSecret: '   ' }, {})).ok).toBe(false);
+  });
+
   it('app mode ignores a stale apiKey value; platform mode ignores stale clientId/clientSecret', async () => {
     expect(await descriptor.extractCredentials({ ...appSlice, apiKey: 'stale' }, {}))
       .toEqual({ ok: true, primary: 'id-1', secret: 'sec-1' });

@@ -48,17 +48,20 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as PalabraAISettings;
     if (s?.authMode === 'platform') {
-      if (!s.apiKey || s.apiKey.trim() === '') {
+      const apiKey = s.apiKey?.trim();
+      if (!apiKey) {
         return { ok: false, missing: 'API Key is required for Palabra AI' };
       }
       // No `secret` key: createClient/validateAndFetchModels decode its absence
       // as platform mode. Both ends of that convention live in Palabra's own files.
-      return { ok: true, primary: s.apiKey };
+      return { ok: true, primary: apiKey };
     }
-    if (!s?.clientId || !s?.clientSecret) {
+    const clientId = s?.clientId?.trim();
+    const clientSecret = s?.clientSecret?.trim();
+    if (!clientId || !clientSecret) {
       return { ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' };
     }
-    return { ok: true, primary: s.clientId, secret: s.clientSecret };
+    return { ok: true, primary: clientId, secret: clientSecret };
   }
 
   peekPrimaryCredential(slice: unknown): string {

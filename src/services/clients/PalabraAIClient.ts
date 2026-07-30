@@ -193,9 +193,12 @@ export class PalabraAIClient implements IClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.warn("[Sokuji] [PalabraAIClient] Validation failed:", errorData);
+        // Palabra's error shape is { ok: false, errors: [{ title, detail, ... }] };
+        // the flat error.message form is kept as a fallback for older responses.
+        const firstError = errorData?.errors?.[0];
         return {
           valid: false,
-          message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
+          message: firstError?.detail || firstError?.title || errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
           validating: false
         };
       }

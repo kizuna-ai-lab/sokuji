@@ -22,4 +22,10 @@ describe('migratePalabraAuthMode', () => {
   it('leaves a fresh install on the platform default', () => {
     expect(migratePalabraAuthMode('', { clientId: '', clientSecret: '' })).toEqual({ authMode: 'platform' });
   });
+
+  it('treats an unrecognized stored value as never stored', () => {
+    // e.g. corrupted storage or a foreign value like 'Platform' (wrong case)
+    expect(migratePalabraAuthMode('Platform', { clientId: 'id', clientSecret: 'sec' })).toEqual({ authMode: 'app' });
+    expect(migratePalabraAuthMode('garbage', { clientId: '', clientSecret: '' })).toEqual({ authMode: 'platform' });
+  });
 });

@@ -359,15 +359,20 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
       status: 401,
       json: async () => ({ error: { message: 'Unauthorized' } }),
     } as unknown as Response);
-    const { ClientOperations } = await import('../ClientOperations');
-    const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', Provider.PALABRA_AI);
-    expect(fetchSpy).toHaveBeenCalled();
-    expect(r.validation.valid).toBe(false);
-    // Unlike the guard-rejection cases above, credential *shape* was accepted
-    // (creds.ok === true), so validateAndFetchModels still returns the static
-    // model list — only `validation` reflects the failed network check.
-    expect(r.models).toHaveLength(1);
-    fetchSpy.mockRestore();
+    try {
+      const { ClientOperations } = await import('../ClientOperations');
+      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', Provider.PALABRA_AI);
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(r.validation.valid).toBe(false);
+      // Unlike the guard-rejection cases above, credential *shape* was accepted
+      // (creds.ok === true), so validateAndFetchModels still returns the static
+      // model list — only `validation` reflects the failed network check.
+      expect(r.models).toHaveLength(1);
+    } finally {
+      // Without the finally, a failing expect leaks the global fetch mock into
+      // every later test in this file.
+      fetchSpy.mockRestore();
+    }
   });
 
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {

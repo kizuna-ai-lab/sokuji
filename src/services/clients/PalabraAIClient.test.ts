@@ -112,6 +112,31 @@ describe('PalabraAIClient auth headers', () => {
   });
 });
 
+describe('PalabraAIClient.validateApiKey error surfacing', () => {
+  it('surfaces the API error detail from a 401 response instead of the generic message', async () => {
+    // Real Palabra error shape: { ok: false, errors: [{ title, detail, ... }] }
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({
+        ok: false,
+        errors: [{
+          title: 'Unauthorized',
+          detail: 'Unauthorized access is denied due to invalid credentials.',
+          status: 401,
+        }],
+      }),
+    } as unknown as Response);
+    try {
+      const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: 'wrong-key' });
+      expect(result.valid).toBe(false);
+      expect(result.message).toContain('Unauthorized access is denied');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
 describe('PalabraAIClient.validateApiKey empty-credential short-circuit', () => {
   it('rejects an empty platform API key without a network call', async () => {
     const result = await PalabraAIClient.validateApiKey({ kind: 'apiKey', apiKey: '  ' });
