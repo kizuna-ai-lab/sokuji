@@ -45,7 +45,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -703,6 +703,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // participant translates the other party's speech into the user's language.
       const sx = config as SonioxSessionConfig;
       [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
+    } else if (config.provider === 'palabraai') {
+      // PalabraAI ignores `instructions` entirely — set_task carries the direction
+      // in pipeline.transcription.source_language and
+      // pipeline.translations[0].target_language, built from these two fields. Without
+      // this swap the participant session transcribes the other party's speech under
+      // the *user's* language and "translates" it back to the other party's language,
+      // so the other party's own language comes out on both lines.
+      //
+      // The two fields use different code spaces (targets carry region suffixes like
+      // en-us, sources don't), but the API strips the suffix before validating a
+      // source, so a plain swap holds for every target we offer. In the other
+      // direction five source languages aren't valid targets (eu, ga, mn, mt, ug);
+      // picking one of those makes the reversed task fail with the API's
+      // VALIDATION_ERROR, which arrives as a data message and surfaces through
+      // handleError rather than throwing out of connect().
+      const pa = config as PalabraAISessionConfig;
+      [pa.sourceLanguage, pa.targetLanguage] = [pa.targetLanguage, pa.sourceLanguage];
     } else if (config.provider === 'local_native') {
       // Native ASR/translate carry the translation direction in
       // sourceLanguage/targetLanguage AND in the chosen model ids (a directional

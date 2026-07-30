@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { RealtimeEvent } from '../interfaces/IClient';
+import type { RealtimeEvent } from '../../stores/logStore';
 
 vi.mock('../../locales', () => ({
   default: { t: (key: string) => key }

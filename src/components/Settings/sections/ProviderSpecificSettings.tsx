@@ -1188,48 +1188,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               }}
               disabled={isSessionActive}
             >
-              {/* PalabraAI target language options */}
-              <option value="ar-sa">العربية (السعودية)</option>
-              <option value="ar-ae">العربية (الإمارات)</option>
-              <option value="az">Azərbaycan</option>
-              <option value="bg">Български</option>
-              <option value="zh">中文 (简体)</option>
-              <option value="zh-hant">中文 (繁體)</option>
-              <option value="cs">Čeština</option>
-              <option value="da">Dansk</option>
-              <option value="de">Deutsch</option>
-              <option value="el">Ελληνικά</option>
-              <option value="en-us">English (US)</option>
-              <option value="en-au">English (Australia)</option>
-              <option value="en-ca">English (Canada)</option>
-              <option value="es">Español</option>
-              <option value="es-mx">Español (México)</option>
-              <option value="fil">Filipino</option>
-              <option value="fi">Suomi</option>
-              <option value="fr">Français</option>
-              <option value="fr-ca">Français (Canada)</option>
-              <option value="he">עברית</option>
-              <option value="hi">हिन्दी</option>
-              <option value="hr">Hrvatski</option>
-              <option value="hu">Magyar</option>
-              <option value="id">Bahasa Indonesia</option>
-              <option value="it">Italiano</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="ms">Bahasa Melayu</option>
-              <option value="nl">Nederlands</option>
-              <option value="no">Norsk</option>
-              <option value="pl">Polski</option>
-              <option value="pt">Português</option>
-              <option value="pt-br">Português (Brasil)</option>
-              <option value="ro">Română</option>
-              <option value="ru">Русский</option>
-              <option value="sk">Slovenčina</option>
-              <option value="sv">Svenska</option>
-              <option value="ta">தமிழ்</option>
-              <option value="tr">Türkçe</option>
-              <option value="uk">Українська</option>
-              <option value="vn">Tiếng Việt</option>
+              {/* Target list comes from the descriptor — the same expression
+                  LanguageSection uses — so the two surfaces cannot drift. This
+                  block used to be 41 hardcoded options, which is how a stale
+                  Vietnamese code ('vn', rejected by the API) survived here after
+                  the descriptor was corrected. */}
+              {(config.targetLanguages ?? config.languages).map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
             </select>
           </div>
         </div>

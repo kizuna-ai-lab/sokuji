@@ -101,7 +101,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   // PalabraAI supported source languages (for recognition) based on their documentation
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-    { name: 'Башҡорт теле', value: 'ba', englishName: 'Bashkir' },
     { name: 'Беларуская', value: 'be', englishName: 'Belarusian' },
     { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
     { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
@@ -113,7 +112,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Deutsch', value: 'de', englishName: 'German' },
     { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
     { name: 'English', value: 'en', englishName: 'English' },
-    { name: 'Esperanto', value: 'eo', englishName: 'Esperanto' },
     { name: 'Español', value: 'es', englishName: 'Spanish' },
     { name: 'Eesti', value: 'et', englishName: 'Estonian' },
     { name: 'Euskera', value: 'eu', englishName: 'Basque' },
@@ -126,7 +124,6 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'हिन्दी', value: 'hi', englishName: 'Hindi' },
     { name: 'Hrvatski', value: 'hr', englishName: 'Croatian' },
     { name: 'Magyar', value: 'hu', englishName: 'Hungarian' },
-    { name: 'Interlingua', value: 'ia', englishName: 'Interlingua' },
     { name: 'Bahasa Indonesia', value: 'id', englishName: 'Indonesian' },
     { name: 'Italiano', value: 'it', englishName: 'Italian' },
     { name: '日本語', value: 'ja', englishName: 'Japanese' },
@@ -156,21 +153,38 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
   ];
 
-  // PalabraAI supported target languages (for translation) based on their documentation
+  // PalabraAI supported target languages (for translation). Checked against the
+  // API's own target enum — see palabraLanguageCodes.test.ts for the full list and
+  // how to re-capture it. Every source language the API also accepts as a target
+  // has to appear here: both the participant swap and the settings swap button move
+  // a source code into targetLanguage, and a code missing from this list leaves the
+  // dropdown blank even though the session still works.
   private static readonly TARGET_LANGUAGES: LanguageOption[] = [
+    { name: 'العربية', value: 'ar', englishName: 'Arabic' },
     { name: 'العربية (السعودية)', value: 'ar-sa', englishName: 'Arabic (Saudi)' },
     { name: 'العربية (الإمارات)', value: 'ar-ae', englishName: 'Arabic (UAE)' },
     { name: 'Azərbaycan', value: 'az', englishName: 'Azerbaijani' },
+    { name: 'Беларуская', value: 'be', englishName: 'Belarusian' },
+    { name: 'বাংলা', value: 'bn', englishName: 'Bengali' },
     { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
+    { name: 'Català', value: 'ca', englishName: 'Catalan' },
     { name: '中文 (简体)', value: 'zh', englishName: 'Chinese (Simplified)' },
     { name: '中文 (繁體)', value: 'zh-hant', englishName: 'Chinese (Traditional)' },
     { name: 'Čeština', value: 'cs', englishName: 'Czech' },
     { name: 'Dansk', value: 'da', englishName: 'Danish' },
+    { name: 'English', value: 'en', englishName: 'English' },
+    { name: 'Eesti', value: 'et', englishName: 'Estonian' },
+    { name: 'Galego', value: 'gl', englishName: 'Galician' },
     { name: 'Deutsch', value: 'de', englishName: 'German' },
     { name: 'Ελληνικά', value: 'el', englishName: 'Greek' },
     { name: 'English (US)', value: 'en-us', englishName: 'English (US)' },
     { name: 'English (Australia)', value: 'en-au', englishName: 'English (Australia)' },
     { name: 'English (Canada)', value: 'en-ca', englishName: 'English (Canada)' },
+    { name: 'Latviešu', value: 'lv', englishName: 'Latvian' },
+    { name: 'Lietuvių', value: 'lt', englishName: 'Lithuanian' },
+    { name: 'मराठी', value: 'mr', englishName: 'Marathi' },
+    { name: 'فارسی', value: 'fa', englishName: 'Persian' },
+    { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
     { name: 'Español', value: 'es', englishName: 'Spanish (Spain)' },
     { name: 'Español (México)', value: 'es-mx', englishName: 'Spanish (Mexico)' },
     { name: 'Filipino', value: 'fil', englishName: 'Filipino' },
@@ -194,20 +208,25 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { name: 'Română', value: 'ro', englishName: 'Romanian' },
     { name: 'Русский', value: 'ru', englishName: 'Russian' },
     { name: 'Slovenčina', value: 'sk', englishName: 'Slovak' },
+    { name: 'Kiswahili', value: 'sw', englishName: 'Swahili' },
     { name: 'Svenska', value: 'sv', englishName: 'Swedish' },
     { name: 'தமிழ்', value: 'ta', englishName: 'Tamil' },
+    { name: 'ไทย', value: 'th', englishName: 'Thai' },
     { name: 'Türkçe', value: 'tr', englishName: 'Turkish' },
     { name: 'Українська', value: 'uk', englishName: 'Ukrainian' },
-    { name: 'Tiếng Việt', value: 'vn', englishName: 'Vietnamese' },
+    { name: 'اردو', value: 'ur', englishName: 'Urdu' },
+    { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
+    { name: 'Cymraeg', value: 'cy', englishName: 'Welsh' },
   ];
 
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = PalabraAIProviderConfig.SOURCE_LANGUAGES;
 
-  // PalabraAI supports most language pairs, so the target list doesn't depend
-  // on the source. getConfig() doesn't set `targetLanguages` (LANGUAGES/config
-  // reuses the source list for the shared dropdown), so the base default would
-  // incorrectly fall back to the source list here — override explicitly.
+  // PalabraAI supports most language pairs, so the target list doesn't depend on
+  // the source. The base default would fall back to `getConfig().languages` —
+  // the source list — so return the target list explicitly. getConfig() declares
+  // `targetLanguages` as well; both paths are live (this one feeds the swap
+  // validation, that one feeds the settings dropdown).
   resolveTargetLanguages(_source: string): LanguageOption[] {
     return PalabraAIProviderConfig.TARGET_LANGUAGES;
   }
@@ -232,6 +251,10 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
       apiKeyPlaceholder: 'Enter your PalabraAI Client ID',
       
       languages: PalabraAIProviderConfig.LANGUAGES,
+      // Must be declared, not left to the `targetLanguages ?? languages` fallback
+      // in LanguageSection: `languages` is the *source* list, and offering it as
+      // targets puts codes Palabra rejects (eu, ga, mn, mt, ug) in the dropdown.
+      targetLanguages: PalabraAIProviderConfig.TARGET_LANGUAGES,
       voices: PalabraAIProviderConfig.VOICES,
       models: PalabraAIProviderConfig.MODELS,
       noiseReductionModes: [], // PalabraAI handles audio processing internally

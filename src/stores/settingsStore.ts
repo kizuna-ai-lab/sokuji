@@ -322,6 +322,27 @@ export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
   return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
 }
 
+/** Migrate persisted PalabraAI language codes that the API rejects.
+ *  Palabra validates source_language and target_language against two separate
+ *  enums, and a code outside them fails the whole set_task — the session connects
+ *  and then translates nothing. We shipped four such codes: Vietnamese was spelled
+ *  `vn` as a target (the API wants `vi`), and `ba`/`eo`/`ia` were offered as
+ *  sources though Palabra never supported them. Removing them from the dropdowns
+ *  does nothing for a user who already picked one, since the stored value survives
+ *  and the select just renders blank. `vn` has a correct equivalent, so rewrite it;
+ *  the three sources don't, so fall back to the default. */
+export function migrateRejectedPalabraLanguages(
+  slice: { sourceLanguage: string; targetLanguage: string },
+): { sourceLanguage: string; targetLanguage: string } {
+  const UNSUPPORTED_SOURCES = new Set(['ba', 'eo', 'ia']);
+  return {
+    sourceLanguage: UNSUPPORTED_SOURCES.has(slice.sourceLanguage)
+      ? defaultPalabraAISettings.sourceLanguage
+      : slice.sourceLanguage,
+    targetLanguage: slice.targetLanguage === 'vn' ? 'vi' : slice.targetLanguage,
+  };
+}
+
 /** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
  *  current replacement. OpenAI notified (2026-07-20) that the pre-2.1 realtime
  *  and audio model families/snapshots are removed from the API on 2027-01-20;
@@ -1186,6 +1207,13 @@ const useSettingsStore = create<SettingsStore>()(
           openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
         }
 
+        // Drop persisted PalabraAI language codes the API rejects, so an existing
+        // user isn't left on a pair whose set_task fails validation.
+        const palabraSlice = loadedSlices.palabraai as PalabraAISettings | undefined;
+        if (palabraSlice) {
+          Object.assign(palabraSlice, migrateRejectedPalabraLanguages(palabraSlice));
+        }
+
         set({
           provider: validProvider,
           uiLanguage,
@@ -1241,7 +1269,12 @@ const useSettingsStore = create<SettingsStore>()(
         const currentSettings = state.getCurrentProviderSettings();
 
         const sourceLang = providerConfig.languages.find(l => l.value === currentSettings.sourceLanguage);
-        const targetLang = providerConfig.languages.find(l => l.value === currentSettings.targetLanguage);
+        // Resolve the target name from the target list when the provider declares
+        // one — `languages` is the source list, so a target-only code (region
+        // variants like en-us, or az/fil/zh-hant) finds nothing there and the
+        // template renders the raw code instead of a display name.
+        const targetLang = (providerConfig.targetLanguages ?? providerConfig.languages)
+          .find(l => l.value === currentSettings.targetLanguage);
 
         const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
         const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';
