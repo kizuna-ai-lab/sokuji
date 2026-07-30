@@ -48,6 +48,15 @@ export interface SonioxSttConfig {
   sampleRate: number;
   languageHints?: string[];
   translation: SonioxTranslationConfig;
+  /** Custom vocabulary, wire-shaped (snake_case). Omitted from the config frame when absent. */
+  context?: {
+    terms?: string[];
+    translation_terms?: Array<{ source: string; target: string }>;
+  };
+  /** endpoint_sensitivity, -1.0..1.0. 0/undefined = omit (server default). v5-only. */
+  endpointSensitivity?: number;
+  /** endpoint_latency_adjustment_level, 0..3. 0/undefined = omit (server default). v5-only. */
+  endpointLatencyAdjustmentLevel?: number;
   // Managed-mode only: correlates this session's usage logs back to the
   // backend's billing lease. BYOK sessions omit it (the field is simply
   // absent from the wire config).
@@ -107,6 +116,13 @@ export class SonioxSttStream {
           num_channels: 1,
           enable_endpoint_detection: true,
           max_endpoint_delay_ms: 500,
+          // 0 is the server default for both tuning knobs, so falsy checks
+          // double as the "omit at default" rule (negative sensitivity is truthy).
+          ...(config.endpointSensitivity ? { endpoint_sensitivity: config.endpointSensitivity } : {}),
+          ...(config.endpointLatencyAdjustmentLevel
+            ? { endpoint_latency_adjustment_level: config.endpointLatencyAdjustmentLevel }
+            : {}),
+          ...(config.context ? { context: config.context } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
           translation: config.translation,
