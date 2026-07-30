@@ -84,7 +84,7 @@ Both textareas get `maxLength={4000}` as a first-line cap on raw input, but that
 All controls follow existing conventions (numeric → slider with live value, small enum → select, help → `Tooltip` + `CircleHelp`) and are `disabled={isSessionActive}`. Section order after the existing generic voice dropdown:
 
 1. **TTS speed** — reuse `TtsSpeedControl` (`LocalSettingsControls.tsx`), adding optional `min`/`max`/`step` props (defaults 0.5/2.0/0.1 preserve the two local-provider call sites); Soniox passes 0.7/1.3/0.1. Reuses the existing `settings.ttsSpeed` locale keys — zero new translations for this control.
-2. **Custom Vocabulary** section — two textareas: *Terms* (one per line) and *Preferred Translations* (one `source=target` per line), each with a label, per-line format hint, and tooltip. The translations tooltip notes that entries are directional (in `two_way`, add a reverse line if both directions need forcing).
+2. **Custom Vocabulary** section — two textareas: *Terms* (one per line) and *Preferred Translations* (one `source=target` per line), each with a label, per-line format hint, and tooltip. The translations tooltip notes that entries are a preference rather than a guaranteed replacement, and that they are directional (the reverse direction only exists in Both/`two_way` sessions, where a reverse line can be added).
 3. **Endpoint tuning** — `endpointSensitivity` slider (-1.0..1.0, step 0.1, live value) and `endpointLatencyAdjustmentLevel` select with four options (0 = Default, 1/2/3 = progressively lower latency), following the OpenAI semantic-eagerness select precedent.
 4. Existing `bothModeSharedSession` pill (unchanged).
 
@@ -119,5 +119,6 @@ Items 1–3 land as **one branch / one PR** (they share every touchpoint: `Sonio
 ## Known limitations
 
 - All settings are connect-time only (protocol has no mid-session reconfigure); changes apply from the next session.
-- `translation_terms` entries are directional; `two_way` users must add explicit reverse entries.
+- `translation_terms` entries are directional; `two_way` users must add explicit reverse entries — and the reverse direction only exists at all in Both/`two_way` sessions (one_way sessions translate a single way, so a reverse entry has nowhere to apply).
+- `translation_terms` are a soft bias, not a hard replacement (live-verified 2026-07-31): pairs whose target matches an established rendering win (`Kizuna AI→绊爱` en→zh, `Sokuji→ソクジ` en→ja), while a novel rendering that fights the target language's conventions can lose (`Sokuji→索烛` loses to Chinese's verbatim-Latin-brand-name convention), and common words usually keep the model's own wording (`app`, `realtime` pairs ignored). Wire delivery of every entry was verified — the variance is the model's, matching the docs' advisory phrasing.
 - `max_endpoint_delay_ms` stays hardcoded at 500 this round; if endpoint tuning proves insufficient, exposing it is a one-line follow-up on the same config site.

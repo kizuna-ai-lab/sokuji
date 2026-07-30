@@ -1746,7 +1746,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>
             {t('settings.sonioxVocabulary', 'Custom Vocabulary')}
             <Tooltip
-              content={t('settings.sonioxVocabularyTooltip', 'Bias recognition toward important names and jargon, and force preferred translations. Applies from the next session.')}
+              content={t('settings.sonioxVocabularyTooltip', 'Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
@@ -1777,7 +1777,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <div className="setting-label">
               <span>{t('settings.sonioxVocabularyTranslations', 'Preferred Translations')}</span>
               <Tooltip
-                content={t('settings.sonioxVocabularyTranslationsTooltip', 'Forces how specific terms are translated. Entries are directional — in two-way mode add a reverse line to force both directions.')}
+                content={t('settings.sonioxVocabularyTranslationsTooltip', 'Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model\'s own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.')}
                 position="top"
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
