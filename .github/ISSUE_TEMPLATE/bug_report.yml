@@ -34,15 +34,38 @@ body:
           required: true
 
   - type: dropdown
-    id: bug-type
+    id: platform
     attributes:
-      label: Bug Type
-      description: What type of issue are you experiencing?
+      label: Platform
+      description: Where does the bug occur?
       options:
         - Desktop Application
         - Browser Extension
         - Both Desktop and Extension
         - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating System
+      description: Which operating system(s) are you on? (Select all that apply)
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The Sokuji version you are running — shown in Settings, or in the extension's details page. Extension and desktop app share version numbers.
+      placeholder: "e.g. 0.34.6"
     validations:
       required: true
 
@@ -107,24 +130,13 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: Environment Information
-      description: Please provide your environment details
-      placeholder: |
-        **Desktop Application:**
-        - OS: [e.g. Windows 11, macOS 13, Ubuntu 22.04]
-        - App Version: [e.g. 1.0.0]
-        - Installation Method: [e.g. GitHub Release, Package Manager]
-        
-        **Browser Extension (if applicable):**
-        - Browser: [e.g. Chrome 120, Firefox 121, Edge 119]
-        - Extension Version: [e.g. 1.0.0]
-        - Browser Extension Store: [e.g. Chrome Web Store, Firefox Add-ons]
-        
-        **Additional Info:**
-        - Node.js Version: [if applicable]
-        - System Architecture: [e.g. x64, arm64]
-    validations:
-      required: true
+      label: Environment Details (optional)
+      description: Fill in what you know and skip the rest.
+      value: |
+        - OS version (e.g. Windows 11 23H2, macOS 14.5, Ubuntu 22.04):
+        - Browser + version (extension only, e.g. Chrome 120):
+        - CPU architecture (e.g. x64, arm64 / Apple Silicon):
+        - Installed from (e.g. GitHub Release, Chrome Web Store):
 
   - type: textarea
     id: extension-specific
