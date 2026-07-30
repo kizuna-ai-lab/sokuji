@@ -26,20 +26,25 @@ export const TtsSpeedControl: React.FC<{
   value: number;
   onChange: (speed: number) => void;
   disabled: boolean;
+  /** Slider bounds; defaults match the local providers' 0.5–2.0 range. */
+  min?: number;
+  max?: number;
+  step?: number;
   /** Extra rows (e.g. a voice/speaker picker) rendered under the speed slider. */
   children?: React.ReactNode;
-}> = ({ value, onChange, disabled, children }) => {
+}> = ({ value, onChange, disabled, min = 0.5, max = 2.0, step = 0.1, children }) => {
   const { t } = useTranslation();
   return (
     <div className="settings-section">
-      <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
+      <h2>{t('settings.ttsSettings', 'Speech Synthesis (TTS) Settings')}</h2>
       <div className="setting-item">
         <div className="setting-label">
           <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
           <span className="setting-value">{value.toFixed(1)}x</span>
         </div>
         <input
-          type="range" min="0.5" max="2.0" step="0.1" value={value}
+          type="range" min={min} max={max} step={step} value={value}
+          aria-label={t('settings.ttsSpeed', 'Speech Speed')}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className="slider" disabled={disabled}
         />

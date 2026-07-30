@@ -34,6 +34,8 @@ export interface SonioxTtsOptions {
   voice: string;
   model: string;
   sampleRate: number;
+  /** Speaking rate 0.7..1.3; undefined or 1.0 (the server default) is omitted from the wire. */
+  speed?: number;
   // Managed-mode only: must match the STT stream's clientReferenceId, or the
   // TTS half of the session cannot be attributed to the billing lease.
   clientReferenceId?: string;
@@ -291,6 +293,7 @@ export class SonioxTtsStream {
       language,
       audio_format: 'pcm_s16le',
       sample_rate: this.options.sampleRate,
+      ...(this.options.speed != null && this.options.speed !== 1.0 ? { speed: this.options.speed } : {}),
       ...(this.options.clientReferenceId ? { client_reference_id: this.options.clientReferenceId } : {}),
     }));
     this.activeStreamId = streamId;

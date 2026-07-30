@@ -161,4 +161,35 @@ describe('SonioxSttStream', () => {
     ws.close();
     expect(closes).toEqual([{ code: 1000, reason: undefined }]);
   });
+
+  it('includes context and endpoint tuning in the first frame when configured', async () => {
+    const { ws } = await openStream({
+      ...CONFIG,
+      context: {
+        terms: ['Sokuji'],
+        translation_terms: [{ source: 'Kizuna AI', target: '絆愛' }],
+      },
+      endpointSensitivity: -0.5,
+      endpointLatencyAdjustmentLevel: 2,
+    });
+    const first = JSON.parse(ws.sent[0] as string);
+    expect(first.context).toEqual({
+      terms: ['Sokuji'],
+      translation_terms: [{ source: 'Kizuna AI', target: '絆愛' }],
+    });
+    expect(first.endpoint_sensitivity).toBe(-0.5);
+    expect(first.endpoint_latency_adjustment_level).toBe(2);
+  });
+
+  it('omits context and endpoint-tuning keys at their defaults (wire unchanged for existing users)', async () => {
+    const { ws } = await openStream({
+      ...CONFIG,
+      endpointSensitivity: 0,
+      endpointLatencyAdjustmentLevel: 0,
+    });
+    const first = JSON.parse(ws.sent[0] as string);
+    expect('context' in first).toBe(false);
+    expect('endpoint_sensitivity' in first).toBe(false);
+    expect('endpoint_latency_adjustment_level' in first).toBe(false);
+  });
 });

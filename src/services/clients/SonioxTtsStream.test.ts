@@ -216,4 +216,26 @@ describe('SonioxTtsStream', () => {
     ws.message({ stream_id: 'utt-1', audio: pcmB64() });
     expect(chunks).toHaveLength(1);
   });
+
+  it('includes speed in the stream config when not the default rate', async () => {
+    const t = new SonioxTtsStream({ ...OPTS, speed: 0.8 });
+    const p = t.connect();
+    MockWebSocket.instances.at(-1)!.open();
+    await p;
+    const ws = MockWebSocket.instances.at(-1)!;
+    t.sendText('Hi', 'en');
+    expect(ws.jsonSent()[0]).toMatchObject({ stream_id: 'utt-1', speed: 0.8 });
+  });
+
+  it('omits speed at the default rate (undefined or 1.0)', async () => {
+    for (const speed of [undefined, 1.0]) {
+      const t = new SonioxTtsStream({ ...OPTS, speed });
+      const p = t.connect();
+      MockWebSocket.instances.at(-1)!.open();
+      await p;
+      const ws = MockWebSocket.instances.at(-1)!;
+      t.sendText('Hi', 'en');
+      expect('speed' in ws.jsonSent()[0]).toBe(false);
+    }
+  });
 });

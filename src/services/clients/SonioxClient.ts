@@ -258,12 +258,25 @@ export class SonioxClient implements IClient {
       // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
       onTick: () => this.costMeter?.tick(Date.now()),
     });
+    // Map the session config's camelCase context to the wire's snake_case.
+    // buildSessionConfig only sets `context` when at least one list is non-empty.
+    const sttContext = cfg.context
+      ? {
+          ...(cfg.context.terms?.length ? { terms: cfg.context.terms } : {}),
+          ...(cfg.context.translationTerms?.length
+            ? { translation_terms: cfg.context.translationTerms }
+            : {}),
+        }
+      : undefined;
     await this.stt.connect({
       apiKey: this.managedOptions ? this.managedSttApiKey! : this.apiKey,
       model: cfg.model || STT_MODEL,
       sampleRate: SAMPLE_RATE,
       languageHints,
       translation,
+      ...(sttContext ? { context: sttContext } : {}),
+      endpointSensitivity: cfg.endpointSensitivity,
+      endpointLatencyAdjustmentLevel: cfg.endpointLatencyAdjustmentLevel,
       clientReferenceId: this.clientReferenceId ?? undefined,
     });
     // If disconnect() ran during the STT connect await, this attempt is stale:
@@ -556,6 +569,7 @@ export class SonioxClient implements IClient {
       voice: this.currentConfig?.voice || 'Maya',
       model: TTS_MODEL,
       sampleRate: SAMPLE_RATE,
+      speed: this.currentConfig?.ttsSpeed,
       // Same id as the STT stream — required for the TTS half of a managed
       // session to be attributed to the billing lease.
       clientReferenceId: this.clientReferenceId ?? undefined,
