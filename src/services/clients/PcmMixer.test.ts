@@ -4,7 +4,7 @@ import { PcmMixer } from './PcmMixer';
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-function make(onFrame: (m: Int16Array) => void, over = {}) {
+function make(onFrame: (m: Int16Array, ea: number, eb: number) => void, over = {}) {
   return new PcmMixer({ frameSamples: 4, intervalMs: 100, maxBacklogSamples: 12, onFrame, ...over });
 }
 
@@ -78,6 +78,27 @@ describe('PcmMixer', () => {
     m.pushA(new Int16Array([32767])); m.pushB(new Int16Array([32767]));
     vi.advanceTimersByTime(100);
     expect(frames[0][0]).toBe(32767); // 0.5*32767+0.5*32767 = 32767, no clip
+    m.stop();
+  });
+
+  it('reports per-channel mean-absolute energy of the raw (pre-gain) samples', () => {
+    const got: Array<[number, number]> = [];
+    const m = make((_f: Int16Array, ea: number, eb: number) => got.push([ea, eb]));
+    m.start();
+    m.pushA(new Int16Array([100, -100, 100, -100]));
+    m.pushB(new Int16Array([10, 10, -10, -10]));
+    vi.advanceTimersByTime(100);
+    expect(got[0]).toEqual([100, 10]);
+    m.stop();
+  });
+
+  it('reports zero energy for a silent/starved channel and partial energy for a zero-filled tail', () => {
+    const got: Array<[number, number]> = [];
+    const m = make((_f: Int16Array, ea: number, eb: number) => got.push([ea, eb]));
+    m.start();
+    m.pushA(new Int16Array([200, 200])); // 2 of 4 samples → mean |.| = 100
+    vi.advanceTimersByTime(100);
+    expect(got[0]).toEqual([100, 0]);
     m.stop();
   });
 });
