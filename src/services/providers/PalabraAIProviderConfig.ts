@@ -6,6 +6,8 @@ import { PalabraAIClient } from '../clients/PalabraAIClient';
 
 // PalabraAI Settings
 export interface PalabraAISettings {
+  authMode: 'app' | 'platform';
+  apiKey: string;
   clientId: string;
   clientSecret: string;
   sourceLanguage: string;
@@ -22,6 +24,8 @@ export interface PalabraAISettings {
 }
 
 export const defaultPalabraAISettings: PalabraAISettings = {
+  authMode: 'platform',
+  apiKey: '',
   clientId: '',
   clientSecret: '',
   sourceLanguage: 'en',
