@@ -159,7 +159,7 @@
     "i18next-browser-languagedetector": "^8.1.0",
     "idb": "^8.0.3",
     "jsdom": "^24.0.0",
-    "livekit-client": "^2.15.2",
+    "livekit-client": "2.18.7",
     "lucide-react": "^0.515.0",
     "mpg123-decoder": "^1.0.3",
     "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
@@ -183,8 +183,8 @@
     "vite-plugin-electron-renderer": "^1.0.0",
     "vitest": "^4.0.18",
     "web-vitals": "^2.1.4",
-    "zustand": "^5.0.8",
-    "ws": "^8.19.0"
+    "ws": "^8.19.0",
+    "zustand": "^5.0.8"
   },
   "scripts": {
     "dev": "vite",

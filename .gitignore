@@ -121,3 +121,10 @@ __pycache__/
 
 # Architecture-review screenshots (scratch, same batch as .playwright-mcp/)
 /arch-review-*.png
+
+# Manual PalabraAI probe harness — drives the real PalabraAIClient against the
+# live API in a browser and tees the LiveKit signalling socket to print each
+# offer/answer SessionDescription.id. Kept locally for re-testing whenever
+# Palabra upgrades their LiveKit server (which is what pins livekit-client to an
+# exact version); takes credentials via query string, so never commit it.
+/palabra-probe/

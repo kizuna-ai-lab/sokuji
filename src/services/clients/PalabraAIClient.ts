@@ -712,17 +712,24 @@ export class PalabraAIClient implements IClient {
 
   /**
    * Check if the received data is a queue status message
-   * Queue status messages have language codes as keys with queue level information
+   * Queue status messages have language codes as keys with queue level information,
+   * or no keys at all when nothing is queued yet
    */
   private isQueueStatusMessage(data: any): boolean {
-    if (!data || typeof data !== 'object') {
+    // The queue status is always a map, never an array — Object.keys([]) is empty
+    // too, so arrays have to be rejected before the empty-map shortcut below.
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
       return false;
     }
-    
+
     // Check if it's a simple object with language code keys
     const keys = Object.keys(data);
     if (keys.length === 0) {
-      return false;
+      // An empty map is the queue status with nothing queued — Palabra emits one
+      // about once a second, starting before the first translation is queued. It
+      // carries no information, and treating it as unknown surfaced a stream of
+      // bogus `{"type":"error","data":{}}` entries in the user-facing log panel.
+      return true;
     }
     
     // Check if all keys are potential language codes (2-3 letter codes or locale format like en-us)

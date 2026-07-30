@@ -219,10 +219,32 @@ useSettingsStore.subscribe(
 - **i18next & react-i18next**: Internationalization framework
 - **openai-realtime-api**: OpenAI real-time API client (strongly-typed fork)
 - **@google/genai**: Google Gemini SDK
-- **livekit-client**: LiveKit SDK for Palabra AI WebRTC integration
+- **livekit-client**: LiveKit SDK for Palabra AI WebRTC integration — **pinned to an exact version, do not upgrade** (see below)
 - **better-auth**: Authentication library for user sessions
 - **lucide-react**: Icon library
 - **ws**: WebSocket client for real-time communication
+
+### livekit-client is version-capped by Palabra's server
+
+`livekit-client` is pinned to an **exact** version (currently `2.18.7`) — never widen it to a
+caret range and never bump it without a live Palabra session test. Palabra runs LiveKit server
+**1.8.4 / protocol 15**, whose answers carry `SessionDescription.id = 0` because the server
+doesn't echo the offer's id. livekit-client **2.18.8+** gates negotiation completion on
+`offerId > checkpoint`, so `negotiate()` never resolves, times out after 15s, and the engine
+escalates to a full reconnect — forever. Palabra's own SDK (`@palabra-ai/translator`) pins
+`livekit-client` `2.13.0` for the same reason.
+
+This regression is **silent**: `connect()` still resolves, the UI still says "connected", and
+the entire vitest suite still passes — nothing covers real WebRTC negotiation. The only signal
+is a live session producing zero transcriptions plus a `NegotiationError: negotiation timed out`
+every ~17s.
+
+One related symptom is expected and harmless: Palabra only serves `/rtc`, so every connect logs
+a failed WebSocket and a 404 on `/rtc/v1` (a path added in client 2.17.0) before LiveKit's
+automatic v0 fallback, costing ~1s on first connect.
+
+Before lifting the pin, confirm the server echoes the id — join a room and check that the
+inbound `answer` has a non-zero `SessionDescription.id`.
 
 ### Internationalization
 - Complete translations for 35+ languages
