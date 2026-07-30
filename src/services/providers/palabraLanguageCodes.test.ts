@@ -66,6 +66,19 @@ describe('PalabraAI language codes match the API enums', () => {
     expect(rejected).toEqual([]);
   });
 
+  it('exposes the target list through getConfig(), which is what the settings dropdown reads', () => {
+    // LanguageSection resolves its target dropdown as
+    // `providerConfig.targetLanguages ?? providerConfig.languages`, and only
+    // consults resolveTargetLanguages() for LOCAL_INFERENCE/LOCAL_NATIVE/ZOOM_AI.
+    // A provider that leaves `targetLanguages` unset therefore offers its *source*
+    // list as targets, no matter what resolveTargetLanguages() returns.
+    const cfg = ProviderConfigFactory.getConfig(Provider.PALABRA_AI);
+    const offered = (cfg.targetLanguages ?? cfg.languages).map((l) => l.value);
+    const rejected = offered.filter((code) => !API_TARGET_LANGUAGES.has(code));
+
+    expect(rejected).toEqual([]);
+  });
+
   it('keeps every offered target usable as a participant-mode source', () => {
     // Participant mode swaps source and target. The API strips the region suffix
     // before validating a source, so the base of every target we offer has to be

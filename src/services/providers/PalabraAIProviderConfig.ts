@@ -201,10 +201,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   // Combined languages for UI display (using source languages as base)
   private static readonly LANGUAGES: LanguageOption[] = PalabraAIProviderConfig.SOURCE_LANGUAGES;
 
-  // PalabraAI supports most language pairs, so the target list doesn't depend
-  // on the source. getConfig() doesn't set `targetLanguages` (LANGUAGES/config
-  // reuses the source list for the shared dropdown), so the base default would
-  // incorrectly fall back to the source list here — override explicitly.
+  // PalabraAI supports most language pairs, so the target list doesn't depend on
+  // the source. The base default would fall back to `getConfig().languages` —
+  // the source list — so return the target list explicitly. getConfig() declares
+  // `targetLanguages` as well; both paths are live (this one feeds the swap
+  // validation, that one feeds the settings dropdown).
   resolveTargetLanguages(_source: string): LanguageOption[] {
     return PalabraAIProviderConfig.TARGET_LANGUAGES;
   }
@@ -229,6 +230,10 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
       apiKeyPlaceholder: 'Enter your PalabraAI Client ID',
       
       languages: PalabraAIProviderConfig.LANGUAGES,
+      // Must be declared, not left to the `targetLanguages ?? languages` fallback
+      // in LanguageSection: `languages` is the *source* list, and offering it as
+      // targets puts codes Palabra rejects (eu, ga, mn, mt, ug) in the dropdown.
+      targetLanguages: PalabraAIProviderConfig.TARGET_LANGUAGES,
       voices: PalabraAIProviderConfig.VOICES,
       models: PalabraAIProviderConfig.MODELS,
       noiseReductionModes: [], // PalabraAI handles audio processing internally

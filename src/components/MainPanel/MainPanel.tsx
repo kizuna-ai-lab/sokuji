@@ -713,11 +713,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // The two fields use different code spaces (targets carry region suffixes like
       // en-us, sources don't), but the API strips the suffix before validating a
-      // source, so a plain swap holds for every target we offer except `vn` — and `vn`
-      // is not a valid target code in the first place (see TARGET_LANGUAGES). The eight
-      // source languages that aren't valid targets (ba, eo, eu, ga, ia, mn, mt, ug)
-      // make the reversed task fail loudly with the API's VALIDATION_ERROR, which
-      // handleError surfaces.
+      // source, so a plain swap holds for every target we offer. In the other
+      // direction five source languages aren't valid targets (eu, ga, mn, mt, ug);
+      // picking one of those makes the reversed task fail with the API's
+      // VALIDATION_ERROR, which arrives as a data message and surfaces through
+      // handleError rather than throwing out of connect().
       const pa = config as PalabraAISessionConfig;
       [pa.sourceLanguage, pa.targetLanguage] = [pa.targetLanguage, pa.sourceLanguage];
     } else if (config.provider === 'local_native') {
