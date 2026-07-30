@@ -14,6 +14,16 @@ export interface SonioxSettings {
   bothModeSharedSession: boolean;
   voice: string;              // TTS voice, one of VOICES
   model: string;
+  /** Custom vocabulary, one term per line (raw textarea text → context.terms). */
+  vocabularyTerms: string;
+  /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
+  vocabularyTranslations: string;
+  /** Soniox endpoint_sensitivity, -1.0..1.0; 0 = server default. */
+  endpointSensitivity: number;
+  /** Soniox endpoint_latency_adjustment_level, 0..3; 0 = server default. */
+  endpointLatencyAdjustmentLevel: number;
+  /** TTS speaking rate, 0.7..1.3; 1.0 = normal. */
+  ttsSpeed: number;
 }
 
 export const defaultSonioxSettings: SonioxSettings = {
@@ -23,7 +33,42 @@ export const defaultSonioxSettings: SonioxSettings = {
   bothModeSharedSession: true,
   voice: 'Maya',
   model: 'stt-rt-v5',
+  vocabularyTerms: '',
+  vocabularyTranslations: '',
+  endpointSensitivity: 0,
+  endpointLatencyAdjustmentLevel: 0,
+  ttsSpeed: 1.0,
 };
+
+/** One term per line; trimmed, empties dropped, duplicates removed. */
+export function parseVocabularyTerms(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const line of raw.split('\n')) {
+    const term = line.trim();
+    if (term) seen.add(term);
+  }
+  return [...seen];
+}
+
+/** One "source=target" per line; split on the FIRST '=', both sides trimmed
+ *  and required non-empty. Lines without '=' are ignored. */
+export function parseVocabularyTranslations(raw: string): Array<{ source: string; target: string }> {
+  const out: Array<{ source: string; target: string }> = [];
+  for (const line of raw.split('\n')) {
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const source = line.slice(0, eq).trim();
+    const target = line.slice(eq + 1).trim();
+    if (source && target) out.push({ source, target });
+  }
+  return out;
+}
+
+function clampNumber(value: unknown, min: number, max: number, dflt: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : dflt;
+}
 
 // The managed start floor lives in its own import-free module so the Start
 // gate (and the subtitle window that shares it) can read it without pulling
@@ -75,6 +120,8 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as SonioxSettings;
+    const terms = parseVocabularyTerms(settings.vocabularyTerms ?? '');
+    const translationTerms = parseVocabularyTranslations(settings.vocabularyTranslations ?? '');
     return {
       provider: 'soniox',
       model: settings.model || 'stt-rt-v5',
@@ -85,6 +132,21 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       // Direction is derived from You/Others/Both at connect time; default one_way.
       // MainPanel sets bidirectional:true only for the shared-Both single-session path.
       bidirectional: false,
+      ...(terms.length || translationTerms.length
+        ? {
+            context: {
+              ...(terms.length ? { terms } : {}),
+              ...(translationTerms.length ? { translationTerms } : {}),
+            },
+          }
+        : {}),
+      // Clamped here (single choke point); the wire components omit the keys
+      // when these carry the server-default values.
+      endpointSensitivity: clampNumber(settings.endpointSensitivity, -1, 1, 0),
+      endpointLatencyAdjustmentLevel: Math.round(
+        clampNumber(settings.endpointLatencyAdjustmentLevel, 0, 3, 0)
+      ),
+      ttsSpeed: clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0),
     } as SonioxSessionConfig;
   }
 
