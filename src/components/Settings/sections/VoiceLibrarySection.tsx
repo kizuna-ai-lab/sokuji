@@ -548,7 +548,13 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           </select>
         </div>
 
-        {(canUpload || canRecord) && (
+        {/* Manage block also renders when there's nothing left to create but
+            something to delete: consent (SonioxVoiceSection) gates CREATE by
+            zeroing canUpload/canRecord, but a returning user's already-cloned
+            voices still need a way to reach their delete button. The
+            record/upload affordances inside stay individually gated below,
+            so an unconsented render shows the manage list + delete only. */}
+        {(canUpload || canRecord || removableVoices.length > 0) && (
           <details className="voice-library-manage">
             <summary>
               {t('voiceLibrary.manageImported', 'Manage imported voices')}

@@ -133,8 +133,10 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    // Unconsented: capability.importModes is empty, so VoiceLibrarySection
-    // never renders the "Manage imported voices" details/summary at all.
+    // Unconsented AND no cloned voices yet: capability.importModes is empty
+    // and there's nothing removable, so the "Manage imported voices"
+    // details/summary doesn't render at all (see the next test for the case
+    // where a cloned voice exists — the manage block must still appear then).
     expect(screen.queryByText(/manage imported voices/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
@@ -144,6 +146,22 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(screen.getByText(/manage imported voices/i));
     expect(screen.getByRole('button', { name: /import voice/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
+  });
+
+  it('cloned voices stay deletable with consent unchecked (manage list renders without record/upload)', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    const { container } = mount();
+    await waitFor(() => {
+      const select = container.querySelector('select')!;
+      expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
+    });
+    // Consent is unchecked (default, resets every mount) — the manage block
+    // must still render because a removable (already-cloned) voice exists,
+    // even though record/upload stay hidden without consent.
+    fireEvent.click(screen.getByText(/manage imported voices/i));
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
   });
 
   it('onImport rejects a file over 10MB before decoding or creating', async () => {
