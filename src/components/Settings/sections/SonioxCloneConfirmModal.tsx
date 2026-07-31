@@ -1,6 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Loader2, Play, Square } from 'lucide-react';
 import Modal from '../../Modal/Modal';
+
+/** `m:ss` readout for the custom player's time display; guards against
+ *  NaN/Infinity before a real duration is known (pre-`loadedmetadata`, or a
+ *  blob URL jsdom/some browsers never resolve metadata for). */
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export interface SonioxCloneConfirmModalProps {
   isOpen: boolean;
@@ -54,14 +65,51 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
   const [name, setName] = useState(suggestedName);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
+  // Custom player state (replaces native <audio controls>, which renders as
+  // unstyled browser chrome outside .settings-section — see Settings.scss).
+  // Driven entirely by the hidden <audio> element's own play/pause/timeupdate/
+  // loadedmetadata/ended events rather than set eagerly on click, so it stays
+  // in sync with what the element is actually doing (autoplay-policy
+  // rejections, real seek completion, etc.).
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
   // One object URL per blob, revoked on change/unmount so repeated
-  // record/import attempts never leak blob: URLs.
+  // record/import attempts never leak blob: URLs. Player state resets here
+  // too — a fresh blob means playback position/duration from the previous
+  // clip no longer apply.
   useEffect(() => {
     if (!audioBlob) { setAudioUrl(null); return; }
     const url = URL.createObjectURL(audioBlob);
     setAudioUrl(url);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
     return () => URL.revokeObjectURL(url);
   }, [audioBlob]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      void audio.play();
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    const bar = progressRef.current;
+    if (!audio || !bar || !duration) return;
+    const rect = bar.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = fraction * duration;
+    setCurrentTime(audio.currentTime);
+  };
 
   return (
     <Modal
@@ -74,8 +122,45 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
           {t('settings.sonioxVoiceCloneReview', 'Listen to your clip and name the voice before uploading.')}
         </p>
         {audioUrl && (
-          // eslint-disable-next-line jsx-a11y/media-has-caption -- a locally captured reference clip has no captions to provide
-          <audio className="soniox-clone-confirm-modal__audio" controls src={audioUrl} />
+          <div className="soniox-clone-confirm-modal__player">
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- a locally captured reference clip has no captions to provide */}
+            <audio
+              ref={audioRef}
+              className="soniox-clone-confirm-modal__audio-el"
+              src={audioUrl}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+            />
+            <button
+              type="button"
+              className="soniox-clone-confirm-modal__play-toggle"
+              onClick={togglePlay}
+              aria-label={isPlaying ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+              title={isPlaying ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+            >
+              {isPlaying ? <Square size={14} /> : <Play size={14} />}
+            </button>
+            <div
+              className="soniox-clone-confirm-modal__progress"
+              ref={progressRef}
+              onClick={handleSeek}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={duration || 0}
+              aria-valuenow={currentTime}
+            >
+              <div
+                className="soniox-clone-confirm-modal__progress-fill"
+                style={{ width: duration ? `${(currentTime / duration) * 100}%` : '0%' }}
+              />
+            </div>
+            <span className="soniox-clone-confirm-modal__time">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
         )}
         <input
           type="text"
@@ -104,6 +189,13 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
             onClick={() => onConfirm(name)}
             disabled={busy}
           >
+            {busy && (
+              <Loader2
+                size={14}
+                className="soniox-clone-confirm-modal__spinner"
+                data-testid="soniox-clone-confirm-busy-spinner"
+              />
+            )}
             {t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}
           </button>
         </div>

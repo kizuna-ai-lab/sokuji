@@ -789,7 +789,13 @@
 
 // Soniox voice-cloning confirm modal (SonioxCloneConfirmModal): playback +
 // naming + the consent statement folded into the accept button. Mirrors
-// .license-consent-modal's layout above.
+// .license-consent-modal's layout above. This modal renders inside Modal's
+// .modal-content, OUTSIDE .settings-section/.config-section — the canonical
+// .text-input rule and the shared @keyframes spin below are both scoped
+// (nested selector / same-file-only convention) in ways that don't reach in
+// here, so this block is deliberately self-contained: it duplicates the
+// input treatment and defines its own spin keyframes rather than reaching
+// for either.
 .soniox-clone-confirm-modal {
   text-align: left;
 
@@ -799,13 +805,96 @@
     line-height: 1.5;
   }
 
-  &__audio {
-    width: 100%;
+  // Custom audio player replacing native <audio controls> (unstyled browser
+  // chrome that clashes with the dark design system). The real <audio>
+  // element stays mounted but visually hidden — playback state is driven by
+  // its own play/pause/timeupdate/loadedmetadata/ended events.
+  &__player {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
     margin-bottom: 12px;
+    padding: vars.$space-2 vars.$space-3;
+    background-color: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
   }
 
+  &__audio-el {
+    display: none;
+  }
+
+  &__play-toggle {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: vars.$color-primary;
+    color: vars.$text-primary;
+    cursor: pointer;
+    transition: background-color vars.$transition-fast;
+
+    &:hover {
+      background-color: vars.$color-primary-hover;
+    }
+  }
+
+  &__progress {
+    flex: 1;
+    height: 4px;
+    background-color: vars.$bg-elevated;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background-color: vars.$color-primary;
+    border-radius: 2px;
+    transition: width 0.1s linear;
+  }
+
+  &__time {
+    flex-shrink: 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    white-space: nowrap;
+  }
+
+  // Duplicated (not inherited) from the canonical .text-input rule earlier in
+  // this file — that rule is nested under .config-section/.settings-section
+  // and never reaches this modal.
   .text-input {
+    width: 100%;
+    padding: 8px 10px;
     margin-bottom: 10px;
+    background-color: vars.$bg-control;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    color: vars.$text-primary;
+    font-size: vars.$font-body;
+    box-sizing: border-box;
+    transition: border-color vars.$transition-fast;
+
+    &:focus {
+      outline: none;
+      border-color: vars.$color-primary;
+    }
+
+    &::placeholder {
+      color: vars.$text-disabled;
+    }
+
+    &:disabled {
+      background-color: vars.$bg-surface;
+      color: vars.$text-disabled;
+      cursor: not-allowed;
+    }
   }
 
   &__actions {
@@ -815,6 +904,10 @@
 
     button {
       flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: vars.$space-1;
       padding: 10px 20px;
       border: none;
       border-radius: vars.$radius-sm;
@@ -845,6 +938,18 @@
       background-color: vars.$color-primary-hover;
     }
   }
+
+  // Create-in-progress spinner on the accept button — local keyframes, not
+  // the shared @keyframes spin defined later in this file, so this block
+  // never depends on another rule's placement.
+  &__spinner {
+    animation: soniox-clone-confirm-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes soniox-clone-confirm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 // Volume control styles

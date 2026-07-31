@@ -173,19 +173,25 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     setModalError(null);
   };
 
-  // Confirm step: actually calls create(). On success, close the modal right
-  // away — the list's "processing…" badge covers the waitUntilReady wait —
-  // then run the existing finishCreate flow; a late (post-close) failure
-  // there (e.g. voice_failed) surfaces in the existing captureError banner
-  // rather than reopening the modal. On a create() failure (e.g.
-  // voice_name_conflict), keep the modal open with the mapped message inline
-  // so the user can rename and retry without losing the clip.
+  // Confirm step: calls create(), then refreshes the list BEFORE closing the
+  // modal — closing right after create() (the old behavior) meant the list
+  // didn't yet contain the new voice for a beat, which read as the create
+  // having silently failed. The modal now stays open (busy, spinner showing)
+  // through both the create request and this refresh, so by the time it
+  // closes the new voice is already visible with its "processing…" badge.
+  // The waitUntilReady → refresh → auto-select chain then continues in the
+  // background; a late (post-close) failure there (e.g. voice_failed)
+  // surfaces in the existing captureError banner rather than reopening the
+  // modal. On a create() failure (e.g. voice_name_conflict), keep the modal
+  // open with the mapped message inline so the user can rename and retry
+  // without losing the clip.
   const handleConfirm = async (name: string) => {
     if (!client || !pending || modalBusy) return;
     setModalBusy(true);
     setModalError(null);
     try {
       const created = await client.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
+      await refresh();
       setPending(null);
       setModalBusy(false);
       try {

@@ -89,6 +89,11 @@ describe('SonioxVoiceSection', () => {
     // needs it whenever a pending clip opens the modal.
     (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
     (URL as any).revokeObjectURL = vi.fn();
+    // jsdom's HTMLMediaElement doesn't implement play()/pause() (they throw
+    // "not implemented") — the custom player's play-toggle button calls them
+    // directly on the <audio> ref, so every test needs a stub.
+    (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
+    (window.HTMLMediaElement.prototype as any).pause = vi.fn();
   });
 
   it('renders the 28 built-ins immediately and cloned voices after fetch', async () => {
@@ -223,10 +228,21 @@ describe('SonioxVoiceSection', () => {
     expect((nameInput as HTMLInputElement).value).toBe('first');
   });
 
-  it('importing a valid file opens the confirm modal prefilled from the filename; confirm uploads with the (possibly edited) name and closes the modal', async () => {
-    listMock.mockResolvedValue([]);
+  it('importing a valid file opens the confirm modal prefilled from the filename; confirm calls create, refreshes the list BEFORE closing the modal, then finishes the ready-wait chain in the background', async () => {
+    // Sequenced so each list() call is distinguishable: initial mount load,
+    // then the post-create refresh (still processing — this is the one that
+    // must land before the modal closes), then finishCreate's refresh once
+    // waitUntilReady resolves.
+    listMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([cloned({ id: 'new-id', name: 'Custom Name', models: [] })])
+      .mockResolvedValueOnce([cloned({ id: 'new-id', name: 'Custom Name', models: [READY] })]);
     createMock.mockResolvedValue({ id: 'new-id', name: 'Custom Name', models: [] });
-    waitMock.mockResolvedValue({ id: 'new-id', name: 'Custom Name', models: [READY] });
+    // Held open deliberately: this proves the modal's close doesn't wait on
+    // waitUntilReady (only on create + the one refresh), and lets us inspect
+    // state at the "closed but not yet ready" midpoint before resolving it.
+    let resolveWait: (v: unknown) => void = () => {};
+    waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5); // 5s — valid
     const { container, onUpdate } = mount();
     openManageDetails();
@@ -242,8 +258,77 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
 
     await waitFor(() => expect(createMock).toHaveBeenCalledWith('Custom Name', file, 'my-clip.wav'));
+    // Modal closes only once create() AND the post-create refresh resolve.
+    await waitFor(() => expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull());
+    expect(listMock).toHaveBeenCalledTimes(2); // mount load + the one refresh that gates the close
+
+    // The refreshed (still-processing) list is already reflected in the
+    // dropdown right after close — proving refresh() landed before the close,
+    // not after.
+    const select = container.querySelector('select')!;
+    await waitFor(() => {
+      const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'new-id');
+      expect(opt?.textContent).toMatch(/processing/i);
+    });
+    expect(onUpdate).not.toHaveBeenCalled(); // auto-select hasn't run yet — still awaiting waitUntilReady
+
+    // Background chain continues after close: waitUntilReady resolves →
+    // refresh (3rd list call) → auto-select.
+    resolveWait({ id: 'new-id', name: 'Custom Name', models: [READY] });
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'new-id' }));
-    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull(); // modal closed
+    expect(listMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows the busy spinner on the accept button while create() is pending, with both buttons disabled; resolving create → refresh closes the modal', async () => {
+    listMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([cloned({ id: 'new-id', name: 'x', models: [] })]);
+    let resolveCreate: (v: unknown) => void = () => {};
+    createMock.mockReturnValue(new Promise((resolve) => { resolveCreate = resolve; }));
+    // Never resolves: this test only cares about the create-then-refresh
+    // handoff that closes the modal, not the background ready-wait chain —
+    // leaving waitUntilReady pending keeps the post-close refresh count
+    // (asserted below) deterministic instead of racing finishCreate's own
+    // refresh.
+    waitMock.mockReturnValue(new Promise(() => {}));
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+
+    const acceptButton = screen.getByRole('button', { name: confirmButtonName });
+    const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
+    fireEvent.click(acceptButton);
+
+    expect(createMock).toHaveBeenCalled();
+    expect(screen.getByTestId('soniox-clone-confirm-busy-spinner')).toBeInTheDocument();
+    expect(acceptButton).toBeDisabled();
+    expect(cancelButton).toBeDisabled();
+
+    resolveCreate({ id: 'new-id', name: 'x', models: [] });
+    await waitFor(() => expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull());
+    expect(listMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('soniox-clone-confirm-busy-spinner')).toBeNull();
+  });
+
+  it('renders a custom player for the staged clip instead of native <audio controls>; clicking play invokes HTMLMediaElement.play', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+
+    const audioEl = container.querySelector('audio');
+    expect(audioEl).not.toBeNull();
+    expect(audioEl!.hasAttribute('controls')).toBe(false); // custom player, not native chrome
+
+    const playButton = screen.getByRole('button', { name: /^play$/i });
+    fireEvent.click(playButton);
+    expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
   });
 
   it('importing a file whose basename strips to empty falls back to the "My Voice N" default in the modal', async () => {
