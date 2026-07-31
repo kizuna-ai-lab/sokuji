@@ -118,6 +118,14 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     expect(useSettingsStore.getState().soniox.ttsSpeed).toBe(0.8);
   });
 
+  it('renders no model dropdown for Soniox (fixed stt-rt-v5 + tts-rt-v1 pipeline, nothing to choose)', () => {
+    const { container } = mount();
+    expect(container.querySelector('.model-selection-container')).toBeNull();
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
+    const managed = mount();
+    expect(managed.container.querySelector('.model-selection-container')).toBeNull();
+  });
+
   it('routes writes to the kizunaSoniox slice for the managed twin', () => {
     useSettingsStore.setState((s: any) => ({
       provider: Provider.KIZUNA_AI_SONIOX,

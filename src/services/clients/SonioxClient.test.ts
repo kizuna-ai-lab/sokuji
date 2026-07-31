@@ -594,6 +594,11 @@ describe('SonioxClient bidirectional tagging + TTS filter', () => {
     stt.emit({ tokens: [
       tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' }), // me→other: SPOKEN
     ] });
+    // <end>: the two translations are separate utterances (each utterance
+    // has one fixed side, per the diarization design's "one utterance = one
+    // side" invariant — see #342 design doc); without this the second
+    // translation would inherit the first's already-resolved 'speaker' side.
+    stt.emit({ tokens: [tok('<end>')] });
     stt.emit({ tokens: [
       tok('你好', { is_final: true, translation_status: 'translation', language: 'zh', source_language: 'en' }),   // other→me: TEXT ONLY
     ] });
@@ -791,5 +796,134 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toMatch(/^tts_/);
     expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+  });
+});
+
+describe('SonioxClient diarization attribution (#342)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const FRAME = 2400; // SAMPLE_RATE * 0.1 — one 100 ms mixer frame
+  const loud = () => new Int16Array(FRAME).fill(1000);
+  const tok = (text: string, extra: object = {}) => ({ text, ...extra });
+
+  async function bidi(textOnly = true) {
+    const client = new SonioxClient('key');
+    const updates: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly });
+    return {
+      client, updates,
+      stt: sttInstances.at(-1)!, tts: ttsInstances.at(-1),
+      port: (client as any).createSecondaryPort(),
+    };
+  }
+
+  it('enables diarization on the wire for bidirectional sessions only', async () => {
+    const { stt } = await bidi();
+    expect(stt.config!.enableSpeakerDiarization).toBe(true);
+    const solo = new SonioxClient('key');
+    solo.setEventHandlers({});
+    await solo.connect({ ...BASE_CONFIG, bidirectional: false, textOnly: true });
+    expect((sttInstances.at(-1)!.config as any).enableSpeakerDiarization).toBeUndefined();
+  });
+
+  it('attributes a participant speaking MY language to participant via channel energy (language method would say speaker)', async () => {
+    const { updates, stt, port } = await bidi();
+    port.appendInputAudio(loud());       // far end (B) speaks during frame 0
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('你好', {
+      is_final: true, translation_status: 'original',
+      language: 'zh',                    // == sourceLanguage → language method would say 'speaker'
+      speaker: '2', start_ms: 0, end_ms: 100,
+    })] });
+    expect(updates.at(-1)!.item.source).toBe('participant');
+  });
+
+  it('cold start: my own speech in a non-source language is attributed to speaker via energy', async () => {
+    const { client, updates, stt } = await bidi();
+    client.appendInputAudio(loud());     // mic (A) speaks during frame 0
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('Hello', {
+      is_final: true, translation_status: 'original',
+      language: 'en',                    // != sourceLanguage → language method would say 'participant'
+      speaker: '1', start_ms: 0, end_ms: 100,
+    })] });
+    expect(updates.at(-1)!.item.source).toBe('speaker');
+  });
+
+  it('an established label takes over when both channels are hot (overlap)', async () => {
+    const { client, updates, stt, port } = await bidi();
+    // Two clean B-only utterances establish label '2' → participant.
+    for (const [start, end] of [[0, 100], [100, 200]] as const) {
+      port.appendInputAudio(loud());
+      vi.advanceTimersByTime(100);
+      stt.emit({ tokens: [tok('好', {
+        is_final: true, translation_status: 'original', language: 'zh',
+        speaker: '2', start_ms: start, end_ms: end,
+      })] });
+      stt.emit({ tokens: [tok('<end>')] });
+    }
+    // Overlap: both channels hot during frame 2 → ambiguous energy.
+    client.appendInputAudio(loud());
+    port.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('也好', {
+      is_final: true, translation_status: 'original', language: 'zh',
+      speaker: '2', start_ms: 200, end_ms: 300,
+    })] });
+    expect(updates.at(-1)!.item.source).toBe('participant');
+  });
+
+  it('falls back to the language method when tokens carry no speaker and no usable timing', async () => {
+    const { updates, stt } = await bidi();
+    stt.emit({ tokens: [tok('你好', { is_final: true, translation_status: 'original', language: 'zh' })] });
+    expect(updates.at(-1)!.item.source).toBe('speaker'); // today's behavior, byte-for-byte
+    stt.emit({ tokens: [tok('<end>')] });
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'original', language: 'en' })] });
+    expect(updates.at(-1)!.item.source).toBe('participant');
+  });
+
+  it('TTS gate follows the resolved side: participant translations are not spoken, speaker translations are', async () => {
+    const { client, stt, tts, port } = await bidi(false); // textOnly=false → TTS active
+    // Participant utterance (B energy, MY language — the gate must NOT rely on language).
+    port.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [
+      tok('你好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2', start_ms: 0, end_ms: 100 }),
+      tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh', speaker: '2' }),
+    ] });
+    expect(tts!.sent).toHaveLength(0);
+    stt.emit({ tokens: [tok('<end>')] });
+    // Speaker utterance (A energy) → translation IS fed.
+    client.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [
+      tok('早上好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '1', start_ms: 100, end_ms: 200 }),
+      tok('Good morning', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh', speaker: '1' }),
+    ] });
+    expect(tts!.sent.map((s: any) => s.text)).toEqual(['Good morning']);
+  });
+
+  it('a new connect on the same client starts with no label memory from the previous session', async () => {
+    const { client, stt, port, updates } = await bidi();
+    // TWO B-only utterances so label '2' is fully ESTABLISHED (net -2) before
+    // the reconnect: a leaked tracker would then answer 'participant' by label
+    // and fail the assertion below — one vote alone would leak undetected
+    // (unestablished labels fall back to language either way).
+    port.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2', start_ms: 0, end_ms: 100 })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    port.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('再见', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2', start_ms: 100, end_ms: 200 })] });
+    await client.disconnect();
+    await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
+    const stt2 = sttInstances.at(-1)!;
+    // Same label '2', no timing/energy evidence: must hit the language
+    // fallback (zh == source → speaker), not the stale participant memory.
+    stt2.emit({ tokens: [tok('好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2' })] });
+    expect(updates.at(-1)!.item.source).toBe('speaker');
   });
 });

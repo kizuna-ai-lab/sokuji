@@ -13,6 +13,7 @@ import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxCostMeter, SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { PcmMixer } from './PcmMixer';
+import { SonioxSideTracker } from './SonioxSideTracker';
 import i18n from '../../locales';
 import { getApiUrl } from '../../utils/environment';
 
@@ -86,6 +87,9 @@ export class SonioxClient implements IClient {
   // Both single-session: mixes appendInputAudio (channel A) with the
   // secondary port's appendParticipantAudio (channel B) into one STT stream.
   private mixer: PcmMixer | null = null;
+  // Both single-session only: energy timeline + speaker-label memory that
+  // resolves which side an utterance belongs to (see SonioxSideTracker docs).
+  private sideTracker: SonioxSideTracker | null = null;
 
   // Per-utterance display state
   private currentUserItemId: string | null = null;
@@ -278,6 +282,7 @@ export class SonioxClient implements IClient {
       endpointSensitivity: cfg.endpointSensitivity,
       endpointLatencyAdjustmentLevel: cfg.endpointLatencyAdjustmentLevel,
       clientReferenceId: this.clientReferenceId ?? undefined,
+      ...(effectiveTwoWay ? { enableSpeakerDiarization: true } : {}),
     });
     // If disconnect() ran during the STT connect await, this attempt is stale:
     // close the socket we just opened and bail before wiring anything up.
@@ -289,11 +294,20 @@ export class SonioxClient implements IClient {
     if (this.managedOptions && this.leaseId) this.notifySessionStarted(this.leaseId);
 
     if (this.bidirectional) {
+      this.sideTracker = new SonioxSideTracker();
       this.mixer = new PcmMixer({
         frameSamples: Math.round(SAMPLE_RATE * 0.1),
         intervalMs: 100,
         maxBacklogSamples: SAMPLE_RATE * 2,
-        onFrame: (mixed) => { if (this.stt?.isOpen()) this.stt.sendAudio(mixed); },
+        // Record energy ONLY for frames actually sent: dropped frames don't
+        // advance the server's audio clock, and the tracker's frame index
+        // must line up with token start_ms.
+        onFrame: (mixed, energyA, energyB) => {
+          if (this.stt?.isOpen()) {
+            this.stt.sendAudio(mixed);
+            this.sideTracker?.recordFrame(energyA, energyB);
+          }
+        },
       });
       this.mixer.start();
     }
@@ -532,11 +546,20 @@ export class SonioxClient implements IClient {
       }
       const isTranslation = token.translation_status === 'translation';
       if (this.bidirectional && this.utteranceSide === null) {
-        const src = this.currentConfig?.sourceLanguage;
-        if (!isTranslation && token.language) {
-          this.utteranceSide = token.language === src ? 'speaker' : 'participant';
-        } else if (isTranslation && token.source_language) {
-          this.utteranceSide = token.source_language === src ? 'speaker' : 'participant';
+        // Tier 1+2: established speaker label, else channel-energy verdict
+        // (original tokens carry start_ms/end_ms; translation tokens can
+        // still hit tier 1 via their speaker field).
+        const evidence = this.sideTracker?.inferSide(token.speaker, token.start_ms, token.end_ms) ?? null;
+        if (evidence) {
+          this.utteranceSide = evidence.side;
+        } else {
+          // Tier 3: legacy language comparison (display only — never votes).
+          const src = this.currentConfig?.sourceLanguage;
+          if (!isTranslation && token.language) {
+            this.utteranceSide = token.language === src ? 'speaker' : 'participant';
+          } else if (isTranslation && token.source_language) {
+            this.utteranceSide = token.source_language === src ? 'speaker' : 'participant';
+          }
         }
       }
       if (isTranslation) {
@@ -627,7 +650,14 @@ export class SonioxClient implements IClient {
 
   private feedTts(text: string, token: SonioxToken): void {
     if (!this.currentConfig || this.currentConfig.textOnly) return;
-    if (this.bidirectional && token.source_language !== this.currentConfig.sourceLanguage) return; // v1: only me→other is spoken
+    if (this.bidirectional) {
+      // The attribution chain has already run for this token in
+      // handleSttMessage; fall back to the legacy language comparison only
+      // if it produced nothing at all.
+      const side = this.utteranceSide
+        ?? (token.source_language === this.currentConfig.sourceLanguage ? 'speaker' : 'participant');
+      if (side !== 'speaker') return; // v1: only me→other is spoken
+    }
     if (this.utteranceTtsLanguage === null) {
       this.utteranceTtsLanguage = token.language || this.currentConfig.targetLanguage || 'en';
     }
@@ -951,6 +981,7 @@ export class SonioxClient implements IClient {
     // ended (or it expires on its own).
     if (this.managedOptions && this.leaseId) this.notifySessionEnd(this.leaseId);
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
+    this.sideTracker = null;
     if (this.stt) {
       this.stt.end();   // empty text frame: server flushes and closes
       this.stt.close();
@@ -975,6 +1006,7 @@ export class SonioxClient implements IClient {
 
   reset(): void {
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
+    this.sideTracker = null;
     this.conversationItems = [];
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;

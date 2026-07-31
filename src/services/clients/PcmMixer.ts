@@ -13,7 +13,10 @@ export interface PcmMixerOptions {
   frameSamples: number;
   intervalMs: number;
   maxBacklogSamples: number;
-  onFrame: (mixed: Int16Array) => void;
+  /** Mixed frame plus the mean-absolute level of each RAW channel over the
+   *  frame (pre-gain; zero-filled tail counts as zeros) — the Both-session
+   *  side-attribution energy evidence (see SonioxSideTracker). */
+  onFrame: (mixed: Int16Array, energyA: number, energyB: number) => void;
 }
 
 export class PcmMixer {
@@ -47,12 +50,16 @@ export class PcmMixer {
     const a = this.qA.splice(0, n);
     const b = this.qB.splice(0, n);
     const out = new Int16Array(n);
+    let sumA = 0;
+    let sumB = 0;
     for (let i = 0; i < n; i++) {
       const va = i < a.length ? a[i] : 0;
       const vb = i < b.length ? b[i] : 0;
+      sumA += Math.abs(va);
+      sumB += Math.abs(vb);
       const s = Math.round(0.5 * va + 0.5 * vb);
       out[i] = s < -32768 ? -32768 : s > 32767 ? 32767 : s;
     }
-    this.options.onFrame(out);
+    this.options.onFrame(out, sumA / n, sumB / n);
   }
 }
