@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "רקע חופשי למפגש הבא — סדר יום, נושא או הערות התייחסות. עוזר לזיהוי ולתרגום לעקוב אחר התחום. יקוצץ ראשון אם ההקשר המשולב חורג ממגבלת הגודל.",
     "sonioxBackgroundPlaceholder": "הדבק סדר יום, נושא או הערות רקע (אופציונלי)",
     "sonioxVoiceConsent": "אישרתי שיש לי את הזכות להשתמש בקול הזה",
-    "sonioxVoiceConsentRequired": "אשר תחילה שיש לך את הזכות להשתמש בקול הזה",
+    "sonioxVoiceCloneTitle": "שכפול קול",
+    "sonioxVoiceCloneReview": "האזן לקטע שלך ותן שם לקול לפני ההעלאה.",
     "sonioxVoiceNamePlaceholder": "שם לקול משוכפל חדש (אופציונלי)",
     "sonioxVoiceDefaultName": "הקול שלי {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(קול שנמחק)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "העיבוד נכשל — מחק את הקול הזה ונסה קטע ברור יותר",
     "sonioxVoiceNameConflict": "כבר קיים קול בשם הזה",
     "sonioxVoiceQuotaError": "מגבלת הקולות הארגונית של Soniox הושגה — מחק קול ונסה שוב",
-    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API."
+    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API.",
+    "sonioxVoiceRefreshList": "רענן את רשימת הקולות"
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",

@@ -25,6 +25,7 @@ vi.mock('../../../services/clients/SonioxVoicesClient', async (importOriginal) =
 });
 
 const { default: SonioxVoiceSection } = await import('./SonioxVoiceSection');
+const { SonioxVoicesError } = await import('../../../services/clients/SonioxVoicesClient');
 
 const READY = { model: 'tts-rt-v1', status: 'ready', error_type: null, error_message: null };
 const cloned = (over: object = {}) => ({ id: 'uuid-1', name: 'Me', models: [READY], ...over });
@@ -74,12 +75,20 @@ function mount(over: object = {}) {
   return { onUpdate, ...utils };
 }
 
+const openManageDetails = () => fireEvent.click(screen.getByText(/manage imported voices/i));
+const nameInputPlaceholder = /name for a new cloned voice/i;
+const confirmButtonName = /i confirm i have the right/i;
+
 describe('SonioxVoiceSection', () => {
   beforeEach(() => {
     listMock.mockReset().mockResolvedValue([]);
     createMock.mockReset();
     deleteMock.mockReset().mockResolvedValue(undefined);
     waitMock.mockReset();
+    // jsdom has no URL.createObjectURL — the confirm modal's <audio> preview
+    // needs it whenever a pending clip opens the modal.
+    (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
+    (URL as any).revokeObjectURL = vi.fn();
   });
 
   it('renders the 28 built-ins immediately and cloned voices after fetch', async () => {
@@ -112,10 +121,11 @@ describe('SonioxVoiceSection', () => {
     expect(select.value).toBe('gone-uuid'); // stored setting is not rewritten
   });
 
-  it('managed mode renders built-ins only: no fetch, no consent/create affordances', () => {
-    const { container } = mount({ managed: true });
+  it('managed mode renders built-ins only: no fetch, no refresh/create affordances', () => {
+    mount({ managed: true });
     expect(listMock).not.toHaveBeenCalled();
-    expect(container.querySelector('#soniox-voice-consent')).toBeNull();
+    expect(screen.queryByTitle(/refresh voice list/i)).toBeNull();
+    expect(screen.queryByText(/manage imported voices/i)).toBeNull();
     expect(screen.queryByText(/Record/i)).toBeNull();
   });
 
@@ -129,96 +139,202 @@ describe('SonioxVoiceSection', () => {
     });
   });
 
-  it('consent gates the create affordances: hidden until checked, then Record/Import appear', async () => {
+  it('import/record are available as soon as a client exists (no consent gate)', async () => {
     listMock.mockResolvedValue([]);
-    const { container } = mount();
+    mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    // Unconsented AND no cloned voices yet: capability.importModes is empty
-    // and there's nothing removable, so the "Manage imported voices"
-    // details/summary doesn't render at all (see the next test for the case
-    // where a cloned voice exists — the manage block must still appear then).
-    expect(screen.queryByText(/manage imported voices/i)).toBeNull();
-    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
-
-    fireEvent.click(container.querySelector('#soniox-voice-consent')!);
-
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     expect(screen.getByRole('button', { name: /import voice/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
   });
 
-  it('cloned voices stay deletable with consent unchecked (manage list renders without record/upload)', async () => {
+  it('cloned voices are deletable (manage list shows a Delete button)', async () => {
     listMock.mockResolvedValue([cloned()]);
     const { container } = mount();
     await waitFor(() => {
       const select = container.querySelector('select')!;
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
     });
-    // Consent is unchecked (default, resets every mount) — the manage block
-    // must still render because a removable (already-cloned) voice exists,
-    // even though record/upload stay hidden without consent.
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
   });
 
-  it('onImport rejects a file over 10MB before decoding or creating', async () => {
+  it('the refresh button re-fetches the voice list', async () => {
+    listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned()]);
+    const { container } = mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      const select = container.querySelector('select')!;
+      expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
+    });
+  });
+
+  it('onImport rejects a file over 10MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
-    fireEvent.click(container.querySelector('#soniox-voice-consent')!);
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const bigFile = fakeFile('big.wav', 11 * 1024 * 1024);
     fireEvent.change(fileInput, { target: { files: [bigFile] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i));
     expect(createMock).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('onImport rejects a decoded clip shorter than 3s with the localized message', async () => {
+  it('onImport rejects a decoded clip shorter than 3s with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 1); // 1s — below the 3s minimum
     const { container } = mount();
-    fireEvent.click(container.querySelector('#soniox-voice-consent')!);
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
     expect(createMock).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('onImport rejects a decoded clip longer than 20s with the localized message', async () => {
+  it('onImport rejects a decoded clip longer than 20s with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 25); // 25s — above the 20s maximum
     const { container } = mount();
-    fireEvent.click(container.querySelector('#soniox-voice-consent')!);
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
     expect(createMock).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('onImport falls back to the nextName() default when the basename strips to empty', async () => {
+  it('importing a valid file opens the confirm modal prefilled from the filename; confirm uploads with the (possibly edited) name and closes the modal', async () => {
+    listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'Custom Name', models: [] });
+    waitMock.mockResolvedValue({ id: 'new-id', name: 'Custom Name', models: [READY] });
+    stubAudioContext(16000, 16000 * 5); // 5s — valid
+    const { container, onUpdate } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = fakeFile('my-clip.wav');
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
+    expect(nameInput).toHaveValue('my-clip'); // stripped filename, not the raw upload name
+    expect(createMock).not.toHaveBeenCalled(); // staged, not yet uploaded
+
+    fireEvent.change(nameInput, { target: { value: 'Custom Name' } });
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledWith('Custom Name', file, 'my-clip.wav'));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'new-id' }));
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull(); // modal closed
+  });
+
+  it('importing a file whose basename strips to empty falls back to the "My Voice N" default in the modal', async () => {
     listMock.mockResolvedValue([]);
     createMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [] });
     waitMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [READY] });
     stubAudioContext(16000, 16000 * 5); // 5s — valid
     const { container } = mount();
-    fireEvent.click(container.querySelector('#soniox-voice-consent')!);
-    fireEvent.click(screen.getByText(/manage imported voices/i));
+    openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     // ".wav" strips to an empty basename via the `.[^.]+$` replace.
     const file = fakeFile('.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
+    expect(nameInput).toHaveValue('My Voice {{n}}');
+
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
-    const usedName = createMock.mock.calls[0][0];
-    expect(usedName).not.toBe('');
-    // The mocked t() returns the raw default string unfilled — this is
-    // nextName()'s "My Voice {{n}}" fallback, not an empty/garbage name.
-    expect(usedName).toContain('My Voice');
+    expect(createMock.mock.calls[0][0]).toBe('My Voice {{n}}');
+  });
+
+  it('cancel discards the pending clip without calling create', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('a voice_name_conflict on confirm keeps the modal open with the mapped message, and a retry succeeds', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    createMock
+      .mockRejectedValueOnce(new SonioxVoicesError('voice_name_conflict', 'conflict', 409))
+      .mockResolvedValueOnce({ id: 'ok-id', name: 'Retry Name', models: [] });
+    waitMock.mockResolvedValue({ id: 'ok-id', name: 'Retry Name', models: [READY] });
+    const { container, onUpdate } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
+
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/already exists/i));
+    // Modal is still open with the clip intact — rename and retry.
+    expect(screen.getByPlaceholderText(nameInputPlaceholder)).toBeInTheDocument();
+
+    fireEvent.change(nameInput, { target: { value: 'Retry Name' } });
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'ok-id' }));
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
+  });
+
+  it('recording a clip opens the confirm modal with the "My Voice N" default name', async () => {
+    listMock.mockResolvedValue([]);
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    const gum = vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] }));
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: gum } });
+    // Plain mutable field (mirrors VoiceLibrarySection.test.tsx's own
+    // FakeAudioContext) — VoiceLibrarySection assigns `processor.onaudioprocess
+    // = fn` directly, so capturing the created processor object and reading
+    // its property back is enough; no getter/setter indirection needed.
+    // `any` sidesteps TS narrowing the closure-assigned variable to `null`
+    // (it can't see the write, which happens inside a method invoked
+    // indirectly by VoiceLibrarySection's own recording code).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let processorNode: any = null;
+    class FakeAudioContext {
+      sampleRate = 16000;
+      destination = {};
+      createMediaStreamSource() { return { connect: vi.fn(), disconnect: vi.fn() }; }
+      createScriptProcessor() {
+        processorNode = { connect: vi.fn(), disconnect: vi.fn(), onaudioprocess: null };
+        return processorNode;
+      }
+      close = vi.fn().mockResolvedValue(undefined);
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+
+    try {
+      mount();
+      openManageDetails();
+      fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+      await waitFor(() => expect(gum).toHaveBeenCalled());
+      // Feed one chunk so the captured clip isn't empty.
+      processorNode?.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1600).fill(0.1) } });
+      fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+
+      const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
+      expect(nameInput).toHaveValue('My Voice {{n}}');
+      expect(createMock).not.toHaveBeenCalled(); // staged, not yet uploaded
+    } finally {
+      if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+      else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+      vi.unstubAllGlobals();
+    }
   });
 });

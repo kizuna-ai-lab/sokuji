@@ -277,7 +277,20 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
     try {
       const generation = recGenerationRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Voice-cloning reference audio must be captured RAW: the cloning
+      // model mimics everything in the clip, so browser echo-cancellation /
+      // noise-suppression / AGC artifacts get baked into the cloned voice
+      // (Soniox's docs note the model reproduces even background noise from
+      // the reference — the same reasoning applies to the native cloners).
+      // Mono is enough for a voice reference and keeps the encoded clip small.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+        },
+      });
       if (generation !== recGenerationRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -549,11 +562,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         </div>
 
         {/* Manage block also renders when there's nothing left to create but
-            something to delete: consent (SonioxVoiceSection) gates CREATE by
+            something to delete: an adapter without a client yet
+            (SonioxVoiceSection before an API key is entered) gates CREATE by
             zeroing canUpload/canRecord, but a returning user's already-cloned
             voices still need a way to reach their delete button. The
             record/upload affordances inside stay individually gated below,
-            so an unconsented render shows the manage list + delete only. */}
+            so a clientless render shows the manage list + delete only. */}
         {(canUpload || canRecord || removableVoices.length > 0) && (
           <details className="voice-library-manage">
             <summary>

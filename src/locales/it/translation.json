@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Contesto libero per la prossima sessione — ordine del giorno, argomento o note di riferimento. Aiuta il riconoscimento e la traduzione a seguire l'ambito. Viene troncato per primo se il contesto complessivo supera il limite di dimensione.",
     "sonioxBackgroundPlaceholder": "Incolla un ordine del giorno, un argomento o note di contesto (facoltativo)",
     "sonioxVoiceConsent": "Confermo di avere il diritto di utilizzare questa voce",
-    "sonioxVoiceConsentRequired": "Conferma prima di avere il diritto di utilizzare questa voce",
+    "sonioxVoiceCloneTitle": "Clona voce",
+    "sonioxVoiceCloneReview": "Ascolta la tua clip e assegna un nome alla voce prima di caricarla.",
     "sonioxVoiceNamePlaceholder": "Nome per una nuova voce clonata (facoltativo)",
     "sonioxVoiceDefaultName": "La mia voce {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(voce eliminata)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Elaborazione non riuscita — elimina questa voce e prova con una clip più chiara",
     "sonioxVoiceNameConflict": "Esiste già una voce con questo nome",
     "sonioxVoiceQuotaError": "Limite di voci dell'organizzazione Soniox raggiunto — elimina una voce e riprova",
-    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API."
+    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API.",
+    "sonioxVoiceRefreshList": "Aggiorna elenco voci"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",

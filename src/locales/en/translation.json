@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.",
     "sonioxBackgroundPlaceholder": "Paste an agenda, topic, or background notes (optional)",
     "sonioxVoiceConsent": "I confirm I have the right to use this voice",
-    "sonioxVoiceConsentRequired": "Confirm you have the right to use this voice first",
+    "sonioxVoiceCloneTitle": "Clone voice",
+    "sonioxVoiceCloneReview": "Listen to your clip and name the voice before uploading.",
     "sonioxVoiceNamePlaceholder": "Name for a new cloned voice (optional)",
     "sonioxVoiceDefaultName": "My Voice {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(deleted voice)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Processing failed — delete this voice and try a clearer clip",
     "sonioxVoiceNameConflict": "A voice with this name already exists",
     "sonioxVoiceQuotaError": "Soniox organization voice limit reached — delete a voice and retry",
-    "sonioxVoiceListError": "Could not load cloned voices — check the API key."
+    "sonioxVoiceListError": "Could not load cloned voices — check the API key.",
+    "sonioxVoiceRefreshList": "Refresh voice list"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

@@ -6,13 +6,17 @@
  * manage voices (temporary keys are locked out of the REST API), so the twin
  * renders built-ins only; Phase 2 swaps the data source to backend endpoints.
  *
- * Create flow: consent checkbox gates record/upload (unchecked → the
- * affordances don't render at all, see `capability.importModes` below) →
- * client-side validation (upload only: ≤10 MB, decoded duration 3-20s,
- * mirroring NativeVoiceSection's `validateVoiceClip` pattern) → WAV-encode
- * (recordings) → POST → poll until ready (seconds) → auto-select.
- * `voice_failed` is terminal: the entry renders a failed hint and can only be
- * deleted.
+ * Create flow: record/upload are always available once a client exists (the
+ * shared voice-library look, no gating checkbox) → client-side validation
+ * (upload only: ≤10 MB, decoded duration 3-20s, mirroring NativeVoiceSection's
+ * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
+ * `pending` rather than uploaded immediately, which opens
+ * `SonioxCloneConfirmModal` for playback + naming + the consent statement
+ * (folded into the modal's accept button) → on confirm, WAV-encode
+ * (recordings only) → POST → poll until ready (seconds) → auto-select. A
+ * mapped create failure (e.g. `voice_name_conflict`) keeps the modal open so
+ * the user can rename and retry without losing the clip. `voice_failed` is
+ * terminal: the entry renders a failed hint and can only be deleted.
  *
  * Cloning affordances also require an API key: managing voices needs the
  * permanent project key, so the record/upload controls stay hidden until
@@ -22,7 +26,9 @@
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RefreshCw } from 'lucide-react';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
+import SonioxCloneConfirmModal from './SonioxCloneConfirmModal';
 import {
   SonioxVoicesClient,
   SonioxVoicesError,
@@ -85,9 +91,23 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // the "(deleted voice)" placeholder for a settings.voice that simply
   // hasn't been checked against the fetched list yet.
   const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(client ? 'loading' : 'idle');
-  const [consent, setConsent] = useState(false);
-  const [voiceName, setVoiceName] = useState('');
   const [captureError, setCaptureError] = useState<string | null>(null);
+  // A clip that's been picked/recorded and passed client-side validation,
+  // staged for the confirm modal (playback + naming + consent) before it's
+  // actually uploaded. Non-null ⇔ the modal is open.
+  const [pending, setPending] = useState<{ blob: Blob; fileName?: string; suggestedName: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalBusy, setModalBusy] = useState(false);
+  // Bumped every time a NEW clip is staged (not on a confirm-error retry,
+  // which reuses the same `pending`) and handed to the modal as `key` — a
+  // fresh mount per capture means the name field's initial value is right
+  // the first time, with no effect-driven resync race against the DOM
+  // assertions in tests (or the user's eyes).
+  const [pendingSeq, setPendingSeq] = useState(0);
+  const stagePending = (next: { blob: Blob; fileName?: string; suggestedName: string }) => {
+    setPending(next);
+    setPendingSeq((s) => s + 1);
+  };
   // Refresh results landing after unmount (or after the key changed) must not
   // write state; the counter invalidates in-flight loads.
   const loadGeneration = useRef(0);
@@ -140,39 +160,52 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       await refresh();
     }
     onUpdate({ voice: created.id });
-    setVoiceName('');
   };
 
-  const nextName = () =>
-    voiceName.trim() ||
-    t('settings.sonioxVoiceDefaultName', 'My Voice {{n}}', { n: clones.length + 1 });
+  const defaultName = () => t('settings.sonioxVoiceDefaultName', 'My Voice {{n}}', { n: clones.length + 1 });
 
-  // Consent is enforced structurally, not by throwing here: `onImport` /
-  // `onRecord` are only ever handed to VoiceLibrarySection (below) when
-  // `client && consent`, and its own capability.importModes stays `[]`
-  // without consent too, so the record/upload affordances never render in
-  // the first place — there's no path left that reaches `runCreate` unconsented.
-  //
-  // Shared by onRecord/onImport: run the create call, map any failure to a
-  // localized message (surfaced inline, mirroring NativeVoiceSection's
-  // captureError convention) and rethrow so VoiceLibrarySection's own
-  // try/catch also sees the failure (e.g. it keeps a required transcript
-  // field populated — not used here, but keeps the contract symmetric with
-  // the other adapter).
-  const runCreate = async (create: () => Promise<SonioxVoice>) => {
-    setCaptureError(null);
+  // Modal lifecycle: `pending` non-null opens SonioxCloneConfirmModal.
+  // `closeModal` is also handed to the modal as its Cancel/backdrop/X
+  // handler, guarded against `modalBusy` so a create() request in flight
+  // can't be orphaned by a mid-request cancel.
+  const closeModal = () => {
+    if (modalBusy) return;
+    setPending(null);
+    setModalError(null);
+  };
+
+  // Confirm step: actually calls create(). On success, close the modal right
+  // away — the list's "processing…" badge covers the waitUntilReady wait —
+  // then run the existing finishCreate flow; a late (post-close) failure
+  // there (e.g. voice_failed) surfaces in the existing captureError banner
+  // rather than reopening the modal. On a create() failure (e.g.
+  // voice_name_conflict), keep the modal open with the mapped message inline
+  // so the user can rename and retry without losing the clip.
+  const handleConfirm = async (name: string) => {
+    if (!client || !pending || modalBusy) return;
+    setModalBusy(true);
+    setModalError(null);
     try {
-      const created = await create();
-      await finishCreate(created);
+      const created = await client.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
+      setPending(null);
+      setModalBusy(false);
+      try {
+        await finishCreate(created);
+      } catch (e) {
+        setCaptureError(mapCreateError(e).message);
+      }
     } catch (e) {
-      const mapped = mapCreateError(e);
-      setCaptureError(mapped.message);
-      throw mapped;
+      setModalError(mapCreateError(e).message);
+      setModalBusy(false);
     }
   };
 
-  const onRecord = (clip: Float32Array, sampleRate: number) =>
-    runCreate(() => client!.create(nextName(), encodeWavPcm16(clip, sampleRate)));
+  // No create call here — the encoded clip is staged as `pending` and the
+  // confirm modal drives the actual upload via handleConfirm above.
+  const onRecord = async (clip: Float32Array, sampleRate: number) => {
+    setCaptureError(null);
+    stagePending({ blob: encodeWavPcm16(clip, sampleRate), suggestedName: defaultName() });
+  };
 
   // Maps a validateVoiceClip verdict to the same voiceLibrary.* copy
   // NativeVoiceSection uses, substituting this section's own bounds.
@@ -195,11 +228,14 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // file outright (cheap, no decode needed), then decode the file to measure
   // its REAL duration — a file's extension/MIME claims nothing about actual
   // length — and run it through the same validateVoiceClip bounds
-  // NativeVoiceSection uses. Catches a doomed upload before spending a
-  // create() call (and a slot in the org's 20-voice quota) on a clip Soniox
-  // would reject anyway.
-  const onImport = (file: File) =>
-    runCreate(async () => {
+  // NativeVoiceSection uses. A validation failure surfaces inline via
+  // captureError and rethrows (VoiceLibrarySection's contract) without
+  // opening the modal. On success, no create() call is made here — the
+  // validated file is staged as `pending` so the confirm modal can play it
+  // back and take a name before it's uploaded.
+  const onImport = async (file: File) => {
+    setCaptureError(null);
+    try {
       if (file.size > MAX_UPLOAD_BYTES) {
         throw new Error(
           t('voiceLibrary.importError', 'Import failed: {error}').replace(
@@ -223,8 +259,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       const reason = validateVoiceClip(downmixToMono(buffer), buffer.sampleRate, MAX_CLIP_SECONDS, MIN_CLIP_SECONDS);
       if (reason) throw new Error(mapClipError(reason));
       const stripped = file.name.replace(/\.[^.]+$/, '');
-      return client!.create(voiceName.trim() || stripped || nextName(), file, file.name);
-    });
+      stagePending({ blob: file, fileName: file.name, suggestedName: stripped || defaultName() });
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setCaptureError(err.message);
+      throw err;
+    }
+  };
 
   const onDelete = async (id: string) => {
     if (!client) return;
@@ -278,29 +319,19 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   return (
     <div className="settings-section" id="soniox-voice-section">
-      <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
-      {client && (
-        <div className="setting-item">
-          <label className="unlimited-checkbox">
-            <input
-              id="soniox-voice-consent"
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-            />
-            <span>{t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}</span>
-          </label>
-          <input
-            id="soniox-voice-name"
-            type="text"
-            className="text-input"
-            placeholder={t('settings.sonioxVoiceNamePlaceholder', 'Name for a new cloned voice (optional)')}
-            value={voiceName}
-            maxLength={128}
-            onChange={(e) => setVoiceName(e.target.value)}
-          />
-        </div>
-      )}
+      <h2>
+        <span>{t('settings.voiceSettings', 'Voice Settings')}</span>
+        {client && (
+          <button
+            className="section-refresh-button"
+            onClick={() => void refresh()}
+            disabled={listState === 'loading'}
+            title={t('settings.sonioxVoiceRefreshList', 'Refresh voice list')}
+          >
+            <RefreshCw size={14} className={listState === 'loading' ? 'spinning' : ''} />
+          </button>
+        )}
+      </h2>
       {listState === 'error' && (
         <div className="setting-item">
           <div className="setting-description">
@@ -315,11 +346,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         voices={entries}
         selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
-        onImport={client && consent ? onImport : undefined}
-        onRecord={client && consent ? onRecord : undefined}
+        onImport={client ? onImport : undefined}
+        onRecord={client ? onRecord : undefined}
         onDelete={onDelete}
         capability={{
-          importModes: client && consent ? ['record', 'upload'] : [],
+          importModes: client ? ['record', 'upload'] : [],
           curation: false,
           presentation: 'dropdown',
           accept: 'audio/*',
@@ -331,6 +362,16 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}
+      <SonioxCloneConfirmModal
+        key={pendingSeq}
+        isOpen={pending !== null}
+        suggestedName={pending?.suggestedName ?? ''}
+        audioBlob={pending?.blob ?? null}
+        error={modalError}
+        busy={modalBusy}
+        onConfirm={(name) => void handleConfirm(name)}
+        onClose={closeModal}
+      />
     </div>
   );
 };

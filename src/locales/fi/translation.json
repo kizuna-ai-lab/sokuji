@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Vapaamuotoinen tausta seuraavaa istuntoa varten — asialista, aihe tai viitemuistiinpanot. Auttaa tunnistusta ja käännöstä pysymään aihealueessa. Lyhennetään ensin, jos yhdistetty konteksti ylittää kokorajan.",
     "sonioxBackgroundPlaceholder": "Liitä asialista, aihe tai taustatiedot (valinnainen)",
     "sonioxVoiceConsent": "Vahvistan, että minulla on oikeus käyttää tätä ääntä",
-    "sonioxVoiceConsentRequired": "Vahvista ensin, että sinulla on oikeus käyttää tätä ääntä",
+    "sonioxVoiceCloneTitle": "Kloonaa ääni",
+    "sonioxVoiceCloneReview": "Kuuntele klippisi ja nimeä ääni ennen lataamista.",
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Käsittely epäonnistui — poista tämä ääni ja kokeile selkeämpää näytettä",
     "sonioxVoiceNameConflict": "Tämän niminen ääni on jo olemassa",
     "sonioxVoiceQuotaError": "Soniox-organisaation äänirajoitus saavutettu — poista ääni ja yritä uudelleen",
-    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain."
+    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain.",
+    "sonioxVoiceRefreshList": "Päivitä äänilista"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",

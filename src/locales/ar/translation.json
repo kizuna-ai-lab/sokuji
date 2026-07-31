@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "خلفية حرة الصياغة للجلسة القادمة — جدول الأعمال، الموضوع، أو ملاحظات مرجعية. تساعد على أن يواكب التعرف والترجمة المجال المطلوب. تُقتطع أولاً إذا تجاوز السياق المجمّع الحد الأقصى للحجم.",
     "sonioxBackgroundPlaceholder": "الصق جدول الأعمال أو الموضوع أو ملاحظات خلفية (اختياري)",
     "sonioxVoiceConsent": "أؤكد أن لدي الحق في استخدام هذا الصوت",
-    "sonioxVoiceConsentRequired": "أكّد أولاً أن لديك الحق في استخدام هذا الصوت",
+    "sonioxVoiceCloneTitle": "استنساخ الصوت",
+    "sonioxVoiceCloneReview": "استمع إلى المقطع الصوتي وقم بتسمية الصوت قبل الرفع.",
     "sonioxVoiceNamePlaceholder": "اسم للصوت المستنسخ الجديد (اختياري)",
     "sonioxVoiceDefaultName": "صوتي {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(صوت محذوف)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "فشلت المعالجة — احذف هذا الصوت وجرّب مقطعًا أوضح",
     "sonioxVoiceNameConflict": "يوجد بالفعل صوت بهذا الاسم",
     "sonioxVoiceQuotaError": "تم بلوغ الحد الأقصى لأصوات مؤسسة Soniox — احذف صوتًا وأعد المحاولة",
-    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API."
+    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API.",
+    "sonioxVoiceRefreshList": "تحديث قائمة الأصوات"
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",

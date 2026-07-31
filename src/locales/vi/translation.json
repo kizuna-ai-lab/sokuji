@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Bối cảnh tự do cho phiên tiếp theo — chương trình nghị sự, chủ đề, hoặc ghi chú tham khảo. Giúp việc nhận diện và dịch bám sát lĩnh vực. Sẽ bị cắt bớt trước tiên nếu ngữ cảnh kết hợp vượt quá giới hạn kích thước.",
     "sonioxBackgroundPlaceholder": "Dán chương trình nghị sự, chủ đề, hoặc ghi chú bối cảnh (tùy chọn)",
     "sonioxVoiceConsent": "Tôi xác nhận rằng tôi có quyền sử dụng giọng nói này",
-    "sonioxVoiceConsentRequired": "Trước tiên, hãy xác nhận rằng bạn có quyền sử dụng giọng nói này",
+    "sonioxVoiceCloneTitle": "Nhân bản giọng nói",
+    "sonioxVoiceCloneReview": "Hãy nghe đoạn ghi âm của bạn và đặt tên cho giọng nói trước khi tải lên.",
     "sonioxVoiceNamePlaceholder": "Tên cho giọng nói nhân bản mới (không bắt buộc)",
     "sonioxVoiceDefaultName": "Giọng nói của tôi {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(giọng nói đã xóa)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Xử lý thất bại — hãy xóa giọng nói này và thử một đoạn rõ hơn",
     "sonioxVoiceNameConflict": "Đã tồn tại giọng nói với tên này",
     "sonioxVoiceQuotaError": "Đã đạt giới hạn giọng nói của tổ chức Soniox — hãy xóa một giọng nói và thử lại",
-    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API."
+    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API.",
+    "sonioxVoiceRefreshList": "Làm mới danh sách giọng nói"
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",

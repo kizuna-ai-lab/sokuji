@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Malayang konteksto para sa susunod na session — agenda, paksa, o mga tala sanggunian. Tumutulong ito para sumunod sa larangan ang pagkilala at pagsasalin. Ito ang unang puputulin kung lumampas sa limitasyon ng sukat ang pinagsamang konteksto.",
     "sonioxBackgroundPlaceholder": "I-paste ang agenda, paksa, o mga tala ng konteksto (opsyonal)",
     "sonioxVoiceConsent": "Kinukumpirma kong may karapatan akong gamitin ang boses na ito",
-    "sonioxVoiceConsentRequired": "Kumpirmahin muna na may karapatan kang gamitin ang boses na ito",
+    "sonioxVoiceCloneTitle": "I-clone ang boses",
+    "sonioxVoiceCloneReview": "Pakinggan ang iyong clip at pangalanan ang boses bago i-upload.",
     "sonioxVoiceNamePlaceholder": "Pangalan para sa bagong klonadong boses (opsyonal)",
     "sonioxVoiceDefaultName": "Aking Boses {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(tinanggal na boses)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Nabigo ang pagproseso — tanggalin ang boses na ito at subukan ang mas malinaw na clip",
     "sonioxVoiceNameConflict": "May umiiral nang boses na may ganitong pangalan",
     "sonioxVoiceQuotaError": "Naabot na ang limitasyon ng boses ng organisasyong Soniox — tanggalin ang isang boses at subukang muli",
-    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key."
+    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key.",
+    "sonioxVoiceRefreshList": "I-refresh ang listahan ng boses"
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",

@@ -787,6 +787,66 @@
   }
 }
 
+// Soniox voice-cloning confirm modal (SonioxCloneConfirmModal): playback +
+// naming + the consent statement folded into the accept button. Mirrors
+// .license-consent-modal's layout above.
+.soniox-clone-confirm-modal {
+  text-align: left;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__audio {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .text-input {
+    margin-bottom: 10px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+
+      &:disabled {
+        @include vars.disabled-state;
+      }
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__accept {
+    background-color: vars.$color-primary;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: vars.$color-primary-hover;
+    }
+  }
+}
+
 // Volume control styles
 .volume-control {
   margin-top: 12px;

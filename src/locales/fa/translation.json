@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "پیش‌زمینه آزاد برای نشست بعدی — دستور کار، موضوع یا یادداشت‌های مرجع. به تشخیص و ترجمه کمک می‌کند تا با حوزه موضوع همسو بمانند. اگر زمینه ترکیبی از حد اندازه فراتر رود، ابتدا همین بخش کوتاه می‌شود.",
     "sonioxBackgroundPlaceholder": "دستور کار، موضوع یا یادداشت‌های پیش‌زمینه را جای‌گذاری کنید (اختیاری)",
     "sonioxVoiceConsent": "تأیید می‌کنم که حق استفاده از این صدا را دارم",
-    "sonioxVoiceConsentRequired": "ابتدا تأیید کنید که حق استفاده از این صدا را دارید",
+    "sonioxVoiceCloneTitle": "شبیه‌سازی صدا",
+    "sonioxVoiceCloneReview": "قبل از بارگذاری، به کلیپ خود گوش دهید و برای صدا نامی انتخاب کنید.",
     "sonioxVoiceNamePlaceholder": "نام برای صدای شبیه‌سازی‌شده جدید (اختیاری)",
     "sonioxVoiceDefaultName": "صدای من {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(صدای حذف‌شده)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "پردازش ناموفق بود — این صدا را حذف کنید و کلیپ واضح‌تری امتحان کنید",
     "sonioxVoiceNameConflict": "صدایی با این نام از قبل وجود دارد",
     "sonioxVoiceQuotaError": "محدودیت صداهای سازمانی Soniox پر شده است — یک صدا را حذف کرده و دوباره تلاش کنید",
-    "sonioxVoiceListError": "بارگذاری صداهای شبیه‌سازی‌شده ممکن نشد — کلید API را بررسی کنید."
+    "sonioxVoiceListError": "بارگذاری صداهای شبیه‌سازی‌شده ممکن نشد — کلید API را بررسی کنید.",
+    "sonioxVoiceRefreshList": "به‌روزرسانی فهرست صداها"
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",

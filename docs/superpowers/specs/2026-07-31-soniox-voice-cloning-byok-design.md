@@ -52,11 +52,11 @@ under Future work.
 | Phase scope | BYOK only. Managed twin: read-only built-ins this phase (creation affordances hidden), same component so Phase 2 only swaps the data source |
 | UI | `hasVoiceSettings` → `false` for Soniox (and twin); new `SonioxVoiceSection` embedded in `renderSonioxSettings`, wrapping `VoiceLibrarySection` in `dropdown` presentation: `builtin` group = the 28 static voices, `custom` group = voices fetched from `/v1/voices` |
 | Source of truth | Soniox. The list is fetched on section mount (+ manual refresh); nothing but the selected id (`settings.voice`) is persisted locally. No local reference-clip storage |
-| Create flow | Record (VoiceLibrarySection's built-in ≤20 s recorder) or upload (`audio/*`, client-side decode validates 3–20 s / ≤10 MB via the `validateVoiceClip` pattern) → consent checkbox ("I confirm I have the right to use this voice") gates the submit → encode WAV → `POST /v1/voices` → poll `GET /v1/voices/{id}` until `ready`/`failed` → auto-select on ready |
-| Failure states | `failed` voices render with an error badge and only a delete affordance (terminal per docs). Quota/4xx on create → explicit "organization voice limit reached — delete one and retry" message. A selected UUID missing from the fetched list renders a "(deleted voice)" placeholder and prompts re-selection; the stored setting is never auto-rewritten |
+| Create flow | Record/upload are always available once a client exists (`audio/*`, client-side decode validates 3–20 s / ≤10 MB via the `validateVoiceClip` pattern) → the validated/recorded clip is staged (not yet uploaded) and opens a post-acquisition confirm modal (`SonioxCloneConfirmModal`, modeled on `LicenseConsentModal`) that plays the clip back (`<audio controls>`), takes the voice name (prefilled from the upload filename or a "My Voice {{n}}" default), and folds the consent statement ("I confirm I have the right to use this voice") into the modal's accept button → on confirm, encode WAV (recordings) → `POST /v1/voices` → poll `GET /v1/voices/{id}` until `ready`/`failed` → auto-select on ready. A mapped create failure (e.g. `voice_name_conflict`) keeps the modal open inline so the user can rename and retry without losing the clip |
+| Failure states | `failed` voices render with an error badge and only a delete affordance (terminal per docs). Quota/4xx on create → explicit "organization voice limit reached — delete one and retry" message, shown inline in the confirm modal. A selected UUID missing from the fetched list renders a "(deleted voice)" placeholder and prompts re-selection; the stored setting is never auto-rewritten |
 | Not doing | Rename (no API; no local aliases — YAGNI), recompute UI (single-model era; noted for when a new TTS model ships), managed-side CRUD |
 | Naming | User-entered display name used as the Soniox `name` verbatim (BYOK org is private to the user); `voice_name_conflict` (409) surfaces as "a voice with this name already exists" |
-| Consent | Lightweight checkbox in the create flow (ethics precedent: OmniVoice's license-consent gate); unchecked = create disabled |
+| Consent | No separate checkbox — the confirm modal's accept button IS the consent statement (ethics precedent: OmniVoice's license-consent gate), reached only after playback + naming, right before the upload it gates |
 
 ## Architecture
 
@@ -69,9 +69,10 @@ under Future work.
 - **`SonioxVoiceSection`** (`src/components/Settings/sections/`) — adapter
   mapping built-ins + fetched clones to `VoiceEntry[]`, wiring
   `onSelect → updateActiveSonioxSettings({ voice })`, `onRecord`/`onImport`
-  (consent-gated) → create+poll, `onDelete`; readiness/failed/deleted-
-  placeholder presentation; read-only under the managed twin
-  (`isKizunaManagedProvider`).
+  (client-gated; each stages a validated clip as `pending` rather than
+  calling create() directly) → `SonioxCloneConfirmModal` → create+poll,
+  `onDelete`; readiness/failed/deleted-placeholder presentation; read-only
+  under the managed twin (`isKizunaManagedProvider`).
 - `SonioxProviderConfig.getConfig()`: `hasVoiceSettings: false` (twin
   inherits); the static `VOICES` table stays as the built-in group's data.
 - No session-config or wire changes — `voice` is already an opaque string
@@ -85,8 +86,10 @@ under Future work.
   (RIFF header + sample round-trip).
 - `SonioxVoiceSection` wiring tests (real store, mocked client module):
   select writes the slice; built-ins render without fetch; clones render
-  after fetch; consent checkbox gates create; failed badge; deleted-voice
-  placeholder; managed twin hides create/delete affordances.
+  after fetch; a validated import/recording opens the confirm modal and
+  create() only fires on confirm; a mapped create failure keeps the modal
+  open for retry; failed badge; deleted-voice placeholder; managed twin hides
+  create/delete affordances.
 - Existing suites: descriptor/registry untouched semantics (voices table
   remains), `renderVoiceSettings` no longer renders for Soniox (assert
   absence), TTS pipeline tests unchanged.

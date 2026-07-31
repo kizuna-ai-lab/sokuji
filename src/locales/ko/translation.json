@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "다음 세션을 위한 자유 형식 배경 정보입니다 — 안건, 주제 또는 참고 메모. 인식과 번역이 해당 분야를 따르도록 돕습니다. 결합된 문맥이 크기 제한을 초과하면 이 항목이 가장 먼저 잘립니다.",
     "sonioxBackgroundPlaceholder": "안건, 주제 또는 배경 메모를 붙여넣으세요 (선택 사항)",
     "sonioxVoiceConsent": "이 음성을 사용할 권리가 있음을 확인합니다",
-    "sonioxVoiceConsentRequired": "먼저 이 음성을 사용할 권리가 있는지 확인하세요",
+    "sonioxVoiceCloneTitle": "음성 복제",
+    "sonioxVoiceCloneReview": "업로드하기 전에 클립을 듣고 음성 이름을 지정하세요.",
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(삭제된 음성)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "처리에 실패했습니다 — 이 음성을 삭제하고 더 명확한 클립으로 다시 시도하세요",
     "sonioxVoiceNameConflict": "이 이름의 음성이 이미 있습니다",
     "sonioxVoiceQuotaError": "Soniox 조직 음성 한도에 도달했습니다 — 음성을 삭제하고 다시 시도하세요",
-    "sonioxVoiceListError": "복제된 음성을 불러올 수 없습니다 — API 키를 확인하세요."
+    "sonioxVoiceListError": "복제된 음성을 불러올 수 없습니다 — API 키를 확인하세요.",
+    "sonioxVoiceRefreshList": "음성 목록 새로고침"
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",

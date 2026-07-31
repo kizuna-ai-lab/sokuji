@@ -238,7 +238,8 @@
     "sonioxBackgroundTooltip": "Freier Hintergrundtext für die nächste Sitzung – Agenda, Thema oder Referenznotizen. Hilft dabei, dass Erkennung und Übersetzung dem Fachgebiet folgen. Wird bei Überschreitung der Größenbegrenzung des kombinierten Kontexts zuerst gekürzt.",
     "sonioxBackgroundPlaceholder": "Agenda, Thema oder Hintergrundnotizen einfügen (optional)",
     "sonioxVoiceConsent": "Ich bestätige, dass ich das Recht habe, diese Stimme zu verwenden",
-    "sonioxVoiceConsentRequired": "Bestätigen Sie zunächst, dass Sie das Recht haben, diese Stimme zu verwenden",
+    "sonioxVoiceCloneTitle": "Stimme klonen",
+    "sonioxVoiceCloneReview": "Hören Sie sich Ihren Clip an und benennen Sie die Stimme, bevor Sie sie hochladen.",
     "sonioxVoiceNamePlaceholder": "Name für eine neue geklonte Stimme (optional)",
     "sonioxVoiceDefaultName": "Meine Stimme {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(gelöschte Stimme)",
@@ -247,7 +248,8 @@
     "sonioxVoiceFailed": "Verarbeitung fehlgeschlagen — löschen Sie diese Stimme und versuchen Sie es mit einer klareren Aufnahme",
     "sonioxVoiceNameConflict": "Eine Stimme mit diesem Namen existiert bereits",
     "sonioxVoiceQuotaError": "Soniox-Limit für Organisationsstimmen erreicht — löschen Sie eine Stimme und versuchen Sie es erneut",
-    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel."
+    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel.",
+    "sonioxVoiceRefreshList": "Stimmenliste aktualisieren"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
