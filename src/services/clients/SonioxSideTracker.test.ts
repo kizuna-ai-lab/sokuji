@@ -36,6 +36,15 @@ describe('SonioxSideTracker', () => {
     expect(t.inferSide(undefined, 200, 300)).not.toBeNull();         // frame 2 retained
   });
 
+  it('treats a window with an evicted head as a miss — no verdict from a partial window', () => {
+    const t = new SonioxSideTracker({ capacity: 2 });
+    t.recordFrame(0, 500);   // frame 0 — will be evicted
+    t.recordFrame(500, 0);   // frame 1
+    t.recordFrame(500, 0);   // frame 2 → ring keeps frames 1-2
+    expect(t.inferSide(undefined, 0, 300)).toBeNull();               // head evicted → miss, even though 1-2 retained
+    expect(t.inferSide(undefined, 100, 300)).toEqual({ side: 'speaker', tier: 'energy' }); // fully retained
+  });
+
   it('defaults a missing endMs to one frame from startMs', () => {
     const t = new SonioxSideTracker();
     t.recordFrame(500, 0);

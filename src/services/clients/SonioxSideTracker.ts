@@ -95,18 +95,26 @@ export class SonioxSideTracker {
   private energyVerdict(startMs: number | undefined, endMs: number | undefined): UtteranceSide | null {
     if (startMs == null) return null;
     const from = Math.floor(startMs / this.frameMs);
-    const to = Math.max(from, Math.ceil((endMs ?? startMs + this.frameMs) / this.frameMs) - 1);
+    // Evicted history is unavailable evidence: a window whose head frames
+    // were dropped must MISS (fall through to the next tier) rather than
+    // vote from the retained tail — a partial window can misrepresent a
+    // speaker transition. The fresh edge is different: `to` can round one
+    // frame past the newest recorded audio (endMs defaulting, boundary
+    // rounding), so it is clamped rather than failed.
+    if (from < this.baseIndex) return null;
+    const lastIndex = this.baseIndex + this.framesA.length - 1;
+    const to = Math.min(
+      Math.max(from, Math.ceil((endMs ?? startMs + this.frameMs) / this.frameMs) - 1),
+      lastIndex
+    );
+    if (to < from) return null; // nothing recorded in the window yet
     let a = 0;
     let b = 0;
-    let counted = 0;
     for (let i = from; i <= to; i++) {
       const idx = i - this.baseIndex;
-      if (idx < 0 || idx >= this.framesA.length) continue;
       a += this.framesA[idx];
       b += this.framesB[idx];
-      counted++;
     }
-    if (!counted) return null;
     if (a > 0 && a >= this.energyRatio * b) return 'speaker';
     if (b > 0 && b >= this.energyRatio * a) return 'participant';
     return null;

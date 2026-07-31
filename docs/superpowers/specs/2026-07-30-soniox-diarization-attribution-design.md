@@ -70,24 +70,34 @@ bidirectional.
 Evaluated where `utteranceSide` is decided today (first original token of an
 utterance; also the translation-token fallback path):
 
-1. **Label map**: if `speakerSideMap` has an established side for
-   `token.speaker`, use it.
+Within one `inferSide` call the order is: compute the energy verdict first
+(it needs no `speaker`), cast its vote when both a verdict and a `speaker`
+are present, then answer by the highest tier available:
+
+1. **Label map**: if `speakerSideMap` holds an established side for
+   `token.speaker` (checked after any vote from this same call — the arriving
+   evidence counts toward establishment immediately), use it.
 2. **Energy evidence**: sum `energyA` vs `energyB` over the frames covered by
    `[token.start_ms, token.end_ms]`; if the ratio ≥ 2× (constant, tunable),
-   that channel's side wins — and casts one vote into
-   `speakerSideMap[token.speaker]`. A label's side is *established* at a
-   rolling net majority of ≥ 2 votes; votes keep accumulating (no lock-in), so
-   a mis-bootstrapped label can be flipped by later evidence.
-3. **Language fallback**: ambiguous energy (both channels active — echo,
-   cross-talk, overlap) with no established label → the existing
-   language-comparison logic, verbatim. Language-derived sides are used for
-   display only and never vote into the map (in the same-language case the
-   language method is exactly the unreliable witness).
+   that channel's side wins — and, when the token carries a `speaker`, casts
+   one vote into `speakerSideMap[token.speaker]`. A label's side is
+   *established* at a rolling net majority of ≥ 2 votes; votes keep
+   accumulating without a cap (no lock-in), so a mis-bootstrapped label can
+   be flipped by sustained later evidence while deep history absorbs single
+   glitches. A window whose older frames were already evicted from the ring
+   is a miss — no verdict and no vote from partial windows.
+3. **Language fallback**: no usable evidence from tiers 1-2 (ambiguous energy
+   — echo, cross-talk, overlap — with no established label; or missing
+   speaker/timing) → the existing language-comparison logic, verbatim.
+   Language-derived sides are used for display only and never vote into the
+   map (in the same-language case the language method is precisely the
+   unreliable witness).
 
-If `speaker` is absent from tokens entirely (server anomaly), tier 1–2 never
-fire and behavior degrades to today's language method. `<end>` still resets
-`utteranceSide`; the map and timeline persist across utterances and are
-cleared on disconnect/reset.
+If `speaker` is absent from a token, the label tiers never engage and no
+votes accrue, but a lone energy verdict still attributes the utterance; with
+neither `speaker` nor usable timing, behavior degrades to today's language
+method. `<end>` still resets `utteranceSide`; the map and timeline persist
+across utterances and are cleared on disconnect/reset.
 
 ### 4. Consumers
 
@@ -120,6 +130,13 @@ cleared on disconnect/reset.
   today's behavior.
 - The 2× energy-ratio threshold and the 60 s ring are starting constants,
   centralized for tuning.
+- The side is decided once per utterance, at its first token (the approved
+  per-utterance granularity). If that first token carried no usable
+  diarization evidence, the language-derived side sticks for the rest of the
+  utterance even when later tokens bring evidence — accepted: re-attribution
+  mid-utterance would flip the bubble and the TTS gate mid-stream, and
+  production first partials were live-verified (2026-07-31) to already carry
+  `speaker` + `start_ms`, so the window is theoretical.
 - Mid-utterance speaker changes still merge into one bubble (as today);
   overlapped speech still degrades single-stream ASR quality — the two-client
   toggle remains the answer for overlap-heavy calls.

@@ -907,9 +907,17 @@ describe('SonioxClient diarization attribution (#342)', () => {
 
   it('a new connect on the same client starts with no label memory from the previous session', async () => {
     const { client, stt, port, updates } = await bidi();
+    // TWO B-only utterances so label '2' is fully ESTABLISHED (net -2) before
+    // the reconnect: a leaked tracker would then answer 'participant' by label
+    // and fail the assertion below — one vote alone would leak undetected
+    // (unestablished labels fall back to language either way).
     port.appendInputAudio(loud());
     vi.advanceTimersByTime(100);
     stt.emit({ tokens: [tok('好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2', start_ms: 0, end_ms: 100 })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    port.appendInputAudio(loud());
+    vi.advanceTimersByTime(100);
+    stt.emit({ tokens: [tok('再见', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2', start_ms: 100, end_ms: 200 })] });
     await client.disconnect();
     await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
     const stt2 = sttInstances.at(-1)!;
