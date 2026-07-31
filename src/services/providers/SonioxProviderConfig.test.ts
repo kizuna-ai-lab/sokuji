@@ -198,19 +198,43 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
       translation_terms: cfg.context!.translationTerms,
       text,
     }).length;
-    expect(serialized).toBeLessThanOrEqual(9005);
+    expect(serialized).toBeLessThanOrEqual(9000);
     expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('cuts escape-heavy background text exactly instead of over-truncating', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Newline-rich agenda: every second character serializes as a 2-unit
+    // escape, so raw-length arithmetic would empty the text entirely; the
+    // exact (binary-search) cut keeps everything that actually fits.
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'a\n'.repeat(2000) });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0); // the naive over-cut would have emptied it
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(serialized).toBeGreaterThan(8990); // maximal: the cut wastes no meaningful capacity
     warn.mockRestore();
   });
 });
 
 describe('SonioxProviderConfig voices', () => {
-  it('exposes the full 28-voice catalog, unique, including the original twelve', () => {
+  it('exposes exactly the official 28-voice catalog (originals first, accented additions after)', () => {
     const voices = new SonioxProviderConfig().getConfig().voices.map((v) => v.value);
-    expect(voices).toHaveLength(28);
-    expect(new Set(voices).size).toBe(28);
-    for (const original of ['Adrian', 'Claire', 'Daniel', 'Emma', 'Grace', 'Jack', 'Kenji', 'Maya', 'Mina', 'Nina', 'Noah', 'Owen']) {
-      expect(voices).toContain(original);
-    }
+    expect(voices).toEqual([
+      // Original twelve (order preserved — existing users' stored values):
+      'Adrian', 'Claire', 'Daniel', 'Emma', 'Grace', 'Jack',
+      'Kenji', 'Maya', 'Mina', 'Nina', 'Noah', 'Owen',
+      // Accented additions (official catalog, 2026-07-31):
+      'Rafael', 'Mateo', 'Lucia', 'Sofia',        // Spanish
+      'Oliver', 'Arthur', 'Isla', 'Victoria',     // British
+      'Cooper', 'Mason', 'Ruby', 'Elise',         // Australian
+      'Arjun', 'Rohan', 'Priya', 'Meera',         // Indian
+    ]);
   });
 });

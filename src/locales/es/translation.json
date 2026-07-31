@@ -234,9 +234,9 @@
     "sonioxLatencyLevelLower": "Menor latencia",
     "sonioxLatencyLevelEvenLower": "Latencia aún menor",
     "sonioxLatencyLevelMost": "Más agresivo",
-    "sonioxBackground": "Antecedentes de la sesión",
-    "sonioxBackgroundTooltip": "Antecedentes de formato libre para la próxima sesión — agenda, tema o notas de referencia. Ayuda a que el reconocimiento y la traducción se ajusten al ámbito. Se recorta primero si el contexto combinado supera el límite de tamaño.",
-    "sonioxBackgroundPlaceholder": "Pega una agenda, un tema o notas de antecedentes (opcional)"
+    "sonioxBackground": "Contexto de la sesión",
+    "sonioxBackgroundTooltip": "Contexto de formato libre para la próxima sesión — agenda, tema o notas de referencia. Ayuda a que el reconocimiento y la traducción se ajusten al ámbito. Se recorta primero si el contexto combinado supera el límite de tamaño.",
+    "sonioxBackgroundPlaceholder": "Pega una agenda, un tema o notas de contexto (opcional)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",

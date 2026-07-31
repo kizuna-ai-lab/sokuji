@@ -94,21 +94,28 @@ function fitContextToBudget(
       ...(text ? { text } : {}),
     }).length;
   const dropped = { terms: 0, translationTerms: 0, textChars: 0 };
-  // Background text is the weakest context evidence: truncate it first,
-  // character-wise (removing k chars shrinks the serialization by >= k, so
-  // one cut computed from the overflow is always sufficient — or empties it —
-  // a trailing lone surrogate from a mid-pair cut is stripped below; the
-  // remaining ≤5-char excess in the no-vocab case sits well inside the
-  // 1,000-char headroom).
-  if (text) {
-    const over = serializedSize() - SONIOX_CONTEXT_CHAR_BUDGET;
-    if (over > 0) {
-      const keep = Math.max(0, text.length - over);
-      dropped.textChars = text.length - keep;
-      // A cut landing mid-surrogate-pair would leave a lone high surrogate
-      // (serializes as a 6-char escape and renders as U+FFFD downstream).
-      text = text.slice(0, keep).replace(/[\uD800-\uDBFF]$/, '');
+  // Background text is the weakest context evidence: truncate it first.
+  // Raw-length arithmetic misjudges the cut when characters JSON-escape to
+  // 2-6 output units (newlines and quotes are certain in pasted agendas), so
+  // binary-search the longest prefix whose actual serialization fits the
+  // budget (~12 stringify probes at connect time, once per session).
+  if (text && serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET) {
+    const full = text;
+    const fits = (keep: number): boolean => {
+      text = full.slice(0, keep);
+      return serializedSize() <= SONIOX_CONTEXT_CHAR_BUDGET;
+    };
+    let lo = 0;
+    let hi = full.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (fits(mid)) lo = mid;
+      else hi = mid - 1;
     }
+    // A cut landing mid-surrogate-pair would leave a lone high surrogate
+    // (serializes as a 6-char escape and renders as U+FFFD downstream).
+    text = full.slice(0, lo).replace(/[\uD800-\uDBFF]$/, '');
+    dropped.textChars = full.length - text.length;
   }
   while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && translationTerms.length) {
     translationTerms = translationTerms.slice(0, -1);
