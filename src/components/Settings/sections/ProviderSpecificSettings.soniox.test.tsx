@@ -44,6 +44,13 @@ vi.mock('./ModelManagementSection', () => ({ ModelManagementSection: () => null 
 vi.mock('./NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
 vi.mock('./EngineSection', () => ({ EngineSection: () => null }));
 
+// SonioxVoiceSection (Task 3) is exercised by its own test file; stub it here
+// with a marker that surfaces the `managed` prop so wiring is testable without
+// pulling in SonioxVoicesClient/recording machinery.
+vi.mock('./SonioxVoiceSection', () => ({
+  default: (p: any) => <div data-testid="soniox-voice-section" data-managed={String(p.managed)} />,
+}));
+
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { Provider } = await import('../../../types/Provider');
 const { SonioxProviderConfig } = await import('../../../services/providers/SonioxProviderConfig');
@@ -146,5 +153,20 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     fireEvent.change(el, { target: { value: 'Managed term' } });
     expect(useSettingsStore.getState().kizunaSoniox.vocabularyTerms).toBe('Managed term');
     expect(useSettingsStore.getState().soniox.vocabularyTerms).toBe('');
+  });
+
+  it('renders SonioxVoiceSection (managed=false) and no generic voice dropdown for BYOK Soniox', () => {
+    const { container, getByTestId } = mount();
+    expect(getByTestId('soniox-voice-section').getAttribute('data-managed')).toBe('false');
+    // The generic renderVoiceSettings section (id="voice-settings-section", gated on
+    // config.capabilities.hasVoiceSettings) must not render — SonioxProviderConfig now
+    // sets hasVoiceSettings: false so the cloning-aware section is the only voice UI.
+    expect(container.querySelector('#voice-settings-section')).toBeNull();
+  });
+
+  it('passes managed=true for the Kizuna twin', () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
+    const { getByTestId } = mount();
+    expect(getByTestId('soniox-voice-section').getAttribute('data-managed')).toBe('true');
   });
 });

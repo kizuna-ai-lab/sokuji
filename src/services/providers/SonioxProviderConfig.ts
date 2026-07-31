@@ -341,7 +341,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       capabilities: {
         hasTemplateMode: false, // dedicated translation service — no prompt templates
         hasTurnDetection: false, // server-side endpoint detection, not user-configurable
-        hasVoiceSettings: true, // TTS voice dropdown (28 multilingual voices)
+        hasVoiceSettings: false, // voice UI moved to SonioxVoiceSection (built-ins + BYOK clones); the generic dropdown cannot display cloned UUIDs
         hasNoiseReduction: false,
         hasModelConfiguration: false,
         textOnlyCapability: 'optional', // toggle: subtitles-only vs spoken translation
