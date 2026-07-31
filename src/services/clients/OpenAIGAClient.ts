@@ -24,6 +24,10 @@ import type { EventData } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import { OpenAIClient } from './OpenAIClient';
+import {
+  buildOpenAIRealtimeResponseEvent,
+  buildOpenAIRealtimeSession
+} from './openAIRealtimeSession';
 
 /**
  * OpenAI Realtime API client using the official SDK (GA protocol)
@@ -620,76 +624,11 @@ export class OpenAIGAClient implements IClient {
   private sendSessionUpdate(config: OpenAISessionConfig): void {
     if (!this.rt) return;
 
-    // GA API session parameters differ from beta:
-    // - 'modalities' → 'output_modalities' (only ['text'] or ['audio'], not both)
-    // - 'max_response_output_tokens' → 'max_output_tokens'
-    // - 'input_audio_format'/'output_audio_format' → nested 'audio' config
-    // - 'temperature' → removed (not a GA session param)
-    // - 'voice' → set at connection time, can only be updated if no audio output yet
-    const session: any = {
-      type: 'realtime',
-      output_modalities: config.textOnly ? ['text'] : ['audio'],
-      instructions: config.instructions,
-      max_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
-      // Explicitly disable tools to prevent model drift from translator role
-      tool_choice: 'none',
-      tools: []
-    };
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
+    this.turnDetectionDisabled = turnDetectionDisabled;
 
-    // Reasoning effort: only `gpt-realtime-2` accepts this; older models reject the field.
-    if (config.model?.startsWith('gpt-realtime-2') && config.reasoningEffort) {
-      session.reasoning = { effort: config.reasoningEffort };
+    if (session.reasoning) {
       console.info('[Sokuji] [OpenAIGAClient] reasoning.effort applied:', config.reasoningEffort);
-    }
-
-    // GA API nests turn_detection, transcription, noise_reduction under audio.input
-    const audioInput: any = {};
-    let hasAudioInput = false;
-
-    // Turn detection → audio.input.turn_detection
-    if (config.turnDetection) {
-      if (config.turnDetection.type === 'none') {
-        audioInput.turn_detection = null;
-        this.turnDetectionDisabled = true;
-      } else {
-        this.turnDetectionDisabled = false;
-        const td: any = {
-          type: config.turnDetection.type,
-          create_response: config.turnDetection.createResponse ?? true,
-          interrupt_response: config.turnDetection.interruptResponse ?? false
-        };
-
-        if (config.turnDetection.type === 'server_vad') {
-          if (config.turnDetection.threshold !== undefined) td.threshold = config.turnDetection.threshold;
-          if (config.turnDetection.prefixPadding !== undefined) td.prefix_padding_ms = Math.round(config.turnDetection.prefixPadding * 1000);
-          if (config.turnDetection.silenceDuration !== undefined) td.silence_duration_ms = Math.round(config.turnDetection.silenceDuration * 1000);
-        } else if (config.turnDetection.type === 'semantic_vad' && config.turnDetection.eagerness) {
-          td.eagerness = config.turnDetection.eagerness.toLowerCase();
-        }
-
-        audioInput.turn_detection = td;
-      }
-      hasAudioInput = true;
-    }
-
-    // Input audio transcription → audio.input.transcription
-    if (config.inputAudioTranscription?.model) {
-      audioInput.transcription = {
-        model: config.inputAudioTranscription.model
-      };
-      hasAudioInput = true;
-    }
-
-    // Noise reduction → audio.input.noise_reduction
-    if (config.inputAudioNoiseReduction?.type) {
-      audioInput.noise_reduction = {
-        type: config.inputAudioNoiseReduction.type
-      };
-      hasAudioInput = true;
-    }
-
-    if (hasAudioInput) {
-      session.audio = { input: audioInput };
     }
 
     this.rt.send({
@@ -826,24 +765,7 @@ export class OpenAIGAClient implements IClient {
     }
 
     if (config) {
-      const responseEvent: any = {
-        type: 'response.create',
-        response: {}
-      };
-
-      if (config.instructions) {
-        responseEvent.response.instructions = config.instructions;
-      }
-      if (config.conversation) {
-        responseEvent.response.conversation = config.conversation;
-      }
-      // GA API uses 'output_modalities' instead of 'modalities' in response.create
-      if (config.modalities) {
-        responseEvent.response.output_modalities = config.modalities;
-      }
-      if (config.metadata) {
-        responseEvent.response.metadata = config.metadata;
-      }
+      const responseEvent = buildOpenAIRealtimeResponseEvent(config);
 
       if (config.conversation === 'none') {
         console.debug('[OpenAIGAClient] Sending out-of-band response:', {
@@ -864,7 +786,7 @@ export class OpenAIGAClient implements IClient {
         }
       });
     } else {
-      this.rt.send({ type: 'response.create' } as any);
+      this.rt.send(buildOpenAIRealtimeResponseEvent() as any);
 
       this.eventHandlers.onRealtimeEvent?.({
         source: 'client',
