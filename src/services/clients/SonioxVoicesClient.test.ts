@@ -1,31 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SonioxVoicesClient, SonioxVoicesError, encodeWavPcm16 } from './SonioxVoicesClient';
+import { SonioxVoicesClient, encodeWavPcm16 } from './SonioxVoicesClient';
 
 const fetchMock = vi.fn();
-let capturedBlobData: ArrayBuffer | null = null;
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   vi.useFakeTimers();
-
-  // Mock Blob to capture underlying data for testing
-  const OriginalBlob = globalThis.Blob;
-  vi.stubGlobal('Blob', class Blob extends OriginalBlob {
-    constructor(parts: BlobPart[], options?: BlobPropertyBag) {
-      super(parts, options);
-      // Capture the first ArrayBuffer for testing
-      if (Array.isArray(parts) && parts[0] instanceof ArrayBuffer) {
-        capturedBlobData = parts[0];
-      }
-    }
-  });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
-  capturedBlobData = null;
 });
 
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
@@ -100,23 +86,38 @@ describe('SonioxVoicesClient', () => {
 });
 
 describe('encodeWavPcm16', () => {
+  // Helper: read Blob bytes via FileReader.readAsArrayBuffer (jsdom Blob lacks arrayBuffer())
+  function readBlobAsArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
   it('produces a valid RIFF/WAVE mono 16-bit header and round-trips samples', async () => {
-    const samples = new Float32Array([0, 0.5, -0.5, 1, -1]);
-    const blob = encodeWavPcm16(samples, 24000);
-    expect(capturedBlobData).toBeTruthy();
-    expect(blob.type).toBe('audio/wav');
-    expect(blob.size).toBe(44 + samples.length * 2);
-    const buf = new Uint8Array(capturedBlobData!);
-    const dv = new DataView(buf.buffer);
-    expect(String.fromCharCode(...buf.slice(0, 4))).toBe('RIFF');
-    expect(String.fromCharCode(...buf.slice(8, 12))).toBe('WAVE');
-    expect(dv.getUint16(22, true)).toBe(1);            // mono
-    expect(dv.getUint32(24, true)).toBe(24000);        // sample rate
-    expect(dv.getUint16(34, true)).toBe(16);           // bit depth
-    expect(dv.getUint32(40, true)).toBe(samples.length * 2);
-    expect(dv.getInt16(44, true)).toBe(0);
-    expect(dv.getInt16(46, true)).toBe(Math.round(0.5 * 0x7fff));
-    expect(dv.getInt16(50, true)).toBe(0x7fff);        // +1 clamps to max
-    expect(dv.getInt16(52, true)).toBe(-0x8000);       // -1 maps to min
+    vi.useRealTimers();  // FileReader needs real timers
+    try {
+      const samples = new Float32Array([0, 0.5, -0.5, 1, -1]);
+      const blob = encodeWavPcm16(samples, 24000);
+      expect(blob.type).toBe('audio/wav');
+      expect(blob.size).toBe(44 + samples.length * 2);
+      const arrayBuffer = await readBlobAsArrayBuffer(blob);
+      const buf = new Uint8Array(arrayBuffer);
+      const dv = new DataView(buf.buffer);
+      expect(String.fromCharCode(...buf.slice(0, 4))).toBe('RIFF');
+      expect(String.fromCharCode(...buf.slice(8, 12))).toBe('WAVE');
+      expect(dv.getUint16(22, true)).toBe(1);            // mono
+      expect(dv.getUint32(24, true)).toBe(24000);        // sample rate
+      expect(dv.getUint16(34, true)).toBe(16);           // bit depth
+      expect(dv.getUint32(40, true)).toBe(samples.length * 2);
+      expect(dv.getInt16(44, true)).toBe(0);
+      expect(dv.getInt16(46, true)).toBe(Math.round(0.5 * 0x7fff));
+      expect(dv.getInt16(50, true)).toBe(0x7fff);        // +1 clamps to max
+      expect(dv.getInt16(52, true)).toBe(-0x8000);       // -1 maps to min
+    } finally {
+      vi.useFakeTimers();  // Restore for other tests in afterEach
+    }
   });
 });
