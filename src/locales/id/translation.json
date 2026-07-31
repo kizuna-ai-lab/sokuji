@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Nama untuk suara kloning baru (opsional)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(suara terhapus)",
+    "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — akhiri sesi sebelum menghapusnya",
     "sonioxVoiceProcessingBadge": "memproses…",
     "sonioxVoiceFailedBadge": "gagal",
     "sonioxVoiceFailed": "Pemrosesan gagal — hapus suara ini dan coba klip yang lebih jelas",

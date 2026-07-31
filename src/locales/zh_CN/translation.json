@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
     "sonioxVoiceDefaultName": "我的声音 {{n}}",
     "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
+    "sonioxVoiceDeleteInUse": "此声音正在被当前会话使用 — 请先结束会话再删除",
     "sonioxVoiceProcessingBadge": "处理中…",
     "sonioxVoiceFailedBadge": "失败",
     "sonioxVoiceFailed": "处理失败 — 请删除此声音并尝试更清晰的片段",

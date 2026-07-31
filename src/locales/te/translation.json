@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "కొత్త క్లోన్ చేసిన వాయిస్ కోసం పేరు (ఐచ్ఛికం)",
     "sonioxVoiceDefaultName": "నా వాయిస్ {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(తొలగించిన వాయిస్)",
+    "sonioxVoiceDeleteInUse": "ఈ వాయిస్ యాక్టివ్ సెషన్‌లో ఉపయోగంలో ఉంది — తొలగించే ముందు సెషన్‌ను ముగించండి",
     "sonioxVoiceProcessingBadge": "ప్రాసెస్ అవుతోంది…",
     "sonioxVoiceFailedBadge": "విఫలమైంది",
     "sonioxVoiceFailed": "ప్రాసెసింగ్ విఫలమైంది — ఈ వాయిస్‌ను తొలగించి స్పష్టమైన క్లిప్‌ను ప్రయత్నించండి",

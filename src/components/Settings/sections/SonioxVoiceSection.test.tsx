@@ -97,6 +97,9 @@ describe('SonioxVoiceSection', () => {
     // directly on the <audio> ref, so every test needs a stub.
     (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
     (window.HTMLMediaElement.prototype as any).pause = vi.fn();
+    // VoiceLibrarySection's delete flow goes through window.confirm, which
+    // jsdom stubs to a falsy no-op — accept it so delete clicks reach onDelete.
+    (window as any).confirm = vi.fn(() => true);
   });
 
   it('renders the 28 built-ins immediately and cloned voices after fetch', async () => {
@@ -365,6 +368,54 @@ describe('SonioxVoiceSection', () => {
     expect(createMock.mock.calls[0][0]).toBe('My Voice {{n}}');
   });
 
+  it('refuses to delete the selected voice while a session is active (banner, no API call)', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount({ settings: { voice: 'uuid-1', apiKey: 'k' }, isSessionActive: true });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/active session/i));
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed delete in the error banner', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    deleteMock.mockRejectedValue(new Error('boom'));
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
+  });
+
+  it('renders processing/failed clones as disabled options; ready clones stay selectable', async () => {
+    listMock.mockResolvedValue([
+      cloned(),
+      cloned({ id: 'proc', name: 'Cooking', models: [{ model: 'tts-rt-v1', status: 'processing' }] }),
+      cloned({ id: 'bad', name: 'Broken', models: [{ model: 'tts-rt-v1', status: 'failed' }] }),
+    ]);
+    const { container } = mount();
+    const select = container.querySelector('select')!;
+    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'bad')).toBe(true));
+    const byValue = (v: string) => [...select.querySelectorAll('option')].find((o) => o.value === v)!;
+    expect(byValue('uuid-1').disabled).toBe(false);
+    expect(byValue('proc').disabled).toBe(true);
+    expect(byValue('bad').disabled).toBe(true);
+  });
+
+  it('clears the previous project\'s clones as soon as the API key changes', async () => {
+    listMock.mockResolvedValueOnce([cloned()]).mockReturnValueOnce(new Promise(() => {}));
+    const onUpdate = vi.fn();
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
+    const select = container.querySelector('select')!;
+    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+    // The new key's fetch never resolves — the old project's clone must
+    // already be gone rather than lingering selectable.
+    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(false));
+  });
+
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);
@@ -455,10 +506,13 @@ describe('SonioxVoiceSection', () => {
       mount();
       openManageDetails();
       fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
-      await waitFor(() => expect(gum).toHaveBeenCalled());
+      // findByRole (not a gum-called waitFor): the button relabels to "Stop
+      // recording" only after startRecording's awaits finish and the state
+      // update renders — awaiting the gum call alone is scheduling-dependent.
+      const stopButton = await screen.findByRole('button', { name: /stop recording/i });
       // Feed one chunk so the captured clip isn't empty.
       processorNode?.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1600).fill(0.1) } });
-      fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+      fireEvent.click(stopButton);
 
       const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
       expect(nameInput).toHaveValue(''); // no prefill; "My Voice N" applies only if confirmed blank

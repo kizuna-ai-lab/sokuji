@@ -798,6 +798,7 @@
 // for either.
 .soniox-clone-confirm-modal {
   text-align: left;
+
   // .modal-content defines no font-size, so text here would otherwise
   // inherit the browser's 16px default — larger than the app's body copy.
   font-size: vars.$font-body;

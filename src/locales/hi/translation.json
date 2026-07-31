@@ -243,12 +243,13 @@
     "sonioxVoiceNamePlaceholder": "नई क्लोन की गई आवाज़ के लिए नाम (वैकल्पिक)",
     "sonioxVoiceDefaultName": "मेरी आवाज़ {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(हटाई गई आवाज़)",
+    "sonioxVoiceDeleteInUse": "यह आवाज़ सक्रिय सत्र में उपयोग हो रही है — हटाने से पहले सत्र समाप्त करें",
     "sonioxVoiceProcessingBadge": "प्रोसेस हो रहा है…",
     "sonioxVoiceFailedBadge": "विफल",
     "sonioxVoiceFailed": "प्रोसेसिंग विफल — इस आवाज़ को हटाएँ और एक स्पष्ट क्लिप आज़माएँ",
     "sonioxVoiceNameConflict": "इस नाम की आवाज़ पहले से मौजूद है",
     "sonioxVoiceQuotaError": "Soniox संगठन की आवाज़ सीमा पूरी हो गई — एक आवाज़ हटाएँ और पुनः प्रयास करें",
-    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API की जाँच करें।"
+    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API कुंजी जाँचें।"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",

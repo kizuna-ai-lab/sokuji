@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(삭제된 음성)",
+    "sonioxVoiceDeleteInUse": "이 음성은 활성 세션에서 사용 중입니다 — 삭제하기 전에 세션을 종료하세요",
     "sonioxVoiceProcessingBadge": "처리 중…",
     "sonioxVoiceFailedBadge": "실패",
     "sonioxVoiceFailed": "처리에 실패했습니다 — 이 음성을 삭제하고 더 명확한 클립으로 다시 시도하세요",

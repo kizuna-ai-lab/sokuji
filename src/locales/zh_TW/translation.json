@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "新複製語音的名稱（可選）",
     "sonioxVoiceDefaultName": "我的語音 {{n}}",
     "sonioxVoiceDeletedPlaceholder": "（已刪除的語音）",
+    "sonioxVoiceDeleteInUse": "此聲音正在被目前工作階段使用 — 請先結束工作階段再刪除",
     "sonioxVoiceProcessingBadge": "處理中…",
     "sonioxVoiceFailedBadge": "失敗",
     "sonioxVoiceFailed": "處理失敗 — 請刪除此語音並嘗試更清晰的片段",

@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Namn för en ny klonad röst (valfritt)",
     "sonioxVoiceDefaultName": "Min röst {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(borttagen röst)",
+    "sonioxVoiceDeleteInUse": "Den här rösten används av den aktiva sessionen — avsluta sessionen innan du tar bort den",
     "sonioxVoiceProcessingBadge": "bearbetar…",
     "sonioxVoiceFailedBadge": "misslyckades",
     "sonioxVoiceFailed": "Bearbetningen misslyckades — ta bort den här rösten och prova ett tydligare klipp",

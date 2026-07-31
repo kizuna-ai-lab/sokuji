@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "שם לקול משוכפל חדש (אופציונלי)",
     "sonioxVoiceDefaultName": "הקול שלי {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(קול שנמחק)",
+    "sonioxVoiceDeleteInUse": "קול זה נמצא בשימוש בהפעלה הפעילה — סיים את ההפעלה לפני מחיקתו",
     "sonioxVoiceProcessingBadge": "בעיבוד…",
     "sonioxVoiceFailedBadge": "נכשל",
     "sonioxVoiceFailed": "העיבוד נכשל — מחק את הקול הזה ונסה קטע ברור יותר",

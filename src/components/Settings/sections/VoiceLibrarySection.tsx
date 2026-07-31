@@ -15,6 +15,10 @@ export interface VoiceEntry {
   group: 'builtin' | 'custom';
   /** Whether the entry can be renamed / deleted (i.e. user-owned). */
   removable: boolean;
+  /** Listed but not selectable (dropdown presentation renders it as a
+   *  disabled option) — e.g. a cloned voice still processing or terminally
+   *  failed, which a session could not synthesize with. */
+  disabled?: boolean;
   meta?: {
     gender?: 'M' | 'F';
     /** Curated builtins are always visible; non-curated ones hide behind the
@@ -579,7 +583,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             {customs.length > 0 && (
               <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
                 {customs.map((v) => (
-                  <option key={v.id} value={v.id}>
+                  <option key={v.id} value={v.id} disabled={v.disabled}>
                     {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
                   </option>
                 ))}

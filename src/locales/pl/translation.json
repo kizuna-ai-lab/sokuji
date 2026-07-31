@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Nazwa dla nowego sklonowanego głosu (opcjonalnie)",
     "sonioxVoiceDefaultName": "Mój głos {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(usunięty głos)",
+    "sonioxVoiceDeleteInUse": "Ten głos jest używany przez aktywną sesję — zakończ sesję przed jego usunięciem",
     "sonioxVoiceProcessingBadge": "przetwarzanie…",
     "sonioxVoiceFailedBadge": "niepowodzenie",
     "sonioxVoiceFailed": "Przetwarzanie nie powiodło się — usuń ten głos i spróbuj z wyraźniejszym nagraniem",

@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "ชื่อสำหรับเสียงโคลนใหม่ (ไม่บังคับ)",
     "sonioxVoiceDefaultName": "เสียงของฉัน {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(เสียงที่ถูกลบ)",
+    "sonioxVoiceDeleteInUse": "เสียงนี้กำลังถูกใช้ในเซสชันที่ทำงานอยู่ — จบเซสชันก่อนลบ",
     "sonioxVoiceProcessingBadge": "กำลังประมวลผล…",
     "sonioxVoiceFailedBadge": "ล้มเหลว",
     "sonioxVoiceFailed": "การประมวลผลล้มเหลว — ลบเสียงนี้แล้วลองใช้คลิปที่ชัดเจนกว่านี้",

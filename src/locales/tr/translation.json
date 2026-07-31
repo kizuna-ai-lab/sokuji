@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
     "sonioxVoiceDefaultName": "Sesim {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(silinmiş ses)",
+    "sonioxVoiceDeleteInUse": "Bu ses etkin oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın",
     "sonioxVoiceProcessingBadge": "işleniyor…",
     "sonioxVoiceFailedBadge": "başarısız",
     "sonioxVoiceFailed": "İşleme başarısız oldu — bu sesi silin ve daha net bir klip deneyin",

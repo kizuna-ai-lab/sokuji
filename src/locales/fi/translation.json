@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
+    "sonioxVoiceDeleteInUse": "Tämä ääni on aktiivisen istunnon käytössä — lopeta istunto ennen sen poistamista",
     "sonioxVoiceProcessingBadge": "käsitellään…",
     "sonioxVoiceFailedBadge": "epäonnistui",
     "sonioxVoiceFailed": "Käsittely epäonnistui — poista tämä ääni ja kokeile selkeämpää näytettä",

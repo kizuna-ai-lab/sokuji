@@ -99,7 +99,7 @@ describe('encodeWavPcm16', () => {
   it('produces a valid RIFF/WAVE mono 16-bit header and round-trips samples', async () => {
     vi.useRealTimers();  // FileReader needs real timers
     try {
-      const samples = new Float32Array([0, 0.5, -0.5, 1, -1]);
+      const samples = new Float32Array([0, 0.5, -0.5, 1, -1, -0.9999]);
       const blob = encodeWavPcm16(samples, 24000);
       expect(blob.type).toBe('audio/wav');
       expect(blob.size).toBe(44 + samples.length * 2);
@@ -116,6 +116,10 @@ describe('encodeWavPcm16', () => {
       expect(dv.getInt16(46, true)).toBe(Math.round(0.5 * 0x7fff));
       expect(dv.getInt16(50, true)).toBe(0x7fff);        // +1 clamps to max
       expect(dv.getInt16(52, true)).toBe(-0x8000);       // -1 maps to min
+      // Fractional negative must ROUND (to -32765), not truncate toward zero
+      // (-32764): DataView.setInt16 truncates non-integers, so the encoder
+      // has to round the negative branch itself.
+      expect(dv.getInt16(54, true)).toBe(Math.round(-0.9999 * 0x8000));
     } finally {
       vi.useFakeTimers();  // Restore for other tests in afterEach
     }

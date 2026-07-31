@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Pangalan para sa bagong klonadong boses (opsyonal)",
     "sonioxVoiceDefaultName": "Aking Boses {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(tinanggal na boses)",
+    "sonioxVoiceDeleteInUse": "Ginagamit ng aktibong session ang boses na ito — tapusin muna ang session bago ito burahin",
     "sonioxVoiceProcessingBadge": "pinoproseso…",
     "sonioxVoiceFailedBadge": "nabigo",
     "sonioxVoiceFailed": "Nabigo ang pagproseso — tanggalin ang boses na ito at subukan ang mas malinaw na clip",

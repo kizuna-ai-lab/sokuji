@@ -57,11 +57,31 @@ async function throwApiError(res: Response): Promise<never> {
   throw new SonioxVoicesError(errorType, message, res.status);
 }
 
+// Per-request bounds: without them a hung fetch never settles, and the
+// section's refresh() then sits in 'loading' forever with its own Refresh
+// button disabled — an unrecoverable stall until remount. Uploads get a much
+// longer leash (a 10 MB reference clip on a slow uplink is legitimate).
+const REQUEST_TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 export class SonioxVoicesClient {
   constructor(private readonly apiKey: string) {}
 
   private headers(): Record<string, string> {
     return { Authorization: `Bearer ${this.apiKey}` };
+  }
+
+  /** Bounded fetch that normalizes transport-level failures (DNS, offline,
+   *  timeout) into SonioxVoicesError so callers map ONE error shape. */
+  private async request(url: string | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
+    try {
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (e) {
+      if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+        throw new SonioxVoicesError('timeout', `Request timed out after ${timeoutMs / 1000}s`, 408);
+      }
+      throw new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), 0);
+    }
   }
 
   /** All voices in the project (auto-paginates; page size 1000). */
@@ -72,7 +92,7 @@ export class SonioxVoicesClient {
       const url = new URL(VOICES_URL);
       url.searchParams.set('limit', '1000');
       if (cursor) url.searchParams.set('cursor', cursor);
-      const res = await fetch(url, { headers: this.headers() });
+      const res = await this.request(url, { headers: this.headers() }, REQUEST_TIMEOUT_MS);
       if (!res.ok) await throwApiError(res);
       const body = await res.json();
       voices.push(...(body.voices ?? []));
@@ -82,7 +102,7 @@ export class SonioxVoicesClient {
   }
 
   async get(id: string): Promise<SonioxVoice> {
-    const res = await fetch(`${VOICES_URL}/${id}`, { headers: this.headers() });
+    const res = await this.request(`${VOICES_URL}/${id}`, { headers: this.headers() }, REQUEST_TIMEOUT_MS);
     if (!res.ok) await throwApiError(res);
     return res.json();
   }
@@ -91,14 +111,22 @@ export class SonioxVoicesClient {
     const form = new FormData();
     form.set('name', name);
     form.set('file', file, filename);
-    const res = await fetch(VOICES_URL, { method: 'POST', headers: this.headers(), body: form });
+    const res = await this.request(
+      VOICES_URL,
+      { method: 'POST', headers: this.headers(), body: form },
+      UPLOAD_TIMEOUT_MS
+    );
     if (!res.ok) await throwApiError(res);
     return res.json();
   }
 
   /** Deleting an already-gone voice is a success (idempotent cleanup). */
   async delete(id: string): Promise<void> {
-    const res = await fetch(`${VOICES_URL}/${id}`, { method: 'DELETE', headers: this.headers() });
+    const res = await this.request(
+      `${VOICES_URL}/${id}`,
+      { method: 'DELETE', headers: this.headers() },
+      REQUEST_TIMEOUT_MS
+    );
     if (!res.ok && res.status !== 404) await throwApiError(res);
   }
 
@@ -149,7 +177,10 @@ export function encodeWavPcm16(samples: Float32Array, sampleRate: number): Blob 
   dv.setUint32(40, n * 2, true);
   for (let i = 0; i < n; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]));
-    dv.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : Math.round(s * 0x7fff), true);
+    // Round BOTH branches: setInt16 truncates non-integers toward zero, so
+    // an unrounded negative product would lose up to a full LSB of accuracy
+    // relative to the rounded positive branch.
+    dv.setInt16(44 + i * 2, Math.round(s < 0 ? s * 0x8000 : s * 0x7fff), true);
   }
   return new Blob([buf], { type: 'audio/wav' });
 }

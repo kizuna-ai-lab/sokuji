@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "புதிய குளோன் செய்யப்பட்ட குரலுக்கான பெயர் (விருப்பமானது)",
     "sonioxVoiceDefaultName": "என் குரல் {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(நீக்கப்பட்ட குரல்)",
+    "sonioxVoiceDeleteInUse": "இந்தக் குரல் செயலில் உள்ள அமர்வில் பயன்படுத்தப்படுகிறது — நீக்கும் முன் அமர்வை முடிக்கவும்",
     "sonioxVoiceProcessingBadge": "செயலாக்கம் நடைபெறுகிறது…",
     "sonioxVoiceFailedBadge": "தோல்வி",
     "sonioxVoiceFailed": "செயலாக்கம் தோல்வியடைந்தது — இந்தக் குரலை நீக்கிவிட்டு தெளிவான கிளிப்பை முயற்சிக்கவும்",

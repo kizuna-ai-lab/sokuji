@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
     "sonioxVoiceDefaultName": "Mijn stem {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(verwijderde stem)",
+    "sonioxVoiceDeleteInUse": "Deze stem wordt gebruikt door de actieve sessie — beëindig de sessie voordat u deze verwijdert",
     "sonioxVoiceProcessingBadge": "wordt verwerkt…",
     "sonioxVoiceFailedBadge": "mislukt",
     "sonioxVoiceFailed": "Verwerking mislukt — verwijder deze stem en probeer een duidelijkere opname",

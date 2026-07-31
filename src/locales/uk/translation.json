@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Ім'я для нового клонованого голосу (необов'язково)",
     "sonioxVoiceDefaultName": "Мій голос {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(видалений голос)",
+    "sonioxVoiceDeleteInUse": "Цей голос використовується в активній сесії — завершіть сесію перед його видаленням",
     "sonioxVoiceProcessingBadge": "обробка…",
     "sonioxVoiceFailedBadge": "помилка",
     "sonioxVoiceFailed": "Помилка обробки — видаліть цей голос і спробуйте чіткіший фрагмент",

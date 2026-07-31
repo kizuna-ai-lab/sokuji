@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "新しく複製する音声の名前（任意）",
     "sonioxVoiceDefaultName": "マイ音声 {{n}}",
     "sonioxVoiceDeletedPlaceholder": "（削除された音声）",
+    "sonioxVoiceDeleteInUse": "この音声はアクティブなセッションで使用中です — 削除する前にセッションを終了してください",
     "sonioxVoiceProcessingBadge": "処理中…",
     "sonioxVoiceFailedBadge": "失敗",
     "sonioxVoiceFailed": "処理に失敗しました — この音声を削除し、より聞き取りやすいクリップでお試しください",

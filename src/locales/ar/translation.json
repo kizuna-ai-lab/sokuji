@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "اسم للصوت المستنسخ الجديد (اختياري)",
     "sonioxVoiceDefaultName": "صوتي {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(صوت محذوف)",
+    "sonioxVoiceDeleteInUse": "هذا الصوت قيد الاستخدام في الجلسة النشطة — أنهِ الجلسة قبل حذفه",
     "sonioxVoiceProcessingBadge": "قيد المعالجة…",
     "sonioxVoiceFailedBadge": "فشل",
     "sonioxVoiceFailed": "فشلت المعالجة — احذف هذا الصوت وجرّب مقطعًا أوضح",

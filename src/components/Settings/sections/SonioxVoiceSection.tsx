@@ -128,6 +128,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   }, [client]);
 
   useEffect(() => {
+    // A changed client means a (possibly) different Soniox project: the old
+    // project's clones must not stay listed/selectable while the new fetch is
+    // pending — or forever, if it fails. Manual refresh() calls (the toolbar
+    // button) deliberately keep the current list until fresh data lands.
+    setClones([]);
     void refresh();
     return () => { loadGeneration.current++; };
   }, [refresh]);
@@ -274,7 +279,23 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const onDelete = async (id: string) => {
     if (!client) return;
-    await client.delete(id);
+    // The live session's SonioxClient captured this voice id at session start
+    // and reuses it for every TTS stream — deleting it server-side would break
+    // spoken translation for the rest of the session.
+    if (isSessionActive && settings.voice === id) {
+      setCaptureError(
+        t('settings.sonioxVoiceDeleteInUse', 'This voice is being used by the active session — end the session before deleting it')
+      );
+      return;
+    }
+    try {
+      await client.delete(id);
+    } catch (e) {
+      // VoiceLibrarySection's own catch only console.warns — surface the
+      // failure in the banner or a failed delete is silent.
+      setCaptureError(mapCreateError(e).message);
+      throw e;
+    }
     await refresh();
     // Deliberate in-app deletion of the selected voice falls back to the
     // default built-in; an EXTERNAL deletion (e.g. from another client) only
@@ -301,6 +322,10 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
               : `${v.name} — ${t('settings.sonioxVoiceProcessingBadge', 'processing…')}`,
           group: 'custom',
           removable: true,
+          // A processing/failed clone stays listed (and deletable via the
+          // manage list) but can't be picked: a session started with it
+          // couldn't synthesize. Auto-select only ever happens post-`ready`.
+          disabled: !isReady(v),
         }));
     const known = new Set([...builtin, ...custom].map((e) => e.id));
     // Only synthesize the placeholder once we're not mid-fetch: a settings
@@ -317,6 +342,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           : settings.voice,
         group: 'custom',
         removable: false,
+        // Shows the current selection's state; never a valid new choice.
+        disabled: true,
       });
     }
     return [...builtin, ...custom];

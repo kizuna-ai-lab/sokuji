@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "نام برای صدای شبیه‌سازی‌شده جدید (اختیاری)",
     "sonioxVoiceDefaultName": "صدای من {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(صدای حذف‌شده)",
+    "sonioxVoiceDeleteInUse": "این صدا در جلسه فعال استفاده می‌شود — پیش از حذف، جلسه را پایان دهید",
     "sonioxVoiceProcessingBadge": "در حال پردازش…",
     "sonioxVoiceFailedBadge": "ناموفق",
     "sonioxVoiceFailed": "پردازش ناموفق بود — این صدا را حذف کنید و کلیپ واضح‌تری امتحان کنید",

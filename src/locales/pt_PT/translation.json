@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Nome para uma nova voz clonada (opcional)",
     "sonioxVoiceDefaultName": "A Minha Voz {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(voz eliminada)",
+    "sonioxVoiceDeleteInUse": "Esta voz está a ser usada pela sessão ativa — termine a sessão antes de a eliminar",
     "sonioxVoiceProcessingBadge": "a processar…",
     "sonioxVoiceFailedBadge": "falhou",
     "sonioxVoiceFailed": "Falha no processamento — elimine esta voz e experimente um excerto mais claro",

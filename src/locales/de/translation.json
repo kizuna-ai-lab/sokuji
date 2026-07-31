@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Name für eine neue geklonte Stimme (optional)",
     "sonioxVoiceDefaultName": "Meine Stimme {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(gelöschte Stimme)",
+    "sonioxVoiceDeleteInUse": "Diese Stimme wird von der aktiven Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen",
     "sonioxVoiceProcessingBadge": "wird verarbeitet…",
     "sonioxVoiceFailedBadge": "fehlgeschlagen",
     "sonioxVoiceFailed": "Verarbeitung fehlgeschlagen — löschen Sie diese Stimme und versuchen Sie es mit einer klareren Aufnahme",

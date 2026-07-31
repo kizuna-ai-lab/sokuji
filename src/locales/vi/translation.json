@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "Tên cho giọng nói nhân bản mới (không bắt buộc)",
     "sonioxVoiceDefaultName": "Giọng nói của tôi {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(giọng nói đã xóa)",
+    "sonioxVoiceDeleteInUse": "Giọng nói này đang được phiên hoạt động sử dụng — hãy kết thúc phiên trước khi xóa",
     "sonioxVoiceProcessingBadge": "đang xử lý…",
     "sonioxVoiceFailedBadge": "thất bại",
     "sonioxVoiceFailed": "Xử lý thất bại — hãy xóa giọng nói này và thử một đoạn rõ hơn",

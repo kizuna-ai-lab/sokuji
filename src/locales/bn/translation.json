@@ -243,6 +243,7 @@
     "sonioxVoiceNamePlaceholder": "নতুন ক্লোন করা কণ্ঠস্বরের জন্য নাম (ঐচ্ছিক)",
     "sonioxVoiceDefaultName": "আমার কণ্ঠস্বর {{n}}",
     "sonioxVoiceDeletedPlaceholder": "(মুছে ফেলা কণ্ঠস্বর)",
+    "sonioxVoiceDeleteInUse": "এই কণ্ঠস্বরটি সক্রিয় সেশনে ব্যবহৃত হচ্ছে — মুছে ফেলার আগে সেশনটি শেষ করুন",
     "sonioxVoiceProcessingBadge": "প্রক্রিয়াকরণ চলছে…",
     "sonioxVoiceFailedBadge": "ব্যর্থ",
     "sonioxVoiceFailed": "প্রক্রিয়াকরণ ব্যর্থ হয়েছে — এই কণ্ঠস্বরটি মুছে ফেলুন এবং আরও স্পষ্ট একটি ক্লিপ চেষ্টা করুন",
