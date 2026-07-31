@@ -3,6 +3,7 @@ import { SonioxClient } from './SonioxClient';
 import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
+import { SonioxSideTracker } from './SonioxSideTracker';
 
 // --- Mock both wire components; capture instances for driving the client ---
 const sttInstances: MockStt[] = [];
@@ -12,9 +13,16 @@ class MockStt {
   sentAudio: Int16Array[] = [];
   ended = false;
   closed = false;
+  // Used by the 503-resume "all attempts fail" tests to make every
+  // subsequent reconnect attempt's connect() reject.
+  static failConnect = false;
   constructor() { sttInstances.push(this); }
   setHandlers(h: SonioxSttStreamHandlers) { this.handlers = h; }
-  connect(config: SonioxSttConfig) { this.config = config; return Promise.resolve(); }
+  connect(config: SonioxSttConfig) {
+    this.config = config;
+    if (MockStt.failConnect) return Promise.reject(new Error('stt connect failed'));
+    return Promise.resolve();
+  }
   sendAudio(a: Int16Array) { this.sentAudio.push(a); }
   finalize() {}
   end() { this.ended = true; }
@@ -79,6 +87,7 @@ beforeEach(() => {
   ttsInstances.length = 0;
   MockTts.failConnect = false;
   MockTts.gate = null;
+  MockStt.failConnect = false;
 });
 
 describe('SonioxClient connect', () => {
@@ -930,5 +939,216 @@ describe('SonioxClient diarization attribution (#342)', () => {
     // fallback (zh == source → speaker), not the stale participant memory.
     stt2.emit({ tokens: [tok('好', { is_final: true, translation_status: 'original', language: 'zh', speaker: '2' })] });
     expect(updates.at(-1)!.item.source).toBe('speaker');
+  });
+});
+
+describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not fatal)', () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  it('a 503 error frame + close resumes silently: no error item, no onError/onClose, onReconnected fires, and new audio reaches the fresh stream', async () => {
+    const { client, updates } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+    const errors: any[] = [];
+    const closeEvents: any[] = [];
+    const reconnected = vi.fn();
+    client.setEventHandlers({
+      onConversationUpdated: (d) => updates.push(d),
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+      onReconnected: reconnected,
+    });
+
+    stt0.handlers.onError?.('503', 'temporarily unavailable');
+    stt0.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush(); // let the immediate (0ms) resume attempt settle
+
+    expect(errors).toHaveLength(0);
+    expect(closeEvents).toHaveLength(0);
+    expect(client.getConversationItems().some((i) => i.type === 'error')).toBe(false);
+    expect(reconnected).toHaveBeenCalledTimes(1);
+
+    const stt1 = sttInstances.at(-1)!;
+    expect(stt1).not.toBe(stt0);
+    expect(client.isConnected()).toBe(true);
+
+    const pcm = new Int16Array([9, 9]);
+    client.appendInputAudio(pcm);
+    expect(stt1.sentAudio).toEqual([pcm]);
+  });
+
+  it('onReconnecting fires synchronously as soon as the post-503 close lands', async () => {
+    const { client } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+    const reconnecting = vi.fn();
+    client.setEventHandlers({ onReconnecting: reconnecting });
+
+    stt0.handlers.onError?.('503', 'temporarily unavailable');
+    stt0.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+
+    expect(reconnecting).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 413 error frame is unaffected: generic error item + onError, no resume attempted', async () => {
+    const { client, updates } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+    const errors: any[] = [];
+    const closeEvents: any[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: (d) => updates.push(d),
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+    });
+
+    stt0.handlers.onError?.('413', 'payload too large');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('413');
+    expect(client.getConversationItems().some((i) => i.type === 'error')).toBe(true);
+
+    // The close that follows a 413 is a normal close — not swallowed for a resume.
+    stt0.handlers.onClose?.({ code: 1000, reason: '' });
+    await flush();
+    expect(closeEvents).toHaveLength(1);
+    expect(sttInstances).toHaveLength(1); // no resume attempt opened a new stream
+  });
+
+  it('an utterance interrupted mid-flight is completed on resume; the next utterance mints a fresh item id', async () => {
+    const { client, stt } = await connectedClient();
+    // Seed mid-utterance state: a final user token with no <end> yet.
+    stt.emit({ tokens: [tok('Hel', { is_final: true, translation_status: 'original', language: 'zh' })] });
+    const interruptedId = client.getConversationItems().find((i) => i.role === 'user')!.id;
+    expect(client.getConversationItems().find((i) => i.id === interruptedId)!.status).toBe('in_progress');
+
+    stt.handlers.onError?.('503', 'temporarily unavailable');
+    stt.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush();
+
+    const interruptedItem = client.getConversationItems().find((i) => i.id === interruptedId)!;
+    expect(interruptedItem.status).toBe('completed');
+    expect(interruptedItem.formatted?.text).toBe('Hel');
+
+    const stt1 = sttInstances.at(-1)!;
+    expect(stt1).not.toBe(stt);
+    stt1.emit({ tokens: [tok('Next', { is_final: true, translation_status: 'original', language: 'zh' })] });
+    const nextItem = client.getConversationItems().find((i) => i.role === 'user' && i.id !== interruptedId);
+    expect(nextItem).toBeDefined();
+    expect(nextItem!.formatted?.text).toBe('Next');
+  });
+
+  it('bidirectional: the side tracker is reset on resume (stale labels/timeline must not leak into the new stream)', async () => {
+    const resetSpy = vi.spyOn(SonioxSideTracker.prototype, 'reset');
+    const client = new SonioxClient('key');
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
+    const stt0 = sttInstances.at(-1)!;
+    resetSpy.mockClear();
+
+    stt0.handlers.onError?.('503', 'temporarily unavailable');
+    stt0.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush();
+
+    expect(resetSpy).toHaveBeenCalledTimes(1);
+    resetSpy.mockRestore();
+  });
+
+  it('managed-403 duration cutoff is unaffected by the 503 resume path (cutoff still wins, never resumes)', async () => {
+    const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        sttApiKey: 'stt-key', ttsApiKey: 'tts-key', expiresAt: '2026-07-25T00:01:00Z',
+        maxSessionDurationSeconds: 900, budgetMicroUsd: 500_000, rateUsdPerHour: 0.6,
+        sku: 'soniox:speech_to_speech', leaseId: 'lease-1', clientReferenceId: 'sokuji1:acct:lease-1',
+      }),
+    }));
+    const errors: any[] = [];
+    const closeEvents: any[] = [];
+    const reconnecting = vi.fn();
+    client.setEventHandlers({
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+      onReconnecting: reconnecting,
+    });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt0 = sttInstances.at(-1)!;
+
+    stt0.handlers.onError?.('403', 'session duration exceeded');
+    stt0.handlers.onClose?.({ code: 1000, reason: '' });
+    await flush();
+
+    expect(errors).toHaveLength(0);
+    expect(reconnecting).not.toHaveBeenCalled();
+    expect(closeEvents).toHaveLength(1);
+    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.useRealTimers(); MockStt.failConnect = false; });
+
+  it('after 3 failed reconnect attempts (0/1000/3000ms gaps), surfaces the ORIGINAL 503 message and closes the session', async () => {
+    const client = new SonioxClient('key');
+    const errors: any[] = [];
+    const updates: any[] = [];
+    const closeEvents: any[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: (d) => updates.push(d),
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+    });
+    await client.connect(BASE_CONFIG);
+    const stt0 = sttInstances.at(-1)!;
+
+    MockStt.failConnect = true;
+    stt0.handlers.onError?.('503', 'capacity exceeded');
+    stt0.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+
+    // Advance through all 3 backoff gaps (0ms/1000ms/3000ms) in one go —
+    // each subsequent setTimeout is only registered once the prior attempt's
+    // rejection has been caught, so a single runAllTimersAsync interleaves
+    // timers and microtasks correctly (same pattern as GeminiClient's
+    // "3 failed retries" reconnect test).
+    await vi.runAllTimersAsync();
+
+    expect(sttInstances).toHaveLength(4); // original + 3 failed resume attempts
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('503');
+    // The ORIGINAL 503 message — not whatever the 3rd attempt's rejection said.
+    expect(errors[0].message).toBe('capacity exceeded');
+    expect(updates.some((u) => u.item.type === 'error')).toBe(true);
+    expect(closeEvents).toHaveLength(1);
+    expect(closeEvents[0]).toEqual({ code: 1006, reason: 'stt resume failed' });
+    expect(client.isConnected()).toBe(false);
+  });
+
+  it('a resume that succeeds on a later attempt does not surface anything and reaches onReconnected', async () => {
+    const client = new SonioxClient('key');
+    const errors: any[] = [];
+    const closeEvents: any[] = [];
+    const reconnected = vi.fn();
+    client.setEventHandlers({
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+      onReconnected: reconnected,
+    });
+    await client.connect(BASE_CONFIG);
+    const stt0 = sttInstances.at(-1)!;
+
+    MockStt.failConnect = true;
+    stt0.handlers.onError?.('503', 'capacity exceeded');
+    stt0.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+
+    // Let the first (0ms) attempt fail, then flip to succeeding before the
+    // second attempt (after the 1000ms gap) fires.
+    await vi.advanceTimersByTimeAsync(0);
+    MockStt.failConnect = false;
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(reconnected).toHaveBeenCalledTimes(1);
+    expect(errors).toHaveLength(0);
+    expect(closeEvents).toHaveLength(0);
+    expect(client.isConnected()).toBe(true);
   });
 });
