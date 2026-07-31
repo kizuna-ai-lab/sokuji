@@ -5,13 +5,9 @@ export interface OpenAIRealtimeSessionBuildResult {
   turnDetectionDisabled: boolean;
 }
 
-export interface OpenAIRealtimeSessionBuildOptions {
-  /**
-   * Initial session creation should fall back to Alloy when no voice is set.
-   * Partial session updates must disable this so they preserve the server's
-   * current voice instead of silently resetting it.
-   */
-  includeDefaultVoice?: boolean;
+export interface OpenAIRealtimeSessionUpdateBuildResult {
+  session: Record<string, any>;
+  turnDetectionDisabled?: boolean;
 }
 
 /**
@@ -20,8 +16,7 @@ export interface OpenAIRealtimeSessionBuildOptions {
  * silently changing session settings such as the selected voice.
  */
 export function buildOpenAIRealtimeSession(
-  config: OpenAISessionConfig,
-  options: OpenAIRealtimeSessionBuildOptions = {}
+  config: OpenAISessionConfig
 ): OpenAIRealtimeSessionBuildResult {
   const session: Record<string, any> = {
     type: 'realtime',
@@ -38,10 +33,9 @@ export function buildOpenAIRealtimeSession(
 
   // Voice is nested under audio.output in the GA protocol. This must be sent
   // before the first audio response because the API locks the voice afterward.
-  const outputVoice = config.voice || (options.includeDefaultVoice === false ? undefined : 'alloy');
-  if (!config.textOnly && outputVoice) {
+  if (!config.textOnly) {
     audio.output = {
-      voice: outputVoice
+      voice: config.voice || 'alloy'
     };
   }
 
@@ -90,6 +84,88 @@ export function buildOpenAIRealtimeSession(
     audio.input = audioInput;
   }
 
+  if (Object.keys(audio).length > 0) {
+    session.audio = audio;
+  }
+
+  if (config.model?.startsWith('gpt-realtime-2') && config.reasoningEffort) {
+    session.reasoning = { effort: config.reasoningEffort };
+  }
+
+  return { session, turnDetectionDisabled };
+}
+
+/**
+ * Build a sparse GA session.update payload. Only explicitly supplied settings
+ * are emitted so a runtime update cannot reset unrelated server state.
+ */
+export function buildOpenAIRealtimeSessionUpdate(
+  config: Partial<OpenAISessionConfig>
+): OpenAIRealtimeSessionUpdateBuildResult {
+  const session: Record<string, any> = { type: 'realtime' };
+  const audio: Record<string, any> = {};
+  const audioInput: Record<string, any> = {};
+  let turnDetectionDisabled: boolean | undefined;
+
+  if (config.textOnly !== undefined) {
+    session.output_modalities = config.textOnly ? ['text'] : ['audio'];
+  }
+  if (config.instructions !== undefined) {
+    session.instructions = config.instructions;
+  }
+  if (config.maxTokens !== undefined) {
+    session.max_output_tokens = config.maxTokens === 'inf' ? 'inf' : config.maxTokens;
+  }
+
+  if (config.voice !== undefined && config.textOnly !== true) {
+    audio.output = { voice: config.voice };
+  }
+
+  if (config.turnDetection !== undefined) {
+    if (config.turnDetection.type === 'none') {
+      audioInput.turn_detection = null;
+      turnDetectionDisabled = true;
+    } else {
+      const turnDetection: Record<string, any> = {
+        type: config.turnDetection.type,
+        create_response: config.turnDetection.createResponse ?? true,
+        interrupt_response: config.turnDetection.interruptResponse ?? false
+      };
+
+      if (config.turnDetection.type === 'server_vad') {
+        if (config.turnDetection.threshold !== undefined) {
+          turnDetection.threshold = config.turnDetection.threshold;
+        }
+        if (config.turnDetection.prefixPadding !== undefined) {
+          turnDetection.prefix_padding_ms = Math.round(config.turnDetection.prefixPadding * 1000);
+        }
+        if (config.turnDetection.silenceDuration !== undefined) {
+          turnDetection.silence_duration_ms = Math.round(config.turnDetection.silenceDuration * 1000);
+        }
+      } else if (config.turnDetection.eagerness) {
+        turnDetection.eagerness = config.turnDetection.eagerness.toLowerCase();
+      }
+
+      audioInput.turn_detection = turnDetection;
+      turnDetectionDisabled = false;
+    }
+  }
+
+  if (config.inputAudioTranscription?.model) {
+    audioInput.transcription = {
+      model: config.inputAudioTranscription.model
+    };
+  }
+
+  if (config.inputAudioNoiseReduction?.type) {
+    audioInput.noise_reduction = {
+      type: config.inputAudioNoiseReduction.type
+    };
+  }
+
+  if (Object.keys(audioInput).length > 0) {
+    audio.input = audioInput;
+  }
   if (Object.keys(audio).length > 0) {
     session.audio = audio;
   }

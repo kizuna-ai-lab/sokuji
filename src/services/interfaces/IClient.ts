@@ -274,8 +274,11 @@ export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig |
 /**
  * Type guards for session configurations
  */
-export function isOpenAISessionConfig(config: SessionConfig): config is OpenAISessionConfig {
-  return config.provider === 'openai' || config.provider === 'cometapi';
+export function isOpenAISessionConfig(config: unknown): config is OpenAISessionConfig {
+  if (typeof config !== 'object' || config === null) return false;
+
+  const provider = (config as { provider?: unknown }).provider;
+  return provider === 'openai' || provider === 'cometapi';
 }
 
 export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
@@ -449,9 +452,9 @@ export interface IClientStatic {
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }>;
-  
+
   /**
    * Get the latest realtime model ID
    */
   getLatestRealtimeModel(models: FilteredModel[]): string;
-} 
+}

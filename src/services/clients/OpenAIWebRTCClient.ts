@@ -28,7 +28,8 @@ import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio
 import {
   buildOpenAIRealtimeCallForm,
   buildOpenAIRealtimeResponseEvent,
-  buildOpenAIRealtimeSession
+  buildOpenAIRealtimeSession,
+  buildOpenAIRealtimeSessionUpdate
 } from './openAIRealtimeSession';
 
 interface WebRTCClientOptions {
@@ -525,15 +526,26 @@ export class OpenAIWebRTCClient implements IClient {
   /**
    * Send session.update event to configure the session
    */
-  private sendSessionUpdate(config: OpenAISessionConfig, partial = false): void {
-    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config, {
-      includeDefaultVoice: !partial
-    });
+  private sendSessionUpdate(config: OpenAISessionConfig): void {
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
     this.turnDetectionDisabled = turnDetectionDisabled;
 
     if (session.reasoning) {
       console.info('[Sokuji] [OpenAIWebRTCClient] reasoning.effort applied:', config.reasoningEffort);
     }
+
+    this.sendEvent({
+      type: 'session.update',
+      session
+    });
+  }
+
+  private sendPartialSessionUpdate(config: Partial<OpenAISessionConfig>): void {
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSessionUpdate(config);
+    if (turnDetectionDisabled !== undefined) {
+      this.turnDetectionDisabled = turnDetectionDisabled;
+    }
+    if (Object.keys(session).length === 1) return;
 
     this.sendEvent({
       type: 'session.update',
@@ -613,8 +625,8 @@ export class OpenAIWebRTCClient implements IClient {
    * Update session configuration
    */
   updateSession(config: Partial<SessionConfig>): void {
-    if (isOpenAISessionConfig(config as SessionConfig)) {
-      this.sendSessionUpdate(config as OpenAISessionConfig, true);
+    if (isOpenAISessionConfig(config)) {
+      this.sendPartialSessionUpdate(config);
     }
   }
 

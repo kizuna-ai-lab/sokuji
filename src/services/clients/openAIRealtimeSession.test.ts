@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { OpenAISessionConfig } from '../interfaces/IClient';
+import { isOpenAISessionConfig, OpenAISessionConfig } from '../interfaces/IClient';
 import {
   buildOpenAIRealtimeCallForm,
   buildOpenAIRealtimeResponseEvent,
-  buildOpenAIRealtimeSession
+  buildOpenAIRealtimeSession,
+  buildOpenAIRealtimeSessionUpdate
 } from './openAIRealtimeSession';
 
 const config: OpenAISessionConfig = {
@@ -38,12 +39,39 @@ describe('OpenAI Realtime GA session payload', () => {
   });
 
   it('preserves the current voice for partial updates that omit voice', () => {
-    const { session } = buildOpenAIRealtimeSession(
-      { ...config, voice: undefined },
-      { includeDefaultVoice: false }
-    );
+    const { session } = buildOpenAIRealtimeSessionUpdate({
+      provider: 'openai',
+      instructions: 'Updated instructions.'
+    });
 
-    expect(session.audio.output).toBeUndefined();
+    expect(session).toEqual({
+      type: 'realtime',
+      instructions: 'Updated instructions.'
+    });
+    expect(session.audio).toBeUndefined();
+    expect(session.output_modalities).toBeUndefined();
+    expect(session.tool_choice).toBeUndefined();
+    expect(session.tools).toBeUndefined();
+  });
+
+  it('only changes push-to-talk state when turn detection is supplied', () => {
+    expect(buildOpenAIRealtimeSessionUpdate({
+      provider: 'openai',
+      instructions: 'Keep translating.'
+    }).turnDetectionDisabled).toBeUndefined();
+
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSessionUpdate({
+      provider: 'openai',
+      turnDetection: { type: 'none' }
+    });
+
+    expect(turnDetectionDisabled).toBe(true);
+    expect(session).toEqual({
+      type: 'realtime',
+      audio: {
+        input: { turn_detection: null }
+      }
+    });
   });
 
   it('omits reasoning for models that do not support it', () => {
@@ -115,5 +143,16 @@ describe('OpenAI Realtime GA session payload', () => {
       }
     });
     expect(event.response.modalities).toBeUndefined();
+  });
+});
+
+describe('OpenAI session config guard', () => {
+  it('accepts sparse OpenAI configs and rejects non-object values', () => {
+    expect(isOpenAISessionConfig({ provider: 'openai' })).toBe(true);
+    expect(isOpenAISessionConfig({ provider: 'cometapi' })).toBe(true);
+    expect(isOpenAISessionConfig({ provider: 'gemini' })).toBe(false);
+    expect(isOpenAISessionConfig(null)).toBe(false);
+    expect(isOpenAISessionConfig('openai')).toBe(false);
+    expect(isOpenAISessionConfig(42)).toBe(false);
   });
 });

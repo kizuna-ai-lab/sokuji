@@ -26,7 +26,8 @@ import { unwrapTranslationText } from '../../utils/textUtils';
 import { OpenAIClient } from './OpenAIClient';
 import {
   buildOpenAIRealtimeResponseEvent,
-  buildOpenAIRealtimeSession
+  buildOpenAIRealtimeSession,
+  buildOpenAIRealtimeSessionUpdate
 } from './openAIRealtimeSession';
 
 /**
@@ -621,12 +622,10 @@ export class OpenAIGAClient implements IClient {
   /**
    * Send session.update event with configuration
    */
-  private sendSessionUpdate(config: OpenAISessionConfig, partial = false): void {
+  private sendSessionUpdate(config: OpenAISessionConfig): void {
     if (!this.rt) return;
 
-    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config, {
-      includeDefaultVoice: !partial
-    });
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
     this.turnDetectionDisabled = turnDetectionDisabled;
 
     if (session.reasoning) {
@@ -639,6 +638,29 @@ export class OpenAIGAClient implements IClient {
     } as any);
 
     // Forward as client event for logging
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: {
+        type: 'session.update',
+        data: { session }
+      }
+    });
+  }
+
+  private sendPartialSessionUpdate(config: Partial<OpenAISessionConfig>): void {
+    if (!this.rt) return;
+
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSessionUpdate(config);
+    if (turnDetectionDisabled !== undefined) {
+      this.turnDetectionDisabled = turnDetectionDisabled;
+    }
+    if (Object.keys(session).length === 1) return;
+
+    this.rt.send({
+      type: 'session.update',
+      session
+    } as any);
+
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: {
@@ -677,8 +699,8 @@ export class OpenAIGAClient implements IClient {
   }
 
   updateSession(config: Partial<SessionConfig>): void {
-    if (isOpenAISessionConfig(config as SessionConfig)) {
-      this.sendSessionUpdate(config as OpenAISessionConfig, true);
+    if (isOpenAISessionConfig(config)) {
+      this.sendPartialSessionUpdate(config);
     }
   }
 
