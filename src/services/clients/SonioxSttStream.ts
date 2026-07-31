@@ -52,6 +52,7 @@ export interface SonioxSttConfig {
   context?: {
     terms?: string[];
     translation_terms?: Array<{ source: string; target: string }>;
+    text?: string;
   };
   /** endpoint_sensitivity, -1.0..1.0. 0/undefined = omit (server default). v5-only. */
   endpointSensitivity?: number;

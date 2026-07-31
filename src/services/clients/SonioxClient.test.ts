@@ -654,6 +654,11 @@ describe('SonioxClient advanced-feature passthrough (#342)', () => {
     });
   });
 
+  it('passes background text through to the STT wire context', async () => {
+    const { stt } = await connectedClient({ context: { text: 'Quarterly sync' } });
+    expect((stt.config as { context?: { text?: string } }).context).toEqual({ text: 'Quarterly sync' });
+  });
+
   it('sends no context when the session config has none', async () => {
     const { stt } = await connectedClient();
     expect((stt.config as { context?: unknown }).context).toBeUndefined();

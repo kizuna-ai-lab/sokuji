@@ -270,6 +270,7 @@ export class SonioxClient implements IClient {
           ...(cfg.context.translationTerms?.length
             ? { translation_terms: cfg.context.translationTerms }
             : {}),
+          ...(cfg.context.text ? { text: cfg.context.text } : {}),
         }
       : undefined;
     await this.stt.connect({
