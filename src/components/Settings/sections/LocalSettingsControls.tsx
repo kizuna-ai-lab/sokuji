@@ -40,7 +40,9 @@ export const TtsSpeedControl: React.FC<{
       <div className="setting-item">
         <div className="setting-label">
           <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
-          <span className="setting-value">{value.toFixed(1)}x</span>
+          {/* Display precision follows the slider granularity: a 0.05 step
+              (Soniox) must render 0.75 as "0.75x", not round it to "0.8x". */}
+          <span className="setting-value">{value.toFixed(step < 0.1 ? 2 : 1)}x</span>
         </div>
         <input
           type="range" min={min} max={max} step={step} value={value}

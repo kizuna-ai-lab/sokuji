@@ -1755,7 +1755,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           disabled={isSessionActive}
           min={0.7}
           max={1.3}
-          step={0.1}
+          step={0.05}
         />
 
         <div className="settings-section" id="soniox-vocabulary-section">

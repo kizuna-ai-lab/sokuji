@@ -122,8 +122,9 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     const el = container.querySelector('input[min="0.7"]') as HTMLInputElement;
     expect(el).not.toBeNull();
     expect(el.getAttribute('max')).toBe('1.3');
-    fireEvent.change(el, { target: { value: '0.8' } });
-    expect(useSettingsStore.getState().soniox.ttsSpeed).toBe(0.8);
+    expect(el.getAttribute('step')).toBe('0.05');
+    fireEvent.change(el, { target: { value: '0.75' } });
+    expect(useSettingsStore.getState().soniox.ttsSpeed).toBe(0.75);
   });
 
   it('writes the background textarea to soniox.contextText and caps it at 4000 chars', () => {
