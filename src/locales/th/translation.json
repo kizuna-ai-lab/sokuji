@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "ค่าเริ่มต้น",
     "sonioxLatencyLevelLower": "ความหน่วงต่ำลง",
     "sonioxLatencyLevelEvenLower": "ความหน่วงต่ำลงอีก",
-    "sonioxLatencyLevelMost": "รุนแรงที่สุด"
+    "sonioxLatencyLevelMost": "รุนแรงที่สุด",
+    "sonioxBackground": "พื้นหลังเซสชัน",
+    "sonioxBackgroundTooltip": "ข้อมูลพื้นหลังแบบอิสระสำหรับเซสชันถัดไป — วาระ หัวข้อ หรือบันทึกอ้างอิง ช่วยให้การจดจำและการแปลติดตามสาขาที่เกี่ยวข้อง จะถูกตัดออกก่อนหากบริบทที่รวมกันเกินขีดจำกัดขนาด",
+    "sonioxBackgroundPlaceholder": "วางวาระ หัวข้อ หรือบันทึกพื้นหลัง (ไม่บังคับ)"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",

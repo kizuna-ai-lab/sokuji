@@ -192,10 +192,12 @@ export interface SonioxSessionConfig extends BaseSessionConfig {
   targetLanguage: string; // ISO code
   /** True only for Both mode with a shared single session (set by MainPanel). Drives two_way vs one_way. */
   bidirectional: boolean;
-  /** Custom vocabulary parsed from settings; absent when both lists are empty. */
+  /** Custom vocabulary parsed from settings; absent when all three parts are empty. */
   context?: {
     terms?: string[];
     translationTerms?: Array<{ source: string; target: string }>;
+    /** Free-form background text (wire: context.text); absent when empty. */
+    text?: string;
   };
   /** Clamped -1.0..1.0; 0 (default) is omitted from the wire. */
   endpointSensitivity?: number;

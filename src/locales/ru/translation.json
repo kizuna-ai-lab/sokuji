@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "По умолчанию",
     "sonioxLatencyLevelLower": "Меньшая задержка",
     "sonioxLatencyLevelEvenLower": "Ещё меньшая задержка",
-    "sonioxLatencyLevelMost": "Максимально агрессивный"
+    "sonioxLatencyLevelMost": "Максимально агрессивный",
+    "sonioxBackground": "Контекст сеанса",
+    "sonioxBackgroundTooltip": "Произвольный контекст для следующего сеанса — повестка, тема или справочные заметки. Помогает распознаванию и переводу соответствовать предметной области. Обрезается первым, если объединённый контекст превышает лимит размера.",
+    "sonioxBackgroundPlaceholder": "Вставьте повестку, тему или справочные заметки (необязательно)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись",

@@ -263,13 +263,15 @@ export class SonioxClient implements IClient {
       onTick: () => this.costMeter?.tick(Date.now()),
     });
     // Map the session config's camelCase context to the wire's snake_case.
-    // buildSessionConfig only sets `context` when at least one list is non-empty.
+    // buildSessionConfig only sets `context` when at least one of
+    // terms/translations/background text is non-empty.
     const sttContext = cfg.context
       ? {
           ...(cfg.context.terms?.length ? { terms: cfg.context.terms } : {}),
           ...(cfg.context.translationTerms?.length
             ? { translation_terms: cfg.context.translationTerms }
             : {}),
+          ...(cfg.context.text ? { text: cfg.context.text } : {}),
         }
       : undefined;
     await this.stt.connect({

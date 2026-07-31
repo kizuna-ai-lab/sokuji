@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Predefinito",
     "sonioxLatencyLevelLower": "Latenza inferiore",
     "sonioxLatencyLevelEvenLower": "Latenza ancora più bassa",
-    "sonioxLatencyLevelMost": "Più aggressivo"
+    "sonioxLatencyLevelMost": "Più aggressivo",
+    "sonioxBackground": "Contesto della sessione",
+    "sonioxBackgroundTooltip": "Contesto libero per la prossima sessione — ordine del giorno, argomento o note di riferimento. Aiuta il riconoscimento e la traduzione a seguire l'ambito. Viene troncato per primo se il contesto complessivo supera il limite di dimensione.",
+    "sonioxBackgroundPlaceholder": "Incolla un ordine del giorno, un argomento o note di contesto (facoltativo)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",

@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "默认",
     "sonioxLatencyLevelLower": "更低延迟",
     "sonioxLatencyLevelEvenLower": "进一步降低延迟",
-    "sonioxLatencyLevelMost": "最积极"
+    "sonioxLatencyLevelMost": "最积极",
+    "sonioxBackground": "会话背景",
+    "sonioxBackgroundTooltip": "为下一次会话提供的自由格式背景信息——议程、主题或参考笔记。有助于识别和翻译贴合相关领域。如果合并后的上下文超出大小限制，会首先裁剪这部分内容。",
+    "sonioxBackgroundPlaceholder": "粘贴议程、主题或背景笔记（可选）"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",

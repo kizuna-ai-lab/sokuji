@@ -168,6 +168,7 @@ describe('SonioxSttStream', () => {
       context: {
         terms: ['Sokuji'],
         translation_terms: [{ source: 'Kizuna AI', target: '絆愛' }],
+        text: 'Quarterly sync',
       },
       endpointSensitivity: -0.5,
       endpointLatencyAdjustmentLevel: 2,
@@ -176,7 +177,9 @@ describe('SonioxSttStream', () => {
     expect(first.context).toEqual({
       terms: ['Sokuji'],
       translation_terms: [{ source: 'Kizuna AI', target: '絆愛' }],
+      text: 'Quarterly sync',
     });
+    expect(first.context.text).toBe('Quarterly sync');
     expect(first.endpoint_sensitivity).toBe(-0.5);
     expect(first.endpoint_latency_adjustment_level).toBe(2);
   });

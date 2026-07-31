@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Default",
     "sonioxLatencyLevelLower": "Mas mababang latency",
     "sonioxLatencyLevelEvenLower": "Mas mababa pang latency",
-    "sonioxLatencyLevelMost": "Pinaka-agresibo"
+    "sonioxLatencyLevelMost": "Pinaka-agresibo",
+    "sonioxBackground": "Konteksto ng Session",
+    "sonioxBackgroundTooltip": "Malayang konteksto para sa susunod na session — agenda, paksa, o mga tala sanggunian. Tumutulong ito para sumunod sa larangan ang pagkilala at pagsasalin. Ito ang unang puputulin kung lumampas sa limitasyon ng sukat ang pinagsamang konteksto.",
+    "sonioxBackgroundPlaceholder": "I-paste ang agenda, paksa, o mga tala ng konteksto (opsyonal)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",

@@ -18,6 +18,8 @@ export interface SonioxSettings {
   vocabularyTerms: string;
   /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
   vocabularyTranslations: string;
+  /** Free-form session background (agenda/topic/notes) → wire context.text. */
+  contextText: string;
   /** Soniox endpoint_sensitivity, -1.0..1.0; 0 = server default. */
   endpointSensitivity: number;
   /** Soniox endpoint_latency_adjustment_level, 0..3; 0 = server default. */
@@ -35,6 +37,7 @@ export const defaultSonioxSettings: SonioxSettings = {
   model: 'stt-rt-v5',
   vocabularyTerms: '',
   vocabularyTranslations: '',
+  contextText: '',
   endpointSensitivity: 0,
   endpointLatencyAdjustmentLevel: 0,
   ttsSpeed: 1.0,
@@ -81,14 +84,39 @@ const SONIOX_CONTEXT_CHAR_BUDGET = 9000;
 
 function fitContextToBudget(
   terms: string[],
-  translationTerms: Array<{ source: string; target: string }>
-): { terms: string[]; translationTerms: Array<{ source: string; target: string }> } {
+  translationTerms: Array<{ source: string; target: string }>,
+  text: string
+): { terms: string[]; translationTerms: Array<{ source: string; target: string }>; text: string } {
   const serializedSize = (): number =>
     JSON.stringify({
       ...(terms.length ? { terms } : {}),
       ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
+      ...(text ? { text } : {}),
     }).length;
-  const dropped = { terms: 0, translationTerms: 0 };
+  const dropped = { terms: 0, translationTerms: 0, textChars: 0 };
+  // Background text is the weakest context evidence: truncate it first.
+  // Raw-length arithmetic misjudges the cut when characters JSON-escape to
+  // 2-6 output units (newlines and quotes are certain in pasted agendas), so
+  // binary-search the longest prefix whose actual serialization fits the
+  // budget (~12 stringify probes at connect time, once per session).
+  if (text && serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET) {
+    const full = text;
+    const fits = (keep: number): boolean => {
+      text = full.slice(0, keep);
+      return serializedSize() <= SONIOX_CONTEXT_CHAR_BUDGET;
+    };
+    let lo = 0;
+    let hi = full.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (fits(mid)) lo = mid;
+      else hi = mid - 1;
+    }
+    // A cut landing mid-surrogate-pair would leave a lone high surrogate
+    // (serializes as a 6-char escape and renders as U+FFFD downstream).
+    text = full.slice(0, lo).replace(/[\uD800-\uDBFF]$/, '');
+    dropped.textChars = full.length - text.length;
+  }
   while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && translationTerms.length) {
     translationTerms = translationTerms.slice(0, -1);
     dropped.translationTerms++;
@@ -97,13 +125,14 @@ function fitContextToBudget(
     terms = terms.slice(0, -1);
     dropped.terms++;
   }
-  if (dropped.terms || dropped.translationTerms) {
+  if (dropped.terms || dropped.translationTerms || dropped.textChars) {
     console.warn(
-      `[SonioxProviderConfig] Custom vocabulary exceeds the Soniox context size limit — ` +
-      `dropped ${dropped.translationTerms} translation(s) and ${dropped.terms} term(s) from the end`
+      `[SonioxProviderConfig] Custom vocabulary/background exceeds the Soniox context size limit — ` +
+      `truncated ${dropped.textChars} background char(s), dropped ${dropped.translationTerms} translation(s) ` +
+      `and ${dropped.terms} term(s) from the end`
     );
   }
-  return { terms, translationTerms };
+  return { terms, translationTerms, text };
 }
 
 // The managed start floor lives in its own import-free module so the Start
@@ -156,9 +185,10 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as SonioxSettings;
-    const { terms, translationTerms } = fitContextToBudget(
+    const { terms, translationTerms, text } = fitContextToBudget(
       parseVocabularyTerms(settings.vocabularyTerms ?? ''),
-      parseVocabularyTranslations(settings.vocabularyTranslations ?? '')
+      parseVocabularyTranslations(settings.vocabularyTranslations ?? ''),
+      (settings.contextText ?? '').trim()
     );
     return {
       provider: 'soniox',
@@ -170,11 +200,12 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       // Direction is derived from You/Others/Both at connect time; default one_way.
       // MainPanel sets bidirectional:true only for the shared-Both single-session path.
       bidirectional: false,
-      ...(terms.length || translationTerms.length
+      ...(terms.length || translationTerms.length || text
         ? {
             context: {
               ...(terms.length ? { terms } : {}),
               ...(translationTerms.length ? { translationTerms } : {}),
+              ...(text ? { text } : {}),
             },
           }
         : {}),
@@ -254,8 +285,9 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     { name: 'Cymraeg', value: 'cy', englishName: 'Welsh' },
   ];
 
-  // All 12 voices are multilingual (zh/ja/en verified live 2026-07-18):
-  // one voice serves both two_way directions.
+  // Every voice is multilingual — any voice speaks any language (official
+  // catalog, 2026-07-31; zh/ja/en live-verified 2026-07-18 for the original
+  // twelve) — so one voice serves both two_way directions.
   private static readonly VOICES: VoiceOption[] = [
     { name: 'Adrian', value: 'Adrian' },
     { name: 'Claire', value: 'Claire' },
@@ -269,6 +301,23 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     { name: 'Nina', value: 'Nina' },
     { name: 'Noah', value: 'Noah' },
     { name: 'Owen', value: 'Owen' },
+    // Accented additions (official catalog, 2026-07-31):
+    { name: 'Rafael', value: 'Rafael' },     // Spanish accent
+    { name: 'Mateo', value: 'Mateo' },       // Spanish accent
+    { name: 'Lucia', value: 'Lucia' },       // Spanish accent
+    { name: 'Sofia', value: 'Sofia' },       // Spanish accent
+    { name: 'Oliver', value: 'Oliver' },     // British accent
+    { name: 'Arthur', value: 'Arthur' },     // British accent
+    { name: 'Isla', value: 'Isla' },         // British accent
+    { name: 'Victoria', value: 'Victoria' }, // British accent
+    { name: 'Cooper', value: 'Cooper' },     // Australian accent
+    { name: 'Mason', value: 'Mason' },       // Australian accent
+    { name: 'Ruby', value: 'Ruby' },         // Australian accent
+    { name: 'Elise', value: 'Elise' },       // Australian accent
+    { name: 'Arjun', value: 'Arjun' },       // Indian accent
+    { name: 'Rohan', value: 'Rohan' },       // Indian accent
+    { name: 'Priya', value: 'Priya' },       // Indian accent
+    { name: 'Meera', value: 'Meera' },       // Indian accent
   ];
 
   private static readonly MODELS: ModelOption[] = [
@@ -292,7 +341,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       capabilities: {
         hasTemplateMode: false, // dedicated translation service — no prompt templates
         hasTurnDetection: false, // server-side endpoint detection, not user-configurable
-        hasVoiceSettings: true, // TTS voice dropdown (12 multilingual voices)
+        hasVoiceSettings: true, // TTS voice dropdown (28 multilingual voices)
         hasNoiseReduction: false,
         hasModelConfiguration: false,
         textOnlyCapability: 'optional', // toggle: subtitles-only vs spoken translation

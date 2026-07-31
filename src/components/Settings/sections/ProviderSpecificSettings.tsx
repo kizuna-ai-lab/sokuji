@@ -1804,6 +1804,30 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
+        <div className="settings-section" id="soniox-background-section">
+          <h2>
+            {t('settings.sonioxBackground', 'Session Background')}
+            <Tooltip
+              content={t('settings.sonioxBackgroundTooltip', 'Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <textarea
+              id="soniox-context-text"
+              aria-label={t('settings.sonioxBackground', 'Session Background')}
+              className="system-instructions"
+              placeholder={t('settings.sonioxBackgroundPlaceholder', 'Paste an agenda, topic, or background notes (optional)')}
+              maxLength={4000}
+              value={activeSonioxSettings.contextText}
+              onChange={(e) => updateActiveSonioxSettings({ contextText: e.target.value })}
+              disabled={isSessionActive}
+            />
+          </div>
+        </div>
+
         <div className="settings-section" id="soniox-endpoint-section">
           <h2>{t('settings.sonioxEndpointTuning', 'Endpoint Detection Tuning')}</h2>
           <div className="setting-item">

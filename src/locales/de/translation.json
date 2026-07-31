@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Standard",
     "sonioxLatencyLevelLower": "Geringere Latenz",
     "sonioxLatencyLevelEvenLower": "Noch geringere Latenz",
-    "sonioxLatencyLevelMost": "Am aggressivsten"
+    "sonioxLatencyLevelMost": "Am aggressivsten",
+    "sonioxBackground": "Sitzungshintergrund",
+    "sonioxBackgroundTooltip": "Freier Hintergrundtext für die nächste Sitzung – Agenda, Thema oder Referenznotizen. Hilft dabei, dass Erkennung und Übersetzung dem Fachgebiet folgen. Wird bei Überschreitung der Größenbegrenzung des kombinierten Kontexts zuerst gekürzt.",
+    "sonioxBackgroundPlaceholder": "Agenda, Thema oder Hintergrundnotizen einfügen (optional)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",

@@ -48,10 +48,11 @@ export interface SonioxSttConfig {
   sampleRate: number;
   languageHints?: string[];
   translation: SonioxTranslationConfig;
-  /** Custom vocabulary, wire-shaped (snake_case). Omitted from the config frame when absent. */
+  /** Custom vocabulary and background text, wire-shaped (snake_case). Omitted from the config frame when absent. */
   context?: {
     terms?: string[];
     translation_terms?: Array<{ source: string; target: string }>;
+    text?: string;
   };
   /** endpoint_sensitivity, -1.0..1.0. 0/undefined = omit (server default). v5-only. */
   endpointSensitivity?: number;

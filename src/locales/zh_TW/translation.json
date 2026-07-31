@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "預設",
     "sonioxLatencyLevelLower": "較低延遲",
     "sonioxLatencyLevelEvenLower": "更低延遲",
-    "sonioxLatencyLevelMost": "最積極"
+    "sonioxLatencyLevelMost": "最積極",
+    "sonioxBackground": "工作階段背景",
+    "sonioxBackgroundTooltip": "為下一個工作階段提供的自由格式背景資訊——議程、主題或參考筆記。有助於辨識與翻譯貼合相關領域。若合併後的上下文超出大小限制，會優先裁剪這部分內容。",
+    "sonioxBackgroundPlaceholder": "貼上議程、主題或背景筆記（可選）"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",

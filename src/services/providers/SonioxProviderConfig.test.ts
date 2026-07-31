@@ -128,10 +128,113 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     delete legacy.endpointSensitivity;
     delete legacy.endpointLatencyAdjustmentLevel;
     delete legacy.ttsSpeed;
+    delete legacy.contextText;
     const cfg = descriptor.buildSessionConfig(legacy, '') as SonioxSessionConfig;
     expect(cfg.context).toBeUndefined();
     expect(cfg.endpointSensitivity).toBe(0);
     expect(cfg.endpointLatencyAdjustmentLevel).toBe(0);
     expect(cfg.ttsSpeed).toBe(1.0);
+  });
+
+  it('passes trimmed background text through as context.text', () => {
+    const cfg = build({ contextText: '  Quarterly review of the Sokuji roadmap. ' });
+    expect(cfg.context).toEqual({ text: 'Quarterly review of the Sokuji roadmap.' });
+  });
+
+  it('omits context entirely for whitespace-only background text', () => {
+    const cfg = build({ contextText: '   \n\t ' });
+    expect(cfg.context).toBeUndefined();
+  });
+
+  it('truncates the background text first when the serialized context overflows, keeping vocabulary intact', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // ~200 translation pairs (~6.4 KB serialized) + 4000-char text → overflow
+    // where text absorbs the whole cut and translations survive untouched.
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'x'.repeat(4000) });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0);
+    expect(text.length).toBeLessThan(4000);
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('sacrifices the text entirely before touching vocabulary on extreme overflow', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 700 pairs (~22 KB serialized) — text goes to zero, then translations trim.
+    const lines = Array.from({ length: 700 }, (_, i) => `s${String(i).padStart(3, '0')}=t${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'y'.repeat(4000) });
+    expect(cfg.context!.text).toBeUndefined();          // fully truncated → omitted
+    expect(cfg.context!.translationTerms!.length).toBeGreaterThan(0);
+    expect(cfg.context!.translationTerms!.length).toBeLessThan(700);
+    warn.mockRestore();
+  });
+
+  it('strips a trailing lone surrogate when the truncation cut lands mid-emoji', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 100 CJK chars + 1950 emoji (each a surrogate pair) = 4000 UTF-16 code
+    // units of background text, plus 200 translation pairs to force overflow
+    // (same generator as the test above). With these exact counts the
+    // computed cut (keep=1477) lands 1,377 code units into the emoji run —
+    // an odd offset into 2-unit pairs, i.e. mid-pair — which exercises the
+    // lone-surrogate strip. (Verified numerically; adjust the pair count if
+    // this ever stops landing mid-pair.)
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({
+      vocabularyTranslations: lines.join('\n'),
+      contextText: '好'.repeat(100) + '😀'.repeat(1950),
+    });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0);
+    expect(/[\uD800-\uDBFF]$/.test(text)).toBe(false);
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('cuts escape-heavy background text exactly instead of over-truncating', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Newline-rich agenda: every second character serializes as a 2-unit
+    // escape, so raw-length arithmetic would empty the text entirely; the
+    // exact (binary-search) cut keeps everything that actually fits.
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'a\n'.repeat(2000) });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0); // the naive over-cut would have emptied it
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(serialized).toBeGreaterThan(8990); // maximal: the cut wastes no meaningful capacity
+    warn.mockRestore();
+  });
+});
+
+describe('SonioxProviderConfig voices', () => {
+  it('exposes exactly the official 28-voice catalog (originals first, accented additions after)', () => {
+    const voices = new SonioxProviderConfig().getConfig().voices.map((v) => v.value);
+    expect(voices).toEqual([
+      // Original twelve (order preserved — existing users' stored values):
+      'Adrian', 'Claire', 'Daniel', 'Emma', 'Grace', 'Jack',
+      'Kenji', 'Maya', 'Mina', 'Nina', 'Noah', 'Owen',
+      // Accented additions (official catalog, 2026-07-31):
+      'Rafael', 'Mateo', 'Lucia', 'Sofia',        // Spanish
+      'Oliver', 'Arthur', 'Isla', 'Victoria',     // British
+      'Cooper', 'Mason', 'Ruby', 'Elise',         // Australian
+      'Arjun', 'Rohan', 'Priya', 'Meera',         // Indian
+    ]);
   });
 });

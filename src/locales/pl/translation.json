@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Domyślny",
     "sonioxLatencyLevelLower": "Niższe opóźnienie",
     "sonioxLatencyLevelEvenLower": "Jeszcze niższe opóźnienie",
-    "sonioxLatencyLevelMost": "Najbardziej agresywny"
+    "sonioxLatencyLevelMost": "Najbardziej agresywny",
+    "sonioxBackground": "Tło sesji",
+    "sonioxBackgroundTooltip": "Dowolny opis tła dla następnej sesji — agenda, temat lub notatki referencyjne. Pomaga rozpoznawaniu i tłumaczeniu podążać za dziedziną. Jest przycinane jako pierwsze, gdy połączony kontekst przekroczy limit rozmiaru.",
+    "sonioxBackgroundPlaceholder": "Wklej agendę, temat lub notatki dotyczące tła (opcjonalnie)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",

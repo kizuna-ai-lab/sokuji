@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Standaard",
     "sonioxLatencyLevelLower": "Lagere latentie",
     "sonioxLatencyLevelEvenLower": "Nog lagere latentie",
-    "sonioxLatencyLevelMost": "Meest agressief"
+    "sonioxLatencyLevelMost": "Meest agressief",
+    "sonioxBackground": "Sessieachtergrond",
+    "sonioxBackgroundTooltip": "Vrije achtergrondinformatie voor de volgende sessie — agenda, onderwerp of referentienotities. Helpt herkenning en vertaling het domein te volgen. Wordt als eerste ingekort als de gecombineerde context de groottelimiet overschrijdt.",
+    "sonioxBackgroundPlaceholder": "Plak een agenda, onderwerp of achtergrondnotities (optioneel)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",

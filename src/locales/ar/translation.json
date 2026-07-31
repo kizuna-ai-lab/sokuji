@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "افتراضي",
     "sonioxLatencyLevelLower": "تأخير أقل",
     "sonioxLatencyLevelEvenLower": "تأخير أقل من ذلك",
-    "sonioxLatencyLevelMost": "الأكثر قوة"
+    "sonioxLatencyLevelMost": "الأكثر قوة",
+    "sonioxBackground": "خلفية الجلسة",
+    "sonioxBackgroundTooltip": "خلفية حرة الصياغة للجلسة القادمة — جدول الأعمال، الموضوع، أو ملاحظات مرجعية. تساعد على أن يواكب التعرف والترجمة المجال المطلوب. تُقتطع أولاً إذا تجاوز السياق المجمّع الحد الأقصى للحجم.",
+    "sonioxBackgroundPlaceholder": "الصق جدول الأعمال أو الموضوع أو ملاحظات خلفية (اختياري)"
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",

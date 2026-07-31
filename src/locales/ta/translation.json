@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "இயல்புநிலை",
     "sonioxLatencyLevelLower": "குறைந்த தாமதம்",
     "sonioxLatencyLevelEvenLower": "இன்னும் குறைந்த தாமதம்",
-    "sonioxLatencyLevelMost": "மிக ஆக்ரோஷமானது"
+    "sonioxLatencyLevelMost": "மிக ஆக்ரோஷமானது",
+    "sonioxBackground": "அமர்வு பின்னணி",
+    "sonioxBackgroundTooltip": "அடுத்த அமர்வுக்கான சுதந்திரமான பின்னணி தகவல் — நிகழ்ச்சி நிரல், தலைப்பு, அல்லது குறிப்பு விவரங்கள். இது அடையாளம் காணுதலும் மொழிபெயர்ப்பும் தொடர்புடைய துறையைப் பின்பற்ற உதவுகிறது. இணைந்த சூழல் அளவு வரம்பைத் தாண்டினால், இது முதலில் குறைக்கப்படும்.",
+    "sonioxBackgroundPlaceholder": "நிகழ்ச்சி நிரல், தலைப்பு அல்லது பின்னணிக் குறிப்புகளை ஒட்டவும் (விருப்பமானது)"
   },
   "simpleSettings": {
     "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது",

@@ -72,6 +72,7 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
         ...s.soniox,
         vocabularyTerms: '',
         vocabularyTranslations: '',
+        contextText: '',
         endpointSensitivity: 0,
         endpointLatencyAdjustmentLevel: 0,
         ttsSpeed: 1.0,
@@ -116,6 +117,14 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     expect(el.getAttribute('max')).toBe('1.3');
     fireEvent.change(el, { target: { value: '0.8' } });
     expect(useSettingsStore.getState().soniox.ttsSpeed).toBe(0.8);
+  });
+
+  it('writes the background textarea to soniox.contextText and caps it at 4000 chars', () => {
+    const { container } = mount();
+    const el = container.querySelector('#soniox-context-text') as HTMLTextAreaElement;
+    expect(el.getAttribute('maxlength')).toBe('4000');
+    fireEvent.change(el, { target: { value: 'Quarterly roadmap sync' } });
+    expect(useSettingsStore.getState().soniox.contextText).toBe('Quarterly roadmap sync');
   });
 
   it('renders no model dropdown for Soniox (fixed stt-rt-v5 + tts-rt-v1 pipeline, nothing to choose)', () => {
