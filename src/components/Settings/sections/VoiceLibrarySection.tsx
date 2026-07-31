@@ -194,7 +194,14 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     // import, no error surfaced — the user just hasn't filled in the field).
     if (transcriptMissing) return;
     let anySucceeded = false;
-    for (const file of Array.from(files)) {
+    // Single-import adapters hold one staged clip at a time (see
+    // VoiceLibraryCapability.multipleImport): a multi-file drop would
+    // last-wins overwrite that slot on every iteration, so keep only the
+    // first file rather than silently discarding all but the last.
+    const selected = capability.multipleImport === false
+      ? Array.from(files).slice(0, 1)
+      : Array.from(files);
+    for (const file of selected) {
       try {
         // Only pass a second argument when the capability actually requires
         // one, so the non-gated path's call signature is byte-identical to
@@ -212,7 +219,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (anySucceeded && capability.transcriptRequired) setTranscript('');
-  }, [onImport, transcriptMissing, capability.transcriptRequired, transcript]);
+  }, [onImport, transcriptMissing, capability.transcriptRequired, capability.multipleImport, transcript]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
@@ -520,7 +527,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           type="file"
           accept={capability.accept ?? 'application/json,.json'}
           style={{ display: 'none' }}
-          multiple
+          multiple={capability.multipleImport !== false}
           onChange={(e) => void handleFiles(e.target.files)}
         />
       )}

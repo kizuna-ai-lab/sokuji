@@ -356,6 +356,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           accept: 'audio/*',
           maxClipSeconds: MAX_CLIP_SECONDS,
           minClipSeconds: MIN_CLIP_SECONDS,
+          // The confirm modal stages exactly one clip; without this a
+          // multi-file drop would silently keep only the last file.
+          multipleImport: false,
         }}
         isSessionActive={isSessionActive}
       />

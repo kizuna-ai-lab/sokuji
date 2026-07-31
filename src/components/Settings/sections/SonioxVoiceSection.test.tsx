@@ -209,6 +209,20 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
+  it('selecting multiple files stages only the first (single pending slot; no silent last-wins)', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput.multiple).toBe(false);
+    fireEvent.change(fileInput, {
+      target: { files: [fakeFile('first.wav'), fakeFile('second.wav')] },
+    });
+    const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
+    expect((nameInput as HTMLInputElement).value).toBe('first');
+  });
+
   it('importing a valid file opens the confirm modal prefilled from the filename; confirm uploads with the (possibly edited) name and closes the modal', async () => {
     listMock.mockResolvedValue([]);
     createMock.mockResolvedValue({ id: 'new-id', name: 'Custom Name', models: [] });

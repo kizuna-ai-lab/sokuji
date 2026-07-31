@@ -32,4 +32,9 @@ export interface VoiceLibraryCapability {
   maxClipSeconds?: number;
   /** Shortest usable reference clip in seconds. Unset → the store/UI default. */
   minClipSeconds?: number;
+  /** Set false when the adapter can only stage ONE clip per gesture (e.g.
+   *  Soniox's confirm-modal flow holds a single pending clip): the file picker
+   *  loses `multiple` and a multi-file drop keeps only the first file instead
+   *  of silently last-wins overwriting. Unset/true → unchanged multi-import. */
+  multipleImport?: boolean;
 }
