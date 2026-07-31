@@ -42,8 +42,10 @@ export interface VoiceLibrarySectionProps {
    *  includes `record`. `transcript` is only ever passed when
    *  `capability.transcriptRequired` is set. */
   onRecord?: (clip: Float32Array, sampleRate: number, transcript?: string) => Promise<void>;
-  /** Called when the user renames a removable voice. */
-  onRename: (id: string, name: string) => Promise<void>;
+  /** Called when the user renames a removable voice. Optional — when absent,
+   *  removable voices cannot be renamed and no rename affordance renders
+   *  (providers without a rename API, e.g. Soniox clones). */
+  onRename?: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
   /** Fetch a removable voice's stored clip so the user can play it back and
@@ -234,6 +236,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const commitEdit = useCallback(async (id: string) => {
     const name = editName.trim();
     setEditingId(null);
+    if (!onRename) return;
     const row = customs.find((v) => v.id === id);
     if (name && row && name !== row.label) {
       try { await onRename(id, name); }
@@ -377,13 +380,15 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         {v.removable && !isEditing && (
           <>
             {renderPreviewButton(v)}
-            <button
-              type="button"
-              className="voice-row-btn"
-              onClick={() => startEdit(v.id, v.label)}
-            >
-              {t('voiceLibrary.rename', 'Rename')}
-            </button>
+            {onRename && (
+              <button
+                type="button"
+                className="voice-row-btn"
+                onClick={() => startEdit(v.id, v.label)}
+              >
+                {t('voiceLibrary.rename', 'Rename')}
+              </button>
+            )}
             <button
               type="button"
               className="voice-row-btn voice-row-btn-danger"
@@ -420,14 +425,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           <span className="voice-name">{v.label}</span>
         )}
         {!isEditing && renderPreviewButton(v)}
-        <button
-          type="button"
-          className="voice-row-btn"
-          disabled={isEditing}
-          onClick={() => startEdit(v.id, v.label)}
-        >
-          {t('voiceLibrary.rename', 'Rename')}
-        </button>
+        {onRename && (
+          <button
+            type="button"
+            className="voice-row-btn"
+            disabled={isEditing}
+            onClick={() => startEdit(v.id, v.label)}
+          >
+            {t('voiceLibrary.rename', 'Rename')}
+          </button>
+        )}
         <button
           type="button"
           className="voice-row-btn voice-row-btn-danger"

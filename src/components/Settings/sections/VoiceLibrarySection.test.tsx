@@ -141,6 +141,21 @@ describe('VoiceLibrarySection', () => {
     fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'what the clip says' } });
     expect(btn).not.toBeDisabled();
   });
+
+  it('hides the rename affordance when onRename is not provided', () => {
+    render(
+      <VoiceLibrarySection
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        selectedId=""
+        onSelect={() => {}}
+        onDelete={async () => {}}
+        capability={{ importModes: ['upload'], curation: false }}
+      />,
+    );
+    expect(screen.getByText('Mine')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^rename$/i })).toBeNull();
+  });
 });
 
 // Recording resources live only in a ref; the teardown effect must release
