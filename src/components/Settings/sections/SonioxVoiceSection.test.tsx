@@ -77,7 +77,10 @@ function mount(over: object = {}) {
 
 const openManageDetails = () => fireEvent.click(screen.getByText(/manage imported voices/i));
 const nameInputPlaceholder = /name for a new cloned voice/i;
-const confirmButtonName = /i confirm i have the right/i;
+const confirmButtonName = /^clone voice$/i;
+// Checks the modal's usage-rights checkbox, without which the confirm
+// button stays disabled.
+const checkConsent = () => fireEvent.click(screen.getByRole('checkbox'));
 
 describe('SonioxVoiceSection', () => {
   beforeEach(() => {
@@ -230,6 +233,7 @@ describe('SonioxVoiceSection', () => {
     // staged clip's suggested name, which proves the FIRST file won.
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
     expect(nameInput).toHaveValue('');
+    checkConsent();
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
     expect(createMock.mock.calls[0][0]).toBe('first');
@@ -262,6 +266,7 @@ describe('SonioxVoiceSection', () => {
     expect(createMock).not.toHaveBeenCalled(); // staged, not yet uploaded
 
     fireEvent.change(nameInput, { target: { value: 'Custom Name' } });
+    checkConsent();
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
 
     await waitFor(() => expect(createMock).toHaveBeenCalledWith('Custom Name', file, 'my-clip.wav'));
@@ -305,6 +310,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
+    checkConsent();
     const acceptButton = screen.getByRole('button', { name: confirmButtonName });
     const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
     fireEvent.click(acceptButton);
@@ -353,9 +359,28 @@ describe('SonioxVoiceSection', () => {
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
     expect(nameInput).toHaveValue(''); // no prefill — fallback applies at confirm time
 
+    checkConsent();
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
     expect(createMock.mock.calls[0][0]).toBe('My Voice {{n}}');
+  });
+
+  it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+
+    const acceptButton = screen.getByRole('button', { name: confirmButtonName });
+    expect(acceptButton).toBeDisabled();
+    fireEvent.click(acceptButton);
+    expect(createMock).not.toHaveBeenCalled();
+
+    checkConsent();
+    expect(acceptButton).not.toBeDisabled();
   });
 
   it('cancel discards the pending clip without calling create', async () => {
@@ -386,6 +411,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
 
+    checkConsent();
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/already exists/i));
     // Modal is still open with the clip intact — rename and retry.

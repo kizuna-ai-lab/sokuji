@@ -32,10 +32,10 @@ export interface SonioxCloneConfirmModalProps {
 /**
  * Post-acquisition confirm step for Soniox voice cloning
  * (SonioxVoiceSection): opens once a clip has been picked/recorded and has
- * passed client-side validation, before it is uploaded. Modeled on
- * LicenseConsentModal (shared Modal primitive, cancel + accept buttons) —
- * here the accept button IS the consent statement ("I confirm I have the
- * right to use this voice"), so there's no separate checkbox.
+ * passed client-side validation, before it is uploaded. Built on the shared
+ * Modal primitive. A usage-rights checkbox ("I confirm I have the right to
+ * use this voice") gates the confirm button — unchecked, the upload cannot
+ * be submitted.
  *
  * Purely presentational: the caller owns `pending` (modal open ⇔ non-null),
  * performs the actual `create()` call from `onConfirm`, and — on a mapped
@@ -62,6 +62,10 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  // Usage-rights consent, required per clip: the confirm button stays
+  // disabled until checked. Seeds unchecked on every key-remount (each newly
+  // staged clip re-asks); a confirm-error retry keeps it checked.
+  const [consent, setConsent] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Custom player state (replaces native <audio controls>, which renders as
@@ -170,6 +174,15 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
           onChange={(e) => setName(e.target.value)}
           disabled={busy}
         />
+        <label className="soniox-clone-confirm-modal__consent">
+          <input
+            type="checkbox"
+            checked={consent}
+            disabled={busy}
+            onChange={(e) => setConsent(e.target.checked)}
+          />
+          <span>{t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}</span>
+        </label>
         {error && (
           <div className="voice-capture-error" role="alert">{error}</div>
         )}
@@ -186,7 +199,7 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
             type="button"
             className="soniox-clone-confirm-modal__accept"
             onClick={() => onConfirm(name)}
-            disabled={busy}
+            disabled={busy || !consent}
           >
             {busy && (
               <Loader2
@@ -195,7 +208,7 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
                 data-testid="soniox-clone-confirm-busy-spinner"
               />
             )}
-            {t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}
+            {t('settings.sonioxVoiceCloneTitle', 'Clone voice')}
           </button>
         </div>
       </div>
