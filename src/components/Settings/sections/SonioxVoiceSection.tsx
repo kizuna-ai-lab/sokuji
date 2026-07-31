@@ -230,7 +230,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           <div className="setting-description">
             {t('settings.sonioxVoiceListError', 'Could not load cloned voices — check the API key.')}{' '}
             <button className="option-button" onClick={() => void refresh()}>
-              {t('settings.retry', 'Retry')}
+              {t('common.retry', 'Retry')}
             </button>
           </div>
         </div>
