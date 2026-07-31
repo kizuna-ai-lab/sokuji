@@ -612,8 +612,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
-    // PalabraAI and Local (Offline/Native) inference don't have model selection
-    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
+    // PalabraAI and Local (Offline/Native) inference don't have model selection.
+    // Soniox (and its Kizuna twin) neither: the service is a fixed two-model
+    // pipeline (stt-rt-v5 + tts-rt-v1), so a single-option dropdown only
+    // suggests a choice that doesn't exist.
+    if (
+      provider === Provider.PALABRA_AI ||
+      provider === Provider.LOCAL_INFERENCE ||
+      provider === Provider.LOCAL_NATIVE ||
+      effectiveProvider === Provider.SONIOX
+    ) {
       return null;
     }
 
