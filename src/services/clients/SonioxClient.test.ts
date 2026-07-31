@@ -1082,6 +1082,149 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
     vi.unstubAllGlobals();
   });
+
+  // C1: pendingSttResume503 must not dangle across disconnect() — the
+  // "503 is always immediately followed by a close" assumption is only
+  // live-verified for the 403 cutoff, not the 503. If the close never
+  // came, and the user hits Stop before it does, disconnect() bumps
+  // generation and closes the socket itself; the resulting close (which a
+  // real WebSocket fires asynchronously, potentially after disconnect()
+  // has already returned) must NOT still find the flag set and kick off a
+  // resume — that would reconnect a zombie socket after Stop.
+  it('C1: a 503 with no close, followed by disconnect(), does not let a later close start a zombie resume', async () => {
+    const { client } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+    const reconnecting = vi.fn();
+    client.setEventHandlers({ onReconnecting: reconnecting });
+
+    stt0.handlers.onError?.('503', 'temporarily unavailable'); // no close follows
+    await client.disconnect(); // user hits Stop
+
+    // Simulate the underlying WebSocket's close event arriving asynchronously
+    // AFTER disconnect() already ran and called stt.close() — this is exactly
+    // what a real browser does (onclose fires after ws.close(), not during it).
+    stt0.handlers.onClose?.({ code: 1006, reason: 'late close' });
+    await flush();
+
+    expect(reconnecting).not.toHaveBeenCalled();
+    expect(sttInstances).toHaveLength(1); // no new stream was ever created
+    expect(client.isConnected()).toBe(false);
+  });
+
+  // I1: managed sessions cannot resume — the backend mints STT temp keys
+  // single_use: true, so a same-key reconnect is rejected AFTER onopen and
+  // would masquerade as a duration cutoff (pendingDurationCutoff) instead
+  // of the outage it actually is. Managed 503s must take the plain error
+  // path, exactly like any other managed STT error.
+  it('I1: managed mode + 503 takes the generic error path — no resume attempted', async () => {
+    const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        sttApiKey: 'stt-key', ttsApiKey: 'tts-key', expiresAt: '2026-07-25T00:01:00Z',
+        maxSessionDurationSeconds: 900, budgetMicroUsd: 500_000, rateUsdPerHour: 0.6,
+        sku: 'soniox:speech_to_speech', leaseId: 'lease-1', clientReferenceId: 'sokuji1:acct:lease-1',
+      }),
+    }));
+    const errors: any[] = [];
+    const closeEvents: any[] = [];
+    const reconnecting = vi.fn();
+    client.setEventHandlers({
+      onError: (e) => errors.push(e),
+      onClose: (e) => closeEvents.push(e),
+      onReconnecting: reconnecting,
+    });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt0 = sttInstances.at(-1)!;
+
+    stt0.handlers.onError?.('503', 'capacity exceeded');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('503');
+    expect(client.getConversationItems().some((i) => i.type === 'error')).toBe(true);
+
+    stt0.handlers.onClose?.({ code: 1000, reason: '' });
+    await flush();
+
+    expect(reconnecting).not.toHaveBeenCalled();
+    expect(sttInstances).toHaveLength(1); // no resume attempt opened a new stream
+    expect(closeEvents).toHaveLength(1);
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined(); // a normal close, not misread as a cutoff
+    vi.unstubAllGlobals();
+  });
+
+  // M1: a 503 that lands before any is_final token leaves an item minted by
+  // emitTextUpdate but with nothing for completeItem to complete (userFinal
+  // is still ''). It must not be left stuck in_progress.
+  it('M1: a partial-only interrupted item (no is_final yet) is completed in place on resume, text untouched', async () => {
+    const { client, stt } = await connectedClient();
+    stt.emit({ tokens: [tok('Hel', { translation_status: 'original', language: 'zh' })] }); // partial only
+    const partialId = client.getConversationItems().find((i) => i.role === 'user')!.id;
+    expect(client.getConversationItems().find((i) => i.id === partialId)!.status).toBe('in_progress');
+
+    stt.handlers.onError?.('503', 'temporarily unavailable');
+    stt.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush();
+
+    const item = client.getConversationItems().find((i) => i.id === partialId)!;
+    expect(item.status).toBe('completed');
+    expect(item.formatted?.text).toBe('Hel'); // unchanged — partials aren't retained in instance state
+  });
+
+  // M2: a per-session cap stops a flapping server from looping forever.
+  it('M2: caps resume cycles at 5 per session — the 6th 503 takes the generic error path instead', async () => {
+    const { client, updates } = await connectedClient();
+    const errors: any[] = [];
+    const reconnected = vi.fn();
+    client.setEventHandlers({
+      onConversationUpdated: (d) => updates.push(d),
+      onError: (e) => errors.push(e),
+      onReconnected: reconnected,
+    });
+
+    for (let cycle = 1; cycle <= 5; cycle++) {
+      const current = sttInstances.at(-1)!;
+      current.handlers.onError?.('503', `unavailable #${cycle}`);
+      current.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+      await flush();
+    }
+    expect(reconnected).toHaveBeenCalledTimes(5);
+    expect(errors).toHaveLength(0); // all 5 cycles resumed silently
+
+    // 6th 503: cap reached — generic error path, no further resume.
+    const lastStt = sttInstances.at(-1)!;
+    const countBefore = sttInstances.length;
+    lastStt.handlers.onError?.('503', 'unavailable #6');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('503');
+
+    lastStt.handlers.onClose?.({ code: 1000, reason: '' });
+    await flush();
+    expect(sttInstances.length).toBe(countBefore); // no new resume attempt
+    expect(reconnected).toHaveBeenCalledTimes(5); // unchanged
+  });
+
+  // I2: only the STT stream is replaced on resume — the TTS socket survives
+  // untouched, so audio already in flight for the interrupted (now-completed)
+  // utterance must keep landing on that SAME item, not a fresh ghost item
+  // that would then wrongly anchor the next utterance.
+  it('I2: audioItemId/audioItemSide survive the resume — trailing TTS audio still lands on the completed utterance\'s item', async () => {
+    const { client, stt, tts } = await connectedClient({ textOnly: false });
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    const assistantId = client.getConversationItems().find((i) => i.role === 'assistant')!.id;
+
+    stt.handlers.onError?.('503', 'temporarily unavailable');
+    stt.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush();
+
+    // The TTS socket was never touched by the resume — its audio for the
+    // utterance fed before the 503 keeps arriving and must still anchor to
+    // the same (now completed) assistant item, not mint a fresh one.
+    tts!.handlers.onAudio!(new Int16Array([1, 2]));
+    const items = client.getConversationItems();
+    expect(items.filter((i) => i.role === 'assistant')).toHaveLength(1);
+    expect(items.find((i) => i.role === 'assistant')!.id).toBe(assistantId);
+  });
 });
 
 describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
@@ -1093,10 +1236,12 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
     const errors: any[] = [];
     const updates: any[] = [];
     const closeEvents: any[] = [];
+    const realtimeEvents: Array<{ event: { type: string; data: any } }> = [];
     client.setEventHandlers({
       onConversationUpdated: (d) => updates.push(d),
       onError: (e) => errors.push(e),
       onClose: (e) => closeEvents.push(e),
+      onRealtimeEvent: (e: any) => realtimeEvents.push(e),
     });
     await client.connect(BASE_CONFIG);
     const stt0 = sttInstances.at(-1)!;
@@ -1121,6 +1266,10 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
     expect(closeEvents).toHaveLength(1);
     expect(closeEvents[0]).toEqual({ code: 1006, reason: 'stt resume failed' });
     expect(client.isConnected()).toBe(false);
+    // M3: the debug timeline must show the session actually ending — the
+    // exhausted-retries path bypasses handleSttClose's generic branch
+    // entirely, so without an explicit emit nothing would mark it closed.
+    expect(realtimeEvents.some((e) => e.event.type === 'session.stt_resume_failed')).toBe(true);
   });
 
   it('a resume that succeeds on a later attempt does not surface anything and reaches onReconnected', async () => {
