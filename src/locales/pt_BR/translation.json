@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Padrão",
     "sonioxLatencyLevelLower": "Menor latência",
     "sonioxLatencyLevelEvenLower": "Latência ainda menor",
-    "sonioxLatencyLevelMost": "Mais agressivo"
+    "sonioxLatencyLevelMost": "Mais agressivo",
+    "sonioxBackground": "Contexto da sessão",
+    "sonioxBackgroundTooltip": "Contexto livre para a próxima sessão — pauta, tópico ou notas de referência. Ajuda o reconhecimento e a tradução a acompanhar o domínio. É cortado primeiro se o contexto combinado exceder o limite de tamanho.",
+    "sonioxBackgroundPlaceholder": "Cole uma pauta, tópico ou notas de contexto (opcional)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",

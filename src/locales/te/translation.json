@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "డిఫాల్ట్",
     "sonioxLatencyLevelLower": "తక్కువ జాప్యం",
     "sonioxLatencyLevelEvenLower": "మరింత తక్కువ జాప్యం",
-    "sonioxLatencyLevelMost": "అత్యంత దూకుడైనది"
+    "sonioxLatencyLevelMost": "అత్యంత దూకుడైనది",
+    "sonioxBackground": "సెషన్ నేపథ్యం",
+    "sonioxBackgroundTooltip": "తదుపరి సెషన్ కోసం స్వేచ్ఛా-రూప నేపథ్యం — ఎజెండా, అంశం, లేదా సూచన గమనికలు. ఇది గుర్తింపు మరియు అనువాదం సంబంధిత రంగాన్ని అనుసరించడానికి సహాయపడుతుంది. మిళిత సందర్భం పరిమాణ పరిమితిని మించితే, దీన్ని మొదట కుదిస్తారు.",
+    "sonioxBackgroundPlaceholder": "ఎజెండా, అంశం, లేదా నేపథ్య గమనికలను అతికించండి (ఐచ్ఛికం)"
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",

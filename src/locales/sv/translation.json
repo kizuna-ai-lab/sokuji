@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Standard",
     "sonioxLatencyLevelLower": "Lägre latens",
     "sonioxLatencyLevelEvenLower": "Ännu lägre latens",
-    "sonioxLatencyLevelMost": "Mest aggressiv"
+    "sonioxLatencyLevelMost": "Mest aggressiv",
+    "sonioxBackground": "Sessionsbakgrund",
+    "sonioxBackgroundTooltip": "Fri bakgrundsinformation för nästa session — agenda, ämne eller referensanteckningar. Hjälper igenkänning och översättning att följa området. Trunkeras först om det kombinerade sammanhanget överskrider storleksgränsen.",
+    "sonioxBackgroundPlaceholder": "Klistra in en agenda, ett ämne eller bakgrundsanteckningar (valfritt)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",

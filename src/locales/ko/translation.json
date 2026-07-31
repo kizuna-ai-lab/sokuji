@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "기본값",
     "sonioxLatencyLevelLower": "지연 시간 감소",
     "sonioxLatencyLevelEvenLower": "지연 시간 더 감소",
-    "sonioxLatencyLevelMost": "가장 적극적"
+    "sonioxLatencyLevelMost": "가장 적극적",
+    "sonioxBackground": "세션 배경",
+    "sonioxBackgroundTooltip": "다음 세션을 위한 자유 형식 배경 정보입니다 — 안건, 주제 또는 참고 메모. 인식과 번역이 해당 분야를 따르도록 돕습니다. 결합된 문맥이 크기 제한을 초과하면 이 항목이 가장 먼저 잘립니다.",
+    "sonioxBackgroundPlaceholder": "안건, 주제 또는 배경 메모를 붙여넣으세요 (선택 사항)"
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",

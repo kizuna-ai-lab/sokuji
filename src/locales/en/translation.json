@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Default",
     "sonioxLatencyLevelLower": "Lower latency",
     "sonioxLatencyLevelEvenLower": "Even lower latency",
-    "sonioxLatencyLevelMost": "Most aggressive"
+    "sonioxLatencyLevelMost": "Most aggressive",
+    "sonioxBackground": "Session Background",
+    "sonioxBackgroundTooltip": "Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.",
+    "sonioxBackgroundPlaceholder": "Paste an agenda, topic, or background notes (optional)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

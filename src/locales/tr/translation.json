@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Varsayılan",
     "sonioxLatencyLevelLower": "Daha düşük gecikme",
     "sonioxLatencyLevelEvenLower": "Daha da düşük gecikme",
-    "sonioxLatencyLevelMost": "En agresif"
+    "sonioxLatencyLevelMost": "En agresif",
+    "sonioxBackground": "Oturum Arka Planı",
+    "sonioxBackgroundTooltip": "Bir sonraki oturum için serbest biçimli arka plan — gündem, konu veya referans notları. Tanımanın ve çevirinin alana uygun kalmasına yardımcı olur. Birleşik bağlam boyut sınırını aşarsa önce bu kısaltılır.",
+    "sonioxBackgroundPlaceholder": "Bir gündem, konu veya arka plan notu yapıştırın (isteğe bağlı)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",

@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "डिफ़ॉल्ट",
     "sonioxLatencyLevelLower": "कम विलंबता",
     "sonioxLatencyLevelEvenLower": "और भी कम विलंबता",
-    "sonioxLatencyLevelMost": "सबसे आक्रामक"
+    "sonioxLatencyLevelMost": "सबसे आक्रामक",
+    "sonioxBackground": "सत्र पृष्ठभूमि",
+    "sonioxBackgroundTooltip": "अगले सत्र के लिए मुक्त-रूप पृष्ठभूमि — एजेंडा, विषय, या संदर्भ नोट्स। यह पहचान और अनुवाद को क्षेत्र के अनुरूप रहने में मदद करता है। यदि संयुक्त संदर्भ आकार सीमा से अधिक हो जाए, तो इसे सबसे पहले छोटा किया जाता है।",
+    "sonioxBackgroundPlaceholder": "एजेंडा, विषय, या पृष्ठभूमि नोट्स पेस्ट करें (वैकल्पिक)"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",

@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "За замовчуванням",
     "sonioxLatencyLevelLower": "Нижча затримка",
     "sonioxLatencyLevelEvenLower": "Ще нижча затримка",
-    "sonioxLatencyLevelMost": "Найагресивніший"
+    "sonioxLatencyLevelMost": "Найагресивніший",
+    "sonioxBackground": "Тло сеансу",
+    "sonioxBackgroundTooltip": "Довільний опис тла для наступного сеансу — порядок денний, тема або довідкові нотатки. Допомагає розпізнаванню та перекладу відповідати предметній галузі. Обрізається першим, якщо об'єднаний контекст перевищує ліміт розміру.",
+    "sonioxBackgroundPlaceholder": "Вставте порядок денний, тему або нотатки щодо тла (необов'язково)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",

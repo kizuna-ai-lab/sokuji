@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Lalai",
     "sonioxLatencyLevelLower": "Kependaman lebih rendah",
     "sonioxLatencyLevelEvenLower": "Kependaman lebih rendah lagi",
-    "sonioxLatencyLevelMost": "Paling agresif"
+    "sonioxLatencyLevelMost": "Paling agresif",
+    "sonioxBackground": "Latar Belakang Sesi",
+    "sonioxBackgroundTooltip": "Latar belakang bebas format untuk sesi seterusnya — agenda, topik, atau nota rujukan. Membantu pengecaman dan terjemahan mengikuti bidang tersebut. Dipotong dahulu jika konteks gabungan melebihi had saiz.",
+    "sonioxBackgroundPlaceholder": "Tampal agenda, topik, atau nota latar belakang (pilihan)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",

@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Mặc định",
     "sonioxLatencyLevelLower": "Độ trễ thấp hơn",
     "sonioxLatencyLevelEvenLower": "Độ trễ thấp hơn nữa",
-    "sonioxLatencyLevelMost": "Mạnh nhất"
+    "sonioxLatencyLevelMost": "Mạnh nhất",
+    "sonioxBackground": "Bối cảnh phiên",
+    "sonioxBackgroundTooltip": "Bối cảnh tự do cho phiên tiếp theo — chương trình nghị sự, chủ đề, hoặc ghi chú tham khảo. Giúp việc nhận diện và dịch bám sát lĩnh vực. Sẽ bị cắt bớt trước tiên nếu ngữ cảnh kết hợp vượt quá giới hạn kích thước.",
+    "sonioxBackgroundPlaceholder": "Dán chương trình nghị sự, chủ đề, hoặc ghi chú bối cảnh (tùy chọn)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",

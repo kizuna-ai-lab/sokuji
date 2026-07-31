@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "ברירת מחדל",
     "sonioxLatencyLevelLower": "השהייה נמוכה יותר",
     "sonioxLatencyLevelEvenLower": "השהייה נמוכה עוד יותר",
-    "sonioxLatencyLevelMost": "הכי אגרסיבי"
+    "sonioxLatencyLevelMost": "הכי אגרסיבי",
+    "sonioxBackground": "רקע המפגש",
+    "sonioxBackgroundTooltip": "רקע חופשי למפגש הבא — סדר יום, נושא או הערות התייחסות. עוזר לזיהוי ולתרגום לעקוב אחר התחום. יקוצץ ראשון אם ההקשר המשולב חורג ממגבלת הגודל.",
+    "sonioxBackgroundPlaceholder": "הדבק סדר יום, נושא או הערות רקע (אופציונלי)"
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",

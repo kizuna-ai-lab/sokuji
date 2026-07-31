@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "Oletus",
     "sonioxLatencyLevelLower": "Pienempi viive",
     "sonioxLatencyLevelEvenLower": "Vielä pienempi viive",
-    "sonioxLatencyLevelMost": "Aggressiivisin"
+    "sonioxLatencyLevelMost": "Aggressiivisin",
+    "sonioxBackground": "Istunnon tausta",
+    "sonioxBackgroundTooltip": "Vapaamuotoinen tausta seuraavaa istuntoa varten — asialista, aihe tai viitemuistiinpanot. Auttaa tunnistusta ja käännöstä pysymään aihealueessa. Lyhennetään ensin, jos yhdistetty konteksti ylittää kokorajan.",
+    "sonioxBackgroundPlaceholder": "Liitä asialista, aihe tai taustatiedot (valinnainen)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",

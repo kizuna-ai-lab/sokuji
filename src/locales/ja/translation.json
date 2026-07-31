@@ -233,7 +233,10 @@
     "sonioxLatencyLevelDefault": "標準",
     "sonioxLatencyLevelLower": "遅延を低減",
     "sonioxLatencyLevelEvenLower": "さらに遅延を低減",
-    "sonioxLatencyLevelMost": "最も積極的"
+    "sonioxLatencyLevelMost": "最も積極的",
+    "sonioxBackground": "セッションの背景",
+    "sonioxBackgroundTooltip": "次回のセッション用の自由形式の背景情報です——議題、トピック、参考メモなど。認識と翻訳が話題の分野に沿うようになります。結合した文脈がサイズ上限を超える場合、最初に削られます。",
+    "sonioxBackgroundPlaceholder": "議題やトピック、背景メモを貼り付けてください（任意）"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
