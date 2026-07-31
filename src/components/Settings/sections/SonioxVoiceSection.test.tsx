@@ -216,6 +216,8 @@ describe('SonioxVoiceSection', () => {
 
   it('selecting multiple files stages only the first (single pending slot; no silent last-wins)', async () => {
     listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'first', models: [] });
+    waitMock.mockResolvedValue({ id: 'new-id', name: 'first', models: [READY] });
     stubAudioContext(16000, 16000 * 5);
     const { container } = mount();
     openManageDetails();
@@ -224,11 +226,16 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, {
       target: { files: [fakeFile('first.wav'), fakeFile('second.wav')] },
     });
+    // The name field never prefills — confirming it blank falls back to the
+    // staged clip's suggested name, which proves the FIRST file won.
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
-    expect((nameInput as HTMLInputElement).value).toBe('first');
+    expect(nameInput).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+    await waitFor(() => expect(createMock).toHaveBeenCalled());
+    expect(createMock.mock.calls[0][0]).toBe('first');
   });
 
-  it('importing a valid file opens the confirm modal prefilled from the filename; confirm calls create, refreshes the list BEFORE closing the modal, then finishes the ready-wait chain in the background', async () => {
+  it('importing a valid file opens the confirm modal with an empty name field; confirm calls create, refreshes the list BEFORE closing the modal, then finishes the ready-wait chain in the background', async () => {
     // Sequenced so each list() call is distinguishable: initial mount load,
     // then the post-create refresh (still processing — this is the one that
     // must land before the modal closes), then finishCreate's refresh once
@@ -251,7 +258,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
-    expect(nameInput).toHaveValue('my-clip'); // stripped filename, not the raw upload name
+    expect(nameInput).toHaveValue(''); // no prefill — the placeholder shows instead
     expect(createMock).not.toHaveBeenCalled(); // staged, not yet uploaded
 
     fireEvent.change(nameInput, { target: { value: 'Custom Name' } });
@@ -344,7 +351,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
-    expect(nameInput).toHaveValue('My Voice {{n}}');
+    expect(nameInput).toHaveValue(''); // no prefill — fallback applies at confirm time
 
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
@@ -428,7 +435,7 @@ describe('SonioxVoiceSection', () => {
       fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
 
       const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
-      expect(nameInput).toHaveValue('My Voice {{n}}');
+      expect(nameInput).toHaveValue(''); // no prefill; "My Voice N" applies only if confirmed blank
       expect(createMock).not.toHaveBeenCalled(); // staged, not yet uploaded
     } finally {
       if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);

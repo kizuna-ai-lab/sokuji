@@ -15,9 +15,6 @@ function formatTime(seconds: number): string {
 
 export interface SonioxCloneConfirmModalProps {
   isOpen: boolean;
-  /** Prefilled into the name field — the stripped upload filename, or the
-   *  "My Voice {{n}}" default for a recording. */
-  suggestedName: string;
   /** The picked/recorded clip, played back so the user can check it before
    *  it's uploaded. Null only while the modal is closed. */
   audioBlob: Blob | null;
@@ -45,16 +42,18 @@ export interface SonioxCloneConfirmModalProps {
  * create failure — keeps this open with `error` set so the user can rename
  * and retry without losing the clip.
  *
+ * The name field deliberately starts EMPTY, showing only its placeholder —
+ * the default name (stripped filename / "My Voice {{n}}") is applied by the
+ * caller when the field is left blank, never displayed as a prefilled value.
+ *
  * The caller mounts a fresh instance (via a changing `key`) for every newly
- * staged clip, so `useState(suggestedName)` below only needs to seed once —
- * no effect-driven resync required, and no risk of a stale name flashing
- * before an effect catches up. A confirm-error retry reuses the SAME
- * instance (the caller doesn't change the key), which is what keeps the
- * user's just-typed name in place while they fix a conflict and retry.
+ * staged clip, so the name state reseeds empty per capture. A confirm-error
+ * retry reuses the SAME instance (the caller doesn't change the key), which
+ * is what keeps the user's just-typed name in place while they fix a
+ * conflict and retry.
  */
 const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
   isOpen,
-  suggestedName,
   audioBlob,
   error,
   busy,
@@ -62,7 +61,7 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const [name, setName] = useState(suggestedName);
+  const [name, setName] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Custom player state (replaces native <audio controls>, which renders as

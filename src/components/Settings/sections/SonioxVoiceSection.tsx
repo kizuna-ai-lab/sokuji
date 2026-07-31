@@ -363,7 +363,6 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       <SonioxCloneConfirmModal
         key={pendingSeq}
         isOpen={pending !== null}
-        suggestedName={pending?.suggestedName ?? ''}
         audioBlob={pending?.blob ?? null}
         error={modalError}
         busy={modalBusy}

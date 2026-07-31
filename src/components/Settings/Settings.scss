@@ -798,10 +798,14 @@
 // for either.
 .soniox-clone-confirm-modal {
   text-align: left;
+  // .modal-content defines no font-size, so text here would otherwise
+  // inherit the browser's 16px default — larger than the app's body copy.
+  font-size: vars.$font-body;
 
   p {
     margin-bottom: 10px;
     color: vars.$text-secondary;
+    font-size: vars.$font-body;
     line-height: 1.5;
   }
 
@@ -897,45 +901,55 @@
     }
   }
 
+  // Compact, right-aligned footer buttons matching the app's form-modal
+  // convention (.import-btn in ModelImportModal.scss) — NOT the full-width
+  // emphasis buttons of .license-consent-modal, which is a warning dialog.
   &__actions {
     display: flex;
-    gap: 10px;
+    justify-content: flex-end;
+    gap: 8px;
     margin-top: 15px;
 
     button {
-      flex: 1;
-      display: flex;
+      font: inherit;
+      font-size: vars.$font-caption;
+      font-weight: vars.$weight-semibold;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: vars.$space-1;
-      padding: 10px 20px;
-      border: none;
-      border-radius: vars.$radius-sm;
+      gap: 6px;
+      padding: 7px 12px;
+      border: 1px solid vars.$border-strong;
+      border-radius: vars.$radius-md;
       cursor: pointer;
-      font-size: vars.$font-title;
-      transition: background-color vars.$transition-fast;
+      transition: border-color vars.$transition-fast, background-color vars.$transition-fast;
 
       &:disabled {
         @include vars.disabled-state;
+      }
+
+      &:focus-visible {
+        @include vars.focus-ring;
       }
     }
   }
 
   &__cancel {
-    background-color: vars.$bg-surface;
+    background-color: vars.$bg-control;
     color: vars.$text-primary;
 
     &:hover:not(:disabled) {
-      background-color: rgba(255, 255, 255, 0.1);
+      border-color: vars.$color-primary;
     }
   }
 
   &__accept {
     background-color: vars.$color-primary;
+    border-color: vars.$color-primary;
     color: white;
 
     &:hover:not(:disabled) {
       background-color: vars.$color-primary-hover;
+      border-color: vars.$color-primary-hover;
     }
   }
 
