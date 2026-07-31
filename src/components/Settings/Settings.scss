@@ -803,7 +803,10 @@
   font-size: vars.$font-body;
 
   p {
-    margin-bottom: 10px;
+    // .modal-body already pads 20px on every side — the browser's default
+    // 1em top margin on <p> stacked on top of it, doubling the gap under
+    // the title bar. Zero everything but the bottom spacing.
+    margin: 0 0 10px;
     color: vars.$text-secondary;
     font-size: vars.$font-body;
     line-height: 1.5;
