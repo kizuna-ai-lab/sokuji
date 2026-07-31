@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "Найагресивніший",
     "sonioxBackground": "Тло сеансу",
     "sonioxBackgroundTooltip": "Довільний опис тла для наступного сеансу — порядок денний, тема або довідкові нотатки. Допомагає розпізнаванню та перекладу відповідати предметній галузі. Обрізається першим, якщо об'єднаний контекст перевищує ліміт розміру.",
-    "sonioxBackgroundPlaceholder": "Вставте порядок денний, тему або нотатки щодо тла (необов'язково)"
+    "sonioxBackgroundPlaceholder": "Вставте порядок денний, тему або нотатки щодо тла (необов'язково)",
+    "sonioxVoiceConsent": "Підтверджую, що маю право використовувати цей голос",
+    "sonioxVoiceConsentRequired": "Спочатку підтвердьте, що маєте право використовувати цей голос",
+    "sonioxVoiceNamePlaceholder": "Ім'я для нового клонованого голосу (необов'язково)",
+    "sonioxVoiceDefaultName": "Мій голос {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(видалений голос)",
+    "sonioxVoiceProcessingBadge": "обробка…",
+    "sonioxVoiceFailedBadge": "помилка",
+    "sonioxVoiceFailed": "Помилка обробки — видаліть цей голос і спробуйте чіткіший фрагмент",
+    "sonioxVoiceNameConflict": "Голос із такою назвою вже існує",
+    "sonioxVoiceQuotaError": "Досягнуто ліміту голосів організації Soniox — видаліть голос і спробуйте ще раз",
+    "sonioxVoiceListError": "Не вдалося завантажити клоновані голоси — перевірте API-ключ."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",

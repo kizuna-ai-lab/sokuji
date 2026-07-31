@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "Максимально агрессивный",
     "sonioxBackground": "Контекст сеанса",
     "sonioxBackgroundTooltip": "Произвольный контекст для следующего сеанса — повестка, тема или справочные заметки. Помогает распознаванию и переводу соответствовать предметной области. Обрезается первым, если объединённый контекст превышает лимит размера.",
-    "sonioxBackgroundPlaceholder": "Вставьте повестку, тему или справочные заметки (необязательно)"
+    "sonioxBackgroundPlaceholder": "Вставьте повестку, тему или справочные заметки (необязательно)",
+    "sonioxVoiceConsent": "Подтверждаю, что у меня есть право использовать этот голос",
+    "sonioxVoiceConsentRequired": "Сначала подтвердите, что у вас есть право использовать этот голос",
+    "sonioxVoiceNamePlaceholder": "Имя для нового клонированного голоса (необязательно)",
+    "sonioxVoiceDefaultName": "Мой голос {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(удалённый голос)",
+    "sonioxVoiceProcessingBadge": "обработка…",
+    "sonioxVoiceFailedBadge": "ошибка",
+    "sonioxVoiceFailed": "Ошибка обработки — удалите этот голос и попробуйте более чёткий фрагмент",
+    "sonioxVoiceNameConflict": "Голос с таким именем уже существует",
+    "sonioxVoiceQuotaError": "Достигнут лимит голосов организации Soniox — удалите голос и повторите попытку",
+    "sonioxVoiceListError": "Не удалось загрузить клонированные голоса — проверьте API-ключ."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись",

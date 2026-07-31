@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "Paling agresif",
     "sonioxBackground": "Latar Belakang Sesi",
     "sonioxBackgroundTooltip": "Latar belakang bebas format untuk sesi berikutnya — agenda, topik, atau catatan referensi. Membantu pengenalan dan terjemahan mengikuti domain. Dipangkas lebih dulu jika konteks gabungan melebihi batas ukuran.",
-    "sonioxBackgroundPlaceholder": "Tempel agenda, topik, atau catatan latar belakang (opsional)"
+    "sonioxBackgroundPlaceholder": "Tempel agenda, topik, atau catatan latar belakang (opsional)",
+    "sonioxVoiceConsent": "Saya mengonfirmasi bahwa saya memiliki hak untuk menggunakan suara ini",
+    "sonioxVoiceConsentRequired": "Konfirmasi dulu bahwa Anda memiliki hak untuk menggunakan suara ini",
+    "sonioxVoiceNamePlaceholder": "Nama untuk suara kloning baru (opsional)",
+    "sonioxVoiceDefaultName": "Suara Saya {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(suara terhapus)",
+    "sonioxVoiceProcessingBadge": "memproses…",
+    "sonioxVoiceFailedBadge": "gagal",
+    "sonioxVoiceFailed": "Pemrosesan gagal — hapus suara ini dan coba klip yang lebih jelas",
+    "sonioxVoiceNameConflict": "Suara dengan nama ini sudah ada",
+    "sonioxVoiceQuotaError": "Batas suara organisasi Soniox tercapai — hapus suara dan coba lagi",
+    "sonioxVoiceListError": "Tidak dapat memuat suara hasil kloning — periksa kunci API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",

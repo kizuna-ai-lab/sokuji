@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "सबसे आक्रामक",
     "sonioxBackground": "सत्र पृष्ठभूमि",
     "sonioxBackgroundTooltip": "अगले सत्र के लिए मुक्त-रूप पृष्ठभूमि — एजेंडा, विषय, या संदर्भ नोट्स। यह पहचान और अनुवाद को क्षेत्र के अनुरूप रहने में मदद करता है। यदि संयुक्त संदर्भ आकार सीमा से अधिक हो जाए, तो इसे सबसे पहले छोटा किया जाता है।",
-    "sonioxBackgroundPlaceholder": "एजेंडा, विषय, या पृष्ठभूमि नोट्स पेस्ट करें (वैकल्पिक)"
+    "sonioxBackgroundPlaceholder": "एजेंडा, विषय, या पृष्ठभूमि नोट्स पेस्ट करें (वैकल्पिक)",
+    "sonioxVoiceConsent": "मैं पुष्टि करता/करती हूँ कि मुझे इस आवाज़ का उपयोग करने का अधिकार है",
+    "sonioxVoiceConsentRequired": "पहले पुष्टि करें कि आपको इस आवाज़ का उपयोग करने का अधिकार है",
+    "sonioxVoiceNamePlaceholder": "नई क्लोन की गई आवाज़ के लिए नाम (वैकल्पिक)",
+    "sonioxVoiceDefaultName": "मेरी आवाज़ {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(हटाई गई आवाज़)",
+    "sonioxVoiceProcessingBadge": "प्रोसेस हो रहा है…",
+    "sonioxVoiceFailedBadge": "विफल",
+    "sonioxVoiceFailed": "प्रोसेसिंग विफल — इस आवाज़ को हटाएँ और एक स्पष्ट क्लिप आज़माएँ",
+    "sonioxVoiceNameConflict": "इस नाम की आवाज़ पहले से मौजूद है",
+    "sonioxVoiceQuotaError": "Soniox संगठन की आवाज़ सीमा पूरी हो गई — एक आवाज़ हटाएँ और पुनः प्रयास करें",
+    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API की जाँच करें।"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",

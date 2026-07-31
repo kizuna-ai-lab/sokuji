@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "รุนแรงที่สุด",
     "sonioxBackground": "พื้นหลังเซสชัน",
     "sonioxBackgroundTooltip": "ข้อมูลพื้นหลังแบบอิสระสำหรับเซสชันถัดไป — วาระ หัวข้อ หรือบันทึกอ้างอิง ช่วยให้การจดจำและการแปลติดตามสาขาที่เกี่ยวข้อง จะถูกตัดออกก่อนหากบริบทที่รวมกันเกินขีดจำกัดขนาด",
-    "sonioxBackgroundPlaceholder": "วางวาระ หัวข้อ หรือบันทึกพื้นหลัง (ไม่บังคับ)"
+    "sonioxBackgroundPlaceholder": "วางวาระ หัวข้อ หรือบันทึกพื้นหลัง (ไม่บังคับ)",
+    "sonioxVoiceConsent": "ฉันยืนยันว่ามีสิทธิ์ใช้เสียงนี้",
+    "sonioxVoiceConsentRequired": "โปรดยืนยันก่อนว่าคุณมีสิทธิ์ใช้เสียงนี้",
+    "sonioxVoiceNamePlaceholder": "ชื่อสำหรับเสียงโคลนใหม่ (ไม่บังคับ)",
+    "sonioxVoiceDefaultName": "เสียงของฉัน {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(เสียงที่ถูกลบ)",
+    "sonioxVoiceProcessingBadge": "กำลังประมวลผล…",
+    "sonioxVoiceFailedBadge": "ล้มเหลว",
+    "sonioxVoiceFailed": "การประมวลผลล้มเหลว — ลบเสียงนี้แล้วลองใช้คลิปที่ชัดเจนกว่านี้",
+    "sonioxVoiceNameConflict": "มีเสียงชื่อนี้อยู่แล้ว",
+    "sonioxVoiceQuotaError": "ถึงขีดจำกัดเสียงขององค์กร Soniox แล้ว — ลบเสียงหนึ่งแล้วลองใหม่",
+    "sonioxVoiceListError": "ไม่สามารถโหลดเสียงโคลนได้ — ตรวจสอบ API key ของคุณ"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",

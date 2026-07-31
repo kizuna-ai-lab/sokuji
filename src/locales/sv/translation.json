@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "Mest aggressiv",
     "sonioxBackground": "Sessionsbakgrund",
     "sonioxBackgroundTooltip": "Fri bakgrundsinformation för nästa session — agenda, ämne eller referensanteckningar. Hjälper igenkänning och översättning att följa området. Trunkeras först om det kombinerade sammanhanget överskrider storleksgränsen.",
-    "sonioxBackgroundPlaceholder": "Klistra in en agenda, ett ämne eller bakgrundsanteckningar (valfritt)"
+    "sonioxBackgroundPlaceholder": "Klistra in en agenda, ett ämne eller bakgrundsanteckningar (valfritt)",
+    "sonioxVoiceConsent": "Jag bekräftar att jag har rätt att använda den här rösten",
+    "sonioxVoiceConsentRequired": "Bekräfta först att du har rätt att använda den här rösten",
+    "sonioxVoiceNamePlaceholder": "Namn för en ny klonad röst (valfritt)",
+    "sonioxVoiceDefaultName": "Min röst {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(borttagen röst)",
+    "sonioxVoiceProcessingBadge": "bearbetar…",
+    "sonioxVoiceFailedBadge": "misslyckades",
+    "sonioxVoiceFailed": "Bearbetningen misslyckades — ta bort den här rösten och prova ett tydligare klipp",
+    "sonioxVoiceNameConflict": "Det finns redan en röst med det här namnet",
+    "sonioxVoiceQuotaError": "Soniox organisationsgräns för röster har nåtts — ta bort en röst och försök igen",
+    "sonioxVoiceListError": "Kunde inte läsa in klonade röster — kontrollera API-nyckeln."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",

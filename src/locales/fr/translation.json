@@ -236,7 +236,18 @@
     "sonioxLatencyLevelMost": "Le plus agressif",
     "sonioxBackground": "Contexte de la session",
     "sonioxBackgroundTooltip": "Contexte libre pour la prochaine session — ordre du jour, sujet ou notes de référence. Aide la reconnaissance et la traduction à suivre le domaine. Réduit en premier si le contexte combiné dépasse la limite de taille.",
-    "sonioxBackgroundPlaceholder": "Collez un ordre du jour, un sujet ou des notes de contexte (facultatif)"
+    "sonioxBackgroundPlaceholder": "Collez un ordre du jour, un sujet ou des notes de contexte (facultatif)",
+    "sonioxVoiceConsent": "Je confirme avoir le droit d'utiliser cette voix",
+    "sonioxVoiceConsentRequired": "Confirmez d'abord que vous avez le droit d'utiliser cette voix",
+    "sonioxVoiceNamePlaceholder": "Nom pour une nouvelle voix clonée (facultatif)",
+    "sonioxVoiceDefaultName": "Ma voix {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(voix supprimée)",
+    "sonioxVoiceProcessingBadge": "traitement en cours…",
+    "sonioxVoiceFailedBadge": "échec",
+    "sonioxVoiceFailed": "Échec du traitement — supprimez cette voix et essayez avec un extrait plus clair",
+    "sonioxVoiceNameConflict": "Une voix portant ce nom existe déjà",
+    "sonioxVoiceQuotaError": "Limite de voix de l'organisation Soniox atteinte — supprimez une voix et réessayez",
+    "sonioxVoiceListError": "Impossible de charger les voix clonées — vérifiez la clé API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
