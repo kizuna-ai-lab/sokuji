@@ -18,6 +18,8 @@ export interface SonioxSettings {
   vocabularyTerms: string;
   /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
   vocabularyTranslations: string;
+  /** Free-form session background (agenda/topic/notes) → wire context.text. */
+  contextText: string;
   /** Soniox endpoint_sensitivity, -1.0..1.0; 0 = server default. */
   endpointSensitivity: number;
   /** Soniox endpoint_latency_adjustment_level, 0..3; 0 = server default. */
@@ -35,6 +37,7 @@ export const defaultSonioxSettings: SonioxSettings = {
   model: 'stt-rt-v5',
   vocabularyTerms: '',
   vocabularyTranslations: '',
+  contextText: '',
   endpointSensitivity: 0,
   endpointLatencyAdjustmentLevel: 0,
   ttsSpeed: 1.0,
@@ -81,14 +84,27 @@ const SONIOX_CONTEXT_CHAR_BUDGET = 9000;
 
 function fitContextToBudget(
   terms: string[],
-  translationTerms: Array<{ source: string; target: string }>
-): { terms: string[]; translationTerms: Array<{ source: string; target: string }> } {
+  translationTerms: Array<{ source: string; target: string }>,
+  text: string
+): { terms: string[]; translationTerms: Array<{ source: string; target: string }>; text: string } {
   const serializedSize = (): number =>
     JSON.stringify({
       ...(terms.length ? { terms } : {}),
       ...(translationTerms.length ? { translation_terms: translationTerms } : {}),
+      ...(text ? { text } : {}),
     }).length;
-  const dropped = { terms: 0, translationTerms: 0 };
+  const dropped = { terms: 0, translationTerms: 0, textChars: 0 };
+  // Background text is the weakest context evidence: truncate it first,
+  // character-wise (removing k chars shrinks the serialization by >= k, so
+  // one cut computed from the overflow is always sufficient — or empties it).
+  if (text) {
+    const over = serializedSize() - SONIOX_CONTEXT_CHAR_BUDGET;
+    if (over > 0) {
+      const keep = Math.max(0, text.length - over);
+      dropped.textChars = text.length - keep;
+      text = text.slice(0, keep);
+    }
+  }
   while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && translationTerms.length) {
     translationTerms = translationTerms.slice(0, -1);
     dropped.translationTerms++;
@@ -97,13 +113,14 @@ function fitContextToBudget(
     terms = terms.slice(0, -1);
     dropped.terms++;
   }
-  if (dropped.terms || dropped.translationTerms) {
+  if (dropped.terms || dropped.translationTerms || dropped.textChars) {
     console.warn(
-      `[SonioxProviderConfig] Custom vocabulary exceeds the Soniox context size limit — ` +
-      `dropped ${dropped.translationTerms} translation(s) and ${dropped.terms} term(s) from the end`
+      `[SonioxProviderConfig] Custom vocabulary/background exceeds the Soniox context size limit — ` +
+      `truncated ${dropped.textChars} background char(s), dropped ${dropped.translationTerms} translation(s) ` +
+      `and ${dropped.terms} term(s) from the end`
     );
   }
-  return { terms, translationTerms };
+  return { terms, translationTerms, text };
 }
 
 // The managed start floor lives in its own import-free module so the Start
@@ -156,9 +173,10 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as SonioxSettings;
-    const { terms, translationTerms } = fitContextToBudget(
+    const { terms, translationTerms, text } = fitContextToBudget(
       parseVocabularyTerms(settings.vocabularyTerms ?? ''),
-      parseVocabularyTranslations(settings.vocabularyTranslations ?? '')
+      parseVocabularyTranslations(settings.vocabularyTranslations ?? ''),
+      (settings.contextText ?? '').trim()
     );
     return {
       provider: 'soniox',
@@ -170,11 +188,12 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       // Direction is derived from You/Others/Both at connect time; default one_way.
       // MainPanel sets bidirectional:true only for the shared-Both single-session path.
       bidirectional: false,
-      ...(terms.length || translationTerms.length
+      ...(terms.length || translationTerms.length || text
         ? {
             context: {
               ...(terms.length ? { terms } : {}),
               ...(translationTerms.length ? { translationTerms } : {}),
+              ...(text ? { text } : {}),
             },
           }
         : {}),

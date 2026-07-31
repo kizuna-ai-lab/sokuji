@@ -128,11 +128,52 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     delete legacy.endpointSensitivity;
     delete legacy.endpointLatencyAdjustmentLevel;
     delete legacy.ttsSpeed;
+    delete legacy.contextText;
     const cfg = descriptor.buildSessionConfig(legacy, '') as SonioxSessionConfig;
     expect(cfg.context).toBeUndefined();
     expect(cfg.endpointSensitivity).toBe(0);
     expect(cfg.endpointLatencyAdjustmentLevel).toBe(0);
     expect(cfg.ttsSpeed).toBe(1.0);
+  });
+
+  it('passes trimmed background text through as context.text', () => {
+    const cfg = build({ contextText: '  Quarterly review of the Sokuji roadmap. ' });
+    expect(cfg.context).toEqual({ text: 'Quarterly review of the Sokuji roadmap.' });
+  });
+
+  it('omits context entirely for whitespace-only background text', () => {
+    const cfg = build({ contextText: '   \n\t ' });
+    expect(cfg.context).toBeUndefined();
+  });
+
+  it('truncates the background text first when the serialized context overflows, keeping vocabulary intact', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // ~200 translation pairs (~6.4 KB serialized) + 4000-char text → overflow
+    // where text absorbs the whole cut and translations survive untouched.
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'x'.repeat(4000) });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0);
+    expect(text.length).toBeLessThan(4000);
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9000);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('sacrifices the text entirely before touching vocabulary on extreme overflow', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 700 pairs (~22 KB serialized) — text goes to zero, then translations trim.
+    const lines = Array.from({ length: 700 }, (_, i) => `s${String(i).padStart(3, '0')}=t${i}`);
+    const cfg = build({ vocabularyTranslations: lines.join('\n'), contextText: 'y'.repeat(4000) });
+    expect(cfg.context!.text).toBeUndefined();          // fully truncated → omitted
+    expect(cfg.context!.translationTerms!.length).toBeGreaterThan(0);
+    expect(cfg.context!.translationTerms!.length).toBeLessThan(700);
+    warn.mockRestore();
   });
 });
 
