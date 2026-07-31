@@ -254,8 +254,9 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     { name: 'Cymraeg', value: 'cy', englishName: 'Welsh' },
   ];
 
-  // All 12 voices are multilingual (zh/ja/en verified live 2026-07-18):
-  // one voice serves both two_way directions.
+  // Every voice is multilingual — any voice speaks any language (official
+  // catalog, 2026-07-31; zh/ja/en live-verified 2026-07-18 for the original
+  // twelve) — so one voice serves both two_way directions.
   private static readonly VOICES: VoiceOption[] = [
     { name: 'Adrian', value: 'Adrian' },
     { name: 'Claire', value: 'Claire' },
@@ -269,6 +270,23 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     { name: 'Nina', value: 'Nina' },
     { name: 'Noah', value: 'Noah' },
     { name: 'Owen', value: 'Owen' },
+    // Accented additions (official catalog, 2026-07-31):
+    { name: 'Rafael', value: 'Rafael' },     // Spanish accent
+    { name: 'Mateo', value: 'Mateo' },       // Spanish accent
+    { name: 'Lucia', value: 'Lucia' },       // Spanish accent
+    { name: 'Sofia', value: 'Sofia' },       // Spanish accent
+    { name: 'Oliver', value: 'Oliver' },     // British accent
+    { name: 'Arthur', value: 'Arthur' },     // British accent
+    { name: 'Isla', value: 'Isla' },         // British accent
+    { name: 'Victoria', value: 'Victoria' }, // British accent
+    { name: 'Cooper', value: 'Cooper' },     // Australian accent
+    { name: 'Mason', value: 'Mason' },       // Australian accent
+    { name: 'Ruby', value: 'Ruby' },         // Australian accent
+    { name: 'Elise', value: 'Elise' },       // Australian accent
+    { name: 'Arjun', value: 'Arjun' },       // Indian accent
+    { name: 'Rohan', value: 'Rohan' },       // Indian accent
+    { name: 'Priya', value: 'Priya' },       // Indian accent
+    { name: 'Meera', value: 'Meera' },       // Indian accent
   ];
 
   private static readonly MODELS: ModelOption[] = [
@@ -292,7 +310,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       capabilities: {
         hasTemplateMode: false, // dedicated translation service — no prompt templates
         hasTurnDetection: false, // server-side endpoint detection, not user-configurable
-        hasVoiceSettings: true, // TTS voice dropdown (12 multilingual voices)
+        hasVoiceSettings: true, // TTS voice dropdown (28 multilingual voices)
         hasNoiseReduction: false,
         hasModelConfiguration: false,
         textOnlyCapability: 'optional', // toggle: subtitles-only vs spoken translation

@@ -135,3 +135,14 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     expect(cfg.ttsSpeed).toBe(1.0);
   });
 });
+
+describe('SonioxProviderConfig voices', () => {
+  it('exposes the full 28-voice catalog, unique, including the original twelve', () => {
+    const voices = new SonioxProviderConfig().getConfig().voices.map((v) => v.value);
+    expect(voices).toHaveLength(28);
+    expect(new Set(voices).size).toBe(28);
+    for (const original of ['Adrian', 'Claire', 'Daniel', 'Emma', 'Grace', 'Jack', 'Kenji', 'Maya', 'Mina', 'Nina', 'Noah', 'Owen']) {
+      expect(voices).toContain(original);
+    }
+  });
+});
