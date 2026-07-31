@@ -5,13 +5,23 @@ export interface OpenAIRealtimeSessionBuildResult {
   turnDetectionDisabled: boolean;
 }
 
+export interface OpenAIRealtimeSessionBuildOptions {
+  /**
+   * Initial session creation should fall back to Alloy when no voice is set.
+   * Partial session updates must disable this so they preserve the server's
+   * current voice instead of silently resetting it.
+   */
+  includeDefaultVoice?: boolean;
+}
+
 /**
  * Build the GA Realtime session shape shared by the WebSocket and WebRTC
  * transports. Keeping this in one place prevents transport fallback from
  * silently changing session settings such as the selected voice.
  */
 export function buildOpenAIRealtimeSession(
-  config: OpenAISessionConfig
+  config: OpenAISessionConfig,
+  options: OpenAIRealtimeSessionBuildOptions = {}
 ): OpenAIRealtimeSessionBuildResult {
   const session: Record<string, any> = {
     type: 'realtime',
@@ -28,9 +38,10 @@ export function buildOpenAIRealtimeSession(
 
   // Voice is nested under audio.output in the GA protocol. This must be sent
   // before the first audio response because the API locks the voice afterward.
-  if (!config.textOnly) {
+  const outputVoice = config.voice || (options.includeDefaultVoice === false ? undefined : 'alloy');
+  if (!config.textOnly && outputVoice) {
     audio.output = {
-      voice: config.voice || 'alloy'
+      voice: outputVoice
     };
   }
 

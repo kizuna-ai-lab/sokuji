@@ -20,7 +20,7 @@ import {
   isOpenAISessionConfig,
   ResponseConfig
 } from '../interfaces/IClient';
-import { RealtimeEvent } from '../../stores/logStore';
+import useLogStore, { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import { EphemeralTokenService } from '../EphemeralTokenService';
@@ -53,6 +53,7 @@ interface ServerEvent {
  */
 export class OpenAIWebRTCClient implements IClient {
   private static readonly DEFAULT_API_HOST = 'https://api.openai.com';
+  private static readonly CALLS_REQUEST_TIMEOUT_MS = 15000;
 
   private apiKey: string;
   private apiHost: string;
@@ -276,20 +277,27 @@ export class OpenAIWebRTCClient implements IClient {
   ): Promise<string> {
     const endpoint = `${this.apiHost}/v1/realtime/calls`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: buildOpenAIRealtimeCallForm(sdp, config)
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: buildOpenAIRealtimeCallForm(sdp, config),
+        signal: AbortSignal.timeout(OpenAIWebRTCClient.CALLS_REQUEST_TIMEOUT_MS)
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to establish WebRTC connection: ${response.status} ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to establish WebRTC connection: ${response.status} ${errorText}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      useLogStore.getState().addLog(`OpenAI WebRTC connection failed: ${message}`, 'error');
+      throw error;
     }
-
-    return await response.text();
   }
 
   /**
@@ -517,8 +525,10 @@ export class OpenAIWebRTCClient implements IClient {
   /**
    * Send session.update event to configure the session
    */
-  private sendSessionUpdate(config: OpenAISessionConfig): void {
-    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
+  private sendSessionUpdate(config: OpenAISessionConfig, partial = false): void {
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config, {
+      includeDefaultVoice: !partial
+    });
     this.turnDetectionDisabled = turnDetectionDisabled;
 
     if (session.reasoning) {
@@ -604,7 +614,7 @@ export class OpenAIWebRTCClient implements IClient {
    */
   updateSession(config: Partial<SessionConfig>): void {
     if (isOpenAISessionConfig(config as SessionConfig)) {
-      this.sendSessionUpdate(config as OpenAISessionConfig);
+      this.sendSessionUpdate(config as OpenAISessionConfig, true);
     }
   }
 

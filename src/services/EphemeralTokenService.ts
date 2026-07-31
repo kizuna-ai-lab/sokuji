@@ -1,3 +1,5 @@
+import useLogStore from '../stores/logStore';
+
 /**
  * EphemeralTokenService
  *
@@ -126,6 +128,8 @@ export class EphemeralTokenService {
       return tokenValue;
     } catch (error) {
       console.error('[EphemeralTokenService] Error fetching ephemeral token:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      useLogStore.getState().addLog(`Failed to fetch OpenAI Realtime client secret: ${message}`, 'error');
       throw error;
     }
   }

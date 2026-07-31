@@ -37,6 +37,24 @@ describe('OpenAI Realtime GA session payload', () => {
     expect(turnDetectionDisabled).toBe(false);
   });
 
+  it('preserves the current voice for partial updates that omit voice', () => {
+    const { session } = buildOpenAIRealtimeSession(
+      { ...config, voice: undefined },
+      { includeDefaultVoice: false }
+    );
+
+    expect(session.audio.output).toBeUndefined();
+  });
+
+  it('omits reasoning for models that do not support it', () => {
+    const { session } = buildOpenAIRealtimeSession({
+      ...config,
+      model: 'gpt-realtime'
+    });
+
+    expect(session.reasoning).toBeUndefined();
+  });
+
   it('uses GA nested audio input fields', () => {
     const { session } = buildOpenAIRealtimeSession(config);
 

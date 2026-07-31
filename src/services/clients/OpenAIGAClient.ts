@@ -621,10 +621,12 @@ export class OpenAIGAClient implements IClient {
   /**
    * Send session.update event with configuration
    */
-  private sendSessionUpdate(config: OpenAISessionConfig): void {
+  private sendSessionUpdate(config: OpenAISessionConfig, partial = false): void {
     if (!this.rt) return;
 
-    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config, {
+      includeDefaultVoice: !partial
+    });
     this.turnDetectionDisabled = turnDetectionDisabled;
 
     if (session.reasoning) {
@@ -676,7 +678,7 @@ export class OpenAIGAClient implements IClient {
 
   updateSession(config: Partial<SessionConfig>): void {
     if (isOpenAISessionConfig(config as SessionConfig)) {
-      this.sendSessionUpdate(config as OpenAISessionConfig);
+      this.sendSessionUpdate(config as OpenAISessionConfig, true);
     }
   }
 
@@ -776,7 +778,7 @@ export class OpenAIGAClient implements IClient {
         });
       }
 
-      this.rt.send(responseEvent);
+      this.rt.send(responseEvent as any);
 
       this.eventHandlers.onRealtimeEvent?.({
         source: 'client',
