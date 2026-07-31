@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Elaborazione non riuscita — elimina questa voce e prova con una clip più chiara",
     "sonioxVoiceNameConflict": "Esiste già una voce con questo nome",
     "sonioxVoiceQuotaError": "Limite di voci dell'organizzazione Soniox raggiunto — elimina una voce e riprova",
-    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API.",
-    "sonioxVoiceRefreshList": "Aggiorna elenco voci"
+    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Scrivi esattamente ciò che dice il clip…",
     "unstable": "instabile",
     "voice": "Voce",
-    "voiceBuilderDisclaimer": "Servizio Supertone a pagamento. Sokuji non è coinvolta in tale transazione."
+    "voiceBuilderDisclaimer": "Servizio Supertone a pagamento. Sokuji non è coinvolta in tale transazione.",
+    "refreshList": "Aggiorna elenco voci"
   }
 }

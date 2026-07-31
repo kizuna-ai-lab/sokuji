@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Verarbeitung fehlgeschlagen — löschen Sie diese Stimme und versuchen Sie es mit einer klareren Aufnahme",
     "sonioxVoiceNameConflict": "Eine Stimme mit diesem Namen existiert bereits",
     "sonioxVoiceQuotaError": "Soniox-Limit für Organisationsstimmen erreicht — löschen Sie eine Stimme und versuchen Sie es erneut",
-    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel.",
-    "sonioxVoiceRefreshList": "Stimmenliste aktualisieren"
+    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Geben Sie genau ein, was im Clip gesagt wird…",
     "unstable": "instabil",
     "voice": "Stimme",
-    "voiceBuilderDisclaimer": "Kostenpflichtiger Supertone-Dienst. Sokuji ist an dieser Transaktion nicht beteiligt."
+    "voiceBuilderDisclaimer": "Kostenpflichtiger Supertone-Dienst. Sokuji ist an dieser Transaktion nicht beteiligt.",
+    "refreshList": "Stimmenliste aktualisieren"
   }
 }

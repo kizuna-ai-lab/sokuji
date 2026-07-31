@@ -26,7 +26,6 @@
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw } from 'lucide-react';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import SonioxCloneConfirmModal from './SonioxCloneConfirmModal';
 import {
@@ -319,19 +318,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   return (
     <div className="settings-section" id="soniox-voice-section">
-      <h2>
-        <span>{t('settings.voiceSettings', 'Voice Settings')}</span>
-        {client && (
-          <button
-            className="section-refresh-button"
-            onClick={() => void refresh()}
-            disabled={listState === 'loading'}
-            title={t('settings.sonioxVoiceRefreshList', 'Refresh voice list')}
-          >
-            <RefreshCw size={14} className={listState === 'loading' ? 'spinning' : ''} />
-          </button>
-        )}
-      </h2>
+      <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
       {listState === 'error' && (
         <div className="setting-item">
           <div className="setting-description">
@@ -349,6 +336,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onImport={client ? onImport : undefined}
         onRecord={client ? onRecord : undefined}
         onDelete={onDelete}
+        onRefresh={client ? () => void refresh() : undefined}
+        refreshing={listState === 'loading'}
         capability={{
           importModes: client ? ['record', 'upload'] : [],
           curation: false,

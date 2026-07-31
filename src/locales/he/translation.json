@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "העיבוד נכשל — מחק את הקול הזה ונסה קטע ברור יותר",
     "sonioxVoiceNameConflict": "כבר קיים קול בשם הזה",
     "sonioxVoiceQuotaError": "מגבלת הקולות הארגונית של Soniox הושגה — מחק קול ונסה שוב",
-    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API.",
-    "sonioxVoiceRefreshList": "רענן את רשימת הקולות"
+    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API."
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "הקלד בדיוק את מה שנאמר בקליפ…",
     "unstable": "לא יציב",
     "voice": "קול",
-    "voiceBuilderDisclaimer": "שירות בתשלום של Supertone. Sokuji אינה מעורבת בעסקה זו."
+    "voiceBuilderDisclaimer": "שירות בתשלום של Supertone. Sokuji אינה מעורבת בעסקה זו.",
+    "refreshList": "רענן את רשימת הקולות"
   }
 }

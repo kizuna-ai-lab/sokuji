@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "प्रोसेसिंग विफल — इस आवाज़ को हटाएँ और एक स्पष्ट क्लिप आज़माएँ",
     "sonioxVoiceNameConflict": "इस नाम की आवाज़ पहले से मौजूद है",
     "sonioxVoiceQuotaError": "Soniox संगठन की आवाज़ सीमा पूरी हो गई — एक आवाज़ हटाएँ और पुनः प्रयास करें",
-    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API की जाँच करें।",
-    "sonioxVoiceRefreshList": "आवाज़ सूची रीफ़्रेश करें"
+    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API की जाँच करें।"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "क्लिप में जो कहा गया है ठीक वही टाइप करें…",
     "unstable": "अस्थिर",
     "voice": "आवाज़",
-    "voiceBuilderDisclaimer": "सशुल्क Supertone सेवा। Sokuji उस लेन-देन में शामिल नहीं है।"
+    "voiceBuilderDisclaimer": "सशुल्क Supertone सेवा। Sokuji उस लेन-देन में शामिल नहीं है।",
+    "refreshList": "आवाज़ सूची रीफ़्रेश करें"
   }
 }

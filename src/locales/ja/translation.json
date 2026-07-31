@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "処理に失敗しました — この音声を削除し、より聞き取りやすいクリップでお試しください",
     "sonioxVoiceNameConflict": "この名前の音声はすでに存在します",
     "sonioxVoiceQuotaError": "Soniox の組織の音声上限に達しました — 音声を削除してから再試行してください",
-    "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。",
-    "sonioxVoiceRefreshList": "音声リストを更新"
+    "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "クリップの内容をそのまま入力してください…",
     "unstable": "不安定",
     "voice": "音声",
-    "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。"
+    "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。",
+    "refreshList": "音声リストを更新"
   }
 }

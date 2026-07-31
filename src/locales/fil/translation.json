@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Nabigo ang pagproseso — tanggalin ang boses na ito at subukan ang mas malinaw na clip",
     "sonioxVoiceNameConflict": "May umiiral nang boses na may ganitong pangalan",
     "sonioxVoiceQuotaError": "Naabot na ang limitasyon ng boses ng organisasyong Soniox — tanggalin ang isang boses at subukang muli",
-    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key.",
-    "sonioxVoiceRefreshList": "I-refresh ang listahan ng boses"
+    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key."
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "I-type nang eksakto ang sinasabi ng clip…",
     "unstable": "hindi matatag",
     "voice": "Boses",
-    "voiceBuilderDisclaimer": "Bayad na serbisyo ng Supertone. Hindi kasangkot ang Sokuji sa transaksyong iyon."
+    "voiceBuilderDisclaimer": "Bayad na serbisyo ng Supertone. Hindi kasangkot ang Sokuji sa transaksyong iyon.",
+    "refreshList": "I-refresh ang listahan ng boses"
   }
 }

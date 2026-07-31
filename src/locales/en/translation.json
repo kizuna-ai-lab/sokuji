@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Processing failed — delete this voice and try a clearer clip",
     "sonioxVoiceNameConflict": "A voice with this name already exists",
     "sonioxVoiceQuotaError": "Soniox organization voice limit reached — delete a voice and retry",
-    "sonioxVoiceListError": "Could not load cloned voices — check the API key.",
-    "sonioxVoiceRefreshList": "Refresh voice list"
+    "sonioxVoiceListError": "Could not load cloned voices — check the API key."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Type exactly what the clip says…",
     "unstable": "unstable",
     "voice": "Voice",
-    "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction."
+    "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction.",
+    "refreshList": "Refresh voice list"
   }
 }

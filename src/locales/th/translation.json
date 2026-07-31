@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "การประมวลผลล้มเหลว — ลบเสียงนี้แล้วลองใช้คลิปที่ชัดเจนกว่านี้",
     "sonioxVoiceNameConflict": "มีเสียงชื่อนี้อยู่แล้ว",
     "sonioxVoiceQuotaError": "ถึงขีดจำกัดเสียงขององค์กร Soniox แล้ว — ลบเสียงหนึ่งแล้วลองใหม่",
-    "sonioxVoiceListError": "ไม่สามารถโหลดเสียงโคลนได้ — ตรวจสอบ API key ของคุณ",
-    "sonioxVoiceRefreshList": "รีเฟรชรายการเสียง"
+    "sonioxVoiceListError": "ไม่สามารถโหลดเสียงโคลนได้ — ตรวจสอบ API key ของคุณ"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "พิมพ์ให้ตรงกับที่พูดในคลิป…",
     "unstable": "ไม่เสถียร",
     "voice": "เสียง",
-    "voiceBuilderDisclaimer": "บริการแบบเสียเงินของ Supertone Sokuji ไม่มีส่วนเกี่ยวข้องกับธุรกรรมนั้น"
+    "voiceBuilderDisclaimer": "บริการแบบเสียเงินของ Supertone Sokuji ไม่มีส่วนเกี่ยวข้องกับธุรกรรมนั้น",
+    "refreshList": "รีเฟรชรายการเสียง"
   }
 }

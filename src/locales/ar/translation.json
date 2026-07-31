@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "فشلت المعالجة — احذف هذا الصوت وجرّب مقطعًا أوضح",
     "sonioxVoiceNameConflict": "يوجد بالفعل صوت بهذا الاسم",
     "sonioxVoiceQuotaError": "تم بلوغ الحد الأقصى لأصوات مؤسسة Soniox — احذف صوتًا وأعد المحاولة",
-    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API.",
-    "sonioxVoiceRefreshList": "تحديث قائمة الأصوات"
+    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API."
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "اكتب بالضبط ما يقوله المقطع…",
     "unstable": "غير مستقر",
     "voice": "الصوت",
-    "voiceBuilderDisclaimer": "خدمة Supertone مدفوعة. Sokuji ليس طرفًا في تلك المعاملة."
+    "voiceBuilderDisclaimer": "خدمة Supertone مدفوعة. Sokuji ليس طرفًا في تلك المعاملة.",
+    "refreshList": "تحديث قائمة الأصوات"
   }
 }

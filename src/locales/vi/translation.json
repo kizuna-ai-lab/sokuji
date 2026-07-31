@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Xử lý thất bại — hãy xóa giọng nói này và thử một đoạn rõ hơn",
     "sonioxVoiceNameConflict": "Đã tồn tại giọng nói với tên này",
     "sonioxVoiceQuotaError": "Đã đạt giới hạn giọng nói của tổ chức Soniox — hãy xóa một giọng nói và thử lại",
-    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API.",
-    "sonioxVoiceRefreshList": "Làm mới danh sách giọng nói"
+    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Nhập chính xác nội dung của đoạn ghi…",
     "unstable": "không ổn định",
     "voice": "Giọng nói",
-    "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. Sokuji không tham gia vào giao dịch đó."
+    "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. Sokuji không tham gia vào giao dịch đó.",
+    "refreshList": "Làm mới danh sách giọng nói"
   }
 }

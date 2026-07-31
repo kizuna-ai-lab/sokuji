@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Falha no processamento — exclua esta voz e tente um trecho mais claro",
     "sonioxVoiceNameConflict": "Já existe uma voz com este nome",
     "sonioxVoiceQuotaError": "Limite de vozes da organização Soniox atingido — exclua uma voz e tente novamente",
-    "sonioxVoiceListError": "Não foi possível carregar as vozes clonadas — verifique a chave da API.",
-    "sonioxVoiceRefreshList": "Atualizar lista de vozes"
+    "sonioxVoiceListError": "Não foi possível carregar as vozes clonadas — verifique a chave da API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Digite exatamente o que o clipe diz…",
     "unstable": "instável",
     "voice": "Voz",
-    "voiceBuilderDisclaimer": "Serviço pago da Supertone. O Sokuji não participa dessa transação."
+    "voiceBuilderDisclaimer": "Serviço pago da Supertone. O Sokuji não participa dessa transação.",
+    "refreshList": "Atualizar lista de vozes"
   }
 }

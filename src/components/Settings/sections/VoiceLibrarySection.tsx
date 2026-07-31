@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Play, Plus, Square, Upload } from 'lucide-react';
+import { Mic, Play, Plus, RefreshCw, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
@@ -52,6 +52,12 @@ export interface VoiceLibrarySectionProps {
    *  check their recording is clear. Returns null when the voice has no
    *  playable clip. Preview controls only render when this is provided. */
   onPreview?: (id: string) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
+  /** Re-fetches a remotely-sourced custom-voice list (e.g. Soniox clones live
+   *  server-side). When provided, a Refresh button renders in the manage
+   *  toolbar next to Import/Record. */
+  onRefresh?: () => void;
+  /** True while the remote list fetch is in flight; disables the Refresh button. */
+  refreshing?: boolean;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -69,6 +75,8 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRename,
   onDelete,
   onPreview,
+  onRefresh,
+  refreshing = false,
   capability,
   isSessionActive = false,
 }) => {
@@ -513,6 +521,18 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           {isRecording
             ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
             : t('voiceLibrary.recordVoice', 'Record voice…')}
+        </button>
+      )}
+      {onRefresh && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          disabled={refreshing}
+          onClick={onRefresh}
+          title={t('voiceLibrary.refreshList', 'Refresh voice list')}
+        >
+          <RefreshCw size={14} />
+          {t('voiceLibrary.refreshList', 'Refresh voice list')}
         </button>
       )}
       {canUpload && (

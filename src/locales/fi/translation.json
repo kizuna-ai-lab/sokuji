@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Käsittely epäonnistui — poista tämä ääni ja kokeile selkeämpää näytettä",
     "sonioxVoiceNameConflict": "Tämän niminen ääni on jo olemassa",
     "sonioxVoiceQuotaError": "Soniox-organisaation äänirajoitus saavutettu — poista ääni ja yritä uudelleen",
-    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain.",
-    "sonioxVoiceRefreshList": "Päivitä äänilista"
+    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Kirjoita tarkalleen se, mitä leike sanoo…",
     "unstable": "epävakaa",
     "voice": "Ääni",
-    "voiceBuilderDisclaimer": "Maksullinen Supertone-palvelu. Sokuji ei ole osallisena tässä liiketoimessa."
+    "voiceBuilderDisclaimer": "Maksullinen Supertone-palvelu. Sokuji ei ole osallisena tässä liiketoimessa.",
+    "refreshList": "Päivitä äänilista"
   }
 }

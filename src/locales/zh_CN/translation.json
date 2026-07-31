@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "处理失败 — 请删除此声音并尝试更清晰的片段",
     "sonioxVoiceNameConflict": "已存在同名声音",
     "sonioxVoiceQuotaError": "已达到 Soniox 组织声音数量上限 — 请删除一个声音后重试",
-    "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。",
-    "sonioxVoiceRefreshList": "刷新声音列表"
+    "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "请逐字输入音频中说的内容…",
     "unstable": "不稳定",
     "voice": "语音",
-    "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。"
+    "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。",
+    "refreshList": "刷新声音列表"
   }
 }

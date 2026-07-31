@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Pemprosesan gagal — padam suara ini dan cuba klip yang lebih jelas",
     "sonioxVoiceNameConflict": "Suara dengan nama ini sudah wujud",
     "sonioxVoiceQuotaError": "Had suara organisasi Soniox dicapai — padam suara dan cuba lagi",
-    "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API.",
-    "sonioxVoiceRefreshList": "Segarkan senarai suara"
+    "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Taip dengan tepat apa yang klip itu katakan…",
     "unstable": "tidak stabil",
     "voice": "Suara",
-    "voiceBuilderDisclaimer": "Perkhidmatan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut."
+    "voiceBuilderDisclaimer": "Perkhidmatan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut.",
+    "refreshList": "Segarkan senarai suara"
   }
 }

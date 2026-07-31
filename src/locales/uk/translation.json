@@ -248,8 +248,7 @@
     "sonioxVoiceFailed": "Помилка обробки — видаліть цей голос і спробуйте чіткіший фрагмент",
     "sonioxVoiceNameConflict": "Голос із такою назвою вже існує",
     "sonioxVoiceQuotaError": "Досягнуто ліміту голосів організації Soniox — видаліть голос і спробуйте ще раз",
-    "sonioxVoiceListError": "Не вдалося завантажити клоновані голоси — перевірте API-ключ.",
-    "sonioxVoiceRefreshList": "Оновити список голосів"
+    "sonioxVoiceListError": "Не вдалося завантажити клоновані голоси — перевірте API-ключ."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
@@ -952,6 +951,7 @@
     "transcriptPlaceholder": "Введіть точно те, що звучить у записі…",
     "unstable": "нестабільно",
     "voice": "Голос",
-    "voiceBuilderDisclaimer": "Платний сервіс Supertone. Sokuji не бере участі в цій операції."
+    "voiceBuilderDisclaimer": "Платний сервіс Supertone. Sokuji не бере участі в цій операції.",
+    "refreshList": "Оновити список голосів"
   }
 }
