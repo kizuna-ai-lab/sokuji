@@ -96,13 +96,18 @@ function fitContextToBudget(
   const dropped = { terms: 0, translationTerms: 0, textChars: 0 };
   // Background text is the weakest context evidence: truncate it first,
   // character-wise (removing k chars shrinks the serialization by >= k, so
-  // one cut computed from the overflow is always sufficient — or empties it).
+  // one cut computed from the overflow is always sufficient — or empties it —
+  // a trailing lone surrogate from a mid-pair cut is stripped below; the
+  // remaining ≤5-char excess in the no-vocab case sits well inside the
+  // 1,000-char headroom).
   if (text) {
     const over = serializedSize() - SONIOX_CONTEXT_CHAR_BUDGET;
     if (over > 0) {
       const keep = Math.max(0, text.length - over);
       dropped.textChars = text.length - keep;
-      text = text.slice(0, keep);
+      // A cut landing mid-surrogate-pair would leave a lone high surrogate
+      // (serializes as a 6-char escape and renders as U+FFFD downstream).
+      text = text.slice(0, keep).replace(/[\uD800-\uDBFF]$/, '');
     }
   }
   while (serializedSize() > SONIOX_CONTEXT_CHAR_BUDGET && translationTerms.length) {

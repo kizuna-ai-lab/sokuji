@@ -175,6 +175,33 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     expect(cfg.context!.translationTerms!.length).toBeLessThan(700);
     warn.mockRestore();
   });
+
+  it('strips a trailing lone surrogate when the truncation cut lands mid-emoji', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 100 CJK chars + 1950 emoji (each a surrogate pair) = 4000 UTF-16 code
+    // units of background text, plus 200 translation pairs to force overflow
+    // (same generator as the test above). With these exact counts the
+    // computed cut (keep=1477) lands 1,377 code units into the emoji run —
+    // an odd offset into 2-unit pairs, i.e. mid-pair — which exercises the
+    // lone-surrogate strip. (Verified numerically; adjust the pair count if
+    // this ever stops landing mid-pair.)
+    const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
+    const cfg = build({
+      vocabularyTranslations: lines.join('\n'),
+      contextText: '好'.repeat(100) + '😀'.repeat(1950),
+    });
+    expect(cfg.context!.translationTerms).toHaveLength(200);
+    const text = cfg.context!.text!;
+    expect(text.length).toBeGreaterThan(0);
+    expect(/[\uD800-\uDBFF]$/.test(text)).toBe(false);
+    const serialized = JSON.stringify({
+      translation_terms: cfg.context!.translationTerms,
+      text,
+    }).length;
+    expect(serialized).toBeLessThanOrEqual(9005);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
 });
 
 describe('SonioxProviderConfig voices', () => {

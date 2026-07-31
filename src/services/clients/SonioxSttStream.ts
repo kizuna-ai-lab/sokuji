@@ -48,7 +48,7 @@ export interface SonioxSttConfig {
   sampleRate: number;
   languageHints?: string[];
   translation: SonioxTranslationConfig;
-  /** Custom vocabulary, wire-shaped (snake_case). Omitted from the config frame when absent. */
+  /** Custom vocabulary and background text, wire-shaped (snake_case). Omitted from the config frame when absent. */
   context?: {
     terms?: string[];
     translation_terms?: Array<{ source: string; target: string }>;
