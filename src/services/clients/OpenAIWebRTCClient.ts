@@ -348,7 +348,13 @@ export class OpenAIWebRTCClient implements IClient {
         console.debug('[OpenAIWebRTCClient] Session event:', event.type);
         break;
 
+      // GA announces every conversation item (user and assistant) via
+      // conversation.item.added; conversation.item.created is beta-only and
+      // never fires on a GA session. response.output_item.added is left
+      // unhandled on purpose: out-of-band responses (conversation: 'none')
+      // emit it too, and their items must not appear in the conversation.
       case 'conversation.item.created':
+      case 'conversation.item.added':
         this.handleItemCreated(event);
         break;
 
@@ -396,6 +402,10 @@ export class OpenAIWebRTCClient implements IClient {
   private handleItemCreated(event: ServerEvent): void {
     const item = event.item;
     if (!item) return;
+
+    // The same item can be announced by more than one event (e.g. created +
+    // added on compat servers); only the first announcement creates it.
+    if (this.conversationItems.some(existing => existing.id === item.id)) return;
 
     const createdAt = Date.now();
     this.itemCreatedAtMap.set(item.id, createdAt);

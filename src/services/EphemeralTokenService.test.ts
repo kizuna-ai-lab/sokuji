@@ -3,8 +3,26 @@ import { EphemeralTokenService } from './EphemeralTokenService';
 
 describe('EphemeralTokenService Realtime GA client secrets', () => {
   afterEach(() => {
-    EphemeralTokenService.clearCache();
     vi.unstubAllGlobals();
+  });
+
+  it('mints a fresh client secret on every call because GA secrets are single-use', async () => {
+    let mintCount = 0;
+    const fetchMock = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({
+        value: `ek_${++mintCount}`,
+        expires_at: Math.floor(Date.now() / 1000) + 600
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = await EphemeralTokenService.getToken('sk-test', 'gpt-realtime-2.1', 'ash');
+    const second = await EphemeralTokenService.getToken('sk-test', 'gpt-realtime-2.1', 'ash');
+
+    expect(first).toBe('ek_1');
+    expect(second).toBe('ek_2');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('mints an Ash client secret with the current GA endpoint and body', async () => {
