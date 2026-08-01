@@ -33,6 +33,7 @@ const tokenCache = new Map<string, CachedToken>();
  */
 export class EphemeralTokenService {
   private static readonly OPENAI_API_HOST = 'https://api.openai.com';
+  private static readonly CLIENT_SECRET_REQUEST_TIMEOUT_MS = 15000;
 
   /**
    * Get an ephemeral token for WebRTC connection
@@ -84,6 +85,7 @@ export class EphemeralTokenService {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
+        signal: AbortSignal.timeout(EphemeralTokenService.CLIENT_SECRET_REQUEST_TIMEOUT_MS),
         body: JSON.stringify({
           session: {
             type: 'realtime',
