@@ -52,16 +52,26 @@ export interface VoiceLibrarySectionProps {
   onRename?: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
-  /** Fetch a removable voice's stored clip so the user can play it back and
-   *  check their recording is clear. Returns null when the voice has no
-   *  playable clip. Preview controls only render when this is provided. */
-  onPreview?: (id: string) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
+  /** Fetch a playable sample of a removable voice — either a stored reference
+   *  clip (the native providers keep clips locally) or one synthesized on
+   *  demand (Soniox stores nothing locally, so its sample is a TTS audition).
+   *  Returns null when the voice has no playable sample. Preview controls only
+   *  render when this is provided, the entry is removable, and the entry is not
+   *  disabled. `signal` aborts when the user starts another preview or the
+   *  component unmounts; implementations that cannot cancel may ignore it. */
+  onPreview?: (id: string, signal?: AbortSignal) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
   /** Re-fetches a remotely-sourced custom-voice list (e.g. Soniox clones live
    *  server-side). When provided, a Refresh button renders in the manage
    *  toolbar next to Import/Record. */
   onRefresh?: () => void;
   /** True while the remote list fetch is in flight; disables the Refresh button. */
   refreshing?: boolean;
+  /** Provider-specific footnote rendered at the bottom of the manage body —
+   *  i.e. only once the user has expanded "Manage imported voices", where the
+   *  controls it describes actually live. Kept as a caller-supplied node
+   *  because the copy is provider-specific (e.g. Soniox's preview spends the
+   *  user's own TTS quota) and this component is provider-agnostic. */
+  manageNote?: React.ReactNode;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -81,22 +91,32 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onPreview,
   onRefresh,
   refreshing = false,
+  manageNote,
   capability,
   isSessionActive = false,
 }) => {
   const { t } = useTranslation();
 
-  // ---- local playback (listen back to a recorded/imported clip) -----------
+  // ---- local playback (listen back to a voice's sample) -------------------
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // Non-null while an onPreview call is in flight for that row.
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   // Monotonic token: a toggle invalidates any earlier onPreview still in
   // flight, so a stale resolution can't start playback over a newer one.
   const previewTokenRef = useRef(0);
+  // Cancels the in-flight onPreview itself, not just its result: a synthesized
+  // sample costs the user money, so a superseded request should never reach
+  // the network rather than being paid for and discarded.
+  const previewAbortRef = useRef<AbortController | null>(null);
 
   const stopPreview = useCallback(() => {
     previewTokenRef.current += 1;
+    previewAbortRef.current?.abort();
+    previewAbortRef.current = null;
+    setPreviewLoadingId(null);
     const src = sourceRef.current;
     if (src) {
       src.onended = null;
@@ -111,8 +131,20 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     stopPreview();
     if (!onPreview) return;
     const token = previewTokenRef.current;
+    const controller = new AbortController();
+    previewAbortRef.current = controller;
+    setPreviewLoadingId(id);
     let payload: { audio: Float32Array; sampleRate: number } | null = null;
-    try { payload = await onPreview(id); } catch { payload = null; }
+    try {
+      payload = await onPreview(id, controller.signal);
+    } catch {
+      payload = null;
+    } finally {
+      if (previewAbortRef.current === controller) previewAbortRef.current = null;
+      // Only the newest request owns the spinner — a superseded one must not
+      // clear a spinner that now belongs to another row.
+      if (token === previewTokenRef.current) setPreviewLoadingId(null);
+    }
     if (token !== previewTokenRef.current) return; // superseded by a newer toggle
     if (!payload || payload.audio.length === 0) return;
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -135,19 +167,34 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     void audioCtxRef.current?.close().catch(() => {});
   }, [stopPreview]);
 
-  const renderPreviewButton = (v: VoiceEntry) => (
-    onPreview && v.removable ? (
+  const renderPreviewButton = (v: VoiceEntry) => {
+    // A disabled entry (a processing/failed clone, or the "(deleted voice)"
+    // placeholder) has nothing playable behind it.
+    if (!onPreview || !v.removable || v.disabled) return null;
+    const isLoading = previewLoadingId === v.id;
+    const isPlaying = playingId === v.id;
+    const label = isLoading
+      ? t('voiceLibrary.synthesizing', 'Synthesizing…')
+      : isPlaying
+        ? t('voiceLibrary.stopPreview', 'Stop')
+        : t('voiceLibrary.play', 'Play');
+    return (
       <button
         type="button"
         className="voice-row-btn"
+        // Disabled while loading so a second click cannot start a second
+        // synthesis (which would spend the user's tokens twice).
+        disabled={isLoading}
         onClick={() => void togglePreview(v.id)}
-        aria-label={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
-        title={playingId === v.id ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
+        aria-label={label}
+        title={label}
       >
-        {playingId === v.id ? <Square size={14} /> : <Play size={14} />}
+        {isLoading
+          ? <span className="voice-preview-spinner" aria-hidden="true" />
+          : isPlaying ? <Square size={14} /> : <Play size={14} />}
       </button>
-    ) : null
-  );
+    );
+  };
 
   const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -621,6 +668,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
               ) : (
                 <ul className="voice-manage-list">{removableVoices.map(renderManageRow)}</ul>
               )}
+              {manageNote && (
+                <div className="voice-library-manage-note">{manageNote}</div>
+              )}
             </div>
           </details>
         )}
@@ -675,6 +725,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           onDragLeave={canUpload ? onDragLeave : undefined}
         >
           {importToolbar}
+          {manageNote && (
+            <div className="voice-library-manage-note">{manageNote}</div>
+          )}
         </div>
       )}
     </div>

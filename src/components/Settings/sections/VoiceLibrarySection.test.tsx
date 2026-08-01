@@ -22,6 +22,22 @@ const base = {
 };
 
 describe('VoiceLibrarySection', () => {
+  /** Shared Web Audio stub — jsdom has no Web Audio API. */
+  function stubWebAudio() {
+    const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
+    const mockCtx: any = {
+      state: 'running',
+      resume: vi.fn().mockResolvedValue(undefined),
+      destination: {},
+      createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
+      createBufferSource: vi.fn(() => mockSource),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    // regular function (not an arrow) so `new AudioContext()` is constructable
+    (window as any).AudioContext = function AudioContext() { return mockCtx; };
+    return { mockCtx, mockSource };
+  }
+
   it('renders builtin + custom groups and a record button when capability allows', () => {
     render(
       <VoiceLibrarySection
@@ -40,18 +56,7 @@ describe('VoiceLibrarySection', () => {
   });
 
   it('plays back a removable clip via onPreview and toggles play/stop', async () => {
-    // jsdom has no Web Audio — mock it.
-    const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
-    const mockCtx: any = {
-      state: 'running',
-      resume: vi.fn().mockResolvedValue(undefined),
-      destination: {},
-      createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
-      createBufferSource: vi.fn(() => mockSource),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-    // regular function (not an arrow) so `new AudioContext()` is constructable
-    (window as any).AudioContext = function AudioContext() { return mockCtx; };
+    const { mockSource, mockCtx } = stubWebAudio();
     const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
 
     render(
@@ -65,7 +70,8 @@ describe('VoiceLibrarySection', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
-    await waitFor(() => expect(onPreview).toHaveBeenCalledWith('custom:1'));
+    await waitFor(() =>
+      expect(onPreview).toHaveBeenCalledWith('custom:1', expect.any(AbortSignal)));
     await waitFor(() => expect(mockSource.start).toHaveBeenCalled());
     expect(mockSource.connect).toHaveBeenCalledWith(mockCtx.destination);
     // now shows a Stop control; clicking it stops playback
@@ -85,6 +91,37 @@ describe('VoiceLibrarySection', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
+  });
+
+  it('renders manageNote inside the manage body in dropdown presentation', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId="preset:0"
+        voices={[
+          { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false },
+          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
+        ]}
+        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        onRecord={async () => {}}
+        manageNote="Costs quota."
+      />,
+    );
+    const note = screen.getByText('Costs quota.');
+    expect(note.closest('.voice-library-manage-body')).not.toBeNull();
+  });
+
+  it('renders nothing extra when manageNote is omitted', () => {
+    const { container } = render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId="preset:0"
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        onRecord={async () => {}}
+      />,
+    );
+    expect(container.querySelector('.voice-library-manage-note')).toBeNull();
   });
 
   it('hides the record button when record is not an import mode (Supertonic)', () => {
@@ -155,6 +192,97 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getByText('Mine')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^rename$/i })).toBeNull();
+  });
+
+  it('shows a spinner and disables the button while the preview is in flight', async () => {
+    stubWebAudio();
+    let release: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    const onPreview = vi.fn(() => new Promise<any>((res) => { release = res; }));
+
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={onPreview}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    const busy = await screen.findByRole('button', { name: /synthesizing/i });
+    expect(busy).toBeDisabled();
+
+    release({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
+  });
+
+  it('renders no preview button for a disabled entry (processing / failed clone)', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Cooking', group: 'custom', removable: true, disabled: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull();
+  });
+
+  it('aborts an in-flight preview when the user starts another one', async () => {
+    stubWebAudio();
+    const signals: AbortSignal[] = [];
+    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<any>(() => {}); // never settles
+    });
+
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[
+          { id: 'custom:1', label: 'First', group: 'custom', removable: true },
+          { id: 'custom:2', label: 'Second', group: 'custom', removable: true },
+        ]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={onPreview}
+      />,
+    );
+
+    const [firstBtn, secondBtn] = screen.getAllByRole('button', { name: /^play$/i });
+    fireEvent.click(firstBtn);
+    await waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0].aborted).toBe(false);
+
+    fireEvent.click(secondBtn);
+    await waitFor(() => expect(signals[0].aborted).toBe(true));
+  });
+
+  it('aborts an in-flight preview on unmount', async () => {
+    stubWebAudio();
+    const signals: AbortSignal[] = [];
+    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<any>(() => {});
+    });
+
+    const { unmount } = render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={onPreview}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    unmount();
+    expect(signals[0].aborted).toBe(true);
   });
 });
 

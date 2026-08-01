@@ -24,6 +24,11 @@ vi.mock('../../../services/clients/SonioxVoicesClient', async (importOriginal) =
   };
 });
 
+const synthesizeMock = vi.fn();
+vi.mock('../../../services/clients/SonioxTtsRest', () => ({
+  synthesizeOnce: (...args: unknown[]) => synthesizeMock(...args),
+}));
+
 const { default: SonioxVoiceSection } = await import('./SonioxVoiceSection');
 const { SonioxVoicesError } = await import('../../../services/clients/SonioxVoicesClient');
 
@@ -65,7 +70,7 @@ function mount(over: object = {}) {
   const onUpdate = vi.fn();
   const utils = render(
     <SonioxVoiceSection
-      settings={{ voice: 'Maya', apiKey: 'k' }}
+      settings={{ voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
       onUpdate={onUpdate}
       managed={false}
       isSessionActive={false}
@@ -100,6 +105,21 @@ describe('SonioxVoiceSection', () => {
     // VoiceLibrarySection's delete flow goes through window.confirm, which
     // jsdom stubs to a falsy no-op — accept it so delete clicks reach onDelete.
     (window as any).confirm = vi.fn(() => true);
+    synthesizeMock.mockReset().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+    // VoiceLibrarySection plays the returned sample through Web Audio, which
+    // jsdom does not implement. The confirm-modal tests stub AudioContext with
+    // decodeAudioData only; preview needs the buffer-source surface too.
+    (window as any).AudioContext = function AudioContext() {
+      return {
+        state: 'running',
+        resume: vi.fn().mockResolvedValue(undefined),
+        destination: {},
+        createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
+        createBufferSource: vi.fn(() => ({ connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null })),
+        close: vi.fn().mockResolvedValue(undefined),
+        decodeAudioData: vi.fn(),
+      };
+    };
   });
 
   it('renders the 28 built-ins immediately and cloned voices after fetch', async () => {
@@ -122,7 +142,7 @@ describe('SonioxVoiceSection', () => {
 
   it('shows a deleted-voice placeholder when the stored UUID is not in the fetched list', async () => {
     listMock.mockResolvedValue([]);
-    const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k' } });
+    const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     const select = container.querySelector('select')!;
     await waitFor(() => {
@@ -370,7 +390,7 @@ describe('SonioxVoiceSection', () => {
 
   it('refuses to delete the selected voice while a session is active (banner, no API call)', async () => {
     listMock.mockResolvedValue([cloned()]);
-    mount({ settings: { voice: 'uuid-1', apiKey: 'k' }, isSessionActive: true });
+    mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }, isSessionActive: true });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openManageDetails();
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
@@ -580,5 +600,166 @@ describe('SonioxVoiceSection', () => {
       else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
       vi.unstubAllGlobals();
     }
+  });
+
+  it('previews a ready clone with the target language pair and the configured speed', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.2 } });
+    openManageDetails();
+    const playBtn = await screen.findByRole('button', { name: /^play$/i });
+    fireEvent.click(playBtn);
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    expect(synthesizeMock.mock.calls[0][0]).toMatchObject({
+      apiKey: 'k',
+      voice: 'uuid-1',
+      language: 'ja',
+      text: 'こんにちは。これはこの声の短い試聴です。',
+      speed: 1.2,
+    });
+  });
+
+  it('falls back to the English pair for a target language with no seeded sentence', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'cy', ttsSpeed: 1.0 } });
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    expect(synthesizeMock.mock.calls[0][0]).toMatchObject({
+      language: 'en',
+      text: 'Hello. This is a short preview of how this voice sounds.',
+    });
+  });
+
+  it('reuses the cached clip on a second preview of the same voice', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount();
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    // Stop, then play again — no second synthesis, no second charge.
+    fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
+    expect(synthesizeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replay a preview cached under a previous API key after the client changes', async () => {
+    // A changed API key means a (possibly) different Soniox project: audio
+    // cached against the old project's UUIDs must not replay under the new
+    // key — that would mean hearing another project's cloned voice.
+    listMock.mockResolvedValue([cloned()]);
+    const onUpdate = vi.fn();
+    const props = {
+      settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
+      onUpdate,
+      managed: false,
+      isSessionActive: false,
+    };
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
+
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('discards a preview that resolves after the API key changed', async () => {
+    // The in-flight case the clear-on-change effect cannot cover on its own:
+    // it clears at swap time, but a request started under the OLD key lands
+    // afterwards and would both play the old project's audio and reseed the
+    // NEW key's cache with it.
+    listMock.mockResolvedValue([cloned()]);
+    let release: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    synthesizeMock.mockImplementationOnce(() => new Promise((res) => { release = res; }));
+    const props = {
+      settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
+      onUpdate: vi.fn(),
+      managed: false,
+      isSessionActive: false,
+    };
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+
+    // Swap the key while the synthesis is still in flight, then let it land.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    release({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
+
+    // Neither played...
+    expect(screen.queryByRole('button', { name: /^stop$/i })).toBeNull();
+    // ...nor cached: the next click has to synthesize again.
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('renders no preview button for processing or failed clones', async () => {
+    listMock.mockResolvedValue([
+      cloned({ id: 'proc', name: 'Cooking', models: [{ model: 'tts-rt-v1', status: 'processing' }] }),
+      cloned({ id: 'bad', name: 'Broken', models: [{ model: 'tts-rt-v1', status: 'failed' }] }),
+    ]);
+    mount();
+    openManageDetails();
+    // findAllByText, not findByText: the same label appears twice (the hidden
+    // <option> and the manage-list row) — jsdom doesn't drop <option> text
+    // content the way a real select's native chrome would. All this needs to
+    // confirm is that the async list has landed.
+    await screen.findAllByText(/Cooking/);
+    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
+  });
+
+  it('surfaces a mapped synthesis failure in the capture-error banner', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('unauthenticated', 'bad key', 401));
+    mount();
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/check the API key/i);
+  });
+
+  it('keeps the banner empty when the preview was cancelled by the user', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('aborted', 'Preview cancelled', 0));
+    mount();
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('offers no preview affordance and no cost hint without an API key', async () => {
+    mount({ settings: { voice: 'Maya', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull());
+    expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
+  });
+
+  it('renders the cost hint inside the manage body, not as a standalone setting item', async () => {
+    // The hint describes the per-row preview button, so it belongs with those
+    // rows behind the "Manage imported voices" expander. Asserting mere
+    // presence would not catch a regression here: <details> keeps its collapsed
+    // content in the DOM, so a hint rendered anywhere in the section is still
+    // findable. Only the ancestry assertions pin the placement.
+    mount();
+    const hint = await screen.findByText(/your own Soniox quota/i);
+    expect(hint.closest('.voice-library-manage-body')).not.toBeNull();
+    expect(hint.closest('.setting-item')).toBeNull();
+  });
+
+  it('keeps preview available during an active session', async () => {
+    // Deliberate: VoiceLibrarySection's contract keeps import/rename/delete
+    // open mid-session so users can stage voices for the next one, and preview
+    // audio goes to the default output rather than the session's (possibly
+    // virtual) device, so it cannot leak into a meeting.
+    listMock.mockResolvedValue([cloned()]);
+    mount({ isSessionActive: true });
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
   });
 });

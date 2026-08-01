@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Elaborazione non riuscita — elimina questa voce e prova con una clip più chiara",
     "sonioxVoiceNameConflict": "Esiste già una voce con questo nome",
     "sonioxVoiceQuotaError": "Limite di voci dell'organizzazione Soniox raggiunto — elimina una voce e riprova",
-    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API."
+    "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API.",
+    "sonioxVoicePreviewCostHint": "L'anteprima di una voce sintetizza una breve clip utilizzando la tua quota Soniox personale.",
+    "sonioxVoicePreviewAuthError": "Anteprima non riuscita — controlla la chiave API",
+    "sonioxVoicePreviewQuotaError": "Anteprima non riuscita — limite di frequenza o quota Soniox raggiunti",
+    "sonioxVoicePreviewTimeout": "Anteprima scaduta — riprova"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",
@@ -947,6 +951,7 @@
     "showFewer": "Mostra meno voci",
     "stopPreview": "Interrompi",
     "stopRecording": "Ferma registrazione",
+    "synthesizing": "Sintesi…",
     "transcript": "Trascrizione",
     "transcriptHint": "Deve corrispondere alle parole pronunciate nel clip.",
     "transcriptPlaceholder": "Scrivi esattamente ciò che dice il clip…",

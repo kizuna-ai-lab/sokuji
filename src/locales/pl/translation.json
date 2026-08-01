@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Przetwarzanie nie powiodło się — usuń ten głos i spróbuj z wyraźniejszym nagraniem",
     "sonioxVoiceNameConflict": "Głos o tej nazwie już istnieje",
     "sonioxVoiceQuotaError": "Osiągnięto limit głosów organizacji Soniox — usuń głos i spróbuj ponownie",
-    "sonioxVoiceListError": "Nie udało się wczytać sklonowanych głosów — sprawdź klucz API."
+    "sonioxVoiceListError": "Nie udało się wczytać sklonowanych głosów — sprawdź klucz API.",
+    "sonioxVoicePreviewCostHint": "Odsłuchanie podglądu głosu generuje krótki klip przy użyciu Twojego własnego limitu Soniox.",
+    "sonioxVoicePreviewAuthError": "Podgląd nie powiódł się — sprawdź klucz API",
+    "sonioxVoicePreviewQuotaError": "Podgląd nie powiódł się — osiągnięto limit szybkości lub limit Soniox",
+    "sonioxVoicePreviewTimeout": "Przekroczono czas oczekiwania na podgląd — spróbuj ponownie"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
@@ -947,6 +951,7 @@
     "showFewer": "Pokaż mniej głosów",
     "stopPreview": "Zatrzymaj",
     "stopRecording": "Zatrzymaj nagrywanie",
+    "synthesizing": "Syntezowanie…",
     "transcript": "Transkrypcja",
     "transcriptHint": "Musi odpowiadać słowom wypowiedzianym w nagraniu.",
     "transcriptPlaceholder": "Wpisz dokładnie to, co słychać w nagraniu…",

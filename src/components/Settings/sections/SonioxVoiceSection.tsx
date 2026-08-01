@@ -34,7 +34,9 @@ import {
   encodeWavPcm16,
   type SonioxVoice,
 } from '../../../services/clients/SonioxVoicesClient';
-import { SonioxProviderConfig } from '../../../services/providers/SonioxProviderConfig';
+import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import { previewSampleFor } from './sonioxPreviewSample';
+import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import {
   validateVoiceClip,
   downmixToMono,
@@ -42,7 +44,9 @@ import {
 } from '../../../lib/local-inference/native/nativeVoiceStores';
 
 export interface SonioxVoiceSectionProps {
-  settings: { voice: string; apiKey: string };
+  /** `targetLanguage` and `ttsSpeed` drive the preview audition so it matches
+   *  what the session would actually speak. */
+  settings: { voice: string; apiKey: string; targetLanguage: string; ttsSpeed: number };
   onUpdate: (patch: { voice: string }) => void;
   managed: boolean;
   isSessionActive: boolean;
@@ -153,6 +157,77 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     }
     return e instanceof Error ? e : new Error(String(e));
   };
+
+  // Separate from mapCreateError: those branches are all voices-CRUD specific
+  // (name conflicts, voice quota, terminal processing failure), none of which
+  // a synthesis call can produce.
+  const mapTtsError = (e: unknown): Error => {
+    if (e instanceof SonioxVoicesError) {
+      if (e.status === 401 || e.errorType === 'unauthenticated') {
+        return new Error(t('settings.sonioxVoicePreviewAuthError', 'Preview failed — check the API key'));
+      }
+      if (e.status === 429 || e.errorType === 'limit_exceeded') {
+        return new Error(t('settings.sonioxVoicePreviewQuotaError', 'Preview failed — Soniox rate limit or quota reached'));
+      }
+      if (e.errorType === 'timeout') {
+        return new Error(t('settings.sonioxVoicePreviewTimeout', 'Preview timed out — try again'));
+      }
+    }
+    return e instanceof Error ? e : new Error(String(e));
+  };
+
+  // Synthesized samples are effectively deterministic for a fixed text, so a
+  // repeat listen carries no new information but would spend the user's tokens
+  // again. Keyed by voice + language + speed so changing either re-synthesizes.
+  const previewCacheRef = useRef(new Map<string, { audio: Float32Array; sampleRate: number }>());
+  // A changed client means a (possibly) different Soniox project: audio cached
+  // against the old project's UUIDs must not replay under the new key.
+  useEffect(() => { previewCacheRef.current.clear(); }, [client]);
+
+  const handlePreview = useCallback(async (
+    id: string,
+    signal?: AbortSignal
+  ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
+    if (!client) return null;
+    // Pinned for the post-await staleness check below — same guard the
+    // list/create paths use via clientRef.
+    const requestClient = client;
+    const sample = previewSampleFor(settings.targetLanguage);
+    // Same choke point the session path uses (SonioxProviderConfig.
+    // buildSessionConfig): the slider already constrains this in practice, so
+    // clamping here is defensive, but the two paths reading the same setting
+    // should agree on its bounds rather than one trusting the raw value.
+    const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
+    const cacheKey = `${id}|${sample.language}|${speed}`;
+    setCaptureError(null);
+    const cached = previewCacheRef.current.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const result = await synthesizeOnce({
+        apiKey: settings.apiKey,
+        voice: id,
+        language: sample.language,
+        text: sample.text,
+        speed,
+        signal,
+      });
+      // The key may have been swapped while this was in flight. The effect
+      // above already cleared the cache at swap time, so writing now would
+      // reseed the NEW project's cache with the OLD project's audio — and
+      // returning it would play another project's voice under this key.
+      // Discard instead; nothing was cancelled, so the user simply hears
+      // nothing and can click again.
+      if (clientRef.current !== requestClient) return null;
+      previewCacheRef.current.set(cacheKey, result);
+      return result;
+    } catch (e) {
+      // A user-initiated cancel (switching rows, closing the panel) is not a
+      // failure and must never reach the banner.
+      if (e instanceof SonioxVoicesError && e.errorType === 'aborted') return null;
+      setCaptureError(mapTtsError(e).message);
+      return null;
+    }
+  }, [client, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
 
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
@@ -389,8 +464,17 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onImport={client ? onImport : undefined}
         onRecord={client ? onRecord : undefined}
         onDelete={onDelete}
+        onPreview={client ? handlePreview : undefined}
         onRefresh={client ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
+        // Footnote, not a standalone setting: it describes the per-row preview
+        // button, so it belongs beside those rows inside the expanded manage
+        // body rather than sitting above the collapsed expander where the
+        // control it talks about isn't even visible.
+        manageNote={client ? t(
+          'settings.sonioxVoicePreviewCostHint',
+          'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+        ) : undefined}
         capability={{
           importModes: client ? ['record', 'upload'] : [],
           curation: false,

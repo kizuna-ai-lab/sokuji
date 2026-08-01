@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "فشلت المعالجة — احذف هذا الصوت وجرّب مقطعًا أوضح",
     "sonioxVoiceNameConflict": "يوجد بالفعل صوت بهذا الاسم",
     "sonioxVoiceQuotaError": "تم بلوغ الحد الأقصى لأصوات مؤسسة Soniox — احذف صوتًا وأعد المحاولة",
-    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API."
+    "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API.",
+    "sonioxVoicePreviewCostHint": "معاينة صوت ما تُنشئ مقطعًا قصيرًا باستخدام حصتك الخاصة من Soniox.",
+    "sonioxVoicePreviewAuthError": "فشلت المعاينة — تحقق من مفتاح API",
+    "sonioxVoicePreviewQuotaError": "فشلت المعاينة — تم بلوغ حد المعدل أو الحصة في Soniox",
+    "sonioxVoicePreviewTimeout": "انتهت مهلة المعاينة — حاول مرة أخرى"
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -947,6 +951,7 @@
     "showFewer": "عرض أصوات أقل",
     "stopPreview": "إيقاف",
     "stopRecording": "إيقاف التسجيل",
+    "synthesizing": "جارٍ التوليد…",
     "transcript": "النص",
     "transcriptHint": "يجب أن يطابق الكلمات المنطوقة في المقطع.",
     "transcriptPlaceholder": "اكتب بالضبط ما يقوله المقطع…",

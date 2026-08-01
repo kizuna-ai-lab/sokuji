@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "処理に失敗しました — この音声を削除し、より聞き取りやすいクリップでお試しください",
     "sonioxVoiceNameConflict": "この名前の音声はすでに存在します",
     "sonioxVoiceQuotaError": "Soniox の組織の音声上限に達しました — 音声を削除してから再試行してください",
-    "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。"
+    "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。",
+    "sonioxVoicePreviewCostHint": "音声をプレビューすると、ご自身の Soniox クォータを使用して短いクリップが合成されます。",
+    "sonioxVoicePreviewAuthError": "プレビューに失敗しました — APIキーを確認してください",
+    "sonioxVoicePreviewQuotaError": "プレビューに失敗しました — Soniox のレート制限またはクォータに達しました",
+    "sonioxVoicePreviewTimeout": "プレビューがタイムアウトしました — もう一度お試しください"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -947,6 +951,7 @@
     "showFewer": "表示する音声を減らす",
     "stopPreview": "停止",
     "stopRecording": "録音を停止",
+    "synthesizing": "合成中…",
     "transcript": "文字起こし",
     "transcriptHint": "クリップ内で話された言葉と一致している必要があります。",
     "transcriptPlaceholder": "クリップの内容をそのまま入力してください…",

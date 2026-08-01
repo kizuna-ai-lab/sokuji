@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Verarbeitung fehlgeschlagen — löschen Sie diese Stimme und versuchen Sie es mit einer klareren Aufnahme",
     "sonioxVoiceNameConflict": "Eine Stimme mit diesem Namen existiert bereits",
     "sonioxVoiceQuotaError": "Soniox-Limit für Organisationsstimmen erreicht — löschen Sie eine Stimme und versuchen Sie es erneut",
-    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel."
+    "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel.",
+    "sonioxVoicePreviewCostHint": "Das Anhören einer Vorschau synthetisiert einen kurzen Clip über Ihr eigenes Soniox-Kontingent.",
+    "sonioxVoicePreviewAuthError": "Vorschau fehlgeschlagen — überprüfen Sie den API-Schlüssel",
+    "sonioxVoicePreviewQuotaError": "Vorschau fehlgeschlagen — Soniox-Ratenlimit oder Kontingent erreicht",
+    "sonioxVoicePreviewTimeout": "Zeitüberschreitung bei der Vorschau — versuchen Sie es erneut"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
@@ -947,6 +951,7 @@
     "showFewer": "Weniger Stimmen anzeigen",
     "stopPreview": "Stopp",
     "stopRecording": "Aufnahme stoppen",
+    "synthesizing": "Wird synthetisiert…",
     "transcript": "Transkript",
     "transcriptHint": "Muss mit den im Clip gesprochenen Worten übereinstimmen.",
     "transcriptPlaceholder": "Geben Sie genau ein, was im Clip gesagt wird…",

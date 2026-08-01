@@ -67,7 +67,7 @@ export function parseVocabularyTranslations(raw: string): Array<{ source: string
   return out;
 }
 
-function clampNumber(value: unknown, min: number, max: number, dflt: number): number {
+export function clampNumber(value: unknown, min: number, max: number, dflt: number): number {
   return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(max, Math.max(min, value))
     : dflt;

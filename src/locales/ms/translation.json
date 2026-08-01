@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Pemprosesan gagal — padam suara ini dan cuba klip yang lebih jelas",
     "sonioxVoiceNameConflict": "Suara dengan nama ini sudah wujud",
     "sonioxVoiceQuotaError": "Had suara organisasi Soniox dicapai — padam suara dan cuba lagi",
-    "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API."
+    "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API.",
+    "sonioxVoicePreviewCostHint": "Pratonton suara mensintesis klip pendek menggunakan kuota Soniox anda sendiri.",
+    "sonioxVoicePreviewAuthError": "Pratonton gagal — semak kunci API",
+    "sonioxVoicePreviewQuotaError": "Pratonton gagal — had kadar atau kuota Soniox dicapai",
+    "sonioxVoicePreviewTimeout": "Pratonton tamat masa — cuba lagi"
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -947,6 +951,7 @@
     "showFewer": "Tunjukkan kurang suara",
     "stopPreview": "Berhenti",
     "stopRecording": "Henti rakaman",
+    "synthesizing": "Mensintesis…",
     "transcript": "Transkrip",
     "transcriptHint": "Mesti sepadan dengan perkataan yang dituturkan dalam klip.",
     "transcriptPlaceholder": "Taip dengan tepat apa yang klip itu katakan…",

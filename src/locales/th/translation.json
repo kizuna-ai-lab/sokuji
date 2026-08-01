@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "การประมวลผลล้มเหลว — ลบเสียงนี้แล้วลองใช้คลิปที่ชัดเจนกว่านี้",
     "sonioxVoiceNameConflict": "มีเสียงชื่อนี้อยู่แล้ว",
     "sonioxVoiceQuotaError": "ถึงขีดจำกัดเสียงขององค์กร Soniox แล้ว — ลบเสียงหนึ่งแล้วลองใหม่",
-    "sonioxVoiceListError": "ไม่สามารถโหลดเสียงโคลนได้ — ตรวจสอบ API key ของคุณ"
+    "sonioxVoiceListError": "ไม่สามารถโหลดเสียงโคลนได้ — ตรวจสอบ API key ของคุณ",
+    "sonioxVoicePreviewCostHint": "การดูตัวอย่างเสียงจะสังเคราะห์คลิปสั้น ๆ โดยใช้โควตา Soniox ของคุณเอง",
+    "sonioxVoicePreviewAuthError": "การดูตัวอย่างล้มเหลว — ตรวจสอบ API key",
+    "sonioxVoicePreviewQuotaError": "การดูตัวอย่างล้มเหลว — ถึงขีดจำกัดอัตราหรือโควตาของ Soniox แล้ว",
+    "sonioxVoicePreviewTimeout": "การดูตัวอย่างหมดเวลา — ลองใหม่อีกครั้ง"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
@@ -947,6 +951,7 @@
     "showFewer": "แสดงเสียงน้อยลง",
     "stopPreview": "หยุด",
     "stopRecording": "หยุดบันทึก",
+    "synthesizing": "กำลังสังเคราะห์…",
     "transcript": "ข้อความถอดเสียง",
     "transcriptHint": "ต้องตรงกับคำที่พูดในคลิป",
     "transcriptPlaceholder": "พิมพ์ให้ตรงกับที่พูดในคลิป…",

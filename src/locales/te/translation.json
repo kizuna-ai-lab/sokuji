@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "ప్రాసెసింగ్ విఫలమైంది — ఈ వాయిస్‌ను తొలగించి స్పష్టమైన క్లిప్‌ను ప్రయత్నించండి",
     "sonioxVoiceNameConflict": "ఈ పేరుతో వాయిస్ ఇప్పటికే ఉంది",
     "sonioxVoiceQuotaError": "Soniox సంస్థ వాయిస్ పరిమితి చేరుకుంది — ఒక వాయిస్‌ను తొలగించి మళ్ళీ ప్రయత్నించండి",
-    "sonioxVoiceListError": "క్లోన్ చేసిన వాయిస్‌లను లోడ్ చేయలేకపోయాము — మీ API కీని తనిఖీ చేయండి."
+    "sonioxVoiceListError": "క్లోన్ చేసిన వాయిస్‌లను లోడ్ చేయలేకపోయాము — మీ API కీని తనిఖీ చేయండి.",
+    "sonioxVoicePreviewCostHint": "వాయిస్‌ను ప్రివ్యూ చేయడం మీ స్వంత Soniox కోటాను ఉపయోగించి ఒక చిన్న క్లిప్‌ను సంశ్లేషిస్తుంది.",
+    "sonioxVoicePreviewAuthError": "ప్రివ్యూ విఫలమైంది — మీ API కీని తనిఖీ చేయండి",
+    "sonioxVoicePreviewQuotaError": "ప్రివ్యూ విఫలమైంది — Soniox రేట్ పరిమితి లేదా కోటా చేరుకుంది",
+    "sonioxVoicePreviewTimeout": "ప్రివ్యూ సమయం ముగిసింది — మళ్ళీ ప్రయత్నించండి"
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
@@ -947,6 +951,7 @@
     "showFewer": "తక్కువ వాయిస్‌లను చూపించు",
     "stopPreview": "ఆపు",
     "stopRecording": "రికార్డింగ్ ఆపు",
+    "synthesizing": "సంశ్లేషిస్తోంది…",
     "transcript": "ట్రాన్‌స్క్రిప్ట్",
     "transcriptHint": "క్లిప్‌లో మాట్లాడిన పదాలతో తప్పనిసరిగా సరిపోలాలి.",
     "transcriptPlaceholder": "క్లిప్‌లో ఏం చెప్పారో అచ్చంగా టైప్ చేయండి…",

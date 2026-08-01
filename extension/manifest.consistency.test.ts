@@ -16,4 +16,12 @@ describe('manifest stays consistent with the platform registry', () => {
       w.resources.includes('subtitle-overlay.js'));
     expect([...war!.matches].sort()).toEqual(deriveSubtitleWebAccessibleMatches().sort());
   });
+
+  it('CSP connect-src allows the Soniox TTS REST host', () => {
+    // Without this the preview call is blocked in the extension while working
+    // fine in Electron — a silent, platform-specific failure that local
+    // development never surfaces.
+    const csp = (manifest as any).content_security_policy.extension_pages;
+    expect(csp).toContain('https://tts-rt.soniox.com');
+  });
 });

@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "प्रोसेसिंग विफल — इस आवाज़ को हटाएँ और एक स्पष्ट क्लिप आज़माएँ",
     "sonioxVoiceNameConflict": "इस नाम की आवाज़ पहले से मौजूद है",
     "sonioxVoiceQuotaError": "Soniox संगठन की आवाज़ सीमा पूरी हो गई — एक आवाज़ हटाएँ और पुनः प्रयास करें",
-    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API कुंजी जाँचें।"
+    "sonioxVoiceListError": "क्लोन की गई आवाज़ें लोड नहीं हो सकीं — अपनी API कुंजी जाँचें।",
+    "sonioxVoicePreviewCostHint": "आवाज़ का पूर्वावलोकन करने पर आपके अपने Soniox कोटा का उपयोग करके एक छोटा क्लिप बनाया जाता है।",
+    "sonioxVoicePreviewAuthError": "पूर्वावलोकन विफल — अपनी API कुंजी जाँचें",
+    "sonioxVoicePreviewQuotaError": "पूर्वावलोकन विफल — Soniox दर सीमा या कोटा पूरा हो गया",
+    "sonioxVoicePreviewTimeout": "पूर्वावलोकन का समय समाप्त हो गया — पुनः प्रयास करें"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",
@@ -947,6 +951,7 @@
     "showFewer": "कम आवाज़ें दिखाएं",
     "stopPreview": "रोकें",
     "stopRecording": "रिकॉर्डिंग रोकें",
+    "synthesizing": "संश्लेषित हो रहा है…",
     "transcript": "प्रतिलेख",
     "transcriptHint": "क्लिप में बोले गए शब्दों से मेल खाना चाहिए।",
     "transcriptPlaceholder": "क्लिप में जो कहा गया है ठीक वही टाइप करें…",

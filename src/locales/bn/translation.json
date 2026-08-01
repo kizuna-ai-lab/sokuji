@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "প্রক্রিয়াকরণ ব্যর্থ হয়েছে — এই কণ্ঠস্বরটি মুছে ফেলুন এবং আরও স্পষ্ট একটি ক্লিপ চেষ্টা করুন",
     "sonioxVoiceNameConflict": "এই নামের একটি কণ্ঠস্বর ইতিমধ্যে বিদ্যমান",
     "sonioxVoiceQuotaError": "Soniox প্রতিষ্ঠানের কণ্ঠস্বর সীমা পৌঁছে গেছে — একটি কণ্ঠস্বর মুছে আবার চেষ্টা করুন",
-    "sonioxVoiceListError": "ক্লোন করা কণ্ঠস্বর লোড করা যায়নি — আপনার API কী পরীক্ষা করুন।"
+    "sonioxVoiceListError": "ক্লোন করা কণ্ঠস্বর লোড করা যায়নি — আপনার API কী পরীক্ষা করুন।",
+    "sonioxVoicePreviewCostHint": "একটি কণ্ঠস্বর প্রিভিউ করলে আপনার নিজস্ব Soniox কোটা ব্যবহার করে একটি সংক্ষিপ্ত ক্লিপ সংশ্লেষিত হয়।",
+    "sonioxVoicePreviewAuthError": "প্রিভিউ ব্যর্থ হয়েছে — আপনার API কী পরীক্ষা করুন",
+    "sonioxVoicePreviewQuotaError": "প্রিভিউ ব্যর্থ হয়েছে — Soniox রেট সীমা বা কোটা পৌঁছে গেছে",
+    "sonioxVoicePreviewTimeout": "প্রিভিউর সময় শেষ হয়ে গেছে — আবার চেষ্টা করুন"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -947,6 +951,7 @@
     "showFewer": "কম কণ্ঠস্বর দেখান",
     "stopPreview": "থামান",
     "stopRecording": "রেকর্ডিং বন্ধ করুন",
+    "synthesizing": "সংশ্লেষণ করা হচ্ছে…",
     "transcript": "ট্রান্সক্রিপ্ট",
     "transcriptHint": "ক্লিপে বলা শব্দগুলির সাথে অবশ্যই মিলতে হবে।",
     "transcriptPlaceholder": "ক্লিপে ঠিক যা বলা হয়েছে তা টাইপ করুন…",

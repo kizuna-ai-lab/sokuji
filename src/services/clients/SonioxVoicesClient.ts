@@ -44,7 +44,7 @@ export class SonioxVoicesError extends Error {
   }
 }
 
-async function throwApiError(res: Response): Promise<never> {
+export async function throwApiError(res: Response): Promise<never> {
   let errorType = 'http_error';
   let message = `HTTP ${res.status}`;
   try {

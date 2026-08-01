@@ -63,7 +63,6 @@
 }
 
 .voice-library-manage-body {
-  margin-top: 8px;
   padding: 8px;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -146,6 +145,19 @@
   border-radius: 4px;
 }
 
+// Provider footnote under the manage rows (e.g. "previewing spends your own
+// quota"). Muted and borderless so it reads as an aside about the controls
+// above rather than another control.
+.voice-library-manage-note {
+  // Mirrors the toolbar's 8px margin-bottom above the list, so the footnote is
+  // separated from the rows by the same gap the toolbar is — without it the
+  // note sits flush against the last row (.voice-manage-list has margin: 0).
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #808080;
+}
+
 .voice-library-group {
   display: flex;
   flex-direction: column;
@@ -200,7 +212,10 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+
+  // No gap: rows are already delimited by their hover/selected background, and
+  // a voice list is scanned as one block — the spacing only cost height.
+  gap: 0;
 }
 
 .voice-manage-row.selected {
@@ -212,7 +227,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px;
+
+  // Vertical padding is trimmed to 2px: the row's height floor is set by
+  // .voice-row-btn (~20px with its own padding + border), not by this, so
+  // anything more was pure slack.
+  padding: 2px 6px;
   border-radius: 3px;
   font-size: 13px;
   color: #d0d0d0;
@@ -235,10 +254,44 @@
   cursor: pointer;
 
   &:hover:not(:disabled) { color: #fff; border-color: #888; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:disabled { cursor: not-allowed; }
+
+  // Dim on disabled EXCEPT while showing the loading spinner. Opacity is a
+  // group compositing effect, not an inheritable property — a descendant
+  // rule like `.voice-preview-spinner { opacity: 1 }` cannot cancel an
+  // ancestor's reduced opacity, the whole subtree still composites at the
+  // ancestor's alpha. Skipping the dim outright (rather than trying to
+  // counteract it) is what actually keeps the spinner legible.
+  &:disabled:not(:has(.voice-preview-spinner)) { opacity: 0.4; }
 
   &.voice-row-btn-danger {
     &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
+  }
+
+  // Synthesis-in-progress spinner. Local keyframes with a unique name — the
+  // SonioxCloneConfirmModal precedent — so this rule never depends on another
+  // file's @keyframes placement. The shared `.spinner` class in Settings.scss
+  // is NOT usable here: it is only ever defined nested inside two unrelated
+  // parent blocks, so it would render an invisible empty span.
+  .voice-preview-spinner {
+    display: inline-block;
+
+    // This repo has no global box-sizing: border-box reset (Settings.scss
+    // scopes it per-rule), so a 14px box with a 2px border would otherwise
+    // render at 18px and jitter the row button's size between idle and
+    // loading states.
+    box-sizing: border-box;
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+
+    // Explicit white rather than currentColor (#b0b0b0 at rest — the button
+    // is disabled while loading, so the :hover brightening above never
+    // applies): the arc covers only one quadrant of a 14px circle, so it
+    // needs the extra contrast to read clearly against the dark background.
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: voice-preview-spin 0.8s linear infinite;
   }
 }
 
@@ -261,4 +314,9 @@
   font-size: 12px;
   line-height: 1.4;
   color: #e74c3c;
+}
+
+@keyframes voice-preview-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

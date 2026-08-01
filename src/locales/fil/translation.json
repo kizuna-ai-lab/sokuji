@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Nabigo ang pagproseso — tanggalin ang boses na ito at subukan ang mas malinaw na clip",
     "sonioxVoiceNameConflict": "May umiiral nang boses na may ganitong pangalan",
     "sonioxVoiceQuotaError": "Naabot na ang limitasyon ng boses ng organisasyong Soniox — tanggalin ang isang boses at subukang muli",
-    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key."
+    "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key.",
+    "sonioxVoicePreviewCostHint": "Ang pag-preview ng boses ay gumagawa ng maikling clip gamit ang sarili mong Soniox quota.",
+    "sonioxVoicePreviewAuthError": "Nabigo ang preview — suriin ang API key",
+    "sonioxVoicePreviewQuotaError": "Nabigo ang preview — naabot ang rate limit o quota ng Soniox",
+    "sonioxVoicePreviewTimeout": "Nag-timeout ang preview — subukang muli"
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -947,6 +951,7 @@
     "showFewer": "Magpakita ng mas kaunting boses",
     "stopPreview": "Ihinto",
     "stopRecording": "Itigil ang pag-record",
+    "synthesizing": "Sinisintesa…",
     "transcript": "Transkripsyon",
     "transcriptHint": "Dapat tumugma sa mga salitang binigkas sa clip.",
     "transcriptPlaceholder": "I-type nang eksakto ang sinasabi ng clip…",

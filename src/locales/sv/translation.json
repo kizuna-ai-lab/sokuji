@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Bearbetningen misslyckades — ta bort den här rösten och prova ett tydligare klipp",
     "sonioxVoiceNameConflict": "Det finns redan en röst med det här namnet",
     "sonioxVoiceQuotaError": "Soniox organisationsgräns för röster har nåtts — ta bort en röst och försök igen",
-    "sonioxVoiceListError": "Kunde inte läsa in klonade röster — kontrollera API-nyckeln."
+    "sonioxVoiceListError": "Kunde inte läsa in klonade röster — kontrollera API-nyckeln.",
+    "sonioxVoicePreviewCostHint": "Att förhandsgranska en röst syntetiserar ett kort klipp med din egen Soniox-kvot.",
+    "sonioxVoicePreviewAuthError": "Förhandsgranskning misslyckades — kontrollera API-nyckeln",
+    "sonioxVoicePreviewQuotaError": "Förhandsgranskning misslyckades — Soniox hastighetsgräns eller kvot uppnådd",
+    "sonioxVoicePreviewTimeout": "Förhandsgranskningen tog för lång tid — försök igen"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -947,6 +951,7 @@
     "showFewer": "Visa färre röster",
     "stopPreview": "Stoppa",
     "stopRecording": "Stoppa inspelning",
+    "synthesizing": "Syntetiserar…",
     "transcript": "Transkription",
     "transcriptHint": "Måste matcha orden som sägs i klippet.",
     "transcriptPlaceholder": "Skriv exakt vad klippet säger…",
