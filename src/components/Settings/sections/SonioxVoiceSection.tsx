@@ -457,6 +457,14 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onPreview={client ? handlePreview : undefined}
         onRefresh={client ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
+        // Footnote, not a standalone setting: it describes the per-row preview
+        // button, so it belongs beside those rows inside the expanded manage
+        // body rather than sitting above the collapsed expander where the
+        // control it talks about isn't even visible.
+        manageNote={client ? t(
+          'settings.sonioxVoicePreviewCostHint',
+          'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+        ) : undefined}
         capability={{
           importModes: client ? ['record', 'upload'] : [],
           curation: false,
@@ -470,16 +478,6 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         }}
         isSessionActive={isSessionActive}
       />
-      {client && (
-        <div className="setting-item">
-          <div className="setting-description">
-            {t(
-              'settings.sonioxVoicePreviewCostHint',
-              'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-            )}
-          </div>
-        </div>
-      )}
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}

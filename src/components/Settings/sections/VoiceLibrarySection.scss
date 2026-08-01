@@ -146,6 +146,15 @@
   border-radius: 4px;
 }
 
+// Provider footnote under the manage rows (e.g. "previewing spends your own
+// quota"). Muted and borderless so it reads as an aside about the controls
+// above rather than another control.
+.voice-library-manage-note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #808080;
+}
+
 .voice-library-group {
   display: flex;
   flex-direction: column;

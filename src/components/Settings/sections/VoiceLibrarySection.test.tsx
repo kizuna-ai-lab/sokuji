@@ -93,6 +93,37 @@ describe('VoiceLibrarySection', () => {
     expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
   });
 
+  it('renders manageNote inside the manage body in dropdown presentation', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId="preset:0"
+        voices={[
+          { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false },
+          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
+        ]}
+        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        onRecord={async () => {}}
+        manageNote="Costs quota."
+      />,
+    );
+    const note = screen.getByText('Costs quota.');
+    expect(note.closest('.voice-library-manage-body')).not.toBeNull();
+  });
+
+  it('renders nothing extra when manageNote is omitted', () => {
+    const { container } = render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId="preset:0"
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        onRecord={async () => {}}
+      />,
+    );
+    expect(container.querySelector('.voice-library-manage-note')).toBeNull();
+  });
+
   it('hides the record button when record is not an import mode (Supertonic)', () => {
     render(
       <VoiceLibrarySection

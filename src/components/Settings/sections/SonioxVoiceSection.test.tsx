@@ -707,9 +707,16 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
   });
 
-  it('shows the cost hint once a client exists', async () => {
+  it('renders the cost hint inside the manage body, not as a standalone setting item', async () => {
+    // The hint describes the per-row preview button, so it belongs with those
+    // rows behind the "Manage imported voices" expander. Asserting mere
+    // presence would not catch a regression here: <details> keeps its collapsed
+    // content in the DOM, so a hint rendered anywhere in the section is still
+    // findable. Only the ancestry assertions pin the placement.
     mount();
-    expect(await screen.findByText(/your own Soniox quota/i)).toBeInTheDocument();
+    const hint = await screen.findByText(/your own Soniox quota/i);
+    expect(hint.closest('.voice-library-manage-body')).not.toBeNull();
+    expect(hint.closest('.setting-item')).toBeNull();
   });
 
   it('keeps preview available during an active session', async () => {

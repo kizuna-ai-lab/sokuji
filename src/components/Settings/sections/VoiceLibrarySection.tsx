@@ -66,6 +66,12 @@ export interface VoiceLibrarySectionProps {
   onRefresh?: () => void;
   /** True while the remote list fetch is in flight; disables the Refresh button. */
   refreshing?: boolean;
+  /** Provider-specific footnote rendered at the bottom of the manage body —
+   *  i.e. only once the user has expanded "Manage imported voices", where the
+   *  controls it describes actually live. Kept as a caller-supplied node
+   *  because the copy is provider-specific (e.g. Soniox's preview spends the
+   *  user's own TTS quota) and this component is provider-agnostic. */
+  manageNote?: React.ReactNode;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -85,6 +91,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onPreview,
   onRefresh,
   refreshing = false,
+  manageNote,
   capability,
   isSessionActive = false,
 }) => {
@@ -661,6 +668,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
               ) : (
                 <ul className="voice-manage-list">{removableVoices.map(renderManageRow)}</ul>
               )}
+              {manageNote && (
+                <div className="voice-library-manage-note">{manageNote}</div>
+              )}
             </div>
           </details>
         )}
@@ -715,6 +725,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           onDragLeave={canUpload ? onDragLeave : undefined}
         >
           {importToolbar}
+          {manageNote && (
+            <div className="voice-library-manage-note">{manageNote}</div>
+          )}
         </div>
       )}
     </div>
