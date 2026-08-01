@@ -63,7 +63,6 @@
 }
 
 .voice-library-manage-body {
-  margin-top: 8px;
   padding: 8px;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -150,6 +149,10 @@
 // quota"). Muted and borderless so it reads as an aside about the controls
 // above rather than another control.
 .voice-library-manage-note {
+  // Mirrors the toolbar's 8px margin-bottom above the list, so the footnote is
+  // separated from the rows by the same gap the toolbar is — without it the
+  // note sits flush against the last row (.voice-manage-list has margin: 0).
+  margin-top: 8px;
   font-size: 11px;
   line-height: 1.5;
   color: #808080;
