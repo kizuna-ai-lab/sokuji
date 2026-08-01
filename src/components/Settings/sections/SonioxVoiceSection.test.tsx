@@ -416,6 +416,64 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(false));
   });
 
+  it('a late auto-select does not overwrite a voice the user picked while the clone was processing', async () => {
+    listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [] });
+    let resolveWait: (v: unknown) => void = () => {};
+    waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
+    stubAudioContext(16000, 16000 * 5);
+    const onUpdate = vi.fn();
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+    checkConsent();
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+    await waitFor(() => expect(createMock).toHaveBeenCalled());
+
+    // The user picks a different voice while the clone is still processing.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Orion', apiKey: 'k' }} />);
+
+    resolveWait({ id: 'new-id', name: 'x', models: [READY] });
+    await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThanOrEqual(2));
+    expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
+  });
+
+  it('a late auto-select does not fire after the API key changed mid-processing', async () => {
+    listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [] });
+    let resolveWait: (v: unknown) => void = () => {};
+    waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
+    stubAudioContext(16000, 16000 * 5);
+    const onUpdate = vi.fn();
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await screen.findByPlaceholderText(nameInputPlaceholder);
+    checkConsent();
+    fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
+    await waitFor(() => expect(createMock).toHaveBeenCalled());
+
+    // The user swaps to a different project's key while the clone processes —
+    // the old project's UUID must not be written under the new key.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+
+    resolveWait({ id: 'new-id', name: 'x', models: [READY] });
+    await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThanOrEqual(2));
+    expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
+  });
+
+  it('managed mode never synthesizes a custom placeholder entry for a stale UUID', async () => {
+    const { container } = mount({ managed: true, settings: { voice: 'stale-uuid', apiKey: '' } });
+    const select = container.querySelector('select')!;
+    expect([...select.querySelectorAll('option')].some((o) => o.value === 'stale-uuid')).toBe(false);
+    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).toBeNull();
+  });
+
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);

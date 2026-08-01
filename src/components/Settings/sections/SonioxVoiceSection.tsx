@@ -154,15 +154,31 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     return e instanceof Error ? e : new Error(String(e));
   };
 
-  const finishCreate = async (created: SonioxVoice) => {
+  // Latest selection, read at auto-select time: the ready-wait below runs for
+  // up to a minute in the background, and a choice the user made meanwhile
+  // must not be silently overwritten.
+  const selectedVoiceRef = useRef(settings.voice);
+  useEffect(() => { selectedVoiceRef.current = settings.voice; }, [settings.voice]);
+
+  const finishCreate = async (
+    created: SonioxVoice,
+    createClient: SonioxVoicesClient,
+    selectionAtCreate: string
+  ) => {
     try {
-      await client!.waitUntilReady(created.id);
+      await createClient.waitUntilReady(created.id);
     } finally {
       // Refresh regardless of outcome: a `voice_failed` rejection still needs
       // the now-failed entry to show up (with its failed hint) so it can be
-      // deleted.
+      // deleted. (refresh() self-invalidates if the client changed meanwhile.)
       await refresh();
     }
+    // Auto-select only while the world hasn't moved: the API key is still the
+    // one the voice was created under (a swapped key must not inherit an old
+    // project's UUID), and the user hasn't picked a different voice while the
+    // clone was processing.
+    if (clientRef.current !== createClient) return;
+    if (selectedVoiceRef.current !== selectionAtCreate) return;
     onUpdate({ voice: created.id });
   };
 
@@ -192,15 +208,17 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // without losing the clip.
   const handleConfirm = async (name: string) => {
     if (!client || !pending || modalBusy) return;
+    const createClient = client;
+    const selectionAtCreate = settings.voice;
     setModalBusy(true);
     setModalError(null);
     try {
-      const created = await client.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
+      const created = await createClient.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
       await refresh();
       setPending(null);
       setModalBusy(false);
       try {
-        await finishCreate(created);
+        await finishCreate(created, createClient, selectionAtCreate);
       } catch (e) {
         setCaptureError(mapCreateError(e).message);
       }
@@ -334,7 +352,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // (no API key yet) there's no fetch to settle at all, so the entry makes
     // no claim about deletion — it shows the raw id rather than asserting
     // something we have no evidence for.
-    if (settings.voice && !known.has(settings.voice) && listState !== 'loading') {
+    // Never in managed mode: the twin is built-ins only, and a stale UUID in
+    // its slice must not conjure a custom optgroup out of nowhere.
+    if (!managed && settings.voice && !known.has(settings.voice) && listState !== 'loading') {
       custom.push({
         id: settings.voice,
         label: client
