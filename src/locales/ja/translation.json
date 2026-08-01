@@ -947,6 +947,7 @@
     "showFewer": "表示する音声を減らす",
     "stopPreview": "停止",
     "stopRecording": "録音を停止",
+    "synthesizing": "合成中…",
     "transcript": "文字起こし",
     "transcriptHint": "クリップ内で話された言葉と一致している必要があります。",
     "transcriptPlaceholder": "クリップの内容をそのまま入力してください…",

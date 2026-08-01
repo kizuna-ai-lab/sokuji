@@ -240,6 +240,21 @@
   &.voice-row-btn-danger {
     &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
   }
+
+  // Synthesis-in-progress spinner. Local keyframes with a unique name — the
+  // SonioxCloneConfirmModal precedent — so this rule never depends on another
+  // file's @keyframes placement. The shared `.spinner` class in Settings.scss
+  // is NOT usable here: it is only ever defined nested inside two unrelated
+  // parent blocks, so it would render an invisible empty span.
+  .voice-preview-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: voice-preview-spin 0.8s linear infinite;
+  }
 }
 
 .voice-name-edit {
@@ -261,4 +276,9 @@
   font-size: 12px;
   line-height: 1.4;
   color: #e74c3c;
+}
+
+@keyframes voice-preview-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

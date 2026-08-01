@@ -947,6 +947,7 @@
     "showFewer": "음성 적게 표시",
     "stopPreview": "정지",
     "stopRecording": "녹음 중지",
+    "synthesizing": "합성 중…",
     "transcript": "전사",
     "transcriptHint": "클립에서 말한 내용과 일치해야 합니다.",
     "transcriptPlaceholder": "클립에서 말한 내용을 그대로 입력하세요…",

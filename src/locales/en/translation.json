@@ -947,6 +947,7 @@
     "showFewer": "Show fewer voices",
     "stopPreview": "Stop",
     "stopRecording": "Stop recording",
+    "synthesizing": "Synthesizing…",
     "transcript": "Transcript",
     "transcriptHint": "Must match the words spoken in the clip.",
     "transcriptPlaceholder": "Type exactly what the clip says…",
