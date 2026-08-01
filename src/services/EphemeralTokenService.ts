@@ -3,9 +3,13 @@ import useLogStore from '../stores/logStore';
 /**
  * EphemeralTokenService
  *
- * Handles fetching and caching ephemeral tokens for OpenAI WebRTC connections.
- * Ephemeral tokens are short-lived credentials that allow browser-based WebRTC
- * connections to the OpenAI Realtime API.
+ * Mints ephemeral tokens for OpenAI WebRTC connections. Ephemeral tokens are
+ * short-lived credentials that allow browser-based WebRTC connections to the
+ * OpenAI Realtime API.
+ *
+ * GA client secrets are single-use: establishing a call consumes the secret,
+ * and reusing it fails with `ephemeral_token_already_used`. Tokens must
+ * therefore be minted fresh for every connection attempt — never cached.
  */
 
 interface EphemeralTokenResponse {
@@ -17,17 +21,6 @@ interface EphemeralTokenResponse {
   };
 }
 
-interface CachedToken {
-  value: string;
-  expiresAt: number;
-}
-
-// Cache buffer - refresh token 30 seconds before expiration
-const CACHE_BUFFER_MS = 30 * 1000;
-
-// Token cache keyed by model+voice
-const tokenCache = new Map<string, CachedToken>();
-
 /**
  * Service for managing ephemeral tokens for OpenAI WebRTC connections
  */
@@ -36,8 +29,8 @@ export class EphemeralTokenService {
   private static readonly CLIENT_SECRET_REQUEST_TIMEOUT_MS = 15000;
 
   /**
-   * Get an ephemeral token for WebRTC connection
-   * Uses caching to avoid unnecessary API calls
+   * Mint a fresh ephemeral token for a WebRTC connection.
+   * Always hits the API: GA client secrets are single-use.
    *
    * @param apiKey - The user's OpenAI API key
    * @param model - The realtime model to use (e.g., 'gpt-realtime-2.1-mini')
@@ -51,19 +44,8 @@ export class EphemeralTokenService {
     voice: string,
     apiHost?: string
   ): Promise<string> {
-    const cacheKey = `${apiHost || this.OPENAI_API_HOST}:${model}:${voice}`;
-    const cached = tokenCache.get(cacheKey);
-
-    // Check if cached token is still valid (with buffer)
-    if (cached && Date.now() < cached.expiresAt - CACHE_BUFFER_MS) {
-      console.debug('[EphemeralTokenService] Using cached token');
-      return cached.value;
-    }
-
-    // Fetch new token
-    console.debug('[EphemeralTokenService] Fetching new ephemeral token');
-    const token = await this.fetchToken(apiKey, model, voice, apiHost);
-    return token;
+    console.debug('[EphemeralTokenService] Minting new ephemeral token');
+    return this.fetchToken(apiKey, model, voice, apiHost);
   }
 
   /**
@@ -117,13 +99,6 @@ export class EphemeralTokenService {
         throw new Error('Invalid token response: missing client_secret');
       }
 
-      // Cache the token
-      const cacheKey = `${host}:${model}:${voice}`;
-      tokenCache.set(cacheKey, {
-        value: tokenValue,
-        expiresAt: expiresAt * 1000 // Convert to milliseconds
-      });
-
       console.debug('[EphemeralTokenService] Obtained new ephemeral token, expires at:',
         new Date(expiresAt * 1000).toISOString());
 
@@ -134,31 +109,6 @@ export class EphemeralTokenService {
       useLogStore.getState().addLog(`Failed to fetch OpenAI Realtime client secret: ${message}`, 'error');
       throw error;
     }
-  }
-
-  /**
-   * Clear cached token for a specific model/voice combination
-   */
-  static clearCache(model?: string, voice?: string, apiHost?: string): void {
-    if (model && voice) {
-      const host = apiHost || this.OPENAI_API_HOST;
-      const cacheKey = `${host}:${model}:${voice}`;
-      tokenCache.delete(cacheKey);
-      console.debug('[EphemeralTokenService] Cleared cache for:', cacheKey);
-    } else {
-      tokenCache.clear();
-      console.debug('[EphemeralTokenService] Cleared all cached tokens');
-    }
-  }
-
-  /**
-   * Check if a cached token exists and is valid
-   */
-  static hasCachedToken(model: string, voice: string, apiHost?: string): boolean {
-    const host = apiHost || this.OPENAI_API_HOST;
-    const cacheKey = `${host}:${model}:${voice}`;
-    const cached = tokenCache.get(cacheKey);
-    return cached !== undefined && Date.now() < cached.expiresAt - CACHE_BUFFER_MS;
   }
 
   /**
