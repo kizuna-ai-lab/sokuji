@@ -9,7 +9,7 @@ import {
   SonioxSessionConfig
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig } from './SonioxSttStream';
+import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxCostMeter, SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { PcmMixer } from './PcmMixer';
@@ -154,6 +154,32 @@ export class SonioxClient implements IClient {
   // 403 "granted duration reached" error frame; consumed (and cleared) by
   // the close that always immediately follows it — see onClose's docstring.
   private pendingDurationCutoff = false;
+  // Set by handleSttError when the STT stream reports a 503 "service
+  // unavailable" error frame — a transient server condition, not a fatal
+  // one. Holds the original error message (null = no 503 pending); consumed
+  // (and cleared) by the close that always immediately follows the error
+  // frame, which passes it to resumeSttStream() so a final failure can still
+  // report the ORIGINAL 503, not whatever the last reconnect attempt threw.
+  // BYOK-only (unlike pendingDurationCutoff, which is managed-only) — see
+  // handleSttError's docstring for why a managed reconnect can't work.
+  // MUST be cleared by disconnect(), not just consumed by the close that is
+  // supposed to follow the error frame: that "always followed by a close"
+  // assumption is only live-verified for the 403 cutoff, not the 503. If a
+  // 503 frame arrives with no close and the user hits Stop, disconnect()
+  // bumps generation and closes the socket itself; the resulting close
+  // (fired by the browser after ws.close(), possibly after disconnect()
+  // has already returned) would otherwise still find this flag set and
+  // kick off resumeSttStream() — which captures the ALREADY-BUMPED
+  // generation at entry, so every "stale attempt" guard trivially passes
+  // and a fresh socket connects after Stop (zombie socket, managed billing
+  // restart if this were ever allowed in managed mode).
+  private pendingSttResume503: string | null = null;
+  // Per-session count of 503 resume cycles actually started (incremented in
+  // handleSttError, reset by reset() → i.e. every connect()). Caps a
+  // flapping server from looping forever: past MAX_STT_RESUME_CYCLES a 503
+  // is treated like any other error instead of triggering another resume.
+  private sttResumeCycles = 0;
+  private static readonly MAX_STT_RESUME_CYCLES = 5;
 
   constructor(apiKey: string, options?: SonioxClientOptions) {
     this.apiKey = apiKey;
@@ -220,14 +246,7 @@ export class SonioxClient implements IClient {
     const cfg = this.currentConfig;
     // two_way needs a concrete source; degrade to one_way on 'auto'
     // (the descriptor applies the same rule — this is the safety belt).
-    const effectiveTwoWay = cfg.bidirectional && cfg.sourceLanguage !== 'auto';
-    this.bidirectional = effectiveTwoWay;
-    const translation: SonioxTranslationConfig = effectiveTwoWay
-      ? { type: 'two_way', language_a: cfg.sourceLanguage, language_b: cfg.targetLanguage }
-      : { type: 'one_way', target_language: cfg.targetLanguage };
-    const languageHints = effectiveTwoWay
-      ? [cfg.sourceLanguage, cfg.targetLanguage]
-      : (cfg.sourceLanguage !== 'auto' ? [cfg.sourceLanguage] : undefined);
+    this.bidirectional = cfg.bidirectional && cfg.sourceLanguage !== 'auto';
 
     if (this.managedOptions) {
       await this.fetchManagedSession(cfg);
@@ -237,55 +256,13 @@ export class SonioxClient implements IClient {
     }
 
     this.stt = new SonioxSttStream();
-    this.stt.setHandlers({
-      onMessage: (message) => this.handleSttMessage(message),
-      onError: (code, message) => this.handleSttError(code, message),
-      onClose: (event) => {
-        this.isConnectedState = false;
-        // Managed sessions: Soniox drops the session at its granted duration
-        // by sending a 403 error frame (caught by handleSttError, which sets
-        // this flag and suppresses the generic error bubble) immediately
-        // followed by this close. Tag the event so the UI shows a dedicated
-        // "segment ended, tap to continue" state instead of a raw error —
-        // and, per explicit product decision, does NOT auto-reconnect (a
-        // silent reconnect would restart billing without the user knowing).
-        if (this.pendingDurationCutoff) {
-          this.pendingDurationCutoff = false;
-          this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
-          this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
-          return;
-        }
-        this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
-        this.eventHandlers.onClose?.(event);
-      },
-      // The meter's own clock, not a second timer — see onTick's docstring
-      // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
-      onTick: () => this.costMeter?.tick(Date.now()),
-    });
-    // Map the session config's camelCase context to the wire's snake_case.
-    // buildSessionConfig only sets `context` when at least one of
-    // terms/translations/background text is non-empty.
-    const sttContext = cfg.context
-      ? {
-          ...(cfg.context.terms?.length ? { terms: cfg.context.terms } : {}),
-          ...(cfg.context.translationTerms?.length
-            ? { translation_terms: cfg.context.translationTerms }
-            : {}),
-          ...(cfg.context.text ? { text: cfg.context.text } : {}),
-        }
-      : undefined;
-    await this.stt.connect({
-      apiKey: this.managedOptions ? this.managedSttApiKey! : this.apiKey,
-      model: cfg.model || STT_MODEL,
-      sampleRate: SAMPLE_RATE,
-      languageHints,
-      translation,
-      ...(sttContext ? { context: sttContext } : {}),
-      endpointSensitivity: cfg.endpointSensitivity,
-      endpointLatencyAdjustmentLevel: cfg.endpointLatencyAdjustmentLevel,
-      clientReferenceId: this.clientReferenceId ?? undefined,
-      ...(effectiveTwoWay ? { enableSpeakerDiarization: true } : {}),
-    });
+    this.wireSttHandlers(this.stt);
+    // buildSttConnectConfig() is a pure function of currentConfig + the
+    // instance fields set above (this.bidirectional, managed keys,
+    // clientReferenceId) — resumeSttStream() calls the exact same helper to
+    // rebuild a byte-identical config frame on a fresh stream.
+    const sttConfig = this.buildSttConnectConfig();
+    await this.stt.connect(sttConfig);
     // If disconnect() ran during the STT connect await, this attempt is stale:
     // close the socket we just opened and bail before wiring anything up.
     if (gen !== this.generation) { this.stt?.close(); this.stt = null; return; }
@@ -340,10 +317,256 @@ export class SonioxClient implements IClient {
     if (gen !== this.generation) return;
     this.emitRealtime('client', 'session.opened', {
       provider: 'soniox',
-      translation,
+      translation: sttConfig.translation,
       textOnly: !!cfg.textOnly,
     });
     this.eventHandlers.onOpen?.();
+  }
+
+  /**
+   * Wire a fresh SonioxSttStream's handlers to this client's message/error/
+   * close/tick routing. Used identically by connect() and resumeSttStream()
+   * so a resumed stream behaves exactly like the original one — including
+   * being eligible for a FUTURE 503 resume of its own.
+   */
+  private wireSttHandlers(stream: SonioxSttStream): void {
+    stream.setHandlers({
+      onMessage: (message) => this.handleSttMessage(message),
+      onError: (code, message) => this.handleSttError(code, message),
+      onClose: (event) => this.handleSttClose(event),
+      // The meter's own clock, not a second timer — see onTick's docstring
+      // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
+      onTick: () => this.costMeter?.tick(Date.now()),
+    });
+  }
+
+  /**
+   * Build the STT wire config frame. A pure function of currentConfig plus
+   * the instance fields that outlive a single stream (this.bidirectional,
+   * managed session keys, clientReferenceId) — never of local variables
+   * computed inline during one connect() call — so resumeSttStream() can
+   * call this same helper after a 503 and get a byte-identical config on
+   * the fresh stream, without connect()'s caller-specific setup re-running.
+   */
+  private buildSttConnectConfig(): SonioxSttConfig {
+    const cfg = this.currentConfig!;
+    const translation: SonioxTranslationConfig = this.bidirectional
+      ? { type: 'two_way', language_a: cfg.sourceLanguage, language_b: cfg.targetLanguage }
+      : { type: 'one_way', target_language: cfg.targetLanguage };
+    const languageHints = this.bidirectional
+      ? [cfg.sourceLanguage, cfg.targetLanguage]
+      : (cfg.sourceLanguage !== 'auto' ? [cfg.sourceLanguage] : undefined);
+    // Map the session config's camelCase context to the wire's snake_case.
+    // buildSessionConfig only sets `context` when at least one of
+    // terms/translations/background text is non-empty.
+    const sttContext = cfg.context
+      ? {
+          ...(cfg.context.terms?.length ? { terms: cfg.context.terms } : {}),
+          ...(cfg.context.translationTerms?.length
+            ? { translation_terms: cfg.context.translationTerms }
+            : {}),
+          ...(cfg.context.text ? { text: cfg.context.text } : {}),
+        }
+      : undefined;
+    return {
+      apiKey: this.managedOptions ? this.managedSttApiKey! : this.apiKey,
+      model: cfg.model || STT_MODEL,
+      sampleRate: SAMPLE_RATE,
+      languageHints,
+      translation,
+      ...(sttContext ? { context: sttContext } : {}),
+      endpointSensitivity: cfg.endpointSensitivity,
+      endpointLatencyAdjustmentLevel: cfg.endpointLatencyAdjustmentLevel,
+      clientReferenceId: this.clientReferenceId ?? undefined,
+      ...(this.bidirectional ? { enableSpeakerDiarization: true } : {}),
+    };
+  }
+
+  /**
+   * Shared onClose routing for every SonioxSttStream this client ever wires
+   * (the original one from connect() and any resumed one from
+   * resumeSttStream()). Order matters: the managed-duration cutoff is
+   * checked first so a managed 403 is never misread as a resumable 503 —
+   * the two flags are mutually exclusive in practice (handleSttError only
+   * ever sets one per error frame) but cutoff must win if that ever changes.
+   */
+  private handleSttClose(event: { code?: number; reason?: string }): void {
+    this.isConnectedState = false;
+    // Managed sessions: Soniox drops the session at its granted duration
+    // by sending a 403 error frame (caught by handleSttError, which sets
+    // this flag and suppresses the generic error bubble) immediately
+    // followed by this close. Tag the event so the UI shows a dedicated
+    // "segment ended, tap to continue" state instead of a raw error —
+    // and, per explicit product decision, does NOT auto-reconnect (a
+    // silent reconnect would restart billing without the user knowing).
+    if (this.pendingDurationCutoff) {
+      this.pendingDurationCutoff = false;
+      this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
+      this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
+      return;
+    }
+    // A 503 error frame (transient "service unavailable") is always
+    // immediately followed by a close, same protocol shape as the 403
+    // cutoff above. Unlike the cutoff, this one silently resumes: no error
+    // bubble, no onClose to MainPanel (which would tear the whole session
+    // down) — just onReconnecting while a fresh stream is negotiated.
+    if (this.pendingSttResume503 !== null) {
+      const originalMessage = this.pendingSttResume503;
+      this.pendingSttResume503 = null;
+      this.emitRealtime('client', 'session.stt_resuming', { provider: 'soniox', ...event });
+      this.eventHandlers.onReconnecting?.();
+      void this.resumeSttStream(originalMessage);
+      return;
+    }
+    this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
+    this.eventHandlers.onClose?.(event);
+  }
+
+  /**
+   * Reconnect the STT stream after a transient 503, up to 3 attempts with
+   * 0 ms / 1000 ms / 3000 ms gaps between them. Runs the same config-frame
+   * builder and handler wiring as connect() so the resumed stream is
+   * indistinguishable from the original one on the wire.
+   *
+   * `originalMessage` is the 503 error frame's own message — final failure
+   * surfaces THIS, not whatever the last reconnect attempt's rejection
+   * reason happened to be, since from the user's perspective the story is
+   * "the service was unavailable and never came back", not "attempt 3
+   * failed for reason X".
+   */
+  private async resumeSttStream(originalMessage: string): Promise<void> {
+    // Captured once at entry: disconnect() bumps this.generation, and every
+    // await below re-checks it so a Stop during a backoff delay or an
+    // in-flight connect leaves nothing dangling.
+    const gen = this.generation;
+
+    // The interrupted utterance cannot survive the stream swap: the fresh
+    // socket restarts the server's audio clock at 0 and re-mints its own
+    // speaker labels, so anything keyed to the old stream's timeline must
+    // be abandoned, not carried forward.
+    this.abandonUtteranceState();
+    this.sideTracker?.reset();
+
+    const delaysBeforeAttempt = [0, 1000, 3000];
+    for (const delayMs of delaysBeforeAttempt) {
+      if (delayMs > 0) await SonioxClient.delay(delayMs);
+      if (gen !== this.generation) return; // disconnect() ran during the delay
+      try {
+        const stream = new SonioxSttStream();
+        this.wireSttHandlers(stream);
+        await stream.connect(this.buildSttConnectConfig());
+        // Stale-attempt guard: disconnect() ran while this attempt's connect
+        // was in flight — discard the socket instead of installing it.
+        if (gen !== this.generation) { stream.close(); return; }
+        this.stt = stream;
+        this.isConnectedState = true;
+        this.emitRealtime('client', 'session.stt_resumed', { provider: 'soniox' });
+        this.eventHandlers.onReconnected?.();
+        return;
+      } catch (error) {
+        console.error('[SonioxClient] STT resume attempt failed:', error);
+        if (gen !== this.generation) return; // disconnect() ran during the failed connect await
+      }
+    }
+
+    // All attempts exhausted: surface the ORIGINAL 503 the same way a
+    // generic STT error would have, then close the session so MainPanel
+    // tears it down exactly like any other fatal client close. Emit the
+    // realtime milestone BEFORE the error item/onClose — the generic close
+    // branch in handleSttClose always emits one (session.closed); this path
+    // bypasses that branch entirely, so without this the debug timeline
+    // would show the 503 and the resume attempts but nothing marking the
+    // session as actually over.
+    if (gen !== this.generation) return;
+    this.emitRealtime('client', 'session.stt_resume_failed', { provider: 'soniox', message: originalMessage });
+    this.surfaceSttError('503', originalMessage);
+    this.eventHandlers.onClose?.({ code: 1006, reason: 'stt resume failed' });
+  }
+
+  /**
+   * Complete one role's in-progress item with the text accumulated so far —
+   * flips it to 'completed' in place, preserving any replay audio already
+   * buffered on it. No-op when there's no text. Shared by finishUtterance
+   * (normal <end>) and abandonUtteranceState (an utterance interrupted by a
+   * 503 stream swap) — both need identical "complete what we have" semantics,
+   * just triggered by different events.
+   */
+  private completeItem(role: 'user' | 'assistant', existingId: string | null, text: string): void {
+    if (!text) return;
+    // Preserve any replay audio already accumulated on this item: this
+    // rebuild would otherwise drop TTS audio that arrived before the
+    // completion trigger (keepReplayAudio only — undefined otherwise, a no-op).
+    const prev = existingId ? this.conversationItems.find((i) => i.id === existingId) : undefined;
+    const audio = prev?.formatted?.audio as Int16Array | undefined;
+    const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
+    const item = this.upsertItem(role, existingId, {
+      status: 'completed',
+      formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
+      content: [{ type: 'text', text }],
+      ...(detected ? { detectedLanguage: detected } : {}),
+    });
+    if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
+    this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
+  }
+
+  /**
+   * An item minted by emitTextUpdate for a PARTIAL-only utterance (no
+   * is_final token ever arrived before the 503 landed) never reaches
+   * completeItem's text-based completion above — userFinal/assistantFinal
+   * is still '' at that point, so completeItem no-ops — yet the item
+   * exists and is listed as 'in_progress'. Left alone it would stay
+   * in_progress forever (partial text is never retained in instance state,
+   * so there's nothing to feed completeItem after the fact). Flip it to
+   * 'completed' WITHOUT touching its existing formatted/content: we cannot
+   * honestly claim any particular text as "final" here, only that nothing
+   * more is coming for it. A no-op if completeItem already completed it
+   * (non-empty final text) or if no item was ever minted for this role.
+   */
+  private forceCompleteStuckItem(id: string | null): void {
+    if (!id) return;
+    const idx = this.conversationItems.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+    const previous = this.conversationItems[idx];
+    if (previous.status === 'completed') return; // already completed above
+    const item: ConversationItem = { ...previous, status: 'completed' };
+    this.conversationItems[idx] = item;
+    this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
+  }
+
+  /**
+   * Ahead of a 503 stream resume: complete whatever text the in-flight
+   * user/assistant items already have (same "flip in place" as a normal
+   * <end>), catch a partial-only item completeItem couldn't touch, and
+   * clear every per-utterance field a fresh stream would otherwise see as
+   * stale. Deliberately narrower than finishUtterance/reset(): it must NOT
+   * touch conversationItems HISTORY, TTS sockets, managed session keys, or
+   * the cost meter — those are session-lifetime state, not per-utterance
+   * state, and the session (and its billing) continues across the resume.
+   *
+   * Unlike the per-utterance fields below, audioItemId/audioItemSide are
+   * deliberately LEFT ALONE — same rule finishUtterance follows for a
+   * normal <end>. Only the STT stream is being replaced here; the TTS
+   * socket survives the swap untouched and keeps producing audio for text
+   * already fed to it before the 503. Clearing the anchor here would make
+   * emitAssistantAudio mint a fresh in_progress ghost item for that
+   * trailing audio, which would then wrongly anchor the NEXT utterance's
+   * text once it starts arriving on the resumed stream (cross-utterance
+   * bleed).
+   */
+  private abandonUtteranceState(): void {
+    this.completeItem('user', this.currentUserItemId, this.userFinal);
+    this.completeItem('assistant', this.currentAssistantItemId, this.assistantFinal);
+    this.forceCompleteStuckItem(this.currentUserItemId);
+    this.forceCompleteStuckItem(this.currentAssistantItemId);
+    this.currentUserItemId = null;
+    this.currentAssistantItemId = null;
+    this.userFinal = '';
+    this.assistantFinal = '';
+    this.userLanguage = null;
+    this.assistantLanguage = null;
+    this.utteranceTtsLanguage = null;
+    this.utteranceSide = null;
+    this.closeTtsUtterance();
   }
 
   /**
@@ -765,30 +988,13 @@ export class SonioxClient implements IClient {
 
   /** <end>: complete both sides' stored items, reset per-utterance state. */
   private finishUtterance(): void {
-    const complete = (role: 'user' | 'assistant', existingId: string | null, text: string) => {
-      if (!text) return;
-      // <end> can arrive in the same STT message as the finals that complete
-      // it — before the post-loop emitTextUpdate() has ever assigned an item
-      // id for this batch (e.g. a user-side final with no preceding TTS
-      // mint). upsertItem() mints+lists one lazily rather than dropping the
-      // completed item.
-      // Preserve any replay audio already accumulated on this item: this
-      // rebuild would otherwise drop TTS audio that arrived before <end>
-      // (keepReplayAudio only — undefined otherwise, a no-op).
-      const prev = existingId ? this.conversationItems.find((i) => i.id === existingId) : undefined;
-      const audio = prev?.formatted?.audio as Int16Array | undefined;
-      const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
-      const item = this.upsertItem(role, existingId, {
-        status: 'completed',
-        formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
-        content: [{ type: 'text', text }],
-        ...(detected ? { detectedLanguage: detected } : {}),
-      });
-      if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
-      this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
-    };
-    complete('user', this.currentUserItemId, this.userFinal);
-    complete('assistant', this.currentAssistantItemId, this.assistantFinal);
+    // <end> can arrive in the same STT message as the finals that complete
+    // it — before the post-loop emitTextUpdate() has ever assigned an item
+    // id for this batch (e.g. a user-side final with no preceding TTS
+    // mint). completeItem()'s upsertItem() mints+lists one lazily rather
+    // than dropping the completed item.
+    this.completeItem('user', this.currentUserItemId, this.userFinal);
+    this.completeItem('assistant', this.currentAssistantItemId, this.assistantFinal);
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     // audioItemId is intentionally NOT cleared here: trailing TTS audio for
@@ -800,6 +1006,17 @@ export class SonioxClient implements IClient {
     this.assistantLanguage = null;
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
+    this.closeTtsUtterance();
+  }
+
+  /**
+   * Shared tail of finishUtterance/abandonUtteranceState: log the spoken
+   * text milestone and close the utterance's TTS stream. Ending the TTS
+   * side matters just as much on the abandon path — the TTS socket survives
+   * an STT stream swap, and an un-ended utterance stream would absorb the
+   * NEXT utterance's text into one combined synthesis.
+   */
+  private closeTtsUtterance(): void {
     // Debug-timeline milestone: the text this utterance sent to TTS to be
     // spoken. Only appears when TTS actually received text — a missing
     // tts.speak next to a translation means spoken output was skipped/degraded.
@@ -875,6 +1092,48 @@ export class SonioxClient implements IClient {
       console.info('[SonioxClient] Managed session reached its granted duration (403); closing');
       return;
     }
+    // 503 "service unavailable" is a transient server condition, not a
+    // fatal one, and gets a silent auto-resume instead of a generic error —
+    // but ONLY for BYOK sessions, and only up to MAX_STT_RESUME_CYCLES times
+    // per session:
+    //
+    //  - Managed-only gate: the backend mints STT temporary keys with
+    //    single_use: true (sokuji-backend soniox-api.ts,
+    //    CreateTemporaryKeyOpts — it's what stops one issued key opening two
+    //    concurrent transcription sessions; only TTS keys are
+    //    single_use: false). A managed reconnect with the SAME sttApiKey is
+    //    rejected by Soniox, but only AFTER the socket opens (connect()
+    //    resolves pre-validation) — so resumeSttStream would "succeed", then
+    //    immediately take a 403 error frame that pendingDurationCutoff would
+    //    misreport as a normal granted-duration cutoff instead of the outage
+    //    it actually is. Managed 503s fall straight through to the generic
+    //    error path below (surfaceSttError) instead.
+    //  - Cycle cap: a flapping server would otherwise retry forever, each
+    //    cycle silently dropping mic audio for up to ~4 s (0+1+3 s of
+    //    backoff) with zero user-visible signal. Past the cap a 503 is just
+    //    another error.
+    //
+    // Soniox always closes the socket immediately after an error frame, so
+    // the actual resume is kicked off from handleSttClose, which consumes
+    // this flag. No error bubble, no onError here — the user should never
+    // see a 503 that successfully resumes.
+    if (!this.managedOptions && code === '503' && this.sttResumeCycles < SonioxClient.MAX_STT_RESUME_CYCLES) {
+      this.sttResumeCycles++;
+      this.pendingSttResume503 = message;
+      console.info(`[SonioxClient] STT reported 503 (service unavailable); will resume after close (cycle ${this.sttResumeCycles}/${SonioxClient.MAX_STT_RESUME_CYCLES}): ${message}`);
+      this.emitRealtime('client', 'session.stt_503', { provider: 'soniox', message });
+      return;
+    }
+    this.surfaceSttError(code, message);
+  }
+
+  /**
+   * Generic STT error surfacing: a system-role error ConversationItem plus
+   * onError. Shared by handleSttError's fallthrough (an error that isn't
+   * the managed-403 cutoff or a resumable 503) and resumeSttStream's final
+   * failure (a 503 that never recovered after 3 attempts).
+   */
+  private surfaceSttError(code: string, message: string): void {
     console.error(`[SonioxClient] STT error ${code}: ${message}`);
     const errorItem: ConversationItem = {
       id: this.generateItemId('error'),
@@ -978,6 +1237,19 @@ export class SonioxClient implements IClient {
     // Invalidate any in-flight connect()/ensureTts(): a socket whose connect
     // await resolves after this point must not be installed or fed.
     this.generation++;
+    // Both "pending" error flags are consumed by a close that is SUPPOSED to
+    // follow their error frame immediately — but that assumption isn't
+    // live-verified for 503 (only for 403), and even for 403 the close is
+    // driven by the server, not guaranteed to race ahead of a user-initiated
+    // Stop. Clear both here, synchronously, before this method closes the
+    // socket itself: otherwise the browser's own (possibly delayed) close
+    // event for the socket we're about to close could still see a flag set
+    // and mis-fire — for pendingSttResume503 specifically, that means
+    // resumeSttStream() capturing the already-bumped generation at entry and
+    // sailing past every stale-attempt guard, reconnecting a zombie socket
+    // after Stop.
+    this.pendingDurationCutoff = false;
+    this.pendingSttResume503 = null;
     // Fire-and-forget: a hint, not a transaction — the backend releases the
     // lease only once Soniox's usage logs confirm the session actually
     // ended (or it expires on its own).
@@ -1030,6 +1302,8 @@ export class SonioxClient implements IClient {
     this.clientReferenceId = null;
     this.costMeter = null;
     this.pendingDurationCutoff = false;
+    this.pendingSttResume503 = null;
+    this.sttResumeCycles = 0;
   }
 
   appendInputAudio(audioData: Int16Array): void {
