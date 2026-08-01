@@ -20,11 +20,17 @@ import {
   isOpenAISessionConfig,
   ResponseConfig
 } from '../interfaces/IClient';
-import { RealtimeEvent } from '../../stores/logStore';
+import useLogStore, { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import { EphemeralTokenService } from '../EphemeralTokenService';
 import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
+import {
+  buildOpenAIRealtimeCallForm,
+  buildOpenAIRealtimeResponseEvent,
+  buildOpenAIRealtimeSession,
+  buildOpenAIRealtimeSessionUpdate
+} from './openAIRealtimeSession';
 
 interface WebRTCClientOptions {
   /** User's API key for ephemeral token generation */
@@ -48,6 +54,7 @@ interface ServerEvent {
  */
 export class OpenAIWebRTCClient implements IClient {
   private static readonly DEFAULT_API_HOST = 'https://api.openai.com';
+  private static readonly CALLS_REQUEST_TIMEOUT_MS = 15000;
 
   private apiKey: string;
   private apiHost: string;
@@ -184,7 +191,8 @@ export class OpenAIWebRTCClient implements IClient {
       // Send offer to OpenAI and get answer via REST API
       const answer = await this.sendOfferToOpenAI(
         this.pc.localDescription!.sdp,
-        ephemeralToken
+        ephemeralToken,
+        config
       );
 
       // Set remote description
@@ -263,24 +271,34 @@ export class OpenAIWebRTCClient implements IClient {
   /**
    * Send SDP offer to OpenAI and receive answer
    */
-  private async sendOfferToOpenAI(sdp: string, token: string): Promise<string> {
-    const endpoint = `${this.apiHost}/v1/realtime?model=${encodeURIComponent(this.currentModel)}`;
+  private async sendOfferToOpenAI(
+    sdp: string,
+    token: string,
+    config: OpenAISessionConfig
+  ): Promise<string> {
+    const endpoint = `${this.apiHost}/v1/realtime/calls`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/sdp'
-      },
-      body: sdp
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: buildOpenAIRealtimeCallForm(sdp, config),
+        signal: AbortSignal.timeout(OpenAIWebRTCClient.CALLS_REQUEST_TIMEOUT_MS)
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to establish WebRTC connection: ${response.status} ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to establish WebRTC connection: ${response.status} ${errorText}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      useLogStore.getState().addLog(`OpenAI WebRTC connection failed: ${message}`, 'error');
+      throw error;
     }
-
-    return await response.text();
   }
 
   /**
@@ -509,70 +527,30 @@ export class OpenAIWebRTCClient implements IClient {
    * Send session.update event to configure the session
    */
   private sendSessionUpdate(config: OpenAISessionConfig): void {
-    const sessionUpdate: any = {
-      type: 'session.update',
-      session: {
-        modalities: config.textOnly ? ['text'] : ['text', 'audio'],
-        voice: config.voice || 'alloy',
-        instructions: config.instructions,
-        input_audio_format: 'pcm16',
-        output_audio_format: 'pcm16',
-        temperature: config.temperature ?? 0.8,
-        max_response_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
-        // Explicitly disable tools to prevent model drift from translator role
-        tool_choice: 'none',
-        tools: []
-      }
-    };
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSession(config);
+    this.turnDetectionDisabled = turnDetectionDisabled;
 
-    // Add turn detection config and track if disabled
-    if (config.turnDetection) {
-      if (config.turnDetection.type === 'none') {
-        sessionUpdate.session.turn_detection = null;
-        this.turnDetectionDisabled = true;
-      } else {
-        this.turnDetectionDisabled = false;
-        sessionUpdate.session.turn_detection = {
-          type: config.turnDetection.type,
-          threshold: config.turnDetection.threshold,
-          prefix_padding_ms: config.turnDetection.prefixPadding
-            ? Math.round(config.turnDetection.prefixPadding * 1000)
-            : undefined,
-          silence_duration_ms: config.turnDetection.silenceDuration
-            ? Math.round(config.turnDetection.silenceDuration * 1000)
-            : undefined,
-          create_response: config.turnDetection.createResponse ?? true,
-          interrupt_response: config.turnDetection.interruptResponse ?? false
-        };
-
-        if (config.turnDetection.type === 'semantic_vad' && config.turnDetection.eagerness) {
-          sessionUpdate.session.turn_detection.eagerness =
-            config.turnDetection.eagerness.toLowerCase();
-        }
-      }
-    }
-
-    // Add input audio transcription
-    if (config.inputAudioTranscription?.model) {
-      sessionUpdate.session.input_audio_transcription = {
-        model: config.inputAudioTranscription.model
-      };
-    }
-
-    // Add noise reduction
-    if (config.inputAudioNoiseReduction?.type) {
-      sessionUpdate.session.input_audio_noise_reduction = {
-        type: config.inputAudioNoiseReduction.type
-      };
-    }
-
-    // Reasoning effort: only `gpt-realtime-2` accepts this; older models reject the field.
-    if (config.model?.startsWith('gpt-realtime-2') && config.reasoningEffort) {
-      sessionUpdate.session.reasoning = { effort: config.reasoningEffort };
+    if (session.reasoning) {
       console.info('[Sokuji] [OpenAIWebRTCClient] reasoning.effort applied:', config.reasoningEffort);
     }
 
-    this.sendEvent(sessionUpdate);
+    this.sendEvent({
+      type: 'session.update',
+      session
+    });
+  }
+
+  private sendPartialSessionUpdate(config: Partial<OpenAISessionConfig>): void {
+    const { session, turnDetectionDisabled } = buildOpenAIRealtimeSessionUpdate(config);
+    if (turnDetectionDisabled !== undefined) {
+      this.turnDetectionDisabled = turnDetectionDisabled;
+    }
+    if (Object.keys(session).length === 1) return;
+
+    this.sendEvent({
+      type: 'session.update',
+      session
+    });
   }
 
   /**
@@ -647,8 +625,8 @@ export class OpenAIWebRTCClient implements IClient {
    * Update session configuration
    */
   updateSession(config: Partial<SessionConfig>): void {
-    if (isOpenAISessionConfig(config as SessionConfig)) {
-      this.sendSessionUpdate(config as OpenAISessionConfig);
+    if (isOpenAISessionConfig(config)) {
+      this.sendPartialSessionUpdate(config);
     }
   }
 
@@ -713,31 +691,7 @@ export class OpenAIWebRTCClient implements IClient {
     }
 
     if (config) {
-      // Send response.create event with per-turn configuration
-      const responseEvent: any = {
-        type: 'response.create',
-        response: {}
-      };
-
-      // Add per-turn instructions if provided (key mechanism for preventing drift)
-      if (config.instructions) {
-        responseEvent.response.instructions = config.instructions;
-      }
-
-      // Add conversation mode if specified
-      if (config.conversation) {
-        responseEvent.response.conversation = config.conversation;
-      }
-
-      // Add modalities if specified
-      if (config.modalities) {
-        responseEvent.response.modalities = config.modalities;
-      }
-
-      // Add metadata if specified (for tracking/filtering purposes)
-      if (config.metadata) {
-        responseEvent.response.metadata = config.metadata;
-      }
+      const responseEvent = buildOpenAIRealtimeResponseEvent(config);
 
       // Log out-of-band anchor requests for debugging
       if (config.conversation === 'none') {
@@ -751,7 +705,7 @@ export class OpenAIWebRTCClient implements IClient {
 
       this.sendEvent(responseEvent);
     } else {
-      this.sendEvent({ type: 'response.create' });
+      this.sendEvent(buildOpenAIRealtimeResponseEvent());
     }
   }
 

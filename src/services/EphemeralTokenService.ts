@@ -1,3 +1,5 @@
+import useLogStore from '../stores/logStore';
+
 /**
  * EphemeralTokenService
  *
@@ -7,7 +9,9 @@
  */
 
 interface EphemeralTokenResponse {
-  client_secret: {
+  value?: string;
+  expires_at?: number;
+  client_secret?: string | {
     value: string;
     expires_at: number; // Unix timestamp
   };
@@ -71,7 +75,7 @@ export class EphemeralTokenService {
     apiHost?: string
   ): Promise<string> {
     const host = apiHost || this.OPENAI_API_HOST;
-    const endpoint = `${host.replace(/\/$/, '')}/v1/realtime/sessions`;
+    const endpoint = `${host.replace(/\/$/, '')}/v1/realtime/client_secrets`;
 
     try {
       const response = await fetch(endpoint, {
@@ -81,8 +85,13 @@ export class EphemeralTokenService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model,
-          voice
+          session: {
+            type: 'realtime',
+            model,
+            audio: {
+              output: { voice }
+            }
+          }
         })
       });
 
@@ -93,24 +102,34 @@ export class EphemeralTokenService {
       }
 
       const data: EphemeralTokenResponse = await response.json();
+      const nestedSecret = typeof data.client_secret === 'string'
+        ? data.client_secret
+        : data.client_secret?.value;
+      const tokenValue = data.value ?? nestedSecret;
+      const nestedExpiresAt = typeof data.client_secret === 'object'
+        ? data.client_secret.expires_at
+        : undefined;
+      const expiresAt = data.expires_at ?? nestedExpiresAt ?? Math.floor(Date.now() / 1000) + 60;
 
-      if (!data.client_secret?.value) {
+      if (!tokenValue) {
         throw new Error('Invalid token response: missing client_secret');
       }
 
       // Cache the token
       const cacheKey = `${host}:${model}:${voice}`;
       tokenCache.set(cacheKey, {
-        value: data.client_secret.value,
-        expiresAt: data.client_secret.expires_at * 1000 // Convert to milliseconds
+        value: tokenValue,
+        expiresAt: expiresAt * 1000 // Convert to milliseconds
       });
 
       console.debug('[EphemeralTokenService] Obtained new ephemeral token, expires at:',
-        new Date(data.client_secret.expires_at * 1000).toISOString());
+        new Date(expiresAt * 1000).toISOString());
 
-      return data.client_secret.value;
+      return tokenValue;
     } catch (error) {
       console.error('[EphemeralTokenService] Error fetching ephemeral token:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      useLogStore.getState().addLog(`Failed to fetch OpenAI Realtime client secret: ${message}`, 'error');
       throw error;
     }
   }
