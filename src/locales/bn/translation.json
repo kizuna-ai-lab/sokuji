@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "সবচেয়ে আক্রমণাত্মক",
     "sonioxBackground": "সেশনের পটভূমি",
     "sonioxBackgroundTooltip": "পরবর্তী সেশনের জন্য মুক্ত-বিন্যাসের পটভূমি — আলোচ্যসূচি, বিষয়, বা তথ্যসূত্র নোট। এটি শনাক্তকরণ ও অনুবাদকে সংশ্লিষ্ট বিষয়ক্ষেত্র অনুসরণ করতে সাহায্য করে। সম্মিলিত প্রসঙ্গ আকারের সীমা অতিক্রম করলে এটি সবার আগে ছাঁটা হয়।",
-    "sonioxBackgroundPlaceholder": "একটি আলোচ্যসূচি, বিষয়, বা পটভূমির নোট পেস্ট করুন (ঐচ্ছিক)"
+    "sonioxBackgroundPlaceholder": "একটি আলোচ্যসূচি, বিষয়, বা পটভূমির নোট পেস্ট করুন (ঐচ্ছিক)",
+    "sonioxVoiceConsent": "আমি নিশ্চিত করছি যে এই কণ্ঠস্বর ব্যবহার করার অধিকার আমার আছে",
+    "sonioxVoiceCloneTitle": "কণ্ঠস্বর ক্লোন করুন",
+    "sonioxVoiceCloneReview": "আপলোড করার আগে আপনার ক্লিপটি শুনুন এবং কণ্ঠস্বরের নাম দিন।",
+    "sonioxVoiceNamePlaceholder": "নতুন ক্লোন করা কণ্ঠস্বরের জন্য নাম (ঐচ্ছিক)",
+    "sonioxVoiceDefaultName": "আমার কণ্ঠস্বর {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(মুছে ফেলা কণ্ঠস্বর)",
+    "sonioxVoiceDeleteInUse": "এই কণ্ঠস্বরটি সক্রিয় সেশনে ব্যবহৃত হচ্ছে — মুছে ফেলার আগে সেশনটি শেষ করুন",
+    "sonioxVoiceProcessingBadge": "প্রক্রিয়াকরণ চলছে…",
+    "sonioxVoiceFailedBadge": "ব্যর্থ",
+    "sonioxVoiceFailed": "প্রক্রিয়াকরণ ব্যর্থ হয়েছে — এই কণ্ঠস্বরটি মুছে ফেলুন এবং আরও স্পষ্ট একটি ক্লিপ চেষ্টা করুন",
+    "sonioxVoiceNameConflict": "এই নামের একটি কণ্ঠস্বর ইতিমধ্যে বিদ্যমান",
+    "sonioxVoiceQuotaError": "Soniox প্রতিষ্ঠানের কণ্ঠস্বর সীমা পৌঁছে গেছে — একটি কণ্ঠস্বর মুছে আবার চেষ্টা করুন",
+    "sonioxVoiceListError": "ক্লোন করা কণ্ঠস্বর লোড করা যায়নি — আপনার API কী পরীক্ষা করুন।"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "ক্লিপে ঠিক যা বলা হয়েছে তা টাইপ করুন…",
     "unstable": "অস্থিতিশীল",
     "voice": "কণ্ঠস্বর",
-    "voiceBuilderDisclaimer": "এটি Supertone-এর একটি পেইড পরিষেবা। Sokuji সেই লেনদেনে জড়িত নয়।"
+    "voiceBuilderDisclaimer": "এটি Supertone-এর একটি পেইড পরিষেবা। Sokuji সেই লেনদেনে জড়িত নয়।",
+    "refreshList": "কণ্ঠস্বর তালিকা রিফ্রেশ করুন"
   }
 }

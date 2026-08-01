@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "Meest agressief",
     "sonioxBackground": "Sessieachtergrond",
     "sonioxBackgroundTooltip": "Vrije achtergrondinformatie voor de volgende sessie — agenda, onderwerp of referentienotities. Helpt herkenning en vertaling het domein te volgen. Wordt als eerste ingekort als de gecombineerde context de groottelimiet overschrijdt.",
-    "sonioxBackgroundPlaceholder": "Plak een agenda, onderwerp of achtergrondnotities (optioneel)"
+    "sonioxBackgroundPlaceholder": "Plak een agenda, onderwerp of achtergrondnotities (optioneel)",
+    "sonioxVoiceConsent": "Ik bevestig dat ik het recht heb om deze stem te gebruiken",
+    "sonioxVoiceCloneTitle": "Stem klonen",
+    "sonioxVoiceCloneReview": "Luister naar uw clip en geef de stem een naam voordat u deze uploadt.",
+    "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
+    "sonioxVoiceDefaultName": "Mijn stem {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(verwijderde stem)",
+    "sonioxVoiceDeleteInUse": "Deze stem wordt gebruikt door de actieve sessie — beëindig de sessie voordat u deze verwijdert",
+    "sonioxVoiceProcessingBadge": "wordt verwerkt…",
+    "sonioxVoiceFailedBadge": "mislukt",
+    "sonioxVoiceFailed": "Verwerking mislukt — verwijder deze stem en probeer een duidelijkere opname",
+    "sonioxVoiceNameConflict": "Er bestaat al een stem met deze naam",
+    "sonioxVoiceQuotaError": "Limiet voor organisatiestemmen van Soniox bereikt — verwijder een stem en probeer het opnieuw",
+    "sonioxVoiceListError": "Gekloonde stemmen konden niet worden geladen — controleer de API-sleutel."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "Typ precies wat de clip zegt…",
     "unstable": "onstabiel",
     "voice": "Stem",
-    "voiceBuilderDisclaimer": "Betaalde Supertone-dienst. Sokuji is niet betrokken bij die transactie."
+    "voiceBuilderDisclaimer": "Betaalde Supertone-dienst. Sokuji is niet betrokken bij die transactie.",
+    "refreshList": "Stemlijst vernieuwen"
   }
 }

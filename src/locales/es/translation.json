@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "Más agresivo",
     "sonioxBackground": "Contexto de la sesión",
     "sonioxBackgroundTooltip": "Contexto de formato libre para la próxima sesión — agenda, tema o notas de referencia. Ayuda a que el reconocimiento y la traducción se ajusten al ámbito. Se recorta primero si el contexto combinado supera el límite de tamaño.",
-    "sonioxBackgroundPlaceholder": "Pega una agenda, un tema o notas de contexto (opcional)"
+    "sonioxBackgroundPlaceholder": "Pega una agenda, un tema o notas de contexto (opcional)",
+    "sonioxVoiceConsent": "Confirmo que tengo derecho a usar esta voz",
+    "sonioxVoiceCloneTitle": "Clonar voz",
+    "sonioxVoiceCloneReview": "Escucha tu clip y nombra la voz antes de subirla.",
+    "sonioxVoiceNamePlaceholder": "Nombre para una nueva voz clonada (opcional)",
+    "sonioxVoiceDefaultName": "Mi voz {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(voz eliminada)",
+    "sonioxVoiceDeleteInUse": "Esta voz está siendo utilizada por la sesión activa — finaliza la sesión antes de eliminarla",
+    "sonioxVoiceProcessingBadge": "procesando…",
+    "sonioxVoiceFailedBadge": "fallida",
+    "sonioxVoiceFailed": "Error en el procesamiento — elimina esta voz e intenta con un clip más claro",
+    "sonioxVoiceNameConflict": "Ya existe una voz con este nombre",
+    "sonioxVoiceQuotaError": "Se alcanzó el límite de voces de la organización en Soniox — elimina una voz y vuelve a intentarlo",
+    "sonioxVoiceListError": "No se pudieron cargar las voces clonadas — comprueba la clave API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "Escribe exactamente lo que dice el clip…",
     "unstable": "inestable",
     "voice": "Voz",
-    "voiceBuilderDisclaimer": "Servicio de pago de Supertone. Sokuji no participa en esa transacción."
+    "voiceBuilderDisclaimer": "Servicio de pago de Supertone. Sokuji no participa en esa transacción.",
+    "refreshList": "Actualizar lista de voces"
   }
 }

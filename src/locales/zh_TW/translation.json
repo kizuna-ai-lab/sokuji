@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "最積極",
     "sonioxBackground": "工作階段背景",
     "sonioxBackgroundTooltip": "為下一個工作階段提供的自由格式背景資訊——議程、主題或參考筆記。有助於辨識與翻譯貼合相關領域。若合併後的上下文超出大小限制，會優先裁剪這部分內容。",
-    "sonioxBackgroundPlaceholder": "貼上議程、主題或背景筆記（可選）"
+    "sonioxBackgroundPlaceholder": "貼上議程、主題或背景筆記（可選）",
+    "sonioxVoiceConsent": "我確認我有權使用此語音",
+    "sonioxVoiceCloneTitle": "複製語音",
+    "sonioxVoiceCloneReview": "上傳前請先試聽您的片段並為語音命名。",
+    "sonioxVoiceNamePlaceholder": "新複製語音的名稱（可選）",
+    "sonioxVoiceDefaultName": "我的語音 {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "（已刪除的語音）",
+    "sonioxVoiceDeleteInUse": "此聲音正在被目前工作階段使用 — 請先結束工作階段再刪除",
+    "sonioxVoiceProcessingBadge": "處理中…",
+    "sonioxVoiceFailedBadge": "失敗",
+    "sonioxVoiceFailed": "處理失敗 — 請刪除此語音並嘗試更清晰的片段",
+    "sonioxVoiceNameConflict": "已有相同名稱的語音",
+    "sonioxVoiceQuotaError": "已達到 Soniox 組織語音數量上限 — 請刪除一個語音後重試",
+    "sonioxVoiceListError": "無法載入複製的語音 — 請檢查 API 金鑰。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "請完整輸入片段中所說的內容…",
     "unstable": "不穩定",
     "voice": "語音",
-    "voiceBuilderDisclaimer": "這是 Supertone 的付費服務。Sokuji 不涉及該交易。"
+    "voiceBuilderDisclaimer": "這是 Supertone 的付費服務。Sokuji 不涉及該交易。",
+    "refreshList": "重新整理語音清單"
   }
 }

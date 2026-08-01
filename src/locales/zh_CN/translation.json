@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "最积极",
     "sonioxBackground": "会话背景",
     "sonioxBackgroundTooltip": "为下一次会话提供的自由格式背景信息——议程、主题或参考笔记。有助于识别和翻译贴合相关领域。如果合并后的上下文超出大小限制，会首先裁剪这部分内容。",
-    "sonioxBackgroundPlaceholder": "粘贴议程、主题或背景笔记（可选）"
+    "sonioxBackgroundPlaceholder": "粘贴议程、主题或背景笔记（可选）",
+    "sonioxVoiceConsent": "我确认我有权使用此声音",
+    "sonioxVoiceCloneTitle": "克隆声音",
+    "sonioxVoiceCloneReview": "上传前请先试听您的片段并为声音命名。",
+    "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
+    "sonioxVoiceDefaultName": "我的声音 {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
+    "sonioxVoiceDeleteInUse": "此声音正在被当前会话使用 — 请先结束会话再删除",
+    "sonioxVoiceProcessingBadge": "处理中…",
+    "sonioxVoiceFailedBadge": "失败",
+    "sonioxVoiceFailed": "处理失败 — 请删除此声音并尝试更清晰的片段",
+    "sonioxVoiceNameConflict": "已存在同名声音",
+    "sonioxVoiceQuotaError": "已达到 Soniox 组织声音数量上限 — 请删除一个声音后重试",
+    "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "请逐字输入音频中说的内容…",
     "unstable": "不稳定",
     "voice": "语音",
-    "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。"
+    "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。",
+    "refreshList": "刷新声音列表"
   }
 }

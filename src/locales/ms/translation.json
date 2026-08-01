@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "Paling agresif",
     "sonioxBackground": "Latar Belakang Sesi",
     "sonioxBackgroundTooltip": "Latar belakang bebas format untuk sesi seterusnya — agenda, topik, atau nota rujukan. Membantu pengecaman dan terjemahan mengikuti bidang tersebut. Dipotong dahulu jika konteks gabungan melebihi had saiz.",
-    "sonioxBackgroundPlaceholder": "Tampal agenda, topik, atau nota latar belakang (pilihan)"
+    "sonioxBackgroundPlaceholder": "Tampal agenda, topik, atau nota latar belakang (pilihan)",
+    "sonioxVoiceConsent": "Saya mengesahkan bahawa saya mempunyai hak untuk menggunakan suara ini",
+    "sonioxVoiceCloneTitle": "Klon suara",
+    "sonioxVoiceCloneReview": "Dengar klip anda dan namakan suara sebelum memuat naik.",
+    "sonioxVoiceNamePlaceholder": "Nama untuk suara klon baharu (pilihan)",
+    "sonioxVoiceDefaultName": "Suara Saya {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(suara dipadam)",
+    "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — tamatkan sesi sebelum memadamkannya",
+    "sonioxVoiceProcessingBadge": "memproses…",
+    "sonioxVoiceFailedBadge": "gagal",
+    "sonioxVoiceFailed": "Pemprosesan gagal — padam suara ini dan cuba klip yang lebih jelas",
+    "sonioxVoiceNameConflict": "Suara dengan nama ini sudah wujud",
+    "sonioxVoiceQuotaError": "Had suara organisasi Soniox dicapai — padam suara dan cuba lagi",
+    "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "Taip dengan tepat apa yang klip itu katakan…",
     "unstable": "tidak stabil",
     "voice": "Suara",
-    "voiceBuilderDisclaimer": "Perkhidmatan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut."
+    "voiceBuilderDisclaimer": "Perkhidmatan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut.",
+    "refreshList": "Segarkan senarai suara"
   }
 }

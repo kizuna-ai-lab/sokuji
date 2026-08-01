@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "En agresif",
     "sonioxBackground": "Oturum Arka Planı",
     "sonioxBackgroundTooltip": "Bir sonraki oturum için serbest biçimli arka plan — gündem, konu veya referans notları. Tanımanın ve çevirinin alana uygun kalmasına yardımcı olur. Birleşik bağlam boyut sınırını aşarsa önce bu kısaltılır.",
-    "sonioxBackgroundPlaceholder": "Bir gündem, konu veya arka plan notu yapıştırın (isteğe bağlı)"
+    "sonioxBackgroundPlaceholder": "Bir gündem, konu veya arka plan notu yapıştırın (isteğe bağlı)",
+    "sonioxVoiceConsent": "Bu sesi kullanma hakkına sahip olduğumu onaylıyorum",
+    "sonioxVoiceCloneTitle": "Sesi klonla",
+    "sonioxVoiceCloneReview": "Yüklemeden önce klibinizi dinleyin ve sese bir ad verin.",
+    "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
+    "sonioxVoiceDefaultName": "Sesim {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(silinmiş ses)",
+    "sonioxVoiceDeleteInUse": "Bu ses etkin oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın",
+    "sonioxVoiceProcessingBadge": "işleniyor…",
+    "sonioxVoiceFailedBadge": "başarısız",
+    "sonioxVoiceFailed": "İşleme başarısız oldu — bu sesi silin ve daha net bir klip deneyin",
+    "sonioxVoiceNameConflict": "Bu isimde bir ses zaten var",
+    "sonioxVoiceQuotaError": "Soniox kuruluş ses sınırına ulaşıldı — bir sesi silin ve tekrar deneyin",
+    "sonioxVoiceListError": "Klonlanmış sesler yüklenemedi — API anahtarınızı kontrol edin."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "Klipte söylenenleri tam olarak yazın…",
     "unstable": "kararsız",
     "voice": "Ses",
-    "voiceBuilderDisclaimer": "Ücretli Supertone hizmeti. Sokuji bu işleme dahil değildir."
+    "voiceBuilderDisclaimer": "Ücretli Supertone hizmeti. Sokuji bu işleme dahil değildir.",
+    "refreshList": "Ses listesini yenile"
   }
 }

@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "అత్యంత దూకుడైనది",
     "sonioxBackground": "సెషన్ నేపథ్యం",
     "sonioxBackgroundTooltip": "తదుపరి సెషన్ కోసం స్వేచ్ఛా-రూప నేపథ్యం — ఎజెండా, అంశం, లేదా సూచన గమనికలు. ఇది గుర్తింపు మరియు అనువాదం సంబంధిత రంగాన్ని అనుసరించడానికి సహాయపడుతుంది. మిళిత సందర్భం పరిమాణ పరిమితిని మించితే, దీన్ని మొదట కుదిస్తారు.",
-    "sonioxBackgroundPlaceholder": "ఎజెండా, అంశం, లేదా నేపథ్య గమనికలను అతికించండి (ఐచ్ఛికం)"
+    "sonioxBackgroundPlaceholder": "ఎజెండా, అంశం, లేదా నేపథ్య గమనికలను అతికించండి (ఐచ్ఛికం)",
+    "sonioxVoiceConsent": "ఈ వాయిస్‌ను ఉపయోగించే హక్కు నాకు ఉందని నేను నిర్ధారిస్తున్నాను",
+    "sonioxVoiceCloneTitle": "వాయిస్‌ను క్లోన్ చేయండి",
+    "sonioxVoiceCloneReview": "అప్‌లోడ్ చేయడానికి ముందు మీ క్లిప్‌ను వినండి మరియు వాయిస్‌కు పేరు పెట్టండి.",
+    "sonioxVoiceNamePlaceholder": "కొత్త క్లోన్ చేసిన వాయిస్ కోసం పేరు (ఐచ్ఛికం)",
+    "sonioxVoiceDefaultName": "నా వాయిస్ {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(తొలగించిన వాయిస్)",
+    "sonioxVoiceDeleteInUse": "ఈ వాయిస్ యాక్టివ్ సెషన్‌లో ఉపయోగంలో ఉంది — తొలగించే ముందు సెషన్‌ను ముగించండి",
+    "sonioxVoiceProcessingBadge": "ప్రాసెస్ అవుతోంది…",
+    "sonioxVoiceFailedBadge": "విఫలమైంది",
+    "sonioxVoiceFailed": "ప్రాసెసింగ్ విఫలమైంది — ఈ వాయిస్‌ను తొలగించి స్పష్టమైన క్లిప్‌ను ప్రయత్నించండి",
+    "sonioxVoiceNameConflict": "ఈ పేరుతో వాయిస్ ఇప్పటికే ఉంది",
+    "sonioxVoiceQuotaError": "Soniox సంస్థ వాయిస్ పరిమితి చేరుకుంది — ఒక వాయిస్‌ను తొలగించి మళ్ళీ ప్రయత్నించండి",
+    "sonioxVoiceListError": "క్లోన్ చేసిన వాయిస్‌లను లోడ్ చేయలేకపోయాము — మీ API కీని తనిఖీ చేయండి."
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "క్లిప్‌లో ఏం చెప్పారో అచ్చంగా టైప్ చేయండి…",
     "unstable": "అస్థిరం",
     "voice": "వాయిస్",
-    "voiceBuilderDisclaimer": "చెల్లింపు Supertone సేవ. ఆ లావాదేవీలో Sokuji ప్రమేయం లేదు."
+    "voiceBuilderDisclaimer": "చెల్లింపు Supertone సేవ. ఆ లావాదేవీలో Sokuji ప్రమేయం లేదు.",
+    "refreshList": "వాయిస్ జాబితాను రిఫ్రెష్ చేయండి"
   }
 }

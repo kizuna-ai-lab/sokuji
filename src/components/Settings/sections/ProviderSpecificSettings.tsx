@@ -64,6 +64,7 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { EngineSection } from './EngineSection';
+import SonioxVoiceSection from './SonioxVoiceSection';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
@@ -1741,13 +1742,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
+        <SonioxVoiceSection
+          settings={activeSonioxSettings}
+          onUpdate={updateActiveSonioxSettings}
+          managed={managed}
+          isSessionActive={isSessionActive}
+        />
+
         <TtsSpeedControl
           value={activeSonioxSettings.ttsSpeed}
           onChange={(ttsSpeed) => updateActiveSonioxSettings({ ttsSpeed })}
           disabled={isSessionActive}
           min={0.7}
           max={1.3}
-          step={0.1}
+          step={0.05}
         />
 
         <div className="settings-section" id="soniox-vocabulary-section">

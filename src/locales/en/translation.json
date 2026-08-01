@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "Most aggressive",
     "sonioxBackground": "Session Background",
     "sonioxBackgroundTooltip": "Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.",
-    "sonioxBackgroundPlaceholder": "Paste an agenda, topic, or background notes (optional)"
+    "sonioxBackgroundPlaceholder": "Paste an agenda, topic, or background notes (optional)",
+    "sonioxVoiceConsent": "I confirm I have the right to use this voice",
+    "sonioxVoiceCloneTitle": "Clone voice",
+    "sonioxVoiceCloneReview": "Listen to your clip and name the voice before uploading.",
+    "sonioxVoiceNamePlaceholder": "Name for a new cloned voice (optional)",
+    "sonioxVoiceDefaultName": "My Voice {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "(deleted voice)",
+    "sonioxVoiceDeleteInUse": "This voice is being used by the active session — end the session before deleting it",
+    "sonioxVoiceProcessingBadge": "processing…",
+    "sonioxVoiceFailedBadge": "failed",
+    "sonioxVoiceFailed": "Processing failed — delete this voice and try a clearer clip",
+    "sonioxVoiceNameConflict": "A voice with this name already exists",
+    "sonioxVoiceQuotaError": "Soniox organization voice limit reached — delete a voice and retry",
+    "sonioxVoiceListError": "Could not load cloned voices — check the API key."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "Type exactly what the clip says…",
     "unstable": "unstable",
     "voice": "Voice",
-    "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction."
+    "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction.",
+    "refreshList": "Refresh voice list"
   }
 }

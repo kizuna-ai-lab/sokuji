@@ -236,7 +236,20 @@
     "sonioxLatencyLevelMost": "最も積極的",
     "sonioxBackground": "セッションの背景",
     "sonioxBackgroundTooltip": "次回のセッション用の自由形式の背景情報です——議題、トピック、参考メモなど。認識と翻訳が話題の分野に沿うようになります。結合した文脈がサイズ上限を超える場合、最初に削られます。",
-    "sonioxBackgroundPlaceholder": "議題やトピック、背景メモを貼り付けてください（任意）"
+    "sonioxBackgroundPlaceholder": "議題やトピック、背景メモを貼り付けてください（任意）",
+    "sonioxVoiceConsent": "この音声を使用する権利があることを確認します",
+    "sonioxVoiceCloneTitle": "音声を複製",
+    "sonioxVoiceCloneReview": "アップロードする前に、クリップを聞いて音声に名前を付けてください。",
+    "sonioxVoiceNamePlaceholder": "新しく複製する音声の名前（任意）",
+    "sonioxVoiceDefaultName": "マイ音声 {{n}}",
+    "sonioxVoiceDeletedPlaceholder": "（削除された音声）",
+    "sonioxVoiceDeleteInUse": "この音声はアクティブなセッションで使用中です — 削除する前にセッションを終了してください",
+    "sonioxVoiceProcessingBadge": "処理中…",
+    "sonioxVoiceFailedBadge": "失敗",
+    "sonioxVoiceFailed": "処理に失敗しました — この音声を削除し、より聞き取りやすいクリップでお試しください",
+    "sonioxVoiceNameConflict": "この名前の音声はすでに存在します",
+    "sonioxVoiceQuotaError": "Soniox の組織の音声上限に達しました — 音声を削除してから再試行してください",
+    "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -939,6 +952,7 @@
     "transcriptPlaceholder": "クリップの内容をそのまま入力してください…",
     "unstable": "不安定",
     "voice": "音声",
-    "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。"
+    "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。",
+    "refreshList": "音声リストを更新"
   }
 }

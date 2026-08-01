@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Play, Plus, Square, Upload } from 'lucide-react';
+import { Mic, Play, Plus, RefreshCw, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
@@ -15,6 +15,10 @@ export interface VoiceEntry {
   group: 'builtin' | 'custom';
   /** Whether the entry can be renamed / deleted (i.e. user-owned). */
   removable: boolean;
+  /** Listed but not selectable (dropdown presentation renders it as a
+   *  disabled option) — e.g. a cloned voice still processing or terminally
+   *  failed, which a session could not synthesize with. */
+  disabled?: boolean;
   meta?: {
     gender?: 'M' | 'F';
     /** Curated builtins are always visible; non-curated ones hide behind the
@@ -42,14 +46,22 @@ export interface VoiceLibrarySectionProps {
    *  includes `record`. `transcript` is only ever passed when
    *  `capability.transcriptRequired` is set. */
   onRecord?: (clip: Float32Array, sampleRate: number, transcript?: string) => Promise<void>;
-  /** Called when the user renames a removable voice. */
-  onRename: (id: string, name: string) => Promise<void>;
+  /** Called when the user renames a removable voice. Optional — when absent,
+   *  removable voices cannot be renamed and no rename affordance renders
+   *  (providers without a rename API, e.g. Soniox clones). */
+  onRename?: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
   /** Fetch a removable voice's stored clip so the user can play it back and
    *  check their recording is clear. Returns null when the voice has no
    *  playable clip. Preview controls only render when this is provided. */
   onPreview?: (id: string) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
+  /** Re-fetches a remotely-sourced custom-voice list (e.g. Soniox clones live
+   *  server-side). When provided, a Refresh button renders in the manage
+   *  toolbar next to Import/Record. */
+  onRefresh?: () => void;
+  /** True while the remote list fetch is in flight; disables the Refresh button. */
+  refreshing?: boolean;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
   /** True while a session is active. Disables voice selection (the worker is
@@ -67,6 +79,8 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRename,
   onDelete,
   onPreview,
+  onRefresh,
+  refreshing = false,
   capability,
   isSessionActive = false,
 }) => {
@@ -192,7 +206,14 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     // import, no error surfaced — the user just hasn't filled in the field).
     if (transcriptMissing) return;
     let anySucceeded = false;
-    for (const file of Array.from(files)) {
+    // Single-import adapters hold one staged clip at a time (see
+    // VoiceLibraryCapability.multipleImport): a multi-file drop would
+    // last-wins overwrite that slot on every iteration, so keep only the
+    // first file rather than silently discarding all but the last.
+    const selected = capability.multipleImport === false
+      ? Array.from(files).slice(0, 1)
+      : Array.from(files);
+    for (const file of selected) {
       try {
         // Only pass a second argument when the capability actually requires
         // one, so the non-gated path's call signature is byte-identical to
@@ -210,7 +231,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (anySucceeded && capability.transcriptRequired) setTranscript('');
-  }, [onImport, transcriptMissing, capability.transcriptRequired, transcript]);
+  }, [onImport, transcriptMissing, capability.transcriptRequired, capability.multipleImport, transcript]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
@@ -234,6 +255,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const commitEdit = useCallback(async (id: string) => {
     const name = editName.trim();
     setEditingId(null);
+    if (!onRename) return;
     const row = customs.find((v) => v.id === id);
     if (name && row && name !== row.label) {
       try { await onRename(id, name); }
@@ -274,7 +296,20 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
     try {
       const generation = recGenerationRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Voice-cloning reference audio must be captured RAW: the cloning
+      // model mimics everything in the clip, so browser echo-cancellation /
+      // noise-suppression / AGC artifacts get baked into the cloned voice
+      // (Soniox's docs note the model reproduces even background noise from
+      // the reference — the same reasoning applies to the native cloners).
+      // Mono is enough for a voice reference and keeps the encoded clip small.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+        },
+      });
       if (generation !== recGenerationRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -377,13 +412,15 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         {v.removable && !isEditing && (
           <>
             {renderPreviewButton(v)}
-            <button
-              type="button"
-              className="voice-row-btn"
-              onClick={() => startEdit(v.id, v.label)}
-            >
-              {t('voiceLibrary.rename', 'Rename')}
-            </button>
+            {onRename && (
+              <button
+                type="button"
+                className="voice-row-btn"
+                onClick={() => startEdit(v.id, v.label)}
+              >
+                {t('voiceLibrary.rename', 'Rename')}
+              </button>
+            )}
             <button
               type="button"
               className="voice-row-btn voice-row-btn-danger"
@@ -420,14 +457,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           <span className="voice-name">{v.label}</span>
         )}
         {!isEditing && renderPreviewButton(v)}
-        <button
-          type="button"
-          className="voice-row-btn"
-          disabled={isEditing}
-          onClick={() => startEdit(v.id, v.label)}
-        >
-          {t('voiceLibrary.rename', 'Rename')}
-        </button>
+        {onRename && (
+          <button
+            type="button"
+            className="voice-row-btn"
+            disabled={isEditing}
+            onClick={() => startEdit(v.id, v.label)}
+          >
+            {t('voiceLibrary.rename', 'Rename')}
+          </button>
+        )}
         <button
           type="button"
           className="voice-row-btn voice-row-btn-danger"
@@ -488,6 +527,18 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             : t('voiceLibrary.recordVoice', 'Record voice…')}
         </button>
       )}
+      {onRefresh && (
+        <button
+          type="button"
+          className="voice-import-btn"
+          disabled={refreshing}
+          onClick={onRefresh}
+          title={t('voiceLibrary.refreshList', 'Refresh voice list')}
+        >
+          <RefreshCw size={14} />
+          {t('voiceLibrary.refreshList', 'Refresh voice list')}
+        </button>
+      )}
       {canUpload && (
         <span className="voice-library-drop-hint">
           <Upload size={12} />
@@ -500,7 +551,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           type="file"
           accept={capability.accept ?? 'application/json,.json'}
           style={{ display: 'none' }}
-          multiple
+          multiple={capability.multipleImport !== false}
           onChange={(e) => void handleFiles(e.target.files)}
         />
       )}
@@ -532,7 +583,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             {customs.length > 0 && (
               <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
                 {customs.map((v) => (
-                  <option key={v.id} value={v.id}>
+                  <option key={v.id} value={v.id} disabled={v.disabled}>
                     {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
                   </option>
                 ))}
@@ -541,7 +592,14 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           </select>
         </div>
 
-        {(canUpload || canRecord) && (
+        {/* Manage block also renders when there's nothing left to create but
+            something to delete: an adapter without a client yet
+            (SonioxVoiceSection before an API key is entered) gates CREATE by
+            zeroing canUpload/canRecord, but a returning user's already-cloned
+            voices still need a way to reach their delete button. The
+            record/upload affordances inside stay individually gated below,
+            so a clientless render shows the manage list + delete only. */}
+        {(canUpload || canRecord || removableVoices.length > 0) && (
           <details className="voice-library-manage">
             <summary>
               {t('voiceLibrary.manageImported', 'Manage imported voices')}
