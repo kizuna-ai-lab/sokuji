@@ -667,6 +667,38 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
+  it('discards a preview that resolves after the API key changed', async () => {
+    // The in-flight case the clear-on-change effect cannot cover on its own:
+    // it clears at swap time, but a request started under the OLD key lands
+    // afterwards and would both play the old project's audio and reseed the
+    // NEW key's cache with it.
+    listMock.mockResolvedValue([cloned()]);
+    let release: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    synthesizeMock.mockImplementationOnce(() => new Promise((res) => { release = res; }));
+    const props = {
+      settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
+      onUpdate: vi.fn(),
+      managed: false,
+      isSessionActive: false,
+    };
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+
+    // Swap the key while the synthesis is still in flight, then let it land.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    release({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
+
+    // Neither played...
+    expect(screen.queryByRole('button', { name: /^stop$/i })).toBeNull();
+    // ...nor cached: the next click has to synthesize again.
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
+  });
+
   it('renders no preview button for processing or failed clones', async () => {
     listMock.mockResolvedValue([
       cloned({ id: 'proc', name: 'Cooking', models: [{ model: 'tts-rt-v1', status: 'processing' }] }),

@@ -110,6 +110,50 @@ describe('synthesizeOnce', () => {
     await expect(p).rejects.toMatchObject({ errorType: 'aborted' });
   });
 
+  // `fetch()` settles as soon as response HEADERS arrive — the body streams in
+  // afterwards. These two pin that cancellation stays armed across that gap:
+  // headers-then-stalled-body is a real failure mode, and releasing the timer
+  // and the abort forwarding at fetch-resolve time would leave the promise
+  // pending forever with the preview row's spinner stuck on.
+  //
+  // A response whose body only settles when the request signal aborts. The
+  // pre-check matters: the signal may already be aborted by the time the body
+  // read starts, and `addEventListener('abort')` never fires on an
+  // already-aborted signal.
+  const stalledBodyResponse = (init: RequestInit) => Promise.resolve({
+    ok: true,
+    status: 200,
+    arrayBuffer: () => new Promise((_res, rej) => {
+      if (init.signal!.aborted) { rej(init.signal!.reason); return; }
+      init.signal!.addEventListener('abort', () => rej(init.signal!.reason));
+    }),
+  });
+
+  it('keeps the deadline armed while the response body is read', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => stalledBodyResponse(init));
+      const p = synthesizeOnce(OPTS);
+      const settled = expect(p).rejects.toMatchObject({ errorType: 'timeout' });
+      await vi.advanceTimersByTimeAsync(25_000);
+      await settled;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still cancels the body read when the caller aborts after headers arrive', async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => stalledBodyResponse(init));
+    const p = synthesizeOnce({ ...OPTS, signal: controller.signal });
+    const settled = expect(p).rejects.toMatchObject({ errorType: 'aborted' });
+    // Let fetch resolve and the body read begin before cancelling.
+    await Promise.resolve();
+    await Promise.resolve();
+    controller.abort();
+    await settled;
+  });
+
   it('classifies a caller abort as "aborted" even with a non-DOMException reason', async () => {
     const controller = new AbortController();
     fetchMock.mockImplementationOnce((_url: string, init: RequestInit) =>

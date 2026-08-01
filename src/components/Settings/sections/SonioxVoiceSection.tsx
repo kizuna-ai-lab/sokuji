@@ -189,6 +189,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     signal?: AbortSignal
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
     if (!client) return null;
+    // Pinned for the post-await staleness check below — same guard the
+    // list/create paths use via clientRef.
+    const requestClient = client;
     const sample = previewSampleFor(settings.targetLanguage);
     // Same choke point the session path uses (SonioxProviderConfig.
     // buildSessionConfig): the slider already constrains this in practice, so
@@ -208,6 +211,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         speed,
         signal,
       });
+      // The key may have been swapped while this was in flight. The effect
+      // above already cleared the cache at swap time, so writing now would
+      // reseed the NEW project's cache with the OLD project's audio — and
+      // returning it would play another project's voice under this key.
+      // Discard instead; nothing was cancelled, so the user simply hears
+      // nothing and can click again.
+      if (clientRef.current !== requestClient) return null;
       previewCacheRef.current.set(cacheKey, result);
       return result;
     } catch (e) {

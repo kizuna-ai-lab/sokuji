@@ -212,6 +212,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
+
   // No gap: rows are already delimited by their hover/selected background, and
   // a voice list is scanned as one block — the spacing only cost height.
   gap: 0;
@@ -226,6 +227,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+
   // Vertical padding is trimmed to 2px: the row's height floor is set by
   // .voice-row-btn (~20px with its own padding + border), not by this, so
   // anything more was pure slack.
@@ -253,6 +255,7 @@
 
   &:hover:not(:disabled) { color: #fff; border-color: #888; }
   &:disabled { cursor: not-allowed; }
+
   // Dim on disabled EXCEPT while showing the loading spinner. Opacity is a
   // group compositing effect, not an inheritable property — a descendant
   // rule like `.voice-preview-spinner { opacity: 1 }` cannot cancel an
@@ -272,6 +275,7 @@
   // parent blocks, so it would render an invisible empty span.
   .voice-preview-spinner {
     display: inline-block;
+
     // This repo has no global box-sizing: border-box reset (Settings.scss
     // scopes it per-rule), so a 14px box with a 2px border would otherwise
     // render at 18px and jitter the row button's size between idle and
@@ -280,6 +284,7 @@
     width: 14px;
     height: 14px;
     border: 2px solid transparent;
+
     // Explicit white rather than currentColor (#b0b0b0 at rest — the button
     // is disabled while loading, so the :hover brightening above never
     // applies): the arc covers only one quadrant of a 14px circle, so it
