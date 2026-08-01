@@ -142,7 +142,7 @@ describe('SonioxVoiceSection', () => {
 
   it('shows a deleted-voice placeholder when the stored UUID is not in the fetched list', async () => {
     listMock.mockResolvedValue([]);
-    const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k' } });
+    const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     const select = container.querySelector('select')!;
     await waitFor(() => {
@@ -390,7 +390,7 @@ describe('SonioxVoiceSection', () => {
 
   it('refuses to delete the selected voice while a session is active (banner, no API call)', async () => {
     listMock.mockResolvedValue([cloned()]);
-    mount({ settings: { voice: 'uuid-1', apiKey: 'k' }, isSessionActive: true });
+    mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }, isSessionActive: true });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openManageDetails();
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
@@ -641,6 +641,30 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replay a preview cached under a previous API key after the client changes', async () => {
+    // A changed API key means a (possibly) different Soniox project: audio
+    // cached against the old project's UUIDs must not replay under the new
+    // key — that would mean hearing another project's cloned voice.
+    listMock.mockResolvedValue([cloned()]);
+    const onUpdate = vi.fn();
+    const props = {
+      settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
+      onUpdate,
+      managed: false,
+      isSessionActive: false,
+    };
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
+
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
   it('renders no preview button for processing or failed clones', async () => {

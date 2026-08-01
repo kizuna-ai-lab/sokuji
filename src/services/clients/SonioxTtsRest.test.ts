@@ -99,4 +99,35 @@ describe('synthesizeOnce', () => {
     await synthesizeOnce(OPTS);
     expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
+
+  it('aborts the in-flight fetch when the caller aborts', async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) =>
+      new Promise((_res, rej) =>
+        init.signal!.addEventListener('abort', () => rej(init.signal!.reason))));
+    const p = synthesizeOnce({ ...OPTS, signal: controller.signal });
+    controller.abort();
+    await expect(p).rejects.toMatchObject({ errorType: 'aborted' });
+  });
+
+  it('classifies a caller abort as "aborted" even with a non-DOMException reason', async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) =>
+      new Promise((_res, rej) =>
+        init.signal!.addEventListener('abort', () => rej(init.signal!.reason))));
+    const p = synthesizeOnce({ ...OPTS, signal: controller.signal });
+    // A plain string reason (not a DOMException) — `opts.signal.aborted` must
+    // still be enough to classify this as a cancel, not a spurious network error.
+    controller.abort('switched');
+    await expect(p).rejects.toMatchObject({ errorType: 'aborted' });
+  });
+
+  it('normalizes a body-read failure (connection drop mid-stream) to errorType "network"', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => { throw new TypeError('network error reading body'); },
+    });
+    await expect(synthesizeOnce(OPTS)).rejects.toMatchObject({ errorType: 'network' });
+  });
 });

@@ -36,7 +36,7 @@ import {
 } from '../../../services/clients/SonioxVoicesClient';
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { previewSampleFor } from './sonioxPreviewSample';
-import { SonioxProviderConfig } from '../../../services/providers/SonioxProviderConfig';
+import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import {
   validateVoiceClip,
   downmixToMono,
@@ -190,11 +190,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
     if (!client) return null;
     const sample = previewSampleFor(settings.targetLanguage);
-    const speed = settings.ttsSpeed;
+    // Same choke point the session path uses (SonioxProviderConfig.
+    // buildSessionConfig): the slider already constrains this in practice, so
+    // clamping here is defensive, but the two paths reading the same setting
+    // should agree on its bounds rather than one trusting the raw value.
+    const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
     const cacheKey = `${id}|${sample.language}|${speed}`;
+    setCaptureError(null);
     const cached = previewCacheRef.current.get(cacheKey);
     if (cached) return cached;
-    setCaptureError(null);
     try {
       const result = await synthesizeOnce({
         apiKey: settings.apiKey,

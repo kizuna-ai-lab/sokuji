@@ -59,7 +59,14 @@ const FALLBACK_LANGUAGE = 'en';
 
 /** The (text, language) pair to synthesize when auditioning a voice. */
 export function previewSampleFor(language: string): PreviewSample {
-  const text = PREVIEW_SAMPLES[language];
+  // `PREVIEW_SAMPLES` is a plain object literal, so a bracket lookup with an
+  // untrusted key (e.g. `previewSampleFor('constructor')`) would otherwise
+  // resolve to an inherited Object.prototype member instead of `undefined` —
+  // and `JSON.stringify` silently drops that function value from the TTS
+  // request body, producing a confusing server 400 instead of the intended
+  // English fallback. hasOwnProperty guards against exactly that.
+  const hasSample = Object.prototype.hasOwnProperty.call(PREVIEW_SAMPLES, language);
+  const text = hasSample ? PREVIEW_SAMPLES[language] : undefined;
   return text
     ? { language, text }
     : { language: FALLBACK_LANGUAGE, text: PREVIEW_SAMPLES[FALLBACK_LANGUAGE] };

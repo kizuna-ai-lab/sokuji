@@ -87,6 +87,15 @@ export async function synthesizeOnce(
       signal: controller.signal,
     });
   } catch (e) {
+    // Check the caller's own signal before sniffing the rejection's shape:
+    // a caller may abort with a non-DOMException reason (`controller.abort(
+    // 'switched')`), and even a real DOMException can fail `instanceof`
+    // across realms (observed under the jsdom test environment, whose
+    // AbortController/DOMException don't share a prototype chain with
+    // Node's) — `opts.signal.aborted` is name- and realm-agnostic.
+    if (opts.signal?.aborted) {
+      throw new SonioxVoicesError('aborted', 'Preview cancelled', 0);
+    }
     const name = e instanceof DOMException ? e.name : '';
     if (name === 'TimeoutError') {
       throw new SonioxVoicesError('timeout', `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`, 408);
@@ -102,7 +111,14 @@ export async function synthesizeOnce(
 
   if (!res.ok) await throwApiError(res);
 
-  const bytes = await res.arrayBuffer();
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await res.arrayBuffer();
+  } catch (e) {
+    // A connection drop mid-body throws a raw DOMException/TypeError here —
+    // normalize it so every rejection from this module is still one shape.
+    throw new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), res.status);
+  }
   // A zero-byte 200 would decode to silence and read to the user as "the
   // button does nothing" — fail loudly instead.
   if (bytes.byteLength === 0) {

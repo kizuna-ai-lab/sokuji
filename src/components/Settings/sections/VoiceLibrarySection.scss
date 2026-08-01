@@ -235,7 +235,14 @@
   cursor: pointer;
 
   &:hover:not(:disabled) { color: #fff; border-color: #888; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:disabled { cursor: not-allowed; }
+  // Dim on disabled EXCEPT while showing the loading spinner. Opacity is a
+  // group compositing effect, not an inheritable property — a descendant
+  // rule like `.voice-preview-spinner { opacity: 1 }` cannot cancel an
+  // ancestor's reduced opacity, the whole subtree still composites at the
+  // ancestor's alpha. Skipping the dim outright (rather than trying to
+  // counteract it) is what actually keeps the spinner legible.
+  &:disabled:not(:has(.voice-preview-spinner)) { opacity: 0.4; }
 
   &.voice-row-btn-danger {
     &:hover:not(:disabled) { color: #fff; background: #e74c3c; border-color: #e74c3c; }
@@ -248,10 +255,19 @@
   // parent blocks, so it would render an invisible empty span.
   .voice-preview-spinner {
     display: inline-block;
+    // This repo has no global box-sizing: border-box reset (Settings.scss
+    // scopes it per-rule), so a 14px box with a 2px border would otherwise
+    // render at 18px and jitter the row button's size between idle and
+    // loading states.
+    box-sizing: border-box;
     width: 14px;
     height: 14px;
     border: 2px solid transparent;
-    border-top-color: currentColor;
+    // Explicit white rather than currentColor (#b0b0b0 at rest — the button
+    // is disabled while loading, so the :hover brightening above never
+    // applies): the arc covers only one quadrant of a 14px circle, so it
+    // needs the extra contrast to read clearly against the dark background.
+    border-top-color: #fff;
     border-radius: 50%;
     animation: voice-preview-spin 0.8s linear infinite;
   }

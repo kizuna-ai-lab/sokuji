@@ -37,6 +37,17 @@ describe('previewSampleFor', () => {
     expect(previewSampleFor('klingon')).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
   });
 
+  it('falls back to the English pair for an Object.prototype key instead of leaking a function', () => {
+    // A plain object literal indexed by a raw string resolves inherited
+    // members like 'constructor' or 'toString' via bracket access; without a
+    // hasOwnProperty guard this would return { language: 'constructor', text:
+    // <Function> }, which JSON.stringify then silently drops from the wire
+    // payload — a confusing server 400 instead of a clean fallback.
+    expect(previewSampleFor('constructor')).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
+    expect(previewSampleFor('toString')).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
+    expect(previewSampleFor('hasOwnProperty')).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
+  });
+
   it('never returns a language whose text came from a different language', () => {
     // The pair is the whole point: a mismatched (text, language) makes Soniox
     // read the sentence with the wrong phonology.
