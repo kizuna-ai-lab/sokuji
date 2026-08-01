@@ -112,6 +112,12 @@ export function buildOpenAIRealtimeSession(
 /**
  * Build a sparse GA session.update payload. Only explicitly supplied settings
  * are emitted so a runtime update cannot reset unrelated server state.
+ *
+ * As of 2026-08 nothing in the app calls updateSession() on the OpenAI
+ * realtime clients, so this sparse path is exercised by unit tests only and
+ * has never run against a live session. A future caller should also know the
+ * GA API locks the voice after the first audio output: supplying `voice` in
+ * a mid-session update will surface a server error event.
  */
 export function buildOpenAIRealtimeSessionUpdate(
   config: Partial<OpenAISessionConfig>
