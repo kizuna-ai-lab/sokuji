@@ -22,6 +22,27 @@
 - Scope is BYOK cloned voices only. Do not add preview to the 28 built-ins, to managed mode, or make the sample text user-editable.
 - Run single test files with `npx vitest run <path>` (the `npm run test` script starts watch mode).
 
+## Prerequisite: install dependencies
+
+This plan is meant to run in a git worktree, and **a fresh worktree has no
+`node_modules`** — git does not copy untracked directories. Every `npx vitest`
+step below fails with "vitest: not found" until this is done once:
+
+```bash
+npm install
+```
+
+Note the root `postinstall` runs `electron-rebuild` and
+`scripts/copy-ort-wasm.sh`; both are expected and may take a few minutes.
+Verify with a file that is untouched by this plan:
+
+```bash
+npx vitest run src/services/clients/SonioxVoicesClient.test.ts
+```
+
+Expected: PASS. If it does not, fix the environment before starting Task 1 —
+a red baseline makes every "verify it fails" step meaningless.
+
 ---
 
 ### Task 1: One-shot TTS REST caller
@@ -508,11 +529,11 @@ git commit -m "feat(soniox): language-keyed preview sample sentences (#375)"
   The button renders only when `onPreview && v.removable && !v.disabled`.
   New locale key: `voiceLibrary.synthesizing`.
 
-**Note on the existing test:** `VoiceLibrarySection.test.tsx:67` currently asserts `expect(onPreview).toHaveBeenCalledWith('custom:1')`. Adding the signal argument makes that assertion fail — Step 1 updates it deliberately. This is an intended contract change, not a regression.
+**Note on the existing test:** `VoiceLibrarySection.test.tsx:68` currently asserts `expect(onPreview).toHaveBeenCalledWith('custom:1')`. Adding the signal argument makes that assertion fail — Step 1 updates it deliberately. This is an intended contract change, not a regression.
 
 - [ ] **Step 1: Update the existing preview test for the new signature and add the new cases**
 
-In `src/components/Settings/sections/VoiceLibrarySection.test.tsx`, replace line 67:
+In `src/components/Settings/sections/VoiceLibrarySection.test.tsx`, replace line 68:
 
 ```ts
     await waitFor(() => expect(onPreview).toHaveBeenCalledWith('custom:1'));
