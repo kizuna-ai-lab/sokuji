@@ -212,7 +212,9 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  // No gap: rows are already delimited by their hover/selected background, and
+  // a voice list is scanned as one block — the spacing only cost height.
+  gap: 0;
 }
 
 .voice-manage-row.selected {
@@ -224,7 +226,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px;
+  // Vertical padding is trimmed to 2px: the row's height floor is set by
+  // .voice-row-btn (~20px with its own padding + border), not by this, so
+  // anything more was pure slack.
+  padding: 2px 6px;
   border-radius: 3px;
   font-size: 13px;
   color: #d0d0d0;
