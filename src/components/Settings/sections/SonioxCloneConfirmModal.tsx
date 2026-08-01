@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Play, Square } from 'lucide-react';
+import { Check, Loader2, Play, Square } from 'lucide-react';
 import Modal from '../../Modal/Modal';
 
 /** `m:ss` readout for the custom player's time display; guards against
@@ -175,12 +175,19 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
           disabled={busy}
         />
         <label className="soniox-clone-confirm-modal__consent">
+          {/* Native input kept for semantics/a11y but visually replaced by the
+              drawn box below — a raw OS checkbox clashes with the design
+              system (the app's only other native checkbox is the tiny
+              "Unlimited" annotation; every prominent boolean is custom-drawn). */}
           <input
             type="checkbox"
             checked={consent}
             disabled={busy}
             onChange={(e) => setConsent(e.target.checked)}
           />
+          <span className="soniox-clone-confirm-modal__consent-box" aria-hidden="true">
+            {consent && <Check size={12} strokeWidth={3} />}
+          </span>
           <span>{t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}</span>
         </label>
         {error && (

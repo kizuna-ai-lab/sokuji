@@ -905,7 +905,9 @@
     }
   }
 
-  // Usage-rights checkbox gating the confirm button.
+  // Usage-rights checkbox gating the confirm button. The native input is
+  // visually hidden and replaced by a drawn box so the control matches the
+  // design system instead of rendering as OS browser chrome.
   &__consent {
     display: flex;
     align-items: center;
@@ -914,10 +916,46 @@
     color: vars.$text-secondary;
     font-size: vars.$font-body;
     cursor: pointer;
+    user-select: none;
 
     input[type='checkbox'] {
-      accent-color: vars.$color-primary;
-      cursor: pointer;
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    &-box {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      box-sizing: border-box;
+      background-color: vars.$bg-control;
+      border: 1px solid vars.$border-strong;
+      border-radius: vars.$radius-sm;
+      color: white;
+      transition: background-color vars.$transition-fast, border-color vars.$transition-fast;
+    }
+
+    input:checked + &-box {
+      background-color: vars.$color-primary;
+      border-color: vars.$color-primary;
+    }
+
+    input:focus-visible + &-box {
+      @include vars.focus-ring;
+    }
+
+    input:disabled + &-box {
+      @include vars.disabled-state;
+    }
+
+    &:hover input:not(:disabled) + &-box {
+      border-color: vars.$color-primary;
     }
   }
 
