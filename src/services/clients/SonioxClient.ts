@@ -566,7 +566,7 @@ export class SonioxClient implements IClient {
     this.assistantLanguage = null;
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
-    this.ttsSpokenText = '';
+    this.closeTtsUtterance();
   }
 
   /**
@@ -1006,6 +1006,17 @@ export class SonioxClient implements IClient {
     this.assistantLanguage = null;
     this.utteranceTtsLanguage = null;
     this.utteranceSide = null;
+    this.closeTtsUtterance();
+  }
+
+  /**
+   * Shared tail of finishUtterance/abandonUtteranceState: log the spoken
+   * text milestone and close the utterance's TTS stream. Ending the TTS
+   * side matters just as much on the abandon path — the TTS socket survives
+   * an STT stream swap, and an un-ended utterance stream would absorb the
+   * NEXT utterance's text into one combined synthesis.
+   */
+  private closeTtsUtterance(): void {
     // Debug-timeline milestone: the text this utterance sent to TTS to be
     // spoken. Only appears when TTS actually received text — a missing
     // tts.speak next to a translation means spoken output was skipped/degraded.

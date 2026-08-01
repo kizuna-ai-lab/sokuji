@@ -1225,6 +1225,22 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(items.filter((i) => i.role === 'assistant')).toHaveLength(1);
     expect(items.find((i) => i.role === 'assistant')!.id).toBe(assistantId);
   });
+
+  // The abandon path must END the interrupted utterance's TTS stream just
+  // like <end> does: the TTS socket survives the STT swap, and an un-ended
+  // utterance stream would absorb the resumed stream's next utterance text
+  // into one combined synthesis.
+  it('abandoning an interrupted utterance ends its TTS utterance stream', async () => {
+    const { stt, tts } = await connectedClient({ textOnly: false });
+    stt.emit({ tokens: [tok('Hello', { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' })] });
+    expect(tts!.utteranceEnds).toBe(0); // no <end> yet — the TTS utterance is open
+
+    stt.handlers.onError?.('503', 'temporarily unavailable');
+    stt.handlers.onClose?.({ code: 1011, reason: 'service unavailable' });
+    await flush();
+
+    expect(tts!.utteranceEnds).toBe(1); // abandon closed it, exactly as <end> would
+  });
 });
 
 describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
