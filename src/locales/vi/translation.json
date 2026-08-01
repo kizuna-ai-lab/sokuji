@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Xử lý thất bại — hãy xóa giọng nói này và thử một đoạn rõ hơn",
     "sonioxVoiceNameConflict": "Đã tồn tại giọng nói với tên này",
     "sonioxVoiceQuotaError": "Đã đạt giới hạn giọng nói của tổ chức Soniox — hãy xóa một giọng nói và thử lại",
-    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API."
+    "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API.",
+    "sonioxVoicePreviewCostHint": "Xem trước một giọng nói sẽ tổng hợp một đoạn clip ngắn bằng hạn mức Soniox của riêng bạn.",
+    "sonioxVoicePreviewAuthError": "Xem trước không thành công — hãy kiểm tra khóa API",
+    "sonioxVoicePreviewQuotaError": "Xem trước không thành công — đã đạt giới hạn tốc độ hoặc hạn mức của Soniox",
+    "sonioxVoicePreviewTimeout": "Xem trước đã hết thời gian chờ — hãy thử lại"
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",

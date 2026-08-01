@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "处理失败 — 请删除此声音并尝试更清晰的片段",
     "sonioxVoiceNameConflict": "已存在同名声音",
     "sonioxVoiceQuotaError": "已达到 Soniox 组织声音数量上限 — 请删除一个声音后重试",
-    "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。"
+    "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。",
+    "sonioxVoicePreviewCostHint": "预览声音会使用您自己的 Soniox 配额合成一小段音频。",
+    "sonioxVoicePreviewAuthError": "预览失败 — 请检查 API 密钥",
+    "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
+    "sonioxVoicePreviewTimeout": "预览超时 — 请重试"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",

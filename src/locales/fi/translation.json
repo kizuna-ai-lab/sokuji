@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Käsittely epäonnistui — poista tämä ääni ja kokeile selkeämpää näytettä",
     "sonioxVoiceNameConflict": "Tämän niminen ääni on jo olemassa",
     "sonioxVoiceQuotaError": "Soniox-organisaation äänirajoitus saavutettu — poista ääni ja yritä uudelleen",
-    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain."
+    "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain.",
+    "sonioxVoicePreviewCostHint": "Äänen esikatselu synteesoi lyhyen näytteen käyttäen omaa Soniox-kiintiötäsi.",
+    "sonioxVoicePreviewAuthError": "Esikatselu epäonnistui — tarkista API-avain",
+    "sonioxVoicePreviewQuotaError": "Esikatselu epäonnistui — Soniox-nopeusrajoitus tai kiintiö saavutettu",
+    "sonioxVoicePreviewTimeout": "Esikatselu aikakatkaistiin — yritä uudelleen"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",

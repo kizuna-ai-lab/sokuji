@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "پردازش ناموفق بود — این صدا را حذف کنید و کلیپ واضح‌تری امتحان کنید",
     "sonioxVoiceNameConflict": "صدایی با این نام از قبل وجود دارد",
     "sonioxVoiceQuotaError": "محدودیت صداهای سازمانی Soniox پر شده است — یک صدا را حذف کرده و دوباره تلاش کنید",
-    "sonioxVoiceListError": "بارگذاری صداهای شبیه‌سازی‌شده ممکن نشد — کلید API را بررسی کنید."
+    "sonioxVoiceListError": "بارگذاری صداهای شبیه‌سازی‌شده ممکن نشد — کلید API را بررسی کنید.",
+    "sonioxVoicePreviewCostHint": "پیش‌نمایش یک صدا با استفاده از سهمیه Soniox خودتان یک قطعه کوتاه تولید می‌کند.",
+    "sonioxVoicePreviewAuthError": "پیش‌نمایش ناموفق بود — کلید API را بررسی کنید",
+    "sonioxVoicePreviewQuotaError": "پیش‌نمایش ناموفق بود — محدودیت نرخ یا سهمیه Soniox پر شده است",
+    "sonioxVoicePreviewTimeout": "زمان پیش‌نمایش به پایان رسید — دوباره تلاش کنید"
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",

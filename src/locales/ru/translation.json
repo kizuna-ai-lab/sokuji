@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Ошибка обработки — удалите этот голос и попробуйте более чёткий фрагмент",
     "sonioxVoiceNameConflict": "Голос с таким именем уже существует",
     "sonioxVoiceQuotaError": "Достигнут лимит голосов организации Soniox — удалите голос и повторите попытку",
-    "sonioxVoiceListError": "Не удалось загрузить клонированные голоса — проверьте API-ключ."
+    "sonioxVoiceListError": "Не удалось загрузить клонированные голоса — проверьте API-ключ.",
+    "sonioxVoicePreviewCostHint": "Прослушивание превью голоса синтезирует короткий фрагмент с использованием вашей собственной квоты Soniox.",
+    "sonioxVoicePreviewAuthError": "Ошибка превью — проверьте API-ключ",
+    "sonioxVoicePreviewQuotaError": "Ошибка превью — достигнут лимит скорости или квота Soniox",
+    "sonioxVoicePreviewTimeout": "Истекло время ожидания превью — повторите попытку"
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись",

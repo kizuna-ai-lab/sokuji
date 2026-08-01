@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Verwerking mislukt — verwijder deze stem en probeer een duidelijkere opname",
     "sonioxVoiceNameConflict": "Er bestaat al een stem met deze naam",
     "sonioxVoiceQuotaError": "Limiet voor organisatiestemmen van Soniox bereikt — verwijder een stem en probeer het opnieuw",
-    "sonioxVoiceListError": "Gekloonde stemmen konden niet worden geladen — controleer de API-sleutel."
+    "sonioxVoiceListError": "Gekloonde stemmen konden niet worden geladen — controleer de API-sleutel.",
+    "sonioxVoicePreviewCostHint": "Het voorbeeld van een stem synthetiseert een korte clip met uw eigen Soniox-quotum.",
+    "sonioxVoicePreviewAuthError": "Voorbeeld mislukt — controleer de API-sleutel",
+    "sonioxVoicePreviewQuotaError": "Voorbeeld mislukt — Soniox-snelheidslimiet of quotum bereikt",
+    "sonioxVoicePreviewTimeout": "Time-out bij voorbeeld — probeer het opnieuw"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",

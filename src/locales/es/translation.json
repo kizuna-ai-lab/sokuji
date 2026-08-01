@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Error en el procesamiento — elimina esta voz e intenta con un clip más claro",
     "sonioxVoiceNameConflict": "Ya existe una voz con este nombre",
     "sonioxVoiceQuotaError": "Se alcanzó el límite de voces de la organización en Soniox — elimina una voz y vuelve a intentarlo",
-    "sonioxVoiceListError": "No se pudieron cargar las voces clonadas — comprueba la clave API."
+    "sonioxVoiceListError": "No se pudieron cargar las voces clonadas — comprueba la clave API.",
+    "sonioxVoicePreviewCostHint": "La vista previa de una voz sintetiza un clip corto usando tu propia cuota de Soniox.",
+    "sonioxVoicePreviewAuthError": "Error en la vista previa — comprueba la clave API",
+    "sonioxVoicePreviewQuotaError": "Error en la vista previa — se alcanzó el límite de frecuencia o la cuota de Soniox",
+    "sonioxVoicePreviewTimeout": "La vista previa agotó el tiempo de espera — inténtalo de nuevo"
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",

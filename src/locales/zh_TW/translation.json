@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "處理失敗 — 請刪除此語音並嘗試更清晰的片段",
     "sonioxVoiceNameConflict": "已有相同名稱的語音",
     "sonioxVoiceQuotaError": "已達到 Soniox 組織語音數量上限 — 請刪除一個語音後重試",
-    "sonioxVoiceListError": "無法載入複製的語音 — 請檢查 API 金鑰。"
+    "sonioxVoiceListError": "無法載入複製的語音 — 請檢查 API 金鑰。",
+    "sonioxVoicePreviewCostHint": "預覽聲音會使用您自己的 Soniox 配額合成一小段音訊。",
+    "sonioxVoicePreviewAuthError": "預覽失敗 — 請檢查 API 金鑰",
+    "sonioxVoicePreviewQuotaError": "預覽失敗 — 已達到 Soniox 速率限制或配額",
+    "sonioxVoicePreviewTimeout": "預覽逾時 — 請重試"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",

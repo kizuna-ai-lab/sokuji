@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "העיבוד נכשל — מחק את הקול הזה ונסה קטע ברור יותר",
     "sonioxVoiceNameConflict": "כבר קיים קול בשם הזה",
     "sonioxVoiceQuotaError": "מגבלת הקולות הארגונית של Soniox הושגה — מחק קול ונסה שוב",
-    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API."
+    "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API.",
+    "sonioxVoicePreviewCostHint": "תצוגה מקדימה של קול מייצרת קטע קצר באמצעות מכסת ה-Soniox שלך.",
+    "sonioxVoicePreviewAuthError": "התצוגה המקדימה נכשלה — בדוק את מפתח ה-API",
+    "sonioxVoicePreviewQuotaError": "התצוגה המקדימה נכשלה — הגעת למגבלת הקצב או למכסה של Soniox",
+    "sonioxVoicePreviewTimeout": "פג תוקף התצוגה המקדימה — נסה שוב"
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",

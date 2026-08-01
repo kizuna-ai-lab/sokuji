@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "처리에 실패했습니다 — 이 음성을 삭제하고 더 명확한 클립으로 다시 시도하세요",
     "sonioxVoiceNameConflict": "이 이름의 음성이 이미 있습니다",
     "sonioxVoiceQuotaError": "Soniox 조직 음성 한도에 도달했습니다 — 음성을 삭제하고 다시 시도하세요",
-    "sonioxVoiceListError": "복제된 음성을 불러올 수 없습니다 — API 키를 확인하세요."
+    "sonioxVoiceListError": "복제된 음성을 불러올 수 없습니다 — API 키를 확인하세요.",
+    "sonioxVoicePreviewCostHint": "음성을 미리 듣기 하면 회원님의 Soniox 할당량을 사용하여 짧은 클립이 합성됩니다.",
+    "sonioxVoicePreviewAuthError": "미리듣기 실패 — API 키를 확인하세요",
+    "sonioxVoicePreviewQuotaError": "미리듣기 실패 — Soniox 속도 제한 또는 할당량에 도달했습니다",
+    "sonioxVoicePreviewTimeout": "미리듣기 시간이 초과되었습니다 — 다시 시도하세요"
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",

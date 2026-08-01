@@ -249,7 +249,11 @@
     "sonioxVoiceFailed": "Processing failed — delete this voice and try a clearer clip",
     "sonioxVoiceNameConflict": "A voice with this name already exists",
     "sonioxVoiceQuotaError": "Soniox organization voice limit reached — delete a voice and retry",
-    "sonioxVoiceListError": "Could not load cloned voices — check the API key."
+    "sonioxVoiceListError": "Could not load cloned voices — check the API key.",
+    "sonioxVoicePreviewCostHint": "Previewing a voice synthesizes a short clip using your own Soniox quota.",
+    "sonioxVoicePreviewAuthError": "Preview failed — check the API key",
+    "sonioxVoicePreviewQuotaError": "Preview failed — Soniox rate limit or quota reached",
+    "sonioxVoicePreviewTimeout": "Preview timed out — try again"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
