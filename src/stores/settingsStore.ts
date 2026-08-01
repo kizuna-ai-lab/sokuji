@@ -29,6 +29,7 @@ import {
 } from '../services/providers/OpenAICompatibleProviderConfig';
 import {
   OpenAITranslateSettings, defaultOpenAITranslateSettings,
+  LEGACY_TRANSLATE_TRANSCRIPT_MODEL,
 } from '../services/providers/OpenAITranslateProviderConfig';
 import {
   GeminiSettings, defaultGeminiSettings,
@@ -360,6 +361,22 @@ export function migratePalabraAuthMode(
   // rejected there, so pinning them to app mode would strand the user.
   if (slice.clientId?.trim() || slice.clientSecret?.trim()) return { authMode: 'app' };
   return { authMode: 'platform' };
+}
+
+/** Move a persisted OpenAI-Translate transcript model off the legacy
+ *  `gpt-realtime-whisper`. OpenAI reclassified it as legacy on 2026-07-31 and
+ *  names `gpt-live-transcribe` as the replacement: identical $0.017/min, lower
+ *  word error rate (11.65% -> 9.60% on their Real World Audio Benchmark).
+ *  Dropping the value from the dropdown is not enough on its own — the stored
+ *  value survives and would keep being sent. Only that one legacy string is
+ *  rewritten, so a value a user picks from some future multi-option dropdown
+ *  is left alone. */
+export function migrateLegacyTranslateTranscriptModel(
+  slice: { transcriptModel: string }
+): Partial<Pick<OpenAITranslateSettings, 'transcriptModel'>> {
+  return slice.transcriptModel === LEGACY_TRANSLATE_TRANSCRIPT_MODEL
+    ? { transcriptModel: defaultOpenAITranslateSettings.transcriptModel }
+    : {};
 }
 
 /** Migrate a persisted deprecated OpenAI voice-agent realtime model id to its
@@ -1224,6 +1241,13 @@ const useSettingsStore = create<SettingsStore>()(
         const openaiSlice = loadedSlices.openai as OpenAISettings | undefined;
         if (openaiSlice?.model) {
           openaiSlice.model = migrateDeprecatedOpenAIModel(openaiSlice.model);
+        }
+
+        // Retire the legacy translate transcript model on both the direct and
+        // the relay-managed twin — they share the settings shape.
+        for (const key of ['openaiTranslate', 'kizunaOpenaiTranslate'] as const) {
+          const slice = loadedSlices[key] as OpenAITranslateSettings | undefined;
+          if (slice) Object.assign(slice, migrateLegacyTranslateTranscriptModel(slice));
         }
 
         // Drop persisted PalabraAI language codes the API rejects, so an existing

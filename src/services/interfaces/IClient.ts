@@ -76,8 +76,16 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
     createResponse?: boolean;
     interruptResponse?: boolean;
   };
+  // Built by buildInputAudioTranscription (see openaiTranscriptionContext),
+  // which decides per model which of these the API will accept: `languages`
+  // and `keywords` are rejected outright by the legacy transcription models,
+  // taking the whole session.update down with them. Never populate these by
+  // hand — go through that builder.
   inputAudioTranscription?: {
     model: string;
+    language?: string;
+    languages?: string[];
+    keywords?: string[];
   };
   inputAudioNoiseReduction?: {
     type: 'near_field' | 'far_field';

@@ -44,6 +44,14 @@ export interface ProviderCapabilities {
   // When true, the provider config must also list `reasoningEfforts`. UI
   // gates rendering on this flag plus the currently-selected model.
   hasReasoningEffort?: boolean;
+
+  // Whether this provider's session can carry a transcription keyword glossary.
+  // Model support is not sufficient on its own: OpenAI Translate runs
+  // `gpt-live-transcribe`, which accepts `keywords` in a voice-agent session,
+  // but the /v1/realtime/translations endpoint rejects the field outright. UI
+  // gates the glossary input on this flag plus the selected model, so that
+  // provider does not render a control that could never take effect.
+  hasTranscriptKeywords?: boolean;
 }
 
 export interface ProviderConfig {

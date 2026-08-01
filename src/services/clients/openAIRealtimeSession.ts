@@ -89,9 +89,10 @@ export function buildOpenAIRealtimeSession(
   }
 
   if (config.inputAudioTranscription?.model) {
-    audioInput.transcription = {
-      model: config.inputAudioTranscription.model
-    };
+    // Forwarded whole: the language / keyword hints are already gated per
+    // model by buildInputAudioTranscription, and dropping them here would
+    // silently undo that work.
+    audioInput.transcription = { ...config.inputAudioTranscription };
   }
 
   if (config.inputAudioNoiseReduction?.type) {
@@ -148,9 +149,10 @@ export function buildOpenAIRealtimeSessionUpdate(
   }
 
   if (config.inputAudioTranscription?.model) {
-    audioInput.transcription = {
-      model: config.inputAudioTranscription.model
-    };
+    // Forwarded whole: the language / keyword hints are already gated per
+    // model by buildInputAudioTranscription, and dropping them here would
+    // silently undo that work.
+    audioInput.transcription = { ...config.inputAudioTranscription };
   }
 
   if (config.inputAudioNoiseReduction?.type) {
