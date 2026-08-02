@@ -134,7 +134,7 @@
     "unlimited": "Không giới hạn",
     "transcriptModelTooltip": "Mô hình nhận dạng giọng nói cho chính lời bạn nói. Chỉ ảnh hưởng đến văn bản gốc hiển thị bên cạnh mỗi bản dịch — bản dịch được tạo trực tiếp từ âm thanh của bạn.\ngpt-live-transcribe: chính xác nhất, hiện chữ ngay khi bạn nói, đắt nhất.\ngpt-transcribe: thế hệ hiện tại, phiên âm từng lượt nói đã kết thúc.\ngpt-4o-mini-transcribe: rẻ nhất, là mặc định.\ngpt-4o-transcribe / whisper-1: các mô hình cũ hơn.",
     "transcriptKeywords": "Từ khóa phiên âm",
-    "transcriptKeywordsTooltip": "Tên riêng, thuật ngữ chuyên ngành và tên sản phẩm mà bộ phiên âm cần sẵn sàng, phân tách bằng dấu phẩy. Chỉ là gợi ý — một từ chỉ xuất hiện trong bản phiên âm khi nó thực sự được nói.",
+    "transcriptKeywordsTooltip": "Tên riêng, thuật ngữ chuyên ngành và tên sản phẩm mà bộ phiên âm cần sẵn sàng, phân tách bằng dấu phẩy. Chỉ là gợi ý — một từ chỉ xuất hiện trong bản phiên âm khi nó thực sự được nói. Được hỗ trợ bởi gpt-live-transcribe và gpt-transcribe.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",

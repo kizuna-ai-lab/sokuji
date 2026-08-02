@@ -134,7 +134,7 @@
     "unlimited": "Ilimitado",
     "transcriptModelTooltip": "Modelo de reconhecimento de fala para o que você diz. Afeta apenas o texto original exibido ao lado de cada tradução — a tradução em si é gerada direto do seu áudio.\ngpt-live-transcribe: o mais preciso, aparece enquanto você fala, o mais caro.\ngpt-transcribe: geração atual, transcreve cada turno concluído.\ngpt-4o-mini-transcribe: o mais barato, é o padrão.\ngpt-4o-transcribe / whisper-1: modelos mais antigos.",
     "transcriptKeywords": "Palavras-chave de transcrição",
-    "transcriptKeywordsTooltip": "Nomes, jargões e termos de produto para os quais a transcrição deve estar preparada, separados por vírgulas. São apenas dicas — um termo só aparece na transcrição se for realmente falado.",
+    "transcriptKeywordsTooltip": "Nomes, jargões e termos de produto para os quais a transcrição deve estar preparada, separados por vírgulas. São apenas dicas — um termo só aparece na transcrição se for realmente falado. Compatível com gpt-live-transcribe e gpt-transcribe.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Remoção de ruído de fundo. \nNenhum: Sem processamento, usar em salas silenciosas. \nCampo próximo: Para fones/microfones próximos. \nCampo distante: Para alto-falantes/salas de conferência com eco.",
     "systemInstructionsTooltip": "Instruções personalizadas para o tradutor de IA. Diga suas preferências como tom formal/casual, tratamento de termos técnicos, ou estilo de tradução específico.",

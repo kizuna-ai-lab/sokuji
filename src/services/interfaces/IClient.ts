@@ -93,7 +93,6 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
     language?: string;
     languages?: string[];
     keywords?: string[];
-    prompt?: string;
   };
   inputAudioNoiseReduction?: {
     type: 'near_field' | 'far_field';

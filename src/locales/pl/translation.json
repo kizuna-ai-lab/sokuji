@@ -134,7 +134,7 @@
     "unlimited": "Bez limitu",
     "transcriptModelTooltip": "Model rozpoznawania mowy dla twoich własnych wypowiedzi. Wpływa tylko na tekst oryginału wyświetlany obok każdego tłumaczenia — samo tłumaczenie powstaje bezpośrednio z dźwięku.\ngpt-live-transcribe: najdokładniejszy, pojawia się w trakcie mówienia, najdroższy.\ngpt-transcribe: bieżąca generacja, transkrybuje każdą zakończoną wypowiedź.\ngpt-4o-mini-transcribe: najtańszy, domyślny.\ngpt-4o-transcribe / whisper-1: starsze modele.",
     "transcriptKeywords": "Słowa kluczowe transkrypcji",
-    "transcriptKeywordsTooltip": "Nazwy, żargon i nazwy produktów, na które transkrypcja ma być przygotowana, oddzielone przecinkami. To tylko podpowiedzi — termin pojawi się w transkrypcji tylko wtedy, gdy faktycznie padnie.",
+    "transcriptKeywordsTooltip": "Nazwy, żargon i nazwy produktów, na które transkrypcja ma być przygotowana, oddzielone przecinkami. To tylko podpowiedzi — termin pojawi się w transkrypcji tylko wtedy, gdy faktycznie padnie. Obsługiwane przez gpt-live-transcribe i gpt-transcribe.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Ustaw poziom redukcji szumów tła",
     "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI",

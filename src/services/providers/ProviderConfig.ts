@@ -46,12 +46,11 @@ export interface ProviderCapabilities {
   hasReasoningEffort?: boolean;
 
   // Whether this provider's session can carry a transcription keyword glossary.
-  // Model support alone is not the right gate: OpenAI Translate runs
-  // `gpt-live-transcribe`, which accepts a glossary in a voice-agent session,
-  // yet the /v1/realtime/translations endpoint rejects every field but
-  // `model`. Conversely, within a voice-agent session every transcript model
-  // can carry one (current models via `keywords`, legacy via `prompt`), so
-  // this is a per-provider flag rather than a per-model one.
+  // Model support is not sufficient on its own: OpenAI Translate runs
+  // `gpt-live-transcribe`, which accepts `keywords` in a voice-agent session,
+  // but the /v1/realtime/translations endpoint rejects the field outright. UI
+  // gates the glossary input on this flag plus the selected model, so that
+  // provider does not render a control that could never take effect.
   hasTranscriptKeywords?: boolean;
 }
 

@@ -134,7 +134,7 @@
     "unlimited": "無限制",
     "transcriptModelTooltip": "辨識你自己說話內容的語音模型。它只影響每則翻譯旁顯示的原文，翻譯本身直接由音訊產生。\ngpt-live-transcribe：最準確，邊說邊出字，也最貴。\ngpt-transcribe：目前世代，每段話說完後轉錄。\ngpt-4o-mini-transcribe：最便宜，預設值。\ngpt-4o-transcribe / whisper-1：較舊的模型。",
     "transcriptKeywords": "轉錄關鍵字",
-    "transcriptKeywordsTooltip": "希望轉錄模型事先知道的人名、術語與產品名稱，以逗號分隔。這些只是提示——只有真的說出口，該詞才會出現在轉錄結果中。",
+    "transcriptKeywordsTooltip": "希望轉錄模型事先知道的人名、術語與產品名稱，以逗號分隔。這些只是提示——只有真的說出口，該詞才會出現在轉錄結果中。gpt-live-transcribe 與 gpt-transcribe 支援此功能。",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景噪音消除。\n無：不處理，在安靜房間使用。\n近場：用於耳機/近距離麥克風。\n遠場：用於有回音的喇叭/會議室。",
     "systemInstructionsTooltip": "AI翻譯器的自訂指令。告訴它您的偏好，如正式/隨意的語調、技術術語處理或特定的翻譯風格。",

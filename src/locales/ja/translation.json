@@ -134,7 +134,7 @@
     "unlimited": "無制限",
     "transcriptModelTooltip": "あなた自身の発話に使う音声認識モデル。各翻訳の横に表示される原文にのみ影響し、翻訳そのものは音声から直接生成されます。\ngpt-live-transcribe：最も高精度。話しながら文字が出ますが、最も高価です。\ngpt-transcribe：現行世代。発話の区切りごとに文字起こしします。\ngpt-4o-mini-transcribe：最も安価で、既定値です。\ngpt-4o-transcribe / whisper-1：旧世代のモデル。",
     "transcriptKeywords": "文字起こしキーワード",
-    "transcriptKeywordsTooltip": "固有名詞・専門用語・製品名など、文字起こしに備えさせたい語をカンマ区切りで入力します。あくまでヒントで、実際に発話された場合にのみ文字起こしに現れます。",
+    "transcriptKeywordsTooltip": "固有名詞・専門用語・製品名など、文字起こしに備えさせたい語をカンマ区切りで入力します。あくまでヒントで、実際に発話された場合にのみ文字起こしに現れます。gpt-live-transcribe と gpt-transcribe で利用できます。",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景ノイズの除去。\nなし：処理なし、静かな部屋で使用。\n近距離：ヘッドセット/近いマイク用。\n遠距離：エコーのあるスピーカー/会議室用。",
     "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。",

@@ -124,30 +124,13 @@ describe('buildInputAudioTranscription', () => {
     });
   });
 
-  it('routes the glossary through prompt for legacy models', () => {
+  it('sends the singular language for legacy models and never keywords', () => {
     // The API rejects both `languages` and `keywords` on these models, which
-    // would take the whole session down rather than degrade quietly. `prompt`
-    // is the field they do accept, so the glossary rides there instead.
-    const built = buildInputAudioTranscription('gpt-4o-mini-transcribe', 'zh_CN', 'Sokuji, Kizuna AI');
-    expect(built).toEqual({
-      model: 'gpt-4o-mini-transcribe',
-      language: 'zh',
-      prompt: 'Sokuji, Kizuna AI',
-    });
+    // would take the whole session down rather than degrade quietly.
+    const built = buildInputAudioTranscription('gpt-4o-mini-transcribe', 'zh_CN', 'Sokuji');
+    expect(built).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh' });
     expect(built).not.toHaveProperty('languages');
     expect(built).not.toHaveProperty('keywords');
-  });
-
-  it('never puts a prompt on a model that takes keywords', () => {
-    const built = buildInputAudioTranscription('gpt-live-transcribe', 'en', 'Sokuji');
-    expect(built).not.toHaveProperty('prompt');
-  });
-
-  it('omits prompt when the glossary is empty', () => {
-    expect(buildInputAudioTranscription('whisper-1', 'en', '  ,  ')).toEqual({
-      model: 'whisper-1',
-      language: 'en',
-    });
   });
 
   it('omits languages entirely rather than sending an empty array', () => {
@@ -189,11 +172,8 @@ describe('buildInputAudioTranscription', () => {
       if (supportsTranscriptionContext(model)) {
         expect(built).toEqual({ model, languages: ['en'], keywords: ['Sokuji'] });
       } else {
-        expect(built).toEqual({ model, language: 'en', prompt: 'Sokuji' });
+        expect(built).toEqual({ model, language: 'en' });
       }
-      // Whichever route it took, the glossary must reach every model — that is
-      // the point of carrying it as `prompt` on the legacy ones.
-      expect(JSON.stringify(built)).toContain('Sokuji');
     }
   });
 });
@@ -213,24 +193,13 @@ describe('retargetTranscriptionLanguage', () => {
     )).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh' });
   });
 
-  it('never leaks a keywords array onto a legacy model', () => {
+  it('never leaks a glossary onto a legacy model', () => {
     // A keywords array can only reach here if the model changed under a
-    // persisted config; emitting it would fail the whole session.update, so it
-    // has to come out the prompt side instead.
+    // persisted config; emitting it would fail the whole session.update.
     expect(retargetTranscriptionLanguage(
       { model: 'whisper-1', keywords: ['Sokuji'] },
       'de'
-    )).toEqual({ model: 'whisper-1', language: 'de', prompt: 'Sokuji' });
-  });
-
-  it('carries a legacy glossary across the reversal instead of dropping it', () => {
-    // The glossary lives in `prompt` for these models, so retargeting has to
-    // read it back out of there — otherwise the participant session silently
-    // loses the user's terms.
-    expect(retargetTranscriptionLanguage(
-      { model: 'gpt-4o-mini-transcribe', language: 'en', prompt: 'Sokuji, Kizuna AI' },
-      'ja'
-    )).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'ja', prompt: 'Sokuji, Kizuna AI' });
+    )).toEqual({ model: 'whisper-1', language: 'de' });
   });
 
   it('drops the hint when the new language has no supported code', () => {
