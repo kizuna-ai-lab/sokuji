@@ -107,6 +107,27 @@ export function parseTranscriptionKeywords(raw: string | undefined | null): stri
   return out;
 }
 
+/** Shared assembly for the two entry points below. */
+function assemble(
+  model: string,
+  sourceLanguage: string | undefined,
+  keywords: string[]
+): InputAudioTranscriptionConfig {
+  const config: InputAudioTranscriptionConfig = { model };
+  const language = normalizeTranscriptionLanguage(sourceLanguage);
+
+  if (supportsTranscriptionContext(model)) {
+    // `languages` rejects an empty array, so it is omitted rather than sent
+    // empty when the source language has no supported code.
+    if (language) config.languages = [language];
+    if (keywords.length > 0) config.keywords = keywords;
+  } else if (language) {
+    config.language = language;
+  }
+
+  return config;
+}
+
 /**
  * Build the `audio.input.transcription` payload for a realtime session,
  * emitting only the fields the selected model actually accepts.
@@ -117,19 +138,48 @@ export function buildInputAudioTranscription(
   rawKeywords?: string
 ): InputAudioTranscriptionConfig | undefined {
   if (!model) return undefined;
+  return assemble(model, sourceLanguage, parseTranscriptionKeywords(rawKeywords));
+}
 
-  const config: InputAudioTranscriptionConfig = { model };
-  const language = normalizeTranscriptionLanguage(sourceLanguage);
+/**
+ * Rebuild an existing transcription config around a different spoken language,
+ * keeping the model and glossary.
+ *
+ * Needed because the participant session reverses the translation direction:
+ * the other party speaks the configured TARGET language, so a hint built from
+ * the user's source language would push their ASR toward the wrong language —
+ * the exact opposite of what the hint is for. Every other provider reverses
+ * direction by swapping explicit sourceLanguage/targetLanguage fields; for
+ * OpenAI the direction lives in `instructions`, and this config is the one
+ * other place it leaks into.
+ */
+export function retargetTranscriptionLanguage(
+  config: InputAudioTranscriptionConfig | undefined,
+  sourceLanguage: string | undefined
+): InputAudioTranscriptionConfig | undefined {
+  if (!config) return undefined;
+  return assemble(config.model, sourceLanguage, config.keywords ?? []);
+}
 
-  if (supportsTranscriptionContext(model)) {
-    // `languages` rejects an empty array, so it is omitted rather than sent
-    // empty when the source language has no supported code.
-    if (language) config.languages = [language];
-    const keywords = parseTranscriptionKeywords(rawKeywords);
-    if (keywords.length > 0) config.keywords = keywords;
-  } else if (language) {
-    config.language = language;
-  }
+/** The direction-carrying slice of an OpenAI session config. Structural rather
+ *  than importing OpenAISessionConfig, to keep this module free of the wire
+ *  interfaces it feeds. */
+export interface DirectionalTranscriptionConfig {
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  inputAudioTranscription?: InputAudioTranscriptionConfig;
+}
 
-  return config;
+/**
+ * Flip an OpenAI session config to the participant's direction, in place.
+ *
+ * Mutates like the sibling swaps in createParticipantSessionConfig, which all
+ * do `[a.source, a.target] = [a.target, a.source]` on the config object.
+ */
+export function reverseTranscriptionDirection(config: DirectionalTranscriptionConfig): void {
+  [config.sourceLanguage, config.targetLanguage] = [config.targetLanguage, config.sourceLanguage];
+  config.inputAudioTranscription = retargetTranscriptionLanguage(
+    config.inputAudioTranscription,
+    config.sourceLanguage
+  );
 }

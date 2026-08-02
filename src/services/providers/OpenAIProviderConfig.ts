@@ -88,6 +88,10 @@ export function buildOpenAISessionConfig(
     model: settings.model,
     voice: settings.voice,
     instructions: systemInstructions,
+    // Not forwarded to the API — the participant session needs them to
+    // rebuild the transcription hint for the reversed direction.
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
     // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns

@@ -3,6 +3,8 @@ import {
   buildInputAudioTranscription,
   normalizeTranscriptionLanguage,
   parseTranscriptionKeywords,
+  retargetTranscriptionLanguage,
+  reverseTranscriptionDirection,
   supportsTranscriptionContext,
 } from './openaiTranscriptionContext';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
@@ -149,6 +151,19 @@ describe('buildInputAudioTranscription', () => {
     });
   });
 
+  it('is what retargetTranscriptionLanguage must agree with for the reverse direction', () => {
+    // The participant session hears the configured TARGET language. Retargeting
+    // must land on exactly what a fresh build for that language would produce.
+    const forward = buildInputAudioTranscription('gpt-live-transcribe', 'en', 'Sokuji');
+    const reversed = retargetTranscriptionLanguage(forward, 'zh_CN');
+    expect(reversed).toEqual(buildInputAudioTranscription('gpt-live-transcribe', 'zh_CN', 'Sokuji'));
+    expect(reversed).toEqual({
+      model: 'gpt-live-transcribe',
+      languages: ['zh'],
+      keywords: ['Sokuji'],
+    });
+  });
+
   it('keeps every model in the provider dropdown to a payload the API accepts', () => {
     const config = new OpenAIProviderConfig().getConfig();
     for (const model of config.transcriptModels) {
@@ -160,5 +175,93 @@ describe('buildInputAudioTranscription', () => {
         expect(built).toEqual({ model, language: 'en' });
       }
     }
+  });
+});
+
+describe('retargetTranscriptionLanguage', () => {
+  it('swaps the language while keeping model and glossary', () => {
+    expect(retargetTranscriptionLanguage(
+      { model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji'] },
+      'ja'
+    )).toEqual({ model: 'gpt-live-transcribe', languages: ['ja'], keywords: ['Sokuji'] });
+  });
+
+  it('keeps the singular-language shape for legacy models', () => {
+    expect(retargetTranscriptionLanguage(
+      { model: 'gpt-4o-mini-transcribe', language: 'en' },
+      'zh_TW'
+    )).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh' });
+  });
+
+  it('never leaks a glossary onto a legacy model', () => {
+    // A keywords array can only reach here if the model changed under a
+    // persisted config; emitting it would fail the whole session.update.
+    expect(retargetTranscriptionLanguage(
+      { model: 'whisper-1', keywords: ['Sokuji'] },
+      'de'
+    )).toEqual({ model: 'whisper-1', language: 'de' });
+  });
+
+  it('drops the hint when the new language has no supported code', () => {
+    expect(retargetTranscriptionLanguage(
+      { model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji'] },
+      'te'
+    )).toEqual({ model: 'gpt-live-transcribe', keywords: ['Sokuji'] });
+  });
+
+  it('passes undefined through', () => {
+    expect(retargetTranscriptionLanguage(undefined, 'en')).toBeUndefined();
+  });
+});
+
+describe('reverseTranscriptionDirection', () => {
+  it('flips the direction and repoints the hint at the participant language', () => {
+    // Regression: the participant session reverses `instructions` but used to
+    // leave the transcription hint on the user's source language, aiming the
+    // other party's ASR at the wrong language.
+    const config = {
+      sourceLanguage: 'en',
+      targetLanguage: 'zh_CN',
+      inputAudioTranscription: buildInputAudioTranscription('gpt-live-transcribe', 'en', 'Sokuji'),
+    };
+    reverseTranscriptionDirection(config);
+    expect(config.sourceLanguage).toBe('zh_CN');
+    expect(config.targetLanguage).toBe('en');
+    expect(config.inputAudioTranscription).toEqual({
+      model: 'gpt-live-transcribe',
+      languages: ['zh'],
+      keywords: ['Sokuji'],
+    });
+  });
+
+  it('reverses legacy models onto the singular language field', () => {
+    const config = {
+      sourceLanguage: 'ja',
+      targetLanguage: 'en_US',
+      inputAudioTranscription: buildInputAudioTranscription('gpt-4o-mini-transcribe', 'ja'),
+    };
+    reverseTranscriptionDirection(config);
+    expect(config.inputAudioTranscription).toEqual({
+      model: 'gpt-4o-mini-transcribe',
+      language: 'en',
+    });
+  });
+
+  it('is an involution — reversing twice restores the forward config', () => {
+    const forward = {
+      sourceLanguage: 'en',
+      targetLanguage: 'ja',
+      inputAudioTranscription: buildInputAudioTranscription('gpt-transcribe', 'en', 'Sokuji'),
+    };
+    const snapshot = JSON.parse(JSON.stringify(forward));
+    reverseTranscriptionDirection(forward);
+    reverseTranscriptionDirection(forward);
+    expect(forward).toEqual(snapshot);
+  });
+
+  it('leaves a config without transcription alone', () => {
+    const config = { sourceLanguage: 'en', targetLanguage: 'ja' };
+    reverseTranscriptionDirection(config);
+    expect(config).toEqual({ sourceLanguage: 'ja', targetLanguage: 'en' });
   });
 });
