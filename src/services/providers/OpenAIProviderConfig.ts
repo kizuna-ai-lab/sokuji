@@ -5,6 +5,20 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIGAClient } from '../clients/OpenAIGAClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
+import { buildInputAudioTranscription } from './openaiTranscriptionContext';
+
+/**
+ * Transcription models offered for the user's own speech. The first two are
+ * OpenAI's current generation and the only ones that accept the `languages` /
+ * `keywords` context hints; the rest are the legacy models, kept because they
+ * are cheaper (see the per-minute rates in TRANSCRIPT_MODELS below).
+ */
+export type OpenAITranscriptModel =
+  | 'gpt-live-transcribe'
+  | 'gpt-transcribe'
+  | 'gpt-4o-mini-transcribe'
+  | 'gpt-4o-transcribe'
+  | 'whisper-1';
 
 // OpenAI-compatible Settings (used by OpenAI and KizunaAI)
 export interface OpenAICompatibleSettingsBase {
@@ -20,7 +34,11 @@ export interface OpenAICompatibleSettingsBase {
   semanticEagerness: 'Auto' | 'Low' | 'Medium' | 'High';
   temperature: number;
   maxTokens: number | 'inf';
-  transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
+  transcriptModel: OpenAITranscriptModel;
+  /** Raw user-entered glossary (names, jargon, product terms) forwarded as the
+   *  transcription config's `keywords`. Only the context-capable models accept
+   *  it; buildInputAudioTranscription drops it for the rest. */
+  transcriptKeywords: string;
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
   // Persisted across model switches so the user's preference is preserved
@@ -44,7 +62,11 @@ export const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase =
   semanticEagerness: 'Auto',
   temperature: 0.8,
   maxTokens: 'inf',
+  // Kept on the cheapest model by default ($0.003/min vs $0.0045 for
+  // gpt-transcribe and $0.017 for gpt-live-transcribe). Upgrading is a
+  // deliberate, per-user choice in the transcript-model dropdown.
   transcriptModel: 'gpt-4o-mini-transcribe',
+  transcriptKeywords: '',
   noiseReduction: 'None',
   transportType: 'websocket',
   reasoningEffort: 'low',
@@ -66,6 +88,10 @@ export function buildOpenAISessionConfig(
     model: settings.model,
     voice: settings.voice,
     instructions: systemInstructions,
+    // Not forwarded to the API — the participant session needs them to
+    // rebuild the transcription hint for the reversed direction.
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
     // Push-to-Translate uses {type: 'none'} like Disabled — the client controls turns
@@ -91,9 +117,14 @@ export function buildOpenAISessionConfig(
     inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
       type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
-    inputAudioTranscription: settings.transcriptModel ? {
-      model: settings.transcriptModel
-    } : undefined,
+    // The source language is a real hint, not just a UI label: forwarding it
+    // measurably helps the transcriber, and we already know it. The builder
+    // decides which fields the chosen model tolerates.
+    inputAudioTranscription: buildInputAudioTranscription(
+      settings.transcriptModel,
+      settings.sourceLanguage,
+      settings.transcriptKeywords
+    ),
     // Forward reasoning effort unconditionally; the client gates by model name
     // before sending it to the API (older realtime models reject the field).
     reasoningEffort: settings.reasoningEffort,
@@ -233,7 +264,16 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
       voices: OpenAIProviderConfig.VOICES,
       models: OpenAIProviderConfig.MODELS,
       noiseReductionModes: ['None', 'Near field', 'Far field'],
-      transcriptModels: ['gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1'],
+      // Current generation first, then the legacy models. Per-minute rates as
+      // of 2026-08: live-transcribe $0.017, transcribe $0.0045,
+      // 4o-mini-transcribe $0.003, 4o-transcribe / whisper-1 $0.006.
+      transcriptModels: [
+        'gpt-live-transcribe',
+        'gpt-transcribe',
+        'gpt-4o-mini-transcribe',
+        'gpt-4o-transcribe',
+        'whisper-1',
+      ],
       reasoningEfforts: OpenAIProviderConfig.REASONING_EFFORTS,
 
       capabilities: {
@@ -243,6 +283,7 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
         hasNoiseReduction: true,
         hasModelConfiguration: true,
         hasReasoningEffort: true,
+        hasTranscriptKeywords: true,
         textOnlyCapability: 'optional',
 
         turnDetection: {

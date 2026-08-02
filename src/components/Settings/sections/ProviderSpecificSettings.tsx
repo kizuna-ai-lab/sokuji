@@ -1,6 +1,8 @@
 import React, { Fragment, useEffect, useMemo } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
+import { OpenAITranscriptModel } from '../../../services/providers/OpenAIProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
   useProvider,
@@ -847,6 +849,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const compatibleSettings = getOpenAICompatibleSettings();
     if (!compatibleSettings) return null;
 
+    // Two gates, both required: the provider's session must be able to carry a
+    // glossary at all, and the selected model must accept `keywords` — the
+    // legacy transcription models reject it and take the session down with it.
+    const showKeywords = !!config.capabilities.hasTranscriptKeywords
+      && supportsTranscriptionContext(compatibleSettings.transcriptModel);
+
     return (
       <div className="settings-section">
         <h2>
@@ -862,7 +870,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <select
             className="select-dropdown"
             value={compatibleSettings?.transcriptModel}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ transcriptModel: e.target.value as 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1' })}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ transcriptModel: e.target.value as OpenAITranscriptModel })}
             disabled={isSessionActive}
           >
             {config.transcriptModels.map((model) => (
@@ -870,6 +878,35 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             ))}
           </select>
         </div>
+        {showKeywords && (
+          <div className="setting-item">
+            {/* .setting-label is space-between flex, so the text and its
+                tooltip share one child or they end up at opposite edges. */}
+            <label className="setting-label" htmlFor="transcript-keywords">
+              <span>
+                {t('settings.transcriptKeywords', 'Transcription keywords')}
+                <Tooltip
+                  content={t(
+                    'settings.transcriptKeywordsTooltip',
+                    'Names, jargon, and product terms the transcriber should be ready for, separated by commas. Hints only — a term appears in the transcript only when it is actually spoken.'
+                  )}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+                </Tooltip>
+              </span>
+            </label>
+            <input
+              id="transcript-keywords"
+              type="text"
+              className="text-input"
+              value={(compatibleSettings as { transcriptKeywords?: string })?.transcriptKeywords ?? ''}
+              onChange={(e) => updateOpenAICompatibleSettingsHelper({ transcriptKeywords: e.target.value })}
+              placeholder={t('settings.transcriptKeywordsPlaceholder', 'Sokuji, Kizuna AI, PulseAudio')}
+              disabled={isSessionActive}
+            />
+          </div>
+        )}
       </div>
     );
   };

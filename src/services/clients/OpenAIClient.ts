@@ -602,13 +602,13 @@ export class OpenAIClient implements IClient {
       }
     }
 
-    // Handle transcription (only for OpenAI/CometAPI configurations)
+    // Handle transcription (only for OpenAI/CometAPI configurations).
+    // Forwarded as built: buildInputAudioTranscription has already decided
+    // which hints the selected model tolerates, so the pre-2026 habit of
+    // pinning `language: undefined` here would just throw away the source
+    // language we now pass through.
     if ('inputAudioTranscription' in config && config.inputAudioTranscription) {
-      updateParams.input_audio_transcription = {
-        model: config.inputAudioTranscription.model,
-        language: undefined,
-        prompt: undefined
-      };
+      updateParams.input_audio_transcription = { ...config.inputAudioTranscription };
     }
 
     this.client.updateSession(updateParams);

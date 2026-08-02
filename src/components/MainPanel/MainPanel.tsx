@@ -28,6 +28,7 @@ import useSettingsStore, { createParticipantLocalInferenceConfig, createParticip
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
+import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -45,7 +46,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -690,6 +691,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // the UI warning + API error message.
       tConfig.targetLanguage = (oldSource ?? oldTarget) as TranslateTargetLanguage;
       tConfig.sourceLanguage = oldTarget;
+    }
+
+    // OpenAI (and its compatible/Kizuna twins) carry the direction in
+    // `instructions`, already reversed above — except for the transcription
+    // hint, which is built from the user's source language. The participant
+    // speaks the configured *target* language, so leaving the hint alone would
+    // point their ASR at the wrong language, i.e. actively worse than sending
+    // no hint at all. Rebuild it around the reversed direction; the glossary
+    // carries over, since proper nouns are the same either way.
+    if (config.provider === 'openai' || config.provider === 'cometapi') {
+      reverseTranscriptionDirection(config as OpenAISessionConfig);
     }
 
     // Volcengine providers carry language direction in explicit config fields

@@ -5,6 +5,16 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
 
+/** The transcript model this provider sends. Kept a single value rather than a
+ *  choice: with one option there is no user preference for the load-time
+ *  migration to accidentally overwrite. If `gpt-live-transcribe` ever needs to
+ *  be walked back, change it here and the migration follows. */
+export type OpenAITranslateTranscriptModel = 'gpt-live-transcribe';
+
+/** Superseded value still sitting in persisted settings; see
+ *  migrateLegacyTranslateTranscriptModel in settingsStore. */
+export const LEGACY_TRANSLATE_TRANSCRIPT_MODEL = 'gpt-realtime-whisper';
+
 // OpenAI Translate Settings (gpt-realtime-translate model family)
 export interface OpenAITranslateSettings {
   apiKey: string;
@@ -12,8 +22,19 @@ export interface OpenAITranslateSettings {
   sourceLanguage: string;
   // Sent to API as audio.output.language
   targetLanguage: TranslateTargetLanguage;
-  // Currently the only valid value; UI dropdown shows it as a single option
-  transcriptModel: 'gpt-realtime-whisper';
+  // Source-transcript model. Was `gpt-realtime-whisper`, which OpenAI
+  // reclassified as legacy on 2026-07-31 while naming `gpt-live-transcribe`
+  // its replacement: identical $0.017/min, word error rate 11.65% -> 9.60% on
+  // their Real World Audio Benchmark. Both verified accepted by
+  // /v1/realtime/translations on 2026-08-01.
+  //
+  // Don't try to add the context hints here. That endpoint's transcription
+  // object takes `model` and nothing else: `keywords`, `prompt`, `language`,
+  // `languages` and `delay` were each sent alone and each came back as
+  // `unknown_parameter` — a schema-level gap, not a model capability, so
+  // switching transcription models will never unlock them. The identical
+  // `gpt-live-transcribe` accepts all of them in a `type: "realtime"` session.
+  transcriptModel: OpenAITranslateTranscriptModel;
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
   // Client-side utterance segmentation thresholds in seconds. User (input)
@@ -29,7 +50,7 @@ export const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
   apiKey: '',
   sourceLanguage: 'en',
   targetLanguage: 'zh',
-  transcriptModel: 'gpt-realtime-whisper',
+  transcriptModel: 'gpt-live-transcribe',
   noiseReduction: 'None',
   transportType: 'websocket',
   userSilenceDuration: 1.0,
@@ -219,7 +240,7 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
       voices: [],
       models: OpenAITranslateProviderConfig.MODELS,
       noiseReductionModes: ['None', 'Near field', 'Far field'],
-      transcriptModels: ['gpt-realtime-whisper'],
+      transcriptModels: ['gpt-live-transcribe'],
 
       capabilities: {
         hasTemplateMode: false,
