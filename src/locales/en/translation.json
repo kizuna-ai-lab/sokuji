@@ -134,7 +134,7 @@
     "unlimited": "Unlimited",
     "transcriptModelTooltip": "Speech recognition model for your own words. This only affects the original text shown next to each translation — the translation itself is produced from your audio directly. \ngpt-live-transcribe: Most accurate, streams as you speak, and the priciest. \ngpt-transcribe: Current generation, transcribes each finished turn. \ngpt-4o-mini-transcribe: Cheapest, the default. \ngpt-4o-transcribe / whisper-1: Older models.",
     "transcriptKeywords": "Transcription keywords",
-    "transcriptKeywordsTooltip": "Names, jargon, and product terms the transcriber should be ready for, separated by commas. Hints only — a term appears in the transcript only when it is actually spoken. Supported by gpt-live-transcribe and gpt-transcribe.",
+    "transcriptKeywordsTooltip": "Names, jargon, and product terms the transcriber should be ready for, separated by commas. Hints only — a term appears in the transcript only when it is actually spoken.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",

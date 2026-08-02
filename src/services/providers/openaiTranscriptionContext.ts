@@ -15,6 +15,11 @@
  *   | `keywords`  | REJECTED: "not supported"       | accepted (array of strings)          |
  *   | `prompt`    | accepted                        | accepted                             |
  *
+ * That last row is what lets the glossary work everywhere: the legacy models
+ * get it as a `prompt`, the current ones as `keywords`. Worth noting the
+ * server echoes `prompt` back in `session.updated` but never `keywords`, so
+ * the legacy path is the observable one.
+ *
  * The `/v1/realtime/translations` session is a different story again: its
  * transcription object accepts ONLY `model`. Every other field — `keywords`,
  * `prompt`, `language`, `languages`, `delay` — comes back as
@@ -62,6 +67,7 @@ export interface InputAudioTranscriptionConfig {
   language?: string;
   languages?: string[];
   keywords?: string[];
+  prompt?: string;
 }
 
 /** True when `model` accepts the `languages` / `keywords` context hints. */
@@ -121,8 +127,16 @@ function assemble(
     // empty when the source language has no supported code.
     if (language) config.languages = [language];
     if (keywords.length > 0) config.keywords = keywords;
-  } else if (language) {
-    config.language = language;
+  } else {
+    if (language) config.language = language;
+    // The legacy models reject `keywords` but accept `prompt`, which is how
+    // vocabulary has always been fed to Whisper — a bare comma-separated list
+    // read as prior text. Kept bare deliberately: wrapping it in an English
+    // carrier sentence ("Terms that may appear: …") would inject English into
+    // the prior text of a session that may be transcribing Japanese.
+    // This is the only thing that writes `prompt`, which is what lets
+    // retargetTranscriptionLanguage read the glossary back out of it.
+    if (keywords.length > 0) config.prompt = keywords.join(', ');
   }
 
   return config;
@@ -158,7 +172,12 @@ export function retargetTranscriptionLanguage(
   sourceLanguage: string | undefined
 ): InputAudioTranscriptionConfig | undefined {
   if (!config) return undefined;
-  return assemble(config.model, sourceLanguage, config.keywords ?? []);
+  // On a legacy model the glossary lives in `prompt`, so read it back from
+  // there — dropping it would silently strip the participant's glossary.
+  // Safe to re-split because assemble() is the only writer of `prompt` and
+  // always joins with ', '.
+  const keywords = config.keywords ?? parseTranscriptionKeywords(config.prompt);
+  return assemble(config.model, sourceLanguage, keywords);
 }
 
 /** The direction-carrying slice of an OpenAI session config. Structural rather

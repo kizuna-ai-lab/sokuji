@@ -134,7 +134,7 @@
     "unlimited": "Unbegrenzt",
     "transcriptModelTooltip": "Spracherkennungsmodell für Ihre eigenen Worte. Betrifft nur den Originaltext neben jeder Übersetzung — die Übersetzung selbst entsteht direkt aus Ihrem Audio.\ngpt-live-transcribe: am genauesten, erscheint schon beim Sprechen, am teuersten.\ngpt-transcribe: aktuelle Generation, transkribiert jeden abgeschlossenen Redebeitrag.\ngpt-4o-mini-transcribe: am günstigsten, Standard.\ngpt-4o-transcribe / whisper-1: ältere Modelle.",
     "transcriptKeywords": "Transkriptions-Schlüsselwörter",
-    "transcriptKeywordsTooltip": "Namen, Fachbegriffe und Produktnamen, auf die die Transkription vorbereitet sein soll, durch Kommas getrennt. Nur Hinweise — ein Begriff erscheint nur dann im Transkript, wenn er tatsächlich gesprochen wird. Unterstützt von gpt-live-transcribe und gpt-transcribe.",
+    "transcriptKeywordsTooltip": "Namen, Fachbegriffe und Produktnamen, auf die die Transkription vorbereitet sein soll, durch Kommas getrennt. Nur Hinweise — ein Begriff erscheint nur dann im Transkript, wenn er tatsächlich gesprochen wird.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Hintergrundgeräuschentfernung. \nKeine: Keine Verarbeitung, in ruhigen Räumen verwenden. \nNahfeld: Für Headsets/nahe Mikrofone. \nFernfeld: Für Lautsprecher/Konferenzräume mit Echo.",
     "systemInstructionsTooltip": "Benutzerdefinierte Anweisungen für den KI-Übersetzer. Teilen Sie Ihre Vorlieben wie formeller/lockerer Ton, Behandlung von Fachbegriffen oder spezifischer Übersetzungsstil mit.",

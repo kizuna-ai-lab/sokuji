@@ -1,7 +1,6 @@
 import React, { Fragment, useEffect, useMemo } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
 import { OpenAITranscriptModel } from '../../../services/providers/OpenAIProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
 import {
@@ -849,11 +848,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const compatibleSettings = getOpenAICompatibleSettings();
     if (!compatibleSettings) return null;
 
-    // Two gates, both required: the provider's session must be able to carry a
-    // glossary at all, and the selected model must accept `keywords` — the
-    // legacy transcription models reject it and take the session down with it.
-    const showKeywords = !!config.capabilities.hasTranscriptKeywords
-      && supportsTranscriptionContext(compatibleSettings.transcriptModel);
+    // Gated on the provider only. Every transcript model in this dropdown can
+    // carry a glossary — the current ones as `keywords`, the legacy ones as a
+    // `prompt` — so the field must not appear and disappear as the model
+    // changes, which would hide a setting that is still being sent.
+    // OpenAI Translate is the one that genuinely can't: its endpoint rejects
+    // both fields.
+    const showKeywords = !!config.capabilities.hasTranscriptKeywords;
 
     return (
       <div className="settings-section">

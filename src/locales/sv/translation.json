@@ -134,7 +134,7 @@
     "unlimited": "Obegränsat",
     "transcriptModelTooltip": "Taligenkänningsmodell för dina egna ord. Påverkar bara originaltexten som visas bredvid varje översättning — själva översättningen skapas direkt från ljudet.\ngpt-live-transcribe: mest exakt, visas medan du talar, dyrast.\ngpt-transcribe: nuvarande generation, transkriberar varje avslutad taltur.\ngpt-4o-mini-transcribe: billigast, standardvalet.\ngpt-4o-transcribe / whisper-1: äldre modeller.",
     "transcriptKeywords": "Nyckelord för transkription",
-    "transcriptKeywordsTooltip": "Namn, fackuttryck och produktnamn som transkriptionen ska vara beredd på, separerade med kommatecken. Endast ledtrådar — ett uttryck dyker upp i transkriptionen bara om det faktiskt sägs. Stöds av gpt-live-transcribe och gpt-transcribe.",
+    "transcriptKeywordsTooltip": "Namn, fackuttryck och produktnamn som transkriptionen ska vara beredd på, separerade med kommatecken. Endast ledtrådar — ett uttryck dyker upp i transkriptionen bara om det faktiskt sägs.",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
     "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
