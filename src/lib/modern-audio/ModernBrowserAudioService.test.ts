@@ -290,3 +290,43 @@ describe('stopping app capture does not resurrect it', () => {
     expect(recorder.end).toHaveBeenCalled();
   });
 });
+
+// Regression guard: the Linux tap's sink description carried a space, and pactl
+// truncates sink_properties at the first one - the monitor came out as
+// "Monitor of Sokuji" while the renderer looked for "Sokuji App Capture". It
+// never matched, so every per-application session silently captured the whole
+// system instead. The lookup also has to tolerate the browser's device list
+// refreshing asynchronously after the sink is created.
+describe('resolving the application-capture monitor', () => {
+  const withDevices = (...frames: MediaDeviceInfo[][]) => {
+    let i = 0;
+    return vi.fn(async () => frames[Math.min(i++, frames.length - 1)]);
+  };
+  const dev = (label: string): MediaDeviceInfo =>
+    ({ kind: 'audioinput', label, deviceId: `id-${label}`, groupId: '' } as MediaDeviceInfo);
+
+  it('matches the monitor the sound server actually publishes', async () => {
+    setMediaDevices(vi.fn(), withDevices([dev('Monitor of Sokuji_App_Capture')]));
+    const svc = new ModernBrowserAudioService();
+
+    const id = await (svc as any).resolveMonitorDeviceId('Sokuji_App_Capture');
+
+    expect(id).toBe('id-Monitor of Sokuji_App_Capture');
+  });
+
+  it('waits for a device list that has not refreshed yet', async () => {
+    setMediaDevices(vi.fn(), withDevices([], [], [dev('Monitor of Sokuji_App_Capture')]));
+    const svc = new ModernBrowserAudioService();
+
+    const id = await (svc as any).resolveMonitorDeviceId('Sokuji_App_Capture');
+
+    expect(id).toBe('id-Monitor of Sokuji_App_Capture');
+  });
+
+  it('gives up rather than hanging when the monitor never appears', async () => {
+    setMediaDevices(vi.fn(), withDevices([dev('Some other input')]));
+    const svc = new ModernBrowserAudioService();
+
+    expect(await (svc as any).resolveMonitorDeviceId('Sokuji_App_Capture')).toBeNull();
+  });
+});

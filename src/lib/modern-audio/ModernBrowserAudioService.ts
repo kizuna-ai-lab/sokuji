@@ -889,11 +889,18 @@ export class ModernBrowserAudioService implements IAudioService {
    * Chromium renders as "Monitor of <description>".
    */
   private async resolveMonitorDeviceId(monitorLabel: string): Promise<string | null> {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const match = devices.find(
-      (d) => d.kind === 'audioinput' && d.label.includes(monitorLabel)
-    );
-    return match?.deviceId ?? null;
+    // The sink was created moments ago and the browser's device list refreshes
+    // asynchronously, so a single lookup can miss it. Retry briefly rather than
+    // degrade to whole-system audio over a few milliseconds.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const match = devices.find(
+        (d) => d.kind === 'audioinput' && d.label.includes(monitorLabel)
+      );
+      if (match) return match.deviceId;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return null;
   }
 
   /**

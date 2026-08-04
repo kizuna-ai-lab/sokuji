@@ -20,7 +20,12 @@ const { listWindowTitles, titleForPid } = require('./linux-window-titles.js');
 
 const STREAM_CLASS = 'Stream/Output/Audio';
 const CAPTURE_SINK_NAME = 'sokuji_app_capture';
-const CAPTURE_SINK_DESCRIPTION = 'Sokuji App Capture';
+// Underscored on purpose, exactly like sokuji_virtual_output's description.
+// pactl splits sink_properties on whitespace, so a description with spaces
+// arrives truncated at the first one: "Sokuji App Capture" became "Sokuji", the
+// monitor came out as "Monitor of Sokuji", and the renderer - looking for the
+// full string - never matched it and silently fell back to whole-system audio.
+const CAPTURE_SINK_DESCRIPTION = 'Sokuji_App_Capture';
 
 // Module id of the null sink created by connectAppSource(), so disconnect can
 // unload exactly the module we made instead of pattern-matching the graph.
