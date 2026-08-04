@@ -1749,12 +1749,13 @@ git commit -am "fix(audio): <what the real-app run exposed>"
 
 These are deliberately excluded so this plan produces a working, shippable feature on its own:
 
-1. **Windows per-application capture** — WASAPI process loopback via a
-   `native/audio-host/win` CLI filter (argv in, PCM on stdout, JSON on stderr), plus an
-   `AppAudioRecorder` implementing `IParticipantAudioRecorder` directly for the PCM-push
-   path, wall-clock silence filling, and 48 kHz stereo → 24 kHz mono conversion.
-   Officially requires Windows 10 build 20348 (in practice Windows 11); a `--list` mode
-   feeds the same picker this plan builds.
+1. **Windows per-application capture** — specified in
+   `docs/superpowers/plans/2026-08-04-per-app-audio-capture-windows.md`.
+   That plan was written after the mechanism was proven on real hardware, and two
+   assumptions stated earlier in this project turned out to be **wrong** for Windows: process
+   loopback lets the caller request 24 kHz mono directly (no resampling), and it delivers a
+   continuous stream even while the target application is silent (no wall-clock silence
+   filling). Do not carry those steps over.
 2. **macOS per-application capture** — Core Audio process taps (macOS 14.2+), same CLI
    contract, plus the "System Audio Recording Only" TCC permission and the packaging
    entitlements.
@@ -1763,4 +1764,6 @@ These are deliberately excluded so this plan produces a working, shippable featu
    "System Audio (All Applications)", which is today's behaviour.
 
 Both follow-up plans consume the picker, the store state, and the
-`connectSystemAudioSource` contract built here, so this plan must land first.
+`connectSystemAudioSource` contract built in **Tasks 6–9 of this plan**. Those four tasks are
+platform-neutral; whichever plan runs first must land them, and the other then reuses them
+unchanged. The Windows plan states this dependency explicitly in its own prerequisites.
