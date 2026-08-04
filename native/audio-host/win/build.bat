@@ -23,5 +23,17 @@ if errorlevel 1 (
   echo BUILD FAILED
   exit /b 1
 )
-echo BUILD OK
+
+REM Copy straight into the vendored location. The committed binary under
+REM resources\bin is what the app actually loads, so leaving that step manual
+REM means a rebuilt helper silently has no effect - the app keeps running the
+REM stale committed copy while the fresh one sits in out\.
+set DEST=%~dp0..\..\..\resources\bin\win32-x64
+if not exist "%DEST%" mkdir "%DEST%"
+copy /Y out\sokuji-audio-host.exe "%DEST%\sokuji-audio-host.exe" >nul
+if errorlevel 1 (
+  echo BUILD OK but FAILED to update %DEST%
+  exit /b 1
+)
+echo BUILD OK - updated %DEST%\sokuji-audio-host.exe
 exit /b 0

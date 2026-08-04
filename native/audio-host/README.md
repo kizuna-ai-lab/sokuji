@@ -65,10 +65,15 @@ which render audio from a child process — are captured too.
 win\build.bat
 ```
 
-One `cl` invocation, output in `win\out\sokuji-audio-host.exe`. Requires Visual Studio Build
-Tools with the C++ workload and a Windows SDK. **No CMake, no NuGet, no WIL, no Media
-Foundation** — unlike the Microsoft ApplicationLoopback sample this is modelled on, which
-pulls in all of the above to do the same job.
+One `cl` invocation, output in `win\out\sokuji-audio-host.exe`, which the script then copies
+over `resources\bin\win32-x64\sokuji-audio-host.exe`. That committed copy is what the app
+actually loads, so the copy is part of the build rather than a step to remember: rebuilding
+without it leaves the app running the stale binary, which looks exactly like the fix not
+working.
+
+Requires Visual Studio Build Tools with the C++ workload and a Windows SDK. **No CMake, no
+NuGet, no WIL, no Media Foundation** — unlike the Microsoft ApplicationLoopback sample this is
+modelled on, which pulls in all of the above to do the same job.
 
 ### Verify
 
