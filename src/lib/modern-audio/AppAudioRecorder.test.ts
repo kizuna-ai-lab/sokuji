@@ -241,3 +241,105 @@ describe('AppAudioRecorder lifecycle', () => {
     expect(level).toContain('silent');
   });
 });
+
+// Regression guard: the level log and the analyser both ran after the callback,
+// which transfers the ArrayBuffer to a worker and detaches it. Every reading saw
+// length 0, so the level line never printed and the analyser asked for a
+// 0-frame buffer on every chunk - thousands of console errors and no waveform.
+describe('AppAudioRecorder observes audio before handing it off', () => {
+  it('measures the level even when the consumer detaches the buffer', async () => {
+    const rec = await started();
+    // Exactly what MainPanel does: post the buffer to a worker, transferring it.
+    await rec.record(({ mono }) => {
+      structuredClone(mono.buffer, { transfer: [mono.buffer] });
+    });
+
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, 'info').mockImplementation((m: any) => { logged.push(String(m)); });
+    for (let i = 0; i < 100; i++) pushPcm(new Array(960).fill(0));
+    spy.mockRestore();
+
+    expect(logged.find((l) => l.includes('captured level'))).toBeDefined();
+  });
+
+  it('reports a real peak rather than zero', async () => {
+    const rec = await started();
+    await rec.record(() => {});
+
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, 'info').mockImplementation((m: any) => { logged.push(String(m)); });
+    // 0x4000 little-endian = 16384 = half scale.
+    for (let i = 0; i < 100; i++) pushPcm(new Array(480).fill(0).flatMap(() => [0x00, 0x40]));
+    spy.mockRestore();
+
+    const line = logged.find((l) => l.includes('captured level'));
+    expect(line).toContain('peak=0.5000');
+    expect(line).not.toContain('silent');
+  });
+
+  it('disables the analyser after one failure instead of every chunk', async () => {
+    (globalThis as any).AudioContext = class {
+      currentTime = 0; state = 'running';
+      createAnalyser() { return { fftSize: 0, frequencyBinCount: 128 }; }
+      createBuffer() { throw new Error('boom'); }
+      createBufferSource() { return { connect: () => {}, start: () => {} }; }
+      close() { return Promise.resolve(); }
+    };
+    const rec = await started();
+    await rec.record(() => {});
+
+    const warns: string[] = [];
+    const spy = vi.spyOn(console, 'warn').mockImplementation((m: any) => { warns.push(String(m)); });
+    for (let i = 0; i < 20; i++) pushPcm([0x00, 0x01]);
+    spy.mockRestore();
+
+    expect(warns.filter((w) => w.includes('Analyser disabled'))).toHaveLength(1);
+    delete (globalThis as any).AudioContext;
+  });
+});
+
+describe('AppAudioRecorder distinguishes silence from no data', () => {
+  it('warns when the helper delivers nothing at all', async () => {
+    vi.useFakeTimers();
+    const warns: string[] = [];
+    const rec = await started();
+    const spy = vi.spyOn(console, 'warn').mockImplementation((m: any) => { warns.push(String(m)); });
+
+    vi.advanceTimersByTime(5000);
+
+    spy.mockRestore();
+    expect(warns.find((w) => w.includes('No audio data at all'))).toBeDefined();
+    await rec.end();
+    vi.useRealTimers();
+  });
+
+  it('stays quiet once data is flowing, even if that data is silence', async () => {
+    vi.useFakeTimers();
+    const warns: string[] = [];
+    const rec = await started();
+    await rec.record(() => {});
+    pushPcm([0x00, 0x00]);   // silent, but present
+    const spy = vi.spyOn(console, 'warn').mockImplementation((m: any) => { warns.push(String(m)); });
+
+    vi.advanceTimersByTime(5000);
+
+    spy.mockRestore();
+    expect(warns.find((w) => w.includes('No audio data at all'))).toBeUndefined();
+    await rec.end();
+    vi.useRealTimers();
+  });
+
+  it('stops the watchdog on end, so a finished capture cannot keep warning', async () => {
+    vi.useFakeTimers();
+    const rec = await started();
+    await rec.end();
+    const warns: string[] = [];
+    const spy = vi.spyOn(console, 'warn').mockImplementation((m: any) => { warns.push(String(m)); });
+
+    vi.advanceTimersByTime(20000);
+
+    spy.mockRestore();
+    expect(warns).toHaveLength(0);
+    vi.useRealTimers();
+  });
+});

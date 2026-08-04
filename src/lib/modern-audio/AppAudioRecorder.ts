@@ -39,6 +39,17 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private nextPlayTime = 0;
+  /** Set once the graph has failed, so one bad chunk cannot spam the console. */
+  private analyserBroken = false;
+
+  /**
+   * Distinguishes the two ways capture can look broken: PCM arriving but silent,
+   * versus no PCM arriving at all. They have different causes - a global tap
+   * always delivers buffers, while a per-process tap delivers nothing at all
+   * while its target is idle - and the log has to say which one happened.
+   */
+  private silenceWatchdog: ReturnType<typeof setInterval> | null = null;
+  private chunksSeen = 0;
 
   /** Invoked when the helper dies, so the caller can fall back to system capture. */
   public onLost: (() => void) | null = null;
@@ -99,6 +110,15 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     }
 
     this.status = 'paused';
+    this.silenceWatchdog = setInterval(() => {
+      if (this.chunksSeen === 0) {
+        console.warn(
+          '[Sokuji] [AppAudioRecorder] No audio data at all from the helper yet' +
+          ' - the target is producing no output (a per-application tap delivers' +
+          ' nothing while its application is idle).'
+        );
+      }
+    }, 5000);
     console.info(`[Sokuji] [AppAudioRecorder] Capturing ${deviceId}`);
     return true;
   }
@@ -134,6 +154,10 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
       console.warn('[Sokuji] [AppAudioRecorder] Failed to stop capture:', error);
     }
 
+    if (this.silenceWatchdog) {
+      clearInterval(this.silenceWatchdog);
+      this.silenceWatchdog = null;
+    }
     this.callback = null;
     this.leftover = new Uint8Array(0);
     this.status = 'ended';
@@ -145,6 +169,7 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   }
 
   private onPcm(payload: Uint8Array): void {
+    this.chunksSeen++;
     if (this.status !== 'recording' || !this.callback) return;
 
     let bytes: Uint8Array = payload;
@@ -169,13 +194,18 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     aligned.set(bytes.subarray(0, usable));
     const mono = new Int16Array(aligned.buffer);
 
-    this.callback({ mono, raw: mono });
+    // Observe BEFORE dispatching. The callback transfers this ArrayBuffer to a
+    // worker, which detaches it and leaves mono.length at 0 - which silently
+    // zeroed every level reading and made the analyser ask for a 0-frame buffer
+    // on every single chunk.
     this.observeLevel(mono);
     this.feedAnalyser(mono);
+    this.callback({ mono, raw: mono });
   }
 
   /** Log the captured level periodically so silence is visible as a fact. */
   private observeLevel(mono: Int16Array): void {
+    if (mono.length === 0) return;
     for (let i = 0; i < mono.length; i++) {
       const a = Math.abs(mono[i]);
       if (a > this.peakSinceLog) this.peakSinceLog = a;
@@ -201,6 +231,7 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
    * without a worklet or a SharedArrayBuffer.
    */
   private feedAnalyser(mono: Int16Array): void {
+    if (this.analyserBroken || mono.length === 0) return;
     try {
       if (!this.audioContext) {
         this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
@@ -226,9 +257,13 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
       source.start(this.nextPlayTime);
       this.nextPlayTime += buffer.duration;
     } catch (error) {
-      // The waveform is cosmetic; never let it break capture.
-      console.warn('[Sokuji] [AppAudioRecorder] Analyser feed failed:', error);
+      // The waveform is cosmetic; never let it break capture - and never let it
+      // repeat, since this runs on every chunk about a hundred times a second.
+      console.warn('[Sokuji] [AppAudioRecorder] Analyser disabled after:', error);
+      this.analyserBroken = true;
       this.analyser = null;
+      void this.audioContext?.close().catch(() => { /* already closing */ });
+      this.audioContext = null;
     }
   }
 
