@@ -22,30 +22,47 @@ const CAPTURE_SINK_DESCRIPTION = 'Sokuji App Capture';
 let captureModuleId = null;
 
 /**
- * Extract the selectable per-application audio streams from a `pw-dump` array.
+ * Group the playback streams in a `pw-dump` into one entry per application.
+ *
+ * Applications routinely open several streams at once - Chromium creates one
+ * per audio-producing tab, so a single browser showed up as six identical rows
+ * and capturing any one of them would have caught only that tab. Grouping by
+ * process id collapses them and lets connectAppSource() tap every stream the
+ * application owns, matching the process-tree semantics of the Windows helper.
+ *
  * @param {object[]} dump
- * @returns {Array<{deviceId: string, label: string, nodeId: number, pid: number|null, binary: string|null}>}
+ * @returns {Array<{deviceId: string, label: string, pid: number|null, nodeIds: number[], binary: string|null}>}
  */
 function parseAppStreams(dump) {
   if (!Array.isArray(dump)) return [];
 
-  const streams = [];
+  const byKey = new Map();
   for (const obj of dump) {
     const props = obj?.info?.props;
     if (!props || obj.type !== 'PipeWire:Interface:Node') continue;
     if (props['media.class'] !== STREAM_CLASS) continue;
+    if (typeof obj.id !== 'number') continue;
 
     const pidRaw = props['application.process.id'];
     const pid = typeof pidRaw === 'number' ? pidRaw : null;
     const binary = props['application.process.binary'] ?? null;
     const name = props['application.name'] ?? props['node.name'] ?? binary;
-    if (typeof obj.id !== 'number' || !name) continue;
+    if (!name) continue;
 
-    streams.push({ deviceId: `app:${obj.id}`, label: name, nodeId: obj.id, pid, binary });
+    // Streams without a pid cannot be grouped, so they stay per-node.
+    const key = pid !== null ? `pid:${pid}` : `node:${obj.id}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.nodeIds.push(obj.id);
+    } else {
+      byKey.set(key, { deviceId: `app:${key}`, label: name, pid, nodeIds: [obj.id], binary });
+    }
   }
 
-  // Two windows of the same app produce identical labels, giving the picker two
-  // indistinguishable rows. Suffix the pid only where labels actually collide.
+  const streams = [...byKey.values()];
+
+  // Two separate processes of the same application are still ambiguous; suffix
+  // the pid only for those, never for the common single-instance case.
   const counts = new Map();
   for (const s of streams) counts.set(s.label, (counts.get(s.label) ?? 0) + 1);
   for (const s of streams) {
@@ -104,8 +121,8 @@ async function listAppSources({ exec = defaultExec } = {}) {
  * @returns {Promise<{success: boolean, monitorLabel?: string, error?: string}>}
  */
 async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
-  const nodeId = Number.parseInt(String(deviceId).replace(/^app:/, ''), 10);
-  if (!String(deviceId).startsWith('app:') || !Number.isInteger(nodeId)) {
+  const id = String(deviceId);
+  if (!id.startsWith('app:')) {
     return { success: false, error: `Not an application source: ${deviceId}` };
   }
 
@@ -113,45 +130,65 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
   // same capture sink and both applications are translated at once.
   await disconnectAppSource({ exec });
 
+  let dump;
+  try {
+    dump = await dumpGraph(exec);
+  } catch (e) {
+    return { success: false, error: `Failed to read the PipeWire graph: ${e.message}` };
+  }
+
+  // Re-resolve from the live graph rather than trusting ids captured when the
+  // list was built: tabs open and close between enumeration and selection.
+  const entry = parseAppStreams(dump).find((s) => s.deviceId === id);
+  if (!entry || entry.nodeIds.length === 0) {
+    return { success: false, error: 'That application is no longer playing audio' };
+  }
+
   try {
     const { stdout } = await exec(
       `pactl load-module module-null-sink sink_name=${CAPTURE_SINK_NAME} ` +
       `sink_properties=device.description="${CAPTURE_SINK_DESCRIPTION}"`
     );
-    const id = stdout.trim();
+    const moduleId = stdout.trim();
     // Everything interpolated into a shell string here is either a module
     // constant or an integer we validated. This id comes back from pactl, so
     // pin it to digits before it is ever interpolated again.
-    if (!/^\d+$/.test(id)) {
-      throw new Error(`pactl returned an unexpected module id: ${JSON.stringify(id)}`);
+    if (!/^\d+$/.test(moduleId)) {
+      throw new Error(`pactl returned an unexpected module id: ${JSON.stringify(moduleId)}`);
     }
-    captureModuleId = id;
+    captureModuleId = moduleId;
   } catch (e) {
     return { success: false, error: `Failed to create capture sink: ${e.message}` };
   }
 
   try {
-    const dump = await dumpGraph(exec);
-    const sink = dump.find((o) =>
+    // The sink only exists after load-module, so re-dump to find its ports.
+    const withSink = await dumpGraph(exec);
+    const sink = withSink.find((o) =>
       o?.type === 'PipeWire:Interface:Node' &&
       o?.info?.props?.['node.name'] === CAPTURE_SINK_NAME);
+    const ins = sink ? resolvePortIds(withSink, sink.id, 'input') : [];
+    if (ins.length === 0) throw new Error('capture sink exposed no input ports');
 
-    const outs = resolvePortIds(dump, nodeId, 'output');
-    const ins = sink ? resolvePortIds(dump, sink.id, 'input') : [];
-    if (outs.length === 0 || ins.length === 0) {
+    // Link every stream the application owns. One node per tab means linking a
+    // single node would capture one tab and silently miss the rest.
+    let linked = 0;
+    for (const nodeId of entry.nodeIds) {
+      const outs = resolvePortIds(withSink, nodeId, 'output');
+      for (let i = 0; i < Math.min(outs.length, ins.length); i++) {
+        const out = Number(outs[i]);
+        const inp = Number(ins[i]);
+        if (!Number.isInteger(out) || !Number.isInteger(inp)) {
+          throw new Error('refusing to link non-numeric port ids');
+        }
+        await exec(`pw-link ${out} ${inp}`);
+        linked++;
+      }
+    }
+    if (linked === 0) {
       throw new Error('no ports to link (the application may have stopped playing)');
     }
 
-    for (let i = 0; i < Math.min(outs.length, ins.length); i++) {
-      // resolvePortIds only ever yields numbers, but assert it: these are the
-      // only caller-influenced values reaching a shell string.
-      const out = Number(outs[i]);
-      const inp = Number(ins[i]);
-      if (!Number.isInteger(out) || !Number.isInteger(inp)) {
-        throw new Error('refusing to link non-numeric port ids');
-      }
-      await exec(`pw-link ${out} ${inp}`);
-    }
     return { success: true, monitorLabel: CAPTURE_SINK_DESCRIPTION };
   } catch (e) {
     // Never leave the null sink behind: it shows up as a phantom audio device

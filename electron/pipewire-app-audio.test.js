@@ -34,10 +34,34 @@ const port = (id, nodeId, direction, portName) => ({
 });
 
 describe('parseAppStreams', () => {
-  it('returns one entry per playback stream, keyed app:<nodeId>', () => {
+  it('returns one entry per application, keyed app:pid:<pid>', () => {
     expect(parseAppStreams([NODE_STREAM, NODE_SINK, port(91, 205, 'output', 'output_FL')])).toEqual([
-      { deviceId: 'app:205', label: 'Chromium', nodeId: 205, pid: 4242, binary: 'chromium' },
+      { deviceId: 'app:pid:4242', label: 'Chromium', pid: 4242, nodeIds: [205], binary: 'chromium' },
     ]);
+  });
+
+  it('collapses every stream of one process into a single entry', () => {
+    // Chromium opens one stream per audio-producing tab. Six identical rows is
+    // what the user actually saw, and capturing one node would have caught only
+    // that tab's audio.
+    const tabs = [205, 206, 207].map((id) => {
+      const n = JSON.parse(JSON.stringify(NODE_STREAM));
+      n.id = id;
+      return n;
+    });
+    const result = parseAppStreams(tabs);
+    expect(result).toHaveLength(1);
+    expect(result[0].deviceId).toBe('app:pid:4242');
+    expect(result[0].label).toBe('Chromium');
+    expect(result[0].nodeIds).toEqual([205, 206, 207]);
+  });
+
+  it('keys streams with no pid by node so they are still selectable', () => {
+    const noPid = {
+      id: 9, type: 'PipeWire:Interface:Node',
+      info: { props: { 'media.class': 'Stream/Output/Audio', 'application.name': 'Weird' } },
+    };
+    expect(parseAppStreams([noPid])[0].deviceId).toBe('app:node:9');
   });
 
   it('ignores sinks, ports and non-audio nodes', () => {
@@ -53,12 +77,17 @@ describe('parseAppStreams', () => {
     expect(parseAppStreams([noAppName])[0].label).toBe('mpv');
   });
 
-  it('disambiguates two instances of the same app by appending the pid', () => {
+  it('suffixes the pid only when two separate processes share a name', () => {
     const a = JSON.parse(JSON.stringify(NODE_STREAM));
     const b = JSON.parse(JSON.stringify(NODE_STREAM));
     b.id = 206;
     b.info.props['application.process.id'] = 4243;
     expect(parseAppStreams([a, b]).map((s) => s.label)).toEqual(['Chromium (4242)', 'Chromium (4243)']);
+  });
+
+  it('leaves a single instance unsuffixed', () => {
+    // The common case must read as plain "Chromium", not "Chromium (4242)".
+    expect(parseAppStreams([NODE_STREAM])[0].label).toBe('Chromium');
   });
 
   it('tolerates malformed objects without throwing', () => {
@@ -124,7 +153,7 @@ beforeEach(async () => { await disconnectAppSource({ exec: async () => ({ stdout
 describe('connectAppSource', () => {
   it('creates the null sink and links every channel pair by numeric id', async () => {
     const calls = [];
-    const r = await connectAppSource('app:205', { exec: fakeExec(calls) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls) });
 
     expect(r.success).toBe(true);
     expect(r.monitorLabel).toBe(CAPTURE_SINK_DESCRIPTION);
@@ -133,9 +162,41 @@ describe('connectAppSource', () => {
     expect(calls).toContain('pw-link 55 142');
   });
 
+  it('links every stream the application owns, not just the first', async () => {
+    // One node per Chromium tab: linking only one would capture one tab and
+    // silently miss the rest, which is the whole point of grouping by pid.
+    const twoTabs = [
+      ...FULL_DUMP,
+      { id: 206, type: 'PipeWire:Interface:Node', info: { props: {
+          'media.class': 'Stream/Output/Audio', 'application.name': 'Chromium',
+          'application.process.id': 4242 } } },
+      port(77, 206, 'output', 'output_FL'),
+      port(78, 206, 'output', 'output_FR'),
+    ];
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: twoTabs }) });
+
+    expect(r.success).toBe(true);
+    expect(calls).toContain('pw-link 91 153');   // first stream
+    expect(calls).toContain('pw-link 77 153');   // second stream
+    expect(calls).toContain('pw-link 78 142');
+  });
+
+  it('fails cleanly when the application stopped playing before selection', async () => {
+    const calls = [];
+    // Enumeration and selection are seconds apart; the app can quit in between.
+    const gone = FULL_DUMP.filter((o) => o.id !== 205);
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: gone }) });
+
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/no longer playing/i);
+    // Nothing was created, so nothing needs tearing down.
+    expect(calls.some((c) => c.includes('load-module'))).toBe(false);
+  });
+
   it('never moves the stream off its existing sink', async () => {
     const calls = [];
-    await connectAppSource('app:205', { exec: fakeExec(calls) });
+    await connectAppSource('app:pid:4242', { exec: fakeExec(calls) });
     // move-sink-input would steal the audio from the user's speakers.
     expect(calls.some((c) => c.includes('move-sink-input'))).toBe(false);
   });
@@ -150,7 +211,7 @@ describe('connectAppSource', () => {
   it('tears the sink back down when the target node has no ports', async () => {
     const calls = [];
     const dumpNoPorts = FULL_DUMP.filter((o) => o.type !== 'PipeWire:Interface:Port');
-    const r = await connectAppSource('app:205', { exec: fakeExec(calls, { dump: dumpNoPorts }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: dumpNoPorts }) });
 
     expect(r.success).toBe(false);
     // A leaked null sink shows up as a phantom device in system settings.
@@ -160,7 +221,7 @@ describe('connectAppSource', () => {
   it('refuses a module id that is not digits', async () => {
     const calls = [];
     // Anything but digits would later be interpolated into a shell string.
-    const r = await connectAppSource('app:205', { exec: fakeExec(calls, { moduleId: '1; rm -rf /' }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { moduleId: '1; rm -rf /' }) });
     expect(r.success).toBe(false);
     expect(calls.some((c) => c.includes('rm -rf'))).toBe(false);
   });
@@ -168,9 +229,9 @@ describe('connectAppSource', () => {
   it('releases a previous tap before creating a new one', async () => {
     const calls = [];
     const exec = fakeExec(calls);
-    await connectAppSource('app:205', { exec });
+    await connectAppSource('app:pid:4242', { exec });
     calls.length = 0;
-    await connectAppSource('app:205', { exec });
+    await connectAppSource('app:pid:4242', { exec });
 
     // Two live taps would feed both applications into the same capture sink.
     expect(calls.some((c) => c.includes('unload-module 536870913'))).toBe(true);
@@ -181,7 +242,7 @@ describe('disconnectAppSource', () => {
   it('unloads the module recorded by connect and is idempotent', async () => {
     const calls = [];
     const exec = fakeExec(calls);
-    await connectAppSource('app:205', { exec });
+    await connectAppSource('app:pid:4242', { exec });
 
     expect((await disconnectAppSource({ exec })).success).toBe(true);
     expect(calls.some((c) => c.includes('unload-module 536870913'))).toBe(true);
@@ -195,7 +256,7 @@ describe('disconnectAppSource', () => {
 describe('listAppSources', () => {
   it('returns only playback streams, projected to {deviceId,label}', async () => {
     // The capture sink in FULL_DUMP is an Audio/Sink, so it must not be listed.
-    expect(await listAppSources({ exec: fakeExec([]) })).toEqual([{ deviceId: 'app:205', label: 'Chromium' }]);
+    expect(await listAppSources({ exec: fakeExec([]) })).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
   });
 
   it('never lists a leaked capture sink from a previous session', async () => {

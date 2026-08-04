@@ -95,6 +95,18 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
             <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
           </Tooltip>
         )}
+        {/* Applications come and go far more often than sound cards do, so this
+            list goes stale faster than the mic/speaker ones. */}
+        {showSourcePicker && (
+          <button
+            className="section-refresh-button"
+            onClick={refreshDevices}
+            disabled={isLoading}
+            title={t('audioPanel.refreshDevices')}
+          >
+            <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+          </button>
+        )}
       </h3>
       <ToggleSwitch
         checked={!isParticipantMuted}
@@ -107,21 +119,9 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           there is nothing to scope, and on platforms with no per-app helper. */}
       {showSourcePicker && !isParticipantMuted && (
         <div className="participant-source-picker">
-          <div className="participant-source-header">
-            <label className="participant-source-label">
-              {t('audioPanel.participantSource', 'Participant Audio Source')}
-            </label>
-            {/* Applications come and go far more often than sound cards do, so
-                this list goes stale faster than the mic/speaker ones. */}
-            <button
-              className="section-refresh-button"
-              onClick={refreshDevices}
-              disabled={isLoading}
-              title={t('audioPanel.refreshDevices')}
-            >
-              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
-            </button>
-          </div>
+          <label className="participant-source-label">
+            {t('audioPanel.participantSource', 'Participant Audio Source')}
+          </label>
           <DeviceList
             devices={participantSources}
             selectedDevice={selectedParticipantSource}
