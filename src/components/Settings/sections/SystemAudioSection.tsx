@@ -3,10 +3,16 @@ import { AudioLines, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
-import { useIsParticipantMuted, useSetParticipantMuted } from '../../../stores/audioStore';
+import {
+  useIsParticipantMuted, useSetParticipantMuted,
+  useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
+  type AudioDevice,
+} from '../../../stores/audioStore';
+import DeviceList from '../shared/DeviceList';
+import { useAnalytics } from '../../../lib/analytics';
 import { useProvider } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
-import { isExtension } from '../../../utils/environment';
+import { isExtension, isElectron } from '../../../utils/environment';
 
 interface SystemAudioSectionProps {
   /** Real session-active state — reserved for analytics-style consumers. */
@@ -30,7 +36,23 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const provider = useProvider();
   const isParticipantMuted = useIsParticipantMuted();
   const setParticipantMuted = useSetParticipantMuted();
+  const participantSources = useParticipantSources();
+  const selectedParticipantSource = useSelectedParticipantSource();
+  const selectParticipantSource = useSelectParticipantSource();
+  const { trackEvent } = useAnalytics();
   const locked = isLocked ?? isSessionActive;
+
+  // The picker only earns its space when a capture helper actually reported
+  // applications; with just the whole-system entry there is nothing to choose.
+  const showSourcePicker = isElectron() && participantSources.length > 1;
+
+  const handleSourceSelect = (device: AudioDevice) => {
+    // Re-linking mid-session would tear down the live capture. The list is
+    // rendered disabled too; this is the belt-and-braces guard.
+    if (locked) return;
+    selectParticipantSource(device);
+    trackEvent('participant_source_selected', { deviceId: device.deviceId });
+  };
 
   // Header help tooltip — explains what the participant channel captures.
   // Platform-conditional because Extension captures the active tab while
@@ -77,6 +99,26 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         label={!isParticipantMuted ? t('common.on', 'On') : t('common.off', 'Off')}
         disabled={locked}
       />
+
+      {/* Which application to capture. Hidden while the channel is off, since
+          there is nothing to scope, and on platforms with no per-app helper. */}
+      {showSourcePicker && !isParticipantMuted && (
+        <div className="participant-source-picker">
+          <label className="participant-source-label">
+            {t('audioPanel.participantSource', 'Participant Audio Source')}
+          </label>
+          <DeviceList
+            devices={participantSources}
+            selectedDevice={selectedParticipantSource}
+            isDeviceOn={true}
+            onSelect={handleSourceSelect}
+            disabled={locked}
+            deviceType="input"
+            filterVirtual={false}
+            showVirtualIndicators={false}
+          />
+        </div>
+      )}
     </div>
   );
 };

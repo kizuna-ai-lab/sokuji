@@ -17,6 +17,7 @@ import {
   useAudioContext,
   useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted,
   useSetMicMuted, useSetMonitorMuted, useSetParticipantMuted,
+  useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
 } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
@@ -36,14 +37,16 @@ interface ChannelRowSpec {
   key: ChannelKey;
   icon: LucideIcon;
   label: string;
-  // Mic + monitor: device list + selected device. Participant: empty list, null device, subtitle text instead.
+  // Mic, monitor, and per-application participant capture: device list +
+  // selected device. Participant without a per-app helper: empty list, null
+  // device, subtitle text instead.
   devices: AudioDevice[];
   selectedDevice: AudioDevice | null;
-  /** Participant only: descriptive subtitle in place of a device name. */
+  /** Shown in place of a device name when the row has no picker. */
   subtitle?: string;
   isMuted: boolean;
   onMuteToggle: () => void;
-  /** Mic + monitor only — participant has no device picker. */
+  /** Absent on rows that have no picker (participant without a per-app helper). */
   onSelectDevice?: (d: AudioDevice) => void;
   /** True when row is in scope and has no device picked. */
   isMissing: boolean;
@@ -65,6 +68,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const isMicMuted = useIsMicMuted();
   const isMonitorMuted = useIsMonitorMuted();
   const isParticipantMuted = useIsParticipantMuted();
+  const participantSources = useParticipantSources();
+  const selectedParticipantSource = useSelectedParticipantSource();
+  const selectParticipantSource = useSelectParticipantSource();
   const setMicMuted = useSetMicMuted();
   const setMonitorMuted = useSetMonitorMuted();
   const setParticipantMuted = useSetParticipantMuted();
@@ -161,17 +167,28 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (showParticipant) {
+      // Participant capture used to be all-or-nothing, so this row showed a
+      // fixed subtitle. It can now be scoped to one application, in which case
+      // it gets a real picker like the mic and monitor rows. Without a per-app
+      // helper the list holds only the whole-system entry and the old subtitle
+      // is still the honest answer.
+      const canPickSource = !isExtension() && participantSources.length > 1;
       list.push({
         key: 'participant',
         icon: AudioLines,
         label: t('modePicker.deviceParticipantAudio', 'Participant audio'),
-        devices: [],
-        selectedDevice: null,
-        subtitle: isExtension()
-          ? t('popover.participantSubtitleExtension', 'Plays via system default')
-          : t('popover.participantSubtitleElectron', 'All system audio'),
+        devices: canPickSource ? participantSources : [],
+        selectedDevice: canPickSource ? selectedParticipantSource : null,
+        subtitle: canPickSource
+          ? undefined
+          : isExtension()
+            ? t('popover.participantSubtitleExtension', 'Plays via system default')
+            : t('popover.participantSubtitleElectron', 'All system audio'),
         isMuted: isParticipantMuted,
         onMuteToggle: () => setParticipantMuted(!isParticipantMuted),
+        onSelectDevice: canPickSource
+          ? (d) => { selectParticipantSource(d); setParticipantMuted(false); }
+          : undefined,
         isMissing: false,
       });
     }
@@ -181,8 +198,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     mode,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, selectedMonitorDevice, isMonitorMuted,
-    isParticipantMuted,
-    selectInputDevice, selectMonitorDevice,
+    isParticipantMuted, participantSources, selectedParticipantSource,
+    selectInputDevice, selectMonitorDevice, selectParticipantSource,
     setMicMuted, setMonitorMuted, setParticipantMuted,
     t,
   ]);
@@ -227,6 +244,11 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
           const Icon = row.icon;
           const summary = summaryText(row);
           const isExpanded = expanded === row.key;
+          // A row is expandable when it actually has something to pick. This
+          // used to be hardcoded as "every row except participant"; participant
+          // capture can now be scoped to one application, so the capability -
+          // not the channel - decides.
+          const canExpand = !!row.onSelectDevice && row.devices.length > 0;
 
           return (
             <React.Fragment key={row.key}>
@@ -234,13 +256,13 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                 <button
                   type="button"
                   className="mode-device-popover__row-main"
-                  onClick={row.key === 'participant' ? undefined : () => setExpanded(isExpanded ? null : row.key)}
-                  aria-expanded={row.key === 'participant' ? undefined : isExpanded}
+                  onClick={canExpand ? () => setExpanded(isExpanded ? null : row.key) : undefined}
+                  aria-expanded={canExpand ? isExpanded : undefined}
                 >
                   <Icon size={14} className="mode-device-popover__row-icon" />
                   <span className="mode-device-popover__row-label">{row.label}</span>
                   <span className={`mode-device-popover__summary ${summary.cls}`}>{summary.text}</span>
-                  {row.key === 'participant' ? null : (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                  {canExpand ? (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : null}
                 </button>
                 <button
                   type="button"
@@ -258,7 +280,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                 </button>
               </div>
 
-              {isExpanded && row.key !== 'participant' && (
+              {isExpanded && canExpand && (
                 <div className="mode-device-popover__device-list" role="listbox" aria-label={row.label}>
                   {row.devices.map((d) => {
                     const selected = row.selectedDevice?.deviceId === d.deviceId;

@@ -1,13 +1,11 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Mic, Volume2, RefreshCw, AppWindow } from 'lucide-react';
+import { Mic, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode,
-  useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource } from '../../../stores/audioStore';
-import { isElectron } from '../../../utils/environment';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
@@ -69,9 +67,6 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   // return to speaker mode — keeps the displayed state honest (the monitor is
   // silenced) without destroying the preference.
   const monitorInScope = useIsMonitorChannelInScope();
-  const participantSources = useParticipantSources();
-  const selectedParticipantSource = useSelectedParticipantSource();
-  const selectParticipantSource = useSelectParticipantSource();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const noiseSuppressionMode = useNoiseSuppressionMode();
@@ -115,14 +110,6 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
       change_type: 'selected',
       during_session: isSessionActive
     });
-  };
-
-  const handleParticipantSourceSelect = (device: AudioDevice) => {
-    // Re-linking mid-session would tear down the live capture. The list is
-    // rendered disabled too; this is the belt-and-braces guard.
-    if (locked) return;
-    selectParticipantSource(device);
-    trackEvent('participant_source_selected', { deviceId: device.deviceId });
   };
 
   const handleMonitorDeviceSelect = (device: AudioDevice) => {
@@ -289,42 +276,6 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               ? t('audioPanel.turnOnMonitor', 'Turn on speaker monitor')
               : t('audioPanel.turnOffMonitor', 'Turn off speaker monitor')}
             ariaDescribedBy={reasonIdFor('speaker')}
-          />
-        </div>
-      )}
-
-      {/* Participant Audio Source (Electron only): translate one application
-          instead of everything the machine is playing. */}
-      {isElectron() && participantSources.length > 1 && (
-        <div className={`config-section participant-source-section ${className}`} id="participant-source-section">
-          <h3>
-            <AppWindow size={18} />
-            <span>{t('audioPanel.participantSource', 'Participant Audio Source')}</span>
-            <Tooltip
-              content={t('audioPanel.participantSourceDesc', 'Choose which application to translate. System Audio captures everything you hear, including games and music.')}
-              position="top"
-              icon="help"
-              maxWidth={300}
-            />
-            <button
-              className="section-refresh-button"
-              onClick={refreshDevices}
-              disabled={isLoading}
-              title={t('audioPanel.refreshDevices')}
-            >
-              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
-            </button>
-          </h3>
-
-          <DeviceList
-            devices={participantSources}
-            selectedDevice={selectedParticipantSource}
-            isDeviceOn={true}
-            onSelect={handleParticipantSourceSelect}
-            disabled={locked}
-            deviceType="input"
-            filterVirtual={false}
-            showVirtualIndicators={false}
           />
         </div>
       )}

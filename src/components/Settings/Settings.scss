@@ -1856,6 +1856,20 @@
   color: vars.$text-muted;
 }
 
+// Per-application source picker inside the participant audio section
+// (issue #335). Matches .noise-suppression-control, the other sub-control that
+// sits under a section's primary toggle.
+.participant-source-picker {
+  margin-top: 8px;
+
+  .participant-source-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-secondary, #aaa);
+  }
+}
+
 .noise-suppression-control {
   margin-top: 8px;
 
