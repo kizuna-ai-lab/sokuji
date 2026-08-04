@@ -1,11 +1,12 @@
 import React from 'react';
-import { AudioLines, AlertTriangle } from 'lucide-react';
+import { AudioLines, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useIsParticipantMuted, useSetParticipantMuted,
   useParticipantSources, useSelectedParticipantSource, useSelectParticipantSource,
+  useRefreshDevices, useIsAudioLoading,
   type AudioDevice,
 } from '../../../stores/audioStore';
 import DeviceList from '../shared/DeviceList';
@@ -40,6 +41,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const selectedParticipantSource = useSelectedParticipantSource();
   const selectParticipantSource = useSelectParticipantSource();
   const { trackEvent } = useAnalytics();
+  const refreshDevices = useRefreshDevices();
+  const isLoading = useIsAudioLoading();
   const locked = isLocked ?? isSessionActive;
 
   // The picker only earns its space when a capture helper actually reported
@@ -104,9 +107,21 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           there is nothing to scope, and on platforms with no per-app helper. */}
       {showSourcePicker && !isParticipantMuted && (
         <div className="participant-source-picker">
-          <label className="participant-source-label">
-            {t('audioPanel.participantSource', 'Participant Audio Source')}
-          </label>
+          <div className="participant-source-header">
+            <label className="participant-source-label">
+              {t('audioPanel.participantSource', 'Participant Audio Source')}
+            </label>
+            {/* Applications come and go far more often than sound cards do, so
+                this list goes stale faster than the mic/speaker ones. */}
+            <button
+              className="section-refresh-button"
+              onClick={refreshDevices}
+              disabled={isLoading}
+              title={t('audioPanel.refreshDevices')}
+            >
+              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+            </button>
+          </div>
           <DeviceList
             devices={participantSources}
             selectedDevice={selectedParticipantSource}

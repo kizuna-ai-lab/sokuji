@@ -1862,9 +1862,14 @@
 .participant-source-picker {
   margin-top: 8px;
 
-  .participant-source-label {
-    display: block;
+  .participant-source-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-bottom: 6px;
+  }
+
+  .participant-source-label {
     font-size: 13px;
     color: var(--text-secondary, #aaa);
   }

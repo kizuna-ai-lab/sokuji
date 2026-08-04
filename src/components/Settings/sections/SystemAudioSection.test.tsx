@@ -34,6 +34,7 @@ const store = {
   selected: null as { deviceId: string; label: string } | null,
   select: vi.fn(),
   setMuted: vi.fn(),
+  refresh: vi.fn(),
 };
 
 vi.mock('../../../stores/audioStore', () => ({
@@ -42,6 +43,8 @@ vi.mock('../../../stores/audioStore', () => ({
   useParticipantSources: () => store.sources,
   useSelectedParticipantSource: () => store.selected,
   useSelectParticipantSource: () => store.select,
+  useRefreshDevices: () => store.refresh,
+  useIsAudioLoading: () => false,
 }));
 
 vi.mock('../../../stores/settingsStore', () => ({
@@ -59,6 +62,7 @@ beforeEach(() => {
   store.selected = SYSTEM;
   store.select.mockReset();
   store.setMuted.mockReset();
+  store.refresh.mockReset();
 });
 
 const mount = (props: Record<string, unknown> = {}) =>
@@ -87,6 +91,12 @@ describe('SystemAudioSection', () => {
     fireEvent.click(screen.getByText('Chromium'));
     // Re-linking mid-session would tear down the live capture.
     expect(store.select).not.toHaveBeenCalled();
+  });
+
+  it('offers a refresh, since the application list goes stale as apps come and go', () => {
+    mount();
+    fireEvent.click(screen.getByTitle('audioPanel.refreshDevices'));
+    expect(store.refresh).toHaveBeenCalled();
   });
 
   it('hides the picker when the participant channel is off', () => {
