@@ -113,9 +113,10 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     this.silenceWatchdog = setInterval(() => {
       if (this.chunksSeen === 0) {
         console.warn(
-          '[Sokuji] [AppAudioRecorder] No audio data at all from the helper yet' +
-          ' - the target is producing no output (a per-application tap delivers' +
-          ' nothing while its application is idle).'
+          '[Sokuji] [AppAudioRecorder] No audio data at all from the helper yet.' +
+          ' A tap delivers nothing while its target renders no output, so this is' +
+          ' expected for an idle application - but it also looks exactly like a' +
+          ' tap pointed at the wrong process.'
         );
       }
     }, 5000);
@@ -237,6 +238,15 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
         this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 256;
+        // The render graph is pulled from the destination: a node with no path
+        // to it is never processed, so an unconnected analyser stays empty and
+        // the waveform stays flat. Route through a silent gain instead of
+        // leaving it detached - audible playback would be fed back into the
+        // capture.
+        const mute = this.audioContext.createGain();
+        mute.gain.value = 0;
+        this.analyser.connect(mute);
+        mute.connect(this.audioContext.destination);
         this.nextPlayTime = this.audioContext.currentTime;
       }
       const ctx = this.audioContext;
@@ -248,8 +258,6 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
 
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      // Connected to the analyser only - never to ctx.destination, or the
-      // captured audio would be played back and fed straight into the capture.
       source.connect(this.analyser!);
 
       const now = ctx.currentTime;

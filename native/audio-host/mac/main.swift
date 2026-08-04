@@ -144,7 +144,10 @@ func listSources() -> [Source] {
         out.append(Source(pid: pid,
                           label: label,
                           exe: bundle ?? label,
-                          active: boolProp(obj, kAudioProcessPropertyIsRunningOutput)))
+                          // The listed process is the user-facing app, which
+                          // in a multi-process app renders nothing itself - so
+                          // ask its whole tree, or every browser reads as idle.
+                          active: isRenderingOutput(audioObjectsInTree(of: pid))))
     }
 
     // Applications actually making noise are the likely target; float them up.
@@ -228,29 +231,60 @@ var gStop = false
 ///
 /// For a global tap the question is whether *any* application is, since that is
 /// what such a tap should be picking up.
-func isRenderingOutput(_ target: AudioObjectID?) -> Bool {
-    if let target {
-        return boolProp(target, kAudioProcessPropertyIsRunningOutput)
+func isRenderingOutput(_ targets: [AudioObjectID]) -> Bool {
+    let objs = targets.isEmpty
+        ? objectIDs(kAudioHardwarePropertyProcessObjectList)
+        : targets
+    return objs.contains { boolProp($0, kAudioProcessPropertyIsRunningOutput) }
+}
+
+func ppidOf(_ pid: pid_t) -> pid_t {
+    var info = kinfo_proc()
+    var size = MemoryLayout<kinfo_proc>.stride
+    var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
+    guard sysctl(&mib, 4, &info, &size, nil, 0) == 0 else { return 0 }
+    return info.kp_eproc.e_ppid
+}
+
+/// Every audio process object belonging to `pid` or to one of its descendants.
+///
+/// Browsers and other multi-process apps do not render audio from the process
+/// the user picked: Chrome plays through a "Google Chrome Helper" child, and
+/// tapping only the parent yields a tap that never fires - no data at all, not
+/// even silence. Windows already captures the whole tree
+/// (PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE) and Linux links every one
+/// of the app's streams; this brings macOS in line.
+func audioObjectsInTree(of targetPid: pid_t) -> [AudioObjectID] {
+    let all = objectIDs(kAudioHardwarePropertyProcessObjectList)
+    return all.filter { obj in
+        // pidOf is optional; an object without a pid cannot be in any tree.
+        guard var current = pidOf(obj) else { return false }
+        // Walk up to the target; the depth bound stops a cycle from hanging us.
+        for _ in 0..<8 {
+            if current == targetPid { return true }
+            if current <= 1 { return false }
+            current = ppidOf(current)
+        }
+        return false
     }
-    return objectIDs(kAudioHardwarePropertyProcessObjectList)
-        .contains { boolProp($0, kAudioProcessPropertyIsRunningOutput) }
 }
 
 func runCapture(pid: pid_t?) -> Int32 {
-    var procObj: AudioObjectID? = nil
+    var procObjs: [AudioObjectID] = []
     if let pid {
-        guard let found = objectIDs(kAudioHardwarePropertyProcessObjectList).first(where: { pidOf($0) == pid }) else {
+        procObjs = audioObjectsInTree(of: pid)
+        guard !procObjs.isEmpty else {
             emitError("no_such_audio_process")
             return 1
         }
-        procObj = found
     }
 
     let tapUUID = UUID()
     // Excluding nothing yields a global tap; both variants are governed by the
     // same audio-capture permission.
-    let desc = procObj.map { CATapDescription(monoMixdownOfProcesses: [$0]) }
-        ?? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+    let desc = procObjs.isEmpty
+        ? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        : CATapDescription(monoMixdownOfProcesses: procObjs)
     desc.uuid = tapUUID
     desc.name = "Sokuji Application Capture"
     desc.isPrivate = true   // visible only to us; CATapUnmuted is the default
@@ -406,7 +440,7 @@ func runCapture(pid: pid_t?) -> Int32 {
             && Date().timeIntervalSince(state.startedAt) > 3.0
         state.lock.unlock()
 
-        if unexplainedSilence && isRenderingOutput(procObj) {
+        if unexplainedSilence && isRenderingOutput(procObjs) {
             state.lock.lock()
             state.warned = true
             state.lock.unlock()

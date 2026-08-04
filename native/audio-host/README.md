@@ -149,6 +149,14 @@ As on Windows the copy is part of the build, not a step to remember.
   objects, mostly daemons (`CoreSpeech`, `loginwindow`, `universalaccessd`,
   `systemsoundserverd`). Restricting to `NSRunningApplication` with a `.regular` activation
   policy — "has a Dock icon" — cut that to the 3 real applications.
+- **A per-application tap must cover the process tree.** Multi-process apps do
+  not render audio from the process the user picked - Chrome plays through a
+  "Google Chrome Helper" child - and a tap on the parent alone never fires, so
+  the helper produces no data at all rather than silence. Windows gets this for
+  free via PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE and Linux links
+  every one of the app's streams; macOS has to expand the tree itself. The same
+  applies to `IsRunningOutput`: asked of the parent it is always false, so any
+  browser reads as idle.
 - **Whole-system capture uses a global tap, not getDisplayMedia.** Screen
   Recording is a second, heavier permission, and a `stereoGlobalTapButExcludeProcesses: []`
   tap does the same job under the audio-capture grant the per-application path

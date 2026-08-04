@@ -197,12 +197,18 @@ describe('AppAudioRecorder lifecycle', () => {
     // jsdom has no Web Audio, so stand one up. A permanently flat waveform gave
     // no way to tell working capture from silent capture, which is exactly the
     // question this analyser exists to answer.
-    const analyser = { fftSize: 0, frequencyBinCount: 128 };
+    const destination = { id: 'destination' };
+    const gain = { gain: { value: 1 }, connect: (n: unknown) => gainTo.push(n) };
+    const gainTo: unknown[] = [];
+    const analyserTo: unknown[] = [];
+    const analyser = { fftSize: 0, frequencyBinCount: 128, connect: (n: unknown) => analyserTo.push(n) };
     const connected: unknown[] = [];
     (globalThis as any).AudioContext = class {
       currentTime = 0;
       state = 'running';
+      destination = destination;
       createAnalyser() { return analyser; }
+      createGain() { return gain; }
       createBuffer(_c: number, len: number) {
         return { duration: len / 24000, getChannelData: () => new Float32Array(len) };
       }
@@ -219,9 +225,14 @@ describe('AppAudioRecorder lifecycle', () => {
     pushPcm([0x00, 0x01, 0x00, 0x02]);
 
     expect(rec.getAnalyser()).toBe(analyser);
-    // Never wired to the destination: playing the capture back would feed it
-    // straight into itself.
     expect(connected).toEqual([analyser]);
+    // The render graph is pulled from the destination, so a detached analyser is
+    // never processed and the waveform stays flat. It must reach the
+    // destination - through a silenced gain, so nothing is played back into the
+    // capture.
+    expect(analyserTo).toEqual([gain]);
+    expect(gainTo).toEqual([destination]);
+    expect(gain.gain.value).toBe(0);
 
     delete (globalThis as any).AudioContext;
   });
@@ -280,7 +291,9 @@ describe('AppAudioRecorder observes audio before handing it off', () => {
   it('disables the analyser after one failure instead of every chunk', async () => {
     (globalThis as any).AudioContext = class {
       currentTime = 0; state = 'running';
-      createAnalyser() { return { fftSize: 0, frequencyBinCount: 128 }; }
+      createAnalyser() { return { fftSize: 0, frequencyBinCount: 128, connect: () => {} }; }
+      createGain() { return { gain: { value: 1 }, connect: () => {} }; }
+      destination = {};
       createBuffer() { throw new Error('boom'); }
       createBufferSource() { return { connect: () => {}, start: () => {} }; }
       close() { return Promise.resolve(); }
