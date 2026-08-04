@@ -222,8 +222,37 @@ Expected outcomes and what each means:
 Edit this task in the plan and write the observed HRESULT and session count, plus the chosen
 strategy, so Task 2's implementer does not re-run the spike.
 
-> **Decision (fill in):** `GetDefaultAudioEndpoint hr=______`, session count `______`.
-> Chosen strategy: **A (audio sessions)** / **B (visible windows)**.
+> **Decision (recorded 2026-08-04, measured on 192.168.1.13):**
+>
+> **Enumeration is session-bound even though capture is not.** Run from an SSH
+> (session 0) context, strategy A returned `GetDefaultAudioEndpoint hr=0x00000000` but a
+> session count of 1 containing only `pid=0`, and strategy B returned 0 windows. The spike was
+> therefore re-run **inside session 1** via a scheduled task
+> (`schtasks /create ... /ru jiang /it /f` then `/run`), which is the technique to reuse
+> whenever something must be observed from the interactive desktop.
+>
+> From session 1:
+> - **Strategy A** → `session count=2`:
+>   `pid=23144 state=0 ShellExperienceHost.exe`, `pid=22972 state=1 Overwatch.exe`.
+> - **Strategy B** → 12 windows, mostly noise: `ApplicationFrameHost.exe`,
+>   `TextInputHost.exe`, `Program Manager`, `PowerToys.QuickAccess.exe`, plus two rows for
+>   one `rustdesk.exe` and a title that rendered as `????`.
+>
+> **Chosen: strategy A, with strategy B used only to prettify labels.** A yields a short,
+> relevant list and an `AudioSessionState` telling us which app is actually playing
+> (`state=1`). B alone would put Program Manager and the input host in a user-facing picker.
+> The helper enumerates audio sessions, then — best effort — replaces the `Foo.exe` label with
+> the top-level window title belonging to that PID when one exists.
+>
+> **Accepted trade-off:** an application that has never opened an audio session does not
+> appear. Meeting clients open one on joining a call, so the practical guidance is "join the
+> meeting, then pick the source"; the list is re-enumerated on every `refreshDevices()`.
+>
+> **Encoding gotcha found here:** the Overwatch window title printed as `????`. Window titles
+> and executable names are UTF-16 and routinely non-ASCII (Chinese/Japanese application
+> names). The helper must convert with `WideCharToMultiByte(CP_UTF8, ...)` and escape the
+> result for JSON — never `printf("%S")`, which goes through the console code page and
+> destroys the text.
 
 **Strategy B, the fallback**, enumerates top-level visible windows and maps them to PIDs —
 this is what the Microsoft sample's companion tool does and it needs no audio endpoint:
