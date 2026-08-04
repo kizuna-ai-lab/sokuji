@@ -6,7 +6,23 @@
 const path = require('path');
 const fsDefault = require('fs');
 
-const AUDIO_HOST_REL_PATH = path.join('resources', 'bin', 'win32-x64', 'sokuji-audio-host.exe');
+/**
+ * Per-platform location of the helper. macOS ships one binary per architecture
+ * because Apple Silicon and Intel cannot share a Mach-O built this way.
+ */
+function relPathFor(platform, arch) {
+  if (platform === 'win32') {
+    return path.join('resources', 'bin', 'win32-x64', 'sokuji-audio-host.exe');
+  }
+  if (platform === 'darwin') {
+    const dir = arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64';
+    return path.join('resources', 'bin', dir, 'sokuji-audio-host');
+  }
+  return null;
+}
+
+// Kept for callers that only care about the Windows layout.
+const AUDIO_HOST_REL_PATH = relPathFor('win32');
 
 /**
  * Resolve the capture helper's absolute path.
@@ -19,15 +35,17 @@ const AUDIO_HOST_REL_PATH = path.join('resources', 'bin', 'win32-x64', 'sokuji-a
  */
 function resolveAudioHostPath({
   platform = process.platform,
+  arch = process.arch,
   resourcesPath = process.resourcesPath,
   appPath = path.join(__dirname, '..'),
   existsSync = fsDefault.existsSync,
 } = {}) {
-  if (platform !== 'win32') return null;
+  const rel = relPathFor(platform, arch);
+  if (!rel) return null;   // Linux taps PipeWire directly; no helper binary.
 
   const candidates = [
-    resourcesPath ? path.join(resourcesPath, AUDIO_HOST_REL_PATH) : null,
-    path.join(appPath, AUDIO_HOST_REL_PATH),
+    resourcesPath ? path.join(resourcesPath, rel) : null,
+    path.join(appPath, rel),
   ].filter(Boolean);
 
   for (const candidate of candidates) {
@@ -40,4 +58,4 @@ function resolveAudioHostPath({
   return null;
 }
 
-module.exports = { resolveAudioHostPath, AUDIO_HOST_REL_PATH };
+module.exports = { resolveAudioHostPath, relPathFor, AUDIO_HOST_REL_PATH };

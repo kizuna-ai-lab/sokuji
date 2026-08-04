@@ -145,7 +145,7 @@ export default defineConfig(({ command, mode }) => {
             'linux-window-titles': 'electron/linux-window-titles.js',
             'sandbox-recovery': 'electron/sandbox-recovery.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
-            'win-audio-host': 'electron/win-audio-host.js',
+            'audio-host': 'electron/audio-host.js',
             'audio-host-path': 'electron/audio-host-path.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',

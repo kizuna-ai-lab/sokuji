@@ -1,4 +1,9 @@
-// Spawn and parse the Windows per-application capture helper (issue #335).
+// Spawn and parse the per-application capture helper (issue #335).
+//
+// Platform-neutral: the Windows, macOS and any future helper all honour the same
+// command line (--list / --target pid:N, PCM on stdout, JSON lines on stderr),
+// so this layer needs no per-platform branching. Locating the binary is the only
+// platform-specific part, and that lives in audio-host-path.js.
 //
 // The helper is a short-lived filter, not a daemon: `--list` runs and exits,
 // `--target` streams PCM on stdout until killed. Nothing here keeps a socket or

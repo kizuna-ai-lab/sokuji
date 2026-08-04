@@ -46,12 +46,24 @@ describe('resolveAudioHostPath', () => {
     })).toBeNull();
   });
 
-  it('returns null on linux and darwin even if a file happens to exist', () => {
-    for (const platform of ['linux', 'darwin']) {
-      expect(resolveAudioHostPath({
-        platform, resourcesPath: '/app/resources', appPath: '/repo', existsSync: yes,
-      })).toBeNull();
-    }
+  it('resolves the arm64 macOS location', () => {
+    expect(resolveAudioHostPath({
+      platform: 'darwin', arch: 'arm64', resourcesPath: '/app/resources', appPath: '/repo',
+      existsSync: yes,
+    })).toBe('/app/resources/resources/bin/darwin-arm64/sokuji-audio-host');
+  });
+
+  it('resolves the Intel macOS location', () => {
+    expect(resolveAudioHostPath({
+      platform: 'darwin', arch: 'x64', resourcesPath: '/app/resources', appPath: '/repo',
+      existsSync: yes,
+    })).toBe('/app/resources/resources/bin/darwin-x64/sokuji-audio-host');
+  });
+
+  it('returns null on linux, which taps PipeWire directly and needs no binary', () => {
+    expect(resolveAudioHostPath({
+      platform: 'linux', resourcesPath: '/app/resources', appPath: '/repo', existsSync: yes,
+    })).toBeNull();
   });
 
   it('returns null rather than throwing when existsSync blows up', () => {

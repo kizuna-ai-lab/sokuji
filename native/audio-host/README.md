@@ -107,8 +107,43 @@ tone did not leak in. Needs no interactive desktop. Expected output ends with `V
 - **Build with `/utf-8`.** Without it MSVC decodes the source with the machine's ANSI code
   page (932 on the Japanese-locale test box) and warns C4819.
 
-## macOS
+## macOS (`mac/`)
 
-Not implemented yet. Core Audio process taps (macOS 14.2+) can satisfy the same contract;
-the extra costs are the "System Audio Recording Only" TCC permission and the packaging
-entitlements.
+Uses Core Audio process taps: `CATapDescription(monoMixdownOfProcesses:)` +
+`AudioHardwareCreateProcessTap`, wrapped in a private aggregate device whose IOProc
+delivers the audio. Requires macOS 14.2 or later.
+
+### Build
+
+```
+mac/build.sh
+```
+
+`swiftc` plus an ad-hoc `codesign`, output in `mac/out/`, then copied to
+`resources/bin/darwin-arm64` or `darwin-x64` depending on the build machine's architecture.
+As on Windows the copy is part of the build, not a step to remember.
+
+### Things learned the hard way
+
+- **TCC denies by silence, not by error.** Without the "System Audio Recording Only" grant
+  the tap is created successfully, the aggregate device appears, the IOProc fires on schedule
+  and every buffer is the right size — and every sample is zero. Measured both ways: the same
+  binary returns real audio (peak 0.20 over 2.4 M frames) once granted. This is why the helper
+  emits `{"event":"warning","code":"silent_no_permission"}` after three seconds of unbroken
+  silence: the app cannot otherwise tell a missing permission from a quiet application.
+- **The grant follows the *responsible* process.** A bare CLI run from a shell can never
+  obtain it — there is no app identity to attach it to. The helper must be spawned by
+  Sokuji.app, and the permission is granted to Sokuji.app.
+- **An app only appears in the System Settings list after it first requests access.** Sokuji
+  will not be listed under "System Audio Recording Only" until it has attempted a tap once.
+- **The tap's format is not negotiable** the way WASAPI's is. It hands over 48 kHz float32
+  (mono, because of the mono mixdown); this helper decimates to 24 kHz and converts to s16
+  itself.
+- **Enumeration needs filtering.** `kAudioHardwarePropertyProcessObjectList` returns ~30
+  objects, mostly daemons (`CoreSpeech`, `loginwindow`, `universalaccessd`,
+  `systemsoundserverd`). Restricting to `NSRunningApplication` with a `.regular` activation
+  policy — "has a Dock icon" — cut that to the 3 real applications.
+- **Window titles are not worth their price.** `kCGWindowName` is gated behind Screen
+  Recording (measured: 23 windows, all titles nil without it), whereas the localized
+  application name is free. macOS therefore labels sources by application name only, unlike
+  Linux and Windows which can read window titles cheaply.

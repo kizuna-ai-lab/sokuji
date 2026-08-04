@@ -8,7 +8,7 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
 const path = require('path');
-const audioHost = require('./win-audio-host.js');
+const audioHost = require('./audio-host.js');
 
 /**
  * Create virtual audio devices on Windows using VB-CABLE

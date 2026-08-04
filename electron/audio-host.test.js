@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { listAppSources, startCapture, stopCapture } from './win-audio-host.js';
+import { listAppSources, startCapture, stopCapture } from './audio-host.js';
 
 function fakeChild() {
   const c = new EventEmitter();

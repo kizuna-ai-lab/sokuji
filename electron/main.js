@@ -874,11 +874,16 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
 // renderer that asked for it. 24 kHz mono s16 is ~48 KB/s, so plain IPC is
 // ample and avoids putting a listening socket on the machine.
 ipcMain.handle('start-app-audio-capture', async (event, deviceId) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, error: 'Per-application capture is only supported on Windows' };
+  // Linux does not come through here: its tap is a PipeWire link and the
+  // renderer records the resulting monitor device with getUserMedia.
+  const helperModule = process.platform === 'win32' ? './windows-audio-utils'
+    : process.platform === 'darwin' ? './macos-audio-utils'
+    : null;
+  if (!helperModule) {
+    return { ok: false, error: 'Per-application capture helper is not available on this platform' };
   }
   try {
-    const { startCapture } = require('./windows-audio-utils');
+    const { startCapture } = require(helperModule);
     const wc = event.sender;
     const ok = startCapture(
       deviceId,
@@ -894,9 +899,12 @@ ipcMain.handle('start-app-audio-capture', async (event, deviceId) => {
 });
 
 ipcMain.handle('stop-app-audio-capture', async () => {
-  if (process.platform !== 'win32') return { ok: true };
+  const helperModule = process.platform === 'win32' ? './windows-audio-utils'
+    : process.platform === 'darwin' ? './macos-audio-utils'
+    : null;
+  if (!helperModule) return { ok: true };
   try {
-    const { stopCapture } = require('./windows-audio-utils');
+    const { stopCapture } = require(helperModule);
     stopCapture();
   } catch (error) {
     console.warn('[Sokuji] [Main] Failed to stop application audio capture:', error);
