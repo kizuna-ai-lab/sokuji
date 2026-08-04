@@ -1,6 +1,11 @@
 // Real-PipeWire acceptance check for the per-application tap (issue #335).
 //
-//   node electron/pipewire-app-audio.verify.js
+//   node electron/pipewire-app-audio.verify.js                      # source tree
+//   node electron/pipewire-app-audio.verify.js dist-electron/pipewire-app-audio.js
+//
+// Pass a module path to check the BUILT bundle instead of the source. Worth
+// doing before a release: a module missing from vite.config.ts's electron input
+// map is absent from dist-electron entirely, and only a run like this notices.
 //
 // The unit tests all use a fake exec, so nothing else proves this works against
 // a real PipeWire graph. Uses a silent null-sink playback as the stand-in
@@ -13,7 +18,11 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const execFileP = promisify(execFile);
 const { spawn } = require('child_process');
-const { listAppSources, connectAppSource, disconnectAppSource } = require('./pipewire-app-audio.js');
+const target = process.argv[2]
+  ? require('path').resolve(process.cwd(), process.argv[2])
+  : './pipewire-app-audio.js';
+const { listAppSources, connectAppSource, disconnectAppSource } = require(target);
+console.log(`# module under test: ${target}`);
 
 const sh = async (cmd, args) => (await execFileP(cmd, args)).stdout.trim();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -24,9 +33,39 @@ const check = (name, cond, detail) => {
   if (!cond) ok = false;
 };
 
+// An interrupted run must not leak a null sink or a stray player - a leftover
+// sink is exactly the phantom audio device this script exists to rule out.
+// SIGPIPE matters in practice: piping this through `head` kills it mid-run.
+let probeModule = null;
+let player = null;
+let cleaningUp = false;
+
+function cleanupSync(reason) {
+  if (cleaningUp) return;
+  cleaningUp = true;
+  if (reason) console.log(`# cleaning up after ${reason}`);
+  if (player) { try { player.kill(); } catch {} player = null; }
+  const { execFileSync } = require('child_process');
+  // Unload our own module first, then sweep by name in case a previous run died
+  // before it could record its id.
+  const ids = new Set();
+  if (probeModule) ids.add(probeModule);
+  try {
+    const short = execFileSync('pactl', ['list', 'modules', 'short'], { encoding: 'utf8' });
+    for (const line of short.split('\n')) {
+      if (/sokuji_verify_probe|sokuji_app_capture/.test(line)) ids.add(line.split('\t')[0]);
+    }
+  } catch {}
+  for (const id of ids) { try { execFileSync('pactl', ['unload-module', String(id)]); } catch {} }
+  probeModule = null;
+}
+
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGPIPE']) {
+  process.on(sig, () => { cleanupSync(sig); process.exit(1); });
+}
+process.on('uncaughtException', (e) => { cleanupSync('uncaught ' + e.message); process.exit(1); });
+
 (async () => {
-  let probeModule = null;
-  let player = null;
   try {
     probeModule = await sh('pactl', ['load-module', 'module-null-sink',
       'sink_name=sokuji_verify_probe', 'sink_properties=device.description=SokujiVerifyProbe']);
@@ -71,8 +110,7 @@ const check = (name, cond, detail) => {
     ok = false;
   } finally {
     try { await disconnectAppSource(); } catch {}
-    if (player) { try { player.kill(); } catch {} }
-    if (probeModule) { try { await execFileP('pactl', ['unload-module', probeModule]); } catch {} }
+    cleanupSync(null);
   }
   console.log(ok ? 'VERIFY OK' : 'VERIFY FAILED');
   process.exit(ok ? 0 : 1);
