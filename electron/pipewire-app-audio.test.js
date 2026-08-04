@@ -265,12 +265,13 @@ describe('listAppSources', () => {
     expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'YouTube - Chromium' }]);
   });
 
-  it('truncates a title too long for a narrow list', async () => {
+  it('keeps a long title intact for the UI to ellipsise', async () => {
+    // The device row already truncates in CSS and shows the full text on hover;
+    // trimming here would throw that information away.
     const long = 'x'.repeat(120);
     const windowTitles = async () => new Map([[4242, long]]);
     const [row] = await listAppSources({ exec: fakeExec([]), windowTitles });
-    expect(row.label.length).toBeLessThanOrEqual(48);
-    expect(row.label.endsWith('\u2026')).toBe(true);
+    expect(row.label).toBe(long);
   });
 
   it('keeps the application name when no window matches', async () => {

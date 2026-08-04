@@ -132,7 +132,9 @@ const DeviceList: React.FC<DeviceListProps> = ({
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : 0}
           >
-            <span>{device.label || t('audioPanel.unknownDevice')}</span>
+            <span title={device.label || undefined}>
+              {device.label || t('audioPanel.unknownDevice')}
+            </span>
             {virtual && (
               <div
                 className="virtual-indicator"

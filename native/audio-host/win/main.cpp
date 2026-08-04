@@ -22,6 +22,7 @@
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
 #include <audiopolicy.h>
+#include <tlhelp32.h>
 #include <fcntl.h>
 #include <io.h>
 #include <cstdio>
@@ -98,6 +99,44 @@ struct TitleCollector {
     std::map<DWORD, std::string> byPid;
 };
 
+// Chromium and Electron render audio from a child process (the audio service),
+// and that child owns no window - so looking the audio session's pid up
+// directly finds nothing and the list falls back to bare exe names. Walking up
+// the parent chain reaches the browser process that does own the window.
+// Capped so a broken or cyclic chain cannot spin.
+static const int kMaxParentHops = 6;
+
+static std::map<DWORD, DWORD> BuildParentMap() {
+    std::map<DWORD, DWORD> parents;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return parents;
+    PROCESSENTRY32W entry{};
+    entry.dwSize = sizeof(entry);
+    if (Process32FirstW(snap, &entry)) {
+        do {
+            parents[entry.th32ProcessID] = entry.th32ParentProcessID;
+        } while (Process32NextW(snap, &entry));
+    }
+    CloseHandle(snap);
+    return parents;
+}
+
+/** Window title owned by `pid` or by its nearest ancestor, else empty. */
+static std::string TitleForPid(DWORD pid,
+                               const std::map<DWORD, std::string>& titles,
+                               const std::map<DWORD, DWORD>& parents) {
+    DWORD current = pid;
+    for (int hop = 0; hop < kMaxParentHops && current != 0; hop++) {
+        auto title = titles.find(current);
+        if (title != titles.end() && !title->second.empty()) return title->second;
+        auto parent = parents.find(current);
+        if (parent == parents.end() || parent->second == current) break;
+        current = parent->second;
+        if (current <= 4) break;  // reached System/Idle; nothing useful above
+    }
+    return std::string();
+}
+
 static BOOL CALLBACK CollectTitle(HWND hwnd, LPARAM lp) {
     if (!IsWindowVisible(hwnd)) return TRUE;
     if (GetWindow(hwnd, GW_OWNER) != nullptr) return TRUE;  // tool/child window
@@ -150,6 +189,7 @@ static int ListSources() {
 
     TitleCollector titles;
     EnumWindows(CollectTitle, reinterpret_cast<LPARAM>(&titles));
+    const std::map<DWORD, DWORD> parents = BuildParentMap();
 
     std::vector<Entry> entries;
     IAudioSessionEnumerator* sessions = nullptr;
@@ -177,8 +217,8 @@ static int ListSources() {
                 e.exe = ExeNameOf(pid);
                 e.active = (st == AudioSessionStateActive);
 
-                auto it = titles.byPid.find(pid);
-                e.label = (it != titles.byPid.end() && !it->second.empty()) ? it->second : e.exe;
+                const std::string title = TitleForPid(pid, titles.byPid, parents);
+                e.label = !title.empty() ? title : e.exe;
                 if (e.label.empty()) {
                     char b[32];
                     sprintf_s(b, "PID %lu", pid);

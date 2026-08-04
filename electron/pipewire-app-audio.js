@@ -14,15 +14,9 @@ const { promisify } = require('util');
 const defaultExec = promisify(nodeExec);
 const { listWindowTitles, titleForPid } = require('./linux-window-titles.js');
 
-// A window title identifies a source far better than the bare application name,
-// but a full YouTube title would blow out a narrow settings list.
-const MAX_LABEL_LENGTH = 48;
-
-function truncateLabel(text) {
-  return text.length > MAX_LABEL_LENGTH
-    ? `${text.slice(0, MAX_LABEL_LENGTH - 1).trimEnd()}\u2026`
-    : text;
-}
+// Labels are NOT truncated here. The device list already ellipsises overflow in
+// CSS and now carries the full text as a tooltip, so trimming the data would
+// only destroy information the UI can still use.
 
 const STREAM_CLASS = 'Stream/Output/Audio';
 const CAPTURE_SINK_NAME = 'sokuji_app_capture';
@@ -137,7 +131,7 @@ async function listAppSources({ exec = defaultExec, windowTitles = listWindowTit
 
   return streams.map((s) => {
     const title = s.pid !== null ? titleForPid(s.pid, titles) : null;
-    return { deviceId: s.deviceId, label: truncateLabel(title || s.label) };
+    return { deviceId: s.deviceId, label: title || s.label };
   });
 }
 
