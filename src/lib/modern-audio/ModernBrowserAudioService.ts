@@ -42,6 +42,11 @@ export class ModernBrowserAudioService implements IAudioService {
   // 'app' means a helper process pushes PCM over IPC (Windows per-application
   // capture); 'system' means whole-system loopback.
   private currentCaptureMode: 'system' | 'app' = 'system';
+  /**
+   * Set by the UI to surface non-fatal capture-helper warnings. Without it a
+   * macOS permission denial is invisible: the session runs and stays silent.
+   */
+  public onParticipantWarning: ((code: string) => void) | null = null;
   // Chromium deviceId of a per-application capture monitor (Linux), or null.
   private currentMonitorDeviceId: string | null = null;
   private systemAudioCallback: AudioRecordingCallback | null = null;
@@ -1094,6 +1099,8 @@ export class ModernBrowserAudioService implements IAudioService {
       const recorder = new AppAudioRecorder(24000);
       this.systemAudioRecorder = recorder;
       this.systemAudioCallback = callback;
+
+      recorder.onWarning = (code) => this.onParticipantWarning?.(code);
 
       recorder.onLost = () => {
         console.warn('[Sokuji] [ModernBrowserAudio] Capture helper lost; falling back to system audio');

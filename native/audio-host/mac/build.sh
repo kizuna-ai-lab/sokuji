@@ -8,19 +8,22 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 mkdir -p out
-swiftc -O main.swift -o out/sokuji-audio-host
 
-# Ad-hoc sign so the binary has a stable-enough identity to run; the real TCC
-# grant is attributed to Sokuji.app, which spawns this helper.
-codesign --force -s - out/sokuji-audio-host
+# Build both slices from whichever Mac is doing the build: Sokuji ships an
+# unnotarised app that users run on both architectures, and cross-compiling here
+# is free, whereas keeping an Intel machine around to produce the other half is
+# not. macOS 14.2 is the floor for Core Audio process taps.
+build_slice() {
+  local target="$1" dest="$2"
+  swiftc -O -target "$target" main.swift -o "out/sokuji-audio-host-$dest"
+  # Ad-hoc sign so the binary runs; the real TCC grant is attributed to
+  # Sokuji.app, which spawns this helper.
+  codesign --force -s - "out/sokuji-audio-host-$dest"
+  mkdir -p "../../../resources/bin/$dest"
+  cp -f "out/sokuji-audio-host-$dest" "../../../resources/bin/$dest/sokuji-audio-host"
+  echo "  updated resources/bin/$dest/sokuji-audio-host"
+}
 
-ARCH="$(uname -m)"
-case "$ARCH" in
-  arm64) DEST_DIR="../../../resources/bin/darwin-arm64" ;;
-  x86_64) DEST_DIR="../../../resources/bin/darwin-x64" ;;
-  *) echo "unsupported architecture: $ARCH" >&2; exit 1 ;;
-esac
-
-mkdir -p "$DEST_DIR"
-cp -f out/sokuji-audio-host "$DEST_DIR/sokuji-audio-host"
-echo "BUILD OK - updated $DEST_DIR/sokuji-audio-host"
+build_slice arm64-apple-macosx14.2  darwin-arm64
+build_slice x86_64-apple-macosx14.2 darwin-x64
+echo "BUILD OK"

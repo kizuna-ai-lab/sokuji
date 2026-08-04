@@ -305,7 +305,8 @@
     "unknownDevice": "తెలియని పరికరం",
     "participantSource": "Participant Audio Source",
     "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
-    "turnOffParticipant": "Turn off participant audio"
+    "turnOffParticipant": "Turn off participant audio",
+    "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session."
   },
   "auth": {
     "signIn": "సైన్ ఇన్",

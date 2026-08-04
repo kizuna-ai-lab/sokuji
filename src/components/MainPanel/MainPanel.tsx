@@ -370,6 +370,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const isMonitorMuted = useIsMonitorMuted();
   const isParticipantMuted = useIsParticipantMuted();
 
+  // A capture helper that reports unbroken silence almost always means the OS
+  // denied audio access - macOS TCC zeroes every sample instead of failing, so
+  // the session would otherwise look healthy and translate nothing.
+  useEffect(() => {
+    const service = audioServiceRef.current;
+    if (!service) return;
+    service.onParticipantWarning = (code: string) => {
+      if (code !== 'silent_no_permission') return;
+      addRealtimeEvent(
+        {
+          type: 'participant.warning',
+          data: {
+            message: t(
+              'audioPanel.participantSilentNoPermission',
+              'The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.'
+            ),
+          },
+        },
+        'client', 'participant.warning'
+      );
+    };
+    return () => { service.onParticipantWarning = null; };
+  }, [addRealtimeEvent, t]);
+
   // Which application (or the whole system) participant audio is captured from.
   const selectedParticipantSource = useSelectedParticipantSource();
   // Read through a ref: session start awaits several times, and a re-render in

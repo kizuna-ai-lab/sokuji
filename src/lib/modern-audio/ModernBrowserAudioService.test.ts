@@ -196,6 +196,22 @@ describe('participant capture routing', () => {
   });
 });
 
+describe('participant capture warnings', () => {
+  it('exposes a hook the UI can use to surface helper warnings', () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    const svc = new ModernBrowserAudioService();
+
+    // Default is null: without a UI listener a macOS permission denial is
+    // invisible, since the session runs happily and stays silent.
+    expect(svc.onParticipantWarning).toBeNull();
+
+    const seen: string[] = [];
+    svc.onParticipantWarning = (code) => seen.push(code);
+    svc.onParticipantWarning('silent_no_permission');
+    expect(seen).toEqual(['silent_no_permission']);
+  });
+});
+
 describe('linux monitor-device resolution', () => {
   function arrange(devices: any[], invokeResult: any) {
     setMediaDevices(vi.fn(), vi.fn().mockResolvedValue(devices));

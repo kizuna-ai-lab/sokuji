@@ -5,8 +5,8 @@ import {
 } from './IParticipantAudioRecorder';
 
 /**
- * Participant recorder fed by the Windows per-application capture helper
- * (issue #335).
+ * Participant recorder fed by the per-application capture helper (issue #335),
+ * used on both Windows and macOS - the two share one CLI contract.
  *
  * The helper already emits exactly 24 kHz mono signed 16-bit PCM, and its
  * stream stays continuous and correctly clocked even while the captured
@@ -28,6 +28,15 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
 
   /** Invoked when the helper dies, so the caller can fall back to system capture. */
   public onLost: (() => void) | null = null;
+
+  /**
+   * Invoked for non-fatal helper warnings, carrying the helper's code.
+   *
+   * The one that matters today is `silent_no_permission`: macOS TCC denies an
+   * audio tap by zeroing every sample rather than failing, so without this the
+   * user would see a session that runs perfectly and translates nothing.
+   */
+  public onWarning: ((code: string) => void) | null = null;
 
   constructor(private readonly sampleRate: number = 24000) {}
 
@@ -147,6 +156,11 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   private onHelperEvent(payload: { event?: string; code?: string }): void {
     if (payload?.event === 'format') {
       console.info('[Sokuji] [AppAudioRecorder] Helper format:', payload);
+      return;
+    }
+    if (payload?.event === 'warning') {
+      console.warn('[Sokuji] [AppAudioRecorder] Capture helper warning:', payload);
+      this.onWarning?.(payload.code ?? 'unknown');
       return;
     }
     if (payload?.event === 'exit' || payload?.event === 'error') {

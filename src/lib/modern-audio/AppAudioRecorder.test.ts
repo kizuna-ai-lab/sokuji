@@ -168,6 +168,21 @@ describe('AppAudioRecorder lifecycle', () => {
     expect(onLost).toHaveBeenCalled();
   });
 
+  it('surfaces a helper warning through onWarning, not onLost', async () => {
+    const rec = await started();
+    const onWarning = vi.fn();
+    const onLost = vi.fn();
+    rec.onWarning = onWarning;
+    rec.onLost = onLost;
+
+    handlers['app-audio:event']({ event: 'warning', code: 'silent_no_permission' });
+
+    expect(onWarning).toHaveBeenCalledWith('silent_no_permission');
+    // A permission warning is recoverable; tearing the capture down and falling
+    // back to whole-system audio would hide the very problem being reported.
+    expect(onLost).not.toHaveBeenCalled();
+  });
+
   it('does not treat the format event as a loss', async () => {
     const rec = await started();
     const onLost = vi.fn();
