@@ -869,6 +869,41 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
   return { success: false };
 });
 
+// Per-application audio capture (Windows only, issue #335).
+// The helper writes PCM to its stdout; we forward each chunk straight to the
+// renderer that asked for it. 24 kHz mono s16 is ~48 KB/s, so plain IPC is
+// ample and avoids putting a listening socket on the machine.
+ipcMain.handle('start-app-audio-capture', async (event, deviceId) => {
+  if (process.platform !== 'win32') {
+    return { ok: false, error: 'Per-application capture is only supported on Windows' };
+  }
+  try {
+    const { startCapture } = require('./windows-audio-utils');
+    const wc = event.sender;
+    const ok = startCapture(
+      deviceId,
+      // A Buffer does not survive the context-bridge as-is; a Uint8Array view does.
+      (pcm) => { if (!wc.isDestroyed()) wc.send('app-audio:pcm', new Uint8Array(pcm)); },
+      (evt) => { if (!wc.isDestroyed()) wc.send('app-audio:event', evt); }
+    );
+    return ok ? { ok: true } : { ok: false, error: 'Capture helper unavailable' };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to start application audio capture:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('stop-app-audio-capture', async () => {
+  if (process.platform !== 'win32') return { ok: true };
+  try {
+    const { stopCapture } = require('./windows-audio-utils');
+    stopCapture();
+  } catch (error) {
+    console.warn('[Sokuji] [Main] Failed to stop application audio capture:', error);
+  }
+  return { ok: true };
+});
+
 // Linux loopback audio: fix PipeWire monitor source volume
 // PipeWire stores an independent monitorVolumes property per sink that can be very low.
 // After getDisplayMedia() creates the loopback stream, we force the monitor source to 100%.

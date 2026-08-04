@@ -24,9 +24,15 @@
   JSON object per line. Anything printed to stdout corrupts the audio stream.
 - All comments and documentation are **English only** (project CLAUDE.md).
 - Adding a renderer→main IPC channel = add its name to `INVOKE_CHANNELS` in
-  `electron/ipc-channels.js`; `preload.js`'s allowlist and `ipc-channels.test.js` follow
-  automatically. Main→renderer pushes (`webContents.send`) are received through the
-  `on`/`removeListener` bridge already exposed at `electron/preload.js:77`.
+  `electron/ipc-channels.js`; `preload.js`'s invoke allowlist and `ipc-channels.test.js`
+  follow automatically.
+- **Main→renderer pushes use a different bridge with a separate, hand-maintained allowlist.**
+  `electron/preload.js` exposes `receive(channel, fn)` / `removeListener(channel, fn)` — not
+  `on` — gated by the `validReceiveChannels` array, and the wrapper **strips the event
+  object** so the callback signature is `fn(payload)`, not `fn(event, payload)`.
+  `removeListener` must be handed the *original* function, which it looks up in a WeakMap.
+  A channel missing from `validReceiveChannels` is silently ignored, so forgetting it means
+  the renderer simply never hears anything.
 - **Do not gate on `tsc`.** ~113 pre-existing type errors; the correctness gate is Vitest.
 - Conventional commit format.
 - Run single test files with `npx vitest run <path>` (`npm run test` starts watch mode).

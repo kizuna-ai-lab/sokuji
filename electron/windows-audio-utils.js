@@ -8,6 +8,7 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
 const path = require('path');
+const audioHost = require('./win-audio-host.js');
 
 /**
  * Create virtual audio devices on Windows using VB-CABLE
@@ -223,40 +224,49 @@ async function supportsSystemAudioCapture() {
 
 /**
  * List available system audio sources
- * On Windows, we provide a single "System Audio" source that captures all system audio
- * via the desktopCapturer loopback feature
+ * Whole-system capture first (the long-standing default, captured via
+ * desktopCapturer loopback in the renderer), then one entry per application the
+ * capture helper can target. A missing or failing helper yields just the former.
+ * @param {{host?: object}} deps - `host` is injected in tests
  * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
  */
-async function listSystemAudioSources() {
-  console.log('[Sokuji] [Windows Audio] Listing system audio sources');
-  // Windows captures ALL system audio via loopback, so we return a single source
-  return [{
+async function listSystemAudioSources({ host = audioHost } = {}) {
+  const system = {
     deviceId: 'desktop-audio-loopback',
     label: 'System Audio (All Applications)'
-  }];
+  };
+  const apps = await host.listAppSources();
+  console.log(`[Sokuji] [Windows Audio] Listing system audio sources: ${apps.length} application(s)`);
+  return [system, ...apps];
 }
 
 /**
  * Connect to a system audio source
- * On Windows, this is a no-op since the actual capture is done via getDisplayMedia in the renderer
- * @param {string} sourceId - The source ID to connect to
- * @returns {Promise<{success: boolean, error?: string}>} Result object
+ * Records which capture path the renderer should take. Nothing is spawned here:
+ * the helper starts when the session starts, via 'start-app-audio-capture'.
+ * @param {string} sourceId - 'desktop-audio-loopback' or 'app:pid:<n>'
+ * @param {{host?: object}} deps - `host` is injected in tests
+ * @returns {Promise<{success: boolean, capture: 'app'|'system'}>} Result object
  */
-async function connectSystemAudioSource(sourceId) {
+async function connectSystemAudioSource(sourceId, { host = audioHost } = {}) {
   console.log(`[Sokuji] [Windows Audio] Connect system audio source: ${sourceId}`);
-  // On Windows, the "connection" happens when getDisplayMedia is called in the renderer
-  // This function just acknowledges the intent to capture
-  return { success: true };
+  if (String(sourceId).startsWith('app:')) {
+    return { success: true, capture: 'app' };
+  }
+  // Switching back to whole-system capture must release any running helper,
+  // otherwise it keeps holding a capture stream for the old application.
+  host.stopCapture();
+  return { success: true, capture: 'system' };
 }
 
 /**
  * Disconnect from the current system audio source
- * On Windows, this is a no-op since cleanup happens in the renderer
+ * @param {{host?: object}} deps - `host` is injected in tests
  * @returns {Promise<{success: boolean}>} Result object
  */
-async function disconnectSystemAudioSource() {
+async function disconnectSystemAudioSource({ host = audioHost } = {}) {
   console.log('[Sokuji] [Windows Audio] Disconnect system audio source');
-  // Cleanup happens in the renderer when the MediaStream is stopped
+  host.stopCapture();
   return { success: true };
 }
 
@@ -272,5 +282,8 @@ module.exports = {
   supportsSystemAudioCapture,
   listSystemAudioSources,
   connectSystemAudioSource,
-  disconnectSystemAudioSource
+  disconnectSystemAudioSource,
+  // Per-application capture helper control, used by main.js IPC handlers
+  startCapture: audioHost.startCapture,
+  stopCapture: audioHost.stopCapture
 };
