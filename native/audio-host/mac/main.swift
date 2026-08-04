@@ -224,6 +224,18 @@ final class CaptureState: @unchecked Sendable {
 
 var gStop = false
 
+/// Is the tapped target actually rendering audio right now?
+///
+/// For a global tap the question is whether *any* application is, since that is
+/// what such a tap should be picking up.
+func isRenderingOutput(_ target: AudioObjectID?) -> Bool {
+    if let target {
+        return boolProp(target, kAudioProcessPropertyIsRunningOutput)
+    }
+    return objectIDs(kAudioHardwarePropertyProcessObjectList)
+        .contains { boolProp($0, kAudioProcessPropertyIsRunningOutput) }
+}
+
 func runCapture(pid: pid_t?) -> Int32 {
     var procObj: AudioObjectID? = nil
     if let pid {
@@ -383,15 +395,23 @@ func runCapture(pid: pid_t?) -> Int32 {
             break
         }
 
-        // Silence that never breaks is the signature of a missing TCC grant.
-        // Report it once, as a warning rather than an error: a genuinely quiet
-        // application looks the same and must keep working.
+        // A missing TCC grant and a quiet application both look like silence,
+        // so silence alone must never raise the warning - doing so cried wolf
+        // every time the user simply was not playing anything. The signal is
+        // the contradiction: Core Audio says the target is rendering output,
+        // yet every sample we receive is zero.
         state.lock.lock()
-        if !state.warned && !state.sawNonZero && Date().timeIntervalSince(state.startedAt) > 3.0 {
+        let unexplainedSilence = !state.warned
+            && !state.sawNonZero
+            && Date().timeIntervalSince(state.startedAt) > 3.0
+        state.lock.unlock()
+
+        if unexplainedSilence && isRenderingOutput(procObj) {
+            state.lock.lock()
             state.warned = true
+            state.lock.unlock()
             emit("{\"event\":\"warning\",\"code\":\"silent_no_permission\"}")
         }
-        state.lock.unlock()
     }
 
     ring.close()
