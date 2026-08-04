@@ -90,6 +90,26 @@ describe('WarningModal permission types', () => {
     expect(screen.queryByText('Open System Settings')).toBeNull();
   });
 
+  it('renders an alternative-path note when one is offered', () => {
+    render(
+      <WarningModal
+        isOpen={true}
+        onClose={vi.fn()}
+        type="screen-recording-denied"
+        note="Pick a specific application instead."
+      />
+    );
+    // A denied permission with a working alternative must not read as a dead end.
+    expect(screen.getByText('Pick a specific application instead.')).toBeInTheDocument();
+  });
+
+  it('renders no note when none is passed', () => {
+    const { container } = render(
+      <WarningModal isOpen={true} onClose={vi.fn()} type="screen-recording-denied" />
+    );
+    expect(container.querySelector('.warning-note')).toBeNull();
+  });
+
   it('renders nothing without a type', () => {
     const { container } = render(<WarningModal isOpen={true} onClose={vi.fn()} type={null} />);
     expect(container.firstChild).toBeNull();

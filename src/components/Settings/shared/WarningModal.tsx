@@ -8,9 +8,15 @@ interface WarningModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: WarningType | null;
+  /**
+   * Extra sentence appended to the message. Used to point out that a denied
+   * permission has a working alternative, rather than leaving the user with a
+   * dead end.
+   */
+  note?: string | null;
 }
 
-const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) => {
+const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note }) => {
   const { t } = useTranslation();
 
   // macOS lists the process under the name of the bundle it launched. A
@@ -115,6 +121,7 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
         {content.paragraphs.map((text, index) => (
           <p key={index}>{text}</p>
         ))}
+        {note && <p className="warning-note">{note}</p>}
         {content.privacyPane && (
           <button
             className="open-settings-button"

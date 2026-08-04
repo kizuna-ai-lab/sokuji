@@ -41,7 +41,7 @@ import {
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
-import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource } from '../../stores/audioStore';
+import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource, useParticipantSources } from '../../stores/audioStore';
 import { resolveParticipantSourceId, isApplicationSource } from '../../lib/modern-audio/participantSource';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
@@ -401,6 +401,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // otherwise invisible: screen recording aborts the session with only a log
   // line, and a denied audio tap produces silence rather than an error.
   const [permissionWarning, setPermissionWarning] = useState<WarningType | null>(null);
+  const participantSources = useParticipantSources();
 
   // Which application (or the whole system) participant audio is captured from.
   const selectedParticipantSource = useSelectedParticipantSource();
@@ -3822,6 +3823,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         isOpen={permissionWarning !== null}
         onClose={() => setPermissionWarning(null)}
         type={permissionWarning}
+        note={
+          // Whole-system capture is the only path needing Screen Recording.
+          // Saying so turns a dead end into a one-click alternative, as long as
+          // an application is actually available to pick.
+          permissionWarning === 'screen-recording-denied' && participantSources.length > 1
+            ? t(
+                'audioPanel.screenRecordingHasAlternative',
+                'You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.'
+              )
+            : null
+        }
       />
       {modePopoverOpen && (
         <ModeDevicePopover

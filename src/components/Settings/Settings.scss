@@ -714,6 +714,15 @@
   // Primary action on a permission warning: the user's next step is granting
   // the permission, not acknowledging the message, so it sits above and reads
   // as the affirmative choice.
+  // The alternative-path note: same weight as the body, visually set apart so
+  // it does not read as more of the same problem description.
+  .warning-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 2px solid vars.$color-primary;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
   .open-settings-button {
     width: 100%;
     padding: 10px 20px;
