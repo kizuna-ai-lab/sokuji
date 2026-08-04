@@ -82,7 +82,8 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
-import { isVirtualDevice } from '../Settings/shared/hooks';
+import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
+import WarningModal from '../Settings/shared/WarningModal';
 
 
 /**
@@ -390,9 +391,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         },
         'client', 'participant.warning'
       );
+      setPermissionWarning('audio-capture-denied');
     };
     return () => { service.onParticipantWarning = null; };
   }, [addRealtimeEvent, t]);
+
+  // A capture permission the OS denied. Rendered as a modal with a button that
+  // deep-links to the exact System Settings pane, because both denials are
+  // otherwise invisible: screen recording aborts the session with only a log
+  // line, and a denied audio tap produces silence rather than an error.
+  const [permissionWarning, setPermissionWarning] = useState<WarningType | null>(null);
 
   // Which application (or the whole system) participant audio is captured from.
   const selectedParticipantSource = useSelectedParticipantSource();
@@ -1975,6 +1983,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 const granted = await audioServiceRef.current!.requestLoopbackAudioStream();
                 if (!granted) {
                   console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
+                  setPermissionWarning('screen-recording-denied');
                   addRealtimeEvent(
                     {
                       type: 'participant.warning',
@@ -3809,6 +3818,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
+      <WarningModal
+        isOpen={permissionWarning !== null}
+        onClose={() => setPermissionWarning(null)}
+        type={permissionWarning}
+      />
       {modePopoverOpen && (
         <ModeDevicePopover
           mode={effectiveMode}

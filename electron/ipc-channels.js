@@ -49,6 +49,8 @@ export const INVOKE_CHANNELS = [
   // Per-application capture (Windows): start/stop the capture helper
   'start-app-audio-capture',
   'stop-app-audio-capture',
+  // Deep-link into the macOS privacy pane a denied capture needs
+  'open-privacy-settings',
   // Screen recording permission (macOS)
   'check-screen-recording-permission',
   // Linux: fix PipeWire monitor source volume after loopback capture starts

@@ -711,6 +711,38 @@
     }
   }
 
+  // Primary action on a permission warning: the user's next step is granting
+  // the permission, not acknowledging the message, so it sits above and reads
+  // as the affirmative choice.
+  .open-settings-button {
+    width: 100%;
+    padding: 10px 20px;
+    margin-top: 15px;
+    background-color: vars.$color-primary;
+    color: white;
+    border: none;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    font-size: vars.$font-title;
+    transition: background-color vars.$transition-fast;
+
+    &:hover {
+      background-color: vars.$color-primary-hover;
+    }
+
+    // The acknowledge button becomes secondary when a real action is offered.
+    + .understand-button {
+      margin-top: 8px;
+      background-color: transparent;
+      border: 1px solid var(--border-color, #444);
+      color: var(--text-secondary, #aaa);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+      }
+    }
+  }
+
   .understand-button {
     width: 100%;
     padding: 10px 20px;

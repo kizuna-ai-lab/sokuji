@@ -61,7 +61,21 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
             t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
             t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.'),
             t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
-          ]
+          ],
+          // Capturing everything the machine plays goes through screen capture.
+          privacyPane: 'screen-recording' as const,
+        };
+      case 'audio-capture-denied':
+        return {
+          title: t('audioPanel.audioCaptureDeniedNotice', 'Permission Required'),
+          titleText: t('audioPanel.audioCaptureDeniedTitle', 'System Audio Recording Permission Needed'),
+          paragraphs: [
+            t('audioPanel.audioCaptureDeniedText1', 'Capturing one application needs the "System Audio Recording Only" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.'),
+            t('audioPanel.audioCaptureDeniedText2', 'Open System Settings > Privacy & Security > System Audio Recording Only and enable Sokuji.'),
+            t('audioPanel.audioCaptureDeniedText3', 'Sokuji only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.')
+          ],
+          // Per-application capture uses a Core Audio tap, not screen capture.
+          privacyPane: 'audio-capture' as const,
         };
       default:
         return null;
@@ -87,6 +101,18 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
         {content.paragraphs.map((text, index) => (
           <p key={index}>{text}</p>
         ))}
+        {content.privacyPane && (
+          <button
+            className="open-settings-button"
+            onClick={() => {
+              // Deep-links straight to the pane rather than making the user
+              // hunt through System Settings for it.
+              window.electron?.invoke('open-privacy-settings', content.privacyPane);
+            }}
+          >
+            {t('audioPanel.openSystemSettings', 'Open System Settings')}
+          </button>
+        )}
         <button
           className="understand-button"
           onClick={onClose}

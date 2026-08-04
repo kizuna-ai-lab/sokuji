@@ -1068,6 +1068,32 @@ ipcMain.handle('ws-headers-clear', (event, { host }) => {
 // Screen recording permission check for macOS system audio capture
 // This only checks the permission status, does NOT trigger any permission dialogs
 // The renderer should call getDisplayMedia() to trigger the system dialog when needed
+// Open the exact macOS privacy pane a denied capture needs. The anchor names
+// are the ones System Settings itself advertises (verified against
+// SecurityPrivacyExtension.appex): Privacy_AudioCapture is "System Audio
+// Recording Only" and Privacy_ScreenCapture is "Screen Recording".
+const PRIVACY_PANES = {
+  'audio-capture': 'Privacy_AudioCapture',
+  'screen-recording': 'Privacy_ScreenCapture',
+};
+
+ipcMain.handle('open-privacy-settings', async (event, pane) => {
+  if (process.platform !== 'darwin') {
+    return { ok: false, error: 'Privacy panes are macOS-only' };
+  }
+  const anchor = PRIVACY_PANES[pane];
+  if (!anchor) {
+    return { ok: false, error: `Unknown privacy pane: ${pane}` };
+  }
+  try {
+    await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${anchor}`);
+    return { ok: true };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to open privacy settings:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
 ipcMain.handle('check-screen-recording-permission', async () => {
   if (process.platform !== 'darwin') {
     // Windows doesn't need screen recording permission for loopback audio
