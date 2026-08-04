@@ -195,3 +195,63 @@ describe('participant capture routing', () => {
     expect((svc as any).currentCaptureMode).toBe('system');
   });
 });
+
+describe('linux monitor-device resolution', () => {
+  function arrange(devices: any[], invokeResult: any) {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue(devices));
+    vi.spyOn(ServiceFactory, 'isElectron').mockReturnValue(true);
+    (globalThis as any).window = (globalThis as any).window ?? {};
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue(invokeResult),
+      receive: vi.fn(),
+      removeListener: vi.fn(),
+    };
+    return new ModernBrowserAudioService();
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('resolves the monitor label to a Chromium input deviceId', async () => {
+    const svc = arrange([
+      { kind: 'audioinput', deviceId: 'mic-1', label: 'Built-in Microphone' },
+      { kind: 'audioinput', deviceId: 'mon-9', label: 'Monitor of Sokuji App Capture' },
+      // The same label on an output must not win - we need an input to record.
+      { kind: 'audiooutput', deviceId: 'spk-1', label: 'Monitor of Sokuji App Capture' },
+    ], { success: true, monitorLabel: 'Sokuji App Capture' });
+
+    await svc.connectSystemAudioSource('app:205');
+
+    expect((svc as any).currentMonitorDeviceId).toBe('mon-9');
+  });
+
+  it('falls back to whole-system loopback when the monitor cannot be resolved', async () => {
+    const svc = arrange([], { success: true, monitorLabel: 'Sokuji App Capture' });
+
+    await svc.connectSystemAudioSource('app:205');
+
+    // Degrading to system-wide audio beats failing the session outright.
+    expect((svc as any).currentMonitorDeviceId).toBeNull();
+    expect(svc.isSystemAudioSourceConnected()).toBe(true);
+  });
+
+  it('leaves the monitor unset for whole-system capture', async () => {
+    const svc = arrange([
+      { kind: 'audioinput', deviceId: 'mon-9', label: 'Monitor of Sokuji App Capture' },
+    ], { success: true });
+
+    await svc.connectSystemAudioSource('desktop-audio-loopback');
+
+    expect((svc as any).currentMonitorDeviceId).toBeNull();
+  });
+
+  it('clears the monitor deviceId on disconnect', async () => {
+    const svc = arrange([
+      { kind: 'audioinput', deviceId: 'mon-9', label: 'Monitor of Sokuji App Capture' },
+    ], { success: true, monitorLabel: 'Sokuji App Capture' });
+    await svc.connectSystemAudioSource('app:205');
+
+    await svc.disconnectSystemAudioSource();
+
+    expect((svc as any).currentMonitorDeviceId).toBeNull();
+  });
+});

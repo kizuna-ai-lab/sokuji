@@ -4,6 +4,7 @@ import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
 import { LoopbackRecorder } from './LoopbackRecorder';
 import { AppAudioRecorder } from './AppAudioRecorder';
+import { DeviceCaptureRecorder } from './DeviceCaptureRecorder';
 import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
@@ -41,6 +42,8 @@ export class ModernBrowserAudioService implements IAudioService {
   // 'app' means a helper process pushes PCM over IPC (Windows per-application
   // capture); 'system' means whole-system loopback.
   private currentCaptureMode: 'system' | 'app' = 'system';
+  // Chromium deviceId of a per-application capture monitor (Linux), or null.
+  private currentMonitorDeviceId: string | null = null;
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
 
@@ -874,6 +877,21 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Map a capture-sink description to a Chromium input deviceId.
+   *
+   * The main process cannot know Chromium's opaque deviceId, so it reports the
+   * sink description instead and we match on the enumerated label, which
+   * Chromium renders as "Monitor of <description>".
+   */
+  private async resolveMonitorDeviceId(monitorLabel: string): Promise<string | null> {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const match = devices.find(
+      (d) => d.kind === 'audioinput' && d.label.includes(monitorLabel)
+    );
+    return match?.deviceId ?? null;
+  }
+
+  /**
    * Connect a system audio source to the virtual mic
    * Called when user selects a system audio device
    * Sets state flags for electron-audio-loopback capture via getDisplayMedia
@@ -897,6 +915,20 @@ export class ModernBrowserAudioService implements IAudioService {
       // per-application helper instead of getDisplayMedia loopback.
       this.currentCaptureMode = result?.capture === 'app' ? 'app' : 'system';
 
+      // A monitorLabel means the main process created a per-application tap and
+      // we must record its monitor device. If it cannot be found, degrade to
+      // whole-system capture rather than failing the session outright.
+      this.currentMonitorDeviceId = null;
+      if (result?.monitorLabel) {
+        this.currentMonitorDeviceId = await this.resolveMonitorDeviceId(result.monitorLabel);
+        if (!this.currentMonitorDeviceId) {
+          console.warn(
+            '[Sokuji] [ModernBrowserAudio] Application capture monitor not found; ' +
+            'falling back to whole-system audio'
+          );
+        }
+      }
+
       // Store the connection info
       this.systemAudioSourceConnected = true;
       this.currentSystemAudioSinkId = sourceDeviceId;
@@ -908,6 +940,7 @@ export class ModernBrowserAudioService implements IAudioService {
       this.systemAudioSourceConnected = false;
       this.currentSystemAudioSinkId = undefined;
       this.currentCaptureMode = 'system';
+      this.currentMonitorDeviceId = null;
       throw error;
     }
   }
@@ -936,6 +969,7 @@ export class ModernBrowserAudioService implements IAudioService {
     this.systemAudioSourceConnected = false;
     this.currentSystemAudioSinkId = undefined;
     this.currentCaptureMode = 'system';
+    this.currentMonitorDeviceId = null;
     console.info('[Sokuji] [ModernBrowserAudio] System audio source disconnected');
   }
 
@@ -964,6 +998,11 @@ export class ModernBrowserAudioService implements IAudioService {
 
     if (this.currentCaptureMode === 'app' && this.currentSystemAudioSinkId) {
       await this.startAppAudioRecording(this.currentSystemAudioSinkId, callback);
+      return;
+    }
+
+    if (this.currentMonitorDeviceId) {
+      await this.startDeviceCaptureRecording(this.currentMonitorDeviceId, callback);
       return;
     }
 
@@ -1002,6 +1041,39 @@ export class ModernBrowserAudioService implements IAudioService {
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to start loopback recording:', error);
       // Clean up on failure
+      await this.stopSystemAudioRecording();
+      throw error;
+    }
+  }
+
+  /**
+   * Record participant audio from a specific input device (Linux per-application
+   * capture records the tap sink's monitor).
+   */
+  private async startDeviceCaptureRecording(
+    deviceId: string,
+    callback: AudioRecordingCallback
+  ): Promise<void> {
+    try {
+      console.info(`[Sokuji] [ModernBrowserAudio] Starting application capture from device ${deviceId}`);
+      this.systemAudioRecorder = new DeviceCaptureRecorder(24000);
+      this.systemAudioCallback = callback;
+
+      const success = await this.systemAudioRecorder.begin({ deviceId });
+      if (!success) {
+        throw new Error('Failed to begin device audio capture');
+      }
+
+      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
+        if (this.systemAudioCallback) {
+          this.systemAudioCallback(data);
+        }
+      });
+
+      this.systemAudioRecordingActive = true;
+      console.info('[Sokuji] [ModernBrowserAudio] Device audio capture started');
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start device capture:', error);
       await this.stopSystemAudioRecording();
       throw error;
     }

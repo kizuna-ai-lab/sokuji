@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const appAudio = require('./pipewire-app-audio.js');
 const { execSync } = require('child_process');
 
 // Module state - Virtual audio devices
@@ -264,16 +265,34 @@ function removeVirtualAudioDevices() {
 // System Audio Capture (stubs — actual capture uses electron-audio-loopback)
 // ============================================================================
 
-/** Return a single "System Audio" source matching the Windows/macOS pattern */
-async function listSystemAudioSources() {
-  return [{ deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' }];
+/**
+ * Whole-system capture first (the long-standing default, captured via
+ * getDisplayMedia in the renderer), then one entry per application currently
+ * playing audio. A machine without PipeWire yields just the former.
+ * @param {{host?: object}} deps - `host` is injected in tests
+ */
+async function listSystemAudioSources({ host = appAudio } = {}) {
+  const system = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
+  return [system, ...(await host.listAppSources())];
 }
 
-/** No-op — electron-audio-loopback handles capture via getDisplayMedia */
-async function connectSystemAudioSource() { return { success: true }; }
+/**
+ * `app:<nodeId>` taps one application by linking its output ports to a private
+ * null sink; `desktop-audio-loopback` keeps the getDisplayMedia path and only
+ * has to release any previous tap.
+ * @param {{host?: object}} deps - `host` is injected in tests
+ */
+async function connectSystemAudioSource(sourceId, { host = appAudio } = {}) {
+  if (String(sourceId).startsWith('app:')) return host.connectAppSource(sourceId);
+  await host.disconnectAppSource();
+  return { success: true };
+}
 
-/** No-op */
-async function disconnectSystemAudioSource() { return { success: true }; }
+/** Release any per-application tap. Harmless for the whole-system path. */
+async function disconnectSystemAudioSource({ host = appAudio } = {}) {
+  await host.disconnectAppSource();
+  return { success: true };
+}
 
 /** Always supported — electron-audio-loopback works on all desktop platforms */
 async function supportsSystemAudioCapture() { return true; }
