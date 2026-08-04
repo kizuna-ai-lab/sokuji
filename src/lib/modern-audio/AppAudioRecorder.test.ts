@@ -193,8 +193,51 @@ describe('AppAudioRecorder lifecycle', () => {
     expect(onLost).not.toHaveBeenCalled();
   });
 
-  it('getAnalyser returns null (no AudioContext on this path)', async () => {
+  it('exposes an analyser once audio has been pushed, so the waveform animates', async () => {
+    // jsdom has no Web Audio, so stand one up. A permanently flat waveform gave
+    // no way to tell working capture from silent capture, which is exactly the
+    // question this analyser exists to answer.
+    const analyser = { fftSize: 0, frequencyBinCount: 128 };
+    const connected: unknown[] = [];
+    (globalThis as any).AudioContext = class {
+      currentTime = 0;
+      state = 'running';
+      createAnalyser() { return analyser; }
+      createBuffer(_c: number, len: number) {
+        return { duration: len / 24000, getChannelData: () => new Float32Array(len) };
+      }
+      createBufferSource() {
+        return { buffer: null, connect: (n: unknown) => connected.push(n), start: () => {} };
+      }
+      close() { return Promise.resolve(); }
+    };
+
     const rec = await started();
-    expect(rec.getAnalyser()).toBeNull();
+    expect(rec.getAnalyser()).toBeNull();   // nothing captured yet
+
+    await rec.record(() => {});
+    pushPcm([0x00, 0x01, 0x00, 0x02]);
+
+    expect(rec.getAnalyser()).toBe(analyser);
+    // Never wired to the destination: playing the capture back would feed it
+    // straight into itself.
+    expect(connected).toEqual([analyser]);
+
+    delete (globalThis as any).AudioContext;
+  });
+
+  it('reports the captured level so silence is a stated fact, not an inference', async () => {
+    const rec = await started();
+    await rec.record(() => {});
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, 'info').mockImplementation((m: any) => { logged.push(String(m)); });
+
+    // Two seconds at 24 kHz is 48000 samples; push them as full-scale silence.
+    for (let i = 0; i < 100; i++) pushPcm(new Array(960).fill(0));
+
+    spy.mockRestore();
+    const level = logged.find((l) => l.includes('captured level'));
+    expect(level).toBeDefined();
+    expect(level).toContain('silent');
   });
 });

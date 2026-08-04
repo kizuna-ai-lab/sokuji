@@ -26,6 +26,20 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   /** A chunk can split a 16-bit sample; the odd byte waits here for its partner. */
   private leftover: Uint8Array = new Uint8Array(0);
 
+  // Rolling level, logged periodically. Silence and a denied permission look
+  // identical from the outside, so the console must state which one it is
+  // rather than leaving it to be inferred.
+  private peakSinceLog = 0;
+  private samplesSinceLog = 0;
+  private everHeardAudio = false;
+
+  // A Web Audio branch that exists only to drive the waveform: the PCM already
+  // went to the client by the time it gets here, and this graph is deliberately
+  // never connected to the destination, so it makes no sound.
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private nextPlayTime = 0;
+
   /** Invoked when the helper dies, so the caller can fall back to system capture. */
   public onLost: (() => void) | null = null;
 
@@ -49,12 +63,12 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   }
 
   /**
-   * No AudioContext exists on this path - the PCM goes straight to the client -
-   * so there is no analyser to hand out and the participant waveform stays flat.
-   * Audio and translation are unaffected.
+   * Analyser over the captured audio, so the participant waveform animates on
+   * this path too. Without it a flat waveform gave no way to tell working
+   * capture from silent capture.
    */
   getAnalyser(): AnalyserNode | null {
-    return null;
+    return this.analyser;
   }
 
   async begin(options?: ParticipantAudioOptions): Promise<boolean> {
@@ -123,6 +137,11 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     this.callback = null;
     this.leftover = new Uint8Array(0);
     this.status = 'ended';
+    this.analyser = null;
+    if (this.audioContext) {
+      void this.audioContext.close().catch(() => { /* already closing */ });
+      this.audioContext = null;
+    }
   }
 
   private onPcm(payload: Uint8Array): void {
@@ -151,6 +170,66 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     const mono = new Int16Array(aligned.buffer);
 
     this.callback({ mono, raw: mono });
+    this.observeLevel(mono);
+    this.feedAnalyser(mono);
+  }
+
+  /** Log the captured level periodically so silence is visible as a fact. */
+  private observeLevel(mono: Int16Array): void {
+    for (let i = 0; i < mono.length; i++) {
+      const a = Math.abs(mono[i]);
+      if (a > this.peakSinceLog) this.peakSinceLog = a;
+    }
+    this.samplesSinceLog += mono.length;
+
+    // 24 kHz, so this is roughly every two seconds.
+    if (this.samplesSinceLog < 48000) return;
+
+    const peak = this.peakSinceLog / 32768;
+    if (peak > 0.001) this.everHeardAudio = true;
+    console.info(
+      `[Sokuji] [AppAudioRecorder] captured level: peak=${peak.toFixed(4)}` +
+      `${peak <= 0.001 ? ' (silent - the source is not playing, or capture is not permitted)' : ''}`
+    );
+    this.peakSinceLog = 0;
+    this.samplesSinceLog = 0;
+  }
+
+  /**
+   * Push the PCM through a detached Web Audio graph purely to drive the
+   * waveform. Scheduling short buffers back to back keeps the analyser fed
+   * without a worklet or a SharedArrayBuffer.
+   */
+  private feedAnalyser(mono: Int16Array): void {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.nextPlayTime = this.audioContext.currentTime;
+      }
+      const ctx = this.audioContext;
+      if (ctx.state === 'suspended') void ctx.resume();
+
+      const buffer = ctx.createBuffer(1, mono.length, this.sampleRate);
+      const channel = buffer.getChannelData(0);
+      for (let i = 0; i < mono.length; i++) channel[i] = mono[i] / 32768;
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      // Connected to the analyser only - never to ctx.destination, or the
+      // captured audio would be played back and fed straight into the capture.
+      source.connect(this.analyser!);
+
+      const now = ctx.currentTime;
+      if (this.nextPlayTime < now) this.nextPlayTime = now;
+      source.start(this.nextPlayTime);
+      this.nextPlayTime += buffer.duration;
+    } catch (error) {
+      // The waveform is cosmetic; never let it break capture.
+      console.warn('[Sokuji] [AppAudioRecorder] Analyser feed failed:', error);
+      this.analyser = null;
+    }
   }
 
   private onHelperEvent(payload: { event?: string; code?: string }): void {
