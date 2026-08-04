@@ -304,7 +304,8 @@
     "refreshDevices": "重新整理裝置",
     "unknownDevice": "未知裝置",
     "participantSource": "Participant Audio Source",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "turnOffParticipant": "Turn off participant audio"
   },
   "auth": {
     "signIn": "登入",

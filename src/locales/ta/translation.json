@@ -304,7 +304,8 @@
     "refreshDevices": "சாதனங்களைப் புதுப்பி",
     "unknownDevice": "அறியப்படாத சாதனம்",
     "participantSource": "Participant Audio Source",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "turnOffParticipant": "Turn off participant audio"
   },
   "auth": {
     "signIn": "உள்நுழை",

@@ -45,15 +45,21 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const isLoading = useIsAudioLoading();
   const locked = isLocked ?? isSessionActive;
 
-  // The picker only earns its space when a capture helper actually reported
-  // applications; with just the whole-system entry there is nothing to choose.
-  const showSourcePicker = isElectron() && participantSources.length > 1;
+  // On Electron the source list replaces the on/off toggle entirely: its own
+  // "Off" row is the control, so it must render even when the only source is
+  // whole-system capture, or the channel could never be turned back on.
+  // The extension has no source concept (tab capture is already scoped), so it
+  // keeps the plain toggle.
+  const showSourcePicker = isElectron() && participantSources.length > 0;
 
   const handleSourceSelect = (device: AudioDevice) => {
     // Re-linking mid-session would tear down the live capture. The list is
     // rendered disabled too; this is the belt-and-braces guard.
     if (locked) return;
     selectParticipantSource(device);
+    // Picking a source is also how the channel is switched back on, mirroring
+    // the microphone and speaker lists.
+    setParticipantMuted(false);
     trackEvent('participant_source_selected', { deviceId: device.deviceId });
   };
 
@@ -108,31 +114,26 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           </button>
         )}
       </h3>
-      <ToggleSwitch
-        checked={!isParticipantMuted}
-        onChange={handleToggle}
-        label={!isParticipantMuted ? t('common.on', 'On') : t('common.off', 'Off')}
-        disabled={locked}
-      />
-
-      {/* Which application to capture. Hidden while the channel is off, since
-          there is nothing to scope, and on platforms with no per-app helper. */}
-      {showSourcePicker && !isParticipantMuted && (
-        <div className="participant-source-picker">
-          <label className="participant-source-label">
-            {t('audioPanel.participantSource', 'Participant Audio Source')}
-          </label>
-          <DeviceList
-            devices={participantSources}
-            selectedDevice={selectedParticipantSource}
-            isDeviceOn={true}
-            onSelect={handleSourceSelect}
-            disabled={locked}
-            deviceType="input"
-            filterVirtual={false}
-            showVirtualIndicators={false}
-          />
-        </div>
+      {showSourcePicker ? (
+        <DeviceList
+          devices={participantSources}
+          selectedDevice={selectedParticipantSource}
+          isDeviceOn={!isParticipantMuted}
+          onSelect={handleSourceSelect}
+          onToggleOff={() => { if (!locked) setParticipantMuted(true); }}
+          disabled={locked}
+          deviceType="input"
+          filterVirtual={false}
+          showVirtualIndicators={false}
+          toggleAriaLabel={t('audioPanel.turnOffParticipant', 'Turn off participant audio')}
+        />
+      ) : (
+        <ToggleSwitch
+          checked={!isParticipantMuted}
+          onChange={handleToggle}
+          label={!isParticipantMuted ? t('common.on', 'On') : t('common.off', 'Off')}
+          disabled={locked}
+        />
       )}
     </div>
   );

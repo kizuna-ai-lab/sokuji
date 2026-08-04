@@ -80,10 +80,41 @@ describe('SystemAudioSection', () => {
     expect(screen.getByText('System Audio (All Applications)')).toBeInTheDocument();
   });
 
-  it('selecting an application calls the store action', () => {
+  it('selecting an application calls the store action and switches the channel on', () => {
     mount();
     fireEvent.click(screen.getByText('Chromium'));
     expect(store.select).toHaveBeenCalledWith(CHROMIUM);
+    // Picking a source is also how the channel is turned back on.
+    expect(store.setMuted).toHaveBeenCalledWith(false);
+  });
+
+  it('replaces the on/off toggle with the list Off row on Electron', () => {
+    const { container } = mount();
+    // The list carries its own Off row, so a separate switch is redundant.
+    expect(container.querySelector('.toggle-switch-component')).toBeNull();
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
+  it('turning the channel off goes through the list Off row', () => {
+    mount();
+    fireEvent.click(screen.getByText('Off'));
+    expect(store.setMuted).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps the list rendered while the channel is off, so it can be turned back on', () => {
+    // Hiding the list when muted would strand the user with no control at all.
+    store.muted = true;
+    const { container } = mount();
+    expect(container.querySelector('.device-list, [role="listbox"]')).not.toBeNull();
+    expect(screen.getByText('Chromium')).toBeInTheDocument();
+  });
+
+  it('still renders the list when whole-system capture is the only source', () => {
+    // Otherwise a machine with no per-app helper would have no on/off control.
+    store.sources = [SYSTEM];
+    mount();
+    expect(screen.getByText('System Audio (All Applications)')).toBeInTheDocument();
+    expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
   it('does not switch source while the session is active', () => {
@@ -99,25 +130,14 @@ describe('SystemAudioSection', () => {
     expect(store.refresh).toHaveBeenCalled();
   });
 
-  it('hides the picker when the participant channel is off', () => {
-    // Nothing to scope while the channel is muted.
-    store.muted = true;
-    const { container } = mount();
-    expect(container.querySelector('.participant-source-picker')).toBeNull();
-  });
-
-  it('hides the picker when only whole-system capture is available', () => {
-    // No per-application helper on this platform or OS version.
-    store.sources = [SYSTEM];
-    const { container } = mount();
-    expect(container.querySelector('.participant-source-picker')).toBeNull();
-  });
-
-  it('hides the picker in the browser extension', () => {
-    // Tab capture is already scoped to one tab; there is nothing to pick.
+  it('keeps the plain toggle in the browser extension', () => {
+    // Tab capture is already scoped to one tab; there is nothing to pick, so
+    // the list would have no purpose and the toggle remains the control.
     env.electron = false;
     env.extension = true;
+    store.sources = [];
     const { container } = mount();
-    expect(container.querySelector('.participant-source-picker')).toBeNull();
+    expect(screen.queryByText('Chromium')).toBeNull();
+    expect(container.querySelector('.toggle-switch-component')).not.toBeNull();
   });
 });

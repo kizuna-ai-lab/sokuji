@@ -304,7 +304,8 @@
     "refreshDevices": "Uppdatera enheter",
     "unknownDevice": "Okänd enhet",
     "participantSource": "Participant Audio Source",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "turnOffParticipant": "Turn off participant audio"
   },
   "auth": {
     "signIn": "Logga in",
