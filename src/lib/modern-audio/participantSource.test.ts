@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveParticipantSourceId, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
+import { resolveParticipantSourceId, isApplicationSource, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
 
 describe('resolveParticipantSourceId', () => {
   it('returns the selected application source id', () => {
@@ -20,5 +20,28 @@ describe('resolveParticipantSourceId', () => {
   it('falls back when the selection carries no deviceId', () => {
     expect(resolveParticipantSourceId({ deviceId: '', label: 'broken' }))
       .toBe(SYSTEM_PARTICIPANT_SOURCE_ID);
+  });
+});
+
+// Regression guard (issue #335): selecting an application on macOS aborted the
+// session. The whole-system loopback gate ran first, asked for a getDisplayMedia
+// stream, hit the Screen Recording denial and skipped participant audio -
+// even though per-application capture never touches getDisplayMedia.
+describe('isApplicationSource', () => {
+  it('recognises an application source', () => {
+    expect(isApplicationSource('app:pid:3940')).toBe(true);
+    expect(isApplicationSource('app:205')).toBe(true);
+  });
+
+  it('does not treat whole-system capture as an application', () => {
+    expect(isApplicationSource(SYSTEM_PARTICIPANT_SOURCE_ID)).toBe(false);
+  });
+
+  it('handles absent and malformed ids', () => {
+    expect(isApplicationSource(null)).toBe(false);
+    expect(isApplicationSource(undefined)).toBe(false);
+    expect(isApplicationSource('')).toBe(false);
+    // A device whose label merely mentions an app is not an app source.
+    expect(isApplicationSource('some-application-device')).toBe(false);
   });
 });

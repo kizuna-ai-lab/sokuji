@@ -15,3 +15,16 @@ export function resolveParticipantSourceId(
 ): string {
   return selected?.deviceId || SYSTEM_PARTICIPANT_SOURCE_ID;
 }
+
+/**
+ * True when the id names one application rather than the whole system.
+ *
+ * Callers use this to skip the whole-system loopback acquisition entirely.
+ * That path asks for a getDisplayMedia stream - which on macOS requires Screen
+ * Recording permission - and per-application capture needs neither: it runs
+ * through the capture helper on Windows and macOS, and through a PipeWire link
+ * on Linux.
+ */
+export function isApplicationSource(deviceId: string | null | undefined): boolean {
+  return typeof deviceId === 'string' && deviceId.startsWith('app:');
+}

@@ -42,7 +42,7 @@ import {
 } from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource } from '../../stores/audioStore';
-import { resolveParticipantSourceId } from '../../lib/modern-audio/participantSource';
+import { resolveParticipantSourceId, isApplicationSource } from '../../lib/modern-audio/participantSource';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -1962,7 +1962,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           let electronAcquireOk = true;
           if (isElectron() && !isExtension()) {
             try {
-              if (isLoopbackPlatform()) {
+              const participantSourceId = resolveParticipantSourceId(participantSourceRef.current);
+              // The loopback gate acquires a whole-system getDisplayMedia stream
+              // and, on macOS, demands Screen Recording. Per-application capture
+              // uses neither - it goes through the capture helper (Windows,
+              // macOS) or a PipeWire link (Linux) - so requiring that permission
+              // here blocked app capture outright on macOS.
+              const needsLoopbackStream =
+                isLoopbackPlatform() && !isApplicationSource(participantSourceId);
+
+              if (needsLoopbackStream) {
                 const granted = await audioServiceRef.current!.requestLoopbackAudioStream();
                 if (!granted) {
                   console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
@@ -1977,15 +1986,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   );
                   electronAcquireOk = false;
                 } else {
-                  await audioServiceRef.current!.connectSystemAudioSource(
-                  resolveParticipantSourceId(participantSourceRef.current)
-                );
+                  await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
                   systemAudioAcquiredRef.current = true;
                 }
               } else {
-                await audioServiceRef.current!.connectSystemAudioSource(
-                  resolveParticipantSourceId(participantSourceRef.current)
-                );
+                await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
                 systemAudioAcquiredRef.current = true;
               }
             } catch (error) {
