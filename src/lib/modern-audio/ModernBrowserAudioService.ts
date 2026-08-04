@@ -1137,6 +1137,40 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Switch the participant source without ending the session.
+   *
+   * Mirrors switchRecordingDevice for the microphone: the capture is rebuilt
+   * around the new source while the client, the conversation and the callback
+   * all stay put. Whole-system and per-application sources are interchangeable
+   * here - each connect() decides which capture path it needs.
+   *
+   * @param sourceDeviceId 'desktop-audio-loopback' or 'app:pid:<n>'
+   */
+  public async switchParticipantSource(sourceDeviceId: string): Promise<void> {
+    if (this.currentSystemAudioSinkId === sourceDeviceId) {
+      console.debug(`[Sokuji] [ModernBrowserAudio] Participant source unchanged: ${sourceDeviceId}`);
+      return;
+    }
+
+    console.info(
+      `[Sokuji] [ModernBrowserAudio] Switching participant source from ` +
+      `${this.currentSystemAudioSinkId} to ${sourceDeviceId}`
+    );
+
+    // stopSystemAudioRecording clears the callback, and it is the only thing
+    // tying the captured audio to the live client - take it before teardown.
+    const savedCallback = this.systemAudioCallback;
+
+    await this.stopSystemAudioRecording();
+    await this.disconnectSystemAudioSource();
+    await this.connectSystemAudioSource(sourceDeviceId);
+
+    if (savedCallback) {
+      await this.startSystemAudioRecording(savedCallback);
+    }
+  }
+
+  /**
    * Stop recording from system audio (but keep connection)
    * Called when session ends
    */

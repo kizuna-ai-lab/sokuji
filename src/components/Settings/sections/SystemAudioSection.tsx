@@ -53,8 +53,8 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const showSourcePicker = isElectron() && participantSources.length > 0;
 
   const handleSourceSelect = (device: AudioDevice) => {
-    // Re-linking mid-session would tear down the live capture. The list is
-    // rendered disabled too; this is the belt-and-braces guard.
+    // `locked` is about mode scope, not the session: picking a source during a
+    // live session is supported and MainPanel rebuilds the capture around it.
     if (locked) return;
     selectParticipantSource(device);
     // Picking a source is also how the channel is switched back on, mirroring

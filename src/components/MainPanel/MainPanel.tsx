@@ -405,12 +405,72 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Which application (or the whole system) participant audio is captured from.
   const selectedParticipantSource = useSelectedParticipantSource();
+  // Tracks what capture is actually running, so the switch effect below fires
+  // on a real change rather than on every re-render or list refresh.
+  const activeParticipantSourceRef = useRef<string | null>(null);
   // Read through a ref: session start awaits several times, and a re-render in
   // between must not switch the source mid-acquisition.
   const participantSourceRef = useRef(selectedParticipantSource);
   useEffect(() => {
     participantSourceRef.current = selectedParticipantSource;
   }, [selectedParticipantSource]);
+
+  // Switching the participant source mid-session, mirroring the microphone.
+  // The picker is deliberately live during a session (it is gated on mode, not
+  // on the session), so without this the selection changed and nothing acted on
+  // it - capture stayed on whatever was chosen at start.
+  useEffect(() => {
+    if (!isSessionActive) {
+      activeParticipantSourceRef.current = null;
+      return;
+    }
+    const audioService = audioServiceRef.current;
+    if (!audioService?.switchParticipantSource) return;
+
+    const nextId = resolveParticipantSourceId(selectedParticipantSource);
+    // First run after start records what the session began with; there is
+    // nothing to switch to yet.
+    if (activeParticipantSourceRef.current === null) {
+      activeParticipantSourceRef.current = nextId;
+      return;
+    }
+    if (activeParticipantSourceRef.current === nextId) return;
+
+    const previousId = activeParticipantSourceRef.current;
+    activeParticipantSourceRef.current = nextId;
+
+    void (async () => {
+      try {
+        await audioService.switchParticipantSource!(nextId);
+        trackEvent('audio_device_changed', {
+          device_type: 'participant',
+          device_name: selectedParticipantSource?.label,
+          change_type: 'selected',
+          during_session: true,
+        });
+      } catch (error: any) {
+        console.error('[Sokuji] [MainPanel] Failed to switch participant source:', error);
+        // Leave the ref on the failed id rather than the old one: the capture is
+        // torn down either way, and pretending otherwise would skip the retry
+        // when the user picks the previous source again.
+        void previousId;
+        addRealtimeEvent(
+          {
+            type: 'participant.warning',
+            data: {
+              message: t(
+                'audioPanel.participantSourceSwitchFailed',
+                'Could not switch the participant audio source. Stop and start the session to change it.'
+              ),
+            },
+          },
+          'client', 'participant.warning'
+        );
+      }
+    })();
+    // Depend on the id string, not the device object: device-enumeration
+    // refreshes hand back a new object for an unchanged selection.
+  }, [selectedParticipantSource?.deviceId, isSessionActive, addRealtimeEvent, t, trackEvent]);
 
   // Channel start predicates — evaluated pre-start. Used by canStartSession
   // and by connectConversation to decide which clients to create. Locked

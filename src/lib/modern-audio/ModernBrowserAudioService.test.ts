@@ -330,3 +330,63 @@ describe('resolving the application-capture monitor', () => {
     expect(await (svc as any).resolveMonitorDeviceId('Sokuji_App_Capture')).toBeNull();
   });
 });
+
+// Switching the participant source mid-session used to do nothing: the picker
+// stayed live (it is gated on mode, not on the session) but no code applied the
+// change, so capture stayed on whatever was chosen at start.
+describe('switching the participant source mid-session', () => {
+  const service = () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    return new ModernBrowserAudioService();
+  };
+
+  it('rebuilds capture around the new source and keeps the same callback', async () => {
+    const svc = service();
+    const callback = vi.fn();
+    const order: string[] = [];
+    (svc as any).currentSystemAudioSinkId = 'app:pid:1';
+    (svc as any).systemAudioCallback = callback;
+    svc.stopSystemAudioRecording = vi.fn(async () => {
+      order.push('stop');
+      (svc as any).systemAudioCallback = null;   // as the real one does
+    });
+    svc.disconnectSystemAudioSource = vi.fn(async () => { order.push('disconnect'); });
+    svc.connectSystemAudioSource = vi.fn(async () => { order.push('connect'); });
+    svc.startSystemAudioRecording = vi.fn(async () => { order.push('start'); });
+
+    await svc.switchParticipantSource('app:pid:2');
+
+    expect(order).toEqual(['stop', 'disconnect', 'connect', 'start']);
+    expect(svc.connectSystemAudioSource).toHaveBeenCalledWith('app:pid:2');
+    // The callback is the only link to the live client, and stop() clears it -
+    // it has to be captured before teardown or the session goes deaf.
+    expect(svc.startSystemAudioRecording).toHaveBeenCalledWith(callback);
+  });
+
+  it('does nothing when the source is unchanged', async () => {
+    const svc = service();
+    (svc as any).currentSystemAudioSinkId = 'app:pid:1';
+    svc.stopSystemAudioRecording = vi.fn();
+
+    await svc.switchParticipantSource('app:pid:1');
+
+    expect(svc.stopSystemAudioRecording).not.toHaveBeenCalled();
+  });
+
+  it('switches between whole-system and one application in either direction', async () => {
+    const svc = service();
+    (svc as any).currentSystemAudioSinkId = 'app:pid:1';
+    (svc as any).systemAudioCallback = vi.fn();
+    svc.stopSystemAudioRecording = vi.fn(async () => {});
+    svc.disconnectSystemAudioSource = vi.fn(async () => {});
+    svc.connectSystemAudioSource = vi.fn(async () => {});
+    svc.startSystemAudioRecording = vi.fn(async () => {});
+
+    await svc.switchParticipantSource('desktop-audio-loopback');
+    expect(svc.connectSystemAudioSource).toHaveBeenLastCalledWith('desktop-audio-loopback');
+
+    (svc as any).currentSystemAudioSinkId = 'desktop-audio-loopback';
+    await svc.switchParticipantSource('app:pid:9');
+    expect(svc.connectSystemAudioSource).toHaveBeenLastCalledWith('app:pid:9');
+  });
+});

@@ -147,6 +147,14 @@ export interface IAudioService {
   switchRecordingDevice?(deviceId: string | undefined): Promise<void>;
 
   /**
+   * Switch the participant capture source while maintaining the session.
+   * Optional: only platforms that can single out an application offer more than
+   * one source.
+   * @param sourceDeviceId 'desktop-audio-loopback' or 'app:pid:<n>'
+   */
+  switchParticipantSource?(sourceDeviceId: string): Promise<void>;
+
+  /**
    * Get the recorder instance for accessing methods like getFrequencies
    */
   getRecorder(): ModernAudioRecorder;
