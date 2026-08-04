@@ -262,7 +262,9 @@ describe('listAppSources', () => {
     // PipeWire reports "Chromium"/"Playback" for every browser window alike.
     const windowTitles = async () => new Map([[4242, 'YouTube - Chromium']]);
     const r = await listAppSources({ exec: fakeExec([]), windowTitles });
-    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'YouTube - Chromium' }]);
+    // The window title labels the row, but the binary is what identifies the
+    // application next launch - titles change with whatever it is showing.
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'YouTube - Chromium', appKey: 'chromium' }]);
   });
 
   it('keeps a long title intact for the UI to ellipsise', async () => {
@@ -277,18 +279,19 @@ describe('listAppSources', () => {
   it('keeps the application name when no window matches', async () => {
     // Wayland, no xprop, or a process with no window at all.
     const r = await listAppSources({ exec: fakeExec([]), windowTitles: noTitles });
-    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('keeps the application name when title lookup throws', async () => {
     const boom = async () => { throw new Error('xprop exploded'); };
     const r = await listAppSources({ exec: fakeExec([]), windowTitles: boom });
-    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('returns only playback streams, projected to {deviceId,label}', async () => {
     // The capture sink in FULL_DUMP is an Audio/Sink, so it must not be listed.
-    expect(await listAppSources({ exec: fakeExec([]), windowTitles: noTitles })).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+    expect(await listAppSources({ exec: fakeExec([]), windowTitles: noTitles }))
+      .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('never lists a leaked capture sink from a previous session', async () => {

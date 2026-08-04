@@ -66,7 +66,14 @@ async function listAppSources({ spawn = nodeSpawn, resolvePath = resolveAudioHos
         resolve(
           rows
             .filter((r) => r && typeof r.id === 'string')
-            .map((r) => ({ deviceId: `app:${r.id}`, label: r.label || r.exe || r.id }))
+            // appKey identifies the application across restarts, unlike the
+            // pid inside deviceId. Windows reports an exe name, macOS a bundle
+            // id; either is stable enough to re-find the app next launch.
+            .map((r) => ({
+              deviceId: `app:${r.id}`,
+              label: r.label || r.exe || r.id,
+              appKey: r.exe || r.label || null,
+            }))
         );
       } catch {
         resolve([]);

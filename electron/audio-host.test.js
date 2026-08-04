@@ -25,7 +25,8 @@ describe('listAppSources', () => {
     child.stdout.emit('data', Buffer.from('[{"id":"pid:42","label":"Zoom","exe":"Zoom.exe","active":true}]'));
     child.emit('close', 0);
 
-    expect(await p).toEqual([{ deviceId: 'app:pid:42', label: 'Zoom' }]);
+    // appKey is what survives a restart; deviceId's pid does not.
+    expect(await p).toEqual([{ deviceId: 'app:pid:42', label: 'Zoom', appKey: 'Zoom.exe' }]);
     expect(spawn.mock.calls[0][1]).toEqual(['--list']);
   });
 
@@ -41,7 +42,7 @@ describe('listAppSources', () => {
     child.stdout.emit('data', buf.subarray(20));
     child.emit('close', 0);
 
-    expect(await p).toEqual([{ deviceId: 'app:pid:7', label: '守望先锋' }]);
+    expect(await p).toEqual([{ deviceId: 'app:pid:7', label: '守望先锋', appKey: 'Overwatch.exe' }]);
   });
 
   it('falls back to exe when label is empty', async () => {
@@ -49,7 +50,7 @@ describe('listAppSources', () => {
     const p = listAppSources({ spawn: () => child, resolvePath });
     child.stdout.emit('data', Buffer.from('[{"id":"pid:9","label":"","exe":"foo.exe"}]'));
     child.emit('close', 0);
-    expect(await p).toEqual([{ deviceId: 'app:pid:9', label: 'foo.exe' }]);
+    expect(await p).toEqual([{ deviceId: 'app:pid:9', label: 'foo.exe', appKey: 'foo.exe' }]);
   });
 
   it('returns an empty array when the helper is missing', async () => {

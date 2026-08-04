@@ -131,7 +131,14 @@ async function listAppSources({ exec = defaultExec, windowTitles = listWindowTit
 
   return streams.map((s) => {
     const title = s.pid !== null ? titleForPid(s.pid, titles) : null;
-    return { deviceId: s.deviceId, label: title || s.label };
+    // appKey must survive a restart, so it is the binary or application name -
+    // never the node id inside deviceId, and never the window title, which
+    // changes with whatever the app is showing.
+    return {
+      deviceId: s.deviceId,
+      label: title || s.label,
+      appKey: s.binary || s.label || null,
+    };
   });
 }
 
