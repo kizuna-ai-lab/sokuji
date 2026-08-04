@@ -302,7 +302,9 @@
     "turnOffMonitor": "Desactivar monitor de altavoz",
     "monitorLockedByMode": "La monitorización por altavoz solo está disponible en el modo \"{{mode}}\": no puede funcionar junto con el Audio de Participantes sin provocar eco. Cambia el modo de traducción a \"{{mode}}\" para volver a habilitarla.",
     "refreshDevices": "Actualizar dispositivos",
-    "unknownDevice": "Dispositivo desconocido"
+    "unknownDevice": "Dispositivo desconocido",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Iniciar sesión",

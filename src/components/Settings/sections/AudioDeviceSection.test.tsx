@@ -11,8 +11,8 @@
  * their justification for screen readers rather than just going quiet.
  */
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AudioDeviceSection from './AudioDeviceSection';
 
 // Resolve to the inline default when the call site has one, else echo the key —
@@ -27,7 +27,21 @@ vi.mock('../../../lib/analytics', () => ({
 
 const devices = [{ deviceId: 'spk-1', label: 'Headphones' }];
 
+// Holder the hoisted vi.mock factory reads lazily, so tests can vary it.
+const participantMock = {
+  sources: [] as Array<{ deviceId: string; label: string }>,
+  selected: null as { deviceId: string; label: string } | null,
+  select: vi.fn(),
+};
+
+vi.mock('../../../utils/environment', () => ({
+  isElectron: () => true,
+}));
+
 vi.mock('../../../stores/audioStore', () => ({
+  useParticipantSources: () => participantMock.sources,
+  useSelectedParticipantSource: () => participantMock.selected,
+  useSelectParticipantSource: () => participantMock.select,
   useIsMonitorChannelInScope: () => false,
   useNoiseSuppressionMode: () => 'off',
   useSetNoiseSuppressionMode: () => vi.fn(),
@@ -136,5 +150,56 @@ describe('AudioDeviceSection warning modal under Activity hide', () => {
     rerender(ui('hidden'));
     rerender(ui('visible'));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Participant audio source picker (issue #335).
+// ---------------------------------------------------------------------------
+describe('AudioDeviceSection participant source picker', () => {
+  const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
+  const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };
+
+  const renderPicker = (props: Record<string, unknown> = {}) =>
+    render(
+      <AudioDeviceSection
+        isSessionActive={false}
+        showMicrophone={false}
+        showSpeaker={false}
+        {...props}
+      />
+    );
+
+  beforeEach(() => {
+    participantMock.sources = [SYSTEM, CHROMIUM];
+    participantMock.selected = SYSTEM;
+    participantMock.select.mockReset();
+  });
+
+  it('lists the available participant sources', () => {
+    renderPicker();
+    expect(screen.getByText('Chromium')).toBeInTheDocument();
+    expect(screen.getByText('System Audio (All Applications)')).toBeInTheDocument();
+  });
+
+  it('selecting an application calls the store action', () => {
+    renderPicker();
+    fireEvent.click(screen.getByText('Chromium'));
+    expect(participantMock.select).toHaveBeenCalledWith(CHROMIUM);
+  });
+
+  it('does not switch source while a session is active', () => {
+    renderPicker({ isSessionActive: true });
+    fireEvent.click(screen.getByText('Chromium'));
+    // Re-linking mid-session would tear down the live capture.
+    expect(participantMock.select).not.toHaveBeenCalled();
+  });
+
+  it('hides the picker when only whole-system capture is available', () => {
+    // No per-application helper: a one-entry list is not worth a section.
+    participantMock.sources = [SYSTEM];
+    const { container } = renderPicker();
+    expect(container.querySelector('#participant-source-section')).toBeNull();
   });
 });

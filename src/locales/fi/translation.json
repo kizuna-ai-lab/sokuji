@@ -302,7 +302,9 @@
     "turnOffMonitor": "Poista kaiuttimen valvonta käytöstä",
     "monitorLockedByMode": "Kaiuttimen valvonta on käytettävissä vain tilassa \"{{mode}}\" — se ei voi olla käytössä yhtä aikaa Osallistujan äänen kanssa ilman kaikua. Vaihda käännöstilaksi \"{{mode}}\" ottaaksesi sen uudelleen käyttöön.",
     "refreshDevices": "Päivitä laitteet",
-    "unknownDevice": "Tuntematon laite"
+    "unknownDevice": "Tuntematon laite",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",

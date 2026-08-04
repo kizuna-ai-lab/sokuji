@@ -302,7 +302,9 @@
     "turnOffMonitor": "ஸ்பீக்கர் கண்காணிப்பை அணை",
     "monitorLockedByMode": "ஸ்பீக்கர் கண்காணிப்பு \"{{mode}}\" பயன்முறையில் மட்டுமே கிடைக்கும் — பங்கேற்பாளர் ஆடியோவுடன் சேர்ந்து இயங்கினால் எதிரொலி ஏற்படும். மீண்டும் இயக்க மொழிபெயர்ப்பு பயன்முறையை \"{{mode}}\" என மாற்றவும்.",
     "refreshDevices": "சாதனங்களைப் புதுப்பி",
-    "unknownDevice": "அறியப்படாத சாதனம்"
+    "unknownDevice": "அறியப்படாத சாதனம்",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "உள்நுழை",

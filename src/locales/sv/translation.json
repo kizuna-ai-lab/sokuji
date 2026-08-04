@@ -302,7 +302,9 @@
     "turnOffMonitor": "Stäng av högtalarmonitor",
     "monitorLockedByMode": "Högtalarmonitorering är endast tillgänglig i läget \"{{mode}}\" — den kan inte köras samtidigt som Deltagarljud utan att orsaka eko. Byt översättningsläge till \"{{mode}}\" för att aktivera den igen.",
     "refreshDevices": "Uppdatera enheter",
-    "unknownDevice": "Okänd enhet"
+    "unknownDevice": "Okänd enhet",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Logga in",

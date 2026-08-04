@@ -302,7 +302,9 @@
     "turnOffMonitor": "Wyłącz monitor głośnika",
     "monitorLockedByMode": "Monitorowanie przez głośnik jest dostępne tylko w trybie \"{{mode}}\" — nie może działać jednocześnie z Dźwiękiem uczestnika bez powodowania echa. Przełącz tryb tłumaczenia na \"{{mode}}\", aby ponownie je włączyć.",
     "refreshDevices": "Odśwież urządzenia",
-    "unknownDevice": "Nieznane urządzenie"
+    "unknownDevice": "Nieznane urządzenie",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Zaloguj się",

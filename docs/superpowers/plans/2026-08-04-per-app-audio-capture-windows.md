@@ -33,6 +33,11 @@
   `removeListener` must be handed the *original* function, which it looks up in a WeakMap.
   A channel missing from `validReceiveChannels` is silently ignored, so forgetting it means
   the renderer simply never hears anything.
+- **A new `electron/*.js` module must be registered in `vite.config.ts`.** The electron main
+  build uses an explicit input map (around line 137); a file missing from it is simply not
+  emitted into `dist-electron/`, so a `require('./new-module.js')` at runtime throws only in a
+  built or packaged app. Vitest imports the source tree directly and stays green, so nothing
+  catches this except running `npm run build` and checking `dist-electron/`.
 - **Do not gate on `tsc`.** ~113 pre-existing type errors; the correctness gate is Vitest.
 - Conventional commit format.
 - Run single test files with `npx vitest run <path>` (`npm run test` starts watch mode).

@@ -302,7 +302,9 @@
     "turnOffMonitor": "Turn off speaker monitor",
     "monitorLockedByMode": "Speaker monitoring is only available in \"{{mode}}\" mode — it cannot run alongside Participant audio without causing echo. Switch the translation mode to \"{{mode}}\" to re-enable it.",
     "refreshDevices": "Refresh devices",
-    "unknownDevice": "Unknown device"
+    "unknownDevice": "Unknown device",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Sign In",

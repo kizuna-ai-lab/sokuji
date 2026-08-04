@@ -41,7 +41,8 @@ import {
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
-import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
+import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource } from '../../stores/audioStore';
+import { resolveParticipantSourceId } from '../../lib/modern-audio/participantSource';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -368,6 +369,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const isMicMuted = useIsMicMuted();
   const isMonitorMuted = useIsMonitorMuted();
   const isParticipantMuted = useIsParticipantMuted();
+
+  // Which application (or the whole system) participant audio is captured from.
+  const selectedParticipantSource = useSelectedParticipantSource();
+  // Read through a ref: session start awaits several times, and a re-render in
+  // between must not switch the source mid-acquisition.
+  const participantSourceRef = useRef(selectedParticipantSource);
+  useEffect(() => {
+    participantSourceRef.current = selectedParticipantSource;
+  }, [selectedParticipantSource]);
 
   // Channel start predicates — evaluated pre-start. Used by canStartSession
   // and by connectConversation to decide which clients to create. Locked
@@ -1943,11 +1953,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   );
                   electronAcquireOk = false;
                 } else {
-                  await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                  await audioServiceRef.current!.connectSystemAudioSource(
+                  resolveParticipantSourceId(participantSourceRef.current)
+                );
                   systemAudioAcquiredRef.current = true;
                 }
               } else {
-                await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                await audioServiceRef.current!.connectSystemAudioSource(
+                  resolveParticipantSourceId(participantSourceRef.current)
+                );
                 systemAudioAcquiredRef.current = true;
               }
             } catch (error) {

@@ -302,7 +302,9 @@
     "turnOffMonitor": "Luidsprekermonitor uitschakelen",
     "monitorLockedByMode": "Luidsprekermonitoring is alleen beschikbaar in de modus \"{{mode}}\" — samen met Deelnemer Audio zou het echo veroorzaken. Schakel de vertaalmodus naar \"{{mode}}\" om het weer in te schakelen.",
     "refreshDevices": "Apparaten vernieuwen",
-    "unknownDevice": "Onbekend apparaat"
+    "unknownDevice": "Onbekend apparaat",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Inloggen",

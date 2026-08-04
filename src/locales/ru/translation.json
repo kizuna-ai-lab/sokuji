@@ -302,7 +302,9 @@
     "turnOffMonitor": "Выключить мониторинг динамика",
     "monitorLockedByMode": "Мониторинг динамика доступен только в режиме «{{mode}}» — одновременная работа с аудио участников вызовет эхо. Переключите режим перевода на «{{mode}}», чтобы снова его включить.",
     "refreshDevices": "Обновить список устройств",
-    "unknownDevice": "Неизвестное устройство"
+    "unknownDevice": "Неизвестное устройство",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Войти",

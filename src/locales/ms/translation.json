@@ -302,7 +302,9 @@
     "turnOffMonitor": "Matikan pemantau pembesar suara",
     "monitorLockedByMode": "Pemantauan pembesar suara hanya tersedia dalam mod \"{{mode}}\" — ia tidak boleh berjalan serentak dengan Audio Peserta tanpa menyebabkan gema. Tukar mod terjemahan kepada \"{{mode}}\" untuk mengaktifkannya semula.",
     "refreshDevices": "Segar semula peranti",
-    "unknownDevice": "Peranti tidak diketahui"
+    "unknownDevice": "Peranti tidak diketahui",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Log Masuk",

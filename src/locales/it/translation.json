@@ -302,7 +302,9 @@
     "turnOffMonitor": "Disattiva monitoraggio altoparlante",
     "monitorLockedByMode": "Il monitoraggio dall'altoparlante è disponibile solo nella modalità \"{{mode}}\": non può funzionare insieme all'Audio dei Partecipanti senza causare eco. Imposta la modalità di traduzione su \"{{mode}}\" per riattivarlo.",
     "refreshDevices": "Aggiorna dispositivi",
-    "unknownDevice": "Dispositivo sconosciuto"
+    "unknownDevice": "Dispositivo sconosciuto",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Accedi",

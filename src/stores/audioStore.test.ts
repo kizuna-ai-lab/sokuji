@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import useAudioStore, { pickDefaultInputDevice } from './audioStore';
+import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
 
 // Regression test: on a machine with no physical microphone, the only
@@ -331,5 +331,87 @@ describe('audioStore — monitor volume mode-gating', () => {
     expect(useAudioStore.getState().isMonitorMuted).toBe(false);
     useAudioStore.getState().setMode('speaker');
     expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Participant audio source selection (issue #335). The picker lets the user
+// translate one application instead of everything the machine plays.
+// ---------------------------------------------------------------------------
+describe('audioStore - participant source selection', () => {
+  beforeEach(() => {
+    useAudioStore.setState({
+      participantSources: [],
+      selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
+    });
+  });
+
+  it('defaults to whole-system capture', () => {
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId)
+      .toBe('desktop-audio-loopback');
+  });
+
+  it('selects a source', () => {
+    const chromium: AudioDevice = { deviceId: 'app:pid:205', label: 'Chromium' };
+    useAudioStore.getState().selectParticipantSource(chromium);
+    expect(useAudioStore.getState().selectedParticipantSource).toEqual(chromium);
+  });
+
+  it('keeps the selection when it is still present after a refresh', () => {
+    const chromium: AudioDevice = { deviceId: 'app:pid:205', label: 'Chromium' };
+    useAudioStore.getState().selectParticipantSource(chromium);
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, chromium]);
+    expect(useAudioStore.getState().selectedParticipantSource).toEqual(chromium);
+  });
+
+  it('reverts to whole-system capture when the selected app disappears', () => {
+    useAudioStore.getState().selectParticipantSource({ deviceId: 'app:pid:205', label: 'Chromium' });
+    // The app quit; a refresh no longer lists it.
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId)
+      .toBe('desktop-audio-loopback');
+  });
+
+  it('refreshDevices populates the participant sources', async () => {
+    useAudioStore.setState({
+      audioService: {
+        getDevices: async () => ({ inputs: [], outputs: [] }),
+        getSystemAudioSources: async () => ([
+          DEFAULT_PARTICIPANT_SOURCE,
+          { deviceId: 'app:pid:205', label: 'Chromium' },
+        ]),
+      } as any,
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources.map((s) => s.deviceId))
+      .toEqual(['desktop-audio-loopback', 'app:pid:205']);
+  });
+
+  it('refreshDevices survives a service with no per-application support', async () => {
+    // The browser extension's audio service has no getSystemAudioSources at all.
+    useAudioStore.setState({
+      audioService: { getDevices: async () => ({ inputs: [], outputs: [] }) } as any,
+      participantSources: [],
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources).toEqual([]);
+  });
+
+  it('refreshDevices survives the source listing throwing', async () => {
+    useAudioStore.setState({
+      audioService: {
+        getDevices: async () => ({ inputs: [], outputs: [] }),
+        getSystemAudioSources: async () => { throw new Error('helper exploded'); },
+      } as any,
+      participantSources: [],
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources).toEqual([]);
   });
 });

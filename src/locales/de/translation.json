@@ -302,7 +302,9 @@
     "turnOffMonitor": "Lautsprecher-Überwachung ausschalten",
     "monitorLockedByMode": "Lautsprecher-Überwachung ist nur im Modus \"{{mode}}\" verfügbar — zusammen mit Teilnehmer-Audio würde sie ein Echo verursachen. Wechseln Sie den Übersetzungsmodus zu \"{{mode}}\", um sie wieder zu aktivieren.",
     "refreshDevices": "Geräte aktualisieren",
-    "unknownDevice": "Unbekanntes Gerät"
+    "unknownDevice": "Unbekanntes Gerät",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Anmelden",

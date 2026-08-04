@@ -33,6 +33,16 @@ export interface AudioDevice {
 }
 
 /**
+ * Whole-system capture - the participant source used unless the user picks a
+ * specific application. Its deviceId is the sentinel every platform module has
+ * always returned for "capture everything".
+ */
+export const DEFAULT_PARTICIPANT_SOURCE: AudioDevice = {
+  deviceId: 'desktop-audio-loopback',
+  label: 'System Audio (All Applications)',
+};
+
+/**
  * Pick a default microphone from an enumerated input list, excluding virtual
  * ones (e.g. Sokuji's own "Sokuji_Virtual_Mic" — the monitor of Sokuji's own
  * virtual speaker, meant for other apps to consume, not for Sokuji to listen
@@ -53,6 +63,8 @@ interface AudioStore {
   audioMonitorDevices: AudioDevice[];
   selectedInputDevice: AudioDevice | null;
   selectedMonitorDevice: AudioDevice | null;
+  participantSources: AudioDevice[];
+  selectedParticipantSource: AudioDevice | null;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -73,6 +85,8 @@ interface AudioStore {
   setMonitorDevices: (devices: AudioDevice[]) => void;
   selectInputDevice: (device: AudioDevice) => void;
   selectMonitorDevice: (device: AudioDevice) => void;
+  setParticipantSources: (sources: AudioDevice[]) => void;
+  selectParticipantSource: (source: AudioDevice) => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setNoiseSuppressionMode: (mode: NoiseSuppressionMode) => void;
@@ -97,6 +111,8 @@ const useAudioStore = create<AudioStore>()(
     audioMonitorDevices: [],
     selectedInputDevice: null,
     selectedMonitorDevice: null,
+    participantSources: [],
+    selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -114,6 +130,23 @@ const useAudioStore = create<AudioStore>()(
     setAudioService: (service) => set({ audioService: service }),
     setInputDevices: (devices) => set({ audioInputDevices: devices }),
     setMonitorDevices: (devices) => set({ audioMonitorDevices: devices }),
+    setParticipantSources: (sources) => set((state) => {
+      // A captured application can quit between refreshes. Keeping a stale
+      // selection would make the next session fail to acquire its source, so
+      // fall back to whole-system capture whenever the choice disappears.
+      const stillPresent = state.selectedParticipantSource
+        && sources.some((s) => s.deviceId === state.selectedParticipantSource!.deviceId);
+      return {
+        participantSources: sources,
+        selectedParticipantSource: stillPresent
+          ? state.selectedParticipantSource
+          : DEFAULT_PARTICIPANT_SOURCE,
+      };
+    }),
+    selectParticipantSource: (source) => {
+      console.info(`[Sokuji] [AudioStore] Selected participant source: ${source.label} (${source.deviceId})`);
+      set({ selectedParticipantSource: source });
+    },
     selectInputDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
       set({ selectedInputDevice: device });
@@ -291,6 +324,17 @@ const useAudioStore = create<AudioStore>()(
           audioInputDevices: devices.inputs,
           audioMonitorDevices: devices.outputs
         });
+
+        // Only the Electron audio service can enumerate per-application sources;
+        // the extension's cannot, and a per-app list is meaningless for tab capture.
+        const listSources = (service as { getSystemAudioSources?: () => Promise<AudioDevice[]> }).getSystemAudioSources;
+        if (typeof listSources === 'function') {
+          try {
+            get().setParticipantSources(await listSources.call(service));
+          } catch (error) {
+            console.warn('[Sokuji] [AudioStore] Failed to list participant sources:', error);
+          }
+        }
 
         // Load saved device preferences and on/off states
         const settingsService = ServiceFactory.getSettingsService();
@@ -583,6 +627,9 @@ export const useToggleNoiseSuppression = () => {
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
+export const useParticipantSources = () => useAudioStore((state) => state.participantSources);
+export const useSelectedParticipantSource = () => useAudioStore((state) => state.selectedParticipantSource);
+export const useSelectParticipantSource = () => useAudioStore((state) => state.selectParticipantSource);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);

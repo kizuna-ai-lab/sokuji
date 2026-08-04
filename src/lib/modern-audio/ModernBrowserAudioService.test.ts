@@ -140,3 +140,58 @@ describe('ModernBrowserAudioService.releaseMicrophone', () => {
     expect((recorder as unknown as { stream: unknown }).stream).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Per-application participant capture routing (issue #335).
+// ---------------------------------------------------------------------------
+import { ServiceFactory } from '../../services/ServiceFactory';
+
+describe('participant capture routing', () => {
+  function arrange(invokeResult: any) {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    vi.spyOn(ServiceFactory, 'isElectron').mockReturnValue(true);
+    (globalThis as any).window = (globalThis as any).window ?? {};
+    (globalThis as any).window.electron = {
+      invoke: vi.fn().mockResolvedValue(invokeResult),
+      receive: vi.fn(),
+      removeListener: vi.fn(),
+    };
+    return new ModernBrowserAudioService();
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('records app capture mode when the main process reports it', async () => {
+    const svc = arrange({ success: true, capture: 'app' });
+    await svc.connectSystemAudioSource('app:pid:42');
+    expect((svc as any).currentCaptureMode).toBe('app');
+    expect(svc.isSystemAudioSourceConnected()).toBe(true);
+  });
+
+  it('stays in system mode for whole-system capture', async () => {
+    const svc = arrange({ success: true, capture: 'system' });
+    await svc.connectSystemAudioSource('desktop-audio-loopback');
+    expect((svc as any).currentCaptureMode).toBe('system');
+  });
+
+  it('stays in system mode when the platform reports no capture field', async () => {
+    // Linux and macOS still return a bare { success: true }.
+    const svc = arrange({ success: true });
+    await svc.connectSystemAudioSource('desktop-audio-loopback');
+    expect((svc as any).currentCaptureMode).toBe('system');
+  });
+
+  it('propagates a main-process failure and stays disconnected', async () => {
+    const svc = arrange({ success: false, error: 'helper unavailable' });
+    await expect(svc.connectSystemAudioSource('app:pid:42')).rejects.toThrow('helper unavailable');
+    expect(svc.isSystemAudioSourceConnected()).toBe(false);
+    expect((svc as any).currentCaptureMode).toBe('system');
+  });
+
+  it('resets to system mode on disconnect', async () => {
+    const svc = arrange({ success: true, capture: 'app' });
+    await svc.connectSystemAudioSource('app:pid:42');
+    await svc.disconnectSystemAudioSource();
+    expect((svc as any).currentCaptureMode).toBe('system');
+  });
+});

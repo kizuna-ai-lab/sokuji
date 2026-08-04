@@ -302,7 +302,9 @@
     "turnOffMonitor": "Desligar monitor de alto-falante",
     "monitorLockedByMode": "O monitoramento pelo alto-falante só está disponível no modo \"{{mode}}\" — ele não pode funcionar junto com o Áudio de Participantes sem causar eco. Mude o modo de tradução para \"{{mode}}\" para reativá-lo.",
     "refreshDevices": "Atualizar dispositivos",
-    "unknownDevice": "Dispositivo desconhecido"
+    "unknownDevice": "Dispositivo desconhecido",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "Entrar",

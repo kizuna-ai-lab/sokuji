@@ -302,7 +302,9 @@
     "turnOffMonitor": "স্পিকার মনিটর বন্ধ করুন",
     "monitorLockedByMode": "স্পিকার মনিটরিং শুধুমাত্র \"{{mode}}\" মোডে উপলব্ধ — অংশগ্রহণকারী অডিওর সাথে একসাথে চালালে প্রতিধ্বনি তৈরি হয়। এটি আবার চালু করতে অনুবাদ মোড \"{{mode}}\"-এ পরিবর্তন করুন।",
     "refreshDevices": "ডিভাইস রিফ্রেশ করুন",
-    "unknownDevice": "অজানা ডিভাইস"
+    "unknownDevice": "অজানা ডিভাইস",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "সাইন ইন",

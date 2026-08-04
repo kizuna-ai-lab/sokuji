@@ -302,7 +302,9 @@
     "turnOffMonitor": "خاموش کردن نظارت بلندگو",
     "monitorLockedByMode": "نظارت بلندگو فقط در حالت «{{mode}}» در دسترس است — اجرای همزمان آن با صدای شرکت‌کنندگان باعث پژواک می‌شود. برای فعال‌سازی دوباره، حالت ترجمه را به «{{mode}}» تغییر دهید.",
     "refreshDevices": "بروزرسانی دستگاه‌ها",
-    "unknownDevice": "دستگاه نامشخص"
+    "unknownDevice": "دستگاه نامشخص",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "ورود",

@@ -302,7 +302,9 @@
     "turnOffMonitor": "关闭扬声器监听",
     "monitorLockedByMode": "扬声器监听仅在「{{mode}}」模式下可用——与参会者音频同时开启会产生回声。将翻译模式切换为「{{mode}}」即可重新启用。",
     "refreshDevices": "刷新设备",
-    "unknownDevice": "未知设备"
+    "unknownDevice": "未知设备",
+    "participantSource": "Participant Audio Source",
+    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music."
   },
   "auth": {
     "signIn": "登录",
