@@ -262,9 +262,11 @@ async function supportsSystemAudioCapture() {
  * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
  */
 async function listSystemAudioSources({ host = audioHost } = {}) {
+  // No screen selection any more: the global tap needs no picker and no
+  // Screen Recording permission.
   const system = {
     deviceId: 'desktop-audio-loopback',
-    label: 'System Audio (Screen Selection Required)'
+    label: 'System Audio (All Applications)'
   };
   const apps = await host.listAppSources();
   console.log(`[Sokuji] [macOS Audio] Listing system audio sources: ${apps.length} application(s)`);
@@ -281,12 +283,11 @@ async function listSystemAudioSources({ host = audioHost } = {}) {
  */
 async function connectSystemAudioSource(sourceId, { host = audioHost } = {}) {
   console.log(`[Sokuji] [macOS Audio] Connect system audio source: ${sourceId}`);
-  if (String(sourceId).startsWith('app:')) {
-    return { success: true, capture: 'app' };
-  }
-  // Switching back to whole-system capture must release any running helper.
-  host.stopCapture();
-  return { success: true, capture: 'system' };
+  // Both paths go through the helper on macOS. Whole-system capture used to use
+  // getDisplayMedia, which requires Screen Recording; a global Core Audio tap
+  // does the same job under the audio-capture grant the per-application path
+  // already needs, so macOS asks for one permission instead of two.
+  return { success: true, capture: 'app' };
 }
 
 /**

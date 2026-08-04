@@ -1,4 +1,5 @@
 import type { AudioDevice } from '../../stores/audioStore';
+import { isLoopbackPlatform, isMacOS } from '../../utils/environment';
 
 /** Whole-system capture - the participant source used when nothing else is chosen. */
 export const SYSTEM_PARTICIPANT_SOURCE_ID = 'desktop-audio-loopback';
@@ -27,4 +28,19 @@ export function resolveParticipantSourceId(
  */
 export function isApplicationSource(deviceId: string | null | undefined): boolean {
   return typeof deviceId === 'string' && deviceId.startsWith('app:');
+}
+
+/**
+ * Whether starting this participant source needs a whole-system getDisplayMedia
+ * stream, which on macOS additionally demands Screen Recording.
+ *
+ * Per-application capture never does. Neither does whole-system capture on
+ * macOS any more: it runs through a global Core Audio tap, so the whole feature
+ * needs one permission there ("System Audio Recording Only") instead of two.
+ */
+export function needsLoopbackStream(deviceId: string | null | undefined): boolean {
+  if (!isLoopbackPlatform()) return false;
+  if (isApplicationSource(deviceId)) return false;
+  if (isMacOS()) return false;
+  return true;
 }

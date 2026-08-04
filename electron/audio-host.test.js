@@ -132,6 +132,15 @@ describe('startCapture', () => {
     expect(second.kill).not.toHaveBeenCalled();
   });
 
+  it('maps the whole-system sentinel to the helper\'s system target', () => {
+    const child = fakeChild();
+    const spawn = vi.fn(() => child);
+
+    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { spawn, resolvePath });
+
+    expect(spawn.mock.calls[0][1]).toEqual(['--target', 'system']);
+  });
+
   it('returns false when the helper binary is missing', () => {
     expect(startCapture('app:pid:42', vi.fn(), vi.fn(), { spawn: vi.fn(), resolvePath: () => null }))
       .toBe(false);

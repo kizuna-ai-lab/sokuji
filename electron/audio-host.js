@@ -97,7 +97,12 @@ function startCapture(deviceId, onPcm, onEvent, { spawn = nodeSpawn, resolvePath
   // Leaving a previous helper alive would mix two applications into one stream.
   stopCapture();
 
-  const target = String(deviceId).replace(/^app:/, '');
+  // 'desktop-audio-loopback' is the renderer's whole-system sentinel; the
+  // helper spells that 'system'. Routing it here means macOS whole-system
+  // capture uses a global Core Audio tap, which needs only the audio-capture
+  // permission - getDisplayMedia would demand Screen Recording as well.
+  const raw = String(deviceId);
+  const target = raw === 'desktop-audio-loopback' ? 'system' : raw.replace(/^app:/, '');
   let child;
   try {
     child = spawn(exe, ['--target', target]);

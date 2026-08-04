@@ -16,7 +16,7 @@ const host = () => ({
   stopCapture: vi.fn(),
 });
 
-const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (Screen Selection Required)' };
+const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 
 describe('listSystemAudioSources (macOS)', () => {
   it('keeps whole-system capture first, then the applications', async () => {
@@ -41,12 +41,12 @@ describe('connectSystemAudioSource (macOS)', () => {
     expect(h.startCapture).not.toHaveBeenCalled();
   });
 
-  it('marks the loopback id as system capture and releases a running helper', async () => {
+  it('routes whole-system capture through the helper too', async () => {
+    // A global Core Audio tap needs only the audio-capture grant, whereas
+    // getDisplayMedia would also demand Screen Recording.
     const h = host();
     expect(await connectSystemAudioSource('desktop-audio-loopback', { host: h }))
-      .toEqual({ success: true, capture: 'system' });
-    // A helper left running would keep capturing the previously chosen app.
-    expect(h.stopCapture).toHaveBeenCalled();
+      .toEqual({ success: true, capture: 'app' });
   });
 });
 

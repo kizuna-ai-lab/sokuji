@@ -31,7 +31,13 @@ whole-system capture; it is not an error.
 
 ```
 sokuji-audio-host --target pid:22972
+sokuji-audio-host --target system
 ```
+
+`system` captures everything the machine plays. Windows and Linux serve that
+through the renderer instead (getDisplayMedia / PipeWire), so only macOS
+implements it here - and doing so is what lets macOS ask for a single
+permission.
 
 Writes **raw PCM to stdout until killed**, fixed at **24000 Hz, 1 channel, signed 16-bit
 little-endian** — exactly what Sokuji's pipeline consumes, so nothing downstream resamples.
@@ -143,6 +149,11 @@ As on Windows the copy is part of the build, not a step to remember.
   objects, mostly daemons (`CoreSpeech`, `loginwindow`, `universalaccessd`,
   `systemsoundserverd`). Restricting to `NSRunningApplication` with a `.regular` activation
   policy — "has a Dock icon" — cut that to the 3 real applications.
+- **Whole-system capture uses a global tap, not getDisplayMedia.** Screen
+  Recording is a second, heavier permission, and a `stereoGlobalTapButExcludeProcesses: []`
+  tap does the same job under the audio-capture grant the per-application path
+  already needs. That tap is stereo where the per-process one is a mono mixdown,
+  so the helper folds it down and the output stays 24 kHz mono either way.
 - **Window titles are not worth their price.** `kCGWindowName` is gated behind Screen
   Recording (measured: 23 windows, all titles nil without it), whereas the localized
   application name is free. macOS therefore labels sources by application name only, unlike

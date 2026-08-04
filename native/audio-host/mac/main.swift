@@ -5,6 +5,11 @@
 //       [{"id":"pid:1234","label":"Google Chrome","exe":"Google Chrome","active":true}]
 //
 //   sokuji-audio-host --target pid:1234
+//   sokuji-audio-host --target system
+//       `system` taps everything the machine plays. It is served by a global
+//       Core Audio tap rather than getDisplayMedia, so whole-system capture
+//       needs only the audio-capture grant - never Screen Recording.
+//
 //       Writes raw PCM to stdout until killed, fixed at
 //       24000 Hz, 1 channel, signed 16-bit little-endian.
 //       Writes one JSON object per line to stderr:
@@ -219,14 +224,21 @@ final class CaptureState: @unchecked Sendable {
 
 var gStop = false
 
-func runCapture(pid: pid_t) -> Int32 {
-    guard let procObj = objectIDs(kAudioHardwarePropertyProcessObjectList).first(where: { pidOf($0) == pid }) else {
-        emitError("no_such_audio_process")
-        return 1
+func runCapture(pid: pid_t?) -> Int32 {
+    var procObj: AudioObjectID? = nil
+    if let pid {
+        guard let found = objectIDs(kAudioHardwarePropertyProcessObjectList).first(where: { pidOf($0) == pid }) else {
+            emitError("no_such_audio_process")
+            return 1
+        }
+        procObj = found
     }
 
     let tapUUID = UUID()
-    let desc = CATapDescription(monoMixdownOfProcesses: [procObj])
+    // Excluding nothing yields a global tap; both variants are governed by the
+    // same audio-capture permission.
+    let desc = procObj.map { CATapDescription(monoMixdownOfProcesses: [$0]) }
+        ?? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
     desc.uuid = tapUUID
     desc.name = "Sokuji Application Capture"
     desc.isPrivate = true   // visible only to us; CATapUnmuted is the default
@@ -264,6 +276,7 @@ func runCapture(pid: pid_t) -> Int32 {
     // The tap's native rate; measured at 48 kHz float32 mono, but read it rather
     // than assume - the decimation factor below depends on it.
     var inRate = 48000.0
+    var channelsIn: UInt32 = 1
     var streamAddr = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams,
                                                 mScope: kAudioObjectPropertyScopeInput,
                                                 mElement: kAudioObjectPropertyElementMain)
@@ -278,6 +291,7 @@ func runCapture(pid: pid_t) -> Int32 {
             var asbdSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
             if AudioObjectGetPropertyData(first, &fmtAddr, 0, nil, &asbdSize, &asbd) == noErr, asbd.mSampleRate > 0 {
                 inRate = asbd.mSampleRate
+                if asbd.mChannelsPerFrame > 0 { channelsIn = asbd.mChannelsPerFrame }
             }
         }
     }
@@ -297,8 +311,21 @@ func runCapture(pid: pid_t) -> Int32 {
             if !state.sawNonZero {
                 for i in 0..<n where p[i] != 0 { state.sawNonZero = true; break }
             }
-            ring.write(p, n)
-            break   // mono mixdown: the first buffer is the whole signal
+            // A per-process tap is a mono mixdown; a global tap is interleaved
+            // stereo. Fold stereo down here so the writer thread always sees one
+            // channel and the downstream format stays 24 kHz mono either way.
+            if channelsIn > 1 {
+                var mono = [Float](repeating: 0, count: n / Int(channelsIn))
+                for f in 0..<mono.count {
+                    var acc: Float = 0
+                    for c in 0..<Int(channelsIn) { acc += p[f * Int(channelsIn) + c] }
+                    mono[f] = acc / Float(channelsIn)
+                }
+                mono.withUnsafeBufferPointer { ring.write($0.baseAddress!, mono.count) }
+            } else {
+                ring.write(p, n)
+            }
+            break
         }
     }
     guard ioStatus == noErr, let procID else {
@@ -349,7 +376,8 @@ func runCapture(pid: pid_t) -> Int32 {
     while !gStop {
         Thread.sleep(forTimeInterval: 0.25)
 
-        if kill(pid, 0) != 0 && errno == ESRCH {
+        // A global tap has no target process to outlive.
+        if let pid, kill(pid, 0) != 0 && errno == ESRCH {
             emitError("target_gone")
             gStop = true
             break
@@ -375,18 +403,25 @@ func runCapture(pid: pid_t) -> Int32 {
 
 // MARK: - main
 
-signal(SIGINT)  { _ in gStop = true }
-signal(SIGTERM) { _ in gStop = true }
-signal(SIGPIPE, SIG_IGN)   // the parent closing the pipe is a normal stop
+func SetupSignals() {
+    signal(SIGINT)  { _ in gStop = true }
+    signal(SIGTERM) { _ in gStop = true }
+    signal(SIGPIPE, SIG_IGN)   // the parent closing the pipe is a normal stop
+}
 
 let args = CommandLine.arguments
 if args.count >= 2 && args[1] == "--list" {
     exit(runList())
 } else if args.count >= 3 && args[1] == "--target" {
+    if args[2] == "system" {
+        SetupSignals()
+        exit(runCapture(pid: nil))
+    }
     guard args[2].hasPrefix("pid:"), let pid = pid_t(args[2].dropFirst(4)), pid > 0 else {
         emitError("bad_target")
         exit(2)
     }
+    SetupSignals()
     exit(runCapture(pid: pid))
 } else {
     emit("usage:")

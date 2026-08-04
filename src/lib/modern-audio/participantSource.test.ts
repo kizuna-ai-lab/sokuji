@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveParticipantSourceId, isApplicationSource, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
+import { resolveParticipantSourceId, isApplicationSource, needsLoopbackStream, SYSTEM_PARTICIPANT_SOURCE_ID } from './participantSource';
 
 describe('resolveParticipantSourceId', () => {
   it('returns the selected application source id', () => {
@@ -43,5 +43,31 @@ describe('isApplicationSource', () => {
     expect(isApplicationSource('')).toBe(false);
     // A device whose label merely mentions an app is not an app source.
     expect(isApplicationSource('some-application-device')).toBe(false);
+  });
+});
+
+// Regression guard (issue #335): whole-system capture on macOS demanded Screen
+// Recording, a second permission for a feature whose per-application half
+// already worked under "System Audio Recording Only". A global Core Audio tap
+// serves whole-system under that same grant, so the gate must not fire there.
+describe('needsLoopbackStream', () => {
+  // getOperatingSystem() reads navigator.platform, not the user agent.
+  const setPlatform = (platform: string) => {
+    Object.defineProperty(globalThis.navigator, 'platform', { value: platform, configurable: true });
+  };
+
+  it('never needs a loopback stream for an application source', () => {
+    setPlatform('Win32');
+    expect(needsLoopbackStream('app:pid:42')).toBe(false);
+  });
+
+  it('needs one for whole-system capture on Windows', () => {
+    setPlatform('Win32');
+    expect(needsLoopbackStream(SYSTEM_PARTICIPANT_SOURCE_ID)).toBe(true);
+  });
+
+  it('does NOT need one for whole-system capture on macOS', () => {
+    setPlatform('MacIntel');
+    expect(needsLoopbackStream(SYSTEM_PARTICIPANT_SOURCE_ID)).toBe(false);
   });
 });
