@@ -1077,6 +1077,23 @@ const PRIVACY_PANES = {
   'screen-recording': 'Privacy_ScreenCapture',
 };
 
+/**
+ * The name macOS shows for this process in the privacy lists.
+ *
+ * In a packaged build that is "Sokuji", but `npm run dev` runs Electron's own
+ * bundle (com.github.Electron), so the user has to grant the permission to
+ * "Electron". Telling them to look for "Sokuji" there sends them hunting for an
+ * entry that does not exist.
+ */
+ipcMain.handle('get-tcc-display-name', async () => {
+  if (process.platform !== 'darwin') return { name: app.getName(), isDev: false };
+  // app.getName() is overridden to 'sokuji' at startup, so read the bundle the
+  // OS actually launched instead of what the app calls itself.
+  const exe = app.getPath('exe');
+  const isDev = exe.includes('node_modules/electron/dist/');
+  return { name: isDev ? 'Electron' : app.getName(), isDev };
+});
+
 ipcMain.handle('open-privacy-settings', async (event, pane) => {
   if (process.platform !== 'darwin') {
     return { ok: false, error: 'Privacy panes are macOS-only' };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import Modal from '../../Modal/Modal';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,20 @@ interface WarningModalProps {
 
 const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) => {
   const { t } = useTranslation();
+
+  // macOS lists the process under the name of the bundle it launched. A
+  // packaged build is "Sokuji", but `npm run dev` runs Electron's own bundle,
+  // so telling a developer to look for "Sokuji" sends them hunting for an entry
+  // that is not there.
+  const [tccName, setTccName] = useState<string>('Sokuji');
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    window.electron?.invoke('get-tcc-display-name')
+      .then((r: { name?: string }) => { if (!cancelled && r?.name) setTccName(r.name); })
+      .catch(() => { /* keep the packaged-build default */ });
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   if (!type) return null;
 
@@ -59,7 +73,7 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
           titleText: t('audioPanel.screenRecordingDeniedTitle', 'Screen Recording Permission Denied'),
           paragraphs: [
             t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
-            t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.'),
+            t('audioPanel.screenRecordingDeniedText2Named', 'Open System Settings > Privacy & Security > Screen Recording and enable "{{app}}".', { app: tccName }),
             t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
           ],
           // Capturing everything the machine plays goes through screen capture.
@@ -71,8 +85,8 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
           titleText: t('audioPanel.audioCaptureDeniedTitle', 'System Audio Recording Permission Needed'),
           paragraphs: [
             t('audioPanel.audioCaptureDeniedText1', 'Capturing one application needs the "System Audio Recording Only" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.'),
-            t('audioPanel.audioCaptureDeniedText2', 'Open System Settings > Privacy & Security > System Audio Recording Only and enable Sokuji.'),
-            t('audioPanel.audioCaptureDeniedText3', 'Sokuji only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.')
+            t('audioPanel.audioCaptureDeniedText2Named', 'Open System Settings > Privacy & Security > System Audio Recording Only and enable "{{app}}".', { app: tccName }),
+            t('audioPanel.audioCaptureDeniedText3Named', '"{{app}}" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.', { app: tccName })
           ],
           // Per-application capture uses a Core Audio tap, not screen capture.
           privacyPane: 'audio-capture' as const,
