@@ -20,6 +20,12 @@ const { listWindowTitles, titleForPid } = require('./linux-window-titles.js');
 
 const STREAM_CLASS = 'Stream/Output/Audio';
 const CAPTURE_SINK_NAME = 'sokuji_app_capture';
+// Chromium does not publish monitor sources as audioinput devices, so recording
+// sokuji_app_capture.monitor directly is impossible however it is labelled -
+// enumerateDevices() simply never lists it. A remapped source over that monitor
+// is a real source and does show up, which is exactly why the virtual mic in
+// pulseaudio-utils.js is built the same way.
+const CAPTURE_SOURCE_NAME = 'sokuji_app_capture_mic';
 // Underscored on purpose, exactly like sokuji_virtual_output's description.
 // pactl splits sink_properties on whitespace, so a description with spaces
 // arrives truncated at the first one: "Sokuji App Capture" became "Sokuji", the
@@ -30,6 +36,7 @@ const CAPTURE_SINK_DESCRIPTION = 'Sokuji_App_Capture';
 // Module id of the null sink created by connectAppSource(), so disconnect can
 // unload exactly the module we made instead of pattern-matching the graph.
 let captureModuleId = null;
+let captureSourceModuleId = null;
 
 /**
  * Group the playback streams in a `pw-dump` into one entry per application.
@@ -202,6 +209,19 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
     const ins = sink ? resolvePortIds(withSink, sink.id, 'input') : [];
     if (ins.length === 0) throw new Error('capture sink exposed no input ports');
 
+    // Publish the sink's monitor as a real source, or the renderer has nothing
+    // it can record.
+    const { stdout: srcId } = await exec(
+      `pactl load-module module-remap-source master=${CAPTURE_SINK_NAME}.monitor ` +
+      `source_name=${CAPTURE_SOURCE_NAME} ` +
+      `source_properties=device.description="${CAPTURE_SINK_DESCRIPTION}"`
+    );
+    const sourceModuleId = srcId.trim();
+    if (!/^\d+$/.test(sourceModuleId)) {
+      throw new Error(`pactl returned an unexpected module id: ${JSON.stringify(sourceModuleId)}`);
+    }
+    captureSourceModuleId = sourceModuleId;
+
     // Link every stream the application owns. One node per tab means linking a
     // single node would capture one tab and silently miss the rest.
     let linked = 0;
@@ -236,13 +256,24 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
  * @returns {Promise<{success: boolean}>}
  */
 async function disconnectAppSource({ exec = defaultExec } = {}) {
-  if (!captureModuleId) return { success: true };
-  try {
-    await exec(`pactl unload-module ${captureModuleId}`);
-  } catch (e) {
-    console.warn('[Sokuji] [PipeWire] Failed to unload capture sink:', e.message);
+  if (!captureModuleId && !captureSourceModuleId) return { success: true };
+  // The remapped source depends on the sink's monitor, so it goes first.
+  if (captureSourceModuleId) {
+    try {
+      await exec(`pactl unload-module ${captureSourceModuleId}`);
+    } catch (e) {
+      console.warn('[Sokuji] [PipeWire] Failed to unload capture source:', e.message);
+    }
+    captureSourceModuleId = null;
   }
-  captureModuleId = null;
+  if (captureModuleId) {
+    try {
+      await exec(`pactl unload-module ${captureModuleId}`);
+    } catch (e) {
+      console.warn('[Sokuji] [PipeWire] Failed to unload capture sink:', e.message);
+    }
+    captureModuleId = null;
+  }
   return { success: true };
 }
 
@@ -253,5 +284,6 @@ module.exports = {
   connectAppSource,
   disconnectAppSource,
   CAPTURE_SINK_NAME,
+  CAPTURE_SOURCE_NAME,
   CAPTURE_SINK_DESCRIPTION,
 };

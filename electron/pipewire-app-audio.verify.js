@@ -95,14 +95,19 @@ process.on('uncaughtException', (e) => { cleanupSync('uncaught ' + e.message); p
                    : 'STREAM WAS MOVED - the user would stop hearing the app');
 
     const sources2 = await sh('pactl', ['list', 'sources', 'short']);
-    check('monitor-is-recordable', sources2.includes('sokuji_app_capture.monitor'),
-      'sokuji_app_capture.monitor present in the source list');
+    // The monitor being listed here proves nothing: Chromium does not publish
+    // monitor sources as audioinput devices, so the renderer could never record
+    // it. What has to exist is the remapped source over that monitor.
+    check('capture-source-is-recordable', sources2.includes('sokuji_app_capture_mic'),
+      'sokuji_app_capture_mic present in the source list');
 
     await disconnectAppSource();
     await sleep(500);
     const sinks = await sh('pactl', ['list', 'sinks', 'short']);
-    check('teardown-leaves-nothing', !sinks.includes('sokuji_app_capture'),
-      'capture sink removed');
+    const sources3 = await sh('pactl', ['list', 'sources', 'short']);
+    check('teardown-leaves-nothing',
+      !sinks.includes('sokuji_app_capture') && !sources3.includes('sokuji_app_capture'),
+      'capture sink and source removed');
 
     void before;
   } catch (e) {

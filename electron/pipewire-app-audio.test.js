@@ -158,6 +158,16 @@ describe('connectAppSource', () => {
     expect(r.success).toBe(true);
     expect(r.monitorLabel).toBe(CAPTURE_SINK_DESCRIPTION);
     expect(calls.some((c) => c.includes('load-module module-null-sink') && c.includes('sokuji_app_capture'))).toBe(true);
+    // Chromium never lists a monitor source among audioinput devices, so the
+    // sink alone leaves the renderer nothing to record and every session
+    // silently captures the whole system instead. A remapped source over that
+    // monitor is a real source and does get listed.
+    expect(calls.some((c) => c.includes('load-module module-remap-source')
+      && c.includes('master=sokuji_app_capture.monitor'))).toBe(true);
+    // Descriptions go through pactl's whitespace-split argument parsing, so a
+    // space here is silently truncated and the label stops matching.
+    expect(calls.filter((c) => c.includes('device.description'))
+      .every((c) => !/device\.description="[^"]*\s/.test(c))).toBe(true);
     expect(calls).toContain('pw-link 91 153');
     expect(calls).toContain('pw-link 55 142');
   });
