@@ -142,6 +142,7 @@ export default defineConfig(({ command, mode }) => {
             'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'pipewire-app-audio': 'electron/pipewire-app-audio.js',
+            'linux-window-titles': 'electron/linux-window-titles.js',
             'sandbox-recovery': 'electron/sandbox-recovery.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'win-audio-host': 'electron/win-audio-host.js',

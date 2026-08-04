@@ -12,6 +12,17 @@ const { exec: nodeExec } = require('child_process');
 const { promisify } = require('util');
 
 const defaultExec = promisify(nodeExec);
+const { listWindowTitles, titleForPid } = require('./linux-window-titles.js');
+
+// A window title identifies a source far better than the bare application name,
+// but a full YouTube title would blow out a narrow settings list.
+const MAX_LABEL_LENGTH = 48;
+
+function truncateLabel(text) {
+  return text.length > MAX_LABEL_LENGTH
+    ? `${text.slice(0, MAX_LABEL_LENGTH - 1).trimEnd()}\u2026`
+    : text;
+}
 
 const STREAM_CLASS = 'Stream/Output/Audio';
 const CAPTURE_SINK_NAME = 'sokuji_app_capture';
@@ -102,17 +113,32 @@ async function dumpGraph(exec) {
  * List the applications currently playing audio.
  * @returns {Promise<Array<{deviceId: string, label: string}>>}
  */
-async function listAppSources({ exec = defaultExec } = {}) {
+async function listAppSources({ exec = defaultExec, windowTitles = listWindowTitles } = {}) {
+  let streams;
   try {
-    return parseAppStreams(await dumpGraph(exec))
+    streams = parseAppStreams(await dumpGraph(exec))
       // A crashed session can leave our capture sink behind; offering it would
       // let the user capture Sokuji's own tap.
-      .filter((s) => s.label !== CAPTURE_SINK_DESCRIPTION)
-      .map(({ deviceId, label }) => ({ deviceId, label }));
+      .filter((s) => s.label !== CAPTURE_SINK_DESCRIPTION);
   } catch (e) {
     console.warn('[Sokuji] [PipeWire] Failed to list application audio sources:', e.message);
     return [];
   }
+
+  // Best-effort enrichment. PipeWire reports "Chromium"/"Playback" for every
+  // browser window alike; the X11 window title is what the user recognises.
+  // Unavailable on Wayland and without xprop, where the plain name is kept.
+  let titles = new Map();
+  try {
+    titles = await windowTitles();
+  } catch (e) {
+    console.warn('[Sokuji] [PipeWire] Window titles unavailable:', e.message);
+  }
+
+  return streams.map((s) => {
+    const title = s.pid !== null ? titleForPid(s.pid, titles) : null;
+    return { deviceId: s.deviceId, label: truncateLabel(title || s.label) };
+  });
 }
 
 /**

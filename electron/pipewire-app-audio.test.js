@@ -254,9 +254,40 @@ describe('disconnectAppSource', () => {
 });
 
 describe('listAppSources', () => {
+  // Window-title enrichment is opt-in per call; default it off so the existing
+  // expectations describe the plain PipeWire names.
+  const noTitles = async () => new Map();
+
+  it('prefers the window title over the bare application name', async () => {
+    // PipeWire reports "Chromium"/"Playback" for every browser window alike.
+    const windowTitles = async () => new Map([[4242, 'YouTube - Chromium']]);
+    const r = await listAppSources({ exec: fakeExec([]), windowTitles });
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'YouTube - Chromium' }]);
+  });
+
+  it('truncates a title too long for a narrow list', async () => {
+    const long = 'x'.repeat(120);
+    const windowTitles = async () => new Map([[4242, long]]);
+    const [row] = await listAppSources({ exec: fakeExec([]), windowTitles });
+    expect(row.label.length).toBeLessThanOrEqual(48);
+    expect(row.label.endsWith('\u2026')).toBe(true);
+  });
+
+  it('keeps the application name when no window matches', async () => {
+    // Wayland, no xprop, or a process with no window at all.
+    const r = await listAppSources({ exec: fakeExec([]), windowTitles: noTitles });
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+  });
+
+  it('keeps the application name when title lookup throws', async () => {
+    const boom = async () => { throw new Error('xprop exploded'); };
+    const r = await listAppSources({ exec: fakeExec([]), windowTitles: boom });
+    expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+  });
+
   it('returns only playback streams, projected to {deviceId,label}', async () => {
     // The capture sink in FULL_DUMP is an Audio/Sink, so it must not be listed.
-    expect(await listAppSources({ exec: fakeExec([]) })).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
+    expect(await listAppSources({ exec: fakeExec([]), windowTitles: noTitles })).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium' }]);
   });
 
   it('never lists a leaked capture sink from a previous session', async () => {
@@ -265,12 +296,12 @@ describe('listAppSources', () => {
       type: 'PipeWire:Interface:Node',
       info: { props: { 'media.class': 'Stream/Output/Audio', 'application.name': CAPTURE_SINK_DESCRIPTION } },
     };
-    const sources = await listAppSources({ exec: fakeExec([], { dump: [...FULL_DUMP, leaked] }) });
+    const sources = await listAppSources({ exec: fakeExec([], { dump: [...FULL_DUMP, leaked] }), windowTitles: noTitles });
     expect(sources.map((s) => s.label)).toEqual(['Chromium']);
   });
 
   it('returns an empty array when pw-dump is unavailable', async () => {
     const exec = async () => { throw new Error('ENOENT'); };
-    expect(await listAppSources({ exec })).toEqual([]);
+    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
   });
 });
