@@ -356,3 +356,32 @@ describe('AppAudioRecorder distinguishes silence from no data', () => {
     vi.useRealTimers();
   });
 });
+
+// Regression guard: stopping the session killed the helper, whose exit was read
+// as the helper dying under us. The service then "recovered" by starting
+// whole-system capture - after the session had already stopped. The waveform
+// kept moving and the machine kept being recorded with nothing consuming it.
+describe('AppAudioRecorder teardown is not a loss', () => {
+  it('ignores an exit that arrives after end() started', async () => {
+    const rec = await started();
+    const onLost = vi.fn();
+    rec.onLost = onLost;
+
+    await rec.end();
+    // A listener that outlives end() - however that happens - must not be able
+    // to resurrect capture.
+    handlers['app-audio:event']?.({ event: 'exit', code: null });
+
+    expect(onLost).not.toHaveBeenCalled();
+  });
+
+  it('still reports a helper that dies mid-session', async () => {
+    const rec = await started();
+    const onLost = vi.fn();
+    rec.onLost = onLost;
+
+    handlers['app-audio:event']({ event: 'exit', code: 1 });
+
+    expect(onLost).toHaveBeenCalled();
+  });
+});

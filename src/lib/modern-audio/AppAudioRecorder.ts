@@ -55,6 +55,14 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   public onLost: (() => void) | null = null;
 
   /**
+   * Set the moment teardown starts, so the exit we asked for is not mistaken
+   * for the helper dying under us. Stopping the session kills the helper, and
+   * treating that as a loss restarted whole-system capture after the session
+   * had already ended - audio kept being captured with nothing consuming it.
+   */
+  private stopping = false;
+
+  /**
    * Invoked for non-fatal helper warnings, carrying the helper's code.
    *
    * The one that matters today is `silent_no_permission`: macOS TCC denies an
@@ -136,6 +144,7 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
   }
 
   async end(): Promise<void> {
+    this.stopping = true;
     const electron = window.electron;
 
     // removeListener resolves the wrapper from the original function, so it must
@@ -286,6 +295,11 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
       return;
     }
     if (payload?.event === 'exit' || payload?.event === 'error') {
+      if (this.stopping) {
+        // Our own stop killed it; nothing was lost.
+        console.info('[Sokuji] [AppAudioRecorder] Capture helper exited during teardown:', payload);
+        return;
+      }
       console.warn('[Sokuji] [AppAudioRecorder] Capture helper reported:', payload);
       this.onLost?.();
     }

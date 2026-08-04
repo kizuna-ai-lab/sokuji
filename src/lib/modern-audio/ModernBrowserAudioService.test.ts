@@ -271,3 +271,22 @@ describe('linux monitor-device resolution', () => {
     expect((svc as any).currentMonitorDeviceId).toBeNull();
   });
 });
+
+describe('stopping app capture does not resurrect it', () => {
+  it('clears the recorder fallback before ending it', async () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    const svc = new ModernBrowserAudioService();
+
+    const recorder = { onLost: () => { throw new Error('fallback must be detached'); },
+                       end: vi.fn().mockResolvedValue(undefined) };
+    (svc as any).systemAudioRecorder = recorder;
+    (svc as any).systemAudioRecordingActive = true;
+
+    await svc.stopSystemAudioRecording();
+
+    // end() kills the helper; a live onLost would restart whole-system capture
+    // for a session that has already stopped.
+    expect(recorder.onLost).toBeNull();
+    expect(recorder.end).toHaveBeenCalled();
+  });
+});

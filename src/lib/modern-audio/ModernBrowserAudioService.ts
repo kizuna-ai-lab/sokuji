@@ -1137,6 +1137,11 @@ export class ModernBrowserAudioService implements IAudioService {
     console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
 
     if (this.systemAudioRecorder) {
+      // Detach the fallback before ending: end() kills the capture helper, and
+      // its exit must not be read as the helper dying under us. That restarted
+      // whole-system capture after the session had already stopped, leaving the
+      // waveform alive and the machine still being recorded.
+      (this.systemAudioRecorder as { onLost?: (() => void) | null }).onLost = null;
       try {
         await this.systemAudioRecorder.end();
       } catch (error) {
