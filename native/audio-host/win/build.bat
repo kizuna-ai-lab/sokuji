@@ -3,13 +3,33 @@ REM Build sokuji-audio-host.exe. Requires VS Build Tools with the C++ workload.
 REM Deliberately a single cl invocation: no CMake, no NuGet, no WIL.
 setlocal
 
-set VCVARS="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-if not exist %VCVARS% (
-  echo ERROR: VS 2019 Build Tools not found at %VCVARS%
+REM Locate the compiler. Three cases, in order:
+REM   1. cl is already on PATH - a developer's VS prompt, or CI after
+REM      ilammy/msvc-dev-cmd. Nothing to set up.
+REM   2. vswhere finds an installation - any edition, any year. The runners
+REM      carry VS 2022 Enterprise, not the 2019 Build Tools this used to pin,
+REM      so a hardcoded path builds on one machine and fails on the other.
+REM   3. Neither - fail loudly rather than half-build.
+where cl >nul 2>&1
+if not errorlevel 1 goto :compile
+
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if not exist "%VSWHERE%" (
+  echo ERROR: no cl on PATH and vswhere not found; install VS Build Tools with the C++ workload
+  exit /b 1
+)
+for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSPATH=%%i"
+if not defined VSPATH (
+  echo ERROR: vswhere found no installation with the C++ toolset
+  exit /b 1
+)
+call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" >nul
+if errorlevel 1 (
+  echo ERROR: vcvars64.bat failed
   exit /b 1
 )
 
-call %VCVARS% >nul
+:compile
 cd /d "%~dp0"
 if not exist out mkdir out
 
@@ -24,10 +44,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM Copy straight into the vendored location. The committed binary under
-REM resources\bin is what the app actually loads, so leaving that step manual
-REM means a rebuilt helper silently has no effect - the app keeps running the
-REM stale committed copy while the fresh one sits in out\.
+REM Copy into resources\bin, which is what the app loads and what both packagers
+REM ship wholesale. The binary is not committed - this build produces it, both
+REM locally and in CI before packaging.
 set DEST=%~dp0..\..\..\resources\bin\win32-x64
 if not exist "%DEST%" mkdir "%DEST%"
 copy /Y out\sokuji-audio-host.exe "%DEST%\sokuji-audio-host.exe" >nul

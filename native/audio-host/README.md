@@ -166,3 +166,19 @@ As on Windows the copy is part of the build, not a step to remember.
   Recording (measured: 23 windows, all titles nil without it), whereas the localized
   application name is free. macOS therefore labels sources by application name only, unlike
   Linux and Windows which can read window titles cheaply.
+
+## The binaries are not committed
+
+`resources/bin/**` is gitignored. Build the helper for your platform with:
+
+```
+npm run build:audio-host
+```
+
+CI runs the same script on each platform runner before packaging, and fails the
+build if the binary is missing - shipping without it produces an app that
+silently falls back to whole-system capture, which is invisible until someone
+tries to pick an application.
+
+Nothing breaks without it: `resolveAudioHostPath()` returns null, the source
+list comes back empty, and the app captures the whole system as it always did.

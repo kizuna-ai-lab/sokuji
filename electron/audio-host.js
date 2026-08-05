@@ -46,7 +46,18 @@ function makeLineParser(onLine) {
  */
 async function listAppSources({ spawn = nodeSpawn, resolvePath = resolveAudioHostPath } = {}) {
   const exe = resolvePath();
-  if (!exe) return [];
+  if (!exe) {
+    // Not an error on Linux, which has no helper. Everywhere else it means the
+    // binary was never built - it is a build artifact, not a committed file -
+    // and the only visible symptom would be a source list with nothing in it.
+    if (process.platform !== 'linux') {
+      console.warn(
+        '[Sokuji] [AudioHost] Capture helper not found; per-application capture ' +
+        'is unavailable. Run `npm run build:audio-host` (CI does this before packaging).'
+      );
+    }
+    return [];
+  }
 
   return new Promise((resolve) => {
     let out = '';
