@@ -454,3 +454,32 @@ describe('participant source switching is serialized and recoverable', () => {
     expect((svc as any).currentSystemAudioSinkId).toBe('app:pid:4');
   });
 });
+
+// Review finding (privacy): losing the helper silently widened capture from one
+// chosen application to everything the machine plays, so audio the user never
+// meant to share started reaching the translation provider with only a log line.
+describe('losing the capture helper is announced', () => {
+  it('warns before falling back to whole-system capture', async () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    (window as any).electron = {
+      invoke: vi.fn().mockResolvedValue({ ok: true }),
+      receive: vi.fn(),
+      removeListener: vi.fn(),
+    };
+    const svc = new ModernBrowserAudioService();
+    const codes: string[] = [];
+    svc.onParticipantWarning = (c) => codes.push(c);
+    svc.startSystemAudioRecording = vi.fn(async () => {});
+
+    // Drive the real installation path rather than restating it here.
+    await (svc as any).startAppAudioRecording('app:pid:42', vi.fn());
+    const recorder = (svc as any).systemAudioRecorder;
+    expect(recorder?.onLost).toBeTypeOf('function');
+
+    recorder.onLost();
+
+    expect(codes).toEqual(['app_capture_lost_using_system_audio']);
+    expect(svc.startSystemAudioRecording).toHaveBeenCalled();
+    delete (window as any).electron;
+  });
+});

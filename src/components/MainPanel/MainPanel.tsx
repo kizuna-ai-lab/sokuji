@@ -382,6 +382,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const service = audioServiceRef.current;
     if (!service) return;
     service.onParticipantWarning = (code: string) => {
+      if (code === 'app_capture_lost_using_system_audio') {
+        addRealtimeEvent(
+          {
+            type: 'participant.warning',
+            data: {
+              message: t(
+                'audioPanel.participantFellBackToSystemAudio',
+                'Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.'
+              ),
+            },
+          },
+          'client', 'participant.warning'
+        );
+        return;
+      }
       if (code !== 'silent_no_permission') return;
       addRealtimeEvent(
         {

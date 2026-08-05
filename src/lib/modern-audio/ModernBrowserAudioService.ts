@@ -1114,6 +1114,10 @@ export class ModernBrowserAudioService implements IAudioService {
       recorder.onLost = () => {
         console.warn('[Sokuji] [ModernBrowserAudio] Capture helper lost; falling back to system audio');
         this.currentCaptureMode = 'system';
+        // The user chose one application; this widens capture to everything the
+        // machine plays, so audio they never meant to share starts reaching the
+        // translation provider. That has to be visible, not just logged.
+        this.onParticipantWarning?.('app_capture_lost_using_system_audio');
         this.startSystemAudioRecording(callback).catch((e) =>
           console.error('[Sokuji] [ModernBrowserAudio] Fallback to system audio failed:', e));
       };
