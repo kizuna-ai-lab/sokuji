@@ -358,11 +358,16 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
+    // The object URL is created in an effect, so the player renders one commit
+    // after the name input awaited above - which is already present on the
+    // modal's first render. Anchoring on it therefore raced the player and this
+    // test failed roughly one run in twelve. Wait for the player's own control.
+    const playButton = await screen.findByRole('button', { name: /^play$/i });
+
     const audioEl = container.querySelector('audio');
     expect(audioEl).not.toBeNull();
     expect(audioEl!.hasAttribute('controls')).toBe(false); // custom player, not native chrome
 
-    const playButton = screen.getByRole('button', { name: /^play$/i });
     fireEvent.click(playButton);
     expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
   });
