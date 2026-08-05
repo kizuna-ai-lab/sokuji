@@ -10,9 +10,13 @@ REM   2. vswhere finds an installation - any edition, any year. The runners
 REM      carry VS 2022 Enterprise, not the 2019 Build Tools this used to pin,
 REM      so a hardcoded path builds on one machine and fails on the other.
 REM   3. Neither - fail loudly rather than half-build.
+REM cl being on PATH is not enough: an x86 developer prompt provides one too,
+REM and it would produce a 32-bit helper that the 64-bit app cannot launch.
 where cl >nul 2>&1
-if not errorlevel 1 goto :compile
+if errorlevel 1 goto :setup_msvc
+if /i "%VSCMD_ARG_TGT_ARCH%"=="x64" goto :compile
 
+:setup_msvc
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (
   echo ERROR: no cl on PATH and vswhere not found; install VS Build Tools with the C++ workload

@@ -371,6 +371,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const isMonitorMuted = useIsMonitorMuted();
   const isParticipantMuted = useIsParticipantMuted();
 
+  // Flipped once audioServiceRef.current is populated, so effects that attach
+  // handlers to the service run again after it exists.
+  const [audioServiceReady, setAudioServiceReady] = useState(false);
+
   // A capture helper that reports unbroken silence almost always means the OS
   // denied audio access - macOS TCC zeroes every sample instead of failing, so
   // the session would otherwise look healthy and translate nothing.
@@ -394,7 +398,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setPermissionWarning('audio-capture-denied');
     };
     return () => { service.onParticipantWarning = null; };
-  }, [addRealtimeEvent, t]);
+  }, [audioServiceReady, addRealtimeEvent, t]);
 
   // A capture permission the OS denied. Rendered as a modal with a button that
   // deep-links to the exact System Settings pane, because both denials are
@@ -450,10 +454,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         });
       } catch (error: any) {
         console.error('[Sokuji] [MainPanel] Failed to switch participant source:', error);
-        // Leave the ref on the failed id rather than the old one: the capture is
-        // torn down either way, and pretending otherwise would skip the retry
-        // when the user picks the previous source again.
-        void previousId;
+        // The service puts the previous source back, so the ref has to follow
+        // it; leaving it on the failed id would make re-selecting the source
+        // that is actually running look like a no-op.
+        activeParticipantSourceRef.current = previousId;
         addRealtimeEvent(
           {
             type: 'participant.warning',
@@ -930,6 +934,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // Store the audio service in the ref for later use
         audioServiceRef.current = audioService;
+        // Effects that need the service key off this rather than the ref: a ref
+        // assignment does not re-run anything, so an effect that read the ref
+        // before this point would never get a second chance.
+        setAudioServiceReady(true);
 
         // Initialize the audio service
         await audioService.initialize();

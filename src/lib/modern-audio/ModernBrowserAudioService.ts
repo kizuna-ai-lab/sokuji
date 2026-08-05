@@ -42,6 +42,8 @@ export class ModernBrowserAudioService implements IAudioService {
   // 'app' means a helper process pushes PCM over IPC (Windows per-application
   // capture); 'system' means whole-system loopback.
   private currentCaptureMode: 'system' | 'app' = 'system';
+  /** Serializes participant-source switches; see switchParticipantSource. */
+  private participantSwitchChain: Promise<unknown> = Promise.resolve();
   /**
    * Set by the UI to surface non-fatal capture-helper warnings. Without it a
    * macOS permission denial is invisible: the session runs and stays silent.
@@ -1147,6 +1149,18 @@ export class ModernBrowserAudioService implements IAudioService {
    * @param sourceDeviceId 'desktop-audio-loopback' or 'app:pid:<n>'
    */
   public async switchParticipantSource(sourceDeviceId: string): Promise<void> {
+    // Serialized: each switch tears capture down and builds it back up, so two
+    // rapid selections could interleave and leave the earlier one running while
+    // the UI reports the later one. A rejected switch must not block the next.
+    const run = this.participantSwitchChain.then(
+      () => this.applyParticipantSource(sourceDeviceId),
+      () => this.applyParticipantSource(sourceDeviceId)
+    );
+    this.participantSwitchChain = run.catch(() => { /* failure is the caller's */ });
+    return run;
+  }
+
+  private async applyParticipantSource(sourceDeviceId: string): Promise<void> {
     if (this.currentSystemAudioSinkId === sourceDeviceId) {
       console.debug(`[Sokuji] [ModernBrowserAudio] Participant source unchanged: ${sourceDeviceId}`);
       return;
@@ -1160,10 +1174,32 @@ export class ModernBrowserAudioService implements IAudioService {
     // stopSystemAudioRecording clears the callback, and it is the only thing
     // tying the captured audio to the live client - take it before teardown.
     const savedCallback = this.systemAudioCallback;
+    const previousSourceId = this.currentSystemAudioSinkId;
 
     await this.stopSystemAudioRecording();
     await this.disconnectSystemAudioSource();
-    await this.connectSystemAudioSource(sourceDeviceId);
+
+    try {
+      await this.connectSystemAudioSource(sourceDeviceId);
+    } catch (error) {
+      // The chosen application can be gone by the time it is picked - the list
+      // is seconds old and pids do not survive a restart - so this is an
+      // expected failure, not an exceptional one. Teardown has already
+      // happened; without putting the previous source back the session would
+      // keep running with no participant audio at all.
+      console.warn(
+        `[Sokuji] [ModernBrowserAudio] Failed to connect ${sourceDeviceId}; ` +
+        `restoring ${previousSourceId ?? 'whole-system capture'}`
+      );
+      const fallback = previousSourceId ?? 'desktop-audio-loopback';
+      try {
+        await this.connectSystemAudioSource(fallback);
+        if (savedCallback) await this.startSystemAudioRecording(savedCallback);
+      } catch (restoreError) {
+        console.error('[Sokuji] [ModernBrowserAudio] Restore failed too:', restoreError);
+      }
+      throw error;
+    }
 
     if (savedCallback) {
       await this.startSystemAudioRecording(savedCallback);

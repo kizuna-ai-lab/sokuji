@@ -30,6 +30,15 @@ describe('listSystemAudioSources (macOS)', () => {
     h.listAppSources.mockResolvedValue([]);
     expect(await listSystemAudioSources({ host: h })).toEqual([SYSTEM]);
   });
+
+  // Review finding: an unguarded rejection from the helper propagated out of
+  // the listing, so the renderer got no sources at all - not even whole-system
+  // capture, which needs no helper to work.
+  it('still offers whole-system capture when the helper listing fails', async () => {
+    const h = host();
+    h.listAppSources.mockRejectedValue(new Error('helper crashed'));
+    expect(await listSystemAudioSources({ host: h })).toEqual([SYSTEM]);
+  });
 });
 
 describe('connectSystemAudioSource (macOS)', () => {

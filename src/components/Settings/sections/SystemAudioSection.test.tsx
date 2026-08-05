@@ -117,10 +117,17 @@ describe('SystemAudioSection', () => {
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
-  it('does not switch source while the session is active', () => {
+  it('switches source while the session is active', () => {
+    // Live switching is supported - MainPanel rebuilds the capture around the
+    // new source - so an active session must not block the picker.
     mount({ isSessionActive: true });
     fireEvent.click(screen.getByText('Chromium'));
-    // Re-linking mid-session would tear down the live capture.
+    expect(store.select).toHaveBeenCalled();
+  });
+
+  it('still blocks selection when the caller locks it by mode scope', () => {
+    mount({ isSessionActive: true, isLocked: true });
+    fireEvent.click(screen.getByText('Chromium'));
     expect(store.select).not.toHaveBeenCalled();
   });
 

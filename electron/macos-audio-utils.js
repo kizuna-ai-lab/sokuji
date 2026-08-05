@@ -268,7 +268,15 @@ async function listSystemAudioSources({ host = audioHost } = {}) {
     deviceId: 'desktop-audio-loopback',
     label: 'System Audio (All Applications)'
   };
-  const apps = await host.listAppSources();
+  // The doc above promises that a missing or failing helper still yields the
+  // system source; an unguarded rejection would instead leave the renderer with
+  // no sources at all, including whole-system capture.
+  let apps = [];
+  try {
+    apps = await host.listAppSources();
+  } catch (e) {
+    console.warn('[Sokuji] [macOS Audio] Application source listing failed:', e.message);
+  }
   console.log(`[Sokuji] [macOS Audio] Listing system audio sources: ${apps.length} application(s)`);
   return [system, ...apps];
 }

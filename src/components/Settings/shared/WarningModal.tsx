@@ -27,7 +27,11 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    window.electron?.invoke('get-tcc-display-name')
+    // The extension and web builds have no window.electron at all, and this
+    // modal is shared with their virtual-device warnings.
+    const pending = window.electron?.invoke?.('get-tcc-display-name');
+    if (!pending?.then) return;
+    pending
       .then((r: { name?: string }) => { if (!cancelled && r?.name) setTccName(r.name); })
       .catch(() => { /* keep the packaged-build default */ });
     return () => { cancelled = true; };

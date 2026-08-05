@@ -165,9 +165,12 @@ describe('connectAppSource', () => {
     expect(calls.some((c) => c.includes('load-module module-remap-source')
       && c.includes('master=sokuji_app_capture.monitor'))).toBe(true);
     // Descriptions go through pactl's whitespace-split argument parsing, so a
-    // space here is silently truncated and the label stops matching.
+    // space here is silently truncated and the label stops matching. Assert both
+    // the invariant and the exact value the renderer looks for.
     expect(calls.filter((c) => c.includes('device.description'))
       .every((c) => !/device\.description="[^"]*\s/.test(c))).toBe(true);
+    expect(calls.some((c) =>
+      c.includes(`sink_properties=device.description="${CAPTURE_SINK_DESCRIPTION}"`))).toBe(true);
     expect(calls).toContain('pw-link 91 153');
     expect(calls).toContain('pw-link 55 142');
   });

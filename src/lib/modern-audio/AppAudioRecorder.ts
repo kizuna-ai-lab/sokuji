@@ -110,7 +110,16 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     electron.receive('app-audio:pcm', this.pcmHandler);
     electron.receive('app-audio:event', this.eventHandler);
 
-    const result = await electron.invoke('start-app-audio-capture', deviceId);
+    let result: { ok?: boolean; error?: string } | undefined;
+    try {
+      result = await electron.invoke('start-app-audio-capture', deviceId);
+    } catch (error) {
+      // Both listeners are already registered at this point; throwing here
+      // would leak them and take the session start down with it.
+      console.error('[Sokuji] [AppAudioRecorder] Capture request failed:', error);
+      await this.end();
+      return false;
+    }
     if (!result?.ok) {
       console.error('[Sokuji] [AppAudioRecorder] Failed to start capture:', result?.error);
       await this.end();
@@ -140,6 +149,9 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
 
   async pause(): Promise<boolean> {
     this.status = 'paused';
+    // Chunks are dropped while paused, so a byte held back from the last one
+    // would pair with a byte from after the resume and yield one bogus sample.
+    this.leftover = new Uint8Array(0);
     return true;
   }
 

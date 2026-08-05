@@ -269,6 +269,12 @@ func audioObjectsInTree(of targetPid: pid_t) -> [AudioObjectID] {
     }
 }
 
+@inline(__always)
+func appendSample(_ pcm: inout [Int16], _ v: Float) {
+    let clamped = max(-1.0, min(1.0, v))
+    pcm.append(Int16(clamped * 32767.0))
+}
+
 func runCapture(pid: pid_t?) -> Int32 {
     var procObjs: [AudioObjectID] = []
     if let pid {
@@ -341,7 +347,11 @@ func runCapture(pid: pid_t?) -> Int32 {
             }
         }
     }
-    let decimation = max(1, Int((inRate / kOutRate).rounded()))
+    // Resample by the true ratio, not an integer one. Rounding it meant a
+    // 44.1 kHz tap - the common case on macOS - emitted 22050 Hz while still
+    // declaring 24000 Hz, so everything downstream ran ~9% fast; a 16 kHz tap
+    // (a Bluetooth headset in HFP) was out by a third.
+    let ratio = inRate / kOutRate
 
     let ring = RingBuffer(capacity: Int(inRate) * 2)   // ~2 s of slack
     let state = CaptureState()
@@ -384,33 +394,61 @@ func runCapture(pid: pid_t?) -> Int32 {
 
     emit("{\"event\":\"format\",\"sampleRate\":24000,\"channels\":1,\"encoding\":\"s16le\"}")
 
-    // Writer thread: decimate to 24 kHz, convert to s16, push to stdout.
+    // Writer thread: resample to 24 kHz, convert to s16, push to stdout.
     let writer = Thread {
         var floats = [Float](repeating: 0, count: 4096)
-        var pcm = [Int16](repeating: 0, count: 4096 / 2 + 1)
+        // Appended rather than indexed into a fixed buffer. The previous buffer
+        // was sized for a 2:1 ratio and any tap at or below ~36 kHz overran it,
+        // which in Swift is a trap that kills capture outright.
+        var pcm = [Int16]()
         let out = FileHandle.standardOutput
 
+        // Fractional read position, carried across chunks so the output rate
+        // stays exact over time rather than drifting once per read.
+        var phase = 0.0
+        // The sample before the current chunk, needed to interpolate across the
+        // boundary when upsampling.
+        var previous: Float = 0
+        var havePrevious = false
+
         while !gStop {
-            let n = ring.read(into: &floats, minimum: decimation * 256)
+            let n = ring.read(into: &floats, minimum: 256)
             if n == 0 { if gStop { break } else { continue } }
 
-            // Average each group of `decimation` samples. A box filter is a
-            // crude anti-alias, but its null sits exactly at the new Nyquist
-            // and speech going to ASR does not need better.
-            var outCount = 0
-            var i = 0
-            while i + decimation <= n {
-                var acc: Float = 0
-                for k in 0..<decimation { acc += floats[i + k] }
-                let v = acc / Float(decimation)
-                let clamped = max(-1.0, min(1.0, v))
-                pcm[outCount] = Int16(clamped * 32767.0)
-                outCount += 1
-                i += decimation
+            pcm.removeAll(keepingCapacity: true)
+            while true {
+                if ratio >= 1.0 {
+                    // Downsampling: average the input span this output sample
+                    // covers. A box filter is a crude anti-alias, but its null
+                    // sits at the new Nyquist and speech going to ASR does not
+                    // need better.
+                    let end = phase + ratio
+                    if end > Double(n) { break }
+                    let from = max(0, Int(phase))
+                    let to = min(n, max(from + 1, Int(end)))
+                    var acc: Float = 0
+                    for k in from..<to { acc += floats[k] }
+                    appendSample(&pcm, acc / Float(to - from))
+                    phase = end
+                } else {
+                    // Upsampling: linear interpolation between neighbours.
+                    if phase >= Double(n) { break }
+                    let idx = Int(phase)
+                    let frac = Float(phase - Double(idx))
+                    let a = idx == 0 ? (havePrevious ? previous : floats[0]) : floats[idx - 1]
+                    let b = floats[idx]
+                    appendSample(&pcm, a + (b - a) * frac)
+                    phase += ratio
+                }
             }
-            if outCount > 0 {
+            phase -= Double(n)
+            if phase < 0 { phase = 0 }
+            previous = floats[n - 1]
+            havePrevious = true
+
+            if !pcm.isEmpty {
                 pcm.withUnsafeBufferPointer { bp in
-                    let data = Data(bytes: bp.baseAddress!, count: outCount * MemoryLayout<Int16>.size)
+                    let data = Data(bytes: bp.baseAddress!, count: bp.count * MemoryLayout<Int16>.size)
                     out.write(data)
                 }
             }

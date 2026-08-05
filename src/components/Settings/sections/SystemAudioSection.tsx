@@ -19,7 +19,12 @@ interface SystemAudioSectionProps {
   /** Real session-active state — reserved for analytics-style consumers. */
   isSessionActive: boolean;
   /**
-   * Lock the toggle. Defaults to isSessionActive for backward compatibility.
+   * Lock the picker. Callers pass a mode-scope lock; the participant channel is
+   * only selectable in participant/both mode.
+   *
+   * It deliberately does NOT default to isSessionActive: sources can be
+   * switched during a live session, and defaulting to the session state
+   * contradicted that for any caller that left this out.
    * Callers that need per-channel locking (lock participant but not others)
    * pass this explicitly.
    */
@@ -43,7 +48,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const { trackEvent } = useAnalytics();
   const refreshDevices = useRefreshDevices();
   const isLoading = useIsAudioLoading();
-  const locked = isLocked ?? isSessionActive;
+  const locked = isLocked ?? false;
 
   // On Electron the source list replaces the on/off toggle entirely: its own
   // "Off" row is the control, so it must render even when the only source is

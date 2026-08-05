@@ -390,3 +390,67 @@ describe('switching the participant source mid-session', () => {
     expect(svc.connectSystemAudioSource).toHaveBeenLastCalledWith('app:pid:9');
   });
 });
+
+// Review findings: rapid selections could interleave and leave the earlier
+// source running, and a failed connect tore down the old capture without
+// putting anything back - a live session with no participant audio.
+describe('participant source switching is serialized and recoverable', () => {
+  const svcWithStubs = () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    const svc = new ModernBrowserAudioService();
+    (svc as any).currentSystemAudioSinkId = 'app:pid:1';
+    (svc as any).systemAudioCallback = vi.fn();
+    svc.stopSystemAudioRecording = vi.fn(async () => {});
+    svc.disconnectSystemAudioSource = vi.fn(async () => {});
+    svc.startSystemAudioRecording = vi.fn(async () => {});
+    return svc;
+  };
+
+  it('runs overlapping switches one at a time, ending on the last one chosen', async () => {
+    const svc = svcWithStubs();
+    const order: string[] = [];
+    svc.connectSystemAudioSource = vi.fn(async (id: string) => {
+      order.push(`start:${id}`);
+      await new Promise((r) => setTimeout(r, id.endsWith('2') ? 20 : 0));
+      order.push(`end:${id}`);
+      (svc as any).currentSystemAudioSinkId = id;
+    });
+
+    await Promise.all([
+      svc.switchParticipantSource('app:pid:2'),
+      svc.switchParticipantSource('app:pid:3'),
+    ]);
+
+    // No interleaving: each connect finishes before the next begins.
+    expect(order).toEqual(['start:app:pid:2', 'end:app:pid:2', 'start:app:pid:3', 'end:app:pid:3']);
+    expect((svc as any).currentSystemAudioSinkId).toBe('app:pid:3');
+  });
+
+  it('puts the previous source back when the new one cannot connect', async () => {
+    const svc = svcWithStubs();
+    const tried: string[] = [];
+    svc.connectSystemAudioSource = vi.fn(async (id: string) => {
+      tried.push(id);
+      if (id === 'app:pid:9') throw new Error('that application is no longer playing audio');
+    });
+
+    await expect(svc.switchParticipantSource('app:pid:9')).rejects.toThrow(/no longer playing/);
+
+    expect(tried).toEqual(['app:pid:9', 'app:pid:1']);
+    // Recovered, not left dead: capture is running again on the old source.
+    expect(svc.startSystemAudioRecording).toHaveBeenCalled();
+  });
+
+  it('a failed switch does not block the next one', async () => {
+    const svc = svcWithStubs();
+    svc.connectSystemAudioSource = vi.fn(async (id: string) => {
+      if (id === 'app:pid:9') throw new Error('gone');
+      (svc as any).currentSystemAudioSinkId = id;
+    });
+
+    await expect(svc.switchParticipantSource('app:pid:9')).rejects.toThrow();
+    await svc.switchParticipantSource('app:pid:4');
+
+    expect((svc as any).currentSystemAudioSinkId).toBe('app:pid:4');
+  });
+});

@@ -171,7 +171,7 @@ As on Windows the copy is part of the build, not a step to remember.
 
 `resources/bin/**` is gitignored. Build the helper for your platform with:
 
-```
+```sh
 npm run build:audio-host
 ```
 
