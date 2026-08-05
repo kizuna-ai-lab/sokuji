@@ -159,7 +159,7 @@ async function listAppSources({ exec = defaultExec, windowTitles = listWindowTit
  * @param {string} deviceId - `app:<nodeId>`
  * @returns {Promise<{success: boolean, monitorLabel?: string, error?: string}>}
  */
-async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
+async function connectAppSourceUnsafe(deviceId, { exec = defaultExec } = {}) {
   const id = String(deviceId);
   if (!id.startsWith('app:')) {
     return { success: false, error: `Not an application source: ${deviceId}` };
@@ -167,7 +167,7 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
 
   // A previous selection must be torn down first, or its links keep feeding the
   // same capture sink and both applications are translated at once.
-  await disconnectAppSource({ exec });
+  await disconnectAppSourceUnsafe({ exec });
 
   let dump;
   try {
@@ -245,7 +245,7 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
   } catch (e) {
     // Never leave the null sink behind: it shows up as a phantom audio device
     // in the user's system settings and outlives the app.
-    await disconnectAppSource({ exec });
+    await disconnectAppSourceUnsafe({ exec });
     return { success: false, error: `Failed to link application audio: ${e.message}` };
   }
 }
@@ -255,7 +255,7 @@ async function connectAppSource(deviceId, { exec = defaultExec } = {}) {
  * Safe to call when nothing is connected.
  * @returns {Promise<{success: boolean}>}
  */
-async function disconnectAppSource({ exec = defaultExec } = {}) {
+async function disconnectAppSourceUnsafe({ exec = defaultExec } = {}) {
   if (!captureModuleId && !captureSourceModuleId) return { success: true };
   // The remapped source depends on the sink's monitor, so it goes first.
   if (captureSourceModuleId) {
@@ -275,6 +275,28 @@ async function disconnectAppSource({ exec = defaultExec } = {}) {
     captureModuleId = null;
   }
   return { success: true };
+}
+
+/**
+ * Both entry points mutate the same two module ids. Run them one at a time:
+ * two overlapping connects would each tear down, then each store its own ids,
+ * and whichever finished last would win - leaving the other's null sink and
+ * remapped source loaded forever as phantom devices. A rejection must not wedge
+ * the queue, so failures are swallowed for the purpose of ordering only.
+ */
+let lifecycleChain = Promise.resolve();
+function serialize(fn) {
+  const run = lifecycleChain.then(fn, fn);
+  lifecycleChain = run.catch(() => {});
+  return run;
+}
+
+async function connectAppSource(deviceId, opts = {}) {
+  return serialize(() => connectAppSourceUnsafe(deviceId, opts));
+}
+
+async function disconnectAppSource(opts = {}) {
+  return serialize(() => disconnectAppSourceUnsafe(opts));
 }
 
 module.exports = {

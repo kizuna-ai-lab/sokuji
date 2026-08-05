@@ -322,3 +322,36 @@ describe('listAppSources', () => {
     expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
   });
 });
+
+// Review finding: both entry points mutate the same two module ids. Two
+// overlapping connects each tore down, then each stored its own ids, and the
+// loser's null sink and remapped source stayed loaded as phantom devices.
+describe('capture lifecycle is serialized', () => {
+  it('does not interleave two overlapping connects', async () => {
+    const order = [];
+    let moduleId = 536870913;
+    const exec = async (cmd) => {
+      if (cmd.startsWith('pw-dump')) return { stdout: JSON.stringify(FULL_DUMP) };
+      // Check unload first: 'unload-module' contains 'load-module'.
+      if (cmd.includes('unload-module')) { order.push('unload'); return { stdout: '' }; }
+      if (cmd.includes('load-module')) {
+        order.push(`load ${cmd.includes('null-sink') ? 'sink' : 'source'}`);
+        // A gap wide enough for a concurrent call to slip in, if it could.
+        await new Promise((r) => setTimeout(r, 5));
+        return { stdout: `${moduleId++}\n` };
+      }
+      return { stdout: '' };
+    };
+
+    await Promise.all([
+      connectAppSource('app:pid:4242', { exec }),
+      connectAppSource('app:pid:4242', { exec }),
+    ]);
+    await disconnectAppSource({ exec });
+
+    // Each connect loads a sink then its source. Interleaving would read
+    // sink, sink, source, source and leave one pair loaded forever.
+    expect(order.filter((o) => o.startsWith('load')))
+      .toEqual(['load sink', 'load source', 'load sink', 'load source']);
+  });
+});
