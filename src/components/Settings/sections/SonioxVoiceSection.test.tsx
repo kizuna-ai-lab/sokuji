@@ -193,8 +193,13 @@ describe('SonioxVoiceSection', () => {
   it('the refresh button re-fetches the voice list', async () => {
     listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned()]);
     const { container } = mount();
-    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    // The refresh button is disabled while the list is loading, and the first
+    // fetch having been *called* does not mean it has resolved - clicking in
+    // that window is a no-op and the second fetch never happens. Wait for the
+    // button a user could actually press.
+    const refreshButton = screen.getByTitle(/refresh voice list/i);
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    fireEvent.click(refreshButton);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       const select = container.querySelector('select')!;
