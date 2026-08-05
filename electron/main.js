@@ -869,6 +869,49 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
   return { success: false };
 });
 
+// Per-application audio capture (Windows only, issue #335).
+// The helper writes PCM to its stdout; we forward each chunk straight to the
+// renderer that asked for it. 24 kHz mono s16 is ~48 KB/s, so plain IPC is
+// ample and avoids putting a listening socket on the machine.
+ipcMain.handle('start-app-audio-capture', async (event, deviceId) => {
+  // Linux does not come through here: its tap is a PipeWire link and the
+  // renderer records the resulting monitor device with getUserMedia.
+  const helperModule = process.platform === 'win32' ? './windows-audio-utils'
+    : process.platform === 'darwin' ? './macos-audio-utils'
+    : null;
+  if (!helperModule) {
+    return { ok: false, error: 'Per-application capture helper is not available on this platform' };
+  }
+  try {
+    const { startCapture } = require(helperModule);
+    const wc = event.sender;
+    const ok = startCapture(
+      deviceId,
+      // A Buffer does not survive the context-bridge as-is; a Uint8Array view does.
+      (pcm) => { if (!wc.isDestroyed()) wc.send('app-audio:pcm', new Uint8Array(pcm)); },
+      (evt) => { if (!wc.isDestroyed()) wc.send('app-audio:event', evt); }
+    );
+    return ok ? { ok: true } : { ok: false, error: 'Capture helper unavailable' };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to start application audio capture:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle('stop-app-audio-capture', async () => {
+  const helperModule = process.platform === 'win32' ? './windows-audio-utils'
+    : process.platform === 'darwin' ? './macos-audio-utils'
+    : null;
+  if (!helperModule) return { ok: true };
+  try {
+    const { stopCapture } = require(helperModule);
+    stopCapture();
+  } catch (error) {
+    console.warn('[Sokuji] [Main] Failed to stop application audio capture:', error);
+  }
+  return { ok: true };
+});
+
 // Linux loopback audio: fix PipeWire monitor source volume
 // PipeWire stores an independent monitorVolumes property per sink that can be very low.
 // After getDisplayMedia() creates the loopback stream, we force the monitor source to 100%.
@@ -1025,6 +1068,49 @@ ipcMain.handle('ws-headers-clear', (event, { host }) => {
 // Screen recording permission check for macOS system audio capture
 // This only checks the permission status, does NOT trigger any permission dialogs
 // The renderer should call getDisplayMedia() to trigger the system dialog when needed
+// Open the exact macOS privacy pane a denied capture needs. The anchor names
+// are the ones System Settings itself advertises (verified against
+// SecurityPrivacyExtension.appex): Privacy_AudioCapture is "System Audio
+// Recording Only" and Privacy_ScreenCapture is "Screen Recording".
+const PRIVACY_PANES = {
+  'audio-capture': 'Privacy_AudioCapture',
+  'screen-recording': 'Privacy_ScreenCapture',
+};
+
+/**
+ * The name macOS shows for this process in the privacy lists.
+ *
+ * In a packaged build that is "Sokuji", but `npm run dev` runs Electron's own
+ * bundle (com.github.Electron), so the user has to grant the permission to
+ * "Electron". Telling them to look for "Sokuji" there sends them hunting for an
+ * entry that does not exist.
+ */
+ipcMain.handle('get-tcc-display-name', async () => {
+  if (process.platform !== 'darwin') return { name: app.getName(), isDev: false };
+  // app.getName() is overridden to 'sokuji' at startup, so read the bundle the
+  // OS actually launched instead of what the app calls itself.
+  const exe = app.getPath('exe');
+  const isDev = exe.includes('node_modules/electron/dist/');
+  return { name: isDev ? 'Electron' : app.getName(), isDev };
+});
+
+ipcMain.handle('open-privacy-settings', async (event, pane) => {
+  if (process.platform !== 'darwin') {
+    return { ok: false, error: 'Privacy panes are macOS-only' };
+  }
+  const anchor = PRIVACY_PANES[pane];
+  if (!anchor) {
+    return { ok: false, error: `Unknown privacy pane: ${pane}` };
+  }
+  try {
+    await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${anchor}`);
+    return { ok: true };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Failed to open privacy settings:', error);
+    return { ok: false, error: error.message };
+  }
+});
+
 ipcMain.handle('check-screen-recording-permission', async () => {
   if (process.platform !== 'darwin') {
     // Windows doesn't need screen recording permission for loopback audio

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import useAudioStore, { pickDefaultInputDevice } from './audioStore';
+import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
 
 // Regression test: on a machine with no physical microphone, the only
@@ -331,5 +331,137 @@ describe('audioStore — monitor volume mode-gating', () => {
     expect(useAudioStore.getState().isMonitorMuted).toBe(false);
     useAudioStore.getState().setMode('speaker');
     expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Participant audio source selection (issue #335). The picker lets the user
+// translate one application instead of everything the machine plays.
+// ---------------------------------------------------------------------------
+describe('audioStore - participant source selection', () => {
+  beforeEach(() => {
+    useAudioStore.setState({
+      participantSources: [],
+      selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
+    });
+  });
+
+  it('defaults to whole-system capture', () => {
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId)
+      .toBe('desktop-audio-loopback');
+  });
+
+  it('selects a source', () => {
+    const chromium: AudioDevice = { deviceId: 'app:pid:205', label: 'Chromium' };
+    useAudioStore.getState().selectParticipantSource(chromium);
+    expect(useAudioStore.getState().selectedParticipantSource).toEqual(chromium);
+  });
+
+  it('keeps the selection when it is still present after a refresh', () => {
+    const chromium: AudioDevice = { deviceId: 'app:pid:205', label: 'Chromium' };
+    useAudioStore.getState().selectParticipantSource(chromium);
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, chromium]);
+    expect(useAudioStore.getState().selectedParticipantSource).toEqual(chromium);
+  });
+
+  it('reverts to whole-system capture when the selected app disappears', () => {
+    useAudioStore.getState().selectParticipantSource({ deviceId: 'app:pid:205', label: 'Chromium' });
+    // The app quit; a refresh no longer lists it.
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId)
+      .toBe('desktop-audio-loopback');
+  });
+
+  it('refreshDevices populates the participant sources', async () => {
+    useAudioStore.setState({
+      audioService: {
+        getDevices: async () => ({ inputs: [], outputs: [] }),
+        getSystemAudioSources: async () => ([
+          DEFAULT_PARTICIPANT_SOURCE,
+          { deviceId: 'app:pid:205', label: 'Chromium' },
+        ]),
+      } as any,
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources.map((s) => s.deviceId))
+      .toEqual(['desktop-audio-loopback', 'app:pid:205']);
+  });
+
+  it('refreshDevices survives a service with no per-application support', async () => {
+    // The browser extension's audio service has no getSystemAudioSources at all.
+    useAudioStore.setState({
+      audioService: { getDevices: async () => ({ inputs: [], outputs: [] }) } as any,
+      participantSources: [],
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources).toEqual([]);
+  });
+
+  it('refreshDevices survives the source listing throwing', async () => {
+    useAudioStore.setState({
+      audioService: {
+        getDevices: async () => ({ inputs: [], outputs: [] }),
+        getSystemAudioSources: async () => { throw new Error('helper exploded'); },
+      } as any,
+      participantSources: [],
+    });
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantSources).toEqual([]);
+  });
+});
+
+// Regression guard (issue #335): after restarting the app the participant
+// selection silently reverted to whole-system capture, because deviceId embeds
+// a pid that is different every launch. On macOS that then demanded Screen
+// Recording for a feature that does not need it, and the session aborted.
+describe('audioStore - participant source survives a restart', () => {
+  const CHROME_RUN_1: AudioDevice = { deviceId: 'app:pid:3940', label: 'Google Chrome', appKey: 'com.google.Chrome' };
+  const CHROME_RUN_2: AudioDevice = { deviceId: 'app:pid:8271', label: 'Google Chrome', appKey: 'com.google.Chrome' };
+
+  beforeEach(() => {
+    useAudioStore.setState({
+      participantSources: [],
+      selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
+      persistedParticipantAppKey: null,
+    });
+  });
+
+  it('keeps the selection when the pid is unchanged', () => {
+    useAudioStore.getState().selectParticipantSource(CHROME_RUN_1);
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, CHROME_RUN_1]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('app:pid:3940');
+  });
+
+  it('re-finds the application after its pid changed', () => {
+    useAudioStore.getState().selectParticipantSource(CHROME_RUN_1);
+    // The app was restarted, so the same application now has a different pid.
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, CHROME_RUN_2]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('app:pid:8271');
+  });
+
+  it('re-finds the application from a key persisted by a previous run', () => {
+    // Fresh launch: nothing selected yet, only the saved key is known.
+    useAudioStore.setState({ persistedParticipantAppKey: 'com.google.Chrome' });
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, CHROME_RUN_2]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('app:pid:8271');
+  });
+
+  it('falls back to whole-system capture when the application is gone', () => {
+    useAudioStore.getState().selectParticipantSource(CHROME_RUN_1);
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('desktop-audio-loopback');
+  });
+
+  it('does not match a different application that happens to share a label', () => {
+    useAudioStore.setState({ persistedParticipantAppKey: 'com.google.Chrome' });
+    const other: AudioDevice = { deviceId: 'app:pid:99', label: 'Google Chrome', appKey: 'org.chromium.Chromium' };
+    useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, other]);
+    expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('desktop-audio-loopback');
   });
 });

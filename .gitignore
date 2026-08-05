@@ -128,3 +128,11 @@ __pycache__/
 # Palabra upgrades their LiveKit server (which is what pins livekit-client to an
 # exact version); takes credentials via query string, so never commit it.
 /palabra-probe/
+
+# Per-application capture helpers (issue #335). Build artifacts: produced by
+# native/audio-host/*/build.* and by CI before packaging, never committed.
+# Their absence is not fatal - the app falls back to whole-system capture.
+resources/bin/win32-x64/sokuji-audio-host.exe
+resources/bin/darwin-arm64/sokuji-audio-host
+resources/bin/darwin-x64/sokuji-audio-host
+native/audio-host/*/out/

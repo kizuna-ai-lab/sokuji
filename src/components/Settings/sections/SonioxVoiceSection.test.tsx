@@ -193,8 +193,13 @@ describe('SonioxVoiceSection', () => {
   it('the refresh button re-fetches the voice list', async () => {
     listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned()]);
     const { container } = mount();
-    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    // The refresh button is disabled while the list is loading, and the first
+    // fetch having been *called* does not mean it has resolved - clicking in
+    // that window is a no-op and the second fetch never happens. Wait for the
+    // button a user could actually press.
+    const refreshButton = screen.getByTitle(/refresh voice list/i);
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    fireEvent.click(refreshButton);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       const select = container.querySelector('select')!;
@@ -358,11 +363,16 @@ describe('SonioxVoiceSection', () => {
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
+    // The object URL is created in an effect, so the player renders one commit
+    // after the name input awaited above - which is already present on the
+    // modal's first render. Anchoring on it therefore raced the player and this
+    // test failed roughly one run in twelve. Wait for the player's own control.
+    const playButton = await screen.findByRole('button', { name: /^play$/i });
+
     const audioEl = container.querySelector('audio');
     expect(audioEl).not.toBeNull();
     expect(audioEl!.hasAttribute('controls')).toBe(false); // custom player, not native chrome
 
-    const playButton = screen.getByRole('button', { name: /^play$/i });
     fireEvent.click(playButton);
     expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled();
   });

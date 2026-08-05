@@ -41,7 +41,8 @@ import {
   CONVERSATION_FONT_SIZE_MAX,
 } from '../../stores/conversationDisplayStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
-import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted } from '../../stores/audioStore';
+import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource, useParticipantSources } from '../../stores/audioStore';
+import { resolveParticipantSourceId, needsLoopbackStream } from '../../lib/modern-audio/participantSource';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -81,7 +82,8 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
-import { isVirtualDevice } from '../Settings/shared/hooks';
+import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
+import WarningModal from '../Settings/shared/WarningModal';
 
 
 /**
@@ -368,6 +370,126 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const isMicMuted = useIsMicMuted();
   const isMonitorMuted = useIsMonitorMuted();
   const isParticipantMuted = useIsParticipantMuted();
+
+  // Flipped once audioServiceRef.current is populated, so effects that attach
+  // handlers to the service run again after it exists.
+  const [audioServiceReady, setAudioServiceReady] = useState(false);
+
+  // A capture helper that reports unbroken silence almost always means the OS
+  // denied audio access - macOS TCC zeroes every sample instead of failing, so
+  // the session would otherwise look healthy and translate nothing.
+  useEffect(() => {
+    const service = audioServiceRef.current;
+    if (!service) return;
+    service.onParticipantWarning = (code: string) => {
+      if (code === 'app_capture_lost_using_system_audio') {
+        addRealtimeEvent(
+          {
+            type: 'participant.warning',
+            data: {
+              message: t(
+                'audioPanel.participantFellBackToSystemAudio',
+                'Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.'
+              ),
+            },
+          },
+          'client', 'participant.warning'
+        );
+        return;
+      }
+      if (code !== 'silent_no_permission') return;
+      addRealtimeEvent(
+        {
+          type: 'participant.warning',
+          data: {
+            message: t(
+              'audioPanel.participantSilentNoPermission',
+              'The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.'
+            ),
+          },
+        },
+        'client', 'participant.warning'
+      );
+      setPermissionWarning('audio-capture-denied');
+    };
+    return () => { service.onParticipantWarning = null; };
+  }, [audioServiceReady, addRealtimeEvent, t]);
+
+  // A capture permission the OS denied. Rendered as a modal with a button that
+  // deep-links to the exact System Settings pane, because both denials are
+  // otherwise invisible: screen recording aborts the session with only a log
+  // line, and a denied audio tap produces silence rather than an error.
+  const [permissionWarning, setPermissionWarning] = useState<WarningType | null>(null);
+  const participantSources = useParticipantSources();
+
+  // Which application (or the whole system) participant audio is captured from.
+  const selectedParticipantSource = useSelectedParticipantSource();
+  // Tracks what capture is actually running, so the switch effect below fires
+  // on a real change rather than on every re-render or list refresh.
+  const activeParticipantSourceRef = useRef<string | null>(null);
+  // Read through a ref: session start awaits several times, and a re-render in
+  // between must not switch the source mid-acquisition.
+  const participantSourceRef = useRef(selectedParticipantSource);
+  useEffect(() => {
+    participantSourceRef.current = selectedParticipantSource;
+  }, [selectedParticipantSource]);
+
+  // Switching the participant source mid-session, mirroring the microphone.
+  // The picker is deliberately live during a session (it is gated on mode, not
+  // on the session), so without this the selection changed and nothing acted on
+  // it - capture stayed on whatever was chosen at start.
+  useEffect(() => {
+    if (!isSessionActive) {
+      activeParticipantSourceRef.current = null;
+      return;
+    }
+    const audioService = audioServiceRef.current;
+    if (!audioService?.switchParticipantSource) return;
+
+    const nextId = resolveParticipantSourceId(selectedParticipantSource);
+    // First run after start records what the session began with; there is
+    // nothing to switch to yet.
+    if (activeParticipantSourceRef.current === null) {
+      activeParticipantSourceRef.current = nextId;
+      return;
+    }
+    if (activeParticipantSourceRef.current === nextId) return;
+
+    const previousId = activeParticipantSourceRef.current;
+    activeParticipantSourceRef.current = nextId;
+
+    void (async () => {
+      try {
+        await audioService.switchParticipantSource!(nextId);
+        trackEvent('audio_device_changed', {
+          device_type: 'participant',
+          device_name: selectedParticipantSource?.label,
+          change_type: 'selected',
+          during_session: true,
+        });
+      } catch (error: any) {
+        console.error('[Sokuji] [MainPanel] Failed to switch participant source:', error);
+        // The service puts the previous source back, so the ref has to follow
+        // it; leaving it on the failed id would make re-selecting the source
+        // that is actually running look like a no-op.
+        activeParticipantSourceRef.current = previousId;
+        addRealtimeEvent(
+          {
+            type: 'participant.warning',
+            data: {
+              message: t(
+                'audioPanel.participantSourceSwitchFailed',
+                'Could not switch the participant audio source. Stop and start the session to change it.'
+              ),
+            },
+          },
+          'client', 'participant.warning'
+        );
+      }
+    })();
+    // Depend on the id string, not the device object: device-enumeration
+    // refreshes hand back a new object for an unchanged selection.
+  }, [selectedParticipantSource?.deviceId, isSessionActive, addRealtimeEvent, t, trackEvent]);
 
   // Channel start predicates — evaluated pre-start. Used by canStartSession
   // and by connectConversation to decide which clients to create. Locked
@@ -827,6 +949,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // Store the audio service in the ref for later use
         audioServiceRef.current = audioService;
+        // Effects that need the service key off this rather than the ref: a ref
+        // assignment does not re-run anything, so an effect that read the ref
+        // before this point would never get a second chance.
+        setAudioServiceReady(true);
 
         // Initialize the audio service
         await audioService.initialize();
@@ -1928,10 +2054,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           let electronAcquireOk = true;
           if (isElectron() && !isExtension()) {
             try {
-              if (isLoopbackPlatform()) {
+              const participantSourceId = resolveParticipantSourceId(participantSourceRef.current);
+              // Whether a whole-system getDisplayMedia stream is actually
+              // needed. Per-application capture never needs one, and on macOS
+              // neither does whole-system capture any more - a global Core
+              // Audio tap serves it under the permission the app already has.
+              if (needsLoopbackStream(participantSourceId)) {
                 const granted = await audioServiceRef.current!.requestLoopbackAudioStream();
                 if (!granted) {
                   console.warn('[Sokuji] [MainPanel] Loopback permission denied; skipping participant');
+                  setPermissionWarning('screen-recording-denied');
                   addRealtimeEvent(
                     {
                       type: 'participant.warning',
@@ -1943,11 +2075,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   );
                   electronAcquireOk = false;
                 } else {
-                  await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                  await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
                   systemAudioAcquiredRef.current = true;
                 }
               } else {
-                await audioServiceRef.current!.connectSystemAudioSource('desktop-audio-loopback');
+                await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
                 systemAudioAcquiredRef.current = true;
               }
             } catch (error) {
@@ -3766,6 +3898,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }}
         />
       </div>
+      <WarningModal
+        isOpen={permissionWarning !== null}
+        onClose={() => setPermissionWarning(null)}
+        type={permissionWarning}
+        note={
+          // Whole-system capture is the only path needing Screen Recording.
+          // Saying so turns a dead end into a one-click alternative, as long as
+          // an application is actually available to pick.
+          permissionWarning === 'screen-recording-denied' && participantSources.length > 1
+            ? t(
+                'audioPanel.screenRecordingHasAlternative',
+                'You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.'
+              )
+            : null
+        }
+      />
       {modePopoverOpen && (
         <ModeDevicePopover
           mode={effectiveMode}

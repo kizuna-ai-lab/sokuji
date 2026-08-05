@@ -3,6 +3,8 @@ import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
 import { LoopbackRecorder } from './LoopbackRecorder';
+import { AppAudioRecorder } from './AppAudioRecorder';
+import { DeviceCaptureRecorder } from './DeviceCaptureRecorder';
 import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
@@ -37,6 +39,18 @@ export class ModernBrowserAudioService implements IAudioService {
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
   // Recording state (started when session starts)
   private systemAudioRecorder: IParticipantAudioRecorder | null = null; // Platform-specific (Linux/Windows/macOS)
+  // 'app' means a helper process pushes PCM over IPC (Windows per-application
+  // capture); 'system' means whole-system loopback.
+  private currentCaptureMode: 'system' | 'app' = 'system';
+  /** Serializes participant-source switches; see switchParticipantSource. */
+  private participantSwitchChain: Promise<unknown> = Promise.resolve();
+  /**
+   * Set by the UI to surface non-fatal capture-helper warnings. Without it a
+   * macOS permission denial is invisible: the session runs and stays silent.
+   */
+  public onParticipantWarning: ((code: string) => void) | null = null;
+  // Chromium deviceId of a per-application capture monitor (Linux), or null.
+  private currentMonitorDeviceId: string | null = null;
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
 
@@ -870,6 +884,28 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Map a capture-sink description to a Chromium input deviceId.
+   *
+   * The main process cannot know Chromium's opaque deviceId, so it reports the
+   * sink description instead and we match on the enumerated label, which
+   * Chromium renders as "Monitor of <description>".
+   */
+  private async resolveMonitorDeviceId(monitorLabel: string): Promise<string | null> {
+    // The sink was created moments ago and the browser's device list refreshes
+    // asynchronously, so a single lookup can miss it. Retry briefly rather than
+    // degrade to whole-system audio over a few milliseconds.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const match = devices.find(
+        (d) => d.kind === 'audioinput' && d.label.includes(monitorLabel)
+      );
+      if (match) return match.deviceId;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return null;
+  }
+
+  /**
    * Connect a system audio source to the virtual mic
    * Called when user selects a system audio device
    * Sets state flags for electron-audio-loopback capture via getDisplayMedia
@@ -883,7 +919,29 @@ export class ModernBrowserAudioService implements IAudioService {
     try {
       console.info(`[Sokuji] [ModernBrowserAudio] Connecting system audio source: ${sourceDeviceId}`);
       console.info(`[Sokuji] [ModernBrowserAudio] Using electron-audio-loopback for system audio`);
-      await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
+      const result = await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
+
+      if (result?.success === false) {
+        throw new Error(result.error || 'Failed to connect system audio source');
+      }
+
+      // A 'capture: app' result means the main process will drive the
+      // per-application helper instead of getDisplayMedia loopback.
+      this.currentCaptureMode = result?.capture === 'app' ? 'app' : 'system';
+
+      // A monitorLabel means the main process created a per-application tap and
+      // we must record its monitor device. If it cannot be found, degrade to
+      // whole-system capture rather than failing the session outright.
+      this.currentMonitorDeviceId = null;
+      if (result?.monitorLabel) {
+        this.currentMonitorDeviceId = await this.resolveMonitorDeviceId(result.monitorLabel);
+        if (!this.currentMonitorDeviceId) {
+          console.warn(
+            '[Sokuji] [ModernBrowserAudio] Application capture monitor not found; ' +
+            'falling back to whole-system audio'
+          );
+        }
+      }
 
       // Store the connection info
       this.systemAudioSourceConnected = true;
@@ -895,6 +953,8 @@ export class ModernBrowserAudioService implements IAudioService {
       // Reset state on failure
       this.systemAudioSourceConnected = false;
       this.currentSystemAudioSinkId = undefined;
+      this.currentCaptureMode = 'system';
+      this.currentMonitorDeviceId = null;
       throw error;
     }
   }
@@ -922,6 +982,8 @@ export class ModernBrowserAudioService implements IAudioService {
 
     this.systemAudioSourceConnected = false;
     this.currentSystemAudioSinkId = undefined;
+    this.currentCaptureMode = 'system';
+    this.currentMonitorDeviceId = null;
     console.info('[Sokuji] [ModernBrowserAudio] System audio source disconnected');
   }
 
@@ -946,6 +1008,16 @@ export class ModernBrowserAudioService implements IAudioService {
     // Stop any existing recording
     if (this.systemAudioRecordingActive) {
       await this.stopSystemAudioRecording();
+    }
+
+    if (this.currentCaptureMode === 'app' && this.currentSystemAudioSinkId) {
+      await this.startAppAudioRecording(this.currentSystemAudioSinkId, callback);
+      return;
+    }
+
+    if (this.currentMonitorDeviceId) {
+      await this.startDeviceCaptureRecording(this.currentMonitorDeviceId, callback);
+      return;
     }
 
     await this.startLoopbackRecording(callback);
@@ -989,6 +1061,156 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Record participant audio from a specific input device (Linux per-application
+   * capture records the tap sink's monitor).
+   */
+  private async startDeviceCaptureRecording(
+    deviceId: string,
+    callback: AudioRecordingCallback
+  ): Promise<void> {
+    try {
+      console.info(`[Sokuji] [ModernBrowserAudio] Starting application capture from device ${deviceId}`);
+      this.systemAudioRecorder = new DeviceCaptureRecorder(24000);
+      this.systemAudioCallback = callback;
+
+      const success = await this.systemAudioRecorder.begin({ deviceId });
+      if (!success) {
+        throw new Error('Failed to begin device audio capture');
+      }
+
+      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
+        if (this.systemAudioCallback) {
+          this.systemAudioCallback(data);
+        }
+      });
+
+      this.systemAudioRecordingActive = true;
+      console.info('[Sokuji] [ModernBrowserAudio] Device audio capture started');
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start device capture:', error);
+      await this.stopSystemAudioRecording();
+      throw error;
+    }
+  }
+
+  /**
+   * Record participant audio pushed from the per-application capture helper.
+   *
+   * A helper that dies mid-session must not silently kill participant audio, so
+   * onLost restarts capture as whole-system loopback.
+   */
+  private async startAppAudioRecording(
+    deviceId: string,
+    callback: AudioRecordingCallback
+  ): Promise<void> {
+    try {
+      console.info(`[Sokuji] [ModernBrowserAudio] Starting application capture for ${deviceId}`);
+      const recorder = new AppAudioRecorder(24000);
+      this.systemAudioRecorder = recorder;
+      this.systemAudioCallback = callback;
+
+      recorder.onWarning = (code) => this.onParticipantWarning?.(code);
+
+      recorder.onLost = () => {
+        console.warn('[Sokuji] [ModernBrowserAudio] Capture helper lost; falling back to system audio');
+        this.currentCaptureMode = 'system';
+        // The user chose one application; this widens capture to everything the
+        // machine plays, so audio they never meant to share starts reaching the
+        // translation provider. That has to be visible, not just logged.
+        this.onParticipantWarning?.('app_capture_lost_using_system_audio');
+        this.startSystemAudioRecording(callback).catch((e) =>
+          console.error('[Sokuji] [ModernBrowserAudio] Fallback to system audio failed:', e));
+      };
+
+      const success = await recorder.begin({ deviceId });
+      if (!success) {
+        throw new Error('Failed to begin application audio capture');
+      }
+
+      await recorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
+        if (this.systemAudioCallback) {
+          this.systemAudioCallback(data);
+        }
+      });
+
+      this.systemAudioRecordingActive = true;
+      console.info('[Sokuji] [ModernBrowserAudio] Application capture started');
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start application capture:', error);
+      await this.stopSystemAudioRecording();
+      throw error;
+    }
+  }
+
+  /**
+   * Switch the participant source without ending the session.
+   *
+   * Mirrors switchRecordingDevice for the microphone: the capture is rebuilt
+   * around the new source while the client, the conversation and the callback
+   * all stay put. Whole-system and per-application sources are interchangeable
+   * here - each connect() decides which capture path it needs.
+   *
+   * @param sourceDeviceId 'desktop-audio-loopback' or 'app:pid:<n>'
+   */
+  public async switchParticipantSource(sourceDeviceId: string): Promise<void> {
+    // Serialized: each switch tears capture down and builds it back up, so two
+    // rapid selections could interleave and leave the earlier one running while
+    // the UI reports the later one. A rejected switch must not block the next.
+    const run = this.participantSwitchChain.then(
+      () => this.applyParticipantSource(sourceDeviceId),
+      () => this.applyParticipantSource(sourceDeviceId)
+    );
+    this.participantSwitchChain = run.catch(() => { /* failure is the caller's */ });
+    return run;
+  }
+
+  private async applyParticipantSource(sourceDeviceId: string): Promise<void> {
+    if (this.currentSystemAudioSinkId === sourceDeviceId) {
+      console.debug(`[Sokuji] [ModernBrowserAudio] Participant source unchanged: ${sourceDeviceId}`);
+      return;
+    }
+
+    console.info(
+      `[Sokuji] [ModernBrowserAudio] Switching participant source from ` +
+      `${this.currentSystemAudioSinkId} to ${sourceDeviceId}`
+    );
+
+    // stopSystemAudioRecording clears the callback, and it is the only thing
+    // tying the captured audio to the live client - take it before teardown.
+    const savedCallback = this.systemAudioCallback;
+    const previousSourceId = this.currentSystemAudioSinkId;
+
+    await this.stopSystemAudioRecording();
+    await this.disconnectSystemAudioSource();
+
+    try {
+      await this.connectSystemAudioSource(sourceDeviceId);
+    } catch (error) {
+      // The chosen application can be gone by the time it is picked - the list
+      // is seconds old and pids do not survive a restart - so this is an
+      // expected failure, not an exceptional one. Teardown has already
+      // happened; without putting the previous source back the session would
+      // keep running with no participant audio at all.
+      console.warn(
+        `[Sokuji] [ModernBrowserAudio] Failed to connect ${sourceDeviceId}; ` +
+        `restoring ${previousSourceId ?? 'whole-system capture'}`
+      );
+      const fallback = previousSourceId ?? 'desktop-audio-loopback';
+      try {
+        await this.connectSystemAudioSource(fallback);
+        if (savedCallback) await this.startSystemAudioRecording(savedCallback);
+      } catch (restoreError) {
+        console.error('[Sokuji] [ModernBrowserAudio] Restore failed too:', restoreError);
+      }
+      throw error;
+    }
+
+    if (savedCallback) {
+      await this.startSystemAudioRecording(savedCallback);
+    }
+  }
+
+  /**
    * Stop recording from system audio (but keep connection)
    * Called when session ends
    */
@@ -996,6 +1218,11 @@ export class ModernBrowserAudioService implements IAudioService {
     console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
 
     if (this.systemAudioRecorder) {
+      // Detach the fallback before ending: end() kills the capture helper, and
+      // its exit must not be read as the helper dying under us. That restarted
+      // whole-system capture after the session had already stopped, leaving the
+      // waveform alive and the machine still being recorded.
+      (this.systemAudioRecorder as { onLost?: (() => void) | null }).onLost = null;
       try {
         await this.systemAudioRecorder.end();
       } catch (error) {

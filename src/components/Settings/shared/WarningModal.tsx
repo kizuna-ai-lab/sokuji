@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import Modal from '../../Modal/Modal';
 import { useTranslation } from 'react-i18next';
@@ -8,10 +8,34 @@ interface WarningModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: WarningType | null;
+  /**
+   * Extra sentence appended to the message. Used to point out that a denied
+   * permission has a working alternative, rather than leaving the user with a
+   * dead end.
+   */
+  note?: string | null;
 }
 
-const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) => {
+const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note }) => {
   const { t } = useTranslation();
+
+  // macOS lists the process under the name of the bundle it launched. A
+  // packaged build is "Sokuji", but `npm run dev` runs Electron's own bundle,
+  // so telling a developer to look for "Sokuji" sends them hunting for an entry
+  // that is not there.
+  const [tccName, setTccName] = useState<string>('Sokuji');
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    // The extension and web builds have no window.electron at all, and this
+    // modal is shared with their virtual-device warnings.
+    const pending = window.electron?.invoke?.('get-tcc-display-name');
+    if (!pending?.then) return;
+    pending
+      .then((r: { name?: string }) => { if (!cancelled && r?.name) setTccName(r.name); })
+      .catch(() => { /* keep the packaged-build default */ });
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   if (!type) return null;
 
@@ -59,9 +83,23 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
           titleText: t('audioPanel.screenRecordingDeniedTitle', 'Screen Recording Permission Denied'),
           paragraphs: [
             t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
-            t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.'),
+            t('audioPanel.screenRecordingDeniedText2Named', 'Open System Settings > Privacy & Security > Screen Recording and enable "{{app}}".', { app: tccName }),
             t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
-          ]
+          ],
+          // Capturing everything the machine plays goes through screen capture.
+          privacyPane: 'screen-recording' as const,
+        };
+      case 'audio-capture-denied':
+        return {
+          title: t('audioPanel.audioCaptureDeniedNotice', 'Permission Required'),
+          titleText: t('audioPanel.audioCaptureDeniedTitle', 'System Audio Recording Permission Needed'),
+          paragraphs: [
+            t('audioPanel.audioCaptureDeniedText1', 'Capturing one application needs the "System Audio Recording Only" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.'),
+            t('audioPanel.audioCaptureDeniedText2Named', 'Open System Settings > Privacy & Security > System Audio Recording Only and enable "{{app}}".', { app: tccName }),
+            t('audioPanel.audioCaptureDeniedText3Named', '"{{app}}" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.', { app: tccName })
+          ],
+          // Per-application capture uses a Core Audio tap, not screen capture.
+          privacyPane: 'audio-capture' as const,
         };
       default:
         return null;
@@ -87,6 +125,19 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
         {content.paragraphs.map((text, index) => (
           <p key={index}>{text}</p>
         ))}
+        {note && <p className="warning-note">{note}</p>}
+        {content.privacyPane && (
+          <button
+            className="open-settings-button"
+            onClick={() => {
+              // Deep-links straight to the pane rather than making the user
+              // hunt through System Settings for it.
+              window.electron?.invoke('open-privacy-settings', content.privacyPane);
+            }}
+          >
+            {t('audioPanel.openSystemSettings', 'Open System Settings')}
+          </button>
+        )}
         <button
           className="understand-button"
           onClick={onClose}

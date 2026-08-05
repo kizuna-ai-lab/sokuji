@@ -12,6 +12,9 @@ export type AudioMode = 'speaker' | 'participant' | 'both';
 const STORAGE_KEYS = {
   SELECTED_INPUT_DEVICE_ID: 'audio.selectedInputDeviceId',
   SELECTED_MONITOR_DEVICE_ID: 'audio.selectedMonitorDeviceId',
+  // The chosen application, stored by a restart-stable key rather than by
+  // deviceId: deviceId embeds a pid, which is different every launch.
+  SELECTED_PARTICIPANT_APP_KEY: 'audio.selectedParticipantAppKey',
   IS_INPUT_DEVICE_ON: 'audio.isInputDeviceOn',
   IS_MONITOR_DEVICE_ON: 'audio.isMonitorDeviceOn',
   IS_NOISE_SUPPRESS_ENABLED: 'audio.isNoiseSuppressEnabled',
@@ -30,7 +33,23 @@ export interface AudioDevice {
   deviceId: string;
   label: string;
   isVirtual?: boolean;
+  /**
+   * Restart-stable identity of a per-application capture source (executable
+   * name, bundle id, or binary name). Absent on ordinary devices and on
+   * whole-system capture.
+   */
+  appKey?: string | null;
 }
+
+/**
+ * Whole-system capture - the participant source used unless the user picks a
+ * specific application. Its deviceId is the sentinel every platform module has
+ * always returned for "capture everything".
+ */
+export const DEFAULT_PARTICIPANT_SOURCE: AudioDevice = {
+  deviceId: 'desktop-audio-loopback',
+  label: 'System Audio (All Applications)',
+};
 
 /**
  * Pick a default microphone from an enumerated input list, excluding virtual
@@ -53,6 +72,10 @@ interface AudioStore {
   audioMonitorDevices: AudioDevice[];
   selectedInputDevice: AudioDevice | null;
   selectedMonitorDevice: AudioDevice | null;
+  participantSources: AudioDevice[];
+  selectedParticipantSource: AudioDevice | null;
+  /** Saved app key from a previous run, used to re-find the app on startup. */
+  persistedParticipantAppKey: string | null;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -73,6 +96,8 @@ interface AudioStore {
   setMonitorDevices: (devices: AudioDevice[]) => void;
   selectInputDevice: (device: AudioDevice) => void;
   selectMonitorDevice: (device: AudioDevice) => void;
+  setParticipantSources: (sources: AudioDevice[]) => void;
+  selectParticipantSource: (source: AudioDevice) => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setNoiseSuppressionMode: (mode: NoiseSuppressionMode) => void;
@@ -97,6 +122,9 @@ const useAudioStore = create<AudioStore>()(
     audioMonitorDevices: [],
     selectedInputDevice: null,
     selectedMonitorDevice: null,
+    participantSources: [],
+    selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE,
+    persistedParticipantAppKey: null,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -114,6 +142,51 @@ const useAudioStore = create<AudioStore>()(
     setAudioService: (service) => set({ audioService: service }),
     setInputDevices: (devices) => set({ audioInputDevices: devices }),
     setMonitorDevices: (devices) => set({ audioMonitorDevices: devices }),
+    setParticipantSources: (sources) => set((state) => {
+      const current = state.selectedParticipantSource;
+      // The default is a sentinel that is always present in the list, so an
+      // exact-match-first rule would match it on every fresh launch and never
+      // reach the saved application below.
+      const hasRealSelection = !!current
+        && current.deviceId !== DEFAULT_PARTICIPANT_SOURCE.deviceId;
+
+      if (hasRealSelection) {
+        const sameDevice = sources.find((s) => s.deviceId === current!.deviceId);
+        if (sameDevice) {
+          return { participantSources: sources, selectedParticipantSource: sameDevice };
+        }
+      }
+
+      // The pid changed - the app restarted, or so did Sokuji - so re-find it
+      // by its stable key. Without this the selection silently reverted to
+      // whole-system capture on every launch, which on macOS then demanded
+      // Screen Recording for a feature that does not need it.
+      const wantedKey = (hasRealSelection ? current!.appKey : null)
+        || state.persistedParticipantAppKey;
+      if (wantedKey) {
+        const byKey = sources.find((s) => s.appKey && s.appKey === wantedKey);
+        if (byKey) {
+          console.info(`[Sokuji] [AudioStore] Re-matched participant source by key: ${byKey.label} (${byKey.deviceId})`);
+          return { participantSources: sources, selectedParticipantSource: byKey };
+        }
+      }
+
+      // Genuinely gone: keeping a stale selection would fail the next session.
+      return { participantSources: sources, selectedParticipantSource: DEFAULT_PARTICIPANT_SOURCE };
+    }),
+
+    selectParticipantSource: (source) => {
+      console.info(`[Sokuji] [AudioStore] Selected participant source: ${source.label} (${source.deviceId})`);
+      // Mirror the key in memory too, so a refresh right after selecting does
+      // not fall back to a stale value loaded at startup.
+      set({ selectedParticipantSource: source, persistedParticipantAppKey: source.appKey ?? null });
+      // Persist the stable key, not the deviceId: its pid is gone next launch.
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(
+        STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY,
+        source.appKey ?? ''
+      ).catch((e) => console.warn('[Sokuji] [AudioStore] Failed to persist participant source:', e));
+    },
     selectInputDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
       set({ selectedInputDevice: device });
@@ -291,6 +364,24 @@ const useAudioStore = create<AudioStore>()(
           audioInputDevices: devices.inputs,
           audioMonitorDevices: devices.outputs
         });
+
+        // Only the Electron audio service can enumerate per-application sources;
+        // the extension's cannot, and a per-app list is meaningless for tab capture.
+        const listSources = (service as { getSystemAudioSources?: () => Promise<AudioDevice[]> }).getSystemAudioSources;
+        if (typeof listSources === 'function') {
+          try {
+            // Load the saved app key first: setParticipantSources uses it to
+            // re-find the application, whose pid differs from last launch.
+            const savedAppKey = await ServiceFactory.getSettingsService()
+              .getSetting<string>(STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY, '');
+            if (savedAppKey) {
+              set({ persistedParticipantAppKey: savedAppKey });
+            }
+            get().setParticipantSources(await listSources.call(service));
+          } catch (error) {
+            console.warn('[Sokuji] [AudioStore] Failed to list participant sources:', error);
+          }
+        }
 
         // Load saved device preferences and on/off states
         const settingsService = ServiceFactory.getSettingsService();
@@ -583,6 +674,9 @@ export const useToggleNoiseSuppression = () => {
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
+export const useParticipantSources = () => useAudioStore((state) => state.participantSources);
+export const useSelectedParticipantSource = () => useAudioStore((state) => state.selectedParticipantSource);
+export const useSelectParticipantSource = () => useAudioStore((state) => state.selectParticipantSource);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);

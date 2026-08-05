@@ -4,6 +4,7 @@
  */
 
 const { exec } = require('child_process');
+const audioHost = require('./audio-host.js');
 const util = require('util');
 const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
@@ -254,45 +255,64 @@ async function supportsSystemAudioCapture() {
 
 /**
  * List available system audio sources
- * On macOS, we provide a single "System Audio" source that captures all system audio
- * via the electron-audio-loopback feature (uses getDisplayMedia with loopback audio)
+ * Whole-system capture first (unchanged default, captured via getDisplayMedia in
+ * the renderer), then one entry per application the capture helper can target.
+ * A missing or failing helper yields just the former.
+ * @param {{host?: object}} deps - `host` is injected in tests
  * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
  */
-async function listSystemAudioSources() {
-  console.log('[Sokuji] [macOS Audio] Listing system audio sources');
-  // macOS captures system audio via screen selection, so we return a single source
-  return [{
+async function listSystemAudioSources({ host = audioHost } = {}) {
+  // No screen selection any more: the global tap needs no picker and no
+  // Screen Recording permission.
+  const system = {
     deviceId: 'desktop-audio-loopback',
-    label: 'System Audio (Screen Selection Required)'
-  }];
+    label: 'System Audio (All Applications)'
+  };
+  // The doc above promises that a missing or failing helper still yields the
+  // system source; an unguarded rejection would instead leave the renderer with
+  // no sources at all, including whole-system capture.
+  let apps = [];
+  try {
+    apps = await host.listAppSources();
+  } catch (e) {
+    console.warn('[Sokuji] [macOS Audio] Application source listing failed:', e.message);
+  }
+  console.log(`[Sokuji] [macOS Audio] Listing system audio sources: ${apps.length} application(s)`);
+  return [system, ...apps];
 }
 
 /**
  * Connect to a system audio source
- * On macOS, this is a no-op since the actual capture is done via getDisplayMedia in the renderer
- * The user will select a screen/window when starting participant audio capture
- * @param {string} sourceId - The source ID to connect to
- * @returns {Promise<{success: boolean, error?: string}>} Result object
+ * Records which capture path the renderer should take. Nothing is spawned here:
+ * the helper starts when the session starts, via 'start-app-audio-capture'.
+ * @param {string} sourceId - 'desktop-audio-loopback' or 'app:pid:<n>'
+ * @param {{host?: object}} deps - `host` is injected in tests
+ * @returns {Promise<{success: boolean, capture: 'app'|'system'}>} Result object
  */
-async function connectSystemAudioSource(sourceId) {
+async function connectSystemAudioSource(sourceId, { host = audioHost } = {}) {
   console.log(`[Sokuji] [macOS Audio] Connect system audio source: ${sourceId}`);
-  // On macOS, the "connection" happens when getDisplayMedia is called in the renderer
-  // This function just acknowledges the intent to capture
-  return { success: true };
+  // Both paths go through the helper on macOS. Whole-system capture used to use
+  // getDisplayMedia, which requires Screen Recording; a global Core Audio tap
+  // does the same job under the audio-capture grant the per-application path
+  // already needs, so macOS asks for one permission instead of two.
+  return { success: true, capture: 'app' };
 }
 
 /**
  * Disconnect from the current system audio source
- * On macOS, this is a no-op since cleanup happens in the renderer
+ * @param {{host?: object}} deps - `host` is injected in tests
  * @returns {Promise<{success: boolean}>} Result object
  */
-async function disconnectSystemAudioSource() {
+async function disconnectSystemAudioSource({ host = audioHost } = {}) {
   console.log('[Sokuji] [macOS Audio] Disconnect system audio source');
-  // Cleanup happens in the renderer when the MediaStream is stopped
+  host.stopCapture();
   return { success: true };
 }
 
 module.exports = {
+  // Per-application capture helper control, used by main.js IPC handlers
+  startCapture: audioHost.startCapture,
+  stopCapture: audioHost.stopCapture,
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
   isMacOSAudioAvailable,

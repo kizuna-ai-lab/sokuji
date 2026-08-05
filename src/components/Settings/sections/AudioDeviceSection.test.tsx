@@ -138,3 +138,29 @@ describe('AudioDeviceSection warning modal under Activity hide', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+// Regression guard (issue #335): the settings views mount AudioDeviceSection
+// TWICE - once with showMicrophone, once with showSpeaker. Anything rendered
+// outside those two guards therefore appears twice. A participant-audio source
+// picker was briefly added here and showed up as two "Participant audio"
+// sections whose lock state disagreed, because each instance receives a
+// different isLocked prop. Participant UI belongs in SystemAudioSection.
+describe('AudioDeviceSection renders no participant UI', () => {
+  it('renders nothing participant-related in the microphone instance', () => {
+    const { container } = render(
+      <AudioDeviceSection isSessionActive={false} showMicrophone={true} showSpeaker={false} />
+    );
+    expect(container.querySelector('#participant-section')).toBeNull();
+    expect(container.querySelector('#participant-source-section')).toBeNull();
+    expect(container.querySelector('.participant-source-picker')).toBeNull();
+  });
+
+  it('renders nothing participant-related in the speaker instance', () => {
+    const { container } = render(
+      <AudioDeviceSection isSessionActive={false} showMicrophone={false} showSpeaker={true} />
+    );
+    expect(container.querySelector('#participant-section')).toBeNull();
+    expect(container.querySelector('#participant-source-section')).toBeNull();
+    expect(container.querySelector('.participant-source-picker')).toBeNull();
+  });
+});

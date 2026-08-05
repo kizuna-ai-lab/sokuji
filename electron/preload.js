@@ -70,6 +70,9 @@ const validReceiveChannels = [
   'subtitle:fullscreen-changed',
   // Native sidecar bundle install progress (main → renderer)
   'sidecar-bundle-progress',
+  // Per-application audio capture: PCM chunks and helper lifecycle events
+  'app-audio:pcm',
+  'app-audio:event',
 ];
 
 // Expose protected methods that allow the renderer process to use
