@@ -167,7 +167,11 @@ English source string:
   outside the bucket keep their `[Soniox <code>] <message>` text.
 
 Manual smoke: a managed session with the network cut mid-utterance should end
-with the localized notice and a Start button that works.
+with the localized notice and a Start button that works. A managed session
+whose budget is exhausted mid-session must end with the balance message, not
+an outage notice — the network-kill smoke above and a clean Stop already
+cover the other two ways this stream ends; this is the third, clean-close
+ending (the meter's own graceful `this.stt?.end()`).
 
 ## Known limitations
 

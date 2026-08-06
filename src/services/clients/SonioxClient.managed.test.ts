@@ -58,6 +58,7 @@ const BASE_CONFIG: SonioxSessionConfig = {
 // punctuation.
 const OUTAGE = /the connection was interrupted/i;
 const SEGMENT_ENDED = /this segment has ended/i;
+const BALANCE_USED_UP = /balance is used up/i;
 
 const SESSION_TOKEN = 'better-auth-session-token-abc';
 
@@ -316,6 +317,46 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
     expect(stt.closed).toBe(false); // NOT torn down abruptly via close()
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
   });
+
+  // Regression: the test above stops at stt.end() and never simulates the
+  // close that always follows it in production (the server flushes and
+  // closes after receiving the empty-text-frame end-of-stream). That close
+  // used to land in handleSttClose's bare-close fallthrough with no
+  // announced outcome on record, which fired a SECOND, WRONG notice — the
+  // generic "connection was interrupted" outage text — on top of the real
+  // reason, and that wrong notice was the only item left standing (it was
+  // emitted after, and thus overwrote nothing, but the balance message was
+  // never itself an item to begin with — only onError, which is transient
+  // local UI state MainPanel's teardown wipes). Drive the full sequence so
+  // this cannot regress silently again.
+  it('the full sequence — tick to exhaustion, end(), then the close that follows — ends with exactly one item, the balance message, not the outage notice', async () => {
+    mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
+    const client = managedClient();
+    const errors: Array<{ code?: string; message?: string }> = [];
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e), onClose: (e) => closeEvents.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    stt.handlers.onTick?.(); // → handleBudgetExhausted() → stt.end()
+    expect(stt.ended).toBe(true);
+
+    // The close the server sends after flushing a graceful end() — exactly
+    // what handleSttClose's bare-close fallthrough would otherwise treat as
+    // an unannounced outage.
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].formatted?.text).toMatch(BALANCE_USED_UP);
+    expect(items[0].formatted?.text).not.toMatch(OUTAGE);
+    // onError still fires for analytics (api_error), same as before.
+    expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    // No false session.connection_lost / second onError from the fallthrough.
+    expect(errors).toHaveLength(1);
+    expect(closeEvents).toHaveLength(1);
+  });
 });
 
 describe('SonioxClient BYOK mode is unaffected', () => {
@@ -468,6 +509,10 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     expect(items).toHaveLength(1);
     expect(items[0].role).toBe('system');
     expect(items[0].formatted?.text).toMatch(SEGMENT_ENDED);
+    // MainPanel sorts rendered items by `a.createdAt || 0` (MainPanel.tsx);
+    // an item missing this field sorts to the very top of the transcript
+    // instead of appearing where it actually happened.
+    expect(items[0].createdAt).toBeGreaterThan(0);
   });
 
   it('a close with no preceding 403 reports a lost connection, not a cutoff', async () => {

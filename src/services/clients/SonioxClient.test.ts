@@ -1121,8 +1121,9 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
   // I1: managed sessions cannot resume — the backend mints STT temp keys
   // single_use: true, so a same-key reconnect is rejected AFTER onopen and
   // would masquerade as a duration cutoff (pendingDurationCutoff) instead
-  // of the outage it actually is. Managed 503s must take the plain error
-  // path, exactly like any other managed STT error.
+  // of the outage it actually is. Managed 503s must take the recoverable-
+  // outage path with no resume attempted — the same localized notice a BYOK
+  // 503 eventually gets once its resume ladder is exhausted.
   it('I1: managed mode + 503 takes the generic error path — no resume attempted', async () => {
     const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -1367,6 +1368,11 @@ describe('SonioxClient recoverable outages (BYOK)', () => {
 
     stt.handlers.onClose?.({ code: 1006, reason: '' });
 
+    // Its sibling test below already asserts an exact length for the
+    // "second notice suppressed" case; assert it here too so a double-emit
+    // in this branch (e.g. a future regression that fires both the
+    // fallthrough AND some other path) cannot pass silently.
+    expect(client.getConversationItems()).toHaveLength(1);
     expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
     // The close still reaches MainPanel so the session tears down as before.
     expect(closeEvents).toHaveLength(1);
