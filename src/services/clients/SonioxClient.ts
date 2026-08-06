@@ -187,6 +187,14 @@ export class SonioxClient implements IClient {
   // and a fresh socket connects after Stop (zombie socket, managed billing
   // restart if this were ever allowed in managed mode).
   private pendingSttResume503: string | null = null;
+  // True once ANY error frame has been seen on the CURRENT stream. Read by
+  // handleSttClose's fall-through to tell "the socket died with no warning"
+  // (say so) from "we already told the user why" (stay quiet). Set at the top
+  // of handleSttError, BEFORE its early returns, so the cutoff and resume
+  // paths count as having spoken too — a 503 whose close never arrives must
+  // not let a later close file a second, contradictory report. Cleared per
+  // stream in wireSttHandlers, and by reset().
+  private sawSttErrorFrame = false;
   // Per-session count of 503 resume cycles actually started (incremented in
   // handleSttError, reset by reset() → i.e. every connect()). Caps a
   // flapping server from looping forever: past MAX_STT_RESUME_CYCLES a 503
@@ -343,10 +351,17 @@ export class SonioxClient implements IClient {
    * being eligible for a FUTURE 503 resume of its own.
    */
   private wireSttHandlers(stream: SonioxSttStream): void {
+    // Captured at wire time. Both connect() and disconnect() bump
+    // `generation`, so comparing it inside onClose is what distinguishes a
+    // live socket dying from the close event a browser fires asynchronously
+    // for a socket disconnect() already closed. Without this, a clean Stop
+    // would end with a "connection interrupted" notice.
+    const gen = this.generation;
+    this.sawSttErrorFrame = false;
     stream.setHandlers({
       onMessage: (message) => this.handleSttMessage(message),
       onError: (code, message) => this.handleSttError(code, message),
-      onClose: (event) => this.handleSttClose(event),
+      onClose: (event) => this.handleSttClose(event, gen),
       // The meter's own clock, not a second timer — see onTick's docstring
       // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
       onTick: () => this.costMeter?.tick(Date.now()),
@@ -403,7 +418,7 @@ export class SonioxClient implements IClient {
    * the two flags are mutually exclusive in practice (handleSttError only
    * ever sets one per error frame) but cutoff must win if that ever changes.
    */
-  private handleSttClose(event: { code?: number; reason?: string }): void {
+  private handleSttClose(event: { code?: number; reason?: string }, gen: number): void {
     this.isConnectedState = false;
     // Managed sessions: Soniox drops the session at its granted duration
     // by sending a 403 error frame (caught by handleSttError, which sets
@@ -430,6 +445,17 @@ export class SonioxClient implements IClient {
       this.eventHandlers.onReconnecting?.();
       void this.resumeSttStream(originalMessage);
       return;
+    }
+    // A close with nothing said before it is the shape of a network drop (or
+    // a server going away): the user has been told nothing at all, and this
+    // was the last silent failure left. Guarded on `gen` so the close that
+    // trails a user-initiated Stop — disconnect() bumps generation before it
+    // closes the socket — never reports an outage that did not happen.
+    if (!this.sawSttErrorFrame && gen === this.generation) {
+      this.surfaceRecoverableOutage(
+        String(event.code ?? 'socket_closed'),
+        event.reason || 'The Soniox connection closed unexpectedly'
+      );
     }
     this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
     this.eventHandlers.onClose?.(event);
@@ -1093,6 +1119,7 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttError(code: string, message: string): void {
+    this.sawSttErrorFrame = true;
     // Managed sessions only: Soniox reports the granted-duration cutoff as
     // this exact 403 error frame, immediately followed by a close (handled
     // in the onClose wiring in connect(), which shows a dedicated "segment
@@ -1359,6 +1386,7 @@ export class SonioxClient implements IClient {
     this.costMeter = null;
     this.pendingDurationCutoff = false;
     this.pendingSttResume503 = null;
+    this.sawSttErrorFrame = false;
     this.sttResumeCycles = 0;
   }
 

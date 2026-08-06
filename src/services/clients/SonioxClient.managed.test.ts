@@ -464,7 +464,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     expect(closeEvents[0].code).toBe(1000);
   });
 
-  it('a normal close with no preceding 403 is not tagged — no auto-reconnect signal either way', async () => {
+  it('a close with no preceding 403 reports a lost connection, not a cutoff', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
     const client = managedClient();
     const closeEvents: any[] = [];
@@ -476,6 +476,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
 
     expect(closeEvents).toHaveLength(1);
     expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
   });
 
   it('BYOK: a mid-session 403 still surfaces as a normal error — BYOK has no granted duration', async () => {

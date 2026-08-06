@@ -1352,4 +1352,50 @@ describe('SonioxClient recoverable outages (BYOK)', () => {
     expect(client.getConversationItems().at(-1)!.formatted?.text)
       .toBe('[Soniox 401] invalid api key');
   });
+
+  it('a close with no preceding error frame is reported as a lost connection', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+
+    stt.handlers.onClose?.({ code: 1006, reason: '' });
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+    // The close still reaches MainPanel so the session tears down as before.
+    expect(closeEvents).toHaveLength(1);
+  });
+
+  it('a close that FOLLOWS an error frame does not add a second notice', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('401', 'invalid api key');
+    stt.handlers.onClose?.({ code: 1006, reason: '' });
+
+    expect(client.getConversationItems()).toHaveLength(1);
+    expect(client.getConversationItems()[0].formatted?.text).toBe('[Soniox 401] invalid api key');
+  });
+
+  it('the late close that follows a user-initiated Stop stays silent', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    await client.disconnect();
+    // A real browser fires onclose asynchronously, AFTER disconnect() already
+    // called ws.close() and returned.
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(client.getConversationItems()).toHaveLength(0);
+  });
+
+  it('a stale close from a previous session does not notify the new one', async () => {
+    const { client } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+
+    await client.connect({ ...BASE_CONFIG, textOnly: false }); // second session
+    stt0.handlers.onClose?.({ code: 1006, reason: 'late' });   // old socket dies late
+
+    expect(client.getConversationItems()).toHaveLength(0);
+  });
 });
