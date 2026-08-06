@@ -1309,27 +1309,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Route through disconnectConversation — handles both clients, audio,
         // streaming tracks, profile refresh, and the re-entry guard.
         await disconnectConversationRef.current?.();
-
-        // Managed Soniox: SonioxClient tags this close with sonioxDurationCutoff
-        // when Soniox dropped the session at its granted duration (a 403 error
-        // frame immediately followed by this close — see SonioxClient's onClose
-        // docstring). Show a dedicated "segment ended" notice instead of a raw
-        // error, and — per explicit product decision — do NOT auto-reconnect
-        // here (a silent reconnect would restart billing without the user
-        // knowing); the user must tap Start again to begin a new segment.
-        // Appended AFTER disconnectConversation: it calls
-        // setItems(client.getConversationItems()), which would otherwise
-        // overwrite this entry (the client has no items for a synthetic notice).
-        if (event?.sonioxDurationCutoff) {
-          setItems(prevItems => [...prevItems, {
-            id: `notice-${Date.now()}`,
-            role: 'system',
-            type: 'error',
-            status: 'completed',
-            createdAt: Date.now(),
-            formatted: { text: t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start to continue.') },
-          }]);
-        }
       },
       onConversationInterrupted: async () => {
         // Handle conversation interruption

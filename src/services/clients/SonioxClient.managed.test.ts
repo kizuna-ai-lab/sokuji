@@ -448,7 +448,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     expect(client.getConversationItems()).toHaveLength(0);
   });
 
-  it('tags the close that follows with sonioxDurationCutoff', async () => {
+  it('emits the segment-ended notice itself on the close that follows', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
     const client = managedClient();
     const closeEvents: any[] = [];
@@ -460,8 +460,14 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
     expect(closeEvents[0].code).toBe(1000);
+    // No provider-specific field on the close: the notice is a normal item,
+    // so it survives MainPanel's setItems(getConversationItems()) teardown.
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('system');
+    expect(items[0].formatted?.text).toMatch(SEGMENT_ENDED);
   });
 
   it('a close with no preceding 403 reports a lost connection, not a cutoff', async () => {
@@ -475,7 +481,6 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
     expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
   });
 
@@ -502,11 +507,12 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     // the flag set by the previous session's 403.
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt = sttInstances.at(-1)!;
-    const closeEvents: any[] = [];
-    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    // A lost connection, not a second "segment ended".
+    const text = client.getConversationItems().at(-1)!.formatted?.text;
+    expect(text).toMatch(OUTAGE);
+    expect(text).not.toMatch(SEGMENT_ENDED);
   });
 });
 

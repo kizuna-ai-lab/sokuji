@@ -1085,7 +1085,8 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(errors).toHaveLength(0);
     expect(reconnecting).not.toHaveBeenCalled();
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(SEGMENT_ENDED);
     vi.unstubAllGlobals();
   });
 
@@ -1155,7 +1156,6 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(reconnecting).not.toHaveBeenCalled();
     expect(sttInstances).toHaveLength(1); // no resume attempt opened a new stream
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined(); // a normal close, not misread as a cutoff
     vi.unstubAllGlobals();
   });
 

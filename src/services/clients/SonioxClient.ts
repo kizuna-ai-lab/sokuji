@@ -420,17 +420,21 @@ export class SonioxClient implements IClient {
    */
   private handleSttClose(event: { code?: number; reason?: string }, gen: number): void {
     this.isConnectedState = false;
-    // Managed sessions: Soniox drops the session at its granted duration
-    // by sending a 403 error frame (caught by handleSttError, which sets
-    // this flag and suppresses the generic error bubble) immediately
-    // followed by this close. Tag the event so the UI shows a dedicated
-    // "segment ended, tap to continue" state instead of a raw error —
-    // and, per explicit product decision, does NOT auto-reconnect (a
-    // silent reconnect would restart billing without the user knowing).
+    // Managed sessions: Soniox drops the session at its granted duration by
+    // sending a 403 error frame (caught by handleSttError, which sets this
+    // flag and suppresses the generic error bubble) immediately followed by
+    // this close. Say so as a normal system notice — the same seam every
+    // client uses — rather than a provider-specific field on the close event
+    // that only MainPanel could read. Per explicit product decision this does
+    // NOT auto-reconnect: a silent reconnect would restart billing without
+    // the user knowing, so the user must tap Start for a new segment.
     if (this.pendingDurationCutoff) {
       this.pendingDurationCutoff = false;
       this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
-      this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
+      this.emitSystemNotice(
+        i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start to continue.')
+      );
+      this.eventHandlers.onClose?.(event);
       return;
     }
     // A 503 error frame (transient "service unavailable") is always
