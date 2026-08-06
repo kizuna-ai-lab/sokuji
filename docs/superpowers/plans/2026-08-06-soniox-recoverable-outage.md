@@ -30,6 +30,11 @@ not:
    any state, rather than only skipping the notice. A stale close used to
    clear `isConnectedState` and call `onClose` on whatever session was live by
    then.
+4. **The English source string gained the button's real name** — "tap Start
+   Session", not "tap Start" — and every catalog now quotes its own
+   `mainPanel.startSession` label in both Soniox notices, guarded by an
+   assertion in `locales.consistency.test.ts`. The translations listed in
+   Task 4 below are the pre-review wording.
 
 Tasks 1-5 predate all three. Read the spec for the design as shipped.
 

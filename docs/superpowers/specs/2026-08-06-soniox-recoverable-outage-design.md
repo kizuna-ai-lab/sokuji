@@ -163,9 +163,20 @@ One new key, `mainPanel.sonioxConnectionLost`, across all 30 locales
 catalog that lags `en`).
 English source string:
 
-> The connection was interrupted — tap Start in a moment to continue.
+> The connection was interrupted — tap Start Session in a moment to continue.
 
 "in a moment" is load-bearing, not filler: see Known limitations.
+
+**The button name is not free text.** Both this notice and the existing
+`mainPanel.sonioxSegmentEnded` tell the user to tap the session-start button,
+and they spell its label out rather than interpolating it — so a translation
+can name a word that appears nowhere in the UI. It already had: 18 of the 30
+catalogs said "Start" (or a local equivalent) while their button read
+"Start Session" / "Sessione starten" / "セッション開始". Every catalog now
+quotes its own `mainPanel.startSession` label in both notices, using that
+locale's quoting convention, and `locales.consistency.test.ts` asserts the
+containment so a future translation pass — or a rename of the button — fails
+there instead of shipping.
 
 ## Testing
 

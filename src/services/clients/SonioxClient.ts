@@ -468,7 +468,7 @@ export class SonioxClient implements IClient {
       this.pendingDurationCutoff = false;
       this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
       this.emitSystemNotice(
-        i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start to continue.')
+        i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start Session to continue.')
       );
       this.eventHandlers.onClose?.(event);
       return;
@@ -1281,7 +1281,7 @@ export class SonioxClient implements IClient {
     this.emitRealtime('client', 'session.connection_lost', { provider: 'soniox', code, message });
     const text = i18n.t(
       'mainPanel.sonioxConnectionLost',
-      'The connection was interrupted — tap Start in a moment to continue.'
+      'The connection was interrupted — tap Start Session in a moment to continue.'
     );
     this.emitSystemNotice(text);
     this.eventHandlers.onError?.({ code, message: text });

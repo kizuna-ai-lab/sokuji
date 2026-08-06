@@ -536,8 +536,8 @@
     "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
     "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
     "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
-    "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla Aloita.",
-    "sonioxConnectionLost": "Yhteys katkesi — jatka napauttamalla Aloita hetken kuluttua."
+    "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
+    "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”."
   },
   "modePicker": {
     "modeYou": "Sinä",

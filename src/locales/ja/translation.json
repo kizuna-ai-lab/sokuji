@@ -536,8 +536,8 @@
     "sonioxServiceBusy": "Sonioxは現在利用が集中しています。しばらくしてからもう一度お試しください。",
     "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
     "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
-    "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「開始」をタップしてください。",
-    "sonioxConnectionLost": "接続が中断されました——少ししてから「開始」をタップして続けてください。"
+    "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「セッション開始」をタップしてください。",
+    "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。"
   },
   "modePicker": {
     "modeYou": "あなた",

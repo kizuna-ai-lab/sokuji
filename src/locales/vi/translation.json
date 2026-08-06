@@ -536,8 +536,8 @@
     "sonioxServiceBusy": "Soniox hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
     "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
     "sonioxTtsFailed": "Bản dịch giọng nói đã dừng. Phiên âm và dịch văn bản vẫn đang hoạt động.",
-    "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn Bắt đầu để tiếp tục.",
-    "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn Bắt đầu sau giây lát để tiếp tục."
+    "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn “Bắt đầu phiên” để tiếp tục.",
+    "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục."
   },
   "modePicker": {
     "modeYou": "Bạn",
